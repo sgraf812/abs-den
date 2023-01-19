@@ -42,11 +42,12 @@
 \newcommand{\Var}{\mathsf{Var}}
 \newcommand{\Lab}{\mathsf{Lab}}
 \newcommand{\Exp}{\mathsf{Exp}}
+\newcommand{\Lam}[2]{\lambda #1. #2}
+\newcommand{\LLam}[3]{\lambda_{#1} #2. #3}
 \newcommand{\Let}[3]{\mathbf{let}~{#1}={#2}~\mathbf{in}~{#3}}
 \newcommand{\LLet}[4]{\mathbf{let}_{#1}~{#2}={#3}~\mathbf{in}~{#4}}
 \newcommand{\Case}[2]{\mathbf{case}~{#1}~\mathbf{of}~{#2}}
-\newcommand{\Lam}[2]{\lambda #1. #2}
-\newcommand{\LLam}[3]{\lambda_{#1} #2. #3}
+\newcommand{\Sel}[1][]{\many{K~\many{x} \rightarrow e_{#1}}}
 \newcommand{\dom}{\mathop\mathsf{dom}}
 \newcommand{\fv}{\mathop\mathsf{fv}}
 \newcommand{\bv}{\mathop\mathsf{bv}}
@@ -57,8 +58,10 @@
 \newcommand{\ValA}{\mathsf{val}}
 \newcommand{\BindA}{\mathsf{bind}}
 \newcommand{\LookupA}{\mathsf{look}}
-\newcommand{\AppA}{\mathsf{app}}
-\newcommand{\BetaA}{\mathsf{beta}}
+\newcommand{\AppIA}{\mathsf{app}_1}
+\newcommand{\AppEA}{\mathsf{app}_2}
+\newcommand{\CaseIA}{\mathsf{case}_1}
+\newcommand{\CaseEA}{\mathsf{case}_2}
 %% Labels
 \newcommand{\lbl}{\ensuremath{\ell}}
 \newcommand{\lbln}[1]{\ensuremath{\ell_{#1}}}
@@ -71,6 +74,7 @@
 %% Values
 \newcommand{\Values}{\mathbb{V}}
 \newcommand{\FunV}{\mathsf{fun}}
+\newcommand{\ConV}{\mathsf{con}}
 %% Domains
 \newcommand{\Domain}[1]{\mathbb{D}^{#1}}
 \newcommand{\PrefD}{\Domain{*}}

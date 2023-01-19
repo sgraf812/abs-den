@@ -13,8 +13,7 @@
 %\documentclass[acmsmall,review,anonymous]{acmart}\settopmatter{printfolios=true,printccs=false,printacmref=false}
 
 \let\Bbbk\undefined % https://github.com/kosmikus/lhs2tex/issues/82
-%%include custom.fmt
-%include polycode.fmt
+%include custom.fmt
 
 %% Journal information
 %%
