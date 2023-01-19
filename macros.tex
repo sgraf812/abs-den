@@ -1,0 +1,95 @@
+% Theorems
+\theoremstyle{plain} % default
+\newtheorem{theorem}{Theorem}
+\newtheorem{lemma}[theorem]{Lemma}
+\newtheorem{proposition}[theorem]{Proposition}
+\crefname{proof}{Proof}{Proofs}
+
+\theoremstyle{definition}
+\newtheorem{example}[theorem]{Example}
+\newtheorem{definition}[theorem]{Definition}
+
+% Abbrev
+\newcommand\eg{\emph{e.g.}\ }
+\newcommand\etc{\emph{etc.}}
+
+% Comments and notes
+\newcommand{\slpj}[1]{\emph{SLPJ: #1}}
+\newenvironment{slpjenv}{\em SLPJ:}{}
+\newcommand{\sg}[1]{\emph{SG: #1}}
+\newcommand{\todo}[1]{\textcolor{red}{TODO: #1}}
+
+% Auxiliary
+\newcommand{\many}[1]{\overline{#1}}
+\newcommand{\wild}{\ensuremath{\mathunderscore}}
+\newcommand{\pfun}{\rightharpoonup}
+\newcommand{\ruleform}[1]{\fbox{$#1$}}
+\newcommand{\highlight}[1]{\setlength{\fboxsep}{2pt}\colorbox[gray]{0.8}{\ensuremath{#1}}}
+\newcommand{\nelems}[1]{\lvert#1\rvert}
+\newcommand{\fn}[2]{\ensuremath{λ#1.#2}}
+\newcommand{\constfn}[1]{\fn{\mathunderscore}{#1}}
+%\newcommand{\repeat}[2]{\foreach \n in {1,...,#1}{#2}} % https://tex.stackexchange.com/a/16190/52414
+% https://latex.org/forum/viewtopic.php?p=62177&sid=26890ac77d076f3338384a47a2ffd4bc#p62177
+\makeatletter
+\newcommand{\concat}{%
+  \mathbin{\mathop{\cdot}\limits^{\vbox to -1.7\ex@{\kern-\tw@\ex@
+   \hbox{\scriptsize$\smallfrown$}\vss}}}}
+\makeatother
+
+% Syntax
+%% LC
+\newcommand{\Con}{\mathsf{Con}}
+\newcommand{\Var}{\mathsf{Var}}
+\newcommand{\Lab}{\mathsf{Lab}}
+\newcommand{\Exp}{\mathsf{Exp}}
+\newcommand{\Let}[3]{\mathbf{let}~{#1}={#2}~\mathbf{in}~{#3}}
+\newcommand{\LLet}[4]{\mathbf{let}_{#1}~{#2}={#3}~\mathbf{in}~{#4}}
+\newcommand{\Case}[2]{\mathbf{case}~{#1}~\mathbf{of}~{#2}}
+\newcommand{\Lam}[2]{\lambda #1. #2}
+\newcommand{\LLam}[3]{\lambda_{#1} #2. #3}
+\newcommand{\dom}{\mathop\mathsf{dom}}
+\newcommand{\fv}{\mathop\mathsf{fv}}
+\newcommand{\bv}{\mathop\mathsf{bv}}
+\newcommand{\fresh}[2]{#1\mathbin{\#}#2}
+\newcommand{\delvar}[1]{{\setminus_{#1}}}
+%% Actions
+\newcommand{\Actions}{\mathbb{A}}
+\newcommand{\ValA}{\mathsf{val}}
+\newcommand{\BindA}{\mathsf{bind}}
+\newcommand{\LookupA}{\mathsf{look}}
+\newcommand{\AppA}{\mathsf{app}}
+\newcommand{\BetaA}{\mathsf{beta}}
+%% Labels
+\newcommand{\lbl}{\ensuremath{\ell}}
+\newcommand{\lbln}[1]{\ensuremath{\ell_{#1}}}
+\newcommand{\slbl}{\raisebox{0.08em}{$\;\scriptscriptstyle{\ell}\;$}}
+\newcommand{\slbln}[1]{\raisebox{0.1em}{$\;\scriptscriptstyle{\ell_{#1}}\;$}}
+%% Traces
+\newcommand{\Traces}{\mathbb{T}}
+\newcommand{\act}[1]{\xrightarrow{#1}}
+\newcommand{\balanced}[1]{#1\;\mathsf{bal}}
+%% Values
+\newcommand{\Values}{\mathbb{V}}
+\newcommand{\FunV}{\mathsf{fun}}
+%% Domains
+\newcommand{\Domain}[1]{\mathbb{D}^{#1}}
+\newcommand{\PrefD}{\Domain{*}}
+\newcommand{\MaxD}{\Domain{+\infty}}
+\newcommand{\AbsD}{\Domain{\raisebox{0.1em}{\scalebox{0.4}{$\square$}}}}
+
+% Math
+\newcommand{\poset}[1]{\wp(#1)}
+\newcommand{\Nat}{\mathbb{N}}
+
+% Order theory
+\DeclareMathOperator*{\lub}{\sqcup}
+\DeclareMathOperator*{\Lub}{\bigsqcup}
+\DeclareMathOperator*{\glb}{\sqcap}
+\DeclareMathOperator*{\Glb}{\bigsqcap}
+\newcommand{\lfp}{\mathsf{lfp}}
+
+% Semantics
+\newcommand{\denot}[1]{\llbracket {#1} \rrbracket}
+\newcommand{\sempref}[1]{\mathcal{S}^*\denot{#1}}
+\newcommand{\seminf}[1]{\mathcal{S}^{+\infty}\denot{#1}}
+

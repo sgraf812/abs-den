@@ -1,0 +1,103 @@
+@inproceedings{Cousot-Cousot:POPL77,
+  Author = {Patrick Cousot and Radhia Cousot},
+  Crossref = {POPL:77},
+  Pages = {238--252},
+  Title = {Abstract Interpretation: a unified lattice model for static analysis of programs by construction or approximation of fixpoints}
+}
+
+@inproceedings{Wadler-Hughes:FPCA87,
+  author    = {Philip Wadler and R. John M. Hughes},
+  title     = {Projections for strictness analysis},
+  crossref  = {FPCA:87},
+  pages     = {385--407},
+}
+
+@techreport{Scott:81,
+  title = {LECTURES ON A MATHEMATICAL THEORY OF COMPUTATION},
+  author = {Dana S. Scott},
+  year = {1981},
+  institution = {Department of Computer Science, University of Oxford},
+  number = {PRG19},
+  pages = {152},
+}
+
+@inproceedings{Kubiak-al:FP91,
+  author    = {Ryszard Kubiak and
+               John Hughes and
+               John Launchbury},
+  title     = {Implementing Projection-based Strictness Analysis},
+  crossref  = {FP:91},
+  pages     = {207--224},
+}
+
+@inproceedings{SergeyVytiniotisSPJ:POPL14,
+  author = {Sergey, Ilya and Vytiniotis, Dimitrios and Peyton Jones, Simon},
+  title = {Modular, Higher-Order Cardinality Analysis in Theory and Practice},
+  year = {2014},
+  isbn = {9781450325448},
+  publisher = {Association for Computing Machinery},
+  address = {New York, NY, USA},
+  url = {https://doi.org/10.1145/2535838.2535861},
+  doi = {10.1145/2535838.2535861},
+  abstract = {Since the mid '80s, compiler writers for functional languages (especially lazy ones) have been writing papers about identifying and exploiting thunks and lambdas that are used only once. However it has proved difficult to achieve both power and simplicity in practice. We describe a new, modular analysis for a higher-order language, which is both simple and effective, and present measurements of its use in a full-scale, state of the art optimising compiler. The analysis finds many single-entry thunks and one-shot lambdas and enables a number of program optimisations.},
+  booktitle = {Proceedings of the 41st ACM SIGPLAN-SIGACT Symposium on Principles of Programming Languages},
+  pages = {335–347},
+  numpages = {13},
+  keywords = {haskell, program optimisation, static analysis, compilers, types and effects, thunks, operational semantics, lazy evaluation, cardinality analysis, functional programming languages},
+  location = {San Diego, California, USA},
+  series = {POPL '14}
+}
+
+@inproceedings{imprecise-exceptions,
+  author = {Peyton Jones, Simon and Reid, Alastair and Henderson, Fergus and Hoare, Tony and Marlow, Simon},
+  title = {A Semantics for Imprecise Exceptions},
+  year = {1999},
+  isbn = {1581130945},
+  publisher = {Association for Computing Machinery},
+  address = {New York, NY, USA},
+  url = {https://doi.org/10.1145/301618.301637},
+  doi = {10.1145/301618.301637},
+  abstract = {Some modern superscalar microprocessors provide only imprecise exceptions. That is, they do not guarantee to report the same exception that would be encountered by a straightforward sequential execution of the program. In exchange, they offer increased performance or decreased chip area (which amount to much the same thing).This performance/precision tradeoff has not so far been much explored at the programming language level. In this paper we propose a design for imprecise exceptions in the lazy functional programming language Haskell. We discuss several designs, and conclude that imprecision is essential if the language is still to enjoy its current rich algebra of transformations. We sketch a precise semantics for the language extended with exceptions.The paper shows how to extend Haskell with exceptions without crippling the language or its compilers. We do not yet have enough experience of using the new mechanism to know whether it strikes an appropriate balance between expressiveness and performance.},
+  booktitle = {Proceedings of the ACM SIGPLAN 1999 Conference on Programming Language Design and Implementation},
+  pages = {25–36},
+  numpages = {12},
+  location = {Atlanta, Georgia, USA},
+  series = {PLDI '99}
+}
+
+@book{DaveyPriestley:02,
+  place={Cambridge},
+  edition={2},
+  title={Introduction to Lattices and Order},
+  DOI={10.1017/CBO9780511809088},
+  publisher={Cambridge University Press},
+  author={Davey, B. A. and Priestley, H. A.},
+  year={2002}
+}
+
+@article{Sestoft:97,
+  title={Deriving a lazy abstract machine},
+  volume={7},
+  DOI={10.1017/S0956796897002712},
+  number={3},
+  journal={Journal of Functional Programming},
+  publisher={Cambridge University Press},
+  author={Sestoft, Peter},
+  year={1997},
+  pages={231–264}
+}
+
+@book{Nielson:99,
+  author    = {Flemming Nielson and
+               Hanne Riis Nielson and
+               Chris Hankin},
+  title     = {Principles of program analysis},
+  publisher = {Springer},
+  year      = {1999},
+  url       = {https://doi.org/10.1007/978-3-662-03811-6},
+  doi       = {10.1007/978-3-662-03811-6},
+  isbn      = {978-3-540-65410-0},
+  timestamp = {Tue, 16 May 2017 01:00:00 +0200},
+  biburl    = {https://dblp.org/rec/books/daglib/0098888.bib},
+  bibsource = {dblp computer science bibliography, https://dblp.org}
+}

@@ -1,0 +1,8 @@
+comp-trace.tex
+comp-trace-ext.tex
+
+*.dvi
+*.aux
+*.log
+*.out
+*.pdf
