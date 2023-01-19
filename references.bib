@@ -1,15 +1,32 @@
 @inproceedings{Cousot-Cousot:POPL77,
-  Author = {Patrick Cousot and Radhia Cousot},
-  Crossref = {POPL:77},
-  Pages = {238--252},
-  Title = {Abstract Interpretation: a unified lattice model for static analysis of programs by construction or approximation of fixpoints}
+  author = {Cousot, Patrick and Cousot, Radhia},
+  title = {Abstract Interpretation: A Unified Lattice Model for Static Analysis of Programs by Construction or Approximation of Fixpoints},
+  year = {1977},
+  isbn = {9781450373500},
+  publisher = {Association for Computing Machinery},
+  address = {New York, NY, USA},
+  url = {https://doi.org/10.1145/512950.512973},
+  doi = {10.1145/512950.512973},
+  abstract = {A program denotes computations in some universe of objects. Abstract interpretation of programs consists in using that denotation to describe computations in another universe of abstract objects, so that the results of abstract execution give some information on the actual computations. An intuitive example (which we borrow from Sintzoff [72]) is the rule of signs. The text -1515 * 17 may be understood to denote computations on the abstract universe {(+), (-), (±)} where the semantics of arithmetic operators is defined by the rule of signs. The abstract execution -1515 * 17 → -(+) * (+) → (-) * (+) → (-), proves that -1515 * 17 is a negative number. Abstract interpretation is concerned by a particular underlying structure of the usual universe of computations (the sign, in our example). It gives a summary of some facets of the actual executions of a program. In general this summary is simple to obtain but inaccurate (e.g. -1515 + 17 → -(+) + (+) → (-) + (+) → (±)). Despite its fundamentally incomplete results abstract interpretation allows the programmer or the compiler to answer questions which do not need full knowledge of program executions or which tolerate an imprecise answer, (e.g. partial correctness proofs of programs ignoring the termination problems, type checking, program optimizations which are not carried in the absence of certainty about their feasibility, …).},
+  booktitle = {Proceedings of the 4th ACM SIGACT-SIGPLAN Symposium on Principles of Programming Languages},
+  pages = {238–252},
+  numpages = {15},
+  location = {Los Angeles, California},
+  series = {POPL '77}
 }
 
-@inproceedings{Wadler-Hughes:FPCA87,
-  author    = {Philip Wadler and R. John M. Hughes},
-  title     = {Projections for strictness analysis},
-  crossref  = {FPCA:87},
-  pages     = {385--407},
+@InProceedings{Wadler-Hughes:FPCA87,
+  author="Wadler, Philip
+  and Hughes, R. J. M.",
+  editor="Kahn, Gilles",
+  title="Projections for strictness analysis",
+  booktitle="Functional Programming Languages and Computer Architecture",
+  year="1987",
+  publisher="Springer Berlin Heidelberg",
+  address="Berlin, Heidelberg",
+  pages="385--407",
+  abstract="Contexts have been proposed as a means of performing strictness analysis on non-flat domains. Roughly speaking, a context describes how much a sub-expression will be evaluated by the surrounding program. This paper shows how contexts can be represented using the notion of projection from domain theory. This is clearer than the previous explanation of contexts in terms of continuations. In addition, this paper describes finite domains of contexts over the non-flat list domain. This means that recursive context equations can be solved using standard fixpoint techniques, instead of the algebraic manipulation previously used.",
+  isbn="978-3-540-47879-9"
 }
 
 @techreport{Scott:81,
@@ -22,12 +39,20 @@
 }
 
 @inproceedings{Kubiak-al:FP91,
-  author    = {Ryszard Kubiak and
-               John Hughes and
-               John Launchbury},
-  title     = {Implementing Projection-based Strictness Analysis},
-  crossref  = {FP:91},
-  pages     = {207--224},
+  author="Kubiak, Ryszard
+  and Hughes, John
+  and Launchbury, John",
+  editor="Heldal, Rogardt
+  and Holst, Carsten Kehler
+  and Wadler, Philip",
+  title="Implementing Projection-based Strictness Analysis",
+  booktitle="Functional Programming, Glasgow 1991",
+  year="1992",
+  publisher="Springer London",
+  address="London",
+  pages="207--224",
+  abstract="Projection-based backwards strictness analysis has been understood for some years. Surprisingly, even though the method is fairly simple and quite general, no reports of its implementation have appeared. This paper describes ideas underlying our prototype implementation of the analysis for a simple programming language. The implementation serves as a case study before applying the method in the Glasgow Haskell compiler.",
+  isbn="978-1-4471-3196-0"
 }
 
 @inproceedings{SergeyVytiniotisSPJ:POPL14,

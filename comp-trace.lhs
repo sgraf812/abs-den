@@ -20,15 +20,15 @@
 %%
 \setcopyright{rightsretained}
 \acmPrice{}
-\acmDOI{10.1145/???????}
+\acmDOI{10.1145/1111111}
 \acmYear{2024}
 \copyrightyear{2024}
-\acmSubmissionID{popl24main-p??-p}
+\acmSubmissionID{popl24main-p11-p}
 \acmJournal{PACMPL}
-\acmVolume{?}
+\acmVolume{1}
 \acmNumber{POPL}
-\acmArticle{???}
-\acmMonth{?}
+\acmArticle{1}
+\acmMonth{1}
 
 %% Bibliography style
 \bibliographystyle{ACM-Reference-Format}
@@ -44,13 +44,11 @@
 %\usepackage{stmaryrd}
 %\usepackage{mathrsfs}
 \usepackage{amsmath,latexsym,amssymb,amsthm}
-\usepackage{eqnarray}
 \usepackage{upgreek}
 \usepackage{color}
 \usepackage{url}
 \usepackage{galois}
 %\usepackage{scalerel}
-\usepackage[inference]{semantic}
 %\usepackage[svgnames]{xcolor}
 %\usepackage[all]{xy}
 %\usepackage{graphicx}
@@ -58,7 +56,6 @@
 \usepackage{cleveref}
 \usepackage{xspace}
 \usepackage{mathpartir}
-\usepackage{mathtools} % mathclap
 \usepackage{tikz}
 %\usepackage{eucal}
 %\usepackage{wasysym} % \currency
@@ -80,8 +77,8 @@
 \setlength{\pdfpageheight}{\paperheight}
 \setlength{\pdfpagewidth}{\paperwidth}
 
-\title{Lower Your Guards}
-\subtitle{A Compositional Pattern-Match Coverage Checker}
+\title{A Compositional Trace Semantics for Lambda Calculus}
+\subtitle{}
 
 \author{Sebastian Graf}
 \affiliation{%
@@ -170,14 +167,15 @@
 
 %% Keywords
 %% comma separated list
-\keywords{Programming language semantics, structural definition, denotational semantics, operational semantics}  %% \keywords are mandatory in final camera-ready submission
+\keywords{Programming language semantics}  %% \keywords are mandatory in final camera-ready submission
 
 \maketitle
 
 %include semantics.lhs
 
-\appendix
+\nocite{*}
 
+\clearpage
 \bibliography{references}
 
 \fi % \ifmain

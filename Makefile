@@ -12,7 +12,7 @@ comp-trace-ext.tex: *.lhs
 	lhs2TeX --poly appendix.lhs >appendix.tex
 	lhs2TeX --poly comp-trace.lhs | sed -e 's/^%\\appendixonly/\\appendixonly/g' > comp-trace-ext.tex
 
-%.pdf: %.tex macros.tex
+%.pdf: %.tex macros.tex references.bib
 	$(PDFLATEX) $*
 	bibtex $*
 	$(PDFLATEX) $*

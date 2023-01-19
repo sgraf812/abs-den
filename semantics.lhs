@@ -51,7 +51,7 @@
   \label{fig:syntax}
 \end{figure}
 
-Labelled expressoin:
+Labelled expression:
 \begin{gather*}
    \Let{x}{\Lam{y}{y}}{x~x~x)} \\
    \slbln{1}\Let{x}{\slbln{2}(\Lam{y}{\slbln{3}y})\slbln{4}}{\slbln{5}(\slbln{6}(\slbln{7}x~x)~x)}

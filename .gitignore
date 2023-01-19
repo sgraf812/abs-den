@@ -1,8 +1,10 @@
 comp-trace.tex
 comp-trace-ext.tex
 
-*.dvi
 *.aux
+*.bbl
+*.blg
+*.dvi
 *.log
 *.out
 *.pdf
