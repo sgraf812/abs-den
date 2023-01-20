@@ -29,12 +29,6 @@
 \newcommand{\fn}[2]{\ensuremath{λ#1.#2}}
 \newcommand{\constfn}[1]{\fn{\mathunderscore}{#1}}
 %\newcommand{\repeat}[2]{\foreach \n in {1,...,#1}{#2}} % https://tex.stackexchange.com/a/16190/52414
-% https://latex.org/forum/viewtopic.php?p=62177&sid=26890ac77d076f3338384a47a2ffd4bc#p62177
-\makeatletter
-\newcommand{\concat}{%
-  \mathbin{\mathop{\cdot}\limits^{\vbox to 1\ex@{\kern-\tw@\ex@
-   \hbox{\scriptsize$\smallfrown$}\vss}}}}
-\makeatother
 
 % Syntax
 %% LC
@@ -58,6 +52,7 @@
 \newcommand{\ValA}{\mathsf{val}}
 \newcommand{\BindA}{\mathsf{bind}}
 \newcommand{\LookupA}{\mathsf{look}}
+\newcommand{\UpdateA}{\mathsf{upd}}
 \newcommand{\AppIA}{\mathsf{app}_1}
 \newcommand{\AppEA}{\mathsf{app}_2}
 \newcommand{\CaseIA}{\mathsf{case}_1}
@@ -70,7 +65,15 @@
 %% Traces
 \newcommand{\Traces}{\mathbb{T}}
 \newcommand{\act}[1]{\xrightarrow{#1}}
+% https://latex.org/forum/viewtopic.php?p=62177&sid=26890ac77d076f3338384a47a2ffd4bc#p62177
+\makeatletter
+\newcommand{\concat}{%
+  \mathbin{\mathop{\cdot}\limits^{\vbox to 1\ex@{\kern-\tw@\ex@
+   \hbox{\scriptsize$\smallfrown$}\vss}}}}
+\makeatother
 \newcommand{\balanced}[1]{#1\;\mathsf{bal}}
+\newcommand{\getval}[2]{#1 \Downarrow #2}
+
 %% Values
 \newcommand{\Values}{\mathbb{V}}
 \newcommand{\FunV}{\mathsf{fun}}
@@ -96,4 +99,9 @@
 \newcommand{\denot}[1]{\llbracket {#1} \rrbracket}
 \newcommand{\sempref}[1]{\mathcal{S}^*\denot{#1}}
 \newcommand{\seminf}[1]{\mathcal{S}^{+\infty}\denot{#1}}
+\newcommand{\semty}[1]{\mathcal{S}^{τ}\denot{#1}}
 
+% Types
+\newcommand{\TyCon}{\mathsf{TyCon}}
+\newcommand{\Type}{\mathsf{Type}}
+\newcommand{\ArrowTy}{\Rightarrow}
