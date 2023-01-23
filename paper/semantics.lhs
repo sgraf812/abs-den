@@ -282,12 +282,30 @@ Trace of the expression:
      {\balanced{π}}
      {\balanced{\lbln{1} \act{\LookupA} π \act{\UpdateA} \lbln{2}}} \\
   \end{array} \\
+  \\[-0.5em]
+ \end{array} \\
+ \begin{array}{c}
+  \ruleform{ \balanced{π} } \\
+  \\[-0.5em]
+  \inferrule*[right=\textsc{BalVar}]
+    {\balanced{π}}
+    {\balanced{\lbln{1} \act{\LookupA} π \act{\UpdateA} \lbln{2}}} \\
  \end{array} \\
  \\
  \begin{array}{rcl}
   \multicolumn{3}{c}{ \ruleform{ \seminf{\wild} \colon \Exp → (\Var → \MaxD) → \MaxD } } \\
   \\[-0.5em]
-  poststep(S,a,\lbl)(π_i)   & = & S(π_i) \act{a} \lbl \\
+  rightmatch(π,π_s) & = & \exists π_1,π_2. π = π_1 \concat π_s \concat π_2 \wedge \neg(rightmatch(π_s, tail(π_s) \concat π_2))  \\
+  \\[-0.5em]
+  lookup(π_k,π) & = & \begin{cases}
+    π_i \act{\LookupA} \lbln{1} \act{\ValA(v)} \lbln{2} \act{\UpdateA(π_k)} \lbln{?} & \text{if $π = π' \act{\UpdateA(π_k)} \wild$ and $rightmatch(π',\lbln{1} \act{\ValA(v)} \lbln{2})$} \\
+    lookup(π_k, π')                  & \text{if $π = π' \act{\wild} \wild$} \\
+    undefined                        & \text{otherwise} \\
+  \end{cases} \\
+  \\[-0.5em]
+  memoised(S,π_k,\lbl)(π_i)   & = & \begin{cases}
+    S(π_i) \act{a} \lbl \\
+  \end{cases}
   \\[-0.5em]
   \seminf{\slbl(\Let{x}{e_1}{e_2})}_ρ(π_i) & = &
     \begin{array}{ll}
@@ -325,22 +343,26 @@ Trace of the expression:
   \\[-0.5em]
   \semss{\slbl x}_ρ    (κ)   & = & ρ(x)(κ) \\
   \\[-0.5em]
-  \semss{\slbln{1}(\Lam{x}{e})\slbln{2}}_ρ(H,\Lam{y}{e'},\many{\UpdateF{z} \pushF }S) & = & (\FunV(\fn{d}{\semss{e}_{ρ[x↦d]}}), update(H,\Lam{y}{e'},\many{\UpdateF{z} \pushF }S)) \\
+  \semss{\slbln{1}(\Lam{x}{e})\slbln{2}}_ρ & = & \fn{(H,\Lam{y}{e'},S)}{ \\
+    & & (\FunV(\fn{d}{\semss{e}_{ρ[x↦d]}}), update(H,\Lam{y}{e'},S))
+    } \\
   \\[-0.5em]
-  \semss{\slbl(e~x)}_ρ(H_1,e_1~x_1,S_1) & = &
-    \begin{array}{ll}
+  \semss{\slbl(e~x)}_ρ & = & \fn{(H_1,e_1~x_1,S_1)}{\\
+    & & \begin{array}{ll}
       \text{let} & (v,σ;(H_2,e_2,S_2)) = \semss{e}_ρ(H_1,e_1,\ApplyF{x_1} \pushF S_1) \\
       \text{in}  & \begin{cases}
                      σ;(H_2,e_2,S_2);f(ρ(x))(H_2,e_3[y_3/x_3],S_3) & \text{if $v = \FunV(f)$ and $e_2 = \Lam{y_3}{e_3}$ and $S_2 = \ApplyF{x_3} \pushF S_3$}  \\
                      σ;(H_2,e_2,S_2); & \text{otherwise}  \\
                    \end{cases} \\
-    \end{array} \\
+    \end{array}
+    } \\
   \\[-0.5em]
-  \semss{\slbl(\Let{x}{e_1}{e_2})}_ρ(H,\Let{x'}{e_1'}{e_2'},S) & = &
-    \begin{array}{ll}
+  \semss{\slbl(\Let{x}{e_1}{e_2})}_ρ& = & \fn{(H,\Let{x'}{e_1'}{e_2'},S)}{\\
+    & & \begin{array}{ll}
       \text{let} & ρ' = \lfp(λρ'. ρ ⊔ [x ↦ \fn{(H',y,S')}{\semss{e_1}_{ρ'}(H',H'(y),\UpdateF{y} \pushF S')}]) \\
       \text{in}  & (H,\Let{x'}{e_1'}{e_2'},S);\semss{e_2}_{ρ'}(H[x'↦e_1'],e_2',S)
-    \end{array} \\
+    \end{array}
+    } \\
   \\
  \end{array} \\
  \\
