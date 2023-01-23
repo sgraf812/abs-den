@@ -304,6 +304,66 @@ Trace of the expression:
 \begin{figure}
 \[\begin{array}{c}
  \begin{array}{rrclcl}
+  \text{Configurations}  &     κ & ∈ & \Configurations & ::= & (H,e,S) \\
+  \\
+  \text{Stacks}       &     S & ∈ & \Stacks  & ::= & \StopF \mid \ApplyF{x} \pushF S \mid \UpdateF{x} \pushF S \\
+  \text{Finite Small Traces}       &     σ & ∈ & \STraces  & ::= & κ \mid σ \sstep κ \\
+  \text{Domain of small-step transitions} &       &   & \SSD  & = & \Configurations \to (\Values,\STraces) \\
+ \end{array} \\
+ \\
+  \ruleform{ \balanced{π} } \\
+  \\[-0.5em]
+  \inferrule*[right=\textsc{BalCase}]
+    {\balanced{π_1}\quad\balanced{π_2}}
+    {\balanced{\lbl \act{\CaseIA} π_1 \act{\CaseEA} π_2}} \\
+ \\
+ \begin{array}{rcl}
+  \multicolumn{3}{c}{ \ruleform{ \semss{\wild} \colon \Exp → (\Var → \SSD) → \SSD } } \\
+  \\[-0.5em]
+  update((H,e,\UpdateF{x} \pushF S)) & = & (H,e,S) \sstep update(H[x↦e],e,S) \\
+  update((H,e,S)) & = & (H,e,S) \quad \text{if $S \not= \UpdateF{x} \pushF \wild$} \\
+  \\[-0.5em]
+  \semss{\slbl x}_ρ    (κ)   & = & ρ(x)(κ) \\
+  \\[-0.5em]
+  \semss{\slbln{1}(\Lam{x}{e})\slbln{2}}_ρ(H,\Lam{y}{e'},\many{\UpdateF{z} \pushF }S) & = & (\FunV(\fn{d}{\semss{e}_{ρ[x↦d]}}), update(H,\Lam{y}{e'},\many{\UpdateF{z} \pushF }S)) \\
+  \\[-0.5em]
+  \semss{\slbl(e~x)}_ρ(H_1,e_1~x_1,S_1) & = &
+    \begin{array}{ll}
+      \text{let} & (v,σ;(H_2,e_2,S_2)) = \semss{e}_ρ(H_1,e_1,\ApplyF{x_1} \pushF S_1) \\
+      \text{in}  & \begin{cases}
+                     σ;(H_2,e_2,S_2);f(ρ(x))(H_2,e_3[y_3/x_3],S_3) & \text{if $v = \FunV(f)$ and $e_2 = \Lam{y_3}{e_3}$ and $S_2 = \ApplyF{x_3} \pushF S_3$}  \\
+                     σ;(H_2,e_2,S_2); & \text{otherwise}  \\
+                   \end{cases} \\
+    \end{array} \\
+  \\[-0.5em]
+  \semss{\slbl(\Let{x}{e_1}{e_2})}_ρ(H,\Let{x'}{e_1'}{e_2'},S) & = &
+    \begin{array}{ll}
+      \text{let} & ρ' = \lfp(λρ'. ρ ⊔ [x ↦ \fn{(H',y,S')}{\semss{e_1}_{ρ'}(H',H'(y),\UpdateF{y} \pushF S')}]) \\
+      \text{in}  & (H,\Let{x'}{e_1'}{e_2'},S);\semss{e_2}_{ρ'}(H[x'↦e_1'],e_2',S)
+    \end{array} \\
+  \\
+ \end{array} \\
+ \\
+ \begin{array}{rcl}
+  \mathbb{P}^* & = & \{ C \in \poset{\Traces^+} \mid C \text{ is a prefix-closed chain of traces} \} \\
+  \\[-0.5em]
+  \multicolumn{3}{c}{ \ruleform{ α^{*} : \Traces^{+\infty} \to \mathbb{P}^* \qquad γ^{*} : \mathbb{P}^* \to \Traces^{+\infty} } } \\
+  \\[-0.5em]
+  α^{*}(π) & = & \{ π' \mid π' \text{ is a prefix of } π \} \\
+  γ^{*}(C) & = & \Lub C \qquad \text{where $\lub$ is defined on the prefix-closed chain $C$} \\
+  \Traces^{+\infty} & \GaloiS{α^{*}}{γ^{*}} & \mathbb{P}^* \\
+  \Traces^+ \to \Traces^{+\infty} & \GaloiS{\dot{α}^{*}}{\dot{γ}^{*}} & \Traces^+ \to \mathbb{P}^* \\
+  \semss{e} & \GaloiS{\ddot{α}^{*}}{\ddot{γ}^{*}} & \sempref{e} \\
+  \\
+ \end{array}
+\end{array}\]
+\caption{Structural call-by-need small-step semantics}
+  \label{fig:ss-semantics}
+\end{figure}
+
+\begin{figure}
+\[\begin{array}{c}
+ \begin{array}{rrclcl}
   \text{Data Type Constructors}  & T & ∈ & \TyCon & \subseteq & \Nat \\
   \text{Types}                   & τ & ∈ & \Type & ::= & τ_1 \ArrowTy τ_2 \mid T \\
   \text{Constructor families}    & φ & ∈ & \multicolumn{3}{l}{\Con \twoheadrightarrow \TyCon} \\

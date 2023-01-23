@@ -56,6 +56,7 @@
 \usepackage{xspace}
 \usepackage{mathpartir}
 \usepackage{tikz}
+\usepackage{mathbbol}
 %\usepackage{eucal}
 %\usepackage{wasysym} % \currency
 %\usetikzlibrary{cd} % commutative diagrams

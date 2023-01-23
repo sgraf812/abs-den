@@ -83,6 +83,7 @@
 \newcommand{\PrefD}{\Domain{*}}
 \newcommand{\MaxD}{\Domain{+\infty}}
 \newcommand{\AbsD}{\Domain{\raisebox{0.1em}{\scalebox{0.4}{$\square$}}}}
+\newcommand{\SSD}{\Domain{Σ}}
 
 % Math
 \newcommand{\poset}[1]{\wp(#1)}
@@ -99,7 +100,20 @@
 \newcommand{\denot}[1]{\llbracket {#1} \rrbracket}
 \newcommand{\sempref}[1]{\mathcal{S}^*\denot{#1}}
 \newcommand{\seminf}[1]{\mathcal{S}^{+\infty}\denot{#1}}
+\newcommand{\semss}[1]{\mathcal{S}^{Σ}\denot{#1}}
 \newcommand{\semty}[1]{\mathcal{S}^{τ}\denot{#1}}
+
+% Small-step
+\newcommand{\Configurations}{\mathsf{Config}}
+\newcommand{\Heaps}{\mathsf{Heap}}
+\newcommand{\Stacks}{\mathsf{Stack}}
+\newcommand{\Frames}{\mathsf{Frame}}
+\newcommand{\pushF}{\cdot}
+\newcommand{\StopF}{\mathsf{stop}}
+\newcommand{\ApplyF}[1]{\$ #1}
+\newcommand{\UpdateF}[1]{\# #1}
+\newcommand{\STraces}{\mathsf{STrace}}
+\newcommand{\sstep}{;}
 
 % Types
 \newcommand{\TyCon}{\mathsf{TyCon}}
