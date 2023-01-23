@@ -46,13 +46,35 @@
   \end{cases} \\
  \end{array} \\
  \\
- \begin{array}{c}
- \ruleform{ \getval{π}{v} }
- \\[-0.5em]
- \inferrule*[right=\textsc{ValVal}]
-   {\quad}
-   {\getval{π \act{\ValA(v)} \lbl}{v}}
- \\[-0.5em]
+ \begin{array}{ll}
+  \begin{array}{c}
+  \ruleform{ \getval{π}{v} }
+  \\[-0.5em]
+  \inferrule*[right=\textsc{ValVal}]
+    {\quad}
+    {\getval{π \act{\ValA(v)} \lbl}{v}}
+  \\[-0.5em]
+  \end{array} &
+  \begin{array}{c}
+  \ruleform{ \balanced{π} } \\
+  \\[-0.5em]
+  \inferrule*[right=\textsc{BalVal}]
+    {\quad}
+    {\balanced{\lbln{1} \act{\ValA(v)} \lbln{2}}}
+  \qquad
+  \inferrule*[right=\textsc{BalApp}]
+    {\balanced{π_1}\quad\balanced{π_2}}
+    {\balanced{\lbl \act{\AppIA} π_1 \act{\AppEA} π_2}} \\
+  \\[-0.5em]
+  \inferrule*[right=\textsc{BalVar}]
+    {\balanced{π}}
+    {\balanced{\lbl \act{\LookupA} π}}
+  \qquad
+  \inferrule*[right=\textsc{BalLet}]
+    {\balanced{π}}
+    {\balanced{\lbl \act{\BindA} π}} \\
+  \\[-0.5em]
+  \end{array} \\
  \end{array} \\
 \end{array}\]
 \caption{Syntax of expressions, labels and traces}
@@ -89,25 +111,25 @@ Trace of the expression:
   \seminf{\slbl x}_ρ    (π_i)   & = & ρ(x)(π_i) \\
   \\[-0.5em]
   \seminf{\slbln{1}(\Lam{x}{e})\slbln{2}}_ρ(π_i) & = &
-    \begin{array}{ll}
+    \begin{letarray}
       \text{let} & f = d ↦ step(\seminf{e}_{ρ[x↦d]},\AppEA,\mathsf{at}[e]) \\
       \text{in}  & \lbln{1} \act{\ValA(\FunV(f))} \lbln{2} \\
-    \end{array} \\
+    \end{letarray} \\
   \\[-0.5em]
   \seminf{\slbl(e~x)}_ρ(π_i) & = &
-    \begin{array}{ll}
+    \begin{letarray}
       \text{let} & π_e = \seminf{e}_ρ(π_i \act{\AppIA} \mathsf{at}[e]) \\
       \text{in}  & \begin{cases}
                      \lbl \act{\AppIA} π_e \concat f(ρ(x))(π_i \act{\AppIA} π_e) & \text{if $\getval{π_e}{\FunV(f)}$}  \\
                      \lbl \act{\AppIA} π_e & \text{otherwise}  \\
                    \end{cases} \\
-    \end{array} \\
+    \end{letarray} \\
   \\[-0.5em]
   \seminf{\slbl(\Let{x}{e_1}{e_2})}_ρ(π_i) & = &
-    \begin{array}{ll}
+    \begin{letarray}
       \text{let} & ρ' = \lfp(λρ'. ρ ⊔ [x ↦ step(\seminf{e_1}_{ρ'},\LookupA,\mathsf{at}[e_1])]) \\
       \text{in}  & step(\seminf{e_2}_{ρ'},\BindA,\mathsf{at}[e_2])(π_i)
-    \end{array} \\
+    \end{letarray} \\
   \\
  \end{array} \\
  \\
@@ -202,23 +224,6 @@ Trace of the expression:
     {\lbl \act{\AppIA} π_e \concat π_f ∈ \sempref{\slbl(e~x)}_ρ(π_i)} \\
   \\
 
-  \ruleform{ \balanced{π} } \\
-  \inferrule*[right=\textsc{BalVal}]
-    {\quad}
-    {\balanced{\lbln{1} \act{\ValA(v)} \lbln{2}}}
-  \qquad
-  \inferrule*[right=\textsc{BalApp}]
-    {\balanced{π_1}\quad\balanced{π_2}}
-    {\balanced{\lbl \act{\AppIA} π_1 \act{\AppEA} π_2}} \\
-  \\[-0.5em]
-  \inferrule*[right=\textsc{BalVar}]
-    {\balanced{π}}
-    {\balanced{\lbl \act{\LookupA} π}}
-  \qquad
-  \inferrule*[right=\textsc{BalLet}]
-    {\balanced{π}}
-    {\balanced{\lbl \act{\BindA} π}} \\
-  \\[-0.5em]
   \\[-0.5em]
 \end{array}\]
 \caption{Structural Deductive Stateless Prefix Trace Semantics for call-by-name lambda calculus}
@@ -264,59 +269,54 @@ Trace of the expression:
 \begin{figure}
 \[\begin{array}{c}
  \begin{array}{rrclcl}
-  \text{Actions}      &     a & ∈ & \Actions & ::=       & \ldots \mid \LookupA(π) \mid \UpdateA(π) \\
- \end{array} \\
- \\
- \begin{array}{ll}
-  \begin{array}{c}
-   \ruleform{ \getval{π}{v} } \\
-   \\[-0.5em]
-   \inferrule*[right=\textsc{ValUpd}]
-     {\getval{π}{v}}
-     {\getval{π \act{\UpdateA(\wild)} \lbl}{v}} \\
-  \end{array} &
-  \begin{array}{c}
-   \ruleform{ \balanced{π} } \\
-   \\[-0.5em]
-   \inferrule*[right=\textsc{BalVar}]
-     {\balanced{π}}
-     {\balanced{\lbln{1} \act{\LookupA} π \act{\UpdateA} \lbln{2}}} \\
-  \end{array} \\
-  \\[-0.5em]
- \end{array} \\
- \begin{array}{c}
-  \ruleform{ \balanced{π} } \\
-  \\[-0.5em]
-  \inferrule*[right=\textsc{BalVar}]
-    {\balanced{π}}
-    {\balanced{\lbln{1} \act{\LookupA} π \act{\UpdateA} \lbln{2}}} \\
+  \text{Actions}      &     a & ∈ & \Actions & ::=       & \ldots \mid \LookupA(\highlight{π}) \\
  \end{array} \\
  \\
  \begin{array}{rcl}
   \multicolumn{3}{c}{ \ruleform{ \seminf{\wild} \colon \Exp → (\Var → \MaxD) → \MaxD } } \\
   \\[-0.5em]
-  π_s \subtrceq π & = & \exists π_1,π_2. π = π_1 \concat π_s \concat π_2  \\
+  π_s \subtrceq π & = & \exists π_1, π_2.\ π = π_1 \concat π_s \concat π_2  \\
   \\[-0.5em]
-  π_r \rightsubtrceq π & = & π_r \subtrceq π \wedge \forall π'. (π' \subtrceq (π_r \concat π_2) \Rightarrow π' = π_r) \\
-  \\[-0.5em]
-  π_l \leftsubtrceq π & = & π_l \subtrceq π \wedge \forall π'. (π' \subtrceq (π_1 \concat π_l) \Rightarrow π' = π_l) \\
-  \\[-0.5em]
-  lookup(π_k,π) & = & \begin{cases}
-    π_i \act{\LookupA} \lbln{1} \act{\ValA(v)} \lbln{2} \act{\UpdateA(π_k)} \lbln{?} & \text{if $π = π' \act{\UpdateA(π_k)} \wild$ and $rightmatch(π',\lbln{1} \act{\ValA(v)} \lbln{2})$} \\
-    lookup(π_k, π')                  & \text{if $π = π' \act{\wild} \wild$} \\
-    undefined                        & \text{otherwise} \\
+  lookup(π_k,π_i) & = & \begin{cases}
+    dst(π_b) \act{\ValA(v)} \lbln{2} & \begin{array}{@@{}l@@{}}\text{if $\lbln{1} \act{\LookupA(π_k)} π_b \act{\ValA(v)} \lbln{2} \subtrceq π_i$} \\[-0.4em]
+                                                       \text{and $\balanced{π_b \act{\ValA(v)} \lbln{2}}$} \end{array} \\
+    \square                      & \text{otherwise} \\
   \end{cases} \\
   \\[-0.5em]
-  memoised(S,π_k,\lbl)(π_i)   & = & \begin{cases}
-    S(π_i) \act{a} \lbl \\
-  \end{cases}
+  memo(S,π_k,\lbl)(π_i)   & = & \begin{cases}
+    dst(π_i) \act{\LookupA(π_k)} π_v & π_v = lookup(π_k,π_i) \\
+    dst(π_i) \act{\LookupA(π_k)} S(π_i \act{\LookupA(π_k)} \lbl) & \text{otherwise} \\
+  \end{cases} \\
   \\[-0.5em]
   \seminf{\slbl(\Let{x}{e_1}{e_2})}_ρ(π_i) & = &
-    \begin{array}{ll}
-      \text{let} & ρ' = \lfp(λρ'. ρ ⊔ [x ↦ \\ & poststep(step(\seminf{e_1}_{ρ'},\LookupA(π_i),\mathsf{at}[e_1]),\UpdateA(π_i),\mathsf{at}[???])]) \\
+    \begin{letarray}
+      \text{let} & ρ' = \lfp(λρ'. ρ ⊔ [x ↦ memo(\seminf{e_1}_{ρ'},π_i,\mathsf{at}[e_1])]) \\
       \text{in}  & step(\seminf{e_2}_{ρ'},\BindA,\mathsf{at}[e_2])(π_i)
-    \end{array} \\
+    \end{letarray} \\
   \\
+  \multicolumn{3}{l}{\text{(Unchanged call-by-name equations:)}} \\
+  \\[-0.5em]
+  step(S,a,\lbl)(π_i)   & = & dst(π_i) \act{a} S(π_i \act{a} \lbl) \\
+  \\[-0.5em]
+  \seminf{\slbl e}_ρ    (π_i)   & = & dst(π_i) \qquad \text{if $dst(π_i) \not= \lbl$} \\
+  \\[-0.9em]
+  \seminf{\slbl x}_ρ    (π_i)   & = & ρ(x)(π_i) \\
+  \\[-0.5em]
+  \seminf{\slbln{1}(\Lam{x}{e})\slbln{2}}_ρ(π_i) & = &
+    \begin{letarray}
+      \text{let} & f = d ↦ step(\seminf{e}_{ρ[x↦d]},\AppEA,\mathsf{at}[e]) \\
+      \text{in}  & \lbln{1} \act{\ValA(\FunV(f))} \lbln{2} \\
+    \end{letarray} \\
+  \\[-0.5em]
+  \seminf{\slbl(e~x)}_ρ(π_i) & = &
+    \begin{letarray}
+      \text{let} & π_e = \seminf{e}_ρ(π_i \act{\AppIA} \mathsf{at}[e]) \\
+      \text{in}  & \begin{cases}
+                     \lbl \act{\AppIA} π_e \concat f(ρ(x))(π_i \act{\AppIA} π_e) & \text{if $\getval{π_e}{\FunV(f)}$}  \\
+                     \lbl \act{\AppIA} π_e & \text{otherwise}  \\
+                   \end{cases} \\
+    \end{letarray} \\
+  \\[-0.5em]
  \end{array} \\
 \end{array}\]
 \caption{Structural Maximal Trace Semantics for call-by-need}
@@ -333,12 +333,6 @@ Trace of the expression:
   \text{Domain of small-step transitions} &       &   & \SSD  & = & \Configurations \to (\Values,\STraces) \\
  \end{array} \\
  \\
-  \ruleform{ \balanced{π} } \\
-  \\[-0.5em]
-  \inferrule*[right=\textsc{BalCase}]
-    {\balanced{π_1}\quad\balanced{π_2}}
-    {\balanced{\lbl \act{\CaseIA} π_1 \act{\CaseEA} π_2}} \\
- \\
  \begin{array}{rcl}
   \multicolumn{3}{c}{ \ruleform{ \semss{\wild} \colon \Exp → (\Var → \SSD) → \SSD } } \\
   \\[-0.5em]
@@ -352,20 +346,20 @@ Trace of the expression:
     } \\
   \\[-0.5em]
   \semss{\slbl(e~x)}_ρ & = & \fn{(H_1,e_1~x_1,S_1)}{\\
-    & & \begin{array}{ll}
+    & & \begin{letarray}
       \text{let} & (v,σ;(H_2,e_2,S_2)) = \semss{e}_ρ(H_1,e_1,\ApplyF{x_1} \pushF S_1) \\
       \text{in}  & \begin{cases}
                      σ;(H_2,e_2,S_2);f(ρ(x))(H_2,e_3[y_3/x_3],S_3) & \text{if $v = \FunV(f)$ and $e_2 = \Lam{y_3}{e_3}$ and $S_2 = \ApplyF{x_3} \pushF S_3$}  \\
                      σ;(H_2,e_2,S_2); & \text{otherwise}  \\
                    \end{cases} \\
-    \end{array}
+    \end{letarray}
     } \\
   \\[-0.5em]
   \semss{\slbl(\Let{x}{e_1}{e_2})}_ρ& = & \fn{(H,\Let{x'}{e_1'}{e_2'},S)}{\\
-    & & \begin{array}{ll}
+    & & \begin{letarray}
       \text{let} & ρ' = \lfp(λρ'. ρ ⊔ [x ↦ \fn{(H',y,S')}{\semss{e_1}_{ρ'}(H',H'(y),\UpdateF{y} \pushF S')}]) \\
       \text{in}  & (H,\Let{x'}{e_1'}{e_2'},S);\semss{e_2}_{ρ'}(H[x'↦e_1'],e_2',S)
-    \end{array}
+    \end{letarray}
     } \\
   \\
  \end{array} \\
@@ -404,13 +398,13 @@ Trace of the expression:
     \varnothing & \text{otherwise} \\
   \end{cases} \\
   \\[-0.5em]
-  α_τ(S) & = & \{ α_v(v) \mid \exists π_i π. (π \act{\ValA(v)} \wild) ∈ S(π_i) \wedge \balanced{π} \}  \\
+  α_τ(S) & = & \{ α_v(v) \mid \exists π_i, π.\  (π \act{\ValA(v)} \wild) ∈ S(π_i) \wedge \balanced{π} \}  \\
   α_v(\FunV(f)) & = & single(\{ τ_1 \ArrowTy τ_2 \mid τ_2 \in α_τ(f(γ_τ(τ_1))) \})  \\
   α_v(\ConV(K,\many{d})) & = & \{ φ(K) \mid \many{σ(i) \in α_τ(d_i)}^i \}  \\
   \\[-0.5em]
   γ_τ(A)(π_i) & = & \{ π \act{\ValA(v)} \wild \mid \balanced{π} \wedge v ∈ γ_v(A) \}  \\
   γ_v(A) & = &   \{ \ConV(K,\many{d}) \mid φ(K) ∈ A \wedge \many{d_i = γ_τ(σ(i))}^i \} \\
-         &   & ∪ \{ \FunV(f) \mid \forall (τ_1 \ArrowTy τ_2) ∈ A. f(γ_τ(τ_1)) \subseteq γ_τ(τ_2)  \}  \\
+         &   & ∪ \{ \FunV(f) \mid \forall (τ_1 \ArrowTy τ_2) ∈ A.\  f(γ_τ(τ_1)) \subseteq γ_τ(τ_2)  \}  \\
   \\
  \end{array} \\
  \begin{array}{rcl}
@@ -423,25 +417,25 @@ Trace of the expression:
   \seminf{\slbl x}_ρ    (π_i)   & = & ρ(x)(π_i) \\
   \\[-0.5em]
   \seminf{\slbln{1}(\Lam{x}{e})\slbln{2}}_ρ(π_i) & = &
-    \begin{array}{ll}
+    \begin{letarray}
       \text{let} & f = d ↦ step(\seminf{e}_{ρ[x↦d]},\AppEA,\mathsf{at}[e]) \\
       \text{in}  & α_v(\FunV(f)) \\
-    \end{array} \\
+    \end{letarray} \\
   \\[-0.5em]
   \seminf{\slbl(e~x)}_ρ(π_i) & = &
-    \begin{array}{ll}
+    \begin{letarray}
       \text{let} & π_e = \seminf{e}_ρ(π_i \act{\AppIA} \mathsf{at}[e]) \\
       \text{in}  & \begin{cases}
                      \lbl \act{\AppIA} π_e \concat f(ρ(x))(π_i \act{\AppIA} π_e) & \text{if $π_e = \wild \act{\ValA(\FunV(f))} \wild$}  \\
                      \lbl \act{\AppIA} π_e & \text{otherwise}  \\
                    \end{cases} \\
-    \end{array} \\
+    \end{letarray} \\
   \\[-0.5em]
   \seminf{\slbl(\Let{x}{e_1}{e_2})}_ρ(π_i) & = &
-    \begin{array}{ll}
+    \begin{letarray}
       \text{let} & ρ' = \lfp(λρ'. ρ ⊔ [x ↦ \seminf{e_1}_{ρ'}]) \\
       \text{in}  & step(\seminf{e_2}_{ρ'},\BindA,\mathsf{at}[e_2])(π_i)
-    \end{array} \\
+    \end{letarray} \\
   \\
   \seminf{\slbln{1}(K~\many{x})\slbln{2}}_ρ(π_i) & = & \lbln{1} \act{\ValA(\ConV(K,\many{ρ(x)}))} \lbln{2} \\
   \\[-0.5em]
