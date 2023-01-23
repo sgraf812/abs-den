@@ -295,7 +295,11 @@ Trace of the expression:
  \begin{array}{rcl}
   \multicolumn{3}{c}{ \ruleform{ \seminf{\wild} \colon \Exp → (\Var → \MaxD) → \MaxD } } \\
   \\[-0.5em]
-  rightmatch(π,π_s) & = & \exists π_1,π_2. π = π_1 \concat π_s \concat π_2 \wedge \neg(rightmatch(π_s, tail(π_s) \concat π_2))  \\
+  π_s \subtrceq π & = & \exists π_1,π_2. π = π_1 \concat π_s \concat π_2  \\
+  \\[-0.5em]
+  π_r \rightsubtrceq π & = & π_r \subtrceq π \wedge \forall π'. (π' \subtrceq (π_r \concat π_2) \Rightarrow π' = π_r) \\
+  \\[-0.5em]
+  π_l \leftsubtrceq π & = & π_l \subtrceq π \wedge \forall π'. (π' \subtrceq (π_1 \concat π_l) \Rightarrow π' = π_l) \\
   \\[-0.5em]
   lookup(π_k,π) & = & \begin{cases}
     π_i \act{\LookupA} \lbln{1} \act{\ValA(v)} \lbln{2} \act{\UpdateA(π_k)} \lbln{?} & \text{if $π = π' \act{\UpdateA(π_k)} \wild$ and $rightmatch(π',\lbln{1} \act{\ValA(v)} \lbln{2})$} \\

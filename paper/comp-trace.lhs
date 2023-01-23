@@ -52,6 +52,8 @@
 %\usepackage[all]{xy}
 %\usepackage{graphicx}
 %\usepackage{stackengine}
+%\usepackage{mathtools} % mathrlap
+\usepackage{trimclip} % clipbox
 \usepackage{cleveref}
 \usepackage{xspace}
 \usepackage{mathpartir}
