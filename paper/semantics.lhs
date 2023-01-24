@@ -336,13 +336,15 @@ Trace of the expression:
  \begin{array}{rcl}
   \multicolumn{3}{c}{ \ruleform{ \semss{\wild} \colon \Exp → (\Var → \SSD) → \SSD } } \\
   \\[-0.5em]
-  update((H,e,\UpdateF{x} \pushF S)) & = & (H,e,S) \sstep update(H[x↦e],e,S) \\
-  update((H,e,S)) & = & (H,e,S) \quad \text{if $S \not= \UpdateF{x} \pushF \wild$} \\
+  update2(H,e,\UpdateF{x} \pushF S) & = & (H,e,S) \sstep update2(H[x↦e],e,S) \\
+  update2(H,e,S) & = & (H,e,S) \quad \text{if $S \not= \UpdateF{x} \pushF \wild$} \\
   \\[-0.5em]
-  \semss{\slbl x}_ρ    (κ)   & = & ρ(x)(κ) \\
+  update(x)(v,(H,e,\UpdateF{x} \pushF S)) & = & (v, (H,e,\UpdateF{x} \pushF S) \sstep (H[x↦e],e,S)) \\
+  \\[-0.5em]
+  \semss{\slbl x}_ρ & = & ρ(x) \\
   \\[-0.5em]
   \semss{\slbln{1}(\Lam{x}{e})\slbln{2}}_ρ & = & \fn{(H,\Lam{y}{e'},S)}{ \\
-    & & (\FunV(\fn{d}{\semss{e}_{ρ[x↦d]}}), update(H,\Lam{y}{e'},S))
+    & & (\FunV(\fn{d}{\semss{e}_{ρ[x↦d]}}), (H,\Lam{y}{e'},S)_l
     } \\
   \\[-0.5em]
   \semss{\slbl(e~x)}_ρ & = & \fn{(H_1,e_1~x_1,S_1)}{\\
@@ -357,7 +359,7 @@ Trace of the expression:
   \\[-0.5em]
   \semss{\slbl(\Let{x}{e_1}{e_2})}_ρ& = & \fn{(H,\Let{x'}{e_1'}{e_2'},S)}{\\
     & & \begin{letarray}
-      \text{let} & ρ' = \lfp(λρ'. ρ ⊔ [x ↦ \fn{(H',y,S')}{\semss{e_1}_{ρ'}(H',H'(y),\UpdateF{y} \pushF S')}]) \\
+      \text{let} & ρ' = \lfp(λρ'. ρ ⊔ [x ↦ \fn{(H',y,S')}{update(y)(\semss{e_1}_{ρ'}(H',H'(y),\UpdateF{y} \pushF S'))}]) \\
       \text{in}  & (H,\Let{x'}{e_1'}{e_2'},S);\semss{e_2}_{ρ'}(H[x'↦e_1'],e_2',S)
     \end{letarray}
     } \\
