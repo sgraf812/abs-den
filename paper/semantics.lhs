@@ -104,9 +104,11 @@ Trace of the expression:
  \begin{array}{rcl}
   \multicolumn{3}{c}{ \ruleform{ \seminf{\wild} \colon \Exp → (\Var → \MaxD) → \MaxD } } \\
   \\[-0.5em]
+  \bot(π_i)   & = & dst(π_i) \text{ is the bottom element of $\MaxD$} \\
+  \\[-0.5em]
   step(S,a,\lbl)(π_i)   & = & dst(π_i) \act{a} S(π_i \act{a} \lbl) \\
   \\[-0.5em]
-  \seminf{\slbl e}_ρ    (π_i)   & = & dst(π_i) \qquad \text{if $dst(π_i) \not= \lbl$} \\
+  \seminf{\slbl e}_ρ    (π_i)   & = & \bot(π_i) \qquad \text{if $dst(π_i) \not= \lbl$} \\
   \\[-0.9em]
   \seminf{\slbl x}_ρ    (π_i)   & = & ρ(x)(π_i) \\
   \\[-0.5em]
@@ -119,9 +121,9 @@ Trace of the expression:
   \seminf{\slbl(e~x)}_ρ(π_i) & = &
     \begin{letarray}
       \text{let} & π_e = \seminf{e}_ρ(π_i \act{\AppIA} \mathsf{at}[e]) \\
-      \text{in}  & \begin{cases}
-                     \lbl \act{\AppIA} π_e \concat f(ρ(x))(π_i \act{\AppIA} π_e) & \text{if $\getval{π_e}{\FunV(f)}$}  \\
-                     \lbl \act{\AppIA} π_e & \text{otherwise}  \\
+      \text{in}  & \lbl \act{\AppIA} π_e \concat \begin{cases}
+                     f(ρ(x))(π_i \act{\AppIA} π_e) & \text{if $\getval{π_e}{\FunV(f)}$}  \\
+                     \bot(π_i \act{\AppIA} π_e) & \text{otherwise}  \\
                    \end{cases} \\
     \end{letarray} \\
   \\[-0.5em]
@@ -251,9 +253,9 @@ Trace of the expression:
   \\[-0.5em]
   \seminf{\slbln{1}(K~\many{x})\slbln{2}}_ρ(π_i) & = & \lbln{1} \act{\ValA(\ConV(K,\many{ρ(x)}))} \lbln{2} \\
   \\[-0.5em]
-  \seminf{\slbl(\Case{e_s}{\Sel})}_ρ(π_i) & = & \begin{cases}
-      π_s \concat Rhs(K,\many{d})(π_i \concat π_s) & \text{if $\getval{π_s}{\ConV(K,\many{d})}$}  \\
-      π_s & \text{otherwise}  \\
+  \seminf{\slbl(\Case{e_s}{\Sel})}_ρ(π_i) & = & π_s \concat \begin{cases}
+      Rhs(K,\many{d})(π_i \concat π_s) & \text{if $\getval{π_s}{\ConV(K,\many{d})}$}  \\
+      \bot(π_i \concat π_s) & \text{otherwise}  \\
     \end{cases} \\
     & & \text{where} \begin{array}{lcl}
                        π_s & = & step(\seminf{e_s}_ρ, \CaseIA, \mathsf{at}[e_s])(π_i) \\
