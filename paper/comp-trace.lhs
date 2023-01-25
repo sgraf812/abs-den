@@ -52,7 +52,7 @@
 %\usepackage[all]{xy}
 %\usepackage{graphicx}
 %\usepackage{stackengine}
-%\usepackage{mathtools} % mathrlap
+\usepackage{mathtools} % xhookrightarrow
 \usepackage{trimclip} % clipbox
 \usepackage{cleveref}
 \usepackage{xspace}

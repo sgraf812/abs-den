@@ -331,8 +331,10 @@ Trace of the expression:
   \text{Configurations}  &     κ & ∈ & \Configurations & ::= & (H,e,S) \\
   \\
   \text{Stacks}       &     S & ∈ & \Stacks  & ::= & \StopF \mid \ApplyF{x} \pushF S \mid \UpdateF{x} \pushF S \\
-  \text{Finite Small Traces}       &     σ & ∈ & \STraces  & ::= & κ \mid σ \sstep κ \\
-  \text{Domain of small-step transitions} &       &   & \SSD  & = & \Configurations \to (\Values,\STraces) \\
+  \text{Small-step transition}     &     t & ∈ & \STransitions  & ::= & \AppIT \mid \AppET \mid \UpdateT \mid \LookupT \mid \LetT \\
+  \text{Finite Small-step Traces}       &     σ & ∈ & \STraces^+      & ::= & κ \mid σ \strans{t} κ \\
+  \text{Finite and Infinite Small-step Traces}       &     σ & ∈ & \STraces^{+\infty}      & = & \STraces^+ ∪ \lim(\STraces^+) \\
+  \text{Domain of small-step transitions} &       &   & \SSD  & = & (\Values_\bot,\Configurations \to \STraces^{+\infty}) \\
  \end{array} \\
  \\
  \begin{array}{rcl}
