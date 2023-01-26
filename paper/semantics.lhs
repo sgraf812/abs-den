@@ -8,11 +8,11 @@
   \text{Variables}    & x,y,z & ∈ & \Var &      & \\
   \text{Expressions}  &     e & ∈ & \Exp & ::=  & x \mid \Lam{x}{e} \mid e~x \mid \Let{x}{e_1}{e_2} \\
   \\
-  \text{Actions} & a & ∈ & \Actions & ::=  & \ValA(\mathbb{V}) \mid \AppIA \mid \AppEA \mid \LookupA \mid \BindA \\
+  \text{Actions} & a & ∈ & \Actions & ::=  & \AppIA \mid \AppEA \mid \LookupA \mid \BindA \\
   \text{Finite Traces} & π & ∈ & \Traces^+ & ::=  & \lbl \mid \lbl \act{a} π  \\
 
-  \text{Values}          &     v & ∈ & \Values & ::= & \FunV(\AbsD \to \AbsD) \\
   \text{Semantic Domain} &     d & ∈ & \AbsD & & \text{Specified as needed} \\
+  \text{Values}          &     v & ∈ & \Values & ::= & \FunV(\AbsD \to \AbsD) \mid \bot_\Values \\
   \\
   \text{Limit of a set of traces} & && \lim \mathcal{T} & = & \{ π \mid ∀n∈\mathbb{N}. π[0..n] ∈ \mathcal{T} \} \\
   \\
@@ -132,9 +132,35 @@ Trace of the expression:
       \text{let} & ρ' = \lfp(λρ'. ρ ⊔ [x ↦ step(\seminf{e_1}_{ρ'},\LookupA,\mathsf{at}[e_1])]) \\
       \text{in}  & step(\seminf{e_2}_{ρ'},\BindA,\mathsf{at}[e_2])(π_i)
     \end{letarray} \\
-  \\
+  \\[-0.5em]
+  \text{Call-by-need:} \\
+  \\[-0.5em]
+  π_s \subtrceq π & = & \exists π_1, π_2.\ π = π_1 \concat π_s \concat π_2  \\
+  \\[-0.5em]
+  lookup(π_k,π_i) & = & \begin{cases}
+    dst(π_b) \act{\ValA(v)} \lbln{2} & \begin{array}{@@{}l@@{}}\text{if $\lbln{1} \act{\LookupA(π_k)} π_b \act{\ValA(v)} \lbln{2} \subtrceq π_i$} \\[-0.4em]
+                                                       \text{and $\balanced{π_b \act{\ValA(v)} \lbln{2}}$} \end{array} \\
+    \square                      & \text{otherwise} \\
+  \end{cases} \\
+  \\[-0.5em]
+  memo(S,π_k,\lbl)(π_i)   & = & \begin{cases}
+    dst(π_i) \act{\LookupA(π_k)} π_v & π_v = lookup(π_k,π_i) \\
+    dst(π_i) \act{\LookupA(π_k)} S(π_i \act{\LookupA(π_k)} \lbl) & \text{otherwise} \\
+  \end{cases} \\
+  \\[-0.5em]
+  \seminf{\slbl(\Let{x}{e_1}{e_2})}_ρ(π_i) & = &
+    \begin{letarray}
+      \text{let} & ρ' = \lfp(λρ'. ρ ⊔ [x ↦ memo(\seminf{e_1}_{ρ'},π_i,\mathsf{at}[e_1])]) \\
+      \text{in}  & step(\seminf{e_2}_{ρ'},\BindA,\mathsf{at}[e_2])(π_i)
+    \end{letarray} \\
  \end{array} \\
- \\
+\end{array}\]
+\caption{Structural Maximal Trace Semantics With Crazy Traces}
+  \label{fig:semantics}
+\end{figure}
+
+\begin{figure}
+\[\begin{array}{c}
  \begin{array}{rcl}
   \mathbb{P}^* & = & \{ C \in \poset{\Traces^+} \mid C \text{ is a prefix-closed chain of traces} \} \\
   \\[-0.5em]
@@ -148,7 +174,76 @@ Trace of the expression:
   \\
  \end{array}
 \end{array}\]
-\caption{Structural Maximal Trace Semantics}
+\caption{Prefix Trace Abstraction}
+  \label{fig:semantics}
+\end{figure}
+
+\newcommand{\second}{\ensuremath{\mathbin{@<2>@}}}
+
+\begin{figure}
+\[\begin{array}{c}
+ \begin{array}{rcl}
+  \multicolumn{3}{c}{ \ruleform{ \seminf{\wild} \colon \Exp → (\Var → \MaxD) → \MaxD } } \\
+  \\[-0.5em]
+  \bot_\MaxD(π_i)   & = & (\bot_\Values,dst(π_i)) \text{ is the bottom element of $\MaxD$} \\
+  \\[-0.5em]
+  f \second (a,b)  & = & (a, f a) \\
+  \\[-0.5em]
+  step(S,a,\lbl)(π_i)   & = & (dst(π_i) \act{a} {}) \second S(π_i \act{a} \lbl) \\
+  \\[-0.5em]
+  \seminf{\slbl e}_ρ    (π_i)   & = & \bot(π_i) \qquad \text{if $dst(π_i) \not= \lbl$} \\
+  \\[-0.9em]
+  \seminf{\slbl x}_ρ    (π_i)   & = & ρ(x)(π_i) \\
+  \\[-0.5em]
+  \seminf{\slbln{1}(\Lam{x}{e})\slbln{2}}_ρ(π_i) & = &
+    \begin{letarray}
+      \text{let} & f = d ↦ step(\seminf{e}_{ρ[x↦d]},\AppEA,\mathsf{at}[e]) \\
+      \text{in}  & (\FunV(f), \lbln{1} \act{\ValA} \lbln{2}) \\
+    \end{letarray} \\
+  \\[-0.5em]
+  \seminf{\slbl(e~x)}_ρ(π_i) & = &
+    \begin{letarray}
+      \text{let} & (v_e, π_e) = \seminf{e}_ρ(π_i \act{\AppIA} \mathsf{at}[e]) \\
+      \text{in}  & (\lbl \act{\AppIA} π_e \concat {}) \second \begin{cases}
+                     f(ρ(x))(π_i \act{\AppIA} π_e) & \text{if $v_e = \FunV(f)$}  \\
+                     \bot(π_i \act{\AppIA} π_e) & \text{otherwise}  \\
+                   \end{cases} \\
+    \end{letarray} \\
+  \\[-0.5em]
+  \seminf{\slbl(\Let{x}{e_1}{e_2})}_ρ(π_i) & = &
+    \begin{letarray}
+      \text{let} & ρ' = \lfp(λρ'. ρ ⊔ [x ↦ step(\seminf{e_1}_{ρ'},\LookupA,\mathsf{at}[e_1])]) \\
+      \text{in}  & step(\seminf{e_2}_{ρ'},\BindA,\mathsf{at}[e_2])(π_i)
+    \end{letarray} \\
+  \\[-0.5em]
+  \text{Call-by-need:} \\
+  \\[-0.5em]
+  π_s \subtrceq π & = & \exists π_1, π_2.\ π = π_1 \concat π_s \concat π_2  \\
+  \\[-0.5em]
+  lookup(π_k,π_i) & = & \begin{cases}
+    dst(π_b) \act{\ValA} \lbln{2} & \begin{array}{@@{}l@@{}}\text{if $\lbln{1} \act{\LookupA(π_k)} π_b \act{\ValA} \lbln{2} \subtrceq π_i$} \\[-0.4em]
+                                                       \text{and $\balanced{π_b \act{\ValA} \lbln{2}}$} \end{array} \\
+    \square                      & \text{otherwise} \\
+  \end{cases} \\
+  \\[-0.5em]
+  memo(S,π_k,\lbl)(π_i)   & = & \begin{cases}
+    (v,dst(π_i) \act{\LookupA(π_k)} π_v & π_v = lookup(π_k,π_i) \\
+    (v,dst(π_i) \act{\LookupA(π_k)} π_e & \text{otherwise} \\
+  \end{cases} \\
+  & & \text{where } (v,π_e) = S(π_i \act{\LookupA(π_k)} \lbl) \\
+  \\[-0.5em]
+  \seminf{\slbl(\Let{x}{e_1}{e_2})}_ρ(π_i) & = &
+    \begin{letarray}
+      \text{let} & ρ' = \lfp(λρ'. ρ ⊔ [x ↦ memo(\seminf{e_1}_{ρ'},π_i,\mathsf{at}[e_1])]) \\
+      \text{in}  & step(\seminf{e_2}_{ρ'},\BindA,\mathsf{at}[e_2])(π_i)
+    \end{letarray} \\
+ \end{array} \\
+ \\[-0.5em]
+ \begin{array}{rrclcl}
+  \text{Domain of deterministic maximal traces} & && \MaxD & = & \Traces^+ \to (\Values, \Traces^{+\infty}) \\
+ \end{array} \\
+\end{array}\]
+\caption{Structural Maximal Trace Semantics With Separate Values}
   \label{fig:semantics}
 \end{figure}
 
