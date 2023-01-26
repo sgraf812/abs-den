@@ -106,7 +106,7 @@ Trace of the expression:
   \\[-0.5em]
   \bot(π_i)   & = & dst(π_i) \text{ is the bottom element of $\MaxD$} \\
   \\[-0.5em]
-  step(S,a,\lbl)(π_i)   & = & dst(π_i) \act{a} S(π_i \act{a} \lbl) \\
+  cons(a,\lbl,S)(π_i)   & = & dst(π_i) \act{a} S(π_i \act{a} \lbl) \\
   \\[-0.5em]
   \seminf{\slbl e}_ρ    (π_i)   & = & \bot(π_i) \qquad \text{if $dst(π_i) \not= \lbl$} \\
   \\[-0.9em]
@@ -114,7 +114,7 @@ Trace of the expression:
   \\[-0.5em]
   \seminf{\slbln{1}(\Lam{x}{e})\slbln{2}}_ρ(π_i) & = &
     \begin{letarray}
-      \text{let} & f = d ↦ step(\seminf{e}_{ρ[x↦d]},\AppEA,\mathsf{at}[e]) \\
+      \text{let} & f = d ↦ cons(\AppEA,\mathsf{at}[e],\seminf{e}_{ρ[x↦d]}) \\
       \text{in}  & \lbln{1} \act{\ValA(\FunV(f))} \lbln{2} \\
     \end{letarray} \\
   \\[-0.5em]
@@ -129,8 +129,8 @@ Trace of the expression:
   \\[-0.5em]
   \seminf{\slbl(\Let{x}{e_1}{e_2})}_ρ(π_i) & = &
     \begin{letarray}
-      \text{let} & ρ' = \lfp(λρ'. ρ ⊔ [x ↦ step(\seminf{e_1}_{ρ'},\LookupA,\mathsf{at}[e_1])]) \\
-      \text{in}  & step(\seminf{e_2}_{ρ'},\BindA,\mathsf{at}[e_2])(π_i)
+      \text{let} & ρ' = \lfp(λρ'. ρ ⊔ [x ↦ cons(\LookupA,\mathsf{at}[e_1],\seminf{e_1}_{ρ'})]) \\
+      \text{in}  & cons(\BindA,\mathsf{at}[e_2],\seminf{e_2}_{ρ'})(π_i)
     \end{letarray} \\
   \\[-0.5em]
   \text{Call-by-need:} \\
@@ -143,15 +143,15 @@ Trace of the expression:
     \square                      & \text{otherwise} \\
   \end{cases} \\
   \\[-0.5em]
-  memo(S,π_k,\lbl)(π_i)   & = & \begin{cases}
+  memo(π_k,\lbl,S)(π_i)   & = & \begin{cases}
     dst(π_i) \act{\LookupA(π_k)} π_v & π_v = lookup(π_k,π_i) \\
     dst(π_i) \act{\LookupA(π_k)} S(π_i \act{\LookupA(π_k)} \lbl) & \text{otherwise} \\
   \end{cases} \\
   \\[-0.5em]
   \seminf{\slbl(\Let{x}{e_1}{e_2})}_ρ(π_i) & = &
     \begin{letarray}
-      \text{let} & ρ' = \lfp(λρ'. ρ ⊔ [x ↦ memo(\seminf{e_1}_{ρ'},π_i,\mathsf{at}[e_1])]) \\
-      \text{in}  & step(\seminf{e_2}_{ρ'},\BindA,\mathsf{at}[e_2])(π_i)
+      \text{let} & ρ' = \lfp(λρ'. ρ ⊔ [x ↦ memo(π_i,\mathsf{at}[e_1],\seminf{e_1}_{ρ'})]) \\
+      \text{in}  & cons(\BindA,\mathsf{at}[e_2],\seminf{e_2}_{ρ'})(π_i)
     \end{letarray} \\
  \end{array} \\
 \end{array}\]
@@ -189,7 +189,7 @@ Trace of the expression:
   \\[-0.5em]
   f \second (a,b)  & = & (a, f a) \\
   \\[-0.5em]
-  step(S,a,\lbl)(π_i)   & = & (dst(π_i) \act{a} {}) \second S(π_i \act{a} \lbl) \\
+  cons(a,\lbl,S)(π_i)   & = & (dst(π_i) \act{a} {}) \second S(π_i \act{a} \lbl) \\
   \\[-0.5em]
   \seminf{\slbl e}_ρ    (π_i)   & = & \bot(π_i) \qquad \text{if $dst(π_i) \not= \lbl$} \\
   \\[-0.9em]
@@ -197,7 +197,7 @@ Trace of the expression:
   \\[-0.5em]
   \seminf{\slbln{1}(\Lam{x}{e})\slbln{2}}_ρ(π_i) & = &
     \begin{letarray}
-      \text{let} & f = d ↦ step(\seminf{e}_{ρ[x↦d]},\AppEA,\mathsf{at}[e]) \\
+      \text{let} & f = d ↦ cons(\AppEA,\mathsf{at}[e],\seminf{e}_{ρ[x↦d]}) \\
       \text{in}  & (\FunV(f), \lbln{1} \act{\ValA} \lbln{2}) \\
     \end{letarray} \\
   \\[-0.5em]
@@ -212,8 +212,8 @@ Trace of the expression:
   \\[-0.5em]
   \seminf{\slbl(\Let{x}{e_1}{e_2})}_ρ(π_i) & = &
     \begin{letarray}
-      \text{let} & ρ' = \lfp(λρ'. ρ ⊔ [x ↦ step(\seminf{e_1}_{ρ'},\LookupA,\mathsf{at}[e_1])]) \\
-      \text{in}  & step(\seminf{e_2}_{ρ'},\BindA,\mathsf{at}[e_2])(π_i)
+      \text{let} & ρ' = \lfp(λρ'. ρ ⊔ [x ↦ cons(\LookupA,\mathsf{at}[e_1],\seminf{e_1}_{ρ'})]) \\
+      \text{in}  & cons(\BindA,\mathsf{at}[e_2],\seminf{e_2}_{ρ'})(π_i)
     \end{letarray} \\
   \\[-0.5em]
   \text{Call-by-need:} \\
@@ -226,7 +226,7 @@ Trace of the expression:
     \square                      & \text{otherwise} \\
   \end{cases} \\
   \\[-0.5em]
-  memo(S,π_k,\lbl)(π_i)   & = & \begin{cases}
+  memo(π_k,\lbl,S)(π_i)   & = & \begin{cases}
     (v,dst(π_i) \act{\LookupA(π_k)} π_v & π_v = lookup(π_k,π_i) \\
     (v,dst(π_i) \act{\LookupA(π_k)} π_e & \text{otherwise} \\
   \end{cases} \\
@@ -234,8 +234,8 @@ Trace of the expression:
   \\[-0.5em]
   \seminf{\slbl(\Let{x}{e_1}{e_2})}_ρ(π_i) & = &
     \begin{letarray}
-      \text{let} & ρ' = \lfp(λρ'. ρ ⊔ [x ↦ memo(\seminf{e_1}_{ρ'},π_i,\mathsf{at}[e_1])]) \\
-      \text{in}  & step(\seminf{e_2}_{ρ'},\BindA,\mathsf{at}[e_2])(π_i)
+      \text{let} & ρ' = \lfp(λρ'. ρ ⊔ [x ↦ memo(π_i,\mathsf{at}[e_1],\seminf{e_1}_{ρ'})]) \\
+      \text{in}  & cons(\BindA,\mathsf{at}[e_2],\seminf{e_2}_{ρ'})(π_i)
     \end{letarray} \\
  \end{array} \\
  \\[-0.5em]
@@ -250,9 +250,9 @@ Trace of the expression:
 \begin{figure}
 \[
 \begin{array}{ll}
-  & \text{Let } ρ_x = \lfp(λρ. [x ↦ step(\seminf{\slbln{2}(\Lam{y}{\slbln{3}y})\slbln{4}}_ρ,\LookupA,\lbln{2}]) \\
+  & \text{Let } ρ_x = \lfp(λρ. [x ↦ cons(\LookupA,\lbln{2}],\seminf{\slbln{2}(\Lam{y}{\slbln{3}y})\slbln{4}}_ρ) \\
   & \text{and } ρ_{x,y} = ρ_x[y ↦ ρ_1(x)] \\
-  & \text{and } f = d ↦ step(\seminf{\slbln{3}y}_{ρ[y↦d]},\AppEA,\lbln{3}) \\
+  & \text{and } f = d ↦ cons(\AppEA,\lbln{3},\seminf{\slbln{3}y}_{ρ[y↦d]}) \\
   & \text{Evaluate }\slbln{1}\Let{x}{\slbln{2}(\Lam{y}{\slbln{3}y})\slbln{4}}{\slbln{5}(\slbln{6}(\slbln{7}x~x)~x)} \\
   & \\
   & \seminf{\slbln{1}\Let{x}{\slbln{2}(\Lam{y}{\slbln{3}y})\slbln{4}}{\slbln{5}(\slbln{6}(\slbln{7}x~x)~x)}}_\bot(\lbln{1}) \\
@@ -293,7 +293,7 @@ Trace of the expression:
 \[\begin{array}{c}
   \ruleform{ \sempref{\wild} \colon \Exp → (\Var → \PrefD) → \PrefD } \\
   \\[-0.5em]
-  step(S,a,\lbl)(π_i)   = \{\; dst(π_i) \act{a} π_o \mid π_o ∈ S(π_i \act{a} \lbl) \;\} \\
+  cons(a,\lbl,S)(π_i)   = \{\; dst(π_i) \act{a} π_o \mid π_o ∈ S(π_i \act{a} \lbl) \;\} \\
   \\[-0.5em]
   \inferrule*[right=\textsc{Bot}]
     {\quad}
@@ -304,19 +304,19 @@ Trace of the expression:
     {π_c ∈ \sempref{\slbl x}_ρ(π_i)} \\
   \\[-0.5em]
   \inferrule*[right=\textsc{Let}]
-    {   ρ' = \lfp(λρ'. ρ ⊔ [x ↦ step(\sempref{e_1}_{ρ'},\LookupA,\mathsf{at}[e_1])])
-     \\ π_c ∈ step(\sempref{e_2}_{ρ'},\BindA,\mathsf{at}[e_2])(π_i)}
+    {   ρ' = \lfp(λρ'. ρ ⊔ [x ↦ cons(\LookupA,\mathsf{at}[e_1],\sempref{e_1}_{ρ'})])
+     \\ π_c ∈ cons(\BindA,\mathsf{at}[e_2],\sempref{e_2}_{ρ'})(π_i)}
     {π_c ∈ \sempref{\slbl(\Let{x}{e_1}{e_2})}_ρ(π_i)} \\
   \\[-0.5em]
   \inferrule*[right=\textsc{Lam}]
-    {f = d ↦ step(\sempref{e}_{ρ[x↦d]},\AppEA,\mathsf{at}[e])}
+    {f = d ↦ cons(\AppEA,\mathsf{at}[e],\sempref{e}_{ρ[x↦d]})}
     {\lbln{1} \act{\ValA(\FunV(f))} \lbln{2} ∈ \sempref{\slbln{1}(\Lam{x}{e})\slbln{2}}_ρ(π_i)} \qquad
   \inferrule*[right=$\textsc{App}_1$]
-    {π_c ∈ step(\sempref{e}_ρ,\AppIA,\mathsf{at}[e])(π_i)}
+    {π_c ∈ cons(\AppIA,\mathsf{at}[e],\sempref{e}_ρ)(π_i)}
     {π_c ∈ \sempref{\slbl(e~x)}_ρ(π_i)} \\
   \\[-0.5em]
   \inferrule*[right=$\textsc{App}_2$]
-    {\balanced{π_e} \quad π_e ∈ step(\sempref{e}_ρ,\AppIA,\mathsf{at}[e])(π_i)
+    {\balanced{π_e} \quad π_e ∈ cons(\AppIA,\mathsf{at}[e],\sempref{e}_ρ)(π_i)
     \\\\ \getval{π_e}{\FunV(f)} \qquad π_f ∈ f(ρ(x))(π_i \act{\AppIA} π_e)}
     {\lbl \act{\AppIA} π_e \concat π_f ∈ \sempref{\slbl(e~x)}_ρ(π_i)} \\
   \\
@@ -353,8 +353,8 @@ Trace of the expression:
       \bot(π_i \concat π_s) & \text{otherwise}  \\
     \end{cases} \\
     & & \text{where} \begin{array}{lcl}
-                       π_s & = & step(\seminf{e_s}_ρ, \CaseIA, \mathsf{at}[e_s])(π_i) \\
-                       Rhs(K,\many{d}) & = & step(\seminf{e_K}_{ρ[\many{x↦d}]},\CaseEA,\mathsf{at}[e_K]) \\
+                       π_s & = & cons( \CaseIA, \mathsf{at}[e_s],\seminf{e_s}_ρ)(π_i) \\
+                       Rhs(K,\many{d}) & = & cons(\CaseEA,\mathsf{at}[e_K],\seminf{e_K}_{ρ[\many{x↦d}]}) \\
                      \end{array} \\
   \\
  \end{array} \\
@@ -380,20 +380,20 @@ Trace of the expression:
     \square                      & \text{otherwise} \\
   \end{cases} \\
   \\[-0.5em]
-  memo(S,π_k,\lbl)(π_i)   & = & \begin{cases}
+  memo(π_k,\lbl,S)(π_i)   & = & \begin{cases}
     dst(π_i) \act{\LookupA(π_k)} π_v & π_v = lookup(π_k,π_i) \\
     dst(π_i) \act{\LookupA(π_k)} S(π_i \act{\LookupA(π_k)} \lbl) & \text{otherwise} \\
   \end{cases} \\
   \\[-0.5em]
   \seminf{\slbl(\Let{x}{e_1}{e_2})}_ρ(π_i) & = &
     \begin{letarray}
-      \text{let} & ρ' = \lfp(λρ'. ρ ⊔ [x ↦ memo(\seminf{e_1}_{ρ'},π_i,\mathsf{at}[e_1])]) \\
-      \text{in}  & step(\seminf{e_2}_{ρ'},\BindA,\mathsf{at}[e_2])(π_i)
+      \text{let} & ρ' = \lfp(λρ'. ρ ⊔ [x ↦ memo(π_i,\mathsf{at}[e_1],\seminf{e_1}_{ρ'})]) \\
+      \text{in}  & cons(\seminf{e_2}_{ρ'},\BindA,\mathsf{at}[e_2])(π_i)
     \end{letarray} \\
   \\
   \multicolumn{3}{l}{\text{(Unchanged call-by-name equations:)}} \\
   \\[-0.5em]
-  step(S,a,\lbl)(π_i)   & = & dst(π_i) \act{a} S(π_i \act{a} \lbl) \\
+  cons(S,a,\lbl)(π_i)   & = & dst(π_i) \act{a} S(π_i \act{a} \lbl) \\
   \\[-0.5em]
   \seminf{\slbl e}_ρ    (π_i)   & = & dst(π_i) \qquad \text{if $dst(π_i) \not= \lbl$} \\
   \\[-0.9em]
@@ -401,7 +401,7 @@ Trace of the expression:
   \\[-0.5em]
   \seminf{\slbln{1}(\Lam{x}{e})\slbln{2}}_ρ(π_i) & = &
     \begin{letarray}
-      \text{let} & f = d ↦ step(\seminf{e}_{ρ[x↦d]},\AppEA,\mathsf{at}[e]) \\
+      \text{let} & f = d ↦ cons(\seminf{e}_{ρ[x↦d]},\AppEA,\mathsf{at}[e]) \\
       \text{in}  & \lbln{1} \act{\ValA(\FunV(f))} \lbln{2} \\
     \end{letarray} \\
   \\[-0.5em]
@@ -424,69 +424,121 @@ Trace of the expression:
 \[\begin{array}{c}
  \begin{array}{rrclcl}
   \text{Configurations}  &     κ & ∈ & \Configurations & ::= & (H,e,S) \\
-  \\
+  \text{Heaps}       &     H & ∈ & \Heaps  & = & \Var \pfun \Exp \\
   \text{Stacks}       &     S & ∈ & \Stacks  & ::= & \StopF \mid \ApplyF{x} \pushF S \mid \UpdateF{x} \pushF S \\
   \text{Small-step transition}     &     t & ∈ & \STransitions  & ::= & \AppIT \mid \AppET \mid \UpdateT \mid \LookupT \mid \LetT \\
-  \text{Finite Small-step Traces}       &     σ & ∈ & \STraces^+      & ::= & κ \mid σ \strans{t} κ \\
+  \text{Finite Small-step Traces}       &     σ & ∈ & \STraces^+      & ::= & κ \mid σ_1 \strans{t} σ_2 \\
   \text{Finite and Infinite Small-step Traces}       &     σ & ∈ & \STraces^{+\infty}      & = & \STraces^+ ∪ \lim(\STraces^+) \\
+ \end{array} \\
+ \\
+ \begin{array}{rcl}
+  \multicolumn{3}{c}{ \ruleform{ src_\Sigma(σ) = κ \qquad dst_\Sigma(σ) = κ } } \\
+  \\[-0.5em]
+  src_\Sigma(κ)                  & = & κ \\
+  src_\Sigma(σ_1 \strans{t} σ_2) & = & src_\Sigma(σ_1) \\
+  \\[-0.5em]
+  dst_\Sigma(κ)                  & = & κ \\
+  dst_\Sigma(σ_1 \strans{t} σ_2) & = & dst_\Sigma(σ_2) \\
+  \\
+ \end{array} \qquad
+ \begin{array}{c}
+  \ruleform{ σ_1 \sconcat σ_2 = σ_3 } \\
+  \\[-0.5em]
+  σ_1 \sconcat σ_2 = \begin{cases}
+    σ_1              & \text{if $σ_1$ infinite} \\
+    undefined        & \text{if $σ_1$ finite and $dst_\Sigma(σ_1) \not= src_\Sigma(σ_2)$} \\
+    κ             & σ_1 = σ_2 = κ \\
+    σ_1' \strans{t} σ_2 &  σ_1 = σ_1' \strans{t} κ \\
+    σ_1 \strans{t} σ_2' &  σ_2 = κ \strans{t} σ_2' \\
+  \end{cases} \\
+ \end{array} \\
+ \\
+ \begin{array}{c}
+  \ruleform{ \validtrans{κ_1 \strans{t} κ_2} \qquad \validtrace{σ} } \\
+  \\[-0.5em]
+  \inferrule*
+    {\quad}
+    {\validtrace{κ}} \quad
+  \inferrule*
+    {\validtrace{σ_1} \quad \validtrace{σ_2} \quad \validtrans{dst_\Sigma(σ_1) \strans{t} src_\Sigma(σ_2)}}
+    {\validtrace{σ_1 \strans{t} σ_2}} \\
+  \\
+  \inferrule*
+    {\quad}
+    {\validtrans{(H[x↦e], x, S) \strans{\LookupT} (H[x↦e], e, \UpdateF{x} \pushF S)}}
+  \qquad
+  \inferrule*
+    {\quad}
+    {\validtrans{(H, v, \UpdateF{x} \pushF S) \strans{\UpdateT} (H[x↦v], v, S)}} \\
+  \inferrule*
+    {\quad}
+    {\validtrans{(H, e~x, S) \strans{\AppIT} (H, e, \ApplyF{x} \pushF S)}}
+  \qquad
+  \inferrule*
+    {\quad}
+    {\validtrans{(H, \Lam{x}{e}, \ApplyF{y} \pushF S) \strans{\AppET} (H, e[y/x], S)}} \\
+  \\
+  \inferrule*
+    {\fresh{x}{H}}
+    {\validtrans{(H, \Let{x}{e_1}{e_2}, S) \strans{\LetT} (H[x↦e_1], e_2, S)}}
+  \\
+  \\[-0.5em]
+ \end{array} \\
+\end{array}\]
+\caption{Call-by-need small-step transition system}
+  \label{fig:ss-semantics}
+\end{figure}
+
+\begin{figure}
+\[\begin{array}{c}
+ \begin{array}{rrclcl}
   \text{Domain of small-step transitions} &       &   & \SSD  & = & (\Values_\bot,\Configurations \to \STraces^{+\infty}) \\
  \end{array} \\
  \\
  \begin{array}{rcl}
   \multicolumn{3}{c}{ \ruleform{ \semss{\wild} \colon \Exp → (\Var → \SSD) → \SSD } } \\
   \\[-0.5em]
-  \matchfn{p(\many{x})}{e} & \triangleq & \fn{a}{\begin{cases}
-    e[\many{a_i / x}] & \text{if $a = p(\many{a_i})$} \\
-    a & \text{otherwise} \\
-  \end{cases}} \\
+  \bot_\Sigma & = & (\bot_\Values, \fn{κ}{κ}) \\
   \\[-0.5em]
-  update2(H,e,S) & = & (H,e,S) \quad \text{if $S \not= \UpdateF{x} \pushF \wild$} \\
+  (f \funnyComp g)(κ) & = & f(κ) \sconcat g(dst_\Sigma(f(κ))) \\
   \\[-0.5em]
-  update2(H,e,\UpdateF{x} \pushF S) & = & (H,e,S) \sstep update2(H[x↦e],e,S) \\
-  update2(H,e,S) & = & (H,e,S) \quad \text{if $S \not= \UpdateF{x} \pushF \wild$} \\
+  cons(t,φ)(κ_1) & = & \begin{cases}
+    κ_1 \strans{t} φ(κ_2) & \text{with $κ_2$ such that $\validtrans{κ_1 \strans{t} κ_2}$} \\
+    κ_1                   & \text{otherwise} \\
+  \end{cases} \\
   \\[-0.5em]
-  update(x)(v,(H,e,\UpdateF{x} \pushF S)) & = & (v, (H,e,\UpdateF{x} \pushF S) \sstep (H[x↦e],e,S)) \\
+  snoc(φ,t)(κ) & = & \begin{cases}
+    φ(κ) \strans{t} κ_2 & \text{with $κ_2$ such that $\validtrans{κ_1 \strans{t} κ_2}$} \\
+    φ(κ)                & \text{otherwise} \\
+  \end{cases} \\
+  \\[-0.5em]
+  shortcut(φ)(H,e,S) & = & \begin{cases}
+    (H,e,S)  & \text{if $e = \Lam{\wild}{\wild}$} \\
+    φ(H,e,S) & \text{otherwise} \\
+  \end{cases} \\
   \\[-0.5em]
   \semss{x}_ρ & = & ρ(x) \\
   \\[-0.5em]
-  \semss{\Lam{x}{e}}_ρ & = & \fn{κ}{(\FunV(\fn{d}{\semss{e}_{ρ[x↦d]}}), κ)} \\
+  \semss{\Lam{x}{e}}_ρ & = & (\FunV(\fn{d}{\semss{e}_{ρ[x↦d]}}), \fn{κ}{κ}) \\
   \\[-0.5em]
-  \semss{e~x}_ρ & = & \matchfn{(H_1,e_1~x_1,S_1)}{\\
-    & & \begin{letarray}
-      \text{let} & (v,σ_1) = \semss{e}_ρ(H_1,e_1,\ApplyF{x_1} \pushF S_1) \\
-                 & (H_2,e_2,S_2) = dst_\Sigma(σ_1) \\
-                 & φ_2 = \begin{array}{@@{}l@@{}}
-                     \matchfn{(H_2,\Lam{x_2}{e_2},\ApplyF{y_2} \pushF S_2)}{\\
-                     \begin{cases}
-                       (H_2,\Lam{x_2}{e_2},\ApplyF{y_2} \pushF S_2) \strans{\AppET} {} \second f(ρ(x))(H_2,e_2[y_2/x_2],S_2) & \text{if $v = \FunV(f)$}  \\
-                       (\bot_\Values,H_2,\Lam{x_2}{e_2},\ApplyF{y_2} \pushF S_2) & \text{otherwise}  \\
-                     \end{cases}}
-                   \end{array} \\
-      \text{in}  & (H_1,e_1~x_1,S_1) \strans{\AppIT} σ_1 \sconcat {} \second φ_2(dst_\Sigma(σ_1)) \\
-    \end{letarray}
-    } \\
+  \semss{e~x}_ρ & = &
+    \begin{letarray}
+      \text{let} & (v_1,φ_1) = \semss{e}_ρ \\
+                 & (v_2,φ_2) = \begin{cases}
+                     f(ρ(x))     & \text{if $v = \FunV(f)$} \\
+                     \bot_\Sigma & \text{otherwise}
+                   \end{cases} \\
+      \text{in}  & (v_2, cons(\AppIT,φ_1) \funnyComp cons(\AppET,φ_2)) \\
+    \end{letarray} \\
   \\[-0.5em]
-  \semss{\Let{x}{e_1}{e_2}}_ρ& = & \matchfn{(H,\Let{x'}{e_1'}{e_2'},S)}{\\
-    & & \begin{letarray}
-      \text{let} & ρ' = \lfp(λρ'. ρ ⊔ [x ↦ \fn{(H',y,S')}{update(y)(\semss{e_1}_{ρ'}(H',H'(y),\UpdateF{y} \pushF S'))}]) \\
-      \text{in}  & (H,\Let{x'}{e_1'}{e_2'},S);\semss{e_2}_{ρ'}(H[x'↦e_1'],e_2',S)
-    \end{letarray}
-    } \\
+  \semss{\Let{x}{e_1}{e_2}}_ρ& = & \begin{letarray}
+      \text{let} & (v_1,φ_1) = \semss{e_1}_{ρ'} \\
+                 & (v_2,φ_2) = \semss{e_2}_{ρ'} \\
+                 & ρ' = \lfp(λρ'. ρ ⊔ [x ↦ (v_1,snoc(cons(\LookupT,shortcut(φ_1)),\UpdateT))]) \\
+      \text{in}  & (v_2,cons(\LetT,φ_2))
+    \end{letarray} \\
   \\
  \end{array} \\
- \\
- \begin{array}{rcl}
-  \mathbb{P}^* & = & \{ C \in \poset{\Traces^+} \mid C \text{ is a prefix-closed chain of traces} \} \\
-  \\[-0.5em]
-  \multicolumn{3}{c}{ \ruleform{ α^{*} : \Traces^{+\infty} \to \mathbb{P}^* \qquad γ^{*} : \mathbb{P}^* \to \Traces^{+\infty} } } \\
-  \\[-0.5em]
-  α^{*}(π) & = & \{ π' \mid π' \text{ is a prefix of } π \} \\
-  γ^{*}(C) & = & \Lub C \qquad \text{where $\lub$ is defined on the prefix-closed chain $C$} \\
-  \Traces^{+\infty} & \GaloiS{α^{*}}{γ^{*}} & \mathbb{P}^* \\
-  \Traces^+ \to \Traces^{+\infty} & \GaloiS{\dot{α}^{*}}{\dot{γ}^{*}} & \Traces^+ \to \mathbb{P}^* \\
-  \semss{e} & \GaloiS{\ddot{α}^{*}}{\ddot{γ}^{*}} & \sempref{e} \\
-  \\
- \end{array}
 \end{array}\]
 \caption{Structural call-by-need small-step semantics}
   \label{fig:ss-semantics}
@@ -521,7 +573,7 @@ Trace of the expression:
  \begin{array}{rcl}
   \multicolumn{3}{c}{ \ruleform{ \seminf{\wild} \colon \Exp → (\Var → \poset{\Type}) → \poset{\Type} } } \\
   \\[-0.5em]
-  step(S,a,\lbl)(π_i)   & = & dst(π_i) \act{a} S(π_i \act{a} \lbl) \\
+  cons(a,\lbl,S)(π_i)   & = & dst(π_i) \act{a} S(π_i \act{a} \lbl) \\
   \\[-0.5em]
   \seminf{\slbl e}_ρ    (π_i)   & = & \varnothing \qquad \text{if $dst(π_i) \not= \lbl$} \\
   \\[-0.9em]
@@ -529,7 +581,7 @@ Trace of the expression:
   \\[-0.5em]
   \seminf{\slbln{1}(\Lam{x}{e})\slbln{2}}_ρ(π_i) & = &
     \begin{letarray}
-      \text{let} & f = d ↦ step(\seminf{e}_{ρ[x↦d]},\AppEA,\mathsf{at}[e]) \\
+      \text{let} & f = d ↦ cons(\AppEA,\mathsf{at}[e],\seminf{e}_{ρ[x↦d]}) \\
       \text{in}  & α_v(\FunV(f)) \\
     \end{letarray} \\
   \\[-0.5em]
@@ -545,7 +597,7 @@ Trace of the expression:
   \seminf{\slbl(\Let{x}{e_1}{e_2})}_ρ(π_i) & = &
     \begin{letarray}
       \text{let} & ρ' = \lfp(λρ'. ρ ⊔ [x ↦ \seminf{e_1}_{ρ'}]) \\
-      \text{in}  & step(\seminf{e_2}_{ρ'},\BindA,\mathsf{at}[e_2])(π_i)
+      \text{in}  & cons(\BindA,\mathsf{at}[e_2],\seminf{e_2}_{ρ'})(π_i)
     \end{letarray} \\
   \\
   \seminf{\slbln{1}(K~\many{x})\slbln{2}}_ρ(π_i) & = & \lbln{1} \act{\ValA(\ConV(K,\many{ρ(x)}))} \lbln{2} \\
@@ -555,8 +607,8 @@ Trace of the expression:
       π_s & \text{otherwise}  \\
     \end{cases} \\
     & & \text{where} \begin{array}{lcl}
-                       π_s & = & step(\seminf{e_s}_ρ, \CaseIA, \mathsf{at}[e_s])(π_i) \\
-                       Rhs(K,\many{d}) & = & step(\seminf{e_K}_{ρ[\many{x↦d}]},\CaseEA,\mathsf{at}[e_K]) \\
+                       π_s & = & cons( \CaseIA, \mathsf{at}[e_s],\seminf{e_s}_ρ)(π_i) \\
+                       Rhs(K,\many{d}) & = & cons(\CaseEA,\mathsf{at}[e_K],\seminf{e_K}_{ρ[\many{x↦d}]}) \\
                      \end{array} \\
   \\
  \end{array} \\
