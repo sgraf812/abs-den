@@ -440,23 +440,21 @@ Trace of the expression:
   \\[-0.5em]
   update(x)(v,(H,e,\UpdateF{x} \pushF S)) & = & (v, (H,e,\UpdateF{x} \pushF S) \sstep (H[x↦e],e,S)) \\
   \\[-0.5em]
-  \semss{\slbl x}_ρ & = & ρ(x) \\
+  \semss{x}_ρ & = & ρ(x) \\
   \\[-0.5em]
-  \semss{\slbln{1}(\Lam{x}{e})\slbln{2}}_ρ & = & \fn{(H,\Lam{y}{e'},S)}{ \\
-    & & (\FunV(\fn{d}{\semss{e}_{ρ[x↦d]}}), (H,\Lam{y}{e'},S)_l
-    } \\
+  \semss{\Lam{x}{e}}_ρ & = & (\FunV(\fn{d}{\semss{e}_{ρ[x↦d]}}), \fn{κ}{κ}) \\
   \\[-0.5em]
-  \semss{\slbl(e~x)}_ρ & = & \fn{(H_1,e_1~x_1,S_1)}{\\
+  \semss{e~x}_ρ & = & \fn{(H_1,e_1~x_1,S_1)}{\\
     & & \begin{letarray}
-      \text{let} & (v,σ;(H_2,e_2,S_2)) = \semss{e}_ρ(H_1,e_1,\ApplyF{x_1} \pushF S_1) \\
-      \text{in}  & \begin{cases}
-                     σ;(H_2,e_2,S_2);f(ρ(x))(H_2,e_3[y_3/x_3],S_3) & \text{if $v = \FunV(f)$ and $e_2 = \Lam{y_3}{e_3}$ and $S_2 = \ApplyF{x_3} \pushF S_3$}  \\
-                     σ;(H_2,e_2,S_2); & \text{otherwise}  \\
+      \text{let} & (v,σ\strans{t}(H_2,e_2,S_2)) = \semss{e}_ρ(H_1,e_1,\ApplyF{x_1} \pushF S_1) \\
+      \text{in}  & (v, \begin{cases}
+                     σ\strans{t}(H_2,e_2,S_2);f(ρ(x))(H_2,e_3[y_3/x_3],S_3) & \text{if $v = \FunV(f)$ and $e_2 = \Lam{y_3}{e_3}$ and $S_2 = \ApplyF{x_3} \pushF S_3$}  \\
+                     σ\strans{t}(H_2,e_2,S_2); & \text{otherwise}  \\
                    \end{cases} \\
     \end{letarray}
     } \\
   \\[-0.5em]
-  \semss{\slbl(\Let{x}{e_1}{e_2})}_ρ& = & \fn{(H,\Let{x'}{e_1'}{e_2'},S)}{\\
+  \semss{\Let{x}{e_1}{e_2}}_ρ& = & \fn{(H,\Let{x'}{e_1'}{e_2'},S)}{\\
     & & \begin{letarray}
       \text{let} & ρ' = \lfp(λρ'. ρ ⊔ [x ↦ \fn{(H',y,S')}{update(y)(\semss{e_1}_{ρ'}(H',H'(y),\UpdateF{y} \pushF S'))}]) \\
       \text{in}  & (H,\Let{x'}{e_1'}{e_2'},S);\semss{e_2}_{ρ'}(H[x'↦e_1'],e_2',S)
