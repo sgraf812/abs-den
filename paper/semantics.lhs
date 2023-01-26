@@ -435,6 +435,13 @@ Trace of the expression:
  \begin{array}{rcl}
   \multicolumn{3}{c}{ \ruleform{ \semss{\wild} \colon \Exp → (\Var → \SSD) → \SSD } } \\
   \\[-0.5em]
+  \matchfn{p(\many{x})}{e} & \triangleq & \fn{a}{\begin{cases}
+    e[\many{a_i / x}] & \text{if $a = p(\many{a_i})$} \\
+    a & \text{otherwise} \\
+  \end{cases}} \\
+  \\[-0.5em]
+  update2(H,e,S) & = & (H,e,S) \quad \text{if $S \not= \UpdateF{x} \pushF \wild$} \\
+  \\[-0.5em]
   update2(H,e,\UpdateF{x} \pushF S) & = & (H,e,S) \sstep update2(H[x↦e],e,S) \\
   update2(H,e,S) & = & (H,e,S) \quad \text{if $S \not= \UpdateF{x} \pushF \wild$} \\
   \\[-0.5em]
@@ -442,19 +449,24 @@ Trace of the expression:
   \\[-0.5em]
   \semss{x}_ρ & = & ρ(x) \\
   \\[-0.5em]
-  \semss{\Lam{x}{e}}_ρ & = & (\FunV(\fn{d}{\semss{e}_{ρ[x↦d]}}), \fn{κ}{κ}) \\
+  \semss{\Lam{x}{e}}_ρ & = & \fn{κ}{(\FunV(\fn{d}{\semss{e}_{ρ[x↦d]}}), κ)} \\
   \\[-0.5em]
-  \semss{e~x}_ρ & = & \fn{(H_1,e_1~x_1,S_1)}{\\
+  \semss{e~x}_ρ & = & \matchfn{(H_1,e_1~x_1,S_1)}{\\
     & & \begin{letarray}
-      \text{let} & (v,σ\strans{t}(H_2,e_2,S_2)) = \semss{e}_ρ(H_1,e_1,\ApplyF{x_1} \pushF S_1) \\
-      \text{in}  & (v, \begin{cases}
-                     σ\strans{t}(H_2,e_2,S_2);f(ρ(x))(H_2,e_3[y_3/x_3],S_3) & \text{if $v = \FunV(f)$ and $e_2 = \Lam{y_3}{e_3}$ and $S_2 = \ApplyF{x_3} \pushF S_3$}  \\
-                     σ\strans{t}(H_2,e_2,S_2); & \text{otherwise}  \\
-                   \end{cases} \\
+      \text{let} & (v,σ_1) = \semss{e}_ρ(H_1,e_1,\ApplyF{x_1} \pushF S_1) \\
+                 & (H_2,e_2,S_2) = dst_\Sigma(σ_1) \\
+                 & φ_2 = \begin{array}{@@{}l@@{}}
+                     \matchfn{(H_2,\Lam{x_2}{e_2},\ApplyF{y_2} \pushF S_2)}{\\
+                     \begin{cases}
+                       (H_2,\Lam{x_2}{e_2},\ApplyF{y_2} \pushF S_2) \strans{\AppET} {} \second f(ρ(x))(H_2,e_2[y_2/x_2],S_2) & \text{if $v = \FunV(f)$}  \\
+                       (\bot_\Values,H_2,\Lam{x_2}{e_2},\ApplyF{y_2} \pushF S_2) & \text{otherwise}  \\
+                     \end{cases}}
+                   \end{array} \\
+      \text{in}  & (H_1,e_1~x_1,S_1) \strans{\AppIT} σ_1 \sconcat {} \second φ_2(dst_\Sigma(σ_1)) \\
     \end{letarray}
     } \\
   \\[-0.5em]
-  \semss{\Let{x}{e_1}{e_2}}_ρ& = & \fn{(H,\Let{x'}{e_1'}{e_2'},S)}{\\
+  \semss{\Let{x}{e_1}{e_2}}_ρ& = & \matchfn{(H,\Let{x'}{e_1'}{e_2'},S)}{\\
     & & \begin{letarray}
       \text{let} & ρ' = \lfp(λρ'. ρ ⊔ [x ↦ \fn{(H',y,S')}{update(y)(\semss{e_1}_{ρ'}(H',H'(y),\UpdateF{y} \pushF S'))}]) \\
       \text{in}  & (H,\Let{x'}{e_1'}{e_2'},S);\semss{e_2}_{ρ'}(H[x'↦e_1'],e_2',S)

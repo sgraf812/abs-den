@@ -78,10 +78,11 @@
 \newcommand{\act}[1]{\xrightarrow{#1}}
 % https://latex.org/forum/viewtopic.php?p=62177&sid=26890ac77d076f3338384a47a2ffd4bc#p62177
 \makeatletter
-\newcommand{\concat}{%
-  \mathbin{\mathop{\cdot}\limits^{\vbox to 1\ex@{\kern-\tw@\ex@
+\newcommand{\concatop}[1]{%
+  \mathbin{\mathop{#1}\limits^{\vbox to 1\ex@{\kern-\tw@\ex@
    \hbox{\scriptsize$\smallfrown$}\vss}}}}
 \makeatother
+\newcommand{\concat}{\concatop{\cdot}}
 \newcommand{\balanced}[1]{#1\;\mathsf{bal}}
 \newcommand{\getval}[2]{#1 \Downarrow #2}
 \newcommand{\lookup}[2]{#1\;\mathsf{lookup}}
@@ -131,11 +132,13 @@
 \newcommand{\STransitions}{\mathsf{STrans}}
 \newcommand{\strans}[1]{\xhookrightarrow{#1}}
 \newcommand{\sstep}{;}
+\newcommand{\sconcat}{\concatop{\hspace{0.1ex}\scalebox{0.5}{\Sigma}}}
 \newcommand{\AppIT}{\textsc{app}_1}
 \newcommand{\AppET}{\textsc{app}_2}
 \newcommand{\LookupT}{\textsc{look}}
 \newcommand{\UpdateT}{\textsc{upd}}
 \newcommand{\LetT}{\textsc{let}}
+\newcommand{\matchfn}[2]{\ensuremath{\overline{λ}#1.#2}}
 
 % Types
 \newcommand{\TyCon}{\mathsf{TyCon}}
