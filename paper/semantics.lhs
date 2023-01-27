@@ -145,20 +145,16 @@ Trace of the expression:
   \\[-0.5em]
   π_s \subtrceq π & = & \exists π_1, π_2.\ π = π_1 \concat π_s \concat π_2  \\
   \\[-0.5em]
-  lookup(π_k,π_i) & = & \begin{cases}
+  memo(π_k,S)(π_i)   & = & \begin{cases}
     dst(π_b) \act{\ValA(v)} \lbln{2} & \begin{array}{@@{}l@@{}}\text{if $\lbln{1} \act{\LookupA(π_k)} π_b \act{\ValA(v)} \lbln{2} \subtrceq π_i$} \\[-0.4em]
                                                        \text{and $\balanced{π_b \act{\ValA(v)} \lbln{2}}$} \end{array} \\
-    \square                      & \text{otherwise} \\
-  \end{cases} \\
-  \\[-0.5em]
-  memo(π_k,\lbl,S)(π_i)   & = & \begin{cases}
-    dst(π_i) \act{\LookupA(π_k)} π_v & π_v = lookup(π_k,π_i) \\
-    dst(π_i) \act{\LookupA(π_k)} S(π_i \act{\LookupA(π_k)} \lbl) & \text{otherwise} \\
+    S(π_i) & \text{otherwise} \\
   \end{cases} \\
   \\[-0.5em]
   \seminf{\slbl(\Let{\px}{\pe_1}{\pe_2})}_ρ(π_i) & = &
     \begin{letarray}
-      \text{let} & ρ' = \lfp(λρ'. ρ ⊔ [\px ↦ memo(π_i,\atlbl{\pe_1},\seminf{\pe_1}_{ρ'})]) \\
+      \text{let} & S' = \highlight{memo(π_i,\seminf{\pe_1}_{ρ'})} \\
+                 & ρ' = \lfp(λρ'. ρ ⊔ [\px ↦ cons(\LookupA(π_i),\atlbl{\pe_1},S']) \\
       \text{in}  & cons(\BindA,\atlbl{\pe_2},\seminf{\pe_2}_{ρ'})(π_i)
     \end{letarray} \\
  \end{array} \\
@@ -228,21 +224,16 @@ Trace of the expression:
   \\[-0.5em]
   π_s \subtrceq π & = & \exists π_1, π_2.\ π = π_1 \concat π_s \concat π_2  \\
   \\[-0.5em]
-  lookup(π_k,π_i) & = & \begin{cases}
-    dst(π_b) \act{\ValA} \lbln{2} & \begin{array}{@@{}l@@{}}\text{if $\lbln{1} \act{\LookupA(π_k)} π_b \act{\ValA} \lbln{2} \subtrceq π_i$} \\[-0.4em]
-                                                       \text{and $\balanced{π_b \act{\ValA} \lbln{2}}$} \end{array} \\
-    \square                      & \text{otherwise} \\
+  memo(π_k,S)(π_i)   & = & \begin{cases}
+    dst(π_b) \act{\ValA(v)} \lbln{2} & \begin{array}{@@{}l@@{}}\text{if $\lbln{1} \act{\LookupA(π_k)} π_b \act{\ValA(v)} \lbln{2} \subtrceq π_i$} \\[-0.4em]
+                                                       \text{and $\balanced{π_b \act{\ValA(v)} \lbln{2}}$} \end{array} \\
+    S(π_i) & \text{otherwise} \\
   \end{cases} \\
-  \\[-0.5em]
-  memo(π_k,\lbl,S)(π_i)   & = & \begin{cases}
-    (v,dst(π_i) \act{\LookupA(π_k)} π_v & π_v = lookup(π_k,π_i) \\
-    (v,dst(π_i) \act{\LookupA(π_k)} π_e & \text{otherwise} \\
-  \end{cases} \\
-  & & \text{where } (v,π_e) = S(π_i \act{\LookupA(π_k)} \lbl) \\
   \\[-0.5em]
   \seminf{\slbl(\Let{\px}{\pe_1}{\pe_2})}_ρ(π_i) & = &
     \begin{letarray}
-      \text{let} & ρ' = \lfp(λρ'. ρ ⊔ [\px ↦ memo(π_i,\atlbl{\pe_1},\seminf{\pe_1}_{ρ'})]) \\
+      \text{let} & S' = \highlight{memo(π_i,\seminf{\pe_1}_{ρ'})} \\
+                 & ρ' = \lfp(λρ'. ρ ⊔ [\px ↦ cons(\LookupA(π_i),\atlbl{\pe_1},S']) \\
       \text{in}  & cons(\BindA,\atlbl{\pe_2},\seminf{\pe_2}_{ρ'})(π_i)
     \end{letarray} \\
  \end{array} \\
@@ -384,21 +375,17 @@ Trace of the expression:
   \\[-0.5em]
   π_s \subtrceq π & = & \exists π_1, π_2.\ π = π_1 \concat π_s \concat π_2  \\
   \\[-0.5em]
-  lookup(π_k,π_i) & = & \begin{cases}
+  memo(π_k,S)(π_i)   & = & \begin{cases}
     dst(π_b) \act{\ValA(v)} \lbln{2} & \begin{array}{@@{}l@@{}}\text{if $\lbln{1} \act{\LookupA(π_k)} π_b \act{\ValA(v)} \lbln{2} \subtrceq π_i$} \\[-0.4em]
                                                        \text{and $\balanced{π_b \act{\ValA(v)} \lbln{2}}$} \end{array} \\
-    \square                      & \text{otherwise} \\
-  \end{cases} \\
-  \\[-0.5em]
-  memo(π_k,\lbl,S)(π_i)   & = & \begin{cases}
-    dst(π_i) \act{\LookupA(π_k)} π_v & π_v = lookup(π_k,π_i) \\
-    dst(π_i) \act{\LookupA(π_k)} S(π_i \act{\LookupA(π_k)} \lbl) & \text{otherwise} \\
+    S(π_i) & \text{otherwise} \\
   \end{cases} \\
   \\[-0.5em]
   \seminf{\slbl(\Let{\px}{\pe_1}{\pe_2})}_ρ(π_i) & = &
     \begin{letarray}
-      \text{let} & ρ' = \lfp(λρ'. ρ ⊔ [\px ↦ memo(π_i,\atlbl{\pe_1},\seminf{\pe_1}_{ρ'})]) \\
-      \text{in}  & cons(\seminf{\pe_2}_{ρ'},\BindA,\atlbl{\pe_2})(π_i)
+      \text{let} & S' = \highlight{memo(π_i,\seminf{\pe_1}_{ρ'})} \\
+                 & ρ' = \lfp(λρ'. ρ ⊔ [\px ↦ cons(\LookupA(π_i),\atlbl{\pe_1},S']) \\
+      \text{in}  & cons(\BindA,\atlbl{\pe_2},\seminf{\pe_2}_{ρ'})(π_i)
     \end{letarray} \\
   \\
   \multicolumn{3}{l}{\text{(Unchanged call-by-name equations:)}} \\
@@ -496,13 +483,14 @@ Trace of the expression:
  \end{array} \\
 \end{array}\]
 \caption{Call-by-need small-step transition system Σ}
-  \label{fig:ss-semantics}
+  \label{fig:ss-syntax}
 \end{figure}
 
 \begin{figure}
 \[\begin{array}{c}
  \begin{array}{rrclcl}
   \text{Domain of small-step transitions} &       &   & \SSD  & = & (\Values_\bot,\Configurations \to \STraces^{+\infty}) \\
+  \text{Values}          &     v & ∈ & \Values & ::= & \FunV(\SSD \to \SSD) \mid \bot_\Values \\
  \end{array} \\
  \\
  \begin{array}{rcl}
@@ -552,6 +540,62 @@ Trace of the expression:
 \end{array}\]
 \caption{Structural call-by-need small-step semantics}
   \label{fig:ss-semantics}
+\end{figure}
+
+\begin{figure}
+  \begin{definition}[Heap consistency]
+    A heap $\pH$ is \emph{consistent with} ρ iff $\forall \px \in \pH.\ ρ(\px) = \semss{\pH(\px)}_ρ$.
+    In that case we write $\pH \sim ρ$.
+  \end{definition}
+
+  \begin{theorem}Let $(v,φ) = \semss{\pe}_ρ$. Then for all configurations $κ=(\pH,\pe,\pS)$ where
+  $\pH \sim ρ$ the small-step trace $φ(κ) = κ \strans{} κ_1 \strans{} ... \strans{} κ_n$ is the
+  maximal small-step trace starting from $κ$.
+
+  \end{theorem}
+
+\end{figure}
+
+\begin{figure}
+\[
+\begin{array}{ll}
+  & \text{Let } ρ_\px = \lfp(λρ. [\px ↦ cons(\LookupT,\semss{\slbln{2}(\Lam{\py}{\slbln{3}\py})\slbln{4}}_ρ]) \\
+  & \text{and } ρ_{\px,\py} = ρ_\px[\py ↦ ρ_1(\px)] \\
+  & \text{and } f = d ↦ cons(\AppET,\semss{\slbln{3}\py}_{ρ[\py↦d]}) \\
+  & \text{Evaluate }\Let{\px}{\Lam{\py}{\py}}{\px~\px~\px)} \\
+  & \\
+  & \semss{\slbln{1}\Let{\px}{\slbln{2}(\Lam{\py}{\slbln{3}\py})\slbln{4}}{\slbln{5}(\slbln{6}(\slbln{7}\px~\px)~\px)}}_\bot(\lbln{1}) \\
+  & \\[-0.9em]
+  ⇒ & \lbln{1} \act{\BindA} \semss{\slbln{5}(\slbln{6}(\slbln{7}\px~\px)~\px)}_{ρ_\px}(\lbln{1} \act{\BindA} \lbln{5}) \\
+  & \\[-0.9em]
+  ⇒ & \lbln{1} \act{\BindA} \lbln{5} \act{\AppIA} \semss{\slbln{6}(\slbln{7}\px~\px)}_{ρ_\px}(\lbln{1} \act{\BindA} \lbln{5} \act{\AppIA} \lbln{6}) \\
+  & \\[-0.9em]
+  ⇒ & \lbln{1} \act{\BindA} \lbln{5} \act{\AppIA} \lbln{6} \act{\AppIA} \semss{\slbln{7}\px}_{ρ_\px}(\overbrace{\lbln{1} \act{\BindA} \lbln{5} \act{\AppIA} \lbln{6} \act{\AppIA} \lbln{7}}^{π_1}) \\
+  & \\[-0.9em]
+  ⇒ & π_1 \act{\LookupA} \semss{\slbln{2}(\Lam{\py}{\slbln{3}\py})\slbln{4}}_{ρ_\px}(π_1 \act{\LookupA} \lbln{2}) \\
+  & \\[-0.9em]
+  ⇒ & π_1 \act{\LookupA} \lbln{2} \act{\ValA(\FunV(f))} f(ρ_\px(\px))(π_1 \act{\LookupA} \lbln{2} \act{\ValA(\FunV(f))} \lbln{4}) \\
+  & \\[-0.9em]
+  ⇒ & π_1 \act{\LookupA} \lbln{2} \act{\ValA(\FunV(f))} \lbln{4} \act{\AppEA} \semss{\slbln{3}\py}_{ρ_{\px,\py}}(\overbrace{π_1 \act{\LookupA} \lbln{2} \act{\ValA(\FunV(f))} \lbln{4} \act{\AppEA} \lbln{3}}^{π_2}) \\
+  & \\[-0.9em]
+  ⇒ & π_2 \act{\LookupA} \semss{\slbln{2}(\Lam{\py}{\slbln{3}\py})\slbln{4}}_{ρ_\px}(π_2 \act{\LookupA} \lbln{2}) \\
+  & \\[-0.9em]
+  ⇒ & π_2 \act{\LookupA} \lbln{2} \act{\ValA(\FunV(f))} f(ρ_\px(\px))(π_2 \act{\LookupA} \lbln{2} \act{\ValA(\FunV(f))} \lbln{4}) \\
+  & \\[-0.9em]
+  ⇒ & π_2 \act{\LookupA} \lbln{2} \act{\ValA(\FunV(f))} \lbln{4} \act{\AppEA} \semss{\slbln{3}\py}_{ρ_{\px,\py}}(\overbrace{π_2 \act{\LookupA} \lbln{2} \act{\ValA(\FunV(f))} \lbln{4} \act{\AppEA} \lbln{3}}^{π_3}) \\
+  & \\[-0.9em]
+  ⇒ & π_3 \act{\LookupA} \semss{\slbln{2}(\Lam{\py}{\slbln{3}\py})\slbln{4}}_{ρ_\px}(π_3 \act{\LookupA} \lbln{2}) \\
+  & \\[-0.9em]
+  ⇒ & π_3 \act{\LookupA} \lbln{2} \act{\ValA(\FunV(f))} \lbln{4} \\
+  & \\[-0.9em]
+  & \\
+  = \lbln{1} & \act{\BindA} \lbln{5} \act{\AppIA} \lbln{6} \act{\AppIA} \lbln{7} \\
+             & \act{\LookupA} \lbln{2} \act{\ValA(\FunV(f))} \lbln{4} \act{\AppEA} \lbln{3} \\
+             & \act{\LookupA} \lbln{2} \act{\ValA(\FunV(f))} \lbln{4} \act{\AppEA} \lbln{3} \\
+             & \act{\LookupA} \lbln{2} \act{\ValA(\FunV(f))} \lbln{4}
+\end{array}
+\]
+\caption{Evalation of $\semss{\wild}$}
 \end{figure}
 
 \begin{figure}
