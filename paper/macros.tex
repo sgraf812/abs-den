@@ -47,6 +47,12 @@
 \newcommand{\Var}{\mathsf{Var}}
 \newcommand{\Lab}{\mathsf{Lab}}
 \newcommand{\Exp}{\mathsf{Exp}}
+\newcommand{\Val}{\mathsf{Val}}
+\newcommand{\px}{\mathsf{x}}
+\newcommand{\py}{\mathsf{y}}
+\newcommand{\pz}{\mathsf{z}}
+\newcommand{\pv}{\mathsf{v}}
+\newcommand{\pe}{\mathsf{e}}
 \newcommand{\Lam}[2]{\lambda #1. #2}
 \newcommand{\LLam}[3]{\lambda_{#1} #2. #3}
 \newcommand{\Let}[3]{\mathbf{let}~{#1}={#2}~\mathbf{in}~{#3}}
@@ -73,6 +79,7 @@
 \newcommand{\lbln}[1]{\ensuremath{\ell_{#1}}}
 \newcommand{\slbl}{\raisebox{0.08em}{$\;\scriptstyle{\ell}\;$}}
 \newcommand{\slbln}[1]{\raisebox{0.1em}{$\;\scriptstyle{\ell_{#1}}\;$}}
+\newcommand{\atlbl}[1]{at(#1)}
 %% Traces
 \newcommand{\Traces}{\mathbb{T}}
 \newcommand{\act}[1]{\xrightarrow{#1}}
@@ -124,6 +131,8 @@
 \newcommand{\Heaps}{\mathsf{Heap}}
 \newcommand{\Stacks}{\mathsf{Stack}}
 \newcommand{\Frames}{\mathsf{Frame}}
+\newcommand{\pH}{\mathsf{H}}
+\newcommand{\pS}{\mathsf{S}}
 \newcommand{\pushF}{\cdot}
 \newcommand{\StopF}{\mathsf{stop}}
 \newcommand{\ApplyF}[1]{\$ #1}
@@ -132,13 +141,13 @@
 \newcommand{\STransitions}{\mathsf{STrans}}
 \newcommand{\strans}[1]{\xhookrightarrow{#1}}
 \newcommand{\sstep}{;}
-\newcommand{\sconcat}{\concatop{\hspace{0.1ex}\scalebox{0.5}{\Sigma}}}
+\newcommand{\sconcat}{\concatop{\hspace{0.04ex}\scalebox{0.5}{\Sigma}}}
 \newcommand{\AppIT}{\textsc{app}_1}
 \newcommand{\AppET}{\textsc{app}_2}
 \newcommand{\LookupT}{\textsc{look}}
 \newcommand{\UpdateT}{\textsc{upd}}
 \newcommand{\LetT}{\textsc{let}}
-\newcommand{\funnyComp}{\mathop{\texttt{>=>}}}
+\newcommand{\funnyComp}{\mathop{\mathord{>}\!\mathord{\circ}\!\mathord{>}}}
 \newcommand{\validtrans}[1]{#1\;\mathsf{ok\text{-}}t}
 \newcommand{\validtrace}[1]{#1\;\mathsf{ok\text{-}}σ}
 
