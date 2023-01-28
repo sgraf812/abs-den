@@ -543,13 +543,36 @@ Trace of the expression:
 \end{figure}
 
 \begin{figure}
+  \begin{definition}[Maximal small-step trace]
+    A small-step trace $σ$ is \emph{maximal} iff
+    \begin{itemize}
+      \item $\validtrace{σ}$, and
+      \item if $φ(κ)$ is finite, then there is no $κ'$ and $t$ such that
+            $\validtrans{dst_\Sigma(κ) \strans{t} κ'}$.
+    \end{itemize}
+  \end{definition}
+
+  \begin{definition}[Balanced small-step trace]
+    A finite small-step trace
+    $σ=(\pH,\pe,\pS) \strans{} ... \strans{} (\pH',\pe',\pS')$
+    is \emph{balanced} if $\validtrace{σ}$, $\pv$ is a value, $\pS=\pS'$, and
+    every intermediate stack
+    extends $\pS$.
+  \end{definition}
+
+  The maximal trace of the initial configuration of an expression is either
+  infinite, stuck, or balanced.
+
+  Clearly, a term's defining property wrt. a small-step transition system is the
+  maximal trace of its initial configuration.
+
   \begin{definition}[Heap consistency]
     A heap $\pH$ is \emph{consistent with} ρ iff $\forall \px \in \pH.\ ρ(\px) = \semss{\pH(\px)}_ρ$.
     In that case we write $\pH \sim ρ$.
   \end{definition}
 
-  \begin{theorem}Let $(v,φ) = \semss{\pe}_ρ$. Then for all configurations $κ=(\pH,\pe,\pS)$ where
-  $\pH \sim ρ$ the small-step trace $φ(κ) = κ \strans{} κ_1 \strans{} ... \strans{} κ_n$ is the
+  \begin{theorem}Let $(v,φ) = \semss{\pe}_ρ$. Then for all configurations
+  $κ=(\pH,\pe,\pS)$ where $\pH \sim ρ$ the small-step trace $φ(κ)$ is the
   maximal small-step trace starting from $κ$.
 
   \end{theorem}
