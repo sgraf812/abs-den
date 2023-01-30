@@ -5,12 +5,12 @@
 \[\begin{array}{c}
  \arraycolsep=3pt
  \begin{array}{rrclcl}
-  \text{Variables}    & \px,\py,\pz & ∈ & \Var &      & \\
-  \text{Variables}    &         \pv & ∈ & \Val & ::=  & \Lam{\px}{\pe} \\
-  \text{Expressions}  &         \pe & ∈ & \Exp & ::=  & \slbl \px \mid \slbln{1} \pv \slbln{2} \mid \slbl \pe~\px \mid \slbl \Let{\px}{\pe_1}{\pe_2} \\
+  \text{Variables}    & \px,\py,\pz & ∈ & \Var        &     & \\
+  \text{Variables}    &         \pv & ∈ & \Val        & ::= & \Lam{\px}{\pe} \\
+  \text{Expressions}  &         \pe & ∈ & \Exp        & ::= & \slbl \px \mid \slbln{1} \pv \slbln{2} \mid \slbl \pe~\px \mid \slbl \Let{\px}{\pe_1}{\pe_2} \\
+  \text{Addresses}    &         \pa & ∈ & \Addresses  &  ⊆  & ℕ \\
   \\
-  \text{Addresses}       &   \pa & ∈ & \Addresses  & \subseteq & ℕ \\
-  \text{Actions} & a & ∈ & \Actions & ::=  & \AppIA \mid \AppEA \mid \LookupA(\pa) \mid \BindA \\
+  \text{Actions} & a & ∈ & \Actions & ::=  & \AppIA \mid \AppEA \mid \LookupA(\pa) \mid \BindA \mid \ValA(v) \\
   \text{Finite Traces} & π^+ & ∈ & \Traces^+ & ::=  & \lbl \mid \lbl \act{a} π^+  \\
 
   \text{Semantic Domain} &     d & ∈ & \AbsD & & \text{Specified as needed} \\
@@ -25,6 +25,8 @@
   \text{Domain of deterministic maximal traces} & && \MaxD & = & \Traces^+ \to \Traces^{+\infty} \\
   \\
  \end{array} \\
+ \\[-0.5em]
+ \ruleform{hash : \Traces^+ \to \Addresses} \quad \text{injective modulo actions} \\
  \\
  \begin{array}{rcl}
   \multicolumn{3}{c}{ \ruleform{ \atlbl{\pe} = \lbl } } \\
@@ -113,8 +115,6 @@ Trace of the expression:
  \begin{array}{rcl}
   \multicolumn{3}{c}{ \ruleform{ \seminf{\wild} \colon \Exp → (\Var → \MaxD) → \MaxD } } \\
   \\[-0.5em]
-  new   & : & \Traces^+ \to \Addresses\ \text{injective modulo actions} \\
-  \\[-0.5em]
   \bot(π_i^+)   & = & dst(π_i^+) \text{ is the bottom element of $\MaxD$} \\
   \\[-0.5em]
   cons(a,\lbl,S)(π_i^+)   & = & dst(π_i^+) \act{a} S(π_i^+ \act{a} \lbl) \\
@@ -140,7 +140,8 @@ Trace of the expression:
   \\[-0.5em]
   \seminf{\slbl(\Let{\px}{\pe_1}{\pe_2})}_ρ(π_i^+) & = &
     \begin{letarray}
-      \text{let} & ρ' = \lfp(λρ'. ρ ⊔ [\px ↦ cons(\LookupA(new(π_i^+)),\atlbl{\pe_1},\seminf{\pe_1}_{ρ'})]) \\
+      \text{let} & \pa = hash(π_i^+) \\
+                 & ρ' = \lfp(λρ'. ρ ⊔ [\px ↦ cons(\LookupA(\pa),\atlbl{\pe_1},\seminf{\pe_1}_{ρ'})]) \\
       \text{in}  & cons(\BindA,\atlbl{\pe_2},\seminf{\pe_2}_{ρ'})(π_i^+)
     \end{letarray} \\
   \\[-0.5em]
@@ -249,7 +250,7 @@ Trace of the expression:
   \\[-0.5em]
   \seminf{\slbl(\Let{\px}{\pe_1}{\pe_2})}_ρ(π_i^+) & = &
     \begin{letarray}
-      \text{let} & ρ' = \lfp(λρ'. ρ ⊔ [\px ↦ cons(\LookupA(new(π_i^+)),\atlbl{\pe_1},\seminf{\pe_1}_{ρ'})]) \\
+      \text{let} & ρ' = \lfp(λρ'. ρ ⊔ [\px ↦ cons(\LookupA(hash(π_i^+)),\atlbl{\pe_1},\seminf{\pe_1}_{ρ'})]) \\
       \text{in}  & cons(\BindA,\atlbl{\pe_2},\seminf{\pe_2}_{ρ'})(π_i^+)
     \end{letarray} \\
   \\[-0.5em]
@@ -257,16 +258,16 @@ Trace of the expression:
   \\[-0.5em]
   π_s \subtrceq π & = & \exists π_1, π_2.\ π = π_1 \concat π_s \concat π_2  \\
   \\[-0.5em]
-  memo(π_k,S)(π_i^+)   & = & \begin{cases}
-    (v, \lbln{1} \act{\ValA} \lbln{2}) & \begin{array}{@@{}l@@{}}\text{if $\lbln{1} \act{\ValA} \lbln{2} \left(\act{\UpdateA(\wild)} \lbln{2} \right)^* \act{\UpdateA(π_k)} \lbln{2} \subtrceq π_i^+$} \\[-0.4em]
+  memo(\pa,S)(π_i^+)   & = & \begin{cases}
+    (v, \lbln{1} \act{\ValA} \lbln{2}) & \begin{array}{@@{}l@@{}}\text{if $\lbln{1} \act{\ValA} \lbln{2} \left(\act{\UpdateA(\wild)} \lbln{2} \right)^* \act{\UpdateA(\pa)} \lbln{2} \subtrceq π_i^+$} \\[-0.4em]
                                                        \text{and $(v,\wild) = S(π_i^+)$} \end{array} \\
     S(π_i^+) & \text{otherwise} \\
   \end{cases} \\
   \\[-0.5em]
   \seminf{\slbl(\Let{\px}{\pe_1}{\pe_2})}_ρ(π_i^+) & = &
     \begin{letarray}
-      \text{let} & S' = memo(π_i^+,\seminf{\pe_1}_{ρ'}) \\
-                 & ρ' = \lfp(λρ'. ρ ⊔ [\px ↦ cons(\LookupA(new(π_i^+)),\atlbl{\pe_1},S']) \\
+      \text{let} & S' = memo(hash(π_i^+),\seminf{\pe_1}_{ρ'}) \\
+                 & ρ' = \lfp(λρ'. ρ ⊔ [\px ↦ cons(\LookupA(hash(π_i^+)),\atlbl{\pe_1},S']) \\
       \text{in}  & cons(\BindA,\atlbl{\pe_2},\seminf{\pe_2}_{ρ'})(π_i^+)
     \end{letarray} \\
  \end{array} \\
@@ -338,7 +339,7 @@ Trace of the expression:
     {π_c ∈ \sempref{\slbl \px}_ρ(π_i^+)} \\
   \\[-0.5em]
   \inferrule*[right=\textsc{Let}]
-    {   ρ' = \lfp(λρ'. ρ ⊔ [\px ↦ cons(\LookupA(new(π_i^+)),\atlbl{\pe_1},\sempref{\pe_1}_{ρ'})])
+    {   ρ' = \lfp(λρ'. ρ ⊔ [\px ↦ cons(\LookupA(hash(π_i^+)),\atlbl{\pe_1},\sempref{\pe_1}_{ρ'})])
      \\ π_c ∈ cons(\BindA,\atlbl{\pe_2},\sempref{\pe_2}_{ρ'})(π_i^+)}
     {π_c ∈ \sempref{\slbl(\Let{\px}{\pe_1}{\pe_2})}_ρ(π_i^+)} \\
   \\[-0.5em]
@@ -400,7 +401,7 @@ Trace of the expression:
 \begin{figure}
 \[\begin{array}{c}
  \begin{array}{rrclcl}
-  \text{Actions}      &     a & ∈ & \Actions & ::=       & \ldots \mid \UpdateA(π) \\
+  \text{Actions}      &     a & ∈ & \Actions & ::=       & \ldots \mid \UpdateA(\pa) \\
  \end{array} \\
  \\
  \begin{array}{rcl}
@@ -413,15 +414,16 @@ Trace of the expression:
     S(π_i^+) \act{a} dst(S(π_i^+)) & \text{otherwise} \\
   \end{cases} \\
   \\[-0.5em]
-  memo(π_k,S)(π_i^+)   & = & \begin{cases}
-    \lbln{1} \act{\ValA(v)} \lbln{2} & \text{if $\lbln{1} \act{\ValA(v)} \lbln{2} \left(\act{\UpdateA(\wild)} \lbln{2} \right)^* \act{\UpdateA(π_k)} \lbln{2} \subtrceq π_i^+$} \\
+  memo(\pa,S)(π_i^+)   & = & \begin{cases}
+    \lbln{1} \act{\ValA(v)} \lbln{2} & \text{if $\lbln{1} \act{\ValA(v)} \lbln{2} \left(\act{\UpdateA(\wild)} \lbln{2} \right)^* \act{\UpdateA(\pa)} \lbln{2} \subtrceq π_i^+$} \\
     S(π_i^+) & \text{otherwise} \\
   \end{cases} \\
   \\[-0.5em]
   \seminf{\slbl(\Let{\px}{\pe_1}{\pe_2})}_ρ(π_i^+) & = &
     \begin{letarray}
-      \text{let} & S' = \highlight{snoc(memo(π_i^+,\seminf{\pe_1}_{ρ'}), \UpdateA(π_i^+))} \\
-                 & ρ' = \lfp(λρ'. ρ ⊔ [\px ↦ cons(\LookupA(new(π_i^+)),\atlbl{\pe_1},S')]) \\
+      \text{let} & \pa = hash(π_i^+) \\
+                 & S' = \highlight{snoc(memo(\pa,\seminf{\pe_1}_{ρ'}), \UpdateA(\pa))} \\
+                 & ρ' = \lfp(λρ'. ρ ⊔ [\px ↦ cons(\LookupA(\pa),\atlbl{\pe_1},S')]) \\
       \text{in}  & cons(\BindA,\atlbl{\pe_2},\seminf{\pe_2}_{ρ'})(π_i^+)
     \end{letarray} \\
   \\
@@ -457,14 +459,13 @@ Trace of the expression:
 \begin{figure}
 \[\begin{array}{c}
  \begin{array}{rrclcl}
-  \text{Configurations}  &     κ & ∈ & \Configurations & ::= & (\pH,\pe,\pE,\pS) \\
-  \text{Addresses}       &   \pa & ∈ & \Addresses  & \subseteq & ℕ \\
-  \text{Heaps}       &     \pH & ∈ & \Heaps  & = & \Addresses \pfun (\Envs,\Exp) \\
-  \text{Environments} &     \pE & ∈ & \Envs  & = & \Var \pfun \Addresses \\
-  \text{Stacks}       &     \pS & ∈ & \Stacks  & ::= & \StopF \mid \ApplyF{\pa} \pushF \pS \mid \UpdateF{\pa} \pushF \pS \\
-  \text{Small-step transition}     &     t & ∈ & \STransitions  & ::= & \AppIT \mid \AppET \mid \UpdateT \mid \LookupT \mid \LetT \\
-  \text{Finite Small-step Traces}       &     σ & ∈ & \STraces^+      & ::= & κ \mid κ \strans{t} σ \\
-  \text{Finite and Infinite Small-step Traces}       &     σ & ∈ & \STraces^{+\infty}      & = & \STraces^+ ∪ \lim(\STraces^+) \\
+  \text{Configurations}                        & κ   & ∈ & \Configurations    & ::= & (\pH,\pe,\pE,\pS) \\
+  \text{Heaps}                                 & \pH & ∈ & \Heaps             & =   & \Addresses \pfun (\Envs,\Exp) \\
+  \text{Environments}                          & \pE & ∈ & \Envs              & =   & \Var \pfun \Addresses \\
+  \text{Stacks}                                & \pS & ∈ & \Stacks            & ::= & \StopF \mid \ApplyF{\pa} \pushF \pS \mid \UpdateF{\pa} \pushF \pS \\
+  \text{Small-step transition}                 & t   & ∈ & \STransitions      & ::= & \AppIT \mid \AppET \mid \UpdateT \mid \LookupT \mid \LetT \\
+  \text{Finite Small-step Traces}              & σ   & ∈ & \STraces^+         & ::= & κ \mid κ \strans{t} σ \\
+  \text{Finite and Infinite Small-step Traces} & σ   & ∈ & \STraces^{+\infty} & =   & \STraces^+ ∪ \lim(\STraces^+) \\
  \end{array} \\
  \\
  \begin{array}{rcl}
