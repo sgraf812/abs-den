@@ -9,7 +9,8 @@
   \text{Variables}    &         \pv & ∈ & \Val & ::=  & \Lam{\px}{\pe} \\
   \text{Expressions}  &         \pe & ∈ & \Exp & ::=  & \slbl \px \mid \slbln{1} \pv \slbln{2} \mid \slbl \pe~\px \mid \slbl \Let{\px}{\pe_1}{\pe_2} \\
   \\
-  \text{Actions} & a & ∈ & \Actions & ::=  & \AppIA \mid \AppEA \mid \LookupA(π^+) \mid \BindA \\
+  \text{Addresses}       &   \pa & ∈ & \Addresses  & \subseteq & ℕ \\
+  \text{Actions} & a & ∈ & \Actions & ::=  & \AppIA \mid \AppEA \mid \LookupA(\pa) \mid \BindA \\
   \text{Finite Traces} & π^+ & ∈ & \Traces^+ & ::=  & \lbl \mid \lbl \act{a} π^+  \\
 
   \text{Semantic Domain} &     d & ∈ & \AbsD & & \text{Specified as needed} \\
@@ -112,6 +113,8 @@ Trace of the expression:
  \begin{array}{rcl}
   \multicolumn{3}{c}{ \ruleform{ \seminf{\wild} \colon \Exp → (\Var → \MaxD) → \MaxD } } \\
   \\[-0.5em]
+  new   & : & \Traces^+ \to \Addresses\ \text{injective modulo actions} \\
+  \\[-0.5em]
   \bot(π_i^+)   & = & dst(π_i^+) \text{ is the bottom element of $\MaxD$} \\
   \\[-0.5em]
   cons(a,\lbl,S)(π_i^+)   & = & dst(π_i^+) \act{a} S(π_i^+ \act{a} \lbl) \\
@@ -137,7 +140,7 @@ Trace of the expression:
   \\[-0.5em]
   \seminf{\slbl(\Let{\px}{\pe_1}{\pe_2})}_ρ(π_i^+) & = &
     \begin{letarray}
-      \text{let} & ρ' = \lfp(λρ'. ρ ⊔ [\px ↦ cons(\LookupA(π_i^+),\atlbl{\pe_1},\seminf{\pe_1}_{ρ'})]) \\
+      \text{let} & ρ' = \lfp(λρ'. ρ ⊔ [\px ↦ cons(\LookupA(new(π_i^+)),\atlbl{\pe_1},\seminf{\pe_1}_{ρ'})]) \\
       \text{in}  & cons(\BindA,\atlbl{\pe_2},\seminf{\pe_2}_{ρ'})(π_i^+)
     \end{letarray} \\
   \\[-0.5em]
@@ -184,7 +187,14 @@ Trace of the expression:
 %
 % Because then we can't see the prefix T+ when we have to extend ρ at let
 % bindings. But this is our primary mechanism for sharing! Similarly for
-% call-by-value. So we are stuck with value actions and T+ -> T+∞.
+% call-by-value.
+%
+% So we are stuck with value actions. Still, we could decide to return the
+% value "out of band", in a pair, T+ -> (V, T+∞). That yields the worse of
+% both worlds; the definition is similar to T+ -> T+∞ but we often need to
+% adjust the second component of the pair; plus, in `memo`, we still have
+% to "execute" the semantics S for its value, because we can't recover it
+% from the trace.
 
 \begin{figure}
 \[\begin{array}{c}
@@ -216,7 +226,7 @@ Trace of the expression:
   \\[-0.5em]
   f \second (a,b)  & = & (a, f a) \\
   \\[-0.5em]
-  cons(a,\lbl,S)(π_i^+)   & = & (dst(π_i^+) \act{a} {}) \second S(π_i^+ \act{a} \lbl) \\
+  cons(a,\lbl,S)(π_i^+)   & = & dst(π_i^+) \act{a} S(π_i^+ \act{a} \lbl) \\
   \\[-0.5em]
   \seminf{\slbl \pe}_ρ    (π_i^+)   & = & \bot(π_i^+) \qquad \text{if $dst(π_i^+) \not= \lbl$} \\
   \\[-0.9em]
@@ -239,7 +249,7 @@ Trace of the expression:
   \\[-0.5em]
   \seminf{\slbl(\Let{\px}{\pe_1}{\pe_2})}_ρ(π_i^+) & = &
     \begin{letarray}
-      \text{let} & ρ' = \lfp(λρ'. ρ ⊔ [\px ↦ cons(\LookupA(π_i^+),\atlbl{\pe_1},\seminf{\pe_1}_{ρ'})]) \\
+      \text{let} & ρ' = \lfp(λρ'. ρ ⊔ [\px ↦ cons(\LookupA(new(π_i^+)),\atlbl{\pe_1},\seminf{\pe_1}_{ρ'})]) \\
       \text{in}  & cons(\BindA,\atlbl{\pe_2},\seminf{\pe_2}_{ρ'})(π_i^+)
     \end{letarray} \\
   \\[-0.5em]
@@ -248,16 +258,15 @@ Trace of the expression:
   π_s \subtrceq π & = & \exists π_1, π_2.\ π = π_1 \concat π_s \concat π_2  \\
   \\[-0.5em]
   memo(π_k,S)(π_i^+)   & = & \begin{cases}
-    (v, dst(π_b^+) \act{\ValA} \lbln{2}) & \begin{array}{@@{}l@@{}}\text{if $\lbln{1} \act{\LookupA(π_k)} π_b^+ \act{\ValA(v)} \lbln{2} \subtrceq π_i^+$} \\[-0.4em]
-                                                       \text{and $\balanced{π_b^+ \act{\ValA(v)} \lbln{2}}$} \\
-                                                       \text{and $(v,π) = S(π_i^+)$} \end{array} \\
+    (v, \lbln{1} \act{\ValA} \lbln{2}) & \begin{array}{@@{}l@@{}}\text{if $\lbln{1} \act{\ValA} \lbln{2} \left(\act{\UpdateA(\wild)} \lbln{2} \right)^* \act{\UpdateA(π_k)} \lbln{2} \subtrceq π_i^+$} \\[-0.4em]
+                                                       \text{and $(v,\wild) = S(π_i^+)$} \end{array} \\
     S(π_i^+) & \text{otherwise} \\
   \end{cases} \\
   \\[-0.5em]
   \seminf{\slbl(\Let{\px}{\pe_1}{\pe_2})}_ρ(π_i^+) & = &
     \begin{letarray}
       \text{let} & S' = memo(π_i^+,\seminf{\pe_1}_{ρ'}) \\
-                 & ρ' = \lfp(λρ'. ρ ⊔ [\px ↦ cons(\LookupA(π_i^+),\atlbl{\pe_1},S']) \\
+                 & ρ' = \lfp(λρ'. ρ ⊔ [\px ↦ cons(\LookupA(new(π_i^+)),\atlbl{\pe_1},S']) \\
       \text{in}  & cons(\BindA,\atlbl{\pe_2},\seminf{\pe_2}_{ρ'})(π_i^+)
     \end{letarray} \\
  \end{array} \\
@@ -329,7 +338,7 @@ Trace of the expression:
     {π_c ∈ \sempref{\slbl \px}_ρ(π_i^+)} \\
   \\[-0.5em]
   \inferrule*[right=\textsc{Let}]
-    {   ρ' = \lfp(λρ'. ρ ⊔ [\px ↦ cons(\LookupA(π_i^+),\atlbl{\pe_1},\sempref{\pe_1}_{ρ'})])
+    {   ρ' = \lfp(λρ'. ρ ⊔ [\px ↦ cons(\LookupA(new(π_i^+)),\atlbl{\pe_1},\sempref{\pe_1}_{ρ'})])
      \\ π_c ∈ cons(\BindA,\atlbl{\pe_2},\sempref{\pe_2}_{ρ'})(π_i^+)}
     {π_c ∈ \sempref{\slbl(\Let{\px}{\pe_1}{\pe_2})}_ρ(π_i^+)} \\
   \\[-0.5em]
@@ -391,7 +400,7 @@ Trace of the expression:
 \begin{figure}
 \[\begin{array}{c}
  \begin{array}{rrclcl}
-  \text{Actions}      &     a & ∈ & \Actions & ::=       & \ldots \mid \UpdateA(\highlight{π}) \\
+  \text{Actions}      &     a & ∈ & \Actions & ::=       & \ldots \mid \UpdateA(π) \\
  \end{array} \\
  \\
  \begin{array}{rcl}
@@ -399,41 +408,43 @@ Trace of the expression:
   \\[-0.5em]
   π_s \subtrceq π & = & \exists π_1, π_2.\ π = π_1 \concat π_s \concat π_2  \\
   \\[-0.5em]
-  snoc(\lbl, a, S)(π_i^+)   & = & S(π_i^+) \act{a} \lbl \\
+  snoc(S,a)(π_i^+)   & = & \begin{cases}
+    S(π_i^+) & S(π_i^+)\ \text{infinite} \\
+    S(π_i^+) \act{a} dst(S(π_i^+)) & \text{otherwise} \\
+  \end{cases} \\
   \\[-0.5em]
   memo(π_k,S)(π_i^+)   & = & \begin{cases}
-    dst(π_b^+) \act{\ValA(v)} \lbln{2} & \begin{array}{@@{}l@@{}}\text{if $\lbln{1} \act{\LookupA(π_k)} π_b^+ \act{\ValA(v)} \lbln{2} \subtrceq π_i^+$} \\[-0.4em]
-                                                       \text{and $\balanced{π_b^+ \act{\ValA(v)} \lbln{2}}$} \end{array} \\
+    \lbln{1} \act{\ValA(v)} \lbln{2} & \text{if $\lbln{1} \act{\ValA(v)} \lbln{2} \left(\act{\UpdateA(\wild)} \lbln{2} \right)^* \act{\UpdateA(π_k)} \lbln{2} \subtrceq π_i^+$} \\
     S(π_i^+) & \text{otherwise} \\
   \end{cases} \\
   \\[-0.5em]
   \seminf{\slbl(\Let{\px}{\pe_1}{\pe_2})}_ρ(π_i^+) & = &
     \begin{letarray}
-      \text{let} & S' = \highlight{memo(π_i^+,\seminf{\pe_1}_{ρ'})} \\
-                 & ρ' = \lfp(λρ'. ρ ⊔ [\px ↦ snoc(cons(\LookupA(π_i^+),\atlbl{\pe_1},S']), \UpdateA(π_i^+), ???) \\
+      \text{let} & S' = \highlight{snoc(memo(π_i^+,\seminf{\pe_1}_{ρ'}), \UpdateA(π_i^+))} \\
+                 & ρ' = \lfp(λρ'. ρ ⊔ [\px ↦ cons(\LookupA(new(π_i^+)),\atlbl{\pe_1},S')]) \\
       \text{in}  & cons(\BindA,\atlbl{\pe_2},\seminf{\pe_2}_{ρ'})(π_i^+)
     \end{letarray} \\
   \\
   \multicolumn{3}{l}{\text{(Unchanged call-by-name equations:)}} \\
   \\[-0.5em]
-  cons(S,a,\lbl)(π_i^+)   & = & dst(π_i^+) \act{a} S(π_i^+ \act{a} \lbl) \\
+  cons(a,\lbl,S)(π_i^+)   & = & dst(π_i^+) \act{a} S(π_i^+ \act{a} \lbl) \\
   \\[-0.5em]
-  \seminf{\slbl \pe}_ρ    (π_i^+)   & = & dst(π_i^+) \qquad \text{if $dst(π_i^+) \not= \lbl$} \\
+  \seminf{\slbl \pe}_ρ    (π_i^+)   & = & \bot(π_i^+) \qquad \text{if $dst(π_i^+) \not= \lbl$} \\
   \\[-0.9em]
   \seminf{\slbl \px}_ρ    (π_i^+)   & = & ρ(\px)(π_i^+) \\
   \\[-0.5em]
   \seminf{\slbln{1}(\Lam{\px}{\pe})\slbln{2}}_ρ(π_i^+) & = &
     \begin{letarray}
-      \text{let} & f = d ↦ cons(\seminf{\pe}_{ρ[\px↦d]},\AppEA,\atlbl{\pe}) \\
+      \text{let} & f = d ↦ cons(\AppEA,\atlbl{\pe},\seminf{\pe}_{ρ[\px↦d]}) \\
       \text{in}  & \lbln{1} \act{\ValA(\FunV(f))} \lbln{2} \\
     \end{letarray} \\
   \\[-0.5em]
   \seminf{\slbl(\pe~\px)}_ρ(π_i^+) & = &
     \begin{letarray}
       \text{let} & π_e = \seminf{\pe}_ρ(π_i^+ \act{\AppIA} \atlbl{\pe}) \\
-      \text{in}  & \begin{cases}
-                     \lbl \act{\AppIA} π_e \concat f(ρ(\px))(π_i^+ \act{\AppIA} π_e) & \text{if $\getval{π_e}{\FunV(f)}$}  \\
-                     \lbl \act{\AppIA} π_e & \text{otherwise}  \\
+      \text{in}  & \lbl \act{\AppIA} π_e \concat \begin{cases}
+                     f(ρ(\px))(π_i^+ \act{\AppIA} π_e) & \text{if $\getval{π_e}{\FunV(f)}$}  \\
+                     \bot(π_i^+ \act{\AppIA} π_e) & \text{otherwise}  \\
                    \end{cases} \\
     \end{letarray} \\
   \\[-0.5em]
@@ -540,7 +551,7 @@ Trace of the expression:
   \end{cases} \\
   \\[-0.5em]
   shortcut(φ)(\pH,\pe,\pS) & = & \begin{cases}
-    (\pH,\pe,\pS)  & \text{if $\pe = \Lam{\wild}{\wild}$} \\
+    (\pH,\pv,\pS)  & \text{if $\pe$ is a value $\pv$} \\
     φ(\pH,\pe,\pS) & \text{otherwise} \\
   \end{cases} \\
   \\[-0.5em]
