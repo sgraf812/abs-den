@@ -172,6 +172,9 @@ Trace of the expression:
 % initialisation trace that started with look(π_k). In fact, earlier
 % versions did exactly that, and it worked great!
 % Unfortunately, it has the following drawbacks:
+%   * Small-step semantics does have update frames and we want to match those
+%     rather simply. It is a matter of producing "complete" states, see
+%     "Which info do we need to attach to an action?"
 %   * We need to define relatively early what a balanced trace is.
 %     The semantics itself should not depend on that...
 %   * It is simpler to define the abstraction to stateful prefix trace semantics
@@ -196,6 +199,64 @@ Trace of the expression:
 % adjust the second component of the pair; plus, in `memo`, we still have
 % to "execute" the semantics S for its value, because we can't recover it
 % from the trace.
+%
+% Which info do we need to attach to an action?
+% ---------------------------------------------
+% TLDR; that is determined by transition semantics that we want to
+% be to abstract a trace into. The reasoning is as follows:
+%
+%   * "The transition semantics" is really the semantics we get by
+%     applying the transition abstraction α_τ to a *stateful* trace
+%     semantics, where the states capture enough information for
+%     the resulting transition system to become deterministic.
+%     (The transition system we get by abstracting the *stateless* trace
+%     semantics isn't very useful precisely for that reason; taking
+%     labels as state yields too many spurious transitions.)
+%   * So determinism of the abstracted transition system is a quality
+%     of the semantic richness of states (given that the sequence of states
+%     is fixed); let's call state structure that allows for deterministic
+%     abstraction "complete"
+%   * (Are all complete state structures are isomorph?)
+%   * The stateful trace semantics is an abstraction of the stateless trace
+%     semantics by way of α_S. We want to produce (at least one) stateful
+%     semantics where the state space is complete. To produce such states, the
+%     necessary information must be part of the stateless trace, otherwise we
+%     can't write the abstraction function from statelss to stateful.
+%
+% So given the completeness of the states produced by α_S as a goal, we can
+% make the following claims for action kinds in a trace:
+%
+%   * AppI, AppE, Lookup, Bind are all necessary actions because they make
+%     a step from one label to a label of a subexpression.
+%   * Val actions are the trace semantics' means of communicating a successful
+%     (e.g., not stuck) execution as well as playing the role of `Just value`.
+%     It is crucial that values have a second label, otherwise the transition
+%     system would loop endlessly, as there would be no correspondence operation
+%     on (e.g., small-step) states.
+%     (Although stuckness that doesn't mean they are *necessary* for the trace
+%     semantics: The primary means to determine a successful trace is whether it
+%     is balanced... So we don't actually need the action, just the value, which
+%     could be communicated out of band. It's just horribly ugly to do so; I
+%     tried, see page 4 of 61e6f8a.)
+%   * We do *not* strictly need Update actions -- we just need update frames
+%     in the stateful trace, but those can be reconstructed from when a Lookup's
+%     balanced trace ended. Update actions make our life simpler in other ways,
+%     though: See "The need for an update action".
+%
+% Now as to what information we need on the actions:
+%
+%   * AppI: We need the Var so that α_S can produce an Apply frame
+%   * AppE: We need both the Var *and* the D so that varrho can produce the
+%           proper environment.
+%   * Lookup: We need the address so that we can push an update frame in α_S.
+%             Also we need it to find the corresponding Bind.
+%   * Bind: We need the address, so α_S can find it when encountering a Lookup
+%           at that address. Then we also need the Var and the D for varrho.
+%   * Update: The address is convenient (as are update actions to begin with),
+%             otherwise we'd have to fiddle with balanced traces in memo to find
+%             the corresponding Lookup.
+%   * Values: It is convenient to attach values to Val actions; this is not strictly
+%     necessary, just convenient (as I said above).
 
 \begin{figure}
 \[\begin{array}{c}
@@ -233,10 +294,10 @@ Trace of the expression:
   \\[-0.9em]
   \seminf{\slbl \px}_ρ    (π_i^+)   & = & ρ(\px)(π_i^+) \\
   \\[-0.5em]
-  \seminf{\slbln{1}(\Lam{\px}{\pe})\slbln{2}}_ρ(π_i^+) & = &
+  \seminf{\slbl(\Lam{\px}{\pe})}_ρ(π_i^+) & = &
     \begin{letarray}
       \text{let} & f = d ↦ cons(\AppEA,\atlbl{\pe},\seminf{\pe}_{ρ[\px↦d]}) \\
-      \text{in}  & (\FunV(f), \lbln{1} \act{\ValA} \lbln{2}) \\
+      \text{in}  & (\FunV(f), \lbl) \\
     \end{letarray} \\
   \\[-0.5em]
   \seminf{\slbl(\pe~\px)}_ρ(π_i^+) & = &
@@ -259,8 +320,7 @@ Trace of the expression:
   π_s \subtrceq π & = & \exists π_1, π_2.\ π = π_1 \concat π_s \concat π_2  \\
   \\[-0.5em]
   memo(\pa,S)(π_i^+)   & = & \begin{cases}
-    (v, \lbln{1} \act{\ValA} \lbln{2}) & \begin{array}{@@{}l@@{}}\text{if $\lbln{1} \act{\ValA} \lbln{2} \left(\act{\UpdateA(\wild)} \lbln{2} \right)^* \act{\UpdateA(\pa)} \lbln{2} \subtrceq π_i^+$} \\[-0.4em]
-                                                       \text{and $(v,\wild) = S(π_i^+)$} \end{array} \\
+    (v, \lbl) & \text{if $\lbl \act{\UpdateA(\pa)} \lbl \subtrceq π_i^+$ and $(v,\wild) = S(π_i^+)$} \\
     S(π_i^+) & \text{otherwise} \\
   \end{cases} \\
   \\[-0.5em]
