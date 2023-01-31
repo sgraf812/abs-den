@@ -523,19 +523,18 @@ Trace of the expression:
   \text{Heaps}                                 & \pH & ∈ & \Heaps             & =   & \Addresses \pfun (\Envs,\Exp) \\
   \text{Environments}                          & \pE & ∈ & \Envs              & =   & \Var \pfun \Addresses \\
   \text{Stacks}                                & \pS & ∈ & \Stacks            & ::= & \StopF \mid \ApplyF{\pa} \pushF \pS \mid \UpdateF{\pa} \pushF \pS \\
-  \text{Small-step transition}                 & t   & ∈ & \STransitions      & ::= & \AppIT \mid \AppET \mid \UpdateT \mid \LookupT \mid \LetT \\
-  \text{Finite Small-step Traces}              & σ   & ∈ & \STraces^+         & ::= & κ \mid κ \strans{t} σ \\
+  \text{Finite Small-step Traces}              & σ   & ∈ & \STraces^+         & ::= & κ\straceend \mid κ; σ \\
   \text{Finite and Infinite Small-step Traces} & σ   & ∈ & \STraces^{+\infty} & =   & \STraces^+ ∪ \lim(\STraces^+) \\
  \end{array} \\
  \\
  \begin{array}{rcl}
   \multicolumn{3}{c}{ \ruleform{ src_\Sigma(σ) = κ \qquad dst_\Sigma(σ) = κ } } \\
   \\[-0.5em]
-  src_\Sigma(κ)              & = & κ \\
-  src_\Sigma(κ \strans{t} σ) & = & κ \\
+  src_\Sigma(κ\straceend)    & = & κ \\
+  src_\Sigma(κ; σ) & = & κ \\
   \\[-0.5em]
-  dst_\Sigma(κ)              & = & κ \\
-  dst_\Sigma(κ \strans{t} σ) & = & dst_\Sigma(σ) \\
+  dst_\Sigma(κ\straceend)    & = & κ \\
+  dst_\Sigma(κ; σ) & = & dst_\Sigma(σ) \\
   \\
  \end{array} \qquad
  \begin{array}{c}
@@ -545,45 +544,51 @@ Trace of the expression:
     σ_1              & \text{if $σ_1$ infinite} \\
     undefined        & \text{if $σ_1$ finite and $dst_\Sigma(σ_1) \not= src_\Sigma(σ_2)$} \\
     κ             & σ_1 = σ_2 = κ \\
-    σ_1' \strans{t} σ_2 &  σ_1 = σ_1' \strans{t} κ \\
-    σ_1 \strans{t} σ_2' &  σ_2 = κ \strans{t} σ_2' \\
+    σ_1'; σ_2 &  σ_1 = σ_1'; κ \\
+    σ_1; σ_2' &  σ_2 = κ; σ_2' \\
   \end{cases} \\
  \end{array} \\
  \\
  \begin{array}{c}
-  \ruleform{ \validtrans{κ_1 \strans{t} κ_2} \qquad \validtrace{σ} } \\
+  \ruleform{ κ_1 \smallstep κ_2 \qquad \validtrace{σ} } \\
   \\[-0.5em]
   \inferrule*
-    {\quad}
-    {\validtrace{κ}} \quad
-  \inferrule*
-    {\validtrans{κ \strans{t} src_\Sigma(σ)} \quad \validtrace{σ}}
-    {\validtrace{κ \strans{t} σ}} \\
-  \\
-  \inferrule*
+    [right=$\LookupT$]
     {\pa = \pE(\px)}
-    {\validtrans{(\pH, \px, \pE, \pS) \strans{\LookupT} (\pH, \pH(\pa), \UpdateF{\pa} \pushF \pS)}}
+    {(\pH, \px, \pE, \pS) \smallstep (\pH, \pH(\pa), \UpdateF{\pa} \pushF \pS)}
   \qquad
   \inferrule*
+    [right=$\UpdateT$]
     {\quad}
-    {\validtrans{(\pH, \pv, \pE, \UpdateF{\pa} \pushF \pS) \strans{\UpdateT} (\pH[\pa↦(\pE,\pv)], \pv, \pE, \pS)}} \\
+    {(\pH, \pv, \pE, \UpdateF{\pa} \pushF \pS) \smallstep (\pH[\pa↦(\pE,\pv)], \pv, \pE, \pS)} \\
   \\[-0.5em]
   \inferrule*
+    [right=$\AppIT$]
     {\pa = \pE(\px)}
-    {\validtrans{(\pH, \pe~\px, \pE, \pS) \strans{\AppIT} (\pH, \pe, \pE, \ApplyF{\pa} \pushF \pS)}}
+    {(\pH, \pe~\px, \pE, \pS) \smallstep (\pH, \pe, \pE, \ApplyF{\pa} \pushF \pS)}
   \qquad
   \inferrule*
+    [right=$\AppET$]
     {\quad}
-    {\validtrans{(\pH, \Lam{\px}{\pe}, \pE, \ApplyF{\pa} \pushF \pS) \strans{\AppET} (\pH, \pe, \pE[\px↦\pa], \pS)}} \\
+    {(\pH, \Lam{\px}{\pe}, \pE, \ApplyF{\pa} \pushF \pS) \smallstep (\pH, \pe, \pE[\px↦\pa], \pS)} \\
   \\[-0.5em]
   \inferrule*
+    [right=$\LetT$]
     {\fresh{\pa}{\pH} \quad \pE' = \pE[\px↦\pa]}
-    {\validtrans{(\pH, \Let{\px}{\pe_1}{\pe_2}, \pE, \pS) \strans{\LetT} (\pH[\pa↦(\pE',\pe_1)], \pe_2, \pE', \pS)}}
+    {(\pH, \Let{\px}{\pe_1}{\pe_2}, \pE, \pS) \smallstep (\pH[\pa↦(\pE',\pe_1)], \pe_2, \pE', \pS)} \\
   \\
-  \\[-0.5em]
+  \\
+  \inferrule*
+    {\quad}
+    {\validtrace{κ\straceend}}
+  \qquad
+  \inferrule*
+    {κ \smallstep src_\Sigma(σ) \quad \validtrace{σ}}
+    {\validtrace{κ; σ}} \\
+  \\
  \end{array} \\
 \end{array}\]
-\caption{Call-by-need small-step transition system Σ}
+\caption{Call-by-need small-step transition system $\smallstep$}
   \label{fig:ss-syntax}
 \end{figure}
 
@@ -597,17 +602,17 @@ Trace of the expression:
  \begin{array}{rcl}
   \multicolumn{3}{c}{ \ruleform{ \semss{\wild} \colon \Exp → (\Var → \SSD) → \SSD } } \\
   \\[-0.5em]
-  \bot_\Sigma & = & (\bot_\Values, \fn{κ}{κ}) \\
+  \bot_\Sigma & = & (\bot_\Values, \fn{κ}{κ\straceend}) \\
   \\[-0.5em]
   (f \funnyComp g)(κ) & = & f(κ) \sconcat g(dst_\Sigma(f(κ))) \\
   \\[-0.5em]
   cons(t,φ)(κ_1) & = & \begin{cases}
-    κ_1 \strans{t} φ(κ_2) & \text{with $κ_2$ such that $\validtrans{κ_1 \strans{t} κ_2}$} \\
+    κ_1; φ(κ_2) & \text{with $κ_2$ such that $κ_1 \smallstep κ_2$} \\
     κ_1                   & \text{otherwise} \\
   \end{cases} \\
   \\[-0.5em]
   snoc(φ,t)(κ) & = & \begin{cases}
-    φ(κ) \strans{t} κ_2 & \text{with $κ_2$ such that $\validtrans{κ_1 \strans{t} κ_2}$} \\
+    φ(κ); κ_2 & \text{with $κ_2$ such that $dst_\Sigma(φ(κ)) \smallstep κ_2$} \\
     φ(κ)                & \text{otherwise} \\
   \end{cases} \\
   \\[-0.5em]
@@ -618,7 +623,7 @@ Trace of the expression:
   \\[-0.5em]
   \semss{\px}_ρ & = & ρ(\px) \\
   \\[-0.5em]
-  \semss{\Lam{\px}{\pe}}_ρ & = & (\FunV(\fn{d}{\semss{\pe}_{ρ[\px↦d]}}), \fn{κ}{κ}) \\
+  \semss{\Lam{\px}{\pe}}_ρ & = & (\FunV(\fn{d}{\semss{\pe}_{ρ[\px↦d]}}), \fn{κ}{κ\straceend}) \\
   \\[-0.5em]
   \semss{\pe~\px}_ρ & = &
     \begin{letarray}
@@ -639,7 +644,7 @@ Trace of the expression:
   \\
  \end{array} \\
 \end{array}\]
-\caption{Structural call-by-need small-step semantics}
+\caption{Structural call-by-need small-step trace semantics $\semss{-}$}
   \label{fig:ss-semantics}
 \end{figure}
 
@@ -647,41 +652,51 @@ Trace of the expression:
   \begin{lemma}
     Let $(v,φ) = \semss{\pe}_ρ$. Then $\validtrace{φ(κ)}$ for every initial configuration $κ$.
   \end{lemma}
+  \begin{proof}
+    Every $φ$ is either $\fn{κ}{κ\straceend}$, where $\validtrace{κ\straceend}$,
+    or it is produced by $\funnyComp$, $cons$ or $snoc$. These combinators
+    produce valid small-step derivations whenever their input $φ$ produces
+    valid derivations. By (co-)induction that is always the case.
+  \end{proof}
+
   \begin{definition}[Maximal small-step trace]
-    A small-step trace $σ$ is \emph{maximal} iff
+    A small-step trace $σ$ is \emph{maximal} iff $\validtrace{σ}$ and either
     \begin{itemize}
-      \item $\validtrace{σ}$, and
-      \item if $σ$ is finite, then there is no $κ'$ and $t$ such that
-            $\validtrans{dst_\Sigma(σ) \strans{t} κ'}$.
+      \item σ is infinite, or
+      \item there is no $κ'$ such that $dst_\Sigma(σ) \smallstep κ'$
     \end{itemize}
   \end{definition}
 
+  Clearly, a term's defining property wrt. a small-step transition system such
+  as $\smallstep$ is the maximal trace of its initial configuration.
+
   \begin{definition}[Balanced small-step trace]
     A finite small-step trace
-    $σ=(\pH,\pe,\pS) \strans{} ... \strans{} (\pH',\pe',\pS')$
-    is \emph{balanced} if $\validtrace{σ}$, $\pv$ is a value, $\pS=\pS'$, and
-    every intermediate stack
-    extends $\pS$.
+    $σ=(\pH,\pe,\pS); ...; (\pH',\pe',\pS')$
+    is \emph{balanced} if $\validtrace{σ}$, $\pe'$ is a value, $\pS=\pS'$, and
+    every intermediate stack extends $\pS$.
   \end{definition}
-
-  The maximal trace of the initial configuration of an expression is either
-  infinite, stuck, or balanced.
-
-  Clearly, a term's defining property wrt. a small-step transition system is the
-  maximal trace of its initial configuration.
 
   \begin{definition}[Maximally balanced small-step trace]
-    A finite small-step trace
-    $σ=(\pH,\pe,\pS) \strans{} ... \strans{} (\pH',\pe',\pS')$
-    is \emph{maximally balanced} if $\validtrace{σ}$, $\pv$ is a value, $\pS=\pS'$, and
-    every intermediate stack
-    extends $\pS$.
+    A small-step trace σ is \emph{maximally balanced} iff $\validtrace{σ}$,
+    all stacks in σ extend the stack of its initial configuration, and either
+    \begin{itemize}
+      \item $σ$ is infinite, or
+      \item there is no $κ'$ such that $dst_\Sigma(σ) \smallstep κ'$, or
+      \item σ is balanced
+    \end{itemize}
   \end{definition}
+
+  In other words, a trace is maximally balanced if it is either balanced or
+  the trace is maximal and it has no balanced prefix trace.
+
+  For the initial configuration/configurations with an empty stack, the
+  balanced, maximal and maximally balanced traces coincide.
 
   \begin{definition}[Correctness relation]
     Consider the relation $\wild \vdash \wild \sim \wild \triangleq \gfp(F)$, where
     \[
-      F(X) = \{ (\pH, \pE, ρ) \mid \forall \pa \in \dom(\pE).\ (\pE',\pe') = \pH(\pa) \wedge ρ(\px) = \semss{\pe'}_{ρ'} \wedge (\pH, \pE', ρ') \in X \}
+      F(X) = \{ (\pH, \pE, ρ) \mid \forall \px \in \dom(\pE).\ \exists (\pE',\pe').\ (\pE',\pe') = \pH(\pE(\px)) \wedge ρ(\px) = \semss{\pe'}_{ρ'} \wedge (\pH, \pE', ρ') \in X \}
     \]
     We say that a denotational environmant ρ is \emph{consistent} with an environment
     $\pE$ in a heap $\pH$ iff $\pH \vdash \pE \sim ρ$.
@@ -689,8 +704,7 @@ Trace of the expression:
 
   \begin{theorem}Let $(v,φ) = \semss{\pe}_ρ$. Then for all configurations
   $κ=(\pH,\pe,\pE,\pS)$ where $\pH \vdash \pE \sim ρ$ the small-step trace $φ(κ)$ is the
-  small-step trace starting from $κ$ that is either balanced or, if no balanced
-  trace exists, it is maximal.
+  maximally balanced small-step trace starting from $κ$.
   \end{theorem}
 
   Note that for the initial configuration of an expression, the balanced

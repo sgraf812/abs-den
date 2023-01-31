@@ -144,8 +144,8 @@
 \newcommand{\UpdateF}[1]{\# #1}
 \newcommand{\STraces}{\mathsf{STrace}}
 \newcommand{\STransitions}{\mathsf{STrans}}
-\newcommand{\strans}[1]{\xhookrightarrow{#1}}
-\newcommand{\sstep}{;}
+\newcommand{\smallstep}{\hookrightarrow}
+\newcommand{\straceend}{\scalebox{0.5}{$\square$}}
 \newcommand{\sconcat}{\concatop{\hspace{0.04ex}\scalebox{0.5}{\Sigma}}}
 \newcommand{\AppIT}{\textsc{app}_1}
 \newcommand{\AppET}{\textsc{app}_2}
@@ -153,7 +153,6 @@
 \newcommand{\UpdateT}{\textsc{upd}}
 \newcommand{\LetT}{\textsc{let}}
 \newcommand{\funnyComp}{\mathop{\mathord{>}\!\mathord{\circ}\!\mathord{>}}}
-\newcommand{\validtrans}[1]{#1\;\mathsf{ok\text{-}}t}
 \newcommand{\validtrace}[1]{#1\;\mathsf{ok\text{-}}σ}
 
 % Types
