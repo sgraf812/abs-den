@@ -607,12 +607,12 @@ Trace of the expression:
   (f \funnyComp g)(κ) & = & f(κ) \sconcat g(dst_\Sigma(f(κ))) \\
   \\[-0.5em]
   cons(t,φ)(κ_1) & = & \begin{cases}
-    κ_1; φ(κ_2) & \text{with $κ_2$ such that $κ_1 \smallstep κ_2$} \\
+    κ_1; φ(κ_2) & \text{with $κ_2$ such that $κ_1 \smallstep κ_2$ with rule $t$} \\
     κ_1                   & \text{otherwise} \\
   \end{cases} \\
   \\[-0.5em]
   snoc(φ,t)(κ) & = & \begin{cases}
-    φ(κ); κ_2 & \text{with $κ_2$ such that $dst_\Sigma(φ(κ)) \smallstep κ_2$} \\
+    φ(κ); κ_2 \straceend & \text{with $κ_2$ such that $dst_\Sigma(φ(κ)) \smallstep κ_2$ with rule $t$} \\
     φ(κ)                & \text{otherwise} \\
   \end{cases} \\
   \\[-0.5em]
@@ -656,7 +656,7 @@ Trace of the expression:
     Every $φ$ is either $\fn{κ}{κ\straceend}$, where $\validtrace{κ\straceend}$,
     or it is produced by $\funnyComp$, $cons$ or $snoc$. These combinators
     produce valid small-step derivations whenever their input $φ$ produces
-    valid derivations. By (co-)induction that is always the case.
+    valid derivations. By (bi-)induction that is always the case.
   \end{proof}
 
   \begin{definition}[Maximal small-step trace]
@@ -672,7 +672,7 @@ Trace of the expression:
 
   \begin{definition}[Balanced small-step trace]
     A finite small-step trace
-    $σ=(\pH,\pe,\pS); ...; (\pH',\pe',\pS')$
+    $σ=(\pH,\pe,\pE,\pS); ...; (\pH',\pe', \pE', \pS')\straceend$
     is \emph{balanced} if $\validtrace{σ}$, $\pe'$ is a value, $\pS=\pS'$, and
     every intermediate stack extends $\pS$.
   \end{definition}
@@ -710,6 +710,65 @@ Trace of the expression:
   Note that for the initial configuration of an expression, the balanced
   small-step trace is exactly the maximal finite trace that ends with a value.
 
+\end{figure}
+
+\begin{figure}
+\[\begin{array}{c}
+ \begin{array}{rcl}
+  \multicolumn{3}{c}{ \ruleform{ α^l \colon \STraces^{+\infty} → \poset{\Var} → \poset{\Var} \qquad α^{∃l} \colon \poset{\STraces^{+\infty}} → \poset{\Var} → \poset{\Var} \qquad α^{∃l}_\Values \colon \Values_\Sigma → \Values_{∃l} } } \\
+  \\[-0.5em]
+  α^l(σ)~L_e & = & \{ x ∈ \Var \mid ∃i.\ σ_i = (\wild, x, \wild, \wild) ∨ σ\ \text{finite} ∧ x ∈ L_e \} \\
+  α^{∃l}(S)~L_e & = & \bigcup \{ α^l(σ)~L_e \mid σ ∈ S \} \\
+  α^{∃l}_\Values(v) & = & \fn{}{\{ x ∈ \Var \mid ∃i.\ σ_i = (\wild, x, \wild, \wild) ∨ σ\ \text{finite} ∧ x ∈ L_e \}} \\
+ \end{array} \\
+ \\
+ \begin{array}{rcl}
+  \multicolumn{3}{c}{ \ruleform{ \semlive{\wild} \colon \Exp → (\Var → \SSD) → \SSD } } \\
+  \\[-0.5em]
+  \bot_{∃l} & = & (\bot_{∃l}, \fn{κ}{κ\straceend}) \\
+  \\[-0.5em]
+  (f \funnyComp g)(κ) & = & f(κ) \sconcat g(dst_{∃l}(f(κ))) \\
+  \\[-0.5em]
+  cons(t,φ)(κ_1) & = & \begin{cases}
+    κ_1; φ(κ_2) & \text{with $κ_2$ such that $κ_1 \smallstep κ_2$ with rule $t$} \\
+    κ_1                   & \text{otherwise} \\
+  \end{cases} \\
+  \\[-0.5em]
+  snoc(φ,t)(κ) & = & \begin{cases}
+    φ(κ); κ_2 & \text{with $κ_2$ such that $dst_{∃l}(φ(κ)) \smallstep κ_2$ with rule $t$} \\
+    φ(κ)                & \text{otherwise} \\
+  \end{cases} \\
+  \\[-0.5em]
+  shortcut(φ)(\pH,\pe,\pS) & = & \begin{cases}
+    (\pH,\pv,\pS)  & \text{if $\pe$ is a value $\pv$} \\
+    φ(\pH,\pe,\pS) & \text{otherwise} \\
+  \end{cases} \\
+  \\[-0.5em]
+  \semlive{\px}_ρ~L_e & = & ρ(\px)~L_e \\
+  \\[-0.5em]
+  \semlive{\Lam{\px}{\pe}}_ρ~L_e & = & (\FunV(\fn{d}{\semlive{\pe}_{ρ[\px↦d]}}), \fn{κ}{κ\straceend}) \\
+  \\[-0.5em]
+  \semlive{\pe~\px}_ρ~L_e & = &
+    \begin{letarray}
+      \text{let} & (v_1,φ_1) = \semlive{\pe}_ρ \\
+                 & (v_2,φ_2) = \begin{cases}
+                     f(ρ(\px))     & \text{if $v = \FunV(f)$} \\
+                     \bot_{∃l} & \text{otherwise}
+                   \end{cases} \\
+      \text{in}  & (v_2, cons(\AppIT,φ_1) \funnyComp cons(\AppET,φ_2)) \\
+    \end{letarray} \\
+  \\[-0.5em]
+  \semlive{\Let{\px}{\pe_1}{\pe_2}}_ρ~L_e& = & \begin{letarray}
+      \text{let} & (v_1,φ_1) = \semlive{\pe_1}_{ρ'} \\
+                 & (v_2,φ_2) = \semlive{\pe_2}_{ρ'} \\
+                 & ρ' = \lfp(λρ'. ρ ⊔ [\px ↦ (v_1,snoc(cons(\LookupT,shortcut(φ_1)),\UpdateT))]) \\
+      \text{in}  & (v_2,cons(\LetT,φ_2))
+    \end{letarray} \\
+  \\
+ \end{array}
+\end{array}\]
+\caption{Potential liveness}
+  \label{fig:liveness-abstraction}
 \end{figure}
 
 \begin{figure}
