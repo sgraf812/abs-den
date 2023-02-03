@@ -714,9 +714,38 @@ Trace of the expression:
 
 \begin{figure}
 \[\begin{array}{c}
+ \begin{array}{rrclcl}
+  \text{Abstract stack} &   \lS & ∈ & \lStacks & ::= & \lSBot \mid \lSAp{\lS} \mid \lSTop \\
+  \text{Liveness}       &     l & ∈ & \lLiveness & ::= & \lAbs \mid \lUsed{\lS} \\
+ \end{array} \\
+ \\
+ \begin{array}{rcl}
+   \\[-0.5em]
+   \inferrule*
+     {\quad}
+     {\lSBot ⊑ \lS} \qquad
+   \inferrule*
+     {\lS_1 ⊑ \lS_2}
+     {\lSAp{\lS_1} ⊑ \lSAp{\lS_2}} \qquad
+   \inferrule*
+     {\quad}
+     {\lS ⊑ \lSTop} \\
+   \\[-0.5em]
+   \inferrule*
+     {\quad}
+     {\lAbs ⊑ l} \qquad
+   \inferrule*
+     {\lS_1 ⊑ \lS_2}
+     {\lUsed{\lS_1} ⊑ \lUsed{\lS_2}} \\
+   \\
+ \end{array} \\
+ \\
  \begin{array}{rcl}
   \multicolumn{3}{c}{ \ruleform{ α^l \colon \STraces^{+\infty} → \poset{\Var} → \poset{\Var} \qquad α^{∃l} \colon \poset{\STraces^{+\infty}} → \poset{\Var} → \poset{\Var} \qquad α^{∃l}_\Values \colon \Values_\Sigma → \Values_{∃l} } } \\
   \\[-0.5em]
+  α^{l}_\Stacks(\StopF) & = & \lSBot \\
+  α^{l}_\Stacks(\UpdateF{x} \pushF \lS) & = & α^{l}_\Stacks(\lS) \\
+  α^{l}_\Stacks(\ApplyF{x} \pushF \lS) & = & \lSAp{α^{l}_\Stacks(\lS)} \\
   α^l(σ)~L_e & = & \{ x ∈ \Var \mid ∃i.\ σ_i = (\wild, x, \wild, \wild) ∨ σ\ \text{finite} ∧ x ∈ L_e \} \\
   α^{∃l}(S)~L_e & = & \bigcup \{ α^l(σ)~L_e \mid σ ∈ S \} \\
   α^{∃l}_\Values(v) & = & \fn{}{\{ x ∈ \Var \mid ∃i.\ σ_i = (\wild, x, \wild, \wild) ∨ σ\ \text{finite} ∧ x ∈ L_e \}} \\
