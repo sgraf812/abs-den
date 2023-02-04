@@ -326,9 +326,9 @@ Trace of the expression:
   \\[-0.5em]
   \seminf{\slbl(\Let{\px}{\pe_1}{\pe_2})}_ρ(π_i^+) & = &
     \begin{letarray}
-      \text{let} & S' = memo(hash(π_i^+),\seminf{\pe_1}_{ρ'}) \\
-                 & ρ' = \lfp(λρ'. ρ ⊔ [\px ↦ cons(\LookupA(hash(π_i^+)),\atlbl{\pe_1},S']) \\
-      \text{in}  & cons(\BindA,\atlbl{\pe_2},\seminf{\pe_2}_{ρ'})(π_i^+)
+      \text{letrec}~ρ'.& S' = memo(hash(π_i^+),\seminf{\pe_1}_{ρ'}) \\
+                        & ρ' = ρ ⊔ [\px ↦ cons(\LookupA(hash(π_i^+)),\atlbl{\pe_1},S'] \\
+      \text{in}         & cons(\BindA,\atlbl{\pe_2},\seminf{\pe_2}_{ρ'})(π_i^+)
     \end{letarray} \\
  \end{array} \\
  \\[-0.5em]
@@ -481,10 +481,10 @@ Trace of the expression:
   \\[-0.5em]
   \seminf{\slbl(\Let{\px}{\pe_1}{\pe_2})}_ρ(π_i^+) & = &
     \begin{letarray}
-      \text{let} & \pa = hash(π_i^+) \\
-                 & S' = \highlight{snoc(memo(\pa,\seminf{\pe_1}_{ρ'}), \UpdateA(\pa))} \\
-                 & ρ' = \lfp(λρ'. ρ ⊔ [\px ↦ cons(\LookupA(\pa),\atlbl{\pe_1},S')]) \\
-      \text{in}  & cons(\BindA,\atlbl{\pe_2},\seminf{\pe_2}_{ρ'})(π_i^+)
+      \text{letrec}~ρ'. & \pa = hash(π_i^+) \\
+                         & S' = \highlight{snoc(memo(\pa,\seminf{\pe_1}_{ρ'}), \UpdateA(\pa))} \\
+                         & ρ' = ρ ⊔ [\px ↦ cons(\LookupA(\pa),\atlbl{\pe_1},S')] \\
+      \text{in}          & cons(\BindA,\atlbl{\pe_2},\seminf{\pe_2}_{ρ'})(π_i^+)
     \end{letarray} \\
   \\
   \multicolumn{3}{l}{\text{(Unchanged call-by-name equations:)}} \\
@@ -636,9 +636,9 @@ Trace of the expression:
     \end{letarray} \\
   \\[-0.5em]
   \semss{\Let{\px}{\pe_1}{\pe_2}}_ρ& = & \begin{letarray}
-      \text{let} & (v_1,φ_1) = \semss{\pe_1}_{ρ'} \\
-                 & (v_2,φ_2) = \semss{\pe_2}_{ρ'} \\
-                 & ρ' = \lfp(λρ'. ρ ⊔ [\px ↦ (v_1,snoc(cons(\LookupT,shortcut(φ_1)),\UpdateT))]) \\
+      \text{letrec}~ρ'. & (v_1,φ_1) = \semss{\pe_1}_{ρ'} \\
+                         & (v_2,φ_2) = \semss{\pe_2}_{ρ'} \\
+                         & ρ' = ρ ⊔ [\px ↦ (v_1,snoc(cons(\LookupT,shortcut(φ_1)),\UpdateT))] \\
       \text{in}  & (v_2,cons(\LetT,φ_2))
     \end{letarray} \\
   \\
@@ -752,9 +752,9 @@ Trace of the expression:
     \end{letarray} \\
   \\[-0.5em]
   \semlive{\Let{\px}{\pe_1}{\pe_2}}_ρ& = & \begin{letarray}
-      \text{let} & (v_1,χ_1) = \semlive{\pe_1}_{ρ'} \\
-                 & ρ' = \lfp(λρ'. ρ ⊔ [\px ↦ (v_1,\{\px\} ∪ χ_1))]) \\
-      \text{in}  & \semlive{\pe_2}_{ρ'}
+      \text{letrec}~ρ'. & (v_1,χ_1) = \semlive{\pe_1}_{ρ'} \\
+                        & ρ' = ρ ⊔ [\px ↦ (v_1,\{\px\} ∪ χ_1))] \\
+      \text{in}         & \semlive{\pe_2}_{ρ'}
     \end{letarray} \\
   \\
  \end{array}
