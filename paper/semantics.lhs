@@ -595,14 +595,14 @@ Trace of the expression:
 \begin{figure}
 \[\begin{array}{c}
  \begin{array}{rrclcl}
-  \text{Domain of small-step transitions} &       &   & \SSD  & = & (\Values_\bot,\Configurations \to \STraces^{+\infty}) \\
-  \text{Values}          &     v & ∈ & \Values & ::= & \FunV(\SSD \to \SSD) \mid \bot_\Values \\
+  \text{Domain of small-step transitions} &       &   & \SSD  & = & (\Values^\Sigma,\Configurations \to \STraces^{+\infty}) \\
+  \text{Values}          &     v & ∈ & \Values^\Sigma & ::= & \FunV(\SSD \to \SSD) \mid \bot_{\Values^\Sigma} \\
  \end{array} \\
  \\
  \begin{array}{rcl}
   \multicolumn{3}{c}{ \ruleform{ \semss{\wild} \colon \Exp → (\Var → \SSD) → \SSD } } \\
   \\[-0.5em]
-  \bot_\Sigma & = & (\bot_\Values, \fn{κ}{κ\straceend}) \\
+  \bot_\Sigma & = & (\bot_{\Values^\Sigma}, \fn{κ}{κ\straceend}) \\
   \\[-0.5em]
   (f \funnyComp g)(κ) & = & f(κ) \sconcat g(dst_\Sigma(f(κ))) \\
   \\[-0.5em]
@@ -715,11 +715,62 @@ Trace of the expression:
 \begin{figure}
 \[\begin{array}{c}
  \begin{array}{rrclcl}
+  \text{Liveness Domain} & d^{∃l} & ∈ & \LiveD & = & \Values^{∃l} \times \poset{\Var} \\
+ \end{array} \\
+ \\
+ \begin{array}{rcl}
+  \multicolumn{3}{c}{ \ruleform{ α^{∃l}_\SSD \colon \SSD → \LiveD \qquad α^{∃l}_φ \colon (\Configurations \to \STraces^{+\infty}) → \poset{\Var} \qquad α^{∃l}_{\Values^\Sigma} \colon \Values_\Sigma → \Values_{∃l} } } \\
+  \\[-0.5em]
+  α^{∃l}(σ) & = & \{ \px \in \Var \mid ∃i.\ σ_i = (\wild, \px, \wild, \pS) \wedge σ_{i+1}\ \text{exists} \} \\
+  α^{∃l}_φ(φ) & = & \Lub_{κ∈\Configurations}\{ α^{∃l}(φ(κ)) \} \\
+  α^{∃l}_{\Values^\Sigma}(\FunV(f)) & = & \FunV(α^{∃l}_\SSD \circ f \circ γ^{∃l}_\SSD) \\
+  α^{∃l}_{\Values^\Sigma}(\bot_\Values) & = & \bot_\Values \\
+  α^{∃l}_\SSD(v,φ) & = & (α^{∃l}_{\Values^\Sigma}(v),α^{∃l}_φ(φ)) \\
+ \end{array} \\
+ \\
+ \begin{array}{rcl}
+  \multicolumn{3}{c}{ \ruleform{ \semlive{\wild} \colon \Exp → (\Var → \LiveD) → \LiveD } } \\
+  \\[-0.5em]
+  \bot_{∃l} & = & (\bot_{\Values}, \varnothing) \\
+  \\[-0.5em]
+  χ_1 \funnyComp^l χ_2 & = & α^{∃l}_φ(γ^{∃l}_φ(χ_1) \funnyComp γ^{∃l}_φ(χ_2)) ⊑ χ_1 ∪ χ_2 \\
+  \\[-0.5em]
+  shortcut^l & = & α^{∃l}_φ \circ shortcut \circ γ^{∃l}_φ = id \\
+  \\[-0.5em]
+  \semlive{\px}_ρ & = & ρ(\px) \\
+  \\[-0.5em]
+  \semlive{\Lam{\px}{\pe}}_ρ & = & (\FunV(\fn{d^l}{\semlive{\pe}_{ρ[\px↦d^l]}}, \varnothing) \\
+  \\[-0.5em]
+  \semlive{\pe~\px}_ρ & = &
+    \begin{letarray}
+      \text{let} & (v_1,χ_1) = \semlive{\pe}_ρ \\
+                 & (v_2,χ_2) = \begin{cases}
+                     f(ρ(\px)) & \text{if $v = \FunV(f)$} \\
+                     \bot_{∃l} & \text{otherwise}
+                   \end{cases} \\
+      \text{in}  & (v_2, χ_1 ∪ χ_2) \\
+    \end{letarray} \\
+  \\[-0.5em]
+  \semlive{\Let{\px}{\pe_1}{\pe_2}}_ρ& = & \begin{letarray}
+      \text{let} & (v_1,χ_1) = \semlive{\pe_1}_{ρ'} \\
+                 & ρ' = \lfp(λρ'. ρ ⊔ [\px ↦ (v_1,\{\px\} ∪ χ_1))]) \\
+      \text{in}  & \semlive{\pe_2}_{ρ'}
+    \end{letarray} \\
+  \\
+ \end{array}
+\end{array}\]
+\caption{Potential liveness}
+  \label{fig:liveness-abstraction}
+\end{figure}
+
+\begin{figure}
+\[\begin{array}{c}
+ \begin{array}{rrclcl}
   \text{Abstract stack} &   \lS & ∈ & \lStacks & ::= & \lSBot \mid \lSAp{\lS} \mid \lSTop \\
   \text{Liveness}       &     l & ∈ & \lLiveness & ::= & \lAbs \mid \lUsed{\lS} \\
  \end{array} \\
  \\
- \begin{array}{rcl}
+ \begin{array}{c}
    \\[-0.5em]
    \inferrule*
      {\quad}
@@ -741,64 +792,49 @@ Trace of the expression:
  \end{array} \\
  \\
  \begin{array}{rcl}
-  \multicolumn{3}{c}{ \ruleform{ α^l \colon \STraces^{+\infty} → \poset{\Var} → \poset{\Var} \qquad α^{∃l} \colon \poset{\STraces^{+\infty}} → \poset{\Var} → \poset{\Var} \qquad α^{∃l}_\Values \colon \Values_\Sigma → \Values_{∃l} } } \\
+  \multicolumn{3}{c}{ \ruleform{ α^{∃l}_\SSD \colon \SSD → \LiveD \qquad α^{∃l}_φ \colon (\Configurations \to \STraces^{+\infty}) → \poset{\Var} \qquad α^{∃l}_{\Values^\Sigma} \colon \Values_\Sigma → \Values_{∃l} } } \\
   \\[-0.5em]
-  α^{l}_\Stacks(\StopF) & = & \lSBot \\
-  α^{l}_\Stacks(\UpdateF{x} \pushF \lS) & = & α^{l}_\Stacks(\lS) \\
-  α^{l}_\Stacks(\ApplyF{x} \pushF \lS) & = & \lSAp{α^{l}_\Stacks(\lS)} \\
-  α^l(σ)~L_e & = & \{ x ∈ \Var \mid ∃i.\ σ_i = (\wild, x, \wild, \wild) ∨ σ\ \text{finite} ∧ x ∈ L_e \} \\
-  α^{∃l}(S)~L_e & = & \bigcup \{ α^l(σ)~L_e \mid σ ∈ S \} \\
-  α^{∃l}_\Values(v) & = & \fn{}{\{ x ∈ \Var \mid ∃i.\ σ_i = (\wild, x, \wild, \wild) ∨ σ\ \text{finite} ∧ x ∈ L_e \}} \\
+  α^{∃l}_\Stacks(\StopF) & = & \lSBot \\
+  α^{∃l}_\Stacks(\UpdateF{x} \pushF \lS) & = & α^{∃l}_\Stacks(\lS) \\
+  α^{∃l}_\Stacks(\ApplyF{x} \pushF \lS) & = & \lSAp{α^{∃l}_\Stacks(\lS)} \\
  \end{array} \\
  \\
  \begin{array}{rcl}
-  \multicolumn{3}{c}{ \ruleform{ \semlive{\wild} \colon \Exp → (\Var → \SSD) → \SSD } } \\
+  \multicolumn{3}{c}{ \ruleform{ \semlive{\wild} \colon \Exp → (\Var → \LiveD) → \LiveD } } \\
   \\[-0.5em]
-  \bot_{∃l} & = & (\bot_{∃l}, \fn{κ}{κ\straceend}) \\
+  \bot_{∃l} & = & (\bot_{\Values}, \varnothing) \\
   \\[-0.5em]
-  (f \funnyComp g)(κ) & = & f(κ) \sconcat g(dst_{∃l}(f(κ))) \\
+  χ_1 \funnyComp^l χ_2 & = & α^{∃l}_φ(γ^{∃l}_φ(χ_1) \funnyComp γ^{∃l}_φ(χ_2)) ⊑ χ_1 ∪ χ_2 \\
   \\[-0.5em]
-  cons(t,φ)(κ_1) & = & \begin{cases}
-    κ_1; φ(κ_2) & \text{with $κ_2$ such that $κ_1 \smallstep κ_2$ with rule $t$} \\
-    κ_1                   & \text{otherwise} \\
-  \end{cases} \\
+  shortcut^l & = & α^{∃l}_φ \circ shortcut \circ γ^{∃l}_φ = id \\
   \\[-0.5em]
-  snoc(φ,t)(κ) & = & \begin{cases}
-    φ(κ); κ_2 & \text{with $κ_2$ such that $dst_{∃l}(φ(κ)) \smallstep κ_2$ with rule $t$} \\
-    φ(κ)                & \text{otherwise} \\
-  \end{cases} \\
+  \semlive{\px}_ρ & = & ρ(\px) \\
   \\[-0.5em]
-  shortcut(φ)(\pH,\pe,\pS) & = & \begin{cases}
-    (\pH,\pv,\pS)  & \text{if $\pe$ is a value $\pv$} \\
-    φ(\pH,\pe,\pS) & \text{otherwise} \\
-  \end{cases} \\
+  \semlive{\Lam{\px}{\pe}}_ρ & = & (\FunV(\fn{d^l}{\semlive{\pe}_{ρ[\px↦d^l]}}, \varnothing) \\
   \\[-0.5em]
-  \semlive{\px}_ρ~L_e & = & ρ(\px)~L_e \\
-  \\[-0.5em]
-  \semlive{\Lam{\px}{\pe}}_ρ~L_e & = & (\FunV(\fn{d}{\semlive{\pe}_{ρ[\px↦d]}}), \fn{κ}{κ\straceend}) \\
-  \\[-0.5em]
-  \semlive{\pe~\px}_ρ~L_e & = &
+  \semlive{\pe~\px}_ρ & = &
     \begin{letarray}
-      \text{let} & (v_1,φ_1) = \semlive{\pe}_ρ \\
-                 & (v_2,φ_2) = \begin{cases}
-                     f(ρ(\px))     & \text{if $v = \FunV(f)$} \\
+      \text{let} & (v_1,χ_1) = \semlive{\pe}_ρ \\
+                 & (v_2,χ_2) = \begin{cases}
+                     f(ρ(\px)) & \text{if $v = \FunV(f)$} \\
                      \bot_{∃l} & \text{otherwise}
                    \end{cases} \\
-      \text{in}  & (v_2, cons(\AppIT,φ_1) \funnyComp cons(\AppET,φ_2)) \\
+      \text{in}  & (v_2, χ_1 ∪ χ_2) \\
     \end{letarray} \\
   \\[-0.5em]
-  \semlive{\Let{\px}{\pe_1}{\pe_2}}_ρ~L_e& = & \begin{letarray}
-      \text{let} & (v_1,φ_1) = \semlive{\pe_1}_{ρ'} \\
-                 & (v_2,φ_2) = \semlive{\pe_2}_{ρ'} \\
-                 & ρ' = \lfp(λρ'. ρ ⊔ [\px ↦ (v_1,snoc(cons(\LookupT,shortcut(φ_1)),\UpdateT))]) \\
-      \text{in}  & (v_2,cons(\LetT,φ_2))
+  \semlive{\Let{\px}{\pe_1}{\pe_2}}_ρ& = & \begin{letarray}
+      \text{let} & (v_1,χ_1) = \semlive{\pe_1}_{ρ'} \\
+                 & ρ' = \lfp(λρ'. ρ ⊔ [\px ↦ (v_1,\{\px\} ∪ χ_1))]) \\
+      \text{in}  & \semlive{\pe_2}_{ρ'}
     \end{letarray} \\
   \\
  \end{array}
+ \\
 \end{array}\]
 \caption{Potential liveness}
   \label{fig:liveness-abstraction}
 \end{figure}
+
 
 \begin{figure}
 \[
