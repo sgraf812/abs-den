@@ -327,8 +327,8 @@ Trace of the expression:
   \seminf{\slbl(\Let{\px}{\pe_1}{\pe_2})}_ρ(π_i^+) & = &
     \begin{letarray}
       \text{letrec}~ρ'.& S' = memo(hash(π_i^+),\seminf{\pe_1}_{ρ'}) \\
-                        & ρ' = ρ ⊔ [\px ↦ cons(\LookupA(hash(π_i^+)),\atlbl{\pe_1},S'] \\
-      \text{in}         & cons(\BindA,\atlbl{\pe_2},\seminf{\pe_2}_{ρ'})(π_i^+)
+                       & ρ' = ρ ⊔ [\px ↦ cons(\LookupA(hash(π_i^+)),\atlbl{\pe_1},S'] \\
+      \text{in}        & cons(\BindA,\atlbl{\pe_2},\seminf{\pe_2}_{ρ'})(π_i^+)
     \end{letarray} \\
  \end{array} \\
  \\[-0.5em]
@@ -724,14 +724,14 @@ Trace of the expression:
   α^{∃l}(σ) & = & \{ \px \in \Var \mid ∃i.\ σ_i = (\wild, \px, \wild, \pS) \wedge σ_{i+1}\ \text{exists} \} \\
   α^{∃l}_φ(φ) & = & \Lub_{κ∈\Configurations}\{ α^{∃l}(φ(κ)) \} \\
   α^{∃l}_{\Values^\Sigma}(\FunV(f)) & = & \FunV(α^{∃l}_\SSD \circ f \circ γ^{∃l}_\SSD) \\
-  α^{∃l}_{\Values^\Sigma}(\bot_\Values) & = & \bot_\Values \\
+  α^{∃l}_{\Values^\Sigma}(\bot_{\Values^{\Sigma}}) & = & \bot_{\Values^{∃l}} \\
   α^{∃l}_\SSD(v,φ) & = & (α^{∃l}_{\Values^\Sigma}(v),α^{∃l}_φ(φ)) \\
  \end{array} \\
  \\
  \begin{array}{rcl}
   \multicolumn{3}{c}{ \ruleform{ \semlive{\wild} \colon \Exp → (\Var → \LiveD) → \LiveD } } \\
   \\[-0.5em]
-  \bot_{∃l} & = & (\bot_{\Values}, \varnothing) \\
+  \bot_{∃l} & = & (\bot_{\Values^{∃l}}, \varnothing) \\
   \\[-0.5em]
   χ_1 \funnyComp^l χ_2 & = & α^{∃l}_φ(γ^{∃l}_φ(χ_1) \funnyComp γ^{∃l}_φ(χ_2)) ⊑ χ_1 ∪ χ_2 \\
   \\[-0.5em]
@@ -792,7 +792,7 @@ Trace of the expression:
  \end{array} \\
  \\
  \begin{array}{rcl}
-  \multicolumn{3}{c}{ \ruleform{ α^{∃l}_\SSD \colon \SSD → \LiveD \qquad α^{∃l}_φ \colon (\Configurations \to \STraces^{+\infty}) → \poset{\Var} \qquad α^{∃l}_{\Values^\Sigma} \colon \Values_\Sigma → \Values_{∃l} } } \\
+  \multicolumn{3}{c}{ \ruleform{ α^{∃l}_\SSD \colon \SSD → \LiveD \qquad α^{∃l}_φ \colon (\Configurations \to \STraces^{+\infty}) → \poset{\Var} \qquad α^{∃l}_{\Values^\Sigma} \colon \Values^\Sigma → \Values^{∃l} } } \\
   \\[-0.5em]
   α^{∃l}_\Stacks(\StopF) & = & \lSBot \\
   α^{∃l}_\Stacks(\UpdateF{x} \pushF \lS) & = & α^{∃l}_\Stacks(\lS) \\
