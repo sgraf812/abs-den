@@ -26,7 +26,7 @@
 \newcommand{\ruleform}[1]{\fbox{$#1$}}
 \newcommand{\highlight}[1]{\setlength{\fboxsep}{2pt}\colorbox[gray]{0.8}{\ensuremath{#1}}}
 \newcommand{\nelems}[1]{\lvert#1\rvert}
-\newcommand{\fn}[2]{\ensuremath{λ#1.#2}}
+\newcommand{\fn}[2]{\ensuremath{λ#1.\ #2}}
 \newcommand{\constfn}[1]{\fn{\mathunderscore}{#1}}
 %\newcommand{\repeat}[2]{\foreach \n in {1,...,#1}{#2}} % https://tex.stackexchange.com/a/16190/52414
 % https://tex.stackexchange.com/a/21647
@@ -110,6 +110,7 @@
 \newcommand{\SSD}{\Domain{Σ}}
 \newcommand{\SSCD}{\Domain{cΣ}}
 \newcommand{\LiveD}{\Domain{\exists l}}
+\newcommand{\LiveSD}{\Domain{sl}}
 \newcommand{\LiveCD}{\Domain{cl}}
 \newcommand{\LiveSCD}{\Domain{scl}}
 
@@ -132,6 +133,7 @@
 \newcommand{\semss}[1]{\mathcal{S}^{Σ}\denot{#1}}
 \newcommand{\semlive}[1]{\mathcal{S}^{∃l}\denot{#1}}
 \newcommand{\semclive}[1]{\mathcal{S}^{cl}\denot{#1}}
+\newcommand{\semslive}[1]{\mathcal{S}^{sl}\denot{#1}}
 \newcommand{\semsclive}[1]{\mathcal{S}^{scl}\denot{#1}}
 \newcommand{\semty}[1]{\mathcal{S}^{τ}\denot{#1}}
 
