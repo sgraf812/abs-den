@@ -106,7 +106,12 @@
 \newcommand{\PrefD}{\Domain{*}}
 \newcommand{\MaxD}{\Domain{+\infty}}
 \newcommand{\AbsD}{\Domain{\raisebox{0.1em}{\scalebox{0.4}{$\square$}}}}
+\newcommand{\AbsCD}{\Domain{\raisebox{0.1em}{\scalebox{0.4}{c$\square$}}}}
 \newcommand{\SSD}{\Domain{Σ}}
+\newcommand{\SSCD}{\Domain{cΣ}}
+\newcommand{\LiveD}{\Domain{\exists l}}
+\newcommand{\LiveCD}{\Domain{cl}}
+\newcommand{\LiveSCD}{\Domain{scl}}
 
 % Math
 \newcommand{\poset}[1]{\wp(#1)}
@@ -126,6 +131,8 @@
 \newcommand{\seminf}[1]{\mathcal{S}^{+\infty}\denot{#1}}
 \newcommand{\semss}[1]{\mathcal{S}^{Σ}\denot{#1}}
 \newcommand{\semlive}[1]{\mathcal{S}^{∃l}\denot{#1}}
+\newcommand{\semclive}[1]{\mathcal{S}^{cl}\denot{#1}}
+\newcommand{\semsclive}[1]{\mathcal{S}^{scl}\denot{#1}}
 \newcommand{\semty}[1]{\mathcal{S}^{τ}\denot{#1}}
 
 % Small-step
@@ -157,7 +164,6 @@
 \newcommand{\validtrace}[1]{#1\;\mathsf{ok\text{-}}σ}
 
 % Liveness
-\newcommand{\LiveD}{\Domain{\exists l}}
 \newcommand{\lStacks}{\Stacks^l}
 \newcommand{\lLiveness}{\mathsf{Live}}
 \newcommand{\lS}{\pS^l}
@@ -166,6 +172,8 @@
 \newcommand{\lSTop}{\texttt{Deep}}
 \newcommand{\lAbs}{\texttt{Abs}}
 \newcommand{\lUsed}[1]{\texttt{Used[$#1$]}}
+\newcommand{\SVar}{\mathsf{SVar}}
+\newcommand{\SCall}{\mathsf{SCall}}
 
 % Types
 \newcommand{\TyCon}{\mathsf{TyCon}}

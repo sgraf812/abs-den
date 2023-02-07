@@ -140,9 +140,9 @@ Trace of the expression:
   \\[-0.5em]
   \seminf{\slbl(\Let{\px}{\pe_1}{\pe_2})}_ρ(π_i^+) & = &
     \begin{letarray}
-      \text{let} & \pa = hash(π_i^+) \\
-                 & ρ' = \lfp(λρ'. ρ ⊔ [\px ↦ cons(\LookupA(\pa),\atlbl{\pe_1},\seminf{\pe_1}_{ρ'})]) \\
-      \text{in}  & cons(\BindA,\atlbl{\pe_2},\seminf{\pe_2}_{ρ'})(π_i^+)
+      \text{letrec}~ρ'. & \pa = hash(π_i^+) \\
+                        & ρ' = ρ ⊔ [\px ↦ cons(\LookupA(\pa),\atlbl{\pe_1},\seminf{\pe_1}_{ρ'})] \\
+      \text{in}         & cons(\BindA,\atlbl{\pe_2},\seminf{\pe_2}_{ρ'})(π_i^+)
     \end{letarray} \\
   \\[-0.5em]
  \end{array} \\
@@ -311,8 +311,8 @@ Trace of the expression:
   \\[-0.5em]
   \seminf{\slbl(\Let{\px}{\pe_1}{\pe_2})}_ρ(π_i^+) & = &
     \begin{letarray}
-      \text{let} & ρ' = \lfp(λρ'. ρ ⊔ [\px ↦ cons(\LookupA(hash(π_i^+)),\atlbl{\pe_1},\seminf{\pe_1}_{ρ'})]) \\
-      \text{in}  & cons(\BindA,\atlbl{\pe_2},\seminf{\pe_2}_{ρ'})(π_i^+)
+      \text{letrec}~ρ'. & ρ' = ρ ⊔ [\px ↦ cons(\LookupA(hash(π_i^+)),\atlbl{\pe_1},\seminf{\pe_1}_{ρ'})] \\
+      \text{in}         & cons(\BindA,\atlbl{\pe_2},\seminf{\pe_2}_{ρ'})(π_i^+)
     \end{letarray} \\
   \\[-0.5em]
   \text{Call-by-need:} \\
@@ -719,7 +719,7 @@ Trace of the expression:
  \end{array} \\
  \\
  \begin{array}{rcl}
-  \multicolumn{3}{c}{ \ruleform{ α^{∃l}_\SSD \colon \SSD → \LiveD \qquad α^{∃l}_φ \colon (\Configurations \to \STraces^{+\infty}) → \poset{\Var} \qquad α^{∃l}_{\Values^\Sigma} \colon \Values_\Sigma → \Values_{∃l} } } \\
+  \multicolumn{3}{c}{ \ruleform{ α^{∃l}_\SSD \colon \SSD → \LiveD \qquad α^{∃l}_φ \colon (\Configurations \to \STraces^{+\infty}) → \poset{\Var} \qquad α^{∃l}_{\Values^\Sigma} \colon \Values^\Sigma → \Values^{∃l} } } \\
   \\[-0.5em]
   α^{∃l}(σ) & = & \{ \px \in \Var \mid ∃i.\ σ_i = (\wild, \px, \wild, \pS) \wedge σ_{i+1}\ \text{exists} \} \\
   α^{∃l}_φ(φ) & = & \Lub_{κ∈\Configurations}\{ α^{∃l}(φ(κ)) \} \\
@@ -739,7 +739,7 @@ Trace of the expression:
   \\[-0.5em]
   \semlive{\px}_ρ & = & ρ(\px) \\
   \\[-0.5em]
-  \semlive{\Lam{\px}{\pe}}_ρ & = & (\FunV(\fn{d^l}{\semlive{\pe}_{ρ[\px↦d^l]}}, \varnothing) \\
+  \semlive{\Lam{\px}{\pe}}_ρ & = & (\FunV(\fn{d^l}{\semlive{\pe}_{ρ[\px↦d^l]}}), \varnothing) \\
   \\[-0.5em]
   \semlive{\pe~\px}_ρ & = &
     \begin{letarray}
@@ -760,6 +760,112 @@ Trace of the expression:
  \end{array}
 \end{array}\]
 \caption{Potential liveness}
+  \label{fig:liveness-abstraction}
+\end{figure}
+
+\begin{figure}
+\[\begin{array}{c}
+ \begin{array}{rrclcl}
+  \text{Contextual Small-Step Domain} & d^{c\Sigma} & ∈ & \SSCD & = & \Values^{c\Sigma} \times (\Configurations \to \STraces^{+\infty}) \to \Values^{c\Sigma} \times (\Configurations \to \STraces^{+\infty}) \\
+  \text{Contextual Liveness Domain} & d^{cl} & ∈ & \LiveCD & = & \Values^{cl} \times \poset{\Var} \to \Values^{cl} \times \poset{\Var} \\
+ \end{array} \\
+ \\
+ \begin{array}{rcl}
+  \multicolumn{3}{c}{ \ruleform{ α^{c}_\AbsD \colon \AbsD → \AbsCD \qquad α^{c\Sigma}_\SSD \colon \SSD → \SSCD \qquad α^{cl}_\SSD \colon \SSD → \LiveCD} } \\
+  \\[-0.5em]
+  α^{c}_\AbsD(d) & = & \fn{c}{c(d)} \\
+  γ^{c}_\AbsD(f) & = & f(id) \\
+  α^{c}_{\Values}(\FunV(f)) & = & \FunV(α^{c}_\AbsD \circ f \circ γ^{c}_\AbsD) \\
+  α^{c}_{\Values}(\bot_{\Values}) & = & \bot_{\Values^{c}} \\
+  \\[-0.5em]
+  α^{c\Sigma}_\SSD(v,φ) & = & \fn{c}{c(α^{c\Sigma}_{\Values^\Sigma}(v),φ)} \\
+  α^{cl}_\SSD(v,φ) & = & \fn{c}{c(α^{c}_{\Values^{∃l}}(v),α^{∃l}(φ))} \\
+ \end{array} \\
+ \\
+ \begin{array}{rcl}
+  \multicolumn{3}{c}{ \ruleform{ \semclive{\wild} \colon \Exp → (\Var → \LiveCD) → \LiveCD } } \\
+  \\[-0.5em]
+  \bot_{cl} & = & \fn{c}{c (\bot_{\Values^{cl}}, \varnothing)} \\
+  \\[-0.5em]
+  χ_1 ∪_2 (v,χ_2) & = & (v, χ_1 ∪ χ_2) \\
+  \\[-0.5em]
+  look(\px) & = & \fn{(v,χ)}{c(v, \{ \px \} ∪ χ)}  \\
+  \\[-0.5em]
+  apply(d^{cl}) & = & \fn{(v_1,χ_1)}{χ_1 ∪_2 \begin{cases}
+      f(d^{cl}) & \text{if $v_1 = \FunV(f)$} \\
+      \bot_{cl} & \text{otherwise}
+    \end{cases}} \\
+  \\[-0.5em]
+  \semclive{\px}_ρ~c & = & c(ρ(\px)) \\
+  \\[-0.5em]
+  \semclive{\Lam{\px}{\pe}}_ρ~c & = & c(\FunV(\fn{d^{cl}}{\semclive{\pe}_{ρ[\px↦d^{cl}]}}), \varnothing) \\
+  \\[-0.5em]
+  \semclive{\pe~\px}_ρ~c & = & \semclive{\pe}_ρ~(c \circ apply(ρ(\px))) \\
+  \\[-0.5em]
+  \semclive{\Let{\px}{\pe_1}{\pe_2}}_ρ& = & \begin{letarray}
+      \text{letrec}~ρ'. & ρ' = ρ ⊔ [\px ↦ \fn{c}{~\semclive{\pe_1}_{ρ'}~(c \circ look(\px))}] \\
+      \text{in}         & \semclive{\pe_2}_{ρ'}
+    \end{letarray} \\
+  \\
+ \end{array}
+\end{array}\]
+\caption{Potential liveness, contextual}
+  \label{fig:liveness-abstraction}
+\end{figure}
+
+\begin{figure}
+\[\begin{array}{c}
+ \begin{array}{rrclcl}
+  \text{Symbolic variables} & X & ∈ & \SVar &   & \\
+  \text{Symbolic call} & sc & ∈ & \SCall & = & X(c) \\
+  \text{Symbolic contextual Liveness Domain} & d^{scl} & ∈ & \LiveSCD & = & \Values^{scl} \times \poset{\Var ∪ \SCall} \to \Values^{scl} \times \poset{\Var ∪ \SCall} \\
+  \text{Symbolic contextual Liveness Values} & v^{scl} & ∈ & \Values^{scl} & = & \FunV_{\Values^{scl}}(X,d^{scl}) \mid \bot_{\Values^{scl}} \\
+ \end{array} \\
+ \\
+ \begin{array}{rcl}
+  \multicolumn{3}{c}{ \ruleform{ α^{c}_\AbsD \colon \AbsD → \AbsCD \qquad α^{c\Sigma}_\SSD \colon \SSD → \SSCD \qquad α^{cl}_\SSD \colon \SSD → \LiveCD} } \\
+  \\[-0.5em]
+  α^{c}_\AbsD(d) & = & \fn{c}{c(d)} \\
+  γ^{c}_\AbsD(f) & = & f(id) \\
+  α^{c}_{\Values}(\FunV(f)) & = & \FunV(α^{c}_\AbsD \circ f \circ γ^{c}_\AbsD) \\
+  α^{c}_{\Values}(\bot_{\Values}) & = & \bot_{\Values^{c}} \\
+  \\[-0.5em]
+  α^{c\Sigma}_\SSD(v,φ) & = & \fn{c}{c(α^{c\Sigma}_{\Values^\Sigma}(v),φ)} \\
+  α^{cl}_\SSD(v,φ) & = & \fn{c}{c(α^{c}_{\Values^{∃l}}(v),α^{∃l}(φ))} \\
+ \end{array} \\
+ \\
+ \begin{array}{rcl}
+  \multicolumn{3}{c}{ \ruleform{ \semsclive{\wild} \colon \Exp → (\Var → \LiveSCD) → \LiveSCD } } \\
+  \\[-0.5em]
+  \bot_{scl} & = & \fn{c}{c (\bot_{\Values^{scl}}, \varnothing)} \\
+  \\[-0.5em]
+  \top_{\Values^{scl}} & = & \FunV(\fn{d^{scl}}{d^{scl}~\top_{c}}) \\
+  \\[-0.5em]
+  sym(X) & = & \fn{c}{c (\top_{\Values^{scl}}, \{ X(c) \})} \\
+  \\[-0.5em]
+  χ_1 ∪_2 (v,χ_2) & = & (v, χ_1 ∪ χ_2) \\
+  \\[-0.5em]
+  look(\px) & = & \fn{(v,χ)}{c(v, \{ \px \} ∪ χ)}  \\
+  \\[-0.5em]
+  apply(d^{scl}) & = & \fn{(v_1,χ_1)}{χ_1 ∪_2 \begin{cases}
+      d[X_\px \mapsfrom d^{scl}] & \text{if $v_1 = \FunV(X_\px,d)$} \\
+      \bot_{scl} & \text{otherwise}
+    \end{cases}} \\
+  \\[-0.5em]
+  \semsclive{\px}_ρ~c & = & c(ρ(\px)) \\
+  \\[-0.5em]
+  \semsclive{\Lam{\px}{\pe}}_ρ~c & = & c(\FunV(\fn{d^{scl}}{~(\semsclive{\pe}_{ρ[\px↦sym(X_\px)]})[X_\px \mapsfrom d^{scl}]}), \varnothing) \\
+  \\[-0.5em]
+  \semsclive{\pe~\px}_ρ~c & = & \semsclive{\pe}_ρ~(c \circ apply(ρ(\px))) \\
+  \\[-0.5em]
+  \semsclive{\Let{\px}{\pe_1}{\pe_2}}_ρ& = & \begin{letarray}
+      \text{letrec}~ρ'. & ρ' = ρ ⊔ [\px ↦ \fn{c}{~\semsclive{\pe_1}_{ρ'}~(c \circ look(\px))}] \\
+      \text{in}         & \semsclive{\pe_2}_{ρ'}
+    \end{letarray} \\
+  \\
+ \end{array}
+\end{array}\]
+\caption{Potential liveness, contextual}
   \label{fig:liveness-abstraction}
 \end{figure}
 
@@ -823,9 +929,9 @@ Trace of the expression:
     \end{letarray} \\
   \\[-0.5em]
   \semlive{\Let{\px}{\pe_1}{\pe_2}}_ρ& = & \begin{letarray}
-      \text{let} & (v_1,χ_1) = \semlive{\pe_1}_{ρ'} \\
-                 & ρ' = \lfp(λρ'. ρ ⊔ [\px ↦ (v_1,\{\px\} ∪ χ_1))]) \\
-      \text{in}  & \semlive{\pe_2}_{ρ'}
+      \text{letrec}~ρ'. & (v_1,χ_1) = \semlive{\pe_1}_{ρ'} \\
+                        & ρ' = ρ ⊔ [\px ↦ (v_1,\{\px\} ∪ χ_1))] \\
+      \text{in}         & \semlive{\pe_2}_{ρ'}
     \end{letarray} \\
   \\
  \end{array}
@@ -930,8 +1036,8 @@ Trace of the expression:
   \\[-0.5em]
   \seminf{\slbl(\Let{\px}{\pe_1}{\pe_2})}_ρ(π_i^+) & = &
     \begin{letarray}
-      \text{let} & ρ' = \lfp(λρ'. ρ ⊔ [\px ↦ \seminf{\pe_1}_{ρ'}]) \\
-      \text{in}  & cons(\BindA,\atlbl{\pe_2},\seminf{\pe_2}_{ρ'})(π_i^+)
+      \text{letrec}~ρ'. & ρ' = ρ ⊔ [\px ↦ \seminf{\pe_1}_{ρ'}] \\
+      \text{in}         & cons(\BindA,\atlbl{\pe_2},\seminf{\pe_2}_{ρ'})(π_i^+)
     \end{letarray} \\
   \\
   \seminf{\slbln{1}(K~\many{\px})\slbln{2}}_ρ(π_i^+) & = & \lbln{1} \act{\ValA(\ConV(K,\many{ρ(\px)}))} \lbln{2} \\
