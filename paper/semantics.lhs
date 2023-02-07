@@ -791,16 +791,16 @@ Trace of the expression:
   \\[-0.5em]
   look(\px) & = & \fn{(v,χ)}{c(v, \{ \px \} ∪ χ)}  \\
   \\[-0.5em]
-  apply(d^{cl}) & = & \fn{(v_1,χ_1)}{χ_1 ∪_2 \begin{cases}
-      f(d^{cl}) & \text{if $v_1 = \FunV(f)$} \\
-      \bot_{cl} & \text{otherwise}
+  apply(d^{cl},c) & = & \fn{(v_1,χ_1)}{χ_1 ∪_2 \begin{cases}
+      f(d^{cl})~c & \text{if $v_1 = \FunV(f)$} \\
+      \bot_{cl}~c & \text{otherwise}
     \end{cases}} \\
   \\[-0.5em]
   \semclive{\px}_ρ~c & = & c(ρ(\px)) \\
   \\[-0.5em]
   \semclive{\Lam{\px}{\pe}}_ρ~c & = & c(\FunV(\fn{d^{cl}}{\semclive{\pe}_{ρ[\px↦d^{cl}]}}), \varnothing) \\
   \\[-0.5em]
-  \semclive{\pe~\px}_ρ~c & = & \semclive{\pe}_ρ~(c \circ apply(ρ(\px))) \\
+  \semclive{\pe~\px}_ρ~c & = & \semclive{\pe}_ρ~(apply(ρ(\px),c)) \\
   \\[-0.5em]
   \semclive{\Let{\px}{\pe_1}{\pe_2}}_ρ& = & \begin{letarray}
       \text{letrec}~ρ'. & ρ' = ρ ⊔ [\px ↦ \fn{c}{~\semclive{\pe_1}_{ρ'}~(c \circ look(\px))}] \\
@@ -839,24 +839,24 @@ Trace of the expression:
   \\[-0.5em]
   \bot_{scl} & = & \fn{c}{c (\bot_{\Values^{scl}}, \varnothing)} \\
   \\[-0.5em]
-  \top_{\Values^{scl}} & = & \FunV(\fn{d^{scl}}{d^{scl}~\top_{c}}) \\
+  inert_{\Values^{scl}} & = & \FunV(\fn{d^{scl}}{(inert_{\Values^{scl}}, snd(d^{scl}~\top_{c}))}) \\
   \\[-0.5em]
-  sym(X) & = & \fn{c}{c (\top_{\Values^{scl}}, \{ X(c) \})} \\
+  sym(X) & = & \fn{c}{c (inert_{\Values^{scl}}, \{ X(c) \})} \\
   \\[-0.5em]
   χ_1 ∪_2 (v,χ_2) & = & (v, χ_1 ∪ χ_2) \\
   \\[-0.5em]
   look(\px) & = & \fn{(v,χ)}{c(v, \{ \px \} ∪ χ)}  \\
   \\[-0.5em]
-  apply(d^{scl}) & = & \fn{(v_1,χ_1)}{χ_1 ∪_2 \begin{cases}
-      d[X_\px \mapsfrom d^{scl}] & \text{if $v_1 = \FunV(X_\px,d)$} \\
-      \bot_{scl} & \text{otherwise}
+  apply(d^{scl},c) & = & \fn{(v_1,χ_1)}{χ_1 ∪_2 \begin{cases}
+      f(d^{scl})~c & \text{if $v_1 = \FunV(f)$} \\
+      \bot_{scl}~c & \text{otherwise}
     \end{cases}} \\
   \\[-0.5em]
   \semsclive{\px}_ρ~c & = & c(ρ(\px)) \\
   \\[-0.5em]
   \semsclive{\Lam{\px}{\pe}}_ρ~c & = & c(\FunV(\fn{d^{scl}}{~(\semsclive{\pe}_{ρ[\px↦sym(X_\px)]})[X_\px \mapsfrom d^{scl}]}), \varnothing) \\
   \\[-0.5em]
-  \semsclive{\pe~\px}_ρ~c & = & \semsclive{\pe}_ρ~(c \circ apply(ρ(\px))) \\
+  \semsclive{\pe~\px}_ρ~c & = & \semsclive{\pe}_ρ~(apply(ρ(\px),c)) \\
   \\[-0.5em]
   \semsclive{\Let{\px}{\pe_1}{\pe_2}}_ρ& = & \begin{letarray}
       \text{letrec}~ρ'. & ρ' = ρ ⊔ [\px ↦ \fn{c}{~\semsclive{\pe_1}_{ρ'}~(c \circ look(\px))}] \\
@@ -865,6 +865,9 @@ Trace of the expression:
   \\
  \end{array}
 \end{array}\]
+\begin{theorem}
+  $(\semsclive{e}_{ρ[x↦d]}~c)$ ⊑ $(\semsclive{e}_{ρ[x↦sym(X)]}~c)[d \mapsfrom X]$
+\end{theorem}
 \caption{Potential liveness, contextual}
   \label{fig:liveness-abstraction}
 \end{figure}
