@@ -744,19 +744,11 @@ Trace of the expression:
   \multicolumn{3}{c}{ \ruleform{ α^{∃l}_\SSD \colon \SSD → \LiveD \qquad α^{∃l}_φ \colon (\Configurations \to \STraces^{+\infty}) → \poset{\Var} \qquad α^{∃l}_{\Values^\Sigma} \colon \Values^\Sigma → \Values^{∃l} } } \\
   \\[-0.5em]
   α^{∃l}(σ) & = & \{ \px \in \Var \mid ∃i.\ σ_i = (\wild, \px, \wild, \wild) \wedge σ_{i+1}\ \text{exists} \} \\
-  α^{∃l}_φ(φ) & = & \Lub_{κ∈\Configurations}\{ α^{∃l}(φ(κ)) \} \\
+  α^{∃l}_φ(φ) & = & \bigcup_{κ∈\Configurations}\{ α^{∃l}(φ(κ)) \} \\
   α^{∃l}_{\Values^\Sigma}(\FunV(f)) & = & \FunV(α^{∃l}_\SSD \circ f \circ γ^{∃l}_\SSD) \\
   α^{∃l}_{\Values^\Sigma}(\bot_{\Values^{\Sigma}}) & = & \bot_{\Values^{∃l}} \\
   α^{∃l}_\SSD(φ,v) & = & (α^{∃l}_φ(φ), α^{∃l}_{\Values^\Sigma}(v)) \\
   \\
-  \multicolumn{3}{c}{ \ruleform{ γ^{∃l}_\SSD \colon \LiveD → \poset{\SSD} \qquad γ^{∃l}_φ \colon \poset{\Var} → \poset{\Configurations \to \STraces^{+\infty}} \qquad γ^{∃l}_{\Values^\Sigma} \colon \Values^{∃l} → \poset{\Values^\Sigma} } } \\
-  \\[-0.5em]
-  γ^{∃l}(L) & = & \{ σ \mid ∀\px ∈ L.\ ∃i.\ σ_i = (\wild, \px, \wild, \wild) \wedge σ_{i+1}\ \text{exists}  \} \\
-  γ^{∃l}_φ(L) & = & \{ (κ,σ) \mid σ ∈ γ^{∃l}(L) \} \\
-  γ^{∃l}_\SSD(L,v) & = & \{ (φ,v') \mid φ ∈ γ^{∃l}_φ(L) \wedge v' ∈ γ'^{∃l}_{\Values^\Sigma}(L,v) \} \\
-  γ^{∃l}_{\Values^\Sigma}(v) & = & γ'^{∃l}_{\Values^\Sigma}(\varnothing,v) \\
-  γ'^{∃l}_{\Values^\Sigma}(\wild,\bot_{\Values^{\Sigma}}) & = & \{ \bot_{\Values^{∃l}} \} \\
-  γ'^{∃l}_{\Values^\Sigma}(L_1,\FunV(f^\sharp)) & = & \{ \bot_{\Values^{∃l}} \} ∪ \{ \FunV(f) \mid \forall L_2,v.\ L_1 ⊆ L_2 \Rightarrow f(γ^{∃l}_\SSD(L_2,v)) ⊆ γ^{∃l}_{\SSD}(f^\sharp(L_2,v)) \} \\
  \end{array} \\
  \\
  \begin{array}{rcl}
@@ -788,6 +780,46 @@ Trace of the expression:
       \text{in}         & \semlive{\pe_2}_{ρ'}
     \end{letarray} \\
   \\
+ \end{array} \\
+ \\
+ \begin{array}{rcl}
+  \multicolumn{3}{c}{ \ruleform{ γ^{∃l}_\SSD \colon \LiveD → \poset{\SSD} \qquad γ^{∃l}_φ \colon \poset{\Var} → \poset{\Configurations \to \STraces^{+\infty}} \qquad γ^{∃l}_{\Values^\Sigma} \colon \Values^{∃l} → \poset{\Values^\Sigma} } } \\
+  \\[-0.5em]
+  γ^{∃l}(L) & = & \{ σ \mid ∀\px ∈ L.\ ∃i.\ σ_i = (\wild, \px, \wild, \wild) \wedge σ_{i+1}\ \text{exists}  \} \\
+  γ^{∃l}_φ(L) & = & \{ (κ,σ) \mid σ ∈ γ^{∃l}(L) \} \\
+  γ^{∃l}_\SSD(L,v) & = & \{ (φ,v') \mid φ ∈ γ^{∃l}_φ(L) \wedge v' ∈ γ'^{∃l}_{\Values^\Sigma}(L,v) \} \\
+  γ^{∃l}_{\Values^\Sigma}(v) & = & γ'^{∃l}_{\Values^\Sigma}(\varnothing,v) \\
+  γ'^{∃l}_{\Values^\Sigma}(\wild,\bot_{\Values^{\Sigma}}) & = & \{ \bot_{\Values^{∃l}} \} \\
+  γ'^{∃l}_{\Values^\Sigma}(L_1,\FunV(f^\sharp)) & = & \{ \bot_{\Values^{∃l}} \} ∪ \{ \FunV(f) \mid \forall L_2,v.\ L_1 ⊆ L_2 \Rightarrow α^{∃l}_\SSD(f(γ^{∃l}_\SSD(L_2,v))) ⊑ f^\sharp(L_2,v) \} \\
+  %     α(γ(L,fun(f#))) ⊑ (L,fun(f#))
+  %    ⊔{ (α(φ),α(v)) | φ∈γ(L), v∈γ(L,fun(f#)) } ⊑ (L,fun(f#))
+  %    forall φ v. φ∈γ(L) n v∈γ(L,fun(f#)) => (α(φ),α(v)) ⊑ (L,fun(f#))
+  %    (case v=bottom => trivial)
+  %    forall φ f. φ∈γ(L) n fun(f)∈γ(L,fun(f#)) => (α(φ),α(fun(f))) ⊑ (L,fun(f#))
+  %    forall φ f. φ∈γ(L) n (forall L' v. L ⊆ L' => f(γ(L',v)) ⊆ γ(f#(L',v))) => (α(φ),α(fun(f))) ⊑ (L,fun(f#))
+  %    forall φ f. φ∈γ(L) n (forall L' v. L ⊆ L' => f(γ(L',v)) ⊆ γ(f#(L',v))) => (α(φ),fun(α.f.γ)) ⊑ (L,fun(f#))
+  %    (special rule)
+  %    forall φ f. φ∈γ(L) n (forall L' v. L ⊆ L' => f(γ(L',v)) ⊆ γ(f#(L',v))) => α(φ) ⊑ L n (forall L' v. L⊆L' => (α.f.γ)(L',v) ⊑ f#(L',v))
+  %    (α(γ(L)) ⊑ L)
+  %    forall f. (forall L' v. L ⊆ L' => f(γ(L',v)) ⊆ γ(f#(L',v))) => (forall L' v. L⊆L' => (α.f.γ)(L',v) ⊑ f#(L',v))
+  %    (rearrange)
+  %    forall f L' v. L⊆L' => (forall L' v. L ⊆ L' => f(γ(L',v)) ⊆ γ(f#(L',v))) => (α.f.γ)(L',v) ⊑ f#(L',v)
+  %    forall f L' v. L⊆L' => f(γ(L',v)) ⊆ γ(f#(L',v)) => (α.f.γ)(L',v) ⊑ f#(L',v)
+  %    forall f L' v. L⊆L' => f(γ(L',v)) ⊆ γ(f#(L',v)) => (α.f.γ)(L',v) ⊑ f#(L',v)
+  %
+  %    Urgh, we need (α.f.γ)(L',v) ⊑ f#(L',v), not f(γ(L',v)) ⊆ γ(f#(L',v))!
+  %
+  %
+  %    α(φ,v) ⊑ (L,v#) => (φ,v) ∈ γ(L,v#)
+  %    α(φ,v) ⊑ (L,v#) => φ∈γ(L) n v∈γ(L,v#)
+  %    (v = bot is trivial; consider v=fun(f),v#=fun(f#))
+  %    α(φ,fun(f)) ⊑ (L,fun(f#)) => φ∈γ(L) n (forall L' v. L⊆L' => f(γ(L',v)) ⊆ γ(f#(L',v)))
+  %    (α(φ),α(fun(f))) ⊑ (L,fun(f#)) => φ∈γ(L) n (forall L' v. L⊆L' => f(γ(L',v)) ⊆ γ(f#(L',v)))
+  %    α(φ) ⊆ L n (forall L' v. L⊆L' => (γ.f.α)(L',v) ⊑ f#(L',v)) => φ∈γ(L) n (forall L' v. L⊆L' => f(γ(L',v)) ⊆ γ(f#(L',v)))
+  %    (α(φ) ⊆ L <=> φ∈γ(L) Galois, eta)
+  %    forall L' v. L⊆L' => (γ.f.α)(L',v) ⊑ f#(L',v) => f(γ(L',v)) ⊆ γ(f#(L',v))
+  %
+  %    Again, we need (α.f.γ)(L',v) ⊑ f#(L',v), not f(γ(L',v)) ⊆ γ(f#(L',v))!
  \end{array}
 \end{array}\]
 \caption{Potential liveness}
