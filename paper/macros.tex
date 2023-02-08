@@ -75,6 +75,7 @@
 \newcommand{\CaseIA}{\mathsf{case}_1}
 \newcommand{\CaseEA}{\mathsf{case}_2}
 %% Labels
+\newcommand{\Labels}{\mathbb{L}}
 \newcommand{\lbl}{\ensuremath{\ell}}
 \newcommand{\lbln}[1]{\ensuremath{\ell_{#1}}}
 \newcommand{\slbl}{\raisebox{0.08em}{$\;\scriptstyle{\ell}\;$}}
@@ -102,11 +103,15 @@
 \newcommand{\FunV}{\mathsf{fun}}
 \newcommand{\ConV}{\mathsf{con}}
 %% Domains
+\newcommand{\Environments}{\mathbb{E}}
+\newcommand{\Heaps}{\mathbb{H}}
+\newcommand{\Continuations}{\mathbb{K}}
 \newcommand{\Domain}[1]{{\mathbb{D}^{#1}}}
 \newcommand{\PrefD}{\Domain{*}}
 \newcommand{\MaxD}{\Domain{+\infty}}
 \newcommand{\AbsD}{\Domain{\raisebox{0.1em}{\scalebox{0.4}{$\square$}}}}
 \newcommand{\AbsCD}{\Domain{\raisebox{0.1em}{\scalebox{0.4}{c$\square$}}}}
+\newcommand{\StateD}{\Domain{\States}}
 \newcommand{\SSD}{\Domain{Σ}}
 \newcommand{\SSCD}{\Domain{cΣ}}
 \newcommand{\LiveD}{\Domain{\exists l}}
@@ -130,6 +135,7 @@
 \newcommand{\denot}[1]{\llbracket {#1} \rrbracket}
 \newcommand{\sempref}[1]{\mathcal{S}^*\denot{#1}}
 \newcommand{\seminf}[1]{\mathcal{S}^{+\infty}\denot{#1}}
+\newcommand{\semst}[1]{\mathcal{S}^{\States}\denot{#1}}
 \newcommand{\semss}[1]{\mathcal{S}^{Σ}\denot{#1}}
 \newcommand{\semlive}[1]{\mathcal{S}^{∃l}\denot{#1}}
 \newcommand{\semclive}[1]{\mathcal{S}^{cl}\denot{#1}}
@@ -137,10 +143,20 @@
 \newcommand{\semsclive}[1]{\mathcal{S}^{scl}\denot{#1}}
 \newcommand{\semty}[1]{\mathcal{S}^{τ}\denot{#1}}
 
+% Stateful
+\newcommand{\States}{\mathbb{S}}
+\newcommand{\STraces}{\mathbb{S}^{+\infty}}
+\newcommand{\sconcat}{\concatop{\hspace{0.04ex}\scalebox{0.5}{$\States$}}}
+\newcommand{\pushF}{\cdot}
+\newcommand{\StopF}{\mathbf{stop}}
+\newcommand{\ReturnF}[1]{\mathbf{ret}(#1)}
+\newcommand{\ApplyF}[1]{\mathbf{ap}(#1)}
+\newcommand{\UpdateF}[1]{\mathbf{upd}(#1)}
+
 % Small-step
 \newcommand{\Configurations}{\mathsf{Config}}
 \newcommand{\Addresses}{\mathsf{Addr}}
-\newcommand{\Heaps}{\mathsf{Heap}}
+%\newcommand{\Heaps}{\mathsf{Heap}}
 \newcommand{\Envs}{\mathsf{Env}}
 \newcommand{\Stacks}{\mathsf{Stack}}
 \newcommand{\Frames}{\mathsf{Frame}}
@@ -148,15 +164,10 @@
 \newcommand{\pa}{\mathsf{a}}
 \newcommand{\pE}{\mathsf{E}}
 \newcommand{\pS}{\mathsf{S}}
-\newcommand{\pushF}{\cdot}
-\newcommand{\StopF}{\mathsf{stop}}
-\newcommand{\ApplyF}[1]{\$ #1}
-\newcommand{\UpdateF}[1]{\# #1}
-\newcommand{\STraces}{\mathsf{STrace}}
-\newcommand{\STransitions}{\mathsf{STrans}}
+\newcommand{\SSTraces}{\mathsf{SSTrace}}
 \newcommand{\smallstep}{\hookrightarrow}
 \newcommand{\straceend}{\scalebox{0.5}{$\square$}}
-\newcommand{\sconcat}{\concatop{\hspace{0.04ex}\scalebox{0.5}{\Sigma}}}
+\newcommand{\ssconcat}{\concatop{\hspace{0.04ex}\scalebox{0.5}{\Sigma}}}
 \newcommand{\AppIT}{\textsc{app}_1}
 \newcommand{\AppET}{\textsc{app}_2}
 \newcommand{\LookupT}{\textsc{look}}

@@ -519,12 +519,82 @@ Trace of the expression:
 \begin{figure}
 \[\begin{array}{c}
  \begin{array}{rrclcl}
+  \text{States}                             & σ      & ∈ & \States  & = & \Labels ∪ \{\ddagger\} \times \Environments \times \Heaps \times \Continuations \\
+  \text{Environments}                       & ρ      & ∈ & \Environments & = & \Var \pfun \Addresses \\
+  \text{Heaps}                              & η      & ∈ & \Heaps & = & \Addresses \pfun \StateD \\
+  \text{Continuations}                      & κ      & ∈ & \Continuations & ::= & \StopF \mid \ReturnF{v} \pushF κ \mid \ApplyF{\pa} \pushF κ \mid \UpdateF{\pa} \pushF κ \\
+  \\[-0.5em]
+  \text{Stateful traces}                    & π      & ∈ & \STraces  & ::=_\gfp & σ\straceend \mid σ; π \\
+  \text{Domain of stateful trace semantics} & d      & ∈ & \StateD  & = & \States \to \STraces \\
+  \text{Values}                             & v      & ∈ & \Values^\States & ::= & \FunV(\StateD) \\
+ \end{array} \\
+ \\
+ \begin{array}{rcl}
+  \multicolumn{3}{c}{ \ruleform{ \semst{\wild} \colon \Exp → (\Var → \StateD) → \StateD } } \\
+  \\[-0.5em]
+  \bot_\States(σ) & = & \fn{σ}{σ\straceend} \\
+  \\[-0.5em]
+  fst_4(l,\wild,\wild,\wild) & = & l \\
+  \\[-0.5em]
+  snd_4(\wild,\wild,\wild,\wild) & = & v \\
+  \\[-0.5em]
+  (f \funnyComp g)(σ) & = & f(σ) \ssconcat g(dst_\States(f(σ))) \\
+  \\[-0.5em]
+  cons(t,φ)(σ_1) & = & \begin{cases}
+    σ_1; φ(σ_2) & \text{with $σ_2$ such that $σ_1 \smallstep σ_2$ with rule $t$} \\
+    σ_1                   & \text{otherwise} \\
+  \end{cases} \\
+  \\[-0.5em]
+  snoc(φ,t)(σ) & = & \begin{cases}
+    φ(σ); σ_2 \straceend & \text{with $σ_2$ such that $dst_\States(φ(σ)) \smallstep σ_2$ with rule $t$} \\
+    φ(σ)                & \text{otherwise} \\
+  \end{cases} \\
+  \\[-0.5em]
+  beta(\px, \lbl, ρ)(\lbl',ρ',η,\ApplyF{\pa} \pushF κ) & = & (\lbl',ρ',η,\ApplyF{\pa} \pushF κ); (\lbl,ρ[\px↦\pa],η,κ)\straceend \\
+  \\[-0.5em]
+  shortcut(φ)(\pH,\pe,\pS) & = & \begin{cases}
+    (\pH,\pv,\pS)  & \text{if $\pe$ is a value $\pv$} \\
+    φ(\pH,\pe,\pS) & \text{otherwise} \\
+  \end{cases} \\
+  \\[-0.5em]
+  \semst{\slbl \pe}(σ) & = & σ\straceend\ \text{when $fst_4(σ) \not= \lbl$} \\
+  \\[-0.5em]
+  \semst{\slbl \px}(\lbl,ρ,η,κ) & = & η(ρ(\px))(\lbl,ρ,η,κ) \\
+  \\[-0.5em]
+  \semst{\slbl \Lam{\px}{\pe}} (\lbl,ρ,η,κ) & = & (\lbl,ρ,η,κ); (\ddagger,ρ,η,\ReturnF{\FunV(beta(\px,\atlbl{\pe},ρ) \funnyComp \semst{\pe}))} \pushF κ) \straceend \\
+  \\[-0.5em]
+  \semst{\pe~\px} & = &
+    \begin{letarray}
+      \text{let} & (φ_1,v_1) = \semst{\pe}_ρ \\
+                 & (φ_2,v_2) = \begin{cases}
+                     f(ρ(\px))   & \text{if $v = \FunV(f)$} \\
+                     \bot_\States & \text{otherwise}
+                   \end{cases} \\
+      \text{in}  & (cons(\AppIT,φ_1) \funnyComp cons(\AppET,φ_2), v_2) \\
+    \end{letarray} \\
+  \\[-0.5em]
+  \semst{\Let{\px}{\pe_1}{\pe_2}}& = & \begin{letarray}
+      \text{letrec}~ρ'. & (φ_1,v_1) = \semst{\pe_1}_{ρ'} \\
+                        & (φ_2,v_2) = \semst{\pe_2}_{ρ'} \\
+                        & ρ' = ρ ⊔ [\px ↦ (snoc(cons(\LookupT,shortcut(φ_1)),\UpdateT),v_1)] \\
+      \text{in}  & (cons(\LetT,φ_2),v_2)
+    \end{letarray} \\
+  \\
+ \end{array} \\
+\end{array}\]
+\caption{Structural call-by-need small-step trace semantics $\semst{-}$}
+  \label{fig:ss-semantics}
+\end{figure}
+
+\begin{figure}
+\[\begin{array}{c}
+ \begin{array}{rrclcl}
   \text{Configurations}                        & κ   & ∈ & \Configurations    & ::= & (\pH,\pe,\pE,\pS) \\
   \text{Heaps}                                 & \pH & ∈ & \Heaps             & =   & \Addresses \pfun (\Envs,\Exp) \\
   \text{Environments}                          & \pE & ∈ & \Envs              & =   & \Var \pfun \Addresses \\
   \text{Stacks}                                & \pS & ∈ & \Stacks            & ::= & \StopF \mid \ApplyF{\pa} \pushF \pS \mid \UpdateF{\pa} \pushF \pS \\
-  \text{Finite Small-step Traces}              & σ   & ∈ & \STraces^+         & ::= & κ\straceend \mid κ; σ \\
-  \text{Finite and Infinite Small-step Traces} & σ   & ∈ & \STraces^{+\infty} & =   & \STraces^+ ∪ \lim(\STraces^+) \\
+  \text{Finite Small-step Traces}              & σ   & ∈ & \SSTraces^+         & ::= & κ\straceend \mid κ; σ \\
+  \text{Finite and Infinite Small-step Traces} & σ   & ∈ & \SSTraces^{+\infty} & =   & \SSTraces^+ ∪ \lim(\SSTraces^+) \\
  \end{array} \\
  \\
  \begin{array}{rcl}
@@ -538,9 +608,9 @@ Trace of the expression:
   \\
  \end{array} \qquad
  \begin{array}{c}
-  \ruleform{ σ_1 \sconcat σ_2 = σ_3 } \\
+  \ruleform{ σ_1 \ssconcat σ_2 = σ_3 } \\
   \\[-0.5em]
-  σ_1 \sconcat σ_2 = \begin{cases}
+  σ_1 \ssconcat σ_2 = \begin{cases}
     σ_1              & \text{if $σ_1$ infinite} \\
     undefined        & \text{if $σ_1$ finite and $dst_\Sigma(σ_1) \not= src_\Sigma(σ_2)$} \\
     κ             & σ_1 = σ_2 = κ \\
@@ -595,7 +665,7 @@ Trace of the expression:
 \begin{figure}
 \[\begin{array}{c}
  \begin{array}{rrclcl}
-  \text{Domain of small-step transitions} &       &   & \SSD  & = & (\Configurations \to \STraces^{+\infty},\Values^\Sigma) \\
+  \text{Domain of small-step transitions} &       &   & \SSD  & = & (\Configurations \to \SSTraces^{+\infty},\Values^\Sigma) \\
   \text{Values}          &     v & ∈ & \Values^\Sigma & ::= & \FunV(\SSD \to \SSD) \mid \bot_{\Values^\Sigma} \\
  \end{array} \\
  \\
@@ -604,7 +674,7 @@ Trace of the expression:
   \\[-0.5em]
   \bot_\Sigma & = & (\fn{κ}{κ\straceend}, \bot_{\Values^\Sigma}) \\
   \\[-0.5em]
-  (f \funnyComp g)(κ) & = & f(κ) \sconcat g(dst_\Sigma(f(κ))) \\
+  (f \funnyComp g)(κ) & = & f(κ) \ssconcat g(dst_\Sigma(f(κ))) \\
   \\[-0.5em]
   cons(t,φ)(κ_1) & = & \begin{cases}
     κ_1; φ(κ_2) & \text{with $κ_2$ such that $κ_1 \smallstep κ_2$ with rule $t$} \\
@@ -771,7 +841,7 @@ Trace of the expression:
  \end{array} \\
  \\
  \begin{array}{rcl}
-  \multicolumn{3}{c}{ \ruleform{ α^{∃l}_\SSD \colon \SSD → \LiveD \qquad α^{∃l}_φ \colon (\Configurations \to \STraces^{+\infty}) → \poset{\Var} \qquad α^{∃l}_{\Values^\Sigma} \colon \Values^\Sigma → \Values^{∃l} } } \\
+  \multicolumn{3}{c}{ \ruleform{ α^{∃l}_\SSD \colon \SSD → \LiveD \qquad α^{∃l}_φ \colon (\Configurations \to \SSTraces^{+\infty}) → \poset{\Var} \qquad α^{∃l}_{\Values^\Sigma} \colon \Values^\Sigma → \Values^{∃l} } } \\
   \\[-0.5em]
   α^{∃l}(σ) & = & \{ \px \in \Var \mid ∃i.\ σ_i = (\wild, \px, \wild, \wild) \wedge σ_{i+1}\ \text{exists} \} \\
   α^{∃l}_φ(φ) & = & \bigcup_{κ∈\Configurations}\{ α^{∃l}(φ(κ)) \} \\
@@ -784,7 +854,7 @@ Trace of the expression:
  \end{array} \\
  \\
  \begin{array}{rcl}
-  \multicolumn{3}{c}{ \ruleform{ γ^{∃l}_\SSD \colon \LiveD → \poset{\SSD} \qquad γ^{∃l}_φ \colon \poset{\Var} → \poset{\Configurations \to \STraces^{+\infty}} \qquad γ^{∃l}_{\Values^\Sigma} \colon \Values^{∃l} → \poset{\Values^\Sigma} } } \\
+  \multicolumn{3}{c}{ \ruleform{ γ^{∃l}_\SSD \colon \LiveD → \poset{\SSD} \qquad γ^{∃l}_φ \colon \poset{\Var} → \poset{\Configurations \to \SSTraces^{+\infty}} \qquad γ^{∃l}_{\Values^\Sigma} \colon \Values^{∃l} → \poset{\Values^\Sigma} } } \\
   \\[-0.5em]
   γ^{∃l}(L) & = & \{ σ \mid ∀\px ∈ L.\ ∃i.\ σ_i = (\wild, \px, \wild, \wild) \wedge σ_{i+1}\ \text{exists}  \} \\
   γ^{∃l}_φ(L) & = & \{ (κ,σ) \mid σ ∈ γ^{∃l}(L) \} \\
@@ -891,7 +961,7 @@ Trace of the expression:
 \begin{figure}
 \[\begin{array}{c}
  \begin{array}{rrclcl}
-  \text{Contextual Small-Step Domain} & d^{c\Sigma} & ∈ & \SSCD & = & \Values^{c\Sigma} \times (\Configurations \to \STraces^{+\infty}) \to \Values^{c\Sigma} \times (\Configurations \to \STraces^{+\infty}) \\
+  \text{Contextual Small-Step Domain} & d^{c\Sigma} & ∈ & \SSCD & = & \Values^{c\Sigma} \times (\Configurations \to \SSTraces^{+\infty}) \to \Values^{c\Sigma} \times (\Configurations \to \SSTraces^{+\infty}) \\
   \text{Contextual Liveness Domain} & d^{cl} & ∈ & \LiveCD & = & \Values^{cl} \times \poset{\Var} \to \Values^{cl} \times \poset{\Var} \\
  \end{array} \\
  \\
@@ -1045,7 +1115,7 @@ Trace of the expression:
  \end{array} \\
  \\
  \begin{array}{rcl}
-  \multicolumn{3}{c}{ \ruleform{ α^{∃l}_\SSD \colon \SSD → \LiveD \qquad α^{∃l}_φ \colon (\Configurations \to \STraces^{+\infty}) → \poset{\Var} \qquad α^{∃l}_{\Values^\Sigma} \colon \Values^\Sigma → \Values^{∃l} } } \\
+  \multicolumn{3}{c}{ \ruleform{ α^{∃l}_\SSD \colon \SSD → \LiveD \qquad α^{∃l}_φ \colon (\Configurations \to \SSTraces^{+\infty}) → \poset{\Var} \qquad α^{∃l}_{\Values^\Sigma} \colon \Values^\Sigma → \Values^{∃l} } } \\
   \\[-0.5em]
   α^{∃l}_\Stacks(\StopF) & = & \lSBot \\
   α^{∃l}_\Stacks(\UpdateF{x} \pushF \lS) & = & α^{∃l}_\Stacks(\lS) \\
