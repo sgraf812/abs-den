@@ -718,6 +718,36 @@ Trace of the expression:
   \text{Liveness Domain} & d^{∃l} & ∈ & \LiveD & = & \poset{\Var} \times \Values^{∃l} \\
  \end{array} \\
  \\
+ \begin{array}{rcl}
+  \multicolumn{3}{c}{ \ruleform{ \semlive{\wild} \colon \Exp → (\Var → \LiveD) → \LiveD } } \\
+  \\[-0.5em]
+  \bot_{∃l} & = & (\varnothing, \bot_{\Values^{∃l}}) \\
+  \\[-0.5em]
+  L_1 ∪_1 (L_2,v) & = & (L_1 ∪ L_2,v) \\
+  \\[-0.5em]
+  %L_1 \funnyComp^l L_2 & = & α^{∃l}_φ(γ^{∃l}_φ(L_1) \funnyComp γ^{∃l}_φ(L_2)) ⊑ L_1 ∪ L_2 \\
+  %\\[-0.5em]
+  %shortcut^l & = & α^{∃l}_φ \circ shortcut \circ γ^{∃l}_φ = id \\
+  %\\[-0.5em]
+  \semlive{\px}_ρ & = & ρ(\px) \\
+  \\[-0.5em]
+  \semlive{\Lam{\px}{\pe}}_ρ & = & (\varnothing, \FunV(\fn{d^l}{\semlive{\pe}_{ρ[\px↦d^l]}})) \\
+  \\[-0.5em]
+  \semlive{\pe~\px}_ρ & = &
+    \begin{letarray}
+      \text{let} & (L_1,v_1) = \semlive{\pe}_ρ \\
+      \text{in}  & L_1 ∪_1 \begin{cases}
+                     f(ρ(\px)) & \text{if $v = \FunV(f)$} \\
+                     \bot_{∃l} & \text{otherwise}
+                   \end{cases} \\
+    \end{letarray} \\
+  \\[-0.5em]
+  \semlive{\Let{\px}{\pe_1}{\pe_2}}_ρ& = & \begin{letarray}
+      \text{letrec}~ρ'. & ρ' = ρ ⊔ [\px ↦ \{\px\} ∪_1 \semlive{\pe_1}_{ρ'}] \\
+      \text{in}         & \semlive{\pe_2}_{ρ'}
+    \end{letarray} \\
+ \end{array} \\
+ \\
  \begin{array}{c}
   \ruleform{ v_1 ⊑ v_2 \qquad d_1 ⊑ d_2 } \\
   \\[-0.5em]
@@ -748,38 +778,9 @@ Trace of the expression:
   α^{∃l}_{\Values^\Sigma}(\FunV(f)) & = & \FunV(α^{∃l}_\SSD \circ f \circ γ^{∃l}_\SSD) \\
   α^{∃l}_{\Values^\Sigma}(\bot_{\Values^{\Sigma}}) & = & \bot_{\Values^{∃l}} \\
   α^{∃l}_\SSD(φ,v) & = & (α^{∃l}_φ(φ), α^{∃l}_{\Values^\Sigma}(v)) \\
-  \\
- \end{array} \\
- \\
- \begin{array}{rcl}
-  \multicolumn{3}{c}{ \ruleform{ \semlive{\wild} \colon \Exp → (\Var → \LiveD) → \LiveD } } \\
-  \\[-0.5em]
-  \bot_{∃l} & = & (\varnothing, \bot_{\Values^{∃l}}) \\
-  \\[-0.5em]
-  L_1 ∪_1 (L_2,v) & = & (L_1 ∪ L_2,v) \\
-  \\[-0.5em]
-  L_1 \funnyComp^l L_2 & = & α^{∃l}_φ(γ^{∃l}_φ(L_1) \funnyComp γ^{∃l}_φ(L_2)) ⊑ L_1 ∪ L_2 \\
-  \\[-0.5em]
-  shortcut^l & = & α^{∃l}_φ \circ shortcut \circ γ^{∃l}_φ = id \\
-  \\[-0.5em]
-  \semlive{\px}_ρ & = & ρ(\px) \\
-  \\[-0.5em]
-  \semlive{\Lam{\px}{\pe}}_ρ & = & (\varnothing, \FunV(\fn{d^l}{\semlive{\pe}_{ρ[\px↦d^l]}})) \\
-  \\[-0.5em]
-  \semlive{\pe~\px}_ρ & = &
-    \begin{letarray}
-      \text{let} & (L_1,v_1) = \semlive{\pe}_ρ \\
-      \text{in}  & L_1 ∪_1 \begin{cases}
-                     f(ρ(\px)) & \text{if $v = \FunV(f)$} \\
-                     \bot_{∃l} & \text{otherwise}
-                   \end{cases} \\
-    \end{letarray} \\
-  \\[-0.5em]
-  \semlive{\Let{\px}{\pe_1}{\pe_2}}_ρ& = & \begin{letarray}
-      \text{letrec}~ρ'. & ρ' = ρ ⊔ [\px ↦ \{\px\} ∪_1 \semlive{\pe_1}_{ρ'}] \\
-      \text{in}         & \semlive{\pe_2}_{ρ'}
-    \end{letarray} \\
-  \\
+  \dot{α}^{∃l}(ρ) & = & λx. α^{∃l}_\SSD(ρ(x)) \\
+  \ddot{α}^{∃l}(S) & = & λρ. α^{∃l}_\SSD(S_{\dot{α}^{∃l}(ρ)}) \\
+  \ddot{α}^{∃l}(\semss{e}) & ⊑ & \semlive{e} \\
  \end{array} \\
  \\
  \begin{array}{rcl}
@@ -830,51 +831,58 @@ Trace of the expression:
 \[\begin{array}{c}
  \begin{array}{rrclcl}
   \text{Symbolic variables} & X & ∈ & \SVar &   & \\
-  \text{Symbolic call} & sc & ∈ & \SCall & = & X(c) \\
-  \text{Symbolic Liveness Domain} & d^{sl} & ∈ & \LiveSD & = & \poset{\Var ∪ \SCall} \times \Values^{sl} \\
-  \text{Symbolic Liveness Values} & v^{sl} & ∈ & \Values^{sl} & = & \FunV_{\Values^{sl}}(X,d^{sl}) \mid \bot_{\Values^{sl}} \\
+  \text{Symbolic Liveness Domain} & d^{sl} & ∈ & \LiveSD & = & \poset{\Var ∪ \SVar} \times \Values^{sl} \\
+  \text{Symbolic Liveness Values} & v^{sl} & ∈ & \Values^{sl} & = & \FunV_{\Values^{sl}}(X.\ d^{sl}) \mid \bot_{\Values^{sl}} \\
  \end{array} \\
  \\
  \begin{array}{rcl}
-  \multicolumn{3}{c}{ \ruleform{ α^{sl}_{\Values^{∃l}} \colon \Values^{∃l} → \Values^{sl}} } \\
-  \\[-0.5em]
-  α^{sl}_{\Values^{∃l}}(\FunV(f)) & = & \FunV(X,f(X)) \\
-  γ^{sl}_{\Values^{∃l}}(\FunV(X,d)) & = & \FunV(\fn{d'}{d[d' \mapsfrom X]}) \\
-  %α^{sl}_{\Values^{∃l}}(\bot_{\Values^{∃l}}) & = & \bot_{\Values^{c}} \\
- \end{array} \\
- \\
- \begin{array}{rcl}
-  \multicolumn{3}{c}{ \ruleform{ \semsclive{\wild} \colon \Exp → (\Var → \LiveSCD) → \LiveSCD } } \\
+  \multicolumn{3}{c}{ \ruleform{ \semslive{\wild} \colon \Exp → (\Var → \LiveSCD) → \LiveSCD } } \\
   \\[-0.5em]
   \bot_{sl} & = & (\varnothing, \bot_{\Values^{sl}}) \\
   \\[-0.5em]
   L_1 ∪_1 \wild & = & \fn{(L_2,v)}{(L_1 ∪ L_2, v)} \\
   \\[-0.5em]
-  inert_{\Values^{scl}} & = & \FunV(\fn{d^{scl}}{\fn{c}{c(inert_{\Values^{scl}}, snd(d^{scl}~\top_{c}))}}) \\
-  %TODO: is inert well-defined???
+  sym(X) & = & (\{ X \}, inert_{\Values^{sl}}) \\
   \\[-0.5em]
-  sym(X) & = & \fn{c}{c (inert_{\Values^{scl}}, \{ X(c) \})} \\
+  \semslive{\px}_ρ & = & ρ(\px) \\
   \\[-0.5em]
-  apply(d^{scl},c) & = & \fn{(v_1,L_1)}{\begin{cases}
-      f(d^{scl})~(c \circ (L_1 ∪_1 \wild)) & \text{if $v_1 = \FunV(f)$} \\
-      \bot_{scl}~(c \circ (L_1 ∪_1 \wild)) & \text{otherwise}
-    \end{cases}} \\
+  \semslive{\Lam{\px}{\pe}}_ρ & = & (\varnothing, \FunV(X_\px.\ \semslive{\pe}_{ρ[\px↦sym(X_\px)]})) \\
   \\[-0.5em]
-  \semslive{\px}_ρ~c & = & ρ(\px)~c \\
+  \semslive{\pe~\px}_ρ & = &
+    \begin{letarray}
+      \text{let} & (L_1,v_1) = \semslive{\pe}_ρ \\
+      \text{in}  & L_1 ∪_1 \begin{cases}
+                     d[ρ(\px) \mapsfrom X] & \text{if $v = \FunV(X.\ d)$} \\
+                     \bot_{∃l}             & \text{otherwise}
+                   \end{cases} \\
+    \end{letarray} \\
   \\[-0.5em]
-  \semslive{\Lam{\px}{\pe}}_ρ~c & = & c(\FunV(\fn{d^{scl}}{~(\semslive{\pe}_{ρ[\px↦sym(X_\px)]})[X_\px \mapsfrom d^{scl}]}), \varnothing) \\
-  \\[-0.5em]
-  \semslive{\pe~\px}_ρ~c & = & \semslive{\pe}_ρ~(apply(ρ(\px),c)) \\
-  \\[-0.5em]
-  \semslive{\Let{\px}{\pe_1}{\pe_2}}_ρ~c& = & \begin{letarray}
-      \text{letrec}~ρ'. & ρ' = ρ ⊔ [\px ↦ \fn{c}{~\semslive{\pe_1}_{ρ'}~(c \circ look(\px))}] \\
-      \text{in}         & \semslive{\pe_2}_{ρ'}~c
+  \semslive{\Let{\px}{\pe_1}{\pe_2}}_ρ& = & \begin{letarray}
+      \text{letrec}~ρ'. & ρ' = ρ ⊔ [\px ↦ \{\px\} ∪_1 \semslive{\pe_1}_{ρ'}] \\
+      \text{in}         & \semslive{\pe_2}_{ρ'}
     \end{letarray} \\
   \\
  \end{array}
+ \\
+ \begin{array}{rcl}
+  \multicolumn{3}{c}{ \ruleform{ α^{sl}_{\Values^{∃l}} \colon \Values^{∃l} → \Values^{sl}} } \\
+  \\[-0.5em]
+  α^{sl}_{\Values^{∃l}}(\FunV(f)) & = & \FunV(X.\ f(X)) \\
+  γ^{sl}_{\Values^{∃l}}(\FunV(X,d)) & = & \FunV(\fn{d'}{d[d' \mapsfrom X]}) \\
+  \\[-0.5em]
+  (L,v)[(L',v') \mapsfrom X] & = & (L \setminus \{X\} ∪ \{ deep(L',v') \mid X ∈ L \}, v[(L',v') \mapsfrom X]) \\
+  \FunV(f)[d' \mapsfrom X] & = & \FunV({\fn{d^{sl}}{f(d^{sl})[d' \mapsfrom X]}}) \\
+  \\[-0.5em]
+  deep_{\LiveSD}(L',v') & = & L' ∪ deep_{\Values^{sl}}(v') \\
+  deep_{\Values^{sl}}(\FunV(f)) & = & \bigcup_v\{deep_{\LiveSD}(f(\varnothing,v))\} \\  % TODO: Think harder. Not correct I think
+  inert_{\Values^{sl}} & = & \FunV(\fn{d^{sl}}{(deep(d^{sl}),inert_{\Values^{sl}})}) \\
+ \end{array} \\
 \end{array}\]
 \begin{theorem}
-  $(\semslive{e}_{ρ[x↦d]}~c)$ ⊑ $(\semslive{e}_{ρ[x↦sym(X)]}~c)[d \mapsfrom X]$
+  $(L,v) ⊑ (deep(L,v),inert_{\Values^{sl}})$
+\end{theorem}
+\begin{theorem}
+  $\semslive{e}_{ρ[x↦d]} ⊑ \semslive{e}_{ρ[x↦sym(X)]}[d \mapsfrom X]$
 \end{theorem}
 \caption{Potential liveness, symbolic}
   \label{fig:liveness-abstraction-symb}
@@ -931,6 +939,81 @@ Trace of the expression:
 \end{theorem}
 \caption{Potential liveness, contextual}
   \label{fig:liveness-abstraction}
+\end{figure}
+
+\begin{figure}
+\[\begin{array}{c}
+ \begin{array}{rrclcl}
+  \text{Symbolic variables} & X & ∈ & \SVar &   & \\
+  \text{Symbolic call} & sc & ∈ & \SCall & = & X(c) \\
+  \text{Symbolic Liveness Domain} & d^{sl} & ∈ & \LiveSD & = & \poset{\Var ∪ \SCall} \times \Values^{sl} \\
+  \text{Symbolic Liveness Values} & v^{sl} & ∈ & \Values^{sl} & = & \FunV_{\Values^{sl}}(X,d^{sl}) \mid \bot_{\Values^{sl}} \\
+ \end{array} \\
+ \\
+ \begin{array}{c}
+  \ruleform{ sc_1 ⊑ sc_2 \qquad L_1 ⊑ L_2 \qquad d_1 ⊑ d_2 } \\
+  \\[-0.5em]
+  \inferrule*
+    {L_1 ∩ \Var ⊆ L_2 ∩ \Var \qquad ∀X(c_1)∈(L_1∩\SCall).\ ∃X(c_2)∈(L_1∩\SCall).\ c_1 ⊑ c_2}
+    {L_1 ⊑ L_2}
+  \qquad
+  \inferrule*
+    {L_1 ∩ \Var ⊆ L_2 ∩ \Var \qquad ∀X(c_1)∈(L_1∩\SCall).\ ∃X(c_2)∈(L_1∩\SCall).\ c_1 ⊑ c_2}
+    {L_1 ⊑ L_2}
+  \\[-0.5em]
+  \inferrule*
+    {L_1 ⊆ L_2 \qquad v_1 ⊑ v_2}
+    {(L_1,v_1) ⊑ (L_2,v_2)}
+  \qquad
+  \inferrule*
+    {L_1 ⊆ L_2 \quad (\forall L,v.\ L_2 ⊆ L \Rightarrow f_1(L,v) ⊑ f_2(L,v)) }
+    {(L_1,\FunV(f_1)) ⊑ (L_2,\FunV(f_2))} \\
+  %TODO: We want the gfp, I think
+ \end{array} \\
+ \\
+ \begin{array}{rcl}
+  \multicolumn{3}{c}{ \ruleform{ α^{sl}_{\Values^{∃l}} \colon \Values^{∃l} → \Values^{sl}} } \\
+  \\[-0.5em]
+  α^{sl}_{\Values^{∃l}}(\FunV(f)) & = & \FunV(X,f(X)) \\
+  γ^{sl}_{\Values^{∃l}}(\FunV(X,d)) & = & \FunV(\fn{d'}{d[d' \mapsfrom X]}) \\
+  %α^{sl}_{\Values^{∃l}}(\bot_{\Values^{∃l}}) & = & \bot_{\Values^{c}} \\
+ \end{array} \\
+ \\
+ \begin{array}{rcl}
+  \multicolumn{3}{c}{ \ruleform{ \semsclive{\wild} \colon \Exp → (\Var → \LiveSCD) → \LiveSCD } } \\
+  \\[-0.5em]
+  \bot_{sl} & = & (\varnothing, \bot_{\Values^{sl}}) \\
+  \\[-0.5em]
+  L_1 ∪_1 \wild & = & \fn{(L_2,v)}{(L_1 ∪ L_2, v)} \\
+  \\[-0.5em]
+  inert_{\Values^{scl}} & = & \FunV(\fn{d^{scl}}{\fn{c}{c(inert_{\Values^{scl}}, snd(d^{scl}~\top_{c}))}}) \\
+  %TODO: is inert well-defined???
+  \\[-0.5em]
+  sym(X) & = & \fn{c}{c (inert_{\Values^{scl}}, \{ X(c) \})} \\
+  \\[-0.5em]
+  apply(d^{scl},c) & = & \fn{(v_1,L_1)}{\begin{cases}
+      f(d^{scl})~(c \circ (L_1 ∪_1 \wild)) & \text{if $v_1 = \FunV(f)$} \\
+      \bot_{scl}~(c \circ (L_1 ∪_1 \wild)) & \text{otherwise}
+    \end{cases}} \\
+  \\[-0.5em]
+  \semslive{\px}_ρ~c & = & ρ(\px)~c \\
+  \\[-0.5em]
+  \semslive{\Lam{\px}{\pe}}_ρ~c & = & c(\FunV(\fn{d^{scl}}{~(\semslive{\pe}_{ρ[\px↦sym(X_\px)]})[X_\px \mapsfrom d^{scl}]}), \varnothing) \\
+  \\[-0.5em]
+  \semslive{\pe~\px}_ρ~c & = & \semslive{\pe}_ρ~(apply(ρ(\px),c)) \\
+  \\[-0.5em]
+  \semslive{\Let{\px}{\pe_1}{\pe_2}}_ρ~c& = & \begin{letarray}
+      \text{letrec}~ρ'. & ρ' = ρ ⊔ [\px ↦ \fn{c}{~\semslive{\pe_1}_{ρ'}~(c \circ look(\px))}] \\
+      \text{in}         & \semslive{\pe_2}_{ρ'}~c
+    \end{letarray} \\
+  \\
+ \end{array}
+\end{array}\]
+\begin{theorem}
+  $(\semslive{e}_{ρ[x↦d]}~c)$ ⊑ $(\semslive{e}_{ρ[x↦sym(X)]}~c)[d \mapsfrom X]$
+\end{theorem}
+\caption{Potential liveness, symbolic}
+  \label{fig:liveness-abstraction-symb}
 \end{figure}
 
 \begin{figure}
