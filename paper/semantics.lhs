@@ -521,12 +521,12 @@ Trace of the expression:
  \begin{array}{rrclcl}
   \text{States}                             & σ      & ∈ & \States  & = & \Labels ∪ \{\ddagger\} \times \Environments \times \Heaps \times \Continuations \\
   \text{Environments}                       & ρ      & ∈ & \Environments & = & \Var \pfun \Addresses \\
-  \text{Heaps}                              & η      & ∈ & \Heaps & = & \Addresses \pfun \StateD \\
-  \text{Continuations}                      & κ      & ∈ & \Continuations & ::= & \StopF \mid \ReturnF{v} \pushF κ \mid \ApplyF{\pa} \pushF κ \mid \UpdateF{\pa} \pushF κ \\
+  \text{Heaps}                              & η      & ∈ & \Heaps & = & \Addresses \pfun \Labels ∪ \{\ddagger\} \times \Environments \times \StateD \\
+  \text{Continuations}                      & κ      & ∈ & \Continuations & ::= & \StopF \mid \ReturnF{ρ}{v} \pushF κ \mid \ApplyF{\pa} \pushF κ \mid \UpdateF{\pa} \pushF κ \\
   \\[-0.5em]
   \text{Stateful traces}                    & π      & ∈ & \STraces  & ::=_\gfp & σ\straceend \mid σ; π \\
   \text{Domain of stateful trace semantics} & d      & ∈ & \StateD  & = & \States \to \STraces \\
-  \text{Values}                             & v      & ∈ & \Values^\States & ::= & \FunV(\StateD) \\
+  \text{Values}                             & v      & ∈ & \Values^\States & ::= & \FunV(\px,\lbl,d) \\
  \end{array} \\
  \\
  \begin{array}{rcl}
@@ -535,8 +535,6 @@ Trace of the expression:
   \bot_\States(σ) & = & \fn{σ}{σ\straceend} \\
   \\[-0.5em]
   fst_4(l,\wild,\wild,\wild) & = & l \\
-  \\[-0.5em]
-  snd_4(\wild,\wild,\wild,\wild) & = & v \\
   \\[-0.5em]
   (f \funnyComp g)(σ) & = & f(σ) \ssconcat g(dst_\States(f(σ))) \\
   \\[-0.5em]
@@ -550,6 +548,12 @@ Trace of the expression:
     φ(σ)                & \text{otherwise} \\
   \end{cases} \\
   \\[-0.5em]
+  return(v)(\wild,ρ,η,κ) & = & (\ddagger,ρ,η,\ReturnF{ρ}{v} \pushF κ) \\
+  \\[-0.5em]
+  lookup(\px)(\wild,ρ,η,κ) & = & ((\lbl,ρ',η,\UpdateF{\pa} \pushF κ),d) \ \text{where}\ (ρ',\lbl,d) = η(ρ(x)) \\
+  \\[-0.5em]
+  update(\ddagger,ρ,η,\ReturnF{ρ'}{v} \pushF \UpdateF{\pa} \pushF κ) & = & (\ddagger,ρ,η[\pa ↦ (ρ',\ddagger,...)],κ) \ \text{where}\ (ρ',\lbl,d) = η(ρ(x)) \\
+  \\[-0.5em]
   beta(\px, \lbl, ρ)(\lbl',ρ',η,\ApplyF{\pa} \pushF κ) & = & (\lbl',ρ',η,\ApplyF{\pa} \pushF κ); (\lbl,ρ[\px↦\pa],η,κ)\straceend \\
   \\[-0.5em]
   shortcut(φ)(\pH,\pe,\pS) & = & \begin{cases}
@@ -559,9 +563,9 @@ Trace of the expression:
   \\[-0.5em]
   \semst{\slbl \pe}(σ) & = & σ\straceend\ \text{when $fst_4(σ) \not= \lbl$} \\
   \\[-0.5em]
-  \semst{\slbl \px}(\lbl,ρ,η,κ) & = & η(ρ(\px))(\lbl,ρ,η,κ) \\
+  \semst{\slbl \px}(σ) & = & σ; d(σ')\ \text{where}\ (σ',d) = lookup(\px)(σ) \\
   \\[-0.5em]
-  \semst{\slbl \Lam{\px}{\pe}} (\lbl,ρ,η,κ) & = & (\lbl,ρ,η,κ); (\ddagger,ρ,η,\ReturnF{\FunV(beta(\px,\atlbl{\pe},ρ) \funnyComp \semst{\pe}))} \pushF κ) \straceend \\
+  \semst{\slbl \Lam{\px}{\pe}}(σ) & = & σ; return(\FunV(\px,\atlbl{\pe}, \semst{\pe}))(σ) \straceend \\
   \\[-0.5em]
   \semst{\pe~\px} & = &
     \begin{letarray}
