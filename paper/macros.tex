@@ -60,6 +60,7 @@
 \newcommand{\Case}[2]{\mathbf{case}~{#1}~\mathbf{of}~{#2}}
 \newcommand{\Sel}[1][]{\many{K~\many{x} \rightarrow e_{#1}}}
 \newcommand{\dom}{\mathop\mathsf{dom}}
+\newcommand{\rng}{\mathop\mathsf{rng}}
 \newcommand{\fv}{\mathop\mathsf{fv}}
 \newcommand{\bv}{\mathop\mathsf{bv}}
 \newcommand{\fresh}[2]{#1\mathbin{\#}#2}
@@ -81,6 +82,7 @@
 \newcommand{\slbl}{\raisebox{0.08em}{$\;\scriptstyle{\ell}\;$}}
 \newcommand{\slbln}[1]{\raisebox{0.1em}{$\;\scriptstyle{\ell_{#1}}\;$}}
 \newcommand{\atlbl}[1]{at(#1)}
+\newcommand{\deref}[1]{*#1}
 %% Traces
 \newcommand{\Traces}{\mathbb{T}}
 \newcommand{\act}[1]{\xrightarrow{#1}}
@@ -149,9 +151,9 @@
 \newcommand{\sconcat}{\concatop{\hspace{0.04ex}\scalebox{0.5}{$\States$}}}
 \newcommand{\pushF}{\cdot}
 \newcommand{\StopF}{\mathbf{stop}}
-\newcommand{\ReturnF}[2]{\mathbf{ret}(#1,#2)}
-\newcommand{\ApplyF}[1]{\mathbf{ap}(#1)}
-\newcommand{\UpdateF}[1]{\mathbf{upd}(#1)}
+\newcommand{\ReturnF}{\mathbf{ret}}
+\newcommand{\ApplyF}{\mathbf{ap}}
+\newcommand{\UpdateF}{\mathbf{upd}}
 
 % Small-step
 \newcommand{\Configurations}{\mathsf{Config}}
@@ -170,11 +172,14 @@
 \newcommand{\ssconcat}{\concatop{\hspace{0.04ex}\scalebox{0.5}{\Sigma}}}
 \newcommand{\AppIT}{\textsc{app}_1}
 \newcommand{\AppET}{\textsc{app}_2}
+\newcommand{\ValueT}{\textsc{val}}
 \newcommand{\LookupT}{\textsc{look}}
 \newcommand{\UpdateT}{\textsc{upd}}
 \newcommand{\LetT}{\textsc{let}}
 \newcommand{\funnyComp}{\mathop{\mathord{>}\!\mathord{\circ}\!\mathord{>}}}
-\newcommand{\validtrace}[1]{#1\;\mathsf{ok\text{-}}σ}
+\newcommand{\validtrace}[1]{#1\;\mathsf{ok\text{-}}π}
+\newcommand{\maxbaltrace}[1]{#1\;\mathsf{maxbal\text{-}}π}
+\newcommand{\validtracefun}[1]{#1\;\mathsf{ok\text{-}}d}
 
 % Liveness
 \newcommand{\lStacks}{\Stacks^l}

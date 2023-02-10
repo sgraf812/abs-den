@@ -26,7 +26,7 @@
   \\
  \end{array} \\
  \\[-0.5em]
- \ruleform{hash : \Traces^+ \to \Addresses} \quad \text{injective modulo actions} \\
+ \ruleform{hash : \Traces^+ \to \Addresses} \quad \text{an injective function on the number of $\BindA$ actions in the trace} \\
  \\
  \begin{array}{rcl}
   \multicolumn{3}{c}{ \ruleform{ \atlbl{\pe} = \lbl } } \\
@@ -109,6 +109,49 @@ Trace of the expression:
             & \act{\LookupA} \lbln{2} \act{\ValA(\FunV(f))} \lbln{4}
 \end{array}
 \]
+
+% Note [On the role of labels]
+% ~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+% Simon does not like program labels; he'd much rather just talk about
+% the expressions those labels are attached to. Yet it is important for
+% the simplicity of analyses *not* to identify structurally equivalent
+% sub-expressions, example below.
+%
+% Our solution is to assume that every expression is implicitly labelled
+% (uniquely, so). When we use the expression as an index, we implicitly use the
+% label as its identity rather than its structure. When labels are explicitly
+% required, we can obtain them via the at() function.
+%
+% When do we *not* want structural equality on expressions? Example:
+%
+%   \g -> f a + g (f a)
+%
+% Now imagine that given a call to the lambda with an unknown `g`, we'd like to
+% find out which subexpressions are evaluated strictly. We could annotate our
+% AST like this
+%
+%   \g -> ((f^S a^L)^S + (g (f^L a^L)^L)^S)^S
+%
+% Note how the two different occurrences of `f a` got different annotations.
+%
+% For obvious utility (who wants to redefine the entire syntax for *every*
+% analysis?), we might want to maintain the analysis information *outside* of
+% the syntax tree, as a map `Expr -> Strictness`. But doing so would conflate
+% the entries for both occurrences of `f a`! So what we rather do is assume
+% that every sub-expression of the syntax tree is labelled with a unique token
+% l∈Label and then use that to maintain our external map `Label -> Strictness`.
+%
+% We write ⌈Expr⌉ to denote the set of expressions where labels are "erased",
+% meaning that structural equivalent expressions are identified.
+% The mapping `Label -> Expr` is well-defined and injective; the mapping
+% `Label -> ⌈Expr⌉` is well-defined and often *not* injective.
+% Conversely, `at : Expr -> Label` extracts the label of an expression, whereas
+% `⌈Expr⌉ -> Label` is not well-defined.
+%
+% Note that as long as a function is defined by structural recursion over an
+% expression, we'll never see two concrete, structurally equivalent expressions,
+% so it's OK to omit labels and use the expression we recurse over (and its immediate
+% subexpressions captured as meta variables) as if it contained the omitted labels.
 
 \begin{figure}
 \[\begin{array}{c}
@@ -274,71 +317,6 @@ Trace of the expression:
  \end{array}
 \end{array}\]
 \caption{Prefix Trace Abstraction}
-  \label{fig:semantics}
-\end{figure}
-
-\newcommand{\second}{\ensuremath{\mathbin{@<2>@}}}
-
-\begin{figure}
-\[\begin{array}{c}
- \begin{array}{rcl}
-  \multicolumn{3}{c}{ \ruleform{ \seminf{\wild} \colon \Exp → (\Var → \MaxD) → \MaxD } } \\
-  \\[-0.5em]
-  \bot_\MaxD(π_i^+)   & = & (\bot_\Values,dst(π_i^+)) \text{ is the bottom element of $\MaxD$} \\
-  \\[-0.5em]
-  f \second (a,b)  & = & (a, f a) \\
-  \\[-0.5em]
-  cons(a,\lbl,S)(π_i^+)   & = & dst(π_i^+) \act{a} S(π_i^+ \act{a} \lbl) \\
-  \\[-0.5em]
-  \seminf{\slbl \pe}_ρ    (π_i^+)   & = & \bot(π_i^+) \qquad \text{if $dst(π_i^+) \not= \lbl$} \\
-  \\[-0.9em]
-  \seminf{\slbl \px}_ρ    (π_i^+)   & = & ρ(\px)(π_i^+) \\
-  \\[-0.5em]
-  \seminf{\slbl(\Lam{\px}{\pe})}_ρ(π_i^+) & = &
-    \begin{letarray}
-      \text{let} & f = d ↦ cons(\AppEA,\atlbl{\pe},\seminf{\pe}_{ρ[\px↦d]}) \\
-      \text{in}  & (\FunV(f), \lbl) \\
-    \end{letarray} \\
-  \\[-0.5em]
-  \seminf{\slbl(\pe~\px)}_ρ(π_i^+) & = &
-    \begin{letarray}
-      \text{let} & (v_e, π_e) = \seminf{\pe}_ρ(π_i^+ \act{\AppIA} \atlbl{\pe}) \\
-      \text{in}  & (\lbl \act{\AppIA} π_e \concat {}) \second \begin{cases}
-                     f(ρ(\px))(π_i^+ \act{\AppIA} π_e) & \text{if $v_e = \FunV(f)$}  \\
-                     \bot(π_i^+ \act{\AppIA} π_e) & \text{otherwise}  \\
-                   \end{cases} \\
-    \end{letarray} \\
-  \\[-0.5em]
-  \seminf{\slbl(\Let{\px}{\pe_1}{\pe_2})}_ρ(π_i^+) & = &
-    \begin{letarray}
-      \text{letrec}~ρ'. & ρ' = ρ ⊔ [\px ↦ cons(\LookupA(hash(π_i^+)),\atlbl{\pe_1},\seminf{\pe_1}_{ρ'})] \\
-      \text{in}         & cons(\BindA,\atlbl{\pe_2},\seminf{\pe_2}_{ρ'})(π_i^+)
-    \end{letarray} \\
-  \\[-0.5em]
-  \text{Call-by-need:} \\
-  \\[-0.5em]
-  π_s \subtrceq π & = & \exists π_1, π_2.\ π = π_1 \concat π_s \concat π_2  \\
-  \\[-0.5em]
-  memo(\pa,S)(π_i^+)   & = & \begin{cases}
-    (v, \lbl) & \text{if $\lbl \act{\UpdateA(\pa)} \lbl \subtrceq π_i^+$ and $(v,\wild) = S(π_i^+)$} \\
-    S(π_i^+) & \text{otherwise} \\
-  \end{cases} \\
-  \\[-0.5em]
-  \seminf{\slbl(\Let{\px}{\pe_1}{\pe_2})}_ρ(π_i^+) & = &
-    \begin{letarray}
-      \text{letrec}~ρ'.& S' = memo(hash(π_i^+),\seminf{\pe_1}_{ρ'}) \\
-                       & ρ' = ρ ⊔ [\px ↦ cons(\LookupA(hash(π_i^+)),\atlbl{\pe_1},S'] \\
-      \text{in}        & cons(\BindA,\atlbl{\pe_2},\seminf{\pe_2}_{ρ'})(π_i^+)
-    \end{letarray} \\
- \end{array} \\
- \\[-0.5em]
- \arraycolsep=3pt
- \begin{array}{rrclcl}
-  \text{Domain of deterministic maximal traces} & && \MaxD & = & \Traces^+ \to (\Values, \Traces^{+\infty}) \\
-  \text{Values}          &     v & ∈ & \Values & ::= & \FunV(\MaxD \to \MaxD) \mid \bot_\Values \\
- \end{array} \\
-\end{array}\]
-\caption{Structural Maximal Trace Semantics With Separate Values}
   \label{fig:semantics}
 \end{figure}
 
@@ -519,74 +497,165 @@ Trace of the expression:
 \begin{figure}
 \[\begin{array}{c}
  \begin{array}{rrclcl}
-  \text{States}                             & σ      & ∈ & \States  & = & \Labels ∪ \{\ddagger\} \times \Environments \times \Heaps \times \Continuations \\
+  \text{States}                             & σ      & ∈ & \States  & = & (\Exp ∪ \{\ddagger\}) \times \Environments \times \Heaps \times \Continuations \\
   \text{Environments}                       & ρ      & ∈ & \Environments & = & \Var \pfun \Addresses \\
-  \text{Heaps}                              & η      & ∈ & \Heaps & = & \Addresses \pfun \Labels ∪ \{\ddagger\} \times \Environments \times \StateD \\
-  \text{Continuations}                      & κ      & ∈ & \Continuations & ::= & \StopF \mid \ReturnF{ρ}{v} \pushF κ \mid \ApplyF{\pa} \pushF κ \mid \UpdateF{\pa} \pushF κ \\
+  \text{Heaps}                              & η      & ∈ & \Heaps & = & \Addresses \pfun \Exp \times \Environments \times \StateD \\
+  \text{Continuations}                      & κ      & ∈ & \Continuations & ::= & \StopF \mid \ReturnF(\pv,ρ,v) \pushF κ \mid \ApplyF(\pa) \pushF κ \mid \UpdateF(\pa) \pushF κ \\
   \\[-0.5em]
-  \text{Stateful traces}                    & π      & ∈ & \STraces  & ::=_\gfp & σ\straceend \mid σ; π \\
+  \text{Stateful traces}                    & π      & ∈ & \STraces  & ::=_\gfp & σ\straceend \mid π; π \\
   \text{Domain of stateful trace semantics} & d      & ∈ & \StateD  & = & \States \to \STraces \\
-  \text{Values}                             & v      & ∈ & \Values^\States & ::= & \FunV(\px,\lbl,d) \\
+  \text{Values}                             & v      & ∈ & \Values^\States & ::= & \FunV(d) \\
  \end{array} \\
  \\
  \begin{array}{rcl}
-  \multicolumn{3}{c}{ \ruleform{ \semst{\wild} \colon \Exp → (\Var → \StateD) → \StateD } } \\
+  \multicolumn{3}{c}{ \ruleform{ src_\States(π) = σ \qquad dst_\States(π) = σ } } \\
   \\[-0.5em]
-  \bot_\States(σ) & = & \fn{σ}{σ\straceend} \\
+  src_\States(σ\straceend)    & = & σ \\
+  src_\States(σ; π) & = & σ \\
   \\[-0.5em]
-  fst_4(l,\wild,\wild,\wild) & = & l \\
+  dst_\States(σ\straceend)    & = & σ \\
+  dst_\States(σ; π) & = & dst_\States(π) \\
+  \\
+ \end{array} \qquad
+ \begin{array}{c}
+  \ruleform{ π_1 \sconcat π_2 = π_3 } \\
   \\[-0.5em]
-  (f \funnyComp g)(σ) & = & f(σ) \ssconcat g(dst_\States(f(σ))) \\
-  \\[-0.5em]
-  cons(t,φ)(σ_1) & = & \begin{cases}
-    σ_1; φ(σ_2) & \text{with $σ_2$ such that $σ_1 \smallstep σ_2$ with rule $t$} \\
-    σ_1                   & \text{otherwise} \\
+  π_1 \sconcat π_2 = \begin{cases}
+    π_1       & \text{if $π_1$ infinite} \\
+    undefined & \text{if $π_1$ finite and $dst_\States(π_1) \not= src_\States(π_2)$} \\
+    σ         & π_1 = π_2 = σ\straceend \\
+    π_1'; π_2 &  π_1 = π_1'; σ\straceend \\
+    π_1; π_2' &  π_2 = σ; π_2' \\
   \end{cases} \\
+ \end{array} \\
+ \\
+ \begin{array}{c}
+  \ruleform{ σ_1 \smallstep σ_2 \qquad \validtrace{π} } \\
   \\[-0.5em]
-  snoc(φ,t)(σ) & = & \begin{cases}
-    φ(σ); σ_2 \straceend & \text{with $σ_2$ such that $dst_\States(φ(σ)) \smallstep σ_2$ with rule $t$} \\
-    φ(σ)                & \text{otherwise} \\
-  \end{cases} \\
+  \inferrule*
+    [right=$\ValueT$]
+    {(ρ,η) \vdash \pv \sim v}
+    {(\pv, ρ, η, κ) \smallstep (\ddagger,ρ,η,\ReturnF(\pv,ρ,v) \pushF κ)} \\
   \\[-0.5em]
-  return(v)(\wild,ρ,η,κ) & = & (\ddagger,ρ,η,\ReturnF{ρ}{v} \pushF κ) \\
+  \inferrule*
+    [right=$\LookupT$]
+    {\pa = ρ(\px) \quad (\pe,ρ',\wild) = η(\pa)}
+    {(\px, ρ, η, κ) \smallstep (\pe,ρ',η,\UpdateF(\pa) \pushF κ)} \\
   \\[-0.5em]
-  lookup(\px)(\wild,ρ,η,κ) & = & ((\lbl,ρ',η,\UpdateF{\pa} \pushF κ),d) \ \text{where}\ (ρ',\lbl,d) = η(ρ(x)) \\
+  \inferrule*
+    [right=$\UpdateT$]
+    {(ρ,η) \vdash_v \pv \sim v \quad (ρ,η) \vdash_d \pv \sim d}
+    {(\ddagger,ρ,η,\ReturnF(\pv,ρ',v) \pushF \UpdateF(\pa) \pushF κ) \smallstep (\ddagger,ρ,η[\pa ↦ (\pv,ρ',d)],\ReturnF(\pv,ρ',v) \pushF κ)} \\
   \\[-0.5em]
-  update(\ddagger,ρ,η,\ReturnF{ρ'}{v} \pushF \UpdateF{\pa} \pushF κ) & = & (\ddagger,ρ,η[\pa ↦ (ρ',\ddagger,...)],κ) \ \text{where}\ (ρ',\lbl,d) = η(ρ(x)) \\
+  \inferrule*
+    [right=$\AppIT$]
+    {\pa = ρ(\px)}
+    {(\pe~\px,ρ,η,κ) \smallstep (\pe,ρ,η,\ApplyF(\pa) \pushF κ)} \\
   \\[-0.5em]
-  beta(\px, \lbl, ρ)(\lbl',ρ',η,\ApplyF{\pa} \pushF κ) & = & (\lbl',ρ',η,\ApplyF{\pa} \pushF κ); (\lbl,ρ[\px↦\pa],η,κ)\straceend \\
+  \inferrule*
+    [right=$\AppET$]
+    {\quad}
+    {(\ddagger,\wild,η,\ReturnF(\Lam{\px}{\pe},ρ',\FunV(\wild)) \pushF \ApplyF(\pa) \pushF κ) \smallstep (\pe,ρ'[\px ↦ \pa],η,κ)} \\
   \\[-0.5em]
-  shortcut(φ)(\pH,\pe,\pS) & = & \begin{cases}
-    (\pH,\pv,\pS)  & \text{if $\pe$ is a value $\pv$} \\
-    φ(\pH,\pe,\pS) & \text{otherwise} \\
-  \end{cases} \\
+  \inferrule*
+    [right=$\LetT$]
+    {\fresh{\pa}{η} \quad ρ' = ρ[\px↦\pa] \quad (ρ,η) \vdash_d \pe_1 \sim d_1}
+    {(\Let{\px}{\pe_1}{\pe_2},ρ,η,κ) \smallstep (\pe_2,ρ',η[\pa↦(\pe_1,ρ',d_1)], κ)} \\
+  \\
+  \\
+  \inferrule*
+    {\quad}
+    {\validtrace{σ\straceend}}
+  \qquad
+  \inferrule*
+    {σ \smallstep src_\States(π) \quad \validtrace{π}}
+    {\validtrace{σ; π}}
+  \qquad
+  \inferrule*
+    {∀σ.\ dst_\States(d(σ)) = σ \wedge \maxbaltrace{d(σ)}}
+    {\validtracefun{d}} \\
+  \\
+  \inferrule*
+    {π ∈ \States^{\infty}}
+    {\maxbaltrace{π}}
+  \qquad
+  \inferrule*
+    {dst_\States(π) \not\smallstep σ'}
+    {\maxbaltrace{π}}
+  \qquad
+  \\
+ \end{array} \\
+ \begin{array}{c}
+  \ruleform{\vdash d \qquad  \vdash η \qquad ρ \vdash_d \pe \sim d \qquad ρ \vdash_v \pv \sim v } \\
   \\[-0.5em]
-  \semst{\slbl \pe}(σ) & = & σ\straceend\ \text{when $fst_4(σ) \not= \lbl$} \\
-  \\[-0.5em]
-  \semst{\slbl \px}(σ) & = & σ; d(σ')\ \text{where}\ (σ',d) = lookup(\px)(σ) \\
-  \\[-0.5em]
-  \semst{\slbl \Lam{\px}{\pe}}(σ) & = & σ; return(\FunV(\px,\atlbl{\pe}, \semst{\pe}))(σ) \straceend \\
-  \\[-0.5em]
-  \semst{\pe~\px} & = &
-    \begin{letarray}
-      \text{let} & (φ_1,v_1) = \semst{\pe}_ρ \\
-                 & (φ_2,v_2) = \begin{cases}
-                     f(ρ(\px))   & \text{if $v = \FunV(f)$} \\
-                     \bot_\States & \text{otherwise}
-                   \end{cases} \\
-      \text{in}  & (cons(\AppIT,φ_1) \funnyComp cons(\AppET,φ_2), v_2) \\
-    \end{letarray} \\
-  \\[-0.5em]
-  \semst{\Let{\px}{\pe_1}{\pe_2}}& = & \begin{letarray}
-      \text{letrec}~ρ'. & (φ_1,v_1) = \semst{\pe_1}_{ρ'} \\
-                        & (φ_2,v_2) = \semst{\pe_2}_{ρ'} \\
-                        & ρ' = ρ ⊔ [\px ↦ (snoc(cons(\LookupT,shortcut(φ_1)),\UpdateT),v_1)] \\
-      \text{in}  & (cons(\LetT,φ_2),v_2)
-    \end{letarray} \\
+  \inferrule*
+    {∀(\pe,ρ,d)] ∈ η.\ ρ \vdash_d \pe \sim d}
+    {\vdash η}
+  \qquad
+  \inferrule*
+    {∀η, κ.\ \validtrace{d(\pe,ρ,η,κ)}}
+    {ρ \vdash_d \pe \sim d} \\
+  \\
+  \inferrule*
+    {\validtracefun{d} \quad ∀κ, η, \pa ∈ \dom(η).\ \validtrace{d(\pe,ρ[\px↦\pa],η,κ)}}
+    {ρ \vdash_v \Lam{\px}{\pe} \sim \FunV(d)} \\
   \\
  \end{array} \\
 \end{array}\]
-\caption{Structural call-by-need small-step trace semantics $\semst{-}$}
+\caption{Call-by-need (stateful) transition system $\smallstep$}
+  \label{fig:ss-syntax}
+\end{figure}
+
+\begin{figure}
+\[\begin{array}{c}
+ \begin{array}{rcl}
+  \multicolumn{3}{c}{ \ruleform{ \semst{\wild} \colon \Exp → \StateD } } \\
+  \\[-0.5em]
+  \bot_\StateD(σ) & = & \fn{σ}{σ\straceend} \\
+  \\[-0.5em]
+  fst_4(l,\wild,\wild,\wild) & = & l \\
+  \\[-0.5em]
+  (f \funnyComp g)(σ) & = & f(σ) \sconcat g(dst_\States(f(σ))) \\
+  \\[-0.5em]
+  step(f)(σ) & = & \begin{cases}
+    σ; f(σ)     & \text{if $f(σ)$ is defined} \\
+    σ\straceend & \text{otherwise} \\
+  \end{cases} \\
+  \\[-0.5em]
+  return(v)(\pv,ρ,η,κ) & = & (\ddagger,ρ,η,\ReturnF(\pv,ρ,v) \pushF κ) \straceend \\
+  \\[-0.5em]
+  var_1(\px,ρ,η,κ) & = &
+    \begin{letarray}
+      \text{let} & \pa = ρ(x) \\
+                 & (\pe,ρ',d) = η(\pa) \\
+      \text{in}  & step(d)(\pe,ρ',η,\UpdateF(\pa) \pushF κ) \\
+    \end{letarray} \\
+  \\[-0.5em]
+  var_2(\ddagger,ρ,η,\ReturnF(\pv,ρ',v) \pushF \UpdateF(\pa) \pushF κ) & = &
+    \begin{letarray}
+      \text{let} & d(\pv, ρ', η', κ') = (\ddagger, ρ', η', \ReturnF(\pv,ρ',v) \pushF κ')\straceend \\
+      \text{in}  & (\ddagger,ρ,η[\pa ↦ (\pv,ρ',step(d))],\ReturnF(\pv,ρ',v) \pushF κ) \\
+    \end{letarray} \\
+  \\[-0.5em]
+  app_1(\pe~\px,ρ,η,κ) & = & (\pe,ρ,η,\ApplyF(ρ(\px)) \pushF κ)\straceend \\
+  \\[-0.5em]
+  app_2(\ddagger,\wild,η,\ReturnF(\Lam{\px}{\pe},ρ',\FunV(d)) \pushF \ApplyF(\pa) \pushF κ) & = & step(d)(\pe,ρ'[\px ↦ \pa],η,κ) \\
+  \\[-0.5em]
+  let(d_1)(\Let{\px}{\pe_1}{\pe_2},ρ,η,κ) & = & (\pe_2,ρ[\px ↦ \pa],η[\pa ↦ (\pe_1, ρ', d_1)],κ) \quad \text{where $\fresh{\pa}{η}$} \\
+  \\[-0.5em]
+  \semst{\pe}(\pe',ρ,η,κ) & = & (\pe',ρ,η,κ)\straceend\ \text{when $\atlbl{\pe} \not= \atlbl{\pe'}$} \\
+  \\[-0.5em]
+  \semst{\px} & = & step(var_1) \funnyComp step(var_2) \\
+  \\[-0.5em]
+  \semst{\Lam{\px}{\pe}} & = & step(return(\FunV(\semst{\pe}))) \\
+  \\[-0.5em]
+  \semst{\pe~\px} & = & step(app_1) \funnyComp \semst{\pe} \funnyComp step(app_2) \\
+  \\[-0.5em]
+  \semst{\Let{\px}{\pe_1}{\pe_2}} & = & step(let(\semst{\pe_1})) \funnyComp \semst{\pe_2} \\
+  \\
+ \end{array} \\
+\end{array}\]
+\caption{Structural call-by-need stateful trace semantics $\semst{-}$}
   \label{fig:ss-semantics}
 \end{figure}
 
@@ -596,7 +665,7 @@ Trace of the expression:
   \text{Configurations}                        & κ   & ∈ & \Configurations    & ::= & (\pH,\pe,\pE,\pS) \\
   \text{Heaps}                                 & \pH & ∈ & \Heaps             & =   & \Addresses \pfun (\Envs,\Exp) \\
   \text{Environments}                          & \pE & ∈ & \Envs              & =   & \Var \pfun \Addresses \\
-  \text{Stacks}                                & \pS & ∈ & \Stacks            & ::= & \StopF \mid \ApplyF{\pa} \pushF \pS \mid \UpdateF{\pa} \pushF \pS \\
+  \text{Stacks}                                & \pS & ∈ & \Stacks            & ::= & \StopF \mid \ApplyF(\pa) \pushF \pS \mid \UpdateF(\pa) \pushF \pS \\
   \text{Finite Small-step Traces}              & σ   & ∈ & \SSTraces^+         & ::= & κ\straceend \mid κ; σ \\
   \text{Finite and Infinite Small-step Traces} & σ   & ∈ & \SSTraces^{+\infty} & =   & \SSTraces^+ ∪ \lim(\SSTraces^+) \\
  \end{array} \\
@@ -629,22 +698,22 @@ Trace of the expression:
   \inferrule*
     [right=$\LookupT$]
     {\pa = \pE(\px)}
-    {(\pH, \px, \pE, \pS) \smallstep (\pH, \pH(\pa), \UpdateF{\pa} \pushF \pS)}
+    {(\pH, \px, \pE, \pS) \smallstep (\pH, \pH(\pa), \UpdateF(\pa) \pushF \pS)}
   \qquad
   \inferrule*
     [right=$\UpdateT$]
     {\quad}
-    {(\pH, \pv, \pE, \UpdateF{\pa} \pushF \pS) \smallstep (\pH[\pa↦(\pE,\pv)], \pv, \pE, \pS)} \\
+    {(\pH, \pv, \pE, \UpdateF(\pa) \pushF \pS) \smallstep (\pH[\pa↦(\pE,\pv)], \pv, \pE, \pS)} \\
   \\[-0.5em]
   \inferrule*
     [right=$\AppIT$]
     {\pa = \pE(\px)}
-    {(\pH, \pe~\px, \pE, \pS) \smallstep (\pH, \pe, \pE, \ApplyF{\pa} \pushF \pS)}
+    {(\pH, \pe~\px, \pE, \pS) \smallstep (\pH, \pe, \pE, \ApplyF(\pa) \pushF \pS)}
   \qquad
   \inferrule*
     [right=$\AppET$]
     {\quad}
-    {(\pH, \Lam{\px}{\pe}, \pE, \ApplyF{\pa} \pushF \pS) \smallstep (\pH, \pe, \pE[\px↦\pa], \pS)} \\
+    {(\pH, \Lam{\px}{\pe}, \pE, \ApplyF(\pa) \pushF \pS) \smallstep (\pH, \pe, \pE[\px↦\pa], \pS)} \\
   \\[-0.5em]
   \inferrule*
     [right=$\LetT$]
@@ -1122,8 +1191,8 @@ Trace of the expression:
   \multicolumn{3}{c}{ \ruleform{ α^{∃l}_\SSD \colon \SSD → \LiveD \qquad α^{∃l}_φ \colon (\Configurations \to \SSTraces^{+\infty}) → \poset{\Var} \qquad α^{∃l}_{\Values^\Sigma} \colon \Values^\Sigma → \Values^{∃l} } } \\
   \\[-0.5em]
   α^{∃l}_\Stacks(\StopF) & = & \lSBot \\
-  α^{∃l}_\Stacks(\UpdateF{x} \pushF \lS) & = & α^{∃l}_\Stacks(\lS) \\
-  α^{∃l}_\Stacks(\ApplyF{x} \pushF \lS) & = & \lSAp{α^{∃l}_\Stacks(\lS)} \\
+  α^{∃l}_\Stacks(\UpdateF(\pa) \pushF \lS) & = & α^{∃l}_\Stacks(\lS) \\
+  α^{∃l}_\Stacks(\ApplyF(\pa) \pushF \lS) & = & \lSAp{α^{∃l}_\Stacks(\lS)} \\
  \end{array} \\
  \\
  \begin{array}{rcl}
