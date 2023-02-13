@@ -534,7 +534,7 @@ Trace of the expression:
   \\[-0.5em]
   \inferrule*
     [right=$\ValueT$]
-    {(ρ,η) \vdash \pv \sim v}
+    {ρ \vdash \pv \sim v}
     {(\pv, ρ, η, κ) \smallstep (\ddagger,ρ,η,\ReturnF(\pv,ρ,v) \pushF κ)} \\
   \\[-0.5em]
   \inferrule*
@@ -544,7 +544,7 @@ Trace of the expression:
   \\[-0.5em]
   \inferrule*
     [right=$\UpdateT$]
-    {(ρ,η) \vdash_v \pv \sim v \quad (ρ,η) \vdash_d \pv \sim d}
+    {ρ \vdash_v \pv \sim v \quad ρ \vdash_d \pv \sim d}
     {(\ddagger,ρ,η,\ReturnF(\pv,ρ',v) \pushF \UpdateF(\pa) \pushF κ) \smallstep (\ddagger,ρ,η[\pa ↦ (\pv,ρ',d)],\ReturnF(\pv,ρ',v) \pushF κ)} \\
   \\[-0.5em]
   \inferrule*
@@ -559,7 +559,7 @@ Trace of the expression:
   \\[-0.5em]
   \inferrule*
     [right=$\LetT$]
-    {\fresh{\pa}{η} \quad ρ' = ρ[\px↦\pa] \quad (ρ,η) \vdash_d \pe_1 \sim d_1}
+    {\fresh{\pa}{η} \quad ρ' = ρ[\px↦\pa] \quad ρ \vdash_d \pe_1 \sim d_1}
     {(\Let{\px}{\pe_1}{\pe_2},ρ,η,κ) \smallstep (\pe_2,ρ',η[\pa↦(\pe_1,ρ',d_1)], κ)} \\
   \\
   \\
@@ -586,18 +586,18 @@ Trace of the expression:
   \\
  \end{array} \\
  \begin{array}{c}
-  \ruleform{\vdash d \qquad  \vdash η \qquad ρ \vdash_d \pe \sim d \qquad ρ \vdash_v \pv \sim v } \\
+  \ruleform{\vdash_η η \qquad ρ \vdash_d \pe \sim d \qquad ρ \vdash_v \pv \sim v } \\
   \\[-0.5em]
   \inferrule*
-    {∀(\pe,ρ,d)] ∈ η.\ ρ \vdash_d \pe \sim d}
-    {\vdash η}
+    {∀(\pe,ρ,d) ∈ \rng{η}.\ ρ \vdash_d \pe \sim d}
+    {\vdash_η η}
   \qquad
   \inferrule*
-    {∀η, κ.\ \validtrace{d(\pe,ρ,η,κ)}}
+    {∀η, κ.\ \vdash_η η \Rightarrow \validtrace{d(\pe,ρ,η,κ)}}
     {ρ \vdash_d \pe \sim d} \\
   \\
   \inferrule*
-    {\validtracefun{d} \quad ∀κ, η, \pa ∈ \dom(η).\ \validtrace{d(\pe,ρ[\px↦\pa],η,κ)}}
+    {\forall \pa.\ ρ[\px ↦ \pa] \vdash_d \pe \sim d}
     {ρ \vdash_v \Lam{\px}{\pe} \sim \FunV(d)} \\
   \\
  \end{array} \\
