@@ -64,6 +64,7 @@
 %\usetikzlibrary{cd} % commutative diagrams
 %\usetikzlibrary{decorations.pathmorphing}
 %\usepackage{bibentry} % \nobibliography below
+\usepackage{placeins} % flush floats with \FloatBarrier
 \usepackage[T1]{fontenc} % https://tex.stackexchange.com/a/181119
 
 \usepackage{utf8-symbols}

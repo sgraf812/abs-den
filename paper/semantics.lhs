@@ -513,10 +513,11 @@ Trace of the expression:
   src_\States(σ\straceend)    & = & σ \\
   src_\States(σ; π) & = & σ \\
   \\[-0.5em]
-  dst_\States(σ\straceend)    & = & σ \\
-  dst_\States(σ; π) & = & dst_\States(π) \\
-  \\
- \end{array} \qquad
+  dst_\States(π)    & = & \begin{cases}
+    undefined & \text{if $π$ infinite} \\
+    σ         & \text{if $π = ...; σ \straceend$}
+  \end{cases} \\
+ \end{array} \quad
  \begin{array}{c}
   \ruleform{ π_1 \sconcat π_2 = π_3 } \\
   \\[-0.5em]
@@ -534,32 +535,32 @@ Trace of the expression:
   \\[-0.5em]
   \inferrule*
     [right=$\ValueT$]
-    {ρ \vdash \pv \sim v}
-    {(\pv, ρ, η, κ) \smallstep (\ddagger,ρ,η,\ReturnF(\pv,ρ,v) \pushF κ)} \\
-  \\[-0.5em]
+    {\quad}
+    {(\pv, ρ, η, κ) \smallstep (\ddagger,ρ,η,\ReturnF(\pv,ρ,v) \pushF κ)}
+  \qquad
   \inferrule*
     [right=$\LookupT$]
     {\pa = ρ(\px) \quad (\pe,ρ',\wild) = η(\pa)}
-    {(\px, ρ, η, κ) \smallstep (\pe,ρ',η,\UpdateF(\pa) \pushF κ)} \\
-  \\[-0.5em]
+    {(\px, ρ, η, κ) \smallstep (\pe,ρ',η,\UpdateF(\pa) \pushF κ)}
+  \\
   \inferrule*
     [right=$\UpdateT$]
-    {ρ \vdash_v \pv \sim v \quad ρ \vdash_d \pv \sim d}
+    {\quad}
     {(\ddagger,ρ,η,\ReturnF(\pv,ρ',v) \pushF \UpdateF(\pa) \pushF κ) \smallstep (\ddagger,ρ,η[\pa ↦ (\pv,ρ',d)],\ReturnF(\pv,ρ',v) \pushF κ)} \\
   \\[-0.5em]
   \inferrule*
     [right=$\AppIT$]
     {\pa = ρ(\px)}
-    {(\pe~\px,ρ,η,κ) \smallstep (\pe,ρ,η,\ApplyF(\pa) \pushF κ)} \\
-  \\[-0.5em]
+    {(\pe~\px,ρ,η,κ) \smallstep (\pe,ρ,η,\ApplyF(\pa) \pushF κ)}
+  \quad
   \inferrule*
     [right=$\AppET$]
     {\quad}
-    {(\ddagger,\wild,η,\ReturnF(\Lam{\px}{\pe},ρ',\FunV(\wild)) \pushF \ApplyF(\pa) \pushF κ) \smallstep (\pe,ρ'[\px ↦ \pa],η,κ)} \\
+    {(\ddagger,\wild,η,\ReturnF(\Lam{\px}{\pe},ρ,\wild) \pushF \ApplyF(\pa) \pushF κ) \smallstep (\pe,ρ[\px ↦ \pa],η,κ)} \\
   \\[-0.5em]
   \inferrule*
     [right=$\LetT$]
-    {\fresh{\pa}{η} \quad ρ' = ρ[\px↦\pa] \quad ρ \vdash_d \pe_1 \sim d_1}
+    {\fresh{\pa}{η} \quad ρ' = ρ[\px↦\pa]}
     {(\Let{\px}{\pe_1}{\pe_2},ρ,η,κ) \smallstep (\pe_2,ρ',η[\pa↦(\pe_1,ρ',d_1)], κ)} \\
   \\
   \\
@@ -569,36 +570,7 @@ Trace of the expression:
   \qquad
   \inferrule*
     {σ \smallstep src_\States(π) \quad \validtrace{π}}
-    {\validtrace{σ; π}}
-  \qquad
-  \inferrule*
-    {∀σ.\ dst_\States(d(σ)) = σ \wedge \maxbaltrace{d(σ)}}
-    {\validtracefun{d}} \\
-  \\
-  \inferrule*
-    {π ∈ \States^{\infty}}
-    {\maxbaltrace{π}}
-  \qquad
-  \inferrule*
-    {dst_\States(π) \not\smallstep σ'}
-    {\maxbaltrace{π}}
-  \qquad
-  \\
- \end{array} \\
- \begin{array}{c}
-  \ruleform{\vdash_η η \qquad ρ \vdash_d \pe \sim d \qquad ρ \vdash_v \pv \sim v } \\
-  \\[-0.5em]
-  \inferrule*
-    {∀(\pe,ρ,d) ∈ \rng{η}.\ ρ \vdash_d \pe \sim d}
-    {\vdash_η η}
-  \qquad
-  \inferrule*
-    {∀η, κ.\ \vdash_η η \Rightarrow \validtrace{d(\pe,ρ,η,κ)}}
-    {ρ \vdash_d \pe \sim d} \\
-  \\
-  \inferrule*
-    {\forall \pa.\ ρ[\px ↦ \pa] \vdash_d \pe \sim d}
-    {ρ \vdash_v \Lam{\px}{\pe} \sim \FunV(d)} \\
+    {\validtrace{σ; π}} \\
   \\
  \end{array} \\
 \end{array}\]
@@ -613,22 +585,20 @@ Trace of the expression:
   \\[-0.5em]
   \bot_\StateD(σ) & = & \fn{σ}{σ\straceend} \\
   \\[-0.5em]
-  fst_4(l,\wild,\wild,\wild) & = & l \\
-  \\[-0.5em]
-  (f \funnyComp g)(σ) & = & f(σ) \sconcat g(dst_\States(f(σ))) \\
+  (d_1 \funnyComp d_2)(σ) & = & d_1(σ) \sconcat d_2(dst_\States(d_1(σ))) \\
   \\[-0.5em]
   step(f)(σ) & = & \begin{cases}
     σ; f(σ)     & \text{if $f(σ)$ is defined} \\
     σ\straceend & \text{otherwise} \\
   \end{cases} \\
   \\[-0.5em]
-  return(v)(\pv,ρ,η,κ) & = & (\ddagger,ρ,η,\ReturnF(\pv,ρ,v) \pushF κ) \straceend \\
+  ret(v)(\pv,ρ,η,κ) & = & (\ddagger,ρ,η,\ReturnF(\pv,ρ,v) \pushF κ) \straceend \\
   \\[-0.5em]
   var_1(\px,ρ,η,κ) & = &
     \begin{letarray}
       \text{let} & \pa = ρ(x) \\
                  & (\pe,ρ',d) = η(\pa) \\
-      \text{in}  & step(d)(\pe,ρ',η,\UpdateF(\pa) \pushF κ) \\
+      \text{in}  & d(\pe,ρ',η,\UpdateF(\pa) \pushF κ) \\
     \end{letarray} \\
   \\[-0.5em]
   var_2(\ddagger,ρ,η,\ReturnF(\pv,ρ',v) \pushF \UpdateF(\pa) \pushF κ) & = &
@@ -639,15 +609,19 @@ Trace of the expression:
   \\[-0.5em]
   app_1(\pe~\px,ρ,η,κ) & = & (\pe,ρ,η,\ApplyF(ρ(\px)) \pushF κ)\straceend \\
   \\[-0.5em]
-  app_2(\ddagger,\wild,η,\ReturnF(\Lam{\px}{\pe},ρ',\FunV(d)) \pushF \ApplyF(\pa) \pushF κ) & = & step(d)(\pe,ρ'[\px ↦ \pa],η,κ) \\
+  app_2(\ddagger,\wild,η,\ReturnF(\Lam{\px}{\pe},ρ',\FunV(d)) \pushF \ApplyF(\pa) \pushF κ) & = & d(\pe,ρ'[\px ↦ \pa],η,κ) \\
   \\[-0.5em]
-  let(d_1)(\Let{\px}{\pe_1}{\pe_2},ρ,η,κ) & = & (\pe_2,ρ[\px ↦ \pa],η[\pa ↦ (\pe_1, ρ', d_1)],κ) \quad \text{where $\fresh{\pa}{η}$} \\
+  let(d_1)(\Let{\px}{\pe_1}{\pe_2},ρ,η,κ) & = &
+    \begin{letarray}
+      \text{let} & ρ' = ρ[\px ↦ \pa] \quad \text{where $\fresh{\pa}{η}$} \\
+      \text{in}  & (\pe_2,ρ',η[\pa ↦ (\pe_1, ρ', d_1)],κ) \\
+    \end{letarray} \\
   \\[-0.5em]
   \semst{\pe}(\pe',ρ,η,κ) & = & (\pe',ρ,η,κ)\straceend\ \text{when $\atlbl{\pe} \not= \atlbl{\pe'}$} \\
   \\[-0.5em]
   \semst{\px} & = & step(var_1) \funnyComp step(var_2) \\
   \\[-0.5em]
-  \semst{\Lam{\px}{\pe}} & = & step(return(\FunV(\semst{\pe}))) \\
+  \semst{\Lam{\px}{\pe}} & = & step(ret(\FunV(\semst{\pe}))) \\
   \\[-0.5em]
   \semst{\pe~\px} & = & step(app_1) \funnyComp \semst{\pe} \funnyComp step(app_2) \\
   \\[-0.5em]
@@ -658,6 +632,92 @@ Trace of the expression:
 \caption{Structural call-by-need stateful trace semantics $\semst{-}$}
   \label{fig:ss-semantics}
 \end{figure}
+
+\FloatBarrier
+
+\begin{lemma}
+  Let $d = \semst{\pe}$. Then $\validtrace{d(σ)}$ for every initial configuration $σ$.
+\end{lemma}
+\begin{proof}
+  Every $d$ is either $\fn{σ}{σ\straceend}$, where $\validtrace{σ\straceend}$,
+  or it is produced by $\funnyComp$, $cons$ or $snoc$. These combinators
+  produce valid small-step derivations whenever their input $d$ produces
+  valid derivations. By (bi-)induction that is always the case.
+\end{proof}
+
+\begin{definition}[Maximally balanced trace]
+  A small-step trace $π = (e_1,ρ_1,η_1,κ_1) ... (e_i,ρ_i,η_i,κ_i); ... $ is \emph{maximally balanced} if
+  \begin{itemize}
+    \item $\validtrace{σ}$, and
+    \item Every intermediate continuation $κ_i$ extends $κ_1$ (so $κ_i = ... \pushF κ_1$), and
+    \item If $π$ is finite, then there is no $σ'$ such that $π; σ'$ is maximally balanced.
+  \end{itemize}
+  We notate maximally-balanced traces as $\maxbaltrace{π}$.
+\end{definition}
+
+In other words, a trace is maximally balanced if it follows the transition
+semantics, never leaves the current evaluation context and is either infinite,
+stuck, or its final state $σ_n$ has $\ddagger$ in its focus and $κ_n = \ReturnF(v) \pushF κ_i$.
+
+For the initial state with an empty stack, the balanced maximal trace is
+exactly the result of running the transition semantics to completion.
+
+We make this connection explicit in the following relation:
+
+\begin{definition}[Adequate denotations]
+We say that an element $d ∈ \StateD$ is an adequate denotation of an expression
+$\pe$ in a binding context $ρ,η$ (written $η \vdash_\StateD e \sim_ρ d$) if, for
+any $κ$,
+\begin{itemize}
+  \item $\vdash_\Heaps η$, as defined below.
+  \item The state $σ=(\pe,ρ,η,κ)$ is the initial state of the trace
+    $d(σ)$, and
+  \item $d(σ)$ is maximally balanced, and
+  \item If $dst_\States(d(σ)) = (\ddagger, \wild, η', \ReturnF(\pv, ρ', v) \pushF κ)$, then
+    $η' \vdash_{\Values_\States} \pv \sim_{ρ'} v$, as defined below.
+\end{itemize}
+A semantic value $v ∈ \Values_\States$ is an adequate denotation of a syntactic value $\pv$ in a binding context $ρ,η$
+(written $η' \vdash_{\Values_\States} \pv \sim_{ρ'} v$), if $\pv$ is of the form $\Lam{\px}{\pe}$, $v$ is of the form $\FunV(d)$ and for any $\pa$,
+we have $η \vdash_\StateD \pe \sim_{ρ[\px↦\pa]} d$.
+
+Formally, the inference rule is
+\[
+  \inferrule*
+    {∀κ.\ ∃σ.\ σ=(\pe,ρ,η,κ) ∧ src_\States(d(σ)) = σ ∧ \maxbaltrace{d(σ)} ∧ (∃(η',\pv,ρ',v).\ dst_\States(d(σ)) = (\ddagger, \wild, η', \ReturnF(\pv, ρ', v) \pushF κ) \Rightarrow η' \vdash_{\Values_\States} \pv \sim_{ρ'} v)}
+    {η \vdash_\StateD \pe \sim_ρ d}
+\]
+\[
+  \inferrule*
+    {∀\pa.\ η \vdash_\StateD \pe \sim_{ρ[\px↦\pa]} d}
+    {η \vdash_{\Values_\States} \Lam{\px}{\pe} \sim_ρ \FunV(d)}
+\]
+\end{definition}
+
+The notion of adequate denotation can be applied to whole heaps $η$:
+\[
+  \inferrule*
+    {∀(\pe,ρ,d)∈\rng{η}.\ η \vdash_\StateD \pe \sim_ρ d}
+    {\vdash_\Heaps η}
+\]
+Since there is mutual recursion, it is important that $\vdash_\Heaps \wild$ is
+defined as the \emph{greatest} fixpoint over this inference rule.
+
+We'll often omit the binding context when talking about $d$ being a valid denotation of $\pe$, implying that
+$η \vdash_\StateD \pe \sim_ρ d$ for all $ρ,η$ where $\vdash_\Heaps η$.
+
+We can now formulate our correctness theorem as follows:
+
+\begin{theorem}[Adequacy of the stateful trace semantics]
+Let $d = \semst{\pe}$. Then for all $ρ,η$ with $\vdash_\Heaps η$, we have $η
+\vdash_\StateD \pe \sim_ρ d$.
+\end{theorem}
+
+\begin{corollary}Let $d = \semst{\pe}$. Then $π=d(\pe,[],[],\StopF)$ is a
+maximally balanced trace for the transition semantics starting at $(\pe,[],[],\StopF)$.
+\end{corollary}
+
+Note that for the initial configuration of an expression, the balanced
+small-step trace is exactly the maximal finite trace that ends with a value.
 
 \begin{figure}
 \[\begin{array}{c}
