@@ -536,7 +536,7 @@ Trace of the expression:
   \inferrule*
     [right=$\ValueT$]
     {\quad}
-    {(\pv, ρ, η, κ) \smallstep (\ddagger,ρ,η,\ReturnF(\pv,ρ,v) \pushF κ)}
+    {(\pv, ρ, η, κ) \smallstep (\ddagger,[],η,\ReturnF(\pv,ρ,v) \pushF κ)}
   \qquad
   \inferrule*
     [right=$\LookupT$]
@@ -546,7 +546,7 @@ Trace of the expression:
   \inferrule*
     [right=$\UpdateT$]
     {\quad}
-    {(\ddagger,ρ,η,\ReturnF(\pv,ρ',v) \pushF \UpdateF(\pa) \pushF κ) \smallstep (\ddagger,ρ,η[\pa ↦ (\pv,ρ',d)],\ReturnF(\pv,ρ',v) \pushF κ)} \\
+    {(\ddagger,[],η,\ReturnF(\pv,ρ',v) \pushF \UpdateF(\pa) \pushF κ) \smallstep (\ddagger,[],η[\pa ↦ (\pv,ρ',d)],\ReturnF(\pv,ρ',v) \pushF κ)} \\
   \\[-0.5em]
   \inferrule*
     [right=$\AppIT$]
@@ -556,7 +556,7 @@ Trace of the expression:
   \inferrule*
     [right=$\AppET$]
     {\quad}
-    {(\ddagger,\wild,η,\ReturnF(\Lam{\px}{\pe},ρ,\wild) \pushF \ApplyF(\pa) \pushF κ) \smallstep (\pe,ρ[\px ↦ \pa],η,κ)} \\
+    {(\ddagger,[],η,\ReturnF(\Lam{\px}{\pe},ρ,\wild) \pushF \ApplyF(\pa) \pushF κ) \smallstep (\pe,ρ[\px ↦ \pa],η,κ)} \\
   \\[-0.5em]
   \inferrule*
     [right=$\LetT$]
@@ -601,15 +601,15 @@ Trace of the expression:
       \text{in}  & d(\pe,ρ',η,\UpdateF(\pa) \pushF κ) \\
     \end{letarray} \\
   \\[-0.5em]
-  var_2(\ddagger,ρ,η,\ReturnF(\pv,ρ',v) \pushF \UpdateF(\pa) \pushF κ) & = &
+  var_2(\ddagger,[],η,\ReturnF(\pv,ρ,v) \pushF \UpdateF(\pa) \pushF κ) & = &
     \begin{letarray}
-      \text{let} & d(\pv, ρ', η', κ') = (\ddagger, ρ', η', \ReturnF(\pv,ρ',v) \pushF κ')\straceend \\
-      \text{in}  & (\ddagger,ρ,η[\pa ↦ (\pv,ρ',step(d))],\ReturnF(\pv,ρ',v) \pushF κ) \\
+      \text{let} & d(\pv, ρ, η', κ') = (\ddagger, [], η', \ReturnF(\pv,ρ,v) \pushF κ')\straceend \\
+      \text{in}  & (\ddagger,[],η[\pa ↦ (\pv,ρ,step(d))],\ReturnF(\pv,ρ,v) \pushF κ) \\
     \end{letarray} \\
   \\[-0.5em]
   app_1(\pe~\px,ρ,η,κ) & = & (\pe,ρ,η,\ApplyF(ρ(\px)) \pushF κ)\straceend \\
   \\[-0.5em]
-  app_2(\ddagger,\wild,η,\ReturnF(\Lam{\px}{\pe},ρ',\FunV(d)) \pushF \ApplyF(\pa) \pushF κ) & = & d(\pe,ρ'[\px ↦ \pa],η,κ) \\
+  app_2(\ddagger,[],η,\ReturnF(\Lam{\px}{\pe},ρ',\FunV(d)) \pushF \ApplyF(\pa) \pushF κ) & = & d(\pe,ρ'[\px ↦ \pa],η,κ) \\
   \\[-0.5em]
   let(d_1)(\Let{\px}{\pe_1}{\pe_2},ρ,η,κ) & = &
     \begin{letarray}
