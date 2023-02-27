@@ -58,7 +58,7 @@
 \usepackage{xspace}
 \usepackage{mathpartir}
 \usepackage{tikz}
-\usepackage{mathbbol}
+\usepackage{mathbbol} % \bbcolon and \bbquestionmark
 %\usepackage{eucal}
 %\usepackage{wasysym} % \currency
 %\usetikzlibrary{cd} % commutative diagrams

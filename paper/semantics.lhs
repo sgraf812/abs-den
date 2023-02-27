@@ -141,12 +141,12 @@ Trace of the expression:
 % that every sub-expression of the syntax tree is labelled with a unique token
 % l∈Label and then use that to maintain our external map `Label -> Strictness`.
 %
-% We write ⌈Expr⌉ to denote the set of expressions where labels are "erased",
+% We write ⌊Expr⌋ to denote the set of expressions where labels are "erased",
 % meaning that structural equivalent expressions are identified.
 % The mapping `Label -> Expr` is well-defined and injective; the mapping
-% `Label -> ⌈Expr⌉` is well-defined and often *not* injective.
+% `Label -> ⌊Expr⌋` is well-defined and often *not* injective.
 % Conversely, `at : Expr -> Label` extracts the label of an expression, whereas
-% `⌈Expr⌉ -> Label` is not well-defined.
+% `⌊Expr⌋ -> Label` is not well-defined.
 %
 % Note that as long as a function is defined by structural recursion over an
 % expression, we'll never see two concrete, structurally equivalent expressions,
@@ -156,36 +156,41 @@ Trace of the expression:
 \begin{figure}
 \[\begin{array}{c}
  \begin{array}{rcl}
-  \multicolumn{3}{c}{ \ruleform{ \seminf{\wild} \colon \Exp → (\Var → \MaxD) → \MaxD } } \\
+  \multicolumn{3}{c}{ \ruleform{ \seminf{\wild} \colon \Exp → (\Var \pfun \MaxD) → \MaxD } } \\
   \\[-0.5em]
   \bot(π_i^+)   & = & dst(π_i^+) \text{ is the bottom element of $\MaxD$} \\
   \\[-0.5em]
-  cons(a,\lbl,S)(π_i^+)   & = & dst(π_i^+) \act{a} S(π_i^+ \act{a} \lbl) \\
+  \stepm{p}{a}{\pe}(π_i^+)   & = & \begin{cases}
+    dst(π_i^+) \act{a} \pe & \text{if $dst(π_i^+)$ matches $p$} \\
+    \bot(π_i^+) & \text{otherwise} \\
+  \end{cases} \\
   \\[-0.5em]
-  \seminf{\slbl \pe}_ρ    (π_i^+)   & = & \bot(π_i^+) \qquad \text{if $dst(π_i^+) \not= \lbl$} \\
-  \\[-0.9em]
-  \seminf{\slbl \px}_ρ    (π_i^+)   & = & ρ(\px)(π_i^+) \\
+  (d_1 \fcomp d_2)(π_i^+)   & = & d_1(π_i^+) \concat d_2(π_i^+ \concat d_1(π_i^+)) \\
   \\[-0.5em]
-  \seminf{\slbln{1}(\Lam{\px}{\pe})\slbln{2}}_ρ(π_i^+) & = &
+  \seminf{\pe}_ρ    (π_i^+)   & = & \bot(π_i^+) \qquad \text{if $dst(π_i^+) \not= \pe$} \\
+  \\[-0.5em]
+  \seminf{\px}_ρ              & = & ρ(\px) \\
+  \\[-0.5em]
+  \seminf{\Lam{\px}{\pe}}_ρ & = &
     \begin{letarray}
-      \text{let} & f = d ↦ cons(\AppEA,\atlbl{\pe},\seminf{\pe}_{ρ[\px↦d]}) \\
-      \text{in}  & \lbln{1} \act{\ValA(\FunV(f))} \lbln{2} \\
+      \text{let} & f = d ↦ \step{\AppEA}{\pe} \fcomp \seminf{\pe}_{ρ[\px↦d]} \\
+      \text{in}  & \step{\ValA(\FunV(f))}{\ddagger} \\
     \end{letarray} \\
   \\[-0.5em]
-  \seminf{\slbl(\pe~\px)}_ρ(π_i^+) & = &
+  \seminf{\pe~\px}_ρ & = &
     \begin{letarray}
-      \text{let} & π_e = \seminf{\pe}_ρ(π_i^+ \act{\AppIA} \atlbl{\pe}) \\
-      \text{in}  & \lbl \act{\AppIA} π_e \concat \begin{cases}
-                     f(ρ(\px))(π_i^+ \act{\AppIA} π_e) & \text{if $\getval{π_e}{\FunV(f)}$}  \\
-                     \bot(π_i^+ \act{\AppIA} π_e) & \text{otherwise}  \\
+      \text{let} & apply(π_e^+) = \begin{cases}
+                     f(ρ(\px))(π_e^+) & \text{if $\getval{π_e^+}{\FunV(f)}$}  \\
+                     \bot(π_e^+) & \text{otherwise}  \\
                    \end{cases} \\
+      \text{in}  & \ternary{\px ∈ \dom(ρ)}{\step{\AppIA}{\pe} \fcomp \seminf{\pe}_ρ \fcomp apply}{\bot} \\
     \end{letarray} \\
   \\[-0.5em]
-  \seminf{\slbl(\Let{\px}{\pe_1}{\pe_2})}_ρ(π_i^+) & = &
+  \seminf{\Let{\px}{\pe_1}{\pe_2}}_ρ(π_i^+) & = &
     \begin{letarray}
       \text{letrec}~ρ'. & \pa = hash(π_i^+) \\
-                        & ρ' = ρ ⊔ [\px ↦ cons(\LookupA(\pa),\atlbl{\pe_1},\seminf{\pe_1}_{ρ'})] \\
-      \text{in}         & cons(\BindA,\atlbl{\pe_2},\seminf{\pe_2}_{ρ'})(π_i^+)
+                        & ρ' = ρ ⊔ [\px ↦ \step{\LookupA(\pa)}{\pe_1} \fcomp \seminf{\pe_1}_{ρ'}] \\
+      \text{in}         & (\step{\BindA}{\pe_2} \fcomp \seminf{\pe_2}_{ρ'})(π_i^+)
     \end{letarray} \\
   \\[-0.5em]
  \end{array} \\
@@ -447,45 +452,42 @@ Trace of the expression:
   \\[-0.5em]
   π_s \subtrceq π & = & \exists π_1, π_2.\ π = π_1 \concat π_s \concat π_2  \\
   \\[-0.5em]
-  snoc(S,a)(π_i^+)   & = & \begin{cases}
-    S(π_i^+) & S(π_i^+)\ \text{infinite} \\
-    S(π_i^+) \act{a} dst(S(π_i^+)) & \text{otherwise} \\
+  μ(π_i^+)(\pa) & = & \begin{cases}
+    (\pv, v) & \text{if $\pv \act{\ValA(v)} \ddagger \left(\act{\UpdateA(\wild)} \ddagger \right)^* \act{\UpdateA(\pa)} \ddagger \subtrceq π_i^+$} \\
+    undefined & \text{otherwise} \\
+  \end{cases}  \\
+  \\[-0.5em]
+  memo(\pa,\pe,d)(π_i^+)   & = & \begin{cases}
+    dst(π_i^+) \act{\LookupA(\pa)} \pv \act{\ValA(v)} \ddagger \act{\UpdateA(\pa)} \ddagger & \text{if $μ(π_i^+)(\pa) = (\pv,v)$} \\
+    (\step{\LookupA(\pa)}{\pe} \fcomp d \fcomp \stepm{\ddagger}{\UpdateA(\pa)}{\ddagger})(π_i^+) & \text{otherwise} \\
   \end{cases} \\
   \\[-0.5em]
-  memo(\pa,S)(π_i^+)   & = & \begin{cases}
-    \lbln{1} \act{\ValA(v)} \lbln{2} & \text{if $\lbln{1} \act{\ValA(v)} \lbln{2} \left(\act{\UpdateA(\wild)} \lbln{2} \right)^* \act{\UpdateA(\pa)} \lbln{2} \subtrceq π_i^+$} \\
-    S(π_i^+) & \text{otherwise} \\
-  \end{cases} \\
-  \\[-0.5em]
-  \seminf{\slbl(\Let{\px}{\pe_1}{\pe_2})}_ρ(π_i^+) & = &
+  \seminf{\Let{\px}{\pe_1}{\pe_2}}_ρ(π_i^+) & = &
     \begin{letarray}
       \text{letrec}~ρ'. & \pa = hash(π_i^+) \\
-                         & S' = \highlight{snoc(memo(\pa,\seminf{\pe_1}_{ρ'}), \UpdateA(\pa))} \\
-                         & ρ' = ρ ⊔ [\px ↦ cons(\LookupA(\pa),\atlbl{\pe_1},S')] \\
-      \text{in}          & cons(\BindA,\atlbl{\pe_2},\seminf{\pe_2}_{ρ'})(π_i^+)
+                        & ρ' = ρ ⊔ [\px ↦ \highlight{memo(\pa,\pe_1,\seminf{\pe_1}_{ρ'})}] \\
+      \text{in}         & (\step{\BindA}{\pe_2} \fcomp \seminf{\pe_2}_{ρ'})(π_i^+)
     \end{letarray} \\
   \\
   \multicolumn{3}{l}{\text{(Unchanged call-by-name equations:)}} \\
   \\[-0.5em]
-  cons(a,\lbl,S)(π_i^+)   & = & dst(π_i^+) \act{a} S(π_i^+ \act{a} \lbl) \\
+  \seminf{\pe}_ρ    (π_i^+)   & = & \bot(π_i^+) \qquad \text{if $dst(π_i^+) \not= \pe$} \\
   \\[-0.5em]
-  \seminf{\slbl \pe}_ρ    (π_i^+)   & = & \bot(π_i^+) \qquad \text{if $dst(π_i^+) \not= \lbl$} \\
-  \\[-0.9em]
-  \seminf{\slbl \px}_ρ    (π_i^+)   & = & ρ(\px)(π_i^+) \\
+  \seminf{\px}_ρ              & = & ρ(\px) \\
   \\[-0.5em]
-  \seminf{\slbln{1}(\Lam{\px}{\pe})\slbln{2}}_ρ(π_i^+) & = &
+  \seminf{\Lam{\px}{\pe}}_ρ & = &
     \begin{letarray}
-      \text{let} & f = d ↦ cons(\AppEA,\atlbl{\pe},\seminf{\pe}_{ρ[\px↦d]}) \\
-      \text{in}  & \lbln{1} \act{\ValA(\FunV(f))} \lbln{2} \\
+      \text{let} & f = d ↦ \step{\AppEA}{\pe} \fcomp \seminf{\pe}_{ρ[\px↦d]} \\
+      \text{in}  & \step{\ValA(\FunV(f))}{\ddagger} \\
     \end{letarray} \\
   \\[-0.5em]
-  \seminf{\slbl(\pe~\px)}_ρ(π_i^+) & = &
+  \seminf{\pe~\px}_ρ & = &
     \begin{letarray}
-      \text{let} & π_e = \seminf{\pe}_ρ(π_i^+ \act{\AppIA} \atlbl{\pe}) \\
-      \text{in}  & \lbl \act{\AppIA} π_e \concat \begin{cases}
-                     f(ρ(\px))(π_i^+ \act{\AppIA} π_e) & \text{if $\getval{π_e}{\FunV(f)}$}  \\
-                     \bot(π_i^+ \act{\AppIA} π_e) & \text{otherwise}  \\
+      \text{let} & apply(π_e^+) = \begin{cases}
+                     f(ρ(\px))(π_e^+) & \text{if $\getval{π_e^+}{\FunV(f)}$}  \\
+                     \bot(π_e^+) & \text{otherwise}  \\
                    \end{cases} \\
+      \text{in}  & \ternary{\px ∈ \dom(ρ)}{\step{\AppIA}{\pe} \fcomp \seminf{\pe}_ρ \fcomp apply}{\bot} \\
     \end{letarray} \\
   \\[-0.5em]
  \end{array} \\
@@ -585,7 +587,7 @@ Trace of the expression:
   \\[-0.5em]
   \bot_\StateD(σ) & = & \fn{σ}{σ\straceend} \\
   \\[-0.5em]
-  (d_1 \funnyComp d_2)(σ) & = & d_1(σ) \sconcat d_2(dst_\States(d_1(σ))) \\
+  (d_1 \sfcomp d_2)(σ) & = & d_1(σ) \sconcat d_2(dst_\States(d_1(σ))) \\
   \\[-0.5em]
   step(f)(σ) & = & \begin{cases}
     σ; f(σ)     & \text{if $f(σ)$ is defined} \\
@@ -619,13 +621,13 @@ Trace of the expression:
   \\[-0.5em]
   \semst{\pe}(\pe',ρ,μ,κ) & = & (\pe',ρ,μ,κ)\straceend\ \text{when $\atlbl{\pe} \not= \atlbl{\pe'}$} \\
   \\[-0.5em]
-  \semst{\px} & = & step(var_1) \funnyComp step(var_2) \\
+  \semst{\px} & = & step(var_1) \sfcomp step(var_2) \\
   \\[-0.5em]
   \semst{\Lam{\px}{\pe}} & = & step(ret(\FunV(\semst{\pe}))) \\
   \\[-0.5em]
-  \semst{\pe~\px} & = & step(app_1) \funnyComp \semst{\pe} \funnyComp step(app_2) \\
+  \semst{\pe~\px} & = & step(app_1) \sfcomp \semst{\pe} \sfcomp step(app_2) \\
   \\[-0.5em]
-  \semst{\Let{\px}{\pe_1}{\pe_2}} & = & step(let(\semst{\pe_1})) \funnyComp \semst{\pe_2} \\
+  \semst{\Let{\px}{\pe_1}{\pe_2}} & = & step(let(\semst{\pe_1})) \sfcomp \semst{\pe_2} \\
   \\
  \end{array} \\
 \end{array}\]
@@ -640,7 +642,7 @@ Trace of the expression:
 \end{lemma}
 \begin{proof}
   Every $d$ is either $\fn{σ}{σ\straceend}$, where $\validtrace{σ\straceend}$,
-  or it is produced by $\funnyComp$, $cons$ or $snoc$. These combinators
+  or it is produced by $\fcomp$, $cons$ or $snoc$. These combinators
   produce valid small-step derivations whenever their input $d$ produces
   valid derivations. By (bi-)induction that is always the case.
 \end{proof}
@@ -807,7 +809,7 @@ small-step trace is exactly the maximal finite trace that ends with a value.
   \\[-0.5em]
   \bot_\Sigma & = & (\fn{κ}{κ\straceend}, \bot_{\Values^\Sigma}) \\
   \\[-0.5em]
-  (f \funnyComp g)(κ) & = & f(κ) \ssconcat g(dst_\Sigma(f(κ))) \\
+  (f \fcomp g)(κ) & = & f(κ) \ssconcat g(dst_\Sigma(f(κ))) \\
   \\[-0.5em]
   cons(t,φ)(κ_1) & = & \begin{cases}
     κ_1; φ(κ_2) & \text{with $κ_2$ such that $κ_1 \smallstep κ_2$ with rule $t$} \\
@@ -835,7 +837,7 @@ small-step trace is exactly the maximal finite trace that ends with a value.
                      f(ρ(\px))   & \text{if $v = \FunV(f)$} \\
                      \bot_\Sigma & \text{otherwise}
                    \end{cases} \\
-      \text{in}  & (cons(\AppIT,φ_1) \funnyComp cons(\AppET,φ_2), v_2) \\
+      \text{in}  & (cons(\AppIT,φ_1) \fcomp cons(\AppET,φ_2), v_2) \\
     \end{letarray} \\
   \\[-0.5em]
   \semss{\Let{\px}{\pe_1}{\pe_2}}_ρ& = & \begin{letarray}
@@ -857,7 +859,7 @@ small-step trace is exactly the maximal finite trace that ends with a value.
   \end{lemma}
   \begin{proof}
     Every $φ$ is either $\fn{κ}{κ\straceend}$, where $\validtrace{κ\straceend}$,
-    or it is produced by $\funnyComp$, $cons$ or $snoc$. These combinators
+    or it is produced by $\fcomp$, $cons$ or $snoc$. These combinators
     produce valid small-step derivations whenever their input $φ$ produces
     valid derivations. By (bi-)induction that is always the case.
   \end{proof}
@@ -928,7 +930,7 @@ small-step trace is exactly the maximal finite trace that ends with a value.
   \\[-0.5em]
   L_1 ∪_1 (L_2,v) & = & (L_1 ∪ L_2,v) \\
   \\[-0.5em]
-  %L_1 \funnyComp^l L_2 & = & α^{∃l}_φ(γ^{∃l}_φ(L_1) \funnyComp γ^{∃l}_φ(L_2)) ⊑ L_1 ∪ L_2 \\
+  %L_1 \fcomp^l L_2 & = & α^{∃l}_φ(γ^{∃l}_φ(L_1) \fcomp γ^{∃l}_φ(L_2)) ⊑ L_1 ∪ L_2 \\
   %\\[-0.5em]
   %shortcut^l & = & α^{∃l}_φ \circ shortcut \circ γ^{∃l}_φ = id \\
   %\\[-0.5em]
@@ -1260,7 +1262,7 @@ small-step trace is exactly the maximal finite trace that ends with a value.
   \\[-0.5em]
   \bot_{∃l} & = & (\bot_{\Values}, \varnothing) \\
   \\[-0.5em]
-  L_1 \funnyComp^l L_2 & = & α^{∃l}_φ(γ^{∃l}_φ(L_1) \funnyComp γ^{∃l}_φ(L_2)) ⊑ L_1 ∪ L_2 \\
+  L_1 \fcomp^l L_2 & = & α^{∃l}_φ(γ^{∃l}_φ(L_1) \fcomp γ^{∃l}_φ(L_2)) ⊑ L_1 ∪ L_2 \\
   \\[-0.5em]
   shortcut^l & = & α^{∃l}_φ \circ shortcut \circ γ^{∃l}_φ = id \\
   \\[-0.5em]

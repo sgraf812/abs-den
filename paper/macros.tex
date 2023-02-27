@@ -92,13 +92,20 @@
   \mathbin{\mathop{#1}\limits^{\vbox to 1\ex@{\kern-\tw@\ex@
    \hbox{\scriptsize$\smallfrown$}\vss}}}}
 \makeatother
+\makeatletter
+\newcommand{\compop}[1]{%
+  \mathbin{\vec{\ooalign{$\circ$\cr\hidewidth$#1$\hidewidth}}}}
+\makeatother
 \newcommand{\concat}{\concatop{\cdot}}
+\newcommand{\fcomp}{\compop{\cdot}}
 \newcommand{\balanced}[1]{#1\;\mathsf{bal}}
 \newcommand{\getval}[2]{#1 \Downarrow #2}
 \newcommand{\lookup}[2]{#1\;\mathsf{lookup}}
 \newcommand{\subtrceq}{\superimpose[\mathrel]{\clipbox{0pt 0pt {0.3\width} 0pt}{${\subset}$}}{\hspace{0.6ex}\cdot}}
 \newcommand{\rightsubtrceq}{\subtrceq_r}
 \newcommand{\leftsubtrceq}{\subtrceq_l}
+\newcommand{\stepm}[3]{\lceil #1 \act{#2} #3 \rceil}
+\newcommand{\step}[2]{\stepm{\wild}{#1}{#2}}
 
 %% Values
 \newcommand{\Values}{\mathbb{V}}
@@ -120,10 +127,17 @@
 \newcommand{\LiveSD}{\Domain{sl}}
 \newcommand{\LiveCD}{\Domain{cl}}
 \newcommand{\LiveSCD}{\Domain{scl}}
+\newcommand{\testD}{\mathbin{?\!!}}
 
 % Math
 \newcommand{\poset}[1]{\wp(#1)}
 \newcommand{\Nat}{\mathbb{N}}
+\DeclareMathSymbol{\bbcolon}{\mathpunct}{bbold}{"3A}
+\DeclareMathSymbol{\bbquestionmark}{\mathpunct}{bbold}{"3F}
+\DeclareMathSymbol{\bblparen}{\mathpunct}{bbold}{"28}
+\DeclareMathSymbol{\bbrparen}{\mathpunct}{bbold}{"29}
+\DeclareMathSymbol{\bbpipe}{\mathpunct}{bbold}{"7C}
+\newcommand{\ternary}[3]{\bblparen\, #1 \,\mathrel{\bbquestionmark}\, #2 \,\mathrel{\bbcolon}\, #3 \,\bbrparen}
 
 % Order theory
 \DeclareMathOperator*{\lub}{\sqcup}
@@ -149,6 +163,7 @@
 \newcommand{\States}{\mathbb{S}}
 \newcommand{\STraces}{\mathbb{S}^{+\infty}}
 \newcommand{\sconcat}{\concatop{\hspace{0.04ex}\scalebox{0.5}{$\States$}}}
+\newcommand{\sfcomp}{\compop{\scalebox{0.25}{\raisebox{0.7em}{$\States$}}}}
 \newcommand{\pushF}{\cdot}
 \newcommand{\StopF}{\mathbf{stop}}
 \newcommand{\ReturnF}{\mathbf{ret}}
