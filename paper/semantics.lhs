@@ -173,7 +173,7 @@ Trace of the expression:
   \\[-0.5em]
   \seminf{\Lam{\px}{\pe}}_ρ & = &
     \begin{letarray}
-      \text{let} & f = d ↦ \step{\AppEA}{\pe} \fcomp \seminf{\pe}_{ρ[\px↦d]} \\
+      \text{let} & f = d ↦ \stepm{\ddagger}{\AppEA}{\pe} \fcomp \seminf{\pe}_{ρ[\px↦d]} \\
       \text{in}  & \step{\ValA(\FunV(f))}{\ddagger} \\
     \end{letarray} \\
   \\[-0.5em]
@@ -477,7 +477,7 @@ Trace of the expression:
   \\[-0.5em]
   \seminf{\Lam{\px}{\pe}}_ρ & = &
     \begin{letarray}
-      \text{let} & f = d ↦ \step{\AppEA}{\pe} \fcomp \seminf{\pe}_{ρ[\px↦d]} \\
+      \text{let} & f = d ↦ \stepm{\ddagger}{\AppEA}{\pe} \fcomp \seminf{\pe}_{ρ[\px↦d]} \\
       \text{in}  & \step{\ValA(\FunV(f))}{\ddagger} \\
     \end{letarray} \\
   \\[-0.5em]
@@ -506,7 +506,7 @@ Trace of the expression:
   \\[-0.5em]
   \text{Stateful traces}                    & π      & ∈ & \STraces  & ::=_\gfp & σ\straceend \mid π; π \\
   \text{Domain of stateful trace semantics} & d      & ∈ & \StateD  & = & \States \to \STraces \\
-  \text{Values}                             & v      & ∈ & \Values^\States & ::= & \FunV(d) \\
+  \text{Values}                             & v      & ∈ & \Values^\States & ::= & \FunV(\Addresses \to \StateD) \\
  \end{array} \\
  \\
  \begin{array}{rcl}
@@ -611,7 +611,9 @@ Trace of the expression:
   \\[-0.5em]
   app_1(\pe~\px,ρ,μ,κ) & = & (\pe,ρ,μ,\ApplyF(ρ(\px)) \pushF κ)\straceend \\
   \\[-0.5em]
-  app_2(\ddagger,[],μ,\ReturnF(\Lam{\px}{\pe},ρ',\FunV(d)) \pushF \ApplyF(\pa) \pushF κ) & = & d(\pe,ρ'[\px ↦ \pa],μ,κ) \\
+  app_2(\px,\pa,\pe)(\ddagger,[],μ,\ReturnF(\Lam{\px}{\pe},ρ,\FunV(f)) \pushF \ApplyF(\pa) \pushF κ) & = & d(\pe,ρ[\px ↦ \pa],μ,κ) \\
+  \\[-0.5em]
+  apply(σ@@(\ddagger,[],\wild,\ReturnF(\wild,\wild,\FunV(f)) \pushF \ApplyF(\pa) \pushF \wild)) & = & f(\pa)(σ) \\
   \\[-0.5em]
   let(d_1)(\Let{\px}{\pe_1}{\pe_2},ρ,μ,κ) & = &
     \begin{letarray}
@@ -623,9 +625,9 @@ Trace of the expression:
   \\[-0.5em]
   \semst{\px} & = & step(var_1) \sfcomp step(var_2) \\
   \\[-0.5em]
-  \semst{\Lam{\px}{\pe}} & = & step(ret(\FunV(\semst{\pe}))) \\
+  \semst{\Lam{\px}{\pe}} & = & step(ret(\FunV(\pa \mapsto step(app_2(\px,\pa,\pe)) \sfcomp \semst{\pe}))) \\
   \\[-0.5em]
-  \semst{\pe~\px} & = & step(app_1) \sfcomp \semst{\pe} \sfcomp step(app_2) \\
+  \semst{\pe~\px} & = & step(app_1) \sfcomp \semst{\pe} \sfcomp apply \\
   \\[-0.5em]
   \semst{\Let{\px}{\pe_1}{\pe_2}} & = & step(let(\semst{\pe_1})) \sfcomp \semst{\pe_2} \\
   \\
