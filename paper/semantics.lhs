@@ -499,10 +499,11 @@ Trace of the expression:
 \begin{figure}
 \[\begin{array}{c}
  \begin{array}{rrclcl}
-  \text{States}                             & σ      & ∈ & \States  & = & (\Exp ∪ \{\ddagger\}) \times \Environments \times \Heaps \times \Continuations \\
+  \text{States}                             & σ      & ∈ & \States  & = & \Control \times \Environments \times \Heaps \times \Continuations \\
+  \text{Control}                            & γ      & ∈ & \Control & = & \Exp ∪ (\Val \times \Values^\States) \\
   \text{Environments}                       & ρ      & ∈ & \Environments & = & \Var \pfun \Addresses \\
   \text{Heaps}                              & μ      & ∈ & \Heaps & = & \Addresses \pfun \Exp \times \Environments \times \StateD \\
-  \text{Continuations}                      & κ      & ∈ & \Continuations & ::= & \StopF \mid \ReturnF(\pv,ρ,v) \pushF κ \mid \ApplyF(\pa) \pushF κ \mid \UpdateF(\pa) \pushF κ \\
+  \text{Continuations}                      & κ      & ∈ & \Continuations & ::= & \StopF \mid \ApplyF(\pa) \pushF κ \mid \UpdateF(\pa) \pushF κ \\
   \\[-0.5em]
   \text{Stateful traces}                    & π      & ∈ & \STraces  & ::=_\gfp & σ\straceend \mid π; π \\
   \text{Domain of stateful trace semantics} & d      & ∈ & \StateD  & = & \States \to \STraces \\
@@ -538,17 +539,17 @@ Trace of the expression:
   \inferrule*
     [right=$\ValueT$]
     {\quad}
-    {(\pv, ρ, μ, κ) \smallstep (\ddagger,[],μ,\ReturnF(\pv,ρ,v) \pushF κ)}
+    {(\pv, ρ, μ, κ) \smallstep ((\pv, v), ρ, μ, κ)}
   \qquad
   \inferrule*
     [right=$\LookupT$]
     {\pa = ρ(\px) \quad (\pe,ρ',\wild) = μ(\pa)}
-    {(\px, ρ, μ, κ) \smallstep (\pe,ρ',μ,\UpdateF(\pa) \pushF κ)}
+    {(\px, ρ, μ, κ) \smallstep (\pe, ρ', μ, \UpdateF(\pa) \pushF κ)}
   \\
   \inferrule*
     [right=$\UpdateT$]
     {\quad}
-    {(\ddagger,[],μ,\ReturnF(\pv,ρ',v) \pushF \UpdateF(\pa) \pushF κ) \smallstep (\ddagger,[],μ[\pa ↦ (\pv,ρ',d)],\ReturnF(\pv,ρ',v) \pushF κ)} \\
+    {((\pv,v), ρ, μ, \UpdateF(\pa) \pushF κ) \smallstep ((\pv,v), ρ, μ[\pa ↦ (\pv,ρ,d)], κ)} \\
   \\[-0.5em]
   \inferrule*
     [right=$\AppIT$]
@@ -558,7 +559,7 @@ Trace of the expression:
   \inferrule*
     [right=$\AppET$]
     {\quad}
-    {(\ddagger,[],μ,\ReturnF(\Lam{\px}{\pe},ρ,\wild) \pushF \ApplyF(\pa) \pushF κ) \smallstep (\pe,ρ[\px ↦ \pa],μ,κ)} \\
+    {((\Lam{\px}{\pe},\wild),ρ,μ, \ApplyF(\pa) \pushF κ) \smallstep (\pe,ρ[\px ↦ \pa],μ,κ)} \\
   \\[-0.5em]
   \inferrule*
     [right=$\LetT$]
@@ -594,26 +595,20 @@ Trace of the expression:
     σ\straceend & \text{otherwise} \\
   \end{cases} \\
   \\[-0.5em]
-  ret(v)(\pv,ρ,μ,κ) & = & (\ddagger,[],μ,\ReturnF(\pv,ρ,v) \pushF κ) \straceend \\
+  val(v)(\pv,ρ,μ,κ) & = & ((\pv,v),μ,κ) \straceend \\
   \\[-0.5em]
-  var_1(\px,ρ,μ,κ) & = &
+  look(\px,ρ,μ,κ) & = &
     \begin{letarray}
       \text{let} & \pa = ρ(x) \\
                  & (\pe,ρ',d) = μ(\pa) \\
       \text{in}  & d(\pe,ρ',μ,\UpdateF(\pa) \pushF κ) \\
     \end{letarray} \\
   \\[-0.5em]
-  var_2(\ddagger,[],μ,\ReturnF(\pv,ρ,v) \pushF \UpdateF(\pa) \pushF κ) & = &
-    \begin{letarray}
-      \text{let} & d(\pv, ρ, μ', κ') = (\ddagger, [], μ', \ReturnF(\pv,ρ,v) \pushF κ')\straceend \\
-      \text{in}  & (\ddagger,[],μ[\pa ↦ (\pv,ρ,step(d))],\ReturnF(\pv,ρ,v) \pushF κ) \\
-    \end{letarray} \\
+  upd((\pv,v),ρ,μ,\UpdateF(\pa) \pushF κ) & = & ((\pv,v),ρ,μ[\pa ↦ (\pv,ρ,step(val(v)))], κ) \\
   \\[-0.5em]
   app_1(\pe~\px,ρ,μ,κ) & = & (\pe,ρ,μ,\ApplyF(ρ(\px)) \pushF κ)\straceend \\
   \\[-0.5em]
-  app_2(\px,\pa,\pe)(\ddagger,[],μ,\ReturnF(\Lam{\px}{\pe},ρ,\FunV(f)) \pushF \ApplyF(\pa) \pushF κ) & = & d(\pe,ρ[\px ↦ \pa],μ,κ) \\
-  \\[-0.5em]
-  apply(σ@@(\ddagger,[],\wild,\ReturnF(\wild,\wild,\FunV(f)) \pushF \ApplyF(\pa) \pushF \wild)) & = & f(\pa)(σ) \\
+  app_2(\px,\pa,\pe)((\Lam{\px}{\pe},\FunV(\wild)),ρ,μ, \ApplyF(\pa) \pushF κ) & = & (\pe,ρ[\px ↦ \pa],μ,κ) \straceend \\
   \\[-0.5em]
   let(d_1)(\Let{\px}{\pe_1}{\pe_2},ρ,μ,κ) & = &
     \begin{letarray}
@@ -621,11 +616,19 @@ Trace of the expression:
       \text{in}  & (\pe_2,ρ',μ[\pa ↦ (\pe_1, ρ', d_1)],κ) \\
     \end{letarray} \\
   \\[-0.5em]
+  apply(σ) & = & \begin{cases}
+    f(\pa)(σ) & \text{if $σ=((\wild,\FunV(f)),\wild,\ApplyF(\pa) \pushF \wild)$} \\
+    σ \straceend & \text{otherwise} \\
+  \end{cases} \\
+  \\[-0.5em]
   \semst{\pe}(\pe',ρ,μ,κ) & = & (\pe',ρ,μ,κ)\straceend\ \text{when $\atlbl{\pe} \not= \atlbl{\pe'}$} \\
   \\[-0.5em]
-  \semst{\px} & = & step(var_1) \sfcomp step(var_2) \\
+  \semst{\px} & = & step(look) \sfcomp step(upd) \\
   \\[-0.5em]
-  \semst{\Lam{\px}{\pe}} & = & step(ret(\FunV(\pa \mapsto step(app_2(\px,\pa,\pe)) \sfcomp \semst{\pe}))) \\
+  \semst{\Lam{\px}{\pe}} & = & \begin{letarray}
+    \text{let} & f = \pa \mapsto step(app_2(\px,\pa,\pe)) \sfcomp \semst{\pe} \\
+    \text{in}  & step(val(\FunV(f))) \\
+  \end{letarray} \\
   \\[-0.5em]
   \semst{\pe~\px} & = & step(app_1) \sfcomp \semst{\pe} \sfcomp apply \\
   \\[-0.5em]
@@ -671,7 +674,7 @@ Trace of the expression:
 
 In other words, a trace is maximally balanced if it follows the transition
 semantics, never leaves the current evaluation context and is either infinite,
-stuck, or its final state $σ_n$ has $\ddagger$ in its focus and $κ_n = \ReturnF(v) \pushF κ_i$.
+stuck, or its final state $σ_n$ has $(\pv,v)$ in its focus and $κ_n = κ_i$.
 
 For the initial state with an empty stack, the balanced maximal trace is
 exactly the result of running the transition semantics to completion.
@@ -687,7 +690,7 @@ any $κ$,
   \item The state $σ=(\pe,ρ,μ,κ)$ is the initial state of the trace
     $d(σ)$, and
   \item $d(σ)$ is maximally balanced, and
-  \item If $dst_\States(d(σ)) = (\ddagger, \wild, μ', \ReturnF(\pv, ρ', v) \pushF κ)$, then
+  \item If $dst_\States(d(σ)) = ((\pv, v), ρ', μ', κ)$, then
     $μ' \vdash_{\Values_\States} \pv \sim_{ρ'} v$, as defined below.
 \end{itemize}
 A semantic value $v ∈ \Values_\States$ is an adequate denotation of a syntactic value $\pv$ in a binding context $ρ,μ$
@@ -697,7 +700,7 @@ we have $μ \vdash_\StateD \pe \sim_{ρ[\px↦\pa]} d$.
 Formally, the inference rule is
 \[
   \inferrule*
-    {∀κ.\ ∃σ.\ σ=(\pe,ρ,μ,κ) ∧ src_\States(d(σ)) = σ ∧ \maxbaltrace{d(σ)} ∧ (∃(μ',\pv,ρ',v).\ dst_\States(d(σ)) = (\ddagger, \wild, μ', \ReturnF(\pv, ρ', v) \pushF κ) \Rightarrow μ' \vdash_{\Values_\States} \pv \sim_{ρ'} v)}
+    {∀κ.\ ∃σ.\ σ=(\pe,ρ,μ,κ) ∧ src_\States(d(σ)) = σ ∧ \maxbaltrace{d(σ)} ∧ (∃(μ',\pv,ρ',v).\ dst_\States(d(σ)) = ((\pv, v), ρ', μ', κ) \Rightarrow μ' \vdash_{\Values_\States} \pv \sim_{ρ'} v)}
     {μ \vdash_\StateD \pe \sim_ρ d}
 \]
 \[
