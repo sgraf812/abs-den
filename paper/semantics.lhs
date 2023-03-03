@@ -6,7 +6,7 @@
  \arraycolsep=3pt
  \begin{array}{rrclcl}
   \text{Variables}    & \px,\py,\pz & ∈ & \Var        &     & \\
-  \text{Variables}    &         \pv & ∈ & \Val        & ::= & \Lam{\px}{\pe} \\
+  \text{Values}    &         \pv & ∈ & \Val        & ::= & \Lam{\px}{\pe} \\
   \text{Expressions}  &         \pe & ∈ & \Exp        & ::= & \slbl \px \mid \slbl \pv \mid \slbl \pe~\px \mid \slbl \Let{\px}{\pe_1}{\pe_2} \\
   \text{Addresses}    &         \pa & ∈ & \Addresses  &  ⊆  & ℕ \\
   \\
@@ -441,6 +441,8 @@ Trace of the expression:
   \label{fig:semantics}
 \end{figure}
 
+\cleardoublepage
+
 \begin{figure}
 \[\begin{array}{c}
  \begin{array}{rrclcl}
@@ -499,13 +501,18 @@ Trace of the expression:
 \begin{figure}
 \[\begin{array}{c}
  \begin{array}{rrclcl}
+  \text{Variables}    & \px,\py,\pz & ∈ & \Var        &     & \\
+  \text{Values}    &         \pv & ∈ & \Val        & ::= & \Lam{\px}{\pe} \\
+  \text{Expressions}  &         \pe & ∈ & \Exp        & ::= & \slbl \px \mid \slbl \pv \mid \slbl \pe~\px \mid \slbl \Let{\px}{\pe_1}{\pe_2} \\
+  \text{Addresses}    &         \pa & ∈ & \Addresses  &  ⊆  & ℕ \\
+  \\
   \text{States}                             & σ      & ∈ & \States  & = & \Control \times \Environments \times \Heaps \times \Continuations \\
   \text{Control}                            & γ      & ∈ & \Control & = & \Exp ∪ (\Val \times \Values^\States) \\
   \text{Environments}                       & ρ      & ∈ & \Environments & = & \Var \pfun \Addresses \\
   \text{Heaps}                              & μ      & ∈ & \Heaps & = & \Addresses \pfun \Exp \times \Environments \times \StateD \\
   \text{Continuations}                      & κ      & ∈ & \Continuations & ::= & \StopF \mid \ApplyF(\pa) \pushF κ \mid \UpdateF(\pa) \pushF κ \\
   \\[-0.5em]
-  \text{Stateful traces}                    & π      & ∈ & \STraces  & ::=_\gfp & σ\straceend \mid π; π \\
+  \text{Stateful traces}                    & π      & ∈ & \STraces  & ::=_\gfp & σ\straceend \mid σ; π \\
   \text{Domain of stateful trace semantics} & d      & ∈ & \StateD  & = & \States \to \STraces \\
   \text{Values}                             & v      & ∈ & \Values^\States & ::= & \FunV(\Addresses \to \StateD) \\
  \end{array} \\
@@ -613,7 +620,7 @@ Trace of the expression:
   let(d_1)(\Let{\px}{\pe_1}{\pe_2},ρ,μ,κ) & = &
     \begin{letarray}
       \text{let} & ρ' = ρ[\px ↦ \pa] \quad \text{where $\fresh{\pa}{μ}$} \\
-      \text{in}  & (\pe_2,ρ',μ[\pa ↦ (\pe_1, ρ', d_1)],κ) \\
+      \text{in}  & (\pe_2,ρ',μ[\pa ↦ (\pe_1, ρ', d_1)],κ)\straceend \\
     \end{letarray} \\
   \\[-0.5em]
   apply(σ) & = & \begin{cases}
@@ -653,14 +660,14 @@ Trace of the expression:
 \FloatBarrier
 
 \begin{lemma}
-  Let $d = \semst{\pe}$. Then $\validtrace{d(σ)}$ for every initial configuration $σ$.
+  Let $d = \semst{\pe}$. Then $\validtrace{d(σ)}$ for every initial state $σ$.
 \end{lemma}
-\begin{proof}
-  Every $d$ is either $\fn{σ}{σ\straceend}$, where $\validtrace{σ\straceend}$,
-  or it is produced by $\fcomp$, $cons$ or $snoc$. These combinators
-  produce valid small-step derivations whenever their input $d$ produces
-  valid derivations. By (bi-)induction that is always the case.
-\end{proof}
+%\begin{proof}
+%  Every $d$ is either $\fn{σ}{σ\straceend}$, where $\validtrace{σ\straceend}$,
+%  or it is produced by $\fcomp$, $cons$ or $snoc$. These combinators
+%  produce valid small-step derivations whenever their input $d$ produces
+%  valid derivations. By (bi-)induction that is always the case.
+%\end{proof}
 
 \begin{definition}[Maximally balanced trace]
   A small-step trace $π = (e_1,ρ_1,μ_1,κ_1) ... (e_i,ρ_i,μ_i,κ_i); ... $ is \emph{maximally balanced} if
@@ -673,7 +680,7 @@ Trace of the expression:
 \end{definition}
 
 In other words, a trace is maximally balanced if it follows the transition
-semantics, never leaves the current evaluation context and is either infinite,
+semantics, never leaves the initial evaluation context and is either infinite,
 stuck, or its final state $σ_n$ has $(\pv,v)$ in its focus and $κ_n = κ_i$.
 
 For the initial state with an empty stack, the balanced maximal trace is
@@ -682,8 +689,8 @@ exactly the result of running the transition semantics to completion.
 We make this connection explicit in the following relation:
 
 \begin{definition}[Adequate denotations]
-We say that an element $d ∈ \StateD$ is an adequate denotation of an expression
-$\pe$ in a binding context $ρ,μ$ (written $μ \vdash_\StateD e \sim_ρ d$) if, for
+We say that an element $d ∈ \StateD$ is an \emph{adequate denotation} of an expression
+$\pe$ in a binding context $ρ,μ$ (written $μ \vdash_\StateD \pe \sim_ρ d$) if, for
 any $κ$,
 \begin{itemize}
   \item $\vdash_\Heaps μ$, as defined below.
@@ -694,10 +701,10 @@ any $κ$,
     $μ' \vdash_{\Values_\States} \pv \sim_{ρ'} v$, as defined below.
 \end{itemize}
 A semantic value $v ∈ \Values_\States$ is an adequate denotation of a syntactic value $\pv$ in a binding context $ρ,μ$
-(written $μ' \vdash_{\Values_\States} \pv \sim_{ρ'} v$), if $\pv$ is of the form $\Lam{\px}{\pe}$, $v$ is of the form $\FunV(d)$ and for any $\pa$,
+(written $μ \vdash_{\Values_\States} \pv \sim_{ρ} v$), if $\pv$ is of the form $\Lam{\px}{\pe}$, $v$ is of the form $\FunV(d)$ and for any $\pa$,
 we have $μ \vdash_\StateD \pe \sim_{ρ[\px↦\pa]} d$.
 
-Formally, the inference rule is
+Formally, the inference rule is (far too long)
 \[
   \inferrule*
     {∀κ.\ ∃σ.\ σ=(\pe,ρ,μ,κ) ∧ src_\States(d(σ)) = σ ∧ \maxbaltrace{d(σ)} ∧ (∃(μ',\pv,ρ',v).\ dst_\States(d(σ)) = ((\pv, v), ρ', μ', κ) \Rightarrow μ' \vdash_{\Values_\States} \pv \sim_{ρ'} v)}
@@ -729,12 +736,9 @@ Let $d = \semst{\pe}$. Then for all $ρ,μ$ with $\vdash_\Heaps μ$, we have $μ
 \vdash_\StateD \pe \sim_ρ d$.
 \end{theorem}
 
-\begin{corollary}Let $d = \semst{\pe}$. Then $π=d(\pe,[],[],\StopF)$ is a
+\begin{corollary} Let $d = \semst{\pe}$. Then $π=d(\pe,[],[],\StopF)$ is a
 maximally balanced trace for the transition semantics starting at $(\pe,[],[],\StopF)$.
 \end{corollary}
-
-Note that for the initial configuration of an expression, the balanced
-small-step trace is exactly the maximal finite trace that ends with a value.
 
 \begin{figure}
 \[\begin{array}{c}
