@@ -220,7 +220,7 @@ Trace of the expression:
 % initialisation trace that started with look(π_k). In fact, earlier
 % versions did exactly that, and it worked great!
 % Unfortunately, it has the following drawbacks:
-%   * Small-step semantics does have update frames and we want to match those
+%   * CESK semantics does have update frames and we want to match those
 %     rather simply. It is a matter of producing "complete" states, see
 %     "Which info do we need to attach to an action?"
 %   * We need to define relatively early what a balanced trace is.
@@ -264,12 +264,12 @@ Trace of the expression:
 %     of the semantic richness of states (given that the sequence of states
 %     is fixed); let's call state structure that allows for deterministic
 %     abstraction "complete"
-%   * (Are all complete state structures are isomorph?)
+%   * (Are all complete state structures isomorph? Probably not)
 %   * The stateful trace semantics is an abstraction of the stateless trace
 %     semantics by way of α_S. We want to produce (at least one) stateful
 %     semantics where the state space is complete. To produce such states, the
 %     necessary information must be part of the stateless trace, otherwise we
-%     can't write the abstraction function from statelss to stateful.
+%     can't write the abstraction function from stateless to stateful.
 %
 % So given the completeness of the states produced by α_S as a goal, we can
 % make the following claims for action kinds in a trace:
@@ -278,18 +278,20 @@ Trace of the expression:
 %     a step from one label to a label of a subexpression.
 %   * Val actions are the trace semantics' means of communicating a successful
 %     (e.g., not stuck) execution as well as playing the role of `Just value`.
-%     It is crucial that values have a second label, otherwise the transition
-%     system would loop endlessly, as there would be no correspondence operation
-%     on (e.g., small-step) states.
-%     (Although stuckness that doesn't mean they are *necessary* for the trace
-%     semantics: The primary means to determine a successful trace is whether it
-%     is balanced... So we don't actually need the action, just the value, which
-%     could be communicated out of band. It's just horribly ugly to do so; I
-%     tried, see page 4 of 61e6f8a.)
+%     They correspond to Val transtitions in CESK or STG's ReturnCon
 %   * We do *not* strictly need Update actions -- we just need update frames
-%     in the stateful trace, but those can be reconstructed from when a Lookup's
-%     balanced trace ended. Update actions make our life simpler in other ways,
-%     though: See "The need for an update action".
+%     in the stateful trace, but those could be reconstructed from when a
+%     Lookup's balanced trace ended. Update actions make our life simpler in
+%     other ways, though: See "The need for an update action".
+%
+% In fact, given that each action corresponds to a CESK transition, α_S can be
+% defined inductively (by prefixes) on actions and states:
+%
+%   * The data on actions is simply erased and the corresopnding CESK transition
+%     is taken. (Vital to realise that a well-formed stateless trace results in
+%     an ok stateful trace.)
+%   * For the state after prefix π, we simply call \varrho(π). It is a function
+%     that Cousot uses throughout his book, and so should we.
 %
 % Now as to what information we need on the actions:
 %
@@ -304,7 +306,7 @@ Trace of the expression:
 %             otherwise we'd have to fiddle with balanced traces in memo to find
 %             the corresponding Lookup.
 %   * Values: It is convenient to attach values to Val actions; this is not strictly
-%     necessary, just convenient (as I said above).
+%     necessary, just convenient. (See page 4 of 61e6f8a, quite ugly.)
 
 \begin{figure}
 \[\begin{array}{c}
