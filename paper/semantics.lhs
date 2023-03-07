@@ -605,35 +605,37 @@ Trace of the expression:
 \subsection{Informal Specification}
 
 Let us start with an informal specification: Our goal is to give a
-compositionally-defined function $\semst{\pe}$ that produces a denotation
+structural definition of a function $\semst{\pe}$ that produces a denotation
 $d ∈ \StateD$ of $\pe$, with the following properties: For every CESK state $σ$
 where the control is $\pe$, $d(σ)$ is a trace in the transition system
 $\smallstep$ with $σ$ as its source state. In itself, that is a trivial
 specification, because $d(σ) = σ \straceend$ is a valid but hardly
 useful model. So we refine: Every such trace $d(σ)$ must follow the evaluation
-of $\pe$ to completion. For example, given a (sub-)expression $\Lam{x}{x}$ of
+of $\pe$. For example, given a (sub-)expression $\Lam{x}{x}$ of
 some program $\pe$, we expect the following equation:
 \[
   \semst{\Lam{x}{x}} (\Lam{x}{x}, ρ, μ, κ) = (\Lam{x}{x}, ρ, μ, κ); ((\Lam{x}{x},\FunV(f)), ρ, μ, κ) \straceend
 \]
-Note that even if $κ$ had an apply frame on top, we expect $\semst{\wild}$ to
+Note that even if $κ$ had an apply frame on top, we require $\semst{\wild}$ to
 stop after the value transition. In general, each intermediate continuation
 $κ_i$ in the produced trace will be an extension of the first $κ$, so
-$κ_i = ... \pushF κ$. We call traces with this property \emph{balanced}.
+$κ_i = ... \pushF κ$. We call traces with this property \emph{balanced}, as in
+\cite{sestoft}.
 
 Why produce balanced traces rather than letting the individual traces eat their
 evaluation contexts to completion? Ultimately, we think it is just a matter of
 taste, but certainly it's simpler to identify and talk about the \emph{semantic
 value} of $\Lam{x}{x}$ this way: It is always the second component of the final
-state's control (if it exists).
+state's control (if it exists), and the semantic value determines how evaluation
+continues.
 
 Unsurprisingly, the semantic value of $\Lam{x}{x}$ is a $\FunV(f)$-value, the
 $f$ of which will involve the semantics of the sub-program $\semst{x}$. The
 transition semantics is indifferent to which semantic value is put in the control,
-but for our specification of $\semst{\wild}$, we want to specify that $f$
-continues where our balanced trace left off. More precisely, we expect the $f$
-in a semantic value $\FunV(f)$ to closely follow β-reduction of the syntactic
-value $\Lam{x}{x}$ with the address of the argument variable $\pa$ as follows
+but for $\semst{\wild}$ we specify that $f$ continues where our balanced trace
+left off. More precisely, we expect the $f$ in a semantic value $\FunV(f)$ to
+closely follow β-reduction of the syntactic value $\Lam{x}{x}$ with the address
+of the argument variable $\pa$, as follows
 \[
   f(\pa)((\Lam{x}{x},\FunV(f)), ρ, μ, \ApplyF(\pa) \pushF κ) = ((\Lam{x}{x},\FunV(f)), ρ, μ, \ApplyF(\pa) \pushF κ); \semst{x}(x, ρ[x ↦ \pa], μ, κ)
 \]
@@ -643,27 +645,29 @@ to other kinds of values such as data constructors, as we shall see in
 \cref{ssec:adts}.
 
 There is another occurrence of semantic denotations $d$ in the heap that is
-underspecified by the transition system. Its specified semantics is simply that
-of the closure $(\pe, ρ)$ stored alongside it; e.g. if
-$(\pa ↦ (\pe, ρ, d)) ∈ μ$, then for any $κ$, $d(\pe, ρ, μ, κ)$ produces a
-balanced trace of the $(\pe, ρ)$.
-Since $\UpdateT$ modifies heap entries, the corresponding denotation $d$ of the
-heap entry will have to be updated accordingly to maintain this invariant.
+uninstantiated by the transition system. If $(\pa ↦ (\pe, ρ, d)) ∈ μ$, then we
+specify that $d = \semst{\pe}$. Since $\UpdateT$ modifies heap entries,
+the corresponding denotation $d$ of the heap entry will have to be updated
+accordingly to maintain this invariant.
 
 Finally, it is a matter of good hygiene that $\semst{\pe}$ continues \emph{only}
 those states that have $\pe$ as control; it should produce a singleton trace on
 any other expression of the program, indicating stuck-ness. So even if $x~x$ and
-$y~y$ both are application expressions structurally and if $y ∈ \dom(ρ)$,
+$y~y$ both structurally are well-scoped application expressions,
 $\semst{x~x}(y~y,ρ,μ,κ) = (y~y,ρ,μ,κ)\straceend$. In other words, if $(\pe_i)_i$
-enumerates the sub-expressions of a program $\pe$, then for every initial state
-$σ$ there is at most one one $\semst{\pe_i}$ that is not stuck on $σ$.
+enumerates the sub-expressions of a program $\pe$, then for every state
+$σ$ that is not stuck in the transition semantics, there is at most one function
+$\semst{\pe_i}$ that is not stuck on $σ$.%
+\footnote{Particularly peculiar is the situation where two distinctly labelled
+sub-expressions of the program share the same erasure. \sg{Give an example here?
+Perhaps earlier, where we'll discuss labels.}}
 
 \subsection{Formal Specification}
 
 A stuck trace is one way in which $\semst{\wild}$ does not \emph{always} return
-a balanced trace. The other way is when the trace diverges before returning to
-the original stack level. We call a trace \emph{maximally balanced} is a valid
-CESK trace and falls in either of the these categories. More precisely:
+a balanced trace. The other way is when the trace diverges before yielding to
+the original continuation. We call a trace \emph{maximally balanced} if it is a
+valid CESK trace and falls in either of the these categories. More precisely:
 
 \begin{definition}[Maximally balanced trace]
   A CESK trace $π = (e_1,ρ_1,μ_1,κ_1); ... (e_i,ρ_i,μ_i,κ_i); ... $ is \emph{maximally balanced} if
@@ -682,56 +686,99 @@ stuck, or its final state $σ_n$ has $(\pv,v)$ in its focus and $κ_n = κ_i$.
 For the initial state with an empty stack, the balanced maximal trace is
 exactly the result of running the transition semantics to completion.
 
-We make this connection explicit in the following relation:
+\begin{example}[Stuck]
+  The following trace is stuck because $x$ is not in scope:
+  \[
+    \semst{x~y}(x~y,[y↦\pa], [\pa↦...], κ) = (x~y,[y↦\pa], [\pa↦...], κ); (x,[y↦\pa], [\pa↦...], \ApplyF(\pa) \pushF κ)\straceend
+  \]
+\end{example}
 
-\begin{definition}[Adequate denotations]
-We say that a denotation $d ∈ \StateD$ is an \emph{adequate denotation} of state
-$σ$ (written $σ \sim_\StateD d$) if
-\begin{itemize}
-  %\item $\vdash_\Heaps μ$, as defined below. % Only needed when talking about the adequate denot of e
-  \item $σ$ is the initial state of the trace $d(σ)$, and
-  \item $d(σ)$ is maximally balanced, and
-  \item If $dst_\States(d(σ)) = σ' = ((\pv, v), ρ', μ', κ)$, then $v$ is an adequate
-        value of state $σ'$, as defined below.
-  \item $d(σ') = σ'\straceend$ for any $σ' = (\pe', \wild, \wild, \wild)$ when
-        $\pe \not= \pe'$.
-\end{itemize}
-A semantic value $\FunV(f) ∈ \Values_\States$ is an \emph{adequate value} of
-a state $σ$ (written $σ \sim_{\Values_\States} \FunV(f)$), if $σ$ is a return
-state of the form $((\Lam{\px}{\pe}, \FunV(f)), ρ, μ, \ApplyF{\pa} \pushF κ)$ and if
-and for any $\pa$,
-we have $μ \vdash_\StateD \pe \sim_{ρ[\px↦\pa]} d$.
+In fact, out-of-scope references are the only way in which our simple lambda calculus
+without algebraic data types can get stuck. It is useful to limit such out-of-scope
+errors to the lookup of program variables in the environment $ρ$ and require
+that lookups in the heap $μ$ are always well-defined, captured in the following
+predicate:
 
-Formally, the inference rules are
-\[
- \begin{array}{c}
-  \inferrule*
-    [left=$\textsc{AdqD}$]
-    {σ=(\pe,ρ,μ,κ) \quad src_\States(d(σ)) = σ \quad \maxbaltrace{d(σ)} \\\\
-     \balanced{d(σ)} \Rightarrow dst_\States(d(σ)) \sim_{\Values_\States} dst_\States(d(σ)).1.2}
-    {σ \sim_\StateD d} \\
-  \\
-  \inferrule*
-    [left=$\textsc{AdqV}$]
-    {σ=((\Lam{\px}{\pe},\FunV(f)),ρ,μ,\ApplyF(\pa) \pushF κ) \\\\
-     f(\pa)(σ) = σ; d(\pe,ρ[\px↦\pa],μ,κ) \quad (\pe,ρ[\px↦\pa],μ,κ) \sim_\StateD d}
-    {σ \sim_{\Values_\States} \FunV(f)}
- \end{array}
-\]
+\begin{definition}[Well-addressed]
+  We say that
+  \begin{itemize}
+    \item An environment $ρ$ is \emph{well-addressed} \wrt
+          a heap $μ$ if $\rng(ρ) ⊆ \dom(μ)$.
+    \item A continuation $κ$ is \emph{well-addressed} \wrt
+          a heap $μ$ if $\fa(κ) ⊆ \dom(μ)$, where
+          \[\begin{array}{rcl}
+            \fa(\ApplyF(\pa) \pushF κ) & = & \{ \pa \} ∪ \fa(κ) \\
+            \fa(\UpdateF(\pa) \pushF κ) & = & \{ \pa \} ∪ \fa(κ) \\
+            \fa(\StopF) & = & \{ \} \\
+          \end{array}\]
+    \item A heap $μ$ is \emph{well-addressed} if, for every entry $(\wild,ρ,\wild) ∈ μ$,
+          $ρ$ is well-addressed \wrt $μ$.
+    \item A state $(\wild, ρ, μ, κ)$ is \emph{well-addressed} if $ρ$
+          and $κ$ are well-addressed with respect to $μ$.
+  \end{itemize}
 \end{definition}
 
-The notion of adequate denotation can be applied to whole heaps $μ$:
-\[
-  \inferrule*
-    {∀(\pe,ρ,d)∈\rng{μ}.\ μ \vdash_\StateD \pe \sim_ρ d}
-    {\vdash_\Heaps μ}
-\]
-Since there is mutual recursion, it is important that $\vdash_\Heaps \wild$ is
-defined as the \emph{greatest} fixpoint over this inference rule.
+\begin{lemma}[Transitions preserve well-addressedness]
+  Let $σ$ be a well-addressed state. If there exists $σ'$ such that $σ
+  \smallstep σ'$, then $σ'$ is well-addressed.
+\end{lemma}
+\begin{proof}
+  By cases over the transition relation.
+\end{proof}
 
-We'll often omit the binding context when talking about $d$ being a valid denotation of $\pe$, implying that
-$μ \vdash_\StateD \pe \sim_ρ d$ for all $ρ,μ$ where $\vdash_\Heaps μ$.
+\begin{corollary}
+  If $\validtrace{π}$ and $src_\States(π)$ is well-addressed, then every state
+  in $π$ is well-addressed.
+\end{corollary}
 
+We can now give a specification for $\semst{\wild}$:
+
+\begin{definition}[Specification of $\semst{\wild}$]
+\label{defn:semst-spec}
+Let $σ$ be a well-addressed state and $\pe$ an arbitrary expression. Then
+\begin{itemize}
+  \item $\semst{\pe}(σ) = σ \straceend$ if the control expression $\pe'$ of $σ$ is not $\pe$. Otherwise,
+  \item $σ$ is the initial state of the trace $\semst{\pe}(σ)$, and
+  \item $\maxbaltrace{\semst{\pe}(σ)}$, and
+  \item If $dst_\States(d(σ)) = σ' = ((\Lam{\px}{\pe'}, \FunV(f)), ρ, μ, \ApplyF(\pa) \pushF κ)$ exists,
+        where $\ApplyF(\pa) \pushF κ$ is also the continuation of $σ$,
+        then $f(\pa)(σ') = σ'; \semst{\pe'}(\pe', ρ[\px ↦ \pa], μ, κ)$.
+\end{itemize}
+\end{definition}
+
+\subsection{Conformance}
+
+\Cref{fig:cesk-semantics} defines $\semst{\wild}$. Before we prove that
+$\semst{\wild}$ satisfies the specification in \Cref{defn:semst-spec},
+let us understand the function by way of evaluating the example program
+$\pe = \Let{i}{\Lam{x}{x}}{i~i}$:
+\[\begin{array}{l}
+    \semst{\pe}(\pe, [], [], \StopF) = (\pe, [], [], \StopF); \semst{i~i}(i~i, ρ, μ, \StopF) \\
+    \qquad \text{where} \\
+    \qquad \qquad ρ = [x ↦ \pa] \\
+    \qquad \qquad μ = [\pa ↦ (\Lam{x}{x},ρ,\semst{\Lam{x}{x}})] \\
+\end{array}\]
+Evaluation begins by decomposing the let binding and continuing the let body in
+the extended environment and heap. Compared to an application of the $\LetT$
+transition rule, the most interesting thing here is that indeed the $d$ in the
+heap is instantiated to $\semst{\Lam{x}{x}}$, as well as the interplay of the
+auxiliary $step$ function and the forward composition operator $\sfcomp$ which
+recurses into $\semst{i~i}$ using the state after applying $\LetT$.
+
+One can find that $\sfcomp$ is quite well-behaved: It forms a monoid with
+$\bot_\StateD$ as its neutral element.
+
+Let us trace the next step of evaluation (recall the definition of $ρ$ and $μ$
+above):
+\[\begin{array}{l}
+    \semst{\pe}(\pe, [], [], \StopF) = (\pe, [], [], \StopF); \semst{i~i}(i~i, ρ, μ, \StopF) \\
+    \qquad \text{where} \\
+    \qquad \qquad ρ = [x ↦ \pa] \\
+    \qquad \qquad μ = [\pa ↦ (\Lam{x}{x},ρ,\semst{\Lam{x}{x}})] \\
+\end{array}\]
+
+Since the top-level
+The first step concerns the
 
 Let us begin by defining that a denotation $d$ is \emph{valid everywhere} when
 for every initial $σ$, we have $\validtrace{σ}$. This definition lets us express
@@ -827,7 +874,7 @@ maximally balanced trace for the transition semantics starting at $(\pe,[],[],\S
  \end{array} \\
 \end{array}\]
 \caption{Structural call-by-need stateful trace semantics $\semst{-}$}
-  \label{fig:ss-semantics}
+  \label{fig:cesk-semantics}
 \end{figure}
 
 \begin{figure}
