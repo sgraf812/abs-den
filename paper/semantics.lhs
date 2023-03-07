@@ -586,67 +586,8 @@ Trace of the expression:
   \\
  \end{array} \\
 \end{array}\]
-\caption{Call-by-need (stateful) transition system $\smallstep$}
-  \label{fig:ss-syntax}
-\end{figure}
-
-\begin{figure}
-\[\begin{array}{c}
- \begin{array}{rcl}
-  \multicolumn{3}{c}{ \ruleform{ \semst{\wild} \colon \Exp → \StateD } } \\
-  \\[-0.5em]
-  \bot_\StateD(σ) & = & \fn{σ}{σ\straceend} \\
-  \\[-0.5em]
-  (d_1 \sfcomp d_2)(σ) & = & d_1(σ) \sconcat d_2(dst_\States(d_1(σ))) \\
-  \\[-0.5em]
-  step(f)(σ) & = & \begin{cases}
-    σ; f(σ)     & \text{if $f(σ)$ is defined} \\
-    σ\straceend & \text{otherwise} \\
-  \end{cases} \\
-  \\[-0.5em]
-  val(v)(\pv,ρ,μ,κ) & = & ((\pv,v),μ,κ) \straceend \\
-  \\[-0.5em]
-  look(\px,ρ,μ,κ) & = &
-    \begin{letarray}
-      \text{let} & \pa = ρ(x) \\
-                 & (\pe,ρ',d) = μ(\pa) \\
-      \text{in}  & d(\pe,ρ',μ,\UpdateF(\pa) \pushF κ) \\
-    \end{letarray} \\
-  \\[-0.5em]
-  upd((\pv,v),ρ,μ,\UpdateF(\pa) \pushF κ) & = & ((\pv,v),ρ,μ[\pa ↦ (\pv,ρ,step(val(v)))], κ) \\
-  \\[-0.5em]
-  app_1(\pe~\px,ρ,μ,κ) & = & (\pe,ρ,μ,\ApplyF(ρ(\px)) \pushF κ)\straceend \\
-  \\[-0.5em]
-  app_2(\px,\pa,\pe)((\Lam{\px}{\pe},\FunV(\wild)),ρ,μ, \ApplyF(\pa) \pushF κ) & = & (\pe,ρ[\px ↦ \pa],μ,κ) \straceend \\
-  \\[-0.5em]
-  let(d_1)(\Let{\px}{\pe_1}{\pe_2},ρ,μ,κ) & = &
-    \begin{letarray}
-      \text{let} & ρ' = ρ[\px ↦ \pa] \quad \text{where $\fresh{\pa}{μ}$} \\
-      \text{in}  & (\pe_2,ρ',μ[\pa ↦ (\pe_1, ρ', d_1)],κ)\straceend \\
-    \end{letarray} \\
-  \\[-0.5em]
-  apply(σ) & = & \begin{cases}
-    f(\pa)(σ) & \text{if $σ=((\wild,\FunV(f)),\wild,\ApplyF(\pa) \pushF \wild)$} \\
-    σ \straceend & \text{otherwise} \\
-  \end{cases} \\
-  \\[-0.5em]
-  \semst{\pe}(\pe',ρ,μ,κ) & = & (\pe',ρ,μ,κ)\straceend\ \text{when $\atlbl{\pe} \not= \atlbl{\pe'}$} \\
-  \\[-0.5em]
-  \semst{\px} & = & step(look) \sfcomp step(upd) \\
-  \\[-0.5em]
-  \semst{\Lam{\px}{\pe}} & = & \begin{letarray}
-    \text{let} & f = \pa \mapsto step(app_2(\px,\pa,\pe)) \sfcomp \semst{\pe} \\
-    \text{in}  & step(val(\FunV(f))) \\
-  \end{letarray} \\
-  \\[-0.5em]
-  \semst{\pe~\px} & = & step(app_1) \sfcomp \semst{\pe} \sfcomp apply \\
-  \\[-0.5em]
-  \semst{\Let{\px}{\pe_1}{\pe_2}} & = & step(let(\semst{\pe_1})) \sfcomp \semst{\pe_2} \\
-  \\
- \end{array} \\
-\end{array}\]
-\caption{Structural call-by-need stateful trace semantics $\semst{-}$}
-  \label{fig:ss-semantics}
+\caption{Call-by-need CESK transition system $\smallstep$}
+  \label{fig:cesk-syntax}
 \end{figure}
 
 % Note [The use of a CESK trace semantics]
@@ -661,20 +602,73 @@ Trace of the expression:
 
 \FloatBarrier
 
-\begin{lemma}
-  Let $d = \semst{\pe}$. Then $\validtrace{d(σ)}$ for every initial state $σ$.
-\end{lemma}
-%\begin{proof}
-%  Every $d$ is either $\fn{σ}{σ\straceend}$, where $\validtrace{σ\straceend}$,
-%  or it is produced by $\fcomp$, $cons$ or $snoc$. These combinators
-%  produce valid small-step derivations whenever their input $d$ produces
-%  valid derivations. By (bi-)induction that is always the case.
-%\end{proof}
+\subsection{Informal Specification}
+
+Let us start with an informal specification: Our goal is to give a
+compositionally-defined function $\semst{\pe}$ that produces a denotation
+$d ∈ \StateD$ of $\pe$, with the following properties: For every CESK state $σ$
+where the control is $\pe$, $d(σ)$ is a trace in the transition system
+$\smallstep$ with $σ$ as its source state. In itself, that is a trivial
+specification, because $d(σ) = σ \straceend$ is a valid but hardly
+useful model. So we refine: Every such trace $d(σ)$ must follow the evaluation
+of $\pe$ to completion. For example, given a (sub-)expression $\Lam{x}{x}$ of
+some program $\pe$, we expect the following equation:
+\[
+  \semst{\Lam{x}{x}} (\Lam{x}{x}, ρ, μ, κ) = (\Lam{x}{x}, ρ, μ, κ); ((\Lam{x}{x},\FunV(f)), ρ, μ, κ) \straceend
+\]
+Note that even if $κ$ had an apply frame on top, we expect $\semst{\wild}$ to
+stop after the value transition. In general, each intermediate continuation
+$κ_i$ in the produced trace will be an extension of the first $κ$, so
+$κ_i = ... \pushF κ$. We call traces with this property \emph{balanced}.
+
+Why produce balanced traces rather than letting the individual traces eat their
+evaluation contexts to completion? Ultimately, we think it is just a matter of
+taste, but certainly it's simpler to identify and talk about the \emph{semantic
+value} of $\Lam{x}{x}$ this way: It is always the second component of the final
+state's control (if it exists).
+
+Unsurprisingly, the semantic value of $\Lam{x}{x}$ is a $\FunV(f)$-value, the
+$f$ of which will involve the semantics of the sub-program $\semst{x}$. The
+transition semantics is indifferent to which semantic value is put in the control,
+but for our specification of $\semst{\wild}$, we want to specify that $f$
+continues where our balanced trace left off. More precisely, we expect the $f$
+in a semantic value $\FunV(f)$ to closely follow β-reduction of the syntactic
+value $\Lam{x}{x}$ with the address of the argument variable $\pa$ as follows
+\[
+  f(\pa)((\Lam{x}{x},\FunV(f)), ρ, μ, \ApplyF(\pa) \pushF κ) = ((\Lam{x}{x},\FunV(f)), ρ, μ, \ApplyF(\pa) \pushF κ); \semst{x}(x, ρ[x ↦ \pa], μ, κ)
+\]
+That is, semantic values pop exactly one frame from the continuation
+and then produce another balanced trace of the redex. This statement extends
+to other kinds of values such as data constructors, as we shall see in
+\cref{ssec:adts}.
+
+There is another occurrence of semantic denotations $d$ in the heap that is
+underspecified by the transition system. Its specified semantics is simply that
+of the closure $(\pe, ρ)$ stored alongside it; e.g. if
+$(\pa ↦ (\pe, ρ, d)) ∈ μ$, then for any $κ$, $d(\pe, ρ, μ, κ)$ produces a
+balanced trace of the $(\pe, ρ)$.
+Since $\UpdateT$ modifies heap entries, the corresponding denotation $d$ of the
+heap entry will have to be updated accordingly to maintain this invariant.
+
+Finally, it is a matter of good hygiene that $\semst{\pe}$ continues \emph{only}
+those states that have $\pe$ as control; it should produce a singleton trace on
+any other expression of the program, indicating stuck-ness. So even if $x~x$ and
+$y~y$ both are application expressions structurally and if $y ∈ \dom(ρ)$,
+$\semst{x~x}(y~y,ρ,μ,κ) = (y~y,ρ,μ,κ)\straceend$. In other words, if $(\pe_i)_i$
+enumerates the sub-expressions of a program $\pe$, then for every initial state
+$σ$ there is at most one one $\semst{\pe_i}$ that is not stuck on $σ$.
+
+\subsection{Formal Specification}
+
+A stuck trace is one way in which $\semst{\wild}$ does not \emph{always} return
+a balanced trace. The other way is when the trace diverges before returning to
+the original stack level. We call a trace \emph{maximally balanced} is a valid
+CESK trace and falls in either of the these categories. More precisely:
 
 \begin{definition}[Maximally balanced trace]
-  A small-step trace $π = (e_1,ρ_1,μ_1,κ_1) ... (e_i,ρ_i,μ_i,κ_i); ... $ is \emph{maximally balanced} if
+  A CESK trace $π = (e_1,ρ_1,μ_1,κ_1); ... (e_i,ρ_i,μ_i,κ_i); ... $ is \emph{maximally balanced} if
   \begin{itemize}
-    \item $\validtrace{σ}$, and
+    \item $\validtrace{π}$, and
     \item Every intermediate continuation $κ_i$ extends $κ_1$ (so $κ_i = ... \pushF κ_1$), and
     \item If $π$ is finite, then there is no $σ'$ such that $π; σ'$ is maximally balanced.
   \end{itemize}
@@ -691,31 +685,36 @@ exactly the result of running the transition semantics to completion.
 We make this connection explicit in the following relation:
 
 \begin{definition}[Adequate denotations]
-We say that an element $d ∈ \StateD$ is an \emph{adequate denotation} of an expression
-$\pe$ in a binding context $ρ,μ$ (written $μ \vdash_\StateD \pe \sim_ρ d$) if, for
-any $κ$,
+We say that a denotation $d ∈ \StateD$ is an \emph{adequate denotation} of state
+$σ$ (written $σ \sim_\StateD d$) if
 \begin{itemize}
-  \item $\vdash_\Heaps μ$, as defined below.
-  \item The state $σ=(\pe,ρ,μ,κ)$ is the initial state of the trace
-    $d(σ)$, and
+  %\item $\vdash_\Heaps μ$, as defined below. % Only needed when talking about the adequate denot of e
+  \item $σ$ is the initial state of the trace $d(σ)$, and
   \item $d(σ)$ is maximally balanced, and
-  \item If $dst_\States(d(σ)) = ((\pv, v), ρ', μ', κ)$, then
-    $μ' \vdash_{\Values_\States} \pv \sim_{ρ'} v$, as defined below.
+  \item If $dst_\States(d(σ)) = σ' = ((\pv, v), ρ', μ', κ)$, then $v$ is an adequate
+        value of state $σ'$, as defined below.
+  \item $d(σ') = σ'\straceend$ for any $σ' = (\pe', \wild, \wild, \wild)$ when
+        $\pe \not= \pe'$.
 \end{itemize}
-A semantic value $v ∈ \Values_\States$ is an adequate denotation of a syntactic value $\pv$ in a binding context $ρ,μ$
-(written $μ \vdash_{\Values_\States} \pv \sim_{ρ} v$), if $\pv$ is of the form $\Lam{\px}{\pe}$, $v$ is of the form $\FunV(d)$ and for any $\pa$,
+A semantic value $v ∈ \Values_\States$ is an adequate value of a state $σ$
+(written $σ \sim_{\Values_\States} v$), if $σ$ is a return state of the form
+$((\pv, v), ρ, μ, κ)$, $\pv$ is of the form $\Lam{\px}{\pe}$, $v$ is of the form
+$\FunV(f)$
+and for any $\pa$,
 we have $μ \vdash_\StateD \pe \sim_{ρ[\px↦\pa]} d$.
 
-Formally, the inference rule is (far too long)
+Formally, the inference rule is
 \[
   \inferrule*
-    {∀κ.\ ∃σ.\ σ=(\pe,ρ,μ,κ) ∧ src_\States(d(σ)) = σ ∧ \maxbaltrace{d(σ)} ∧ (∃(μ',\pv,ρ',v).\ dst_\States(d(σ)) = ((\pv, v), ρ', μ', κ) \Rightarrow μ' \vdash_{\Values_\States} \pv \sim_{ρ'} v)}
-    {μ \vdash_\StateD \pe \sim_ρ d}
+    {σ=(\pe,ρ,μ,κ) \quad src_\States(d(σ)) = σ \quad \maxbaltrace{d(σ)} \\ \\
+     \balanced{d(σ)} \Rightarrow dst_\States(d(σ)) \sim_{\Values_\States} dst_\States(d(σ)).1.2}
+    {(\pe,ρ,μ,κ) \sim_\StateD d}
 \]
+
 \[
   \inferrule*
-    {∀\pa.\ μ \vdash_\StateD \pe \sim_{ρ[\px↦\pa]} d}
-    {μ \vdash_{\Values_\States} \Lam{\px}{\pe} \sim_ρ \FunV(d)}
+    {∀\pa.\ (\pe,ρ[\px↦\pa],μ,κ) \sim_\StateD d}
+    {((\Lam{\px}{\pe},\FunV(\pa ↦ )),ρ,μ,κ) \sim_{\Values_\States} \FunV(\pa ↦ σ ↦ σ; d(σ))}
 \]
 \end{definition}
 
@@ -731,6 +730,34 @@ defined as the \emph{greatest} fixpoint over this inference rule.
 We'll often omit the binding context when talking about $d$ being a valid denotation of $\pe$, implying that
 $μ \vdash_\StateD \pe \sim_ρ d$ for all $ρ,μ$ where $\vdash_\Heaps μ$.
 
+
+Let us begin by defining that a denotation $d$ is \emph{valid everywhere} when
+for every initial $σ$, we have $\validtrace{σ}$. This definition lets us express
+an important observation:
+\begin{lemma}
+  $\semst{\pe}$ is valid everywhere.
+\end{lemma}
+\begin{proof}
+  Every $d$ produced by $\semst{\pe}$ is either $\fn{σ}{σ\straceend}$, where
+  $\validtrace{σ\straceend}$, or it is built from $\fcomp$, $step$ or $apply$.
+
+  $(d_1 \fcomp d_2)(σ)$ produces valid CESK traces whenever its inputs
+  $d_i$ do so. An interesting case is when $d_1(σ)$ is infinite; then
+  $(d_1 \fcomp d_2)(σ) = d_1(σ)$ and $\validtrace{(d_1 \fcomp d_2)(σ)}$ follows
+  from $\validtrace{d_1(σ)}$.
+
+  We can see that $\validtrace{step(f)(σ)}$ whenever $f(σ)$ is undefined
+  (by $\validtraceTriv$) or $\validtrace{σ;f(σ)}$ (by $\validtraceTrans$).
+  Enumerating the arguments to $step$, we can see that $val, upd, app_1, app_2$
+  and $let$ follow $\ValueT, \UpdateT, \AppIT, \AppET$ and $\LetT$ closely by
+  making exactly one transition. That leaves $loop$, which corresponds to doing
+  one step with $\LookupT$ and then evaluating the heap-bound expression $\pe$
+  as expressed by $d$.
+
+  By (bi-)induction that is always the case.
+\end{proof}
+
+
 We can now formulate our correctness theorem as follows:
 
 \begin{theorem}[Adequacy of the stateful trace semantics]
@@ -744,198 +771,61 @@ maximally balanced trace for the transition semantics starting at $(\pe,[],[],\S
 
 \begin{figure}
 \[\begin{array}{c}
- \begin{array}{rrclcl}
-  \text{Configurations}                        & κ   & ∈ & \Configurations    & ::= & (\pH,\pe,\pE,\pS) \\
-  \text{Heaps}                                 & \pH & ∈ & \Heaps             & =   & \Addresses \pfun (\Envs,\Exp) \\
-  \text{Environments}                          & \pE & ∈ & \Envs              & =   & \Var \pfun \Addresses \\
-  \text{Stacks}                                & \pS & ∈ & \Stacks            & ::= & \StopF \mid \ApplyF(\pa) \pushF \pS \mid \UpdateF(\pa) \pushF \pS \\
-  \text{Finite Small-step Traces}              & σ   & ∈ & \SSTraces^+         & ::= & κ\straceend \mid κ; σ \\
-  \text{Finite and Infinite Small-step Traces} & σ   & ∈ & \SSTraces^{+\infty} & =   & \SSTraces^+ ∪ \lim(\SSTraces^+) \\
- \end{array} \\
- \\
  \begin{array}{rcl}
-  \multicolumn{3}{c}{ \ruleform{ src_\Sigma(σ) = κ \qquad dst_\Sigma(σ) = κ } } \\
+  \multicolumn{3}{c}{ \ruleform{ \semst{\wild} \colon \Exp → \StateD } } \\
   \\[-0.5em]
-  src_\Sigma(κ\straceend)    & = & κ \\
-  src_\Sigma(κ; σ) & = & κ \\
+  \bot_\StateD(σ) & = & \fn{σ}{σ\straceend} \\
   \\[-0.5em]
-  dst_\Sigma(κ\straceend)    & = & κ \\
-  dst_\Sigma(κ; σ) & = & dst_\Sigma(σ) \\
-  \\
- \end{array} \qquad
- \begin{array}{c}
-  \ruleform{ σ_1 \ssconcat σ_2 = σ_3 } \\
+  (d_1 \sfcomp d_2)(σ) & = & d_1(σ) \sconcat d_2(dst_\States(d_1(σ))) \\
   \\[-0.5em]
-  σ_1 \ssconcat σ_2 = \begin{cases}
-    σ_1              & \text{if $σ_1$ infinite} \\
-    undefined        & \text{if $σ_1$ finite and $dst_\Sigma(σ_1) \not= src_\Sigma(σ_2)$} \\
-    κ             & σ_1 = σ_2 = κ \\
-    σ_1'; σ_2 &  σ_1 = σ_1'; κ \\
-    σ_1; σ_2' &  σ_2 = κ; σ_2' \\
-  \end{cases} \\
- \end{array} \\
- \\
- \begin{array}{c}
-  \ruleform{ κ_1 \smallstep κ_2 \qquad \validtrace{σ} } \\
-  \\[-0.5em]
-  \inferrule*
-    [right=$\LookupT$]
-    {\pa = \pE(\px)}
-    {(\pH, \px, \pE, \pS) \smallstep (\pH, \pH(\pa), \UpdateF(\pa) \pushF \pS)}
-  \qquad
-  \inferrule*
-    [right=$\UpdateT$]
-    {\quad}
-    {(\pH, \pv, \pE, \UpdateF(\pa) \pushF \pS) \smallstep (\pH[\pa↦(\pE,\pv)], \pv, \pE, \pS)} \\
-  \\[-0.5em]
-  \inferrule*
-    [right=$\AppIT$]
-    {\pa = \pE(\px)}
-    {(\pH, \pe~\px, \pE, \pS) \smallstep (\pH, \pe, \pE, \ApplyF(\pa) \pushF \pS)}
-  \qquad
-  \inferrule*
-    [right=$\AppET$]
-    {\quad}
-    {(\pH, \Lam{\px}{\pe}, \pE, \ApplyF(\pa) \pushF \pS) \smallstep (\pH, \pe, \pE[\px↦\pa], \pS)} \\
-  \\[-0.5em]
-  \inferrule*
-    [right=$\LetT$]
-    {\fresh{\pa}{\pH} \quad \pE' = \pE[\px↦\pa]}
-    {(\pH, \Let{\px}{\pe_1}{\pe_2}, \pE, \pS) \smallstep (\pH[\pa↦(\pE',\pe_1)], \pe_2, \pE', \pS)} \\
-  \\
-  \\
-  \inferrule*
-    {\quad}
-    {\validtrace{κ\straceend}}
-  \qquad
-  \inferrule*
-    {κ \smallstep src_\Sigma(σ) \quad \validtrace{σ}}
-    {\validtrace{κ; σ}} \\
-  \\
- \end{array} \\
-\end{array}\]
-\caption{Call-by-need small-step transition system $\smallstep$}
-  \label{fig:ss-syntax}
-\end{figure}
-
-\begin{figure}
-\[\begin{array}{c}
- \begin{array}{rrclcl}
-  \text{Domain of small-step transitions} &       &   & \SSD  & = & (\Configurations \to \SSTraces^{+\infty},\Values^\Sigma) \\
-  \text{Values}          &     v & ∈ & \Values^\Sigma & ::= & \FunV(\SSD \to \SSD) \mid \bot_{\Values^\Sigma} \\
- \end{array} \\
- \\
- \begin{array}{rcl}
-  \multicolumn{3}{c}{ \ruleform{ \semss{\wild} \colon \Exp → (\Var → \SSD) → \SSD } } \\
-  \\[-0.5em]
-  \bot_\Sigma & = & (\fn{κ}{κ\straceend}, \bot_{\Values^\Sigma}) \\
-  \\[-0.5em]
-  (f \fcomp g)(κ) & = & f(κ) \ssconcat g(dst_\Sigma(f(κ))) \\
-  \\[-0.5em]
-  cons(t,φ)(κ_1) & = & \begin{cases}
-    κ_1; φ(κ_2) & \text{with $κ_2$ such that $κ_1 \smallstep κ_2$ with rule $t$} \\
-    κ_1                   & \text{otherwise} \\
+  step(f)(σ) & = & \begin{cases}
+    σ; f(σ)     & \text{if $f(σ)$ is defined} \\
+    σ\straceend & \text{otherwise} \\
   \end{cases} \\
   \\[-0.5em]
-  snoc(φ,t)(κ) & = & \begin{cases}
-    φ(κ); κ_2 \straceend & \text{with $κ_2$ such that $dst_\Sigma(φ(κ)) \smallstep κ_2$ with rule $t$} \\
-    φ(κ)                & \text{otherwise} \\
-  \end{cases} \\
+  val(\pv,v)(\pv,ρ,μ,κ) & = & ((\pv,v),ρ,μ,κ) \straceend \\
   \\[-0.5em]
-  shortcut(φ)(\pH,\pe,\pS) & = & \begin{cases}
-    (\pH,\pv,\pS)  & \text{if $\pe$ is a value $\pv$} \\
-    φ(\pH,\pe,\pS) & \text{otherwise} \\
-  \end{cases} \\
-  \\[-0.5em]
-  \semss{\px}_ρ & = & ρ(\px) \\
-  \\[-0.5em]
-  \semss{\Lam{\px}{\pe}}_ρ & = & (\fn{κ}{κ\straceend}, \FunV(\fn{d}{\semss{\pe}_{ρ[\px↦d]}})) \\
-  \\[-0.5em]
-  \semss{\pe~\px}_ρ & = &
+  look(\px)(\px,ρ,μ,κ) & = &
     \begin{letarray}
-      \text{let} & (φ_1,v_1) = \semss{\pe}_ρ \\
-                 & (φ_2,v_2) = \begin{cases}
-                     f(ρ(\px))   & \text{if $v = \FunV(f)$} \\
-                     \bot_\Sigma & \text{otherwise}
-                   \end{cases} \\
-      \text{in}  & (cons(\AppIT,φ_1) \fcomp cons(\AppET,φ_2), v_2) \\
+      \text{let} & \pa = ρ(\px) \\
+                 & (\pe,ρ',d) = μ(\pa) \\
+      \text{in}  & d(\pe,ρ',μ,\UpdateF(\pa) \pushF κ) \\
     \end{letarray} \\
   \\[-0.5em]
-  \semss{\Let{\px}{\pe_1}{\pe_2}}_ρ& = & \begin{letarray}
-      \text{letrec}~ρ'. & (φ_1,v_1) = \semss{\pe_1}_{ρ'} \\
-                        & (φ_2,v_2) = \semss{\pe_2}_{ρ'} \\
-                        & ρ' = ρ ⊔ [\px ↦ (snoc(cons(\LookupT,shortcut(φ_1)),\UpdateT),v_1)] \\
-      \text{in}  & (cons(\LetT,φ_2),v_2)
+  upd((\pv,v),ρ,μ,\UpdateF(\pa) \pushF κ) & = & ((\pv,v),ρ,μ[\pa ↦ (\pv,ρ,step(val(v)))], κ)\straceend \\
+  \\[-0.5em]
+  app_1(\pe~\px)(\pe~\px,ρ,μ,κ) & = & (\pe,ρ,μ,\ApplyF(ρ(\px)) \pushF κ)\straceend \\
+  \\[-0.5em]
+  app_2(\Lam{\px}{\pe},\pa)((\Lam{\px}{\pe},\FunV(\wild)),ρ,μ, \ApplyF(\pa) \pushF κ) & = & (\pe,ρ[\px ↦ \pa],μ,κ) \straceend \\
+  \\[-0.5em]
+  let(d_1)(\Let{\px}{\pe_1}{\pe_2},ρ,μ,κ) & = &
+    \begin{letarray}
+      \text{let} & ρ' = ρ[\px ↦ \pa] \quad \text{where $\fresh{\pa}{μ}$} \\
+      \text{in}  & (\pe_2,ρ',μ[\pa ↦ (\pe_1, ρ', d_1)],κ)\straceend \\
     \end{letarray} \\
+  \\[-0.5em]
+  apply(σ) & = & \begin{cases}
+    f(\pa)(σ) & \text{if $σ=((\wild,\FunV(f)),\wild,\ApplyF(\pa) \pushF \wild)$} \\
+    σ \straceend & \text{otherwise} \\
+  \end{cases} \\
+  \\[-0.5em]
+  \semst{\pe}(\pe',ρ,μ,κ) & = & (\pe',ρ,μ,κ)\straceend\ \text{when $\atlbl{\pe} \not= \atlbl{\pe'}$} \\
+  \\[-0.5em]
+  \semst{\px} & = & step(look(\px)) \sfcomp step(upd) \\
+  \\[-0.5em]
+  \semst{\Lam{\px}{\pe}} & = & \begin{letarray}
+    \text{let} & f = \pa \mapsto step(app_2(\Lam{\px}{\pe},\pa)) \sfcomp \semst{\pe} \\
+    \text{in}  & step(val(\Lam{\px}{\pe},\FunV(f))) \\
+  \end{letarray} \\
+  \\[-0.5em]
+  \semst{\pe~\px} & = & step(app_1(\pe~\px)) \sfcomp \semst{\pe} \sfcomp apply \\
+  \\[-0.5em]
+  \semst{\Let{\px}{\pe_1}{\pe_2}} & = & step(let(\semst{\pe_1})) \sfcomp \semst{\pe_2} \\
   \\
  \end{array} \\
 \end{array}\]
-\caption{Structural call-by-need small-step trace semantics $\semss{-}$}
+\caption{Structural call-by-need stateful trace semantics $\semst{-}$}
   \label{fig:ss-semantics}
-\end{figure}
-
-\begin{figure}
-  \begin{lemma}
-    Let $(v,φ) = \semss{\pe}_ρ$. Then $\validtrace{φ(κ)}$ for every initial configuration $κ$.
-  \end{lemma}
-  \begin{proof}
-    Every $φ$ is either $\fn{κ}{κ\straceend}$, where $\validtrace{κ\straceend}$,
-    or it is produced by $\fcomp$, $cons$ or $snoc$. These combinators
-    produce valid small-step derivations whenever their input $φ$ produces
-    valid derivations. By (bi-)induction that is always the case.
-  \end{proof}
-
-  \begin{definition}[Maximal small-step trace]
-    A small-step trace $σ$ is \emph{maximal} iff $\validtrace{σ}$ and either
-    \begin{itemize}
-      \item σ is infinite, or
-      \item there is no $κ'$ such that $dst_\Sigma(σ) \smallstep κ'$
-    \end{itemize}
-  \end{definition}
-
-  Clearly, a term's defining property wrt. a small-step transition system such
-  as $\smallstep$ is the maximal trace of its initial configuration.
-
-  \begin{definition}[Balanced small-step trace]
-    A finite small-step trace
-    $σ=(\pH,\pe,\pE,\pS); ...; (\pH',\pe', \pE', \pS')\straceend$
-    is \emph{balanced} if $\validtrace{σ}$, $\pe'$ is a value, $\pS=\pS'$, and
-    every intermediate stack extends $\pS$.
-  \end{definition}
-
-  \begin{definition}[Maximally balanced small-step trace]
-    A small-step trace σ is \emph{maximally balanced} iff $\validtrace{σ}$,
-    all stacks in σ extend the stack of its initial configuration, and either
-    \begin{itemize}
-      \item $σ$ is infinite, or
-      \item there is no $κ'$ such that $dst_\Sigma(σ) \smallstep κ'$, or
-      \item σ is balanced
-    \end{itemize}
-  \end{definition}
-
-  In other words, a trace is maximally balanced if it is either balanced or
-  the trace is maximal and it has no balanced prefix trace.
-
-  For the initial configuration/configurations with an empty stack, the
-  balanced, maximal and maximally balanced traces coincide.
-
-  \begin{definition}[Correctness relation]
-    Consider the relation $\wild \vdash \wild \sim \wild \triangleq \gfp(F)$, where
-    \[
-      F(X) = \{ (\pH, \pE, ρ) \mid \forall \px \in \dom(\pE).\ \exists (\pE',\pe').\ (\pE',\pe') = \pH(\pE(\px)) \wedge ρ(\px) = \semss{\pe'}_{ρ'} \wedge (\pH, \pE', ρ') \in X \}
-    \]
-    We say that a denotational environmant ρ is \emph{consistent} with an environment
-    $\pE$ in a heap $\pH$ iff $\pH \vdash \pE \sim ρ$.
-  \end{definition}
-
-  \begin{theorem}Let $(v,φ) = \semss{\pe}_ρ$. Then for all configurations
-  $κ=(\pH,\pe,\pE,\pS)$ where $\pH \vdash \pE \sim ρ$ the small-step trace $φ(κ)$ is the
-  maximally balanced small-step trace starting from $κ$.
-  \end{theorem}
-
-  Note that for the initial configuration of an expression, the balanced
-  small-step trace is exactly the maximal finite trace that ends with a value.
-
 \end{figure}
 
 \begin{figure}
