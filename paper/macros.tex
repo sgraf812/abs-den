@@ -10,8 +10,9 @@
 \newtheorem{definition}[theorem]{Definition}
 
 % Abbrev
-\newcommand\eg{\emph{e.g.}\ }
-\newcommand\etc{\emph{etc.}}
+\newcommand\eg{e.g.\xspace}
+\newcommand\etc{etc.\xspace}
+\newcommand\wrt{wrt.\xspace}
 
 % Comments and notes
 \newcommand{\slpj}[1]{\emph{SLPJ: #1}}
@@ -62,6 +63,7 @@
 \newcommand{\dom}{\mathop\mathsf{dom}}
 \newcommand{\rng}{\mathop\mathsf{rng}}
 \newcommand{\fv}{\mathop\mathsf{fv}}
+\newcommand{\fa}{\mathop\mathsf{fa}}
 \newcommand{\bv}{\mathop\mathsf{bv}}
 \newcommand{\fresh}[2]{#1\mathbin{\#}#2}
 \newcommand{\delvar}[1]{{\setminus_{#1}}}
@@ -185,12 +187,12 @@
 \newcommand{\smallstep}{\hookrightarrow}
 \newcommand{\straceend}{\scalebox{0.5}{$\square$}}
 \newcommand{\ssconcat}{\concatop{\hspace{0.04ex}\scalebox{0.5}{\Sigma}}}
-\newcommand{\AppIT}{\textsc{app}_1}
-\newcommand{\AppET}{\textsc{app}_2}
-\newcommand{\ValueT}{\textsc{val}}
-\newcommand{\LookupT}{\textsc{look}}
-\newcommand{\UpdateT}{\textsc{upd}}
-\newcommand{\LetT}{\textsc{let}}
+\newcommand{\AppIT}{\textsc{App}_1}
+\newcommand{\AppET}{\textsc{App}_2}
+\newcommand{\ValueT}{\textsc{Val}}
+\newcommand{\LookupT}{\textsc{Look}}
+\newcommand{\UpdateT}{\textsc{Upd}}
+\newcommand{\LetT}{\textsc{Let}}
 \newcommand{\funnyComp}{\mathop{\mathord{>}\!\mathord{\circ}\!\mathord{>}}}
 \newcommand{\validtrace}[1]{#1\;\mathsf{ok\text{-}}π}
 \newcommand{\validtraceTriv}{\textsc{ok}_1}

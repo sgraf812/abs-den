@@ -696,25 +696,27 @@ $σ$ (written $σ \sim_\StateD d$) if
   \item $d(σ') = σ'\straceend$ for any $σ' = (\pe', \wild, \wild, \wild)$ when
         $\pe \not= \pe'$.
 \end{itemize}
-A semantic value $v ∈ \Values_\States$ is an adequate value of a state $σ$
-(written $σ \sim_{\Values_\States} v$), if $σ$ is a return state of the form
-$((\pv, v), ρ, μ, κ)$, $\pv$ is of the form $\Lam{\px}{\pe}$, $v$ is of the form
-$\FunV(f)$
+A semantic value $\FunV(f) ∈ \Values_\States$ is an \emph{adequate value} of
+a state $σ$ (written $σ \sim_{\Values_\States} \FunV(f)$), if $σ$ is a return
+state of the form $((\Lam{\px}{\pe}, \FunV(f)), ρ, μ, \ApplyF{\pa} \pushF κ)$ and if
 and for any $\pa$,
 we have $μ \vdash_\StateD \pe \sim_{ρ[\px↦\pa]} d$.
 
-Formally, the inference rule is
+Formally, the inference rules are
 \[
+ \begin{array}{c}
   \inferrule*
-    {σ=(\pe,ρ,μ,κ) \quad src_\States(d(σ)) = σ \quad \maxbaltrace{d(σ)} \\ \\
+    [left=$\textsc{AdqD}$]
+    {σ=(\pe,ρ,μ,κ) \quad src_\States(d(σ)) = σ \quad \maxbaltrace{d(σ)} \\\\
      \balanced{d(σ)} \Rightarrow dst_\States(d(σ)) \sim_{\Values_\States} dst_\States(d(σ)).1.2}
-    {(\pe,ρ,μ,κ) \sim_\StateD d}
-\]
-
-\[
+    {σ \sim_\StateD d} \\
+  \\
   \inferrule*
-    {∀\pa.\ (\pe,ρ[\px↦\pa],μ,κ) \sim_\StateD d}
-    {((\Lam{\px}{\pe},\FunV(\pa ↦ )),ρ,μ,κ) \sim_{\Values_\States} \FunV(\pa ↦ σ ↦ σ; d(σ))}
+    [left=$\textsc{AdqV}$]
+    {σ=((\Lam{\px}{\pe},\FunV(f)),ρ,μ,\ApplyF(\pa) \pushF κ) \\\\
+     f(\pa)(σ) = σ; d(\pe,ρ[\px↦\pa],μ,κ) \quad (\pe,ρ[\px↦\pa],μ,κ) \sim_\StateD d}
+    {σ \sim_{\Values_\States} \FunV(f)}
+ \end{array}
 \]
 \end{definition}
 
