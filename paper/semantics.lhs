@@ -739,11 +739,11 @@ an important observation:
 \end{lemma}
 \begin{proof}
   Every $d$ produced by $\semst{\pe}$ is either $\fn{σ}{σ\straceend}$, where
-  $\validtrace{σ\straceend}$, or it is built from $\fcomp$, $step$ or $apply$.
+  $\validtrace{σ\straceend}$, or it is built from $\sfcomp$, $step$ or $apply$.
 
-  $(d_1 \fcomp d_2)(σ)$ produces valid CESK traces whenever its inputs
+  $(d_1 \sfcomp d_2)(σ)$ produces valid CESK traces whenever its inputs
   $d_i$ do so. An interesting case is when $d_1(σ)$ is infinite; then
-  $(d_1 \fcomp d_2)(σ) = d_1(σ)$ and $\validtrace{(d_1 \fcomp d_2)(σ)}$ follows
+  $(d_1 \sfcomp d_2)(σ) = d_1(σ)$ and $\validtrace{(d_1 \sfcomp d_2)(σ)}$ follows
   from $\validtrace{d_1(σ)}$.
 
   We can see that $\validtrace{step(f)(σ)}$ whenever $f(σ)$ is undefined
