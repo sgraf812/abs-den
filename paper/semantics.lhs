@@ -752,11 +752,30 @@ Let $σ$ be a well-addressed state and $\pe$ an arbitrary expression. Then
 $\semst{\wild}$ satisfies the specification in \Cref{defn:semst-spec},
 let us understand the function by way of evaluating the example program
 $\pe = \Let{i}{\Lam{x}{x}}{i~i}$:
-\[\begin{array}{l}
-    \semst{\pe}(\pe, [], [], \StopF) = (\pe, [], [], \StopF); \semst{i~i}(i~i, ρ, μ, \StopF) \\
-    \qquad \text{where} \\
-    \qquad \qquad ρ = [x ↦ \pa] \\
-    \qquad \qquad μ = [\pa ↦ (\Lam{x}{x},ρ,\semst{\Lam{x}{x}})] \\
+\[
+  \begin{array}{cc}
+    \begin{array}{l}
+      (\pe, [], [], \StopF); \\
+      (i~i, ρ_1, μ, \StopF); \\
+      (i, ρ_1, μ, κ_1); \\
+      (\Lam{x}{x}, ρ_1, μ, κ_2); \\
+      ((\Lam{x}{x}, \FunV(f)), ρ_1, μ, κ_2); \\
+      ((\Lam{x}{x}, \FunV(f)), ρ_1, μ, κ_1); \\
+      (x, ρ_2, μ, \StopF); \\
+      (\Lam{x}{x}, ρ_1, μ, κ_3); \\
+      ((\Lam{x}{x}, \FunV(f)), ρ_1, μ, κ_3); \\
+      ((\Lam{x}{x}, \FunV(f)), ρ_1, μ, \StopF); \\
+      \qquad \text{where} \\
+      \qquad \qquad ρ_1 = [i ↦ \pa_1] \\
+      \qquad \qquad ρ_2 = [i ↦ \pa_1, x ↦ \pa_1] \\
+      \qquad \qquad μ = [\pa_1 ↦ (\Lam{x}{x},ρ_1,\semst{\Lam{x}{x}})] \\
+      \qquad \qquad κ_1 = \ApplyF(\pa_1) \pushF \StopF \\
+      \qquad \qquad κ_2 = \UpdateF(\pa_1) \pushF κ_1 \\
+      \qquad \qquad κ_3 = \UpdateF(\pa_1) \pushF \StopF \\
+      \qquad \qquad f = \pa \mapsto step(app_2(\Lam{\px}{\px},\pa)) \sfcomp \semst{\px} \\
+    \end{array}
+
+    & \noleftdelimiter \right\}\semst{\pe}
 \end{array}\]
 Evaluation begins by decomposing the let binding and continuing the let body in
 the extended environment and heap. Compared to an application of the $\LetT$
@@ -771,10 +790,20 @@ $\bot_\StateD$ as its neutral element.
 Let us trace the next step of evaluation (recall the definition of $ρ$ and $μ$
 above):
 \[\begin{array}{l}
-    \semst{\pe}(\pe, [], [], \StopF) = (\pe, [], [], \StopF); \semst{i~i}(i~i, ρ, μ, \StopF) \\
+    \semst{i~i}(i~i, ρ, μ, \StopF) = (i~i, ρ, μ, \StopF); \semst{i}(i, ρ, μ, κ_1) \sconcat apply(...) \\
     \qquad \text{where} \\
-    \qquad \qquad ρ = [x ↦ \pa] \\
-    \qquad \qquad μ = [\pa ↦ (\Lam{x}{x},ρ,\semst{\Lam{x}{x}})] \\
+    \qquad \qquad κ_1 = \ApplyF(\pa_1) \pushF \StopF \\
+    \semst{i}(i, ρ, μ, κ_1) = (i, ρ, μ, κ_1); \semst{\Lam{x}{x}}(\Lam{x}{x}, ρ, μ, κ_2) \sconcat step(upd)(...) \\
+    \qquad \text{where} \\
+    \qquad \qquad κ_2 = \UpdateF(\pa_1) \pushF κ_1 \\
+    \semst{\Lam{x}{x}}(\Lam{x}{x}, ρ, μ, κ_2) = (\Lam{x}{x}, ρ, μ, κ_2); ((\Lam{x}{x}, \FunV(f)), ρ, μ, κ_2) \straceend \\
+    \qquad \text{where} \\
+    \qquad \qquad f = \pa \mapsto step(app_2(\Lam{\px}{\px},\pa)) \sfcomp \semst{\px} \\
+    \semst{i}(i, ρ, μ, κ_1) \sconcat step(upd)(...) = ...; ((\Lam{x}{x}, \FunV(f)), ρ, μ, κ_2) \straceend \sconcat step(upd)(...) \\
+    ((\Lam{x}{x}, \FunV(f)), ρ, μ, κ_2) \straceend \sconcat step(upd)(...) = ((\Lam{x}{x}, \FunV(f)), ρ, μ, κ_2);  \\
+    \semst{i}(i, ρ, μ, κ_1) \sconcat apply(...) = ...; ((\Lam{x}{x}, \FunV(f)), ρ, μ, κ_2) \straceend \sconcat apply(...) \\
+    ((\Lam{x}{x}, \FunV(f)), ρ, μ, κ_2) \straceend \sconcat apply(...) = f(\pa_1)((\Lam{x}{x}, \FunV(f)), ρ, μ, κ_2) \\
+    f(\pa_1)((\Lam{x}{x}, \FunV(f)), ρ, μ, κ_2) = \\
 \end{array}\]
 
 Since the top-level
