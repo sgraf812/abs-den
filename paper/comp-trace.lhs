@@ -63,6 +63,7 @@
 %\usepackage{wasysym} % \currency
 %\usetikzlibrary{cd} % commutative diagrams
 \usetikzlibrary{calc}
+\usetikzlibrary{fit}
 \usetikzlibrary{patterns}
 \usetikzlibrary{matrix}
 \usetikzlibrary{decorations.pathreplacing}

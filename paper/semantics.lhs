@@ -777,35 +777,53 @@ $\pe = \Let{i}{\Lam{x}{x}}{i~i}$:
 
     & \noleftdelimiter \right\}\semst{\pe}
 \end{array}\]
-\begin{equation}
+
+\newcommand{\myleftbrace}[4]{
+  \draw[mymatrixbrace] (m-#2-#1.west) -- node[right=2pt] {#4} (m-#3-#1.west);
+}
+\begin{equation*}
     \begin{tikzpicture}[baseline={-0.5ex},mymatrixenv]
         \matrix [mymatrix,inner sep=4pt] (m)
         {
-      (\pe, [], [], \StopF); \\
-      (i~i, ρ_1, μ, \StopF); \\
-      (i, ρ_1, μ, κ_1); \\
-      (\Lam{x}{x}, ρ_1, μ, κ_2); \\
-      ((\Lam{x}{x}, \FunV(f)), ρ_1, μ, κ_2); \\
-      ((\Lam{x}{x}, \FunV(f)), ρ_1, μ, κ_1); \\
-      (x, ρ_2, μ, \StopF); \\
-      (\Lam{x}{x}, ρ_1, μ, κ_3); \\
-      ((\Lam{x}{x}, \FunV(f)), ρ_1, μ, κ_3); \\
-      ((\Lam{x}{x}, \FunV(f)), ρ_1, μ, \StopF) \straceend \\
-      \qquad \text{where} \\
-      \qquad \qquad ρ_1 = [i ↦ \pa_1] \\
-      \qquad \qquad ρ_2 = [i ↦ \pa_1, x ↦ \pa_1] \\
-      \qquad \qquad μ = [\pa_1 ↦ (\Lam{x}{x},ρ_1,\semst{\Lam{x}{x}})] \\
-      \qquad \qquad κ_1 = \ApplyF(\pa_1) \pushF \StopF \\
-      \qquad \qquad κ_2 = \UpdateF(\pa_1) \pushF κ_1 \\
-      \qquad \qquad κ_3 = \UpdateF(\pa_1) \pushF \StopF \\
-      \qquad \qquad f = \pa \mapsto step(app_2(\Lam{\px}{\px},\pa)) \sfcomp \semst{\px} \\
+          (\pe, [], [], \StopF); & \hspace{4em} & \hspace{4em} & \hspace{4em} & \hspace{5em} & \hspace{8em} \\
+          (i~i, ρ_1, μ, \StopF); & & & & & \\
+          (i, ρ_1, μ, κ_1); & & & & & \\
+          (\Lam{x}{x}, ρ_1, μ, κ_2); & & & & & \\
+          ((\Lam{x}{x}, \FunV(f)), ρ_1, μ, κ_2); & & & & & \\
+          ((\Lam{x}{x}, \FunV(f)), ρ_1, μ, κ_1); & & & & & \\
+          (x, ρ_2, μ, \StopF); & & & & & \\
+          (\Lam{x}{x}, ρ_1, μ, κ_3); & & & & & \\
+          ((\Lam{x}{x}, \FunV(f)), ρ_1, μ, κ_3); & & & & & \\
+          ((\Lam{x}{x}, \FunV(f)), ρ_1, μ, \StopF) \straceend & & & & & \\
+%          \qquad \text{where} & & & & & \\
+%          \qquad \qquad ρ_1 = [i ↦ \pa_1] & & & & & \\
+%          \qquad \qquad ρ_2 = [i ↦ \pa_1, x ↦ \pa_1] & & & & & \\
+%          \qquad \qquad μ = [\pa_1 ↦ (\Lam{x}{x},ρ_1,\semst{\Lam{x}{x}})] & & & & & \\
+%          \qquad \qquad κ_1 = \ApplyF(\pa_1) \pushF \StopF & & & & & \\
+%          \qquad \qquad κ_2 = \UpdateF(\pa_1) \pushF κ_1 & & & & & \\
+%          \qquad \qquad κ_3 = \UpdateF(\pa_1) \pushF \StopF & & & & & \\
+%          \qquad \qquad f = \pa \mapsto step(app_2(\Lam{\px}{\px},\pa)) \sfcomp \semst{\px} & & & & & \\
         };
-
-        % Braces
-        \mymatrixbraceleft{1}{10}{$\semst{\pe}$}
-        \mymatrixbraceleft{4}{4}{$E''$}
+        % Braces, using the node name prev as the state for the previous east
+        % anchor. Only the east anchor is relevant
+        \foreach \i in {1,...,\the\pgfmatrixcurrentrow}
+          \draw[dotted] (m-\i-2.west) -- (m.east||-m-\i-\the\pgfmatrixcurrentcolumn.east);
+        \myleftbrace{2}{1}{10}{$\semst{\pe}$}
+        \myleftbrace{3}{1}{2}{$step(let(\semst{\Lam{x}{x}}))$}
+        \myleftbrace{3}{2}{10}{$\semst{i~i}$}
+        \myleftbrace{4}{2}{3}{$step(app_2(\Lam{x}{x},\pa_1))$}
+        \myleftbrace{4}{3}{6}{$\semst{i}$}
+        \myleftbrace{4}{6}{7}{$step(app_2(\Lam{x}{x},\pa_1))$}
+        \myleftbrace{4}{7}{10}{$\semst{x}$}
+        \myleftbrace{5}{3}{4}{$step(look(i))$}
+        \myleftbrace{5}{4}{5}{$\semst{\Lam{x}{x}}$}
+        \myleftbrace{5}{5}{6}{$step(upd)$}
+        \myleftbrace{5}{7}{8}{$step(look(x))$}
+        \myleftbrace{5}{8}{9}{$\semst{\Lam{x}{x}}$}
+        \myleftbrace{6}{4}{5}{$step(ret(\Lam{x}{x},\FunV(f)))$}
+        \myleftbrace{6}{8}{9}{$step(ret(\Lam{x}{x},\FunV(f)))$}
     \end{tikzpicture}
-\end{equation}
+\end{equation*}
 Evaluation begins by decomposing the let binding and continuing the let body in
 the extended environment and heap. Compared to an application of the $\LetT$
 transition rule, the most interesting thing here is that indeed the $d$ in the

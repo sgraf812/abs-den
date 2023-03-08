@@ -225,8 +225,8 @@
 \newcommand*\mymatrixbraceright[4][m]{
     \draw[mymatrixbrace] (#1.west|-#1-#3-1.south west) -- node[left=2pt] {#4} (#1.west|-#1-#2-1.north west);
 }
-\newcommand*\mymatrixbraceleft[4][m]{
-    \draw[mymatrixbrace] (#1.east|-#1-#2-1.north east) -- node[right=2pt] {#4} (#1.east|-#1-#3-1.south east);
+\newcommand*\mymatrixbraceleft[5]{
+    \draw[mymatrixbrace] (#1.east|-#2-#3-1.east) -- node[right=2pt] (#1) {#5} (#1.east|-#2-#4-1.east);
 }
 \newcommand*\mymatrixbracetop[4][m]{
     \draw[mymatrixbrace] (#1.north-|#1-1-#2.north west) -- node[above=2pt] {#4} (#1.north-|#1-1-#3.north east);
