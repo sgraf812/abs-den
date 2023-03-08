@@ -217,3 +217,20 @@
 \newcommand{\TyCon}{\mathsf{TyCon}}
 \newcommand{\Type}{\mathsf{Type}}
 \newcommand{\ArrowTy}{\Rightarrow}
+
+% Side braces in a matrix, https://tex.stackexchange.com/q/443407
+\pgfkeys{tikz/mymatrixenv/.style={decoration={brace},every left delimiter/.style={xshift=8pt},every right delimiter/.style={xshift=-8pt}}}
+\pgfkeys{tikz/mymatrix/.style={matrix of math nodes,nodes in empty cells,inner sep=1pt,outer sep=1.5pt,column sep=2pt,row sep=2pt,nodes={minimum width=20pt,minimum height=10pt,anchor=west,inner sep=0pt,outer sep=0pt}}}
+\pgfkeys{tikz/mymatrixbrace/.style={decorate,thick}}
+\newcommand*\mymatrixbraceright[4][m]{
+    \draw[mymatrixbrace] (#1.west|-#1-#3-1.south west) -- node[left=2pt] {#4} (#1.west|-#1-#2-1.north west);
+}
+\newcommand*\mymatrixbraceleft[4][m]{
+    \draw[mymatrixbrace] (#1.east|-#1-#2-1.north east) -- node[right=2pt] {#4} (#1.east|-#1-#3-1.south east);
+}
+\newcommand*\mymatrixbracetop[4][m]{
+    \draw[mymatrixbrace] (#1.north-|#1-1-#2.north west) -- node[above=2pt] {#4} (#1.north-|#1-1-#3.north east);
+}
+\newcommand*\mymatrixbracebottom[4][m]{
+    \draw[mymatrixbrace] (#1.south-|#1-1-#2.north east) -- node[below=2pt] {#4} (#1.south-|#1-1-#3.north west);
+}

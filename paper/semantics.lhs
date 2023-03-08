@@ -777,6 +777,35 @@ $\pe = \Let{i}{\Lam{x}{x}}{i~i}$:
 
     & \noleftdelimiter \right\}\semst{\pe}
 \end{array}\]
+\begin{equation}
+    \begin{tikzpicture}[baseline={-0.5ex},mymatrixenv]
+        \matrix [mymatrix,inner sep=4pt] (m)
+        {
+      (\pe, [], [], \StopF); \\
+      (i~i, ρ_1, μ, \StopF); \\
+      (i, ρ_1, μ, κ_1); \\
+      (\Lam{x}{x}, ρ_1, μ, κ_2); \\
+      ((\Lam{x}{x}, \FunV(f)), ρ_1, μ, κ_2); \\
+      ((\Lam{x}{x}, \FunV(f)), ρ_1, μ, κ_1); \\
+      (x, ρ_2, μ, \StopF); \\
+      (\Lam{x}{x}, ρ_1, μ, κ_3); \\
+      ((\Lam{x}{x}, \FunV(f)), ρ_1, μ, κ_3); \\
+      ((\Lam{x}{x}, \FunV(f)), ρ_1, μ, \StopF) \straceend \\
+      \qquad \text{where} \\
+      \qquad \qquad ρ_1 = [i ↦ \pa_1] \\
+      \qquad \qquad ρ_2 = [i ↦ \pa_1, x ↦ \pa_1] \\
+      \qquad \qquad μ = [\pa_1 ↦ (\Lam{x}{x},ρ_1,\semst{\Lam{x}{x}})] \\
+      \qquad \qquad κ_1 = \ApplyF(\pa_1) \pushF \StopF \\
+      \qquad \qquad κ_2 = \UpdateF(\pa_1) \pushF κ_1 \\
+      \qquad \qquad κ_3 = \UpdateF(\pa_1) \pushF \StopF \\
+      \qquad \qquad f = \pa \mapsto step(app_2(\Lam{\px}{\px},\pa)) \sfcomp \semst{\px} \\
+        };
+
+        % Braces
+        \mymatrixbraceleft{1}{10}{$\semst{\pe}$}
+        \mymatrixbraceleft{4}{4}{$E''$}
+    \end{tikzpicture}
+\end{equation}
 Evaluation begins by decomposing the let binding and continuing the let body in
 the extended environment and heap. Compared to an application of the $\LetT$
 transition rule, the most interesting thing here is that indeed the $d$ in the

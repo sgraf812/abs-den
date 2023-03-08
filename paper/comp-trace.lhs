@@ -62,7 +62,10 @@
 %\usepackage{eucal}
 %\usepackage{wasysym} % \currency
 %\usetikzlibrary{cd} % commutative diagrams
-%\usetikzlibrary{decorations.pathmorphing}
+\usetikzlibrary{calc}
+\usetikzlibrary{patterns}
+\usetikzlibrary{matrix}
+\usetikzlibrary{decorations.pathreplacing}
 %\usepackage{bibentry} % \nobibliography below
 \usepackage{placeins} % flush floats with \FloatBarrier
 \usepackage[T1]{fontenc} % https://tex.stackexchange.com/a/181119
