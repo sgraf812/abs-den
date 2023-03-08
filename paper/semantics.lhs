@@ -719,6 +719,7 @@ predicate:
 \end{definition}
 
 \begin{lemma}[Transitions preserve well-addressedness]
+  \label{lemma:preserve-well-addressed}
   Let $σ$ be a well-addressed state. If there exists $σ'$ such that $σ
   \smallstep σ'$, then $σ'$ is well-addressed.
 \end{lemma}
@@ -737,137 +738,218 @@ We can now give a specification for $\semst{\wild}$:
 \label{defn:semst-spec}
 Let $σ$ be a well-addressed state and $\pe$ an arbitrary expression. Then
 \begin{itemize}
-  \item $\semst{\pe}(σ) = σ \straceend$ if the control expression $\pe'$ of $σ$ is not $\pe$. Otherwise,
-  \item $σ$ is the initial state of the trace $\semst{\pe}(σ)$, and
-  \item $\maxbaltrace{\semst{\pe}(σ)}$, and
-  \item If $dst_\States(d(σ)) = σ' = ((\Lam{\px}{\pe'}, \FunV(f)), ρ, μ, \ApplyF(\pa) \pushF κ)$ exists,
+  \item[(S1)] $\semst{\pe}(σ) = σ \straceend$ if the control expression $\pe'$ of $σ$ is not $\pe$. Otherwise,
+  \item[(S2)] $σ$ is the initial state of the trace $\semst{\pe}(σ)$, and
+  \item[(S3)] $\maxbaltrace{\semst{\pe}(σ)}$, and
+  \item[(S4)] If $dst_\States(\semst{\pe}(σ)) = σ' = ((\Lam{\px}{\pe'}, \FunV(f)), ρ, μ, \ApplyF(\pa) \pushF κ)$ exists,
         where $\ApplyF(\pa) \pushF κ$ is also the continuation of $σ$,
         then $f(\pa)(σ') = σ'; \semst{\pe'}(\pe', ρ[\px ↦ \pa], μ, κ)$.
 \end{itemize}
 \end{definition}
 
-\subsection{Conformance}
+\subsection{Definition}
 
 \Cref{fig:cesk-semantics} defines $\semst{\wild}$. Before we prove that
 $\semst{\wild}$ satisfies the specification in \Cref{defn:semst-spec},
 let us understand the function by way of evaluating the example program
-$\pe = \Let{i}{\Lam{x}{x}}{i~i}$:
-\[
-  \begin{array}{cc}
-    \begin{array}{l}
-      (\pe, [], [], \StopF); \\
-      (i~i, ρ_1, μ, \StopF); \\
-      (i, ρ_1, μ, κ_1); \\
-      (\Lam{x}{x}, ρ_1, μ, κ_2); \\
-      ((\Lam{x}{x}, \FunV(f)), ρ_1, μ, κ_2); \\
-      ((\Lam{x}{x}, \FunV(f)), ρ_1, μ, κ_1); \\
-      (x, ρ_2, μ, \StopF); \\
-      (\Lam{x}{x}, ρ_1, μ, κ_3); \\
-      ((\Lam{x}{x}, \FunV(f)), ρ_1, μ, κ_3); \\
-      ((\Lam{x}{x}, \FunV(f)), ρ_1, μ, \StopF); \\
-      \qquad \text{where} \\
-      \qquad \qquad ρ_1 = [i ↦ \pa_1] \\
-      \qquad \qquad ρ_2 = [i ↦ \pa_1, x ↦ \pa_1] \\
-      \qquad \qquad μ = [\pa_1 ↦ (\Lam{x}{x},ρ_1,\semst{\Lam{x}{x}})] \\
-      \qquad \qquad κ_1 = \ApplyF(\pa_1) \pushF \StopF \\
-      \qquad \qquad κ_2 = \UpdateF(\pa_1) \pushF κ_1 \\
-      \qquad \qquad κ_3 = \UpdateF(\pa_1) \pushF \StopF \\
-      \qquad \qquad f = \pa \mapsto step(app_2(\Lam{\px}{\px},\pa)) \sfcomp \semst{\px} \\
-    \end{array}
-
-    & \noleftdelimiter \right\}\semst{\pe}
-\end{array}\]
-
-\newcommand{\myleftbrace}[4]{
-  \draw[mymatrixbrace] (m-#2-#1.west) -- node[right=2pt] {#4} (m-#3-#1.west);
-}
-\begin{equation*}
-    \begin{tikzpicture}[baseline={-0.5ex},mymatrixenv]
-        \matrix [mymatrix,inner sep=4pt] (m)
-        {
-          (\pe, [], [], \StopF); & \hspace{4em} & \hspace{4em} & \hspace{4em} & \hspace{5em} & \hspace{8em} \\
-          (i~i, ρ_1, μ, \StopF); & & & & & \\
-          (i, ρ_1, μ, κ_1); & & & & & \\
-          (\Lam{x}{x}, ρ_1, μ, κ_2); & & & & & \\
-          ((\Lam{x}{x}, \FunV(f)), ρ_1, μ, κ_2); & & & & & \\
-          ((\Lam{x}{x}, \FunV(f)), ρ_1, μ, κ_1); & & & & & \\
-          (x, ρ_2, μ, \StopF); & & & & & \\
-          (\Lam{x}{x}, ρ_1, μ, κ_3); & & & & & \\
-          ((\Lam{x}{x}, \FunV(f)), ρ_1, μ, κ_3); & & & & & \\
-          ((\Lam{x}{x}, \FunV(f)), ρ_1, μ, \StopF) \straceend & & & & & \\
-%          \qquad \text{where} & & & & & \\
-%          \qquad \qquad ρ_1 = [i ↦ \pa_1] & & & & & \\
-%          \qquad \qquad ρ_2 = [i ↦ \pa_1, x ↦ \pa_1] & & & & & \\
-%          \qquad \qquad μ = [\pa_1 ↦ (\Lam{x}{x},ρ_1,\semst{\Lam{x}{x}})] & & & & & \\
-%          \qquad \qquad κ_1 = \ApplyF(\pa_1) \pushF \StopF & & & & & \\
-%          \qquad \qquad κ_2 = \UpdateF(\pa_1) \pushF κ_1 & & & & & \\
-%          \qquad \qquad κ_3 = \UpdateF(\pa_1) \pushF \StopF & & & & & \\
-%          \qquad \qquad f = \pa \mapsto step(app_2(\Lam{\px}{\px},\pa)) \sfcomp \semst{\px} & & & & & \\
-        };
-        % Braces, using the node name prev as the state for the previous east
-        % anchor. Only the east anchor is relevant
-        \foreach \i in {1,...,\the\pgfmatrixcurrentrow}
-          \draw[dotted] (m-\i-2.west) -- (m.east||-m-\i-\the\pgfmatrixcurrentcolumn.east);
-        \myleftbrace{2}{1}{10}{$\semst{\pe}$}
-        \myleftbrace{3}{1}{2}{$step(let(\semst{\Lam{x}{x}}))$}
-        \myleftbrace{3}{2}{10}{$\semst{i~i}$}
-        \myleftbrace{4}{2}{3}{$step(app_2(\Lam{x}{x},\pa_1))$}
-        \myleftbrace{4}{3}{6}{$\semst{i}$}
-        \myleftbrace{4}{6}{7}{$step(app_2(\Lam{x}{x},\pa_1))$}
-        \myleftbrace{4}{7}{10}{$\semst{x}$}
-        \myleftbrace{5}{3}{4}{$step(look(i))$}
-        \myleftbrace{5}{4}{5}{$\semst{\Lam{x}{x}}$}
-        \myleftbrace{5}{5}{6}{$step(upd)$}
-        \myleftbrace{5}{7}{8}{$step(look(x))$}
-        \myleftbrace{5}{8}{9}{$\semst{\Lam{x}{x}}$}
-        \myleftbrace{6}{4}{5}{$step(ret(\Lam{x}{x},\FunV(f)))$}
-        \myleftbrace{6}{8}{9}{$step(ret(\Lam{x}{x},\FunV(f)))$}
-    \end{tikzpicture}
-\end{equation*}
-Evaluation begins by decomposing the let binding and continuing the let body in
-the extended environment and heap. Compared to an application of the $\LetT$
-transition rule, the most interesting thing here is that indeed the $d$ in the
-heap is instantiated to $\semst{\Lam{x}{x}}$, as well as the interplay of the
-auxiliary $step$ function and the forward composition operator $\sfcomp$ which
-recurses into $\semst{i~i}$ using the state after applying $\LetT$.
-
-One can find that $\sfcomp$ is quite well-behaved: It forms a monoid with
-$\bot_\StateD$ as its neutral element.
-
-Let us trace the next step of evaluation (recall the definition of $ρ$ and $μ$
-above):
+$\pe \triangleq \Let{i}{\Lam{x}{x}}{i~i}$:
 \[\begin{array}{l}
-    \semst{i~i}(i~i, ρ, μ, \StopF) = (i~i, ρ, μ, \StopF); \semst{i}(i, ρ, μ, κ_1) \sconcat apply(...) \\
-    \qquad \text{where} \\
-    \qquad \qquad κ_1 = \ApplyF(\pa_1) \pushF \StopF \\
-    \semst{i}(i, ρ, μ, κ_1) = (i, ρ, μ, κ_1); \semst{\Lam{x}{x}}(\Lam{x}{x}, ρ, μ, κ_2) \sconcat step(upd)(...) \\
-    \qquad \text{where} \\
-    \qquad \qquad κ_2 = \UpdateF(\pa_1) \pushF κ_1 \\
-    \semst{\Lam{x}{x}}(\Lam{x}{x}, ρ, μ, κ_2) = (\Lam{x}{x}, ρ, μ, κ_2); ((\Lam{x}{x}, \FunV(f)), ρ, μ, κ_2) \straceend \\
-    \qquad \text{where} \\
-    \qquad \qquad f = \pa \mapsto step(app_2(\Lam{\px}{\px},\pa)) \sfcomp \semst{\px} \\
-    \semst{i}(i, ρ, μ, κ_1) \sconcat step(upd)(...) = ...; ((\Lam{x}{x}, \FunV(f)), ρ, μ, κ_2) \straceend \sconcat step(upd)(...) \\
-    ((\Lam{x}{x}, \FunV(f)), ρ, μ, κ_2) \straceend \sconcat step(upd)(...) = ((\Lam{x}{x}, \FunV(f)), ρ, μ, κ_2);  \\
-    \semst{i}(i, ρ, μ, κ_1) \sconcat apply(...) = ...; ((\Lam{x}{x}, \FunV(f)), ρ, μ, κ_2) \straceend \sconcat apply(...) \\
-    ((\Lam{x}{x}, \FunV(f)), ρ, μ, κ_2) \straceend \sconcat apply(...) = f(\pa_1)((\Lam{x}{x}, \FunV(f)), ρ, μ, κ_2) \\
-    f(\pa_1)((\Lam{x}{x}, \FunV(f)), ρ, μ, κ_2) = \\
+  \newcommand{\myleftbrace}[4]{\draw[mymatrixbrace] (m-#2-#1.west) -- node[right=2pt] {#4} (m-#3-#1.west);}
+  \begin{tikzpicture}[baseline={-0.5ex},mymatrixenv]
+      \matrix [mymatrix] (m)
+      {
+        1  & (\pe, [], [], \StopF); & \hspace{3.5em} & \hspace{3.5em} & \hspace{3.5em} & \hspace{4.5em} & \hspace{7.5em} \\
+        2  & (i~i, ρ_1, μ, \StopF); & & & & & \\
+        3  & (i, ρ_1, μ, κ_1); & & & & & \\
+        4  & (\Lam{x}{x}, ρ_1, μ, κ_2); & & & & & \\
+        5  & ((\Lam{x}{x}, \FunV(f)), ρ_1, μ, κ_2); & & & & & \\
+        6  & ((\Lam{x}{x}, \FunV(f)), ρ_1, μ, κ_1); & & & & & \\
+        7  & (x, ρ_2, μ, \StopF); & & & & & \\
+        8  & (\Lam{x}{x}, ρ_1, μ, κ_3); & & & & & \\
+        9  & ((\Lam{x}{x}, \FunV(f)), ρ_1, μ, κ_3); & & & & & \\
+        10 & ((\Lam{x}{x}, \FunV(f)), ρ_1, μ, \StopF) \straceend & & & & & \\
+      };
+      % Braces, using the node name prev as the state for the previous east
+      % anchor. Only the east anchor is relevant
+      \foreach \i in {1,...,\the\pgfmatrixcurrentrow}
+        \draw[dotted] (m.east||-m-\i-\the\pgfmatrixcurrentcolumn.east) -- (m-\i-2);
+      \myleftbrace{3}{1}{10}{$\semst{\pe}$}
+      \myleftbrace{4}{1}{2}{$let(\semst{\Lam{x}{x}})$}
+      \myleftbrace{4}{2}{10}{$\semst{i~i}$}
+      \myleftbrace{5}{2}{3}{$app_1(i~i)$}
+      \myleftbrace{5}{3}{6}{$\semst{i}$}
+      \myleftbrace{5}{6}{7}{$app_2(\Lam{x}{x},\pa_1)$}
+      \myleftbrace{5}{7}{10}{$\semst{x}$}
+      \myleftbrace{6}{3}{4}{$look(i)$}
+      \myleftbrace{6}{4}{5}{$\semst{\Lam{x}{x}}$}
+      \myleftbrace{6}{5}{6}{$upd$}
+      \myleftbrace{6}{7}{8}{$look(x)$}
+      \myleftbrace{6}{8}{9}{$\semst{\Lam{x}{x}}$}
+      \myleftbrace{6}{9}{10}{$upd$}
+      \myleftbrace{7}{4}{5}{$ret(\Lam{x}{x},\FunV(f))$}
+      \myleftbrace{7}{8}{9}{$ret(\Lam{x}{x},\FunV(f))$}
+  \end{tikzpicture} \\
+  \quad \text{where} \quad \begin{array}{ll}
+  ρ_1 = [i ↦ \pa_1] & κ_1 = \ApplyF(\pa_1) \pushF \StopF \\
+  ρ_2 = [i ↦ \pa_1, x ↦ \pa_1] & κ_2 = \UpdateF(\pa_1) \pushF κ_1 \\
+  μ = [\pa_1 ↦ (\Lam{x}{x},ρ_1,\semst{\Lam{x}{x}})] & κ_3 = \UpdateF(\pa_1) \pushF \StopF \\
+  f = \pa \mapsto step(app_2(\Lam{\px}{\px},\pa)) \sfcomp \semst{\px} \\
+  \end{array} \\
 \end{array}\]
+The annotations to the right of the trace can be understood as denoting the
+``call graph'' of the $\semst{\pe}$, with the primitive transition $step$s such
+as $let_1$, $app_1$, $look$ \etc as leaves, each \emph{elaborating} the
+application of the corresponding transition rule $\LetT$, $\AppIT$, $\LookupT$,
+and so on, in the transition semantics with a matching denotation where
+necessary.
 
-Since the top-level
-The first step concerns the
+Evaluation begins by decomposing the let binding and continuing the let body in
+the extended environment and heap, transitioning from state 1 to state 2.
+Beyond recognising the expected application of the $\LetT$ transition rule,
+it is interesting to see that indeed the $d$ in the heap is elaborated to
+$\semst{\Lam{x}{x}}$, which ends up in $ρ_1$.
 
-Let us begin by defining that a denotation $d$ is \emph{valid everywhere} when
-for every initial $σ$, we have $\validtrace{σ}$. This definition lets us express
-an important observation:
-\begin{lemma}
-  $\semst{\pe}$ is valid everywhere.
+The auxiliary $step$ function and the forward composition operator $\sfcomp$
+have been inlined everywhere, as all steps and compositions are well-defined.
+One can find that $\sfcomp$ is quite well-behaved: It forms a monoid with
+$\bot_\StateD$ (which is just $step$ applied to the function that is undefined
+everywhere) as its neutral element.
+
+Evaluation of the let binding recurses into $\semst{i~i}$ on state 2,
+where an $\AppIT$ transition to state 3, on which $\semst{i}$ is run.
+Note that the final state 6 of the call to $\semst{i}$ will later be fed
+(via $\sfcomp$) into the auxiliary function $apply$.
+
+$\semst{i}$ guides the trace from state 3 to state 6, during which we
+observe a heap update for the first time: Not only does $look$ look up
+the binding $\Lam{x}{x}$ of $i$ in the heap and push and update frame,
+it also hands over control to the $d = \semst{\Lam{x}{x}}$ stored alongside it.
+(And we make a mental note to pick up with $step(upd)$ when $d$ has finished.)
+Crucially, that happens without $\semst{\Lam{x}{x}}$ occurring in the definition
+of $\semst{i}$, thus the definition remains structural.
+
+By comparison, the value transition governed by $\semst{\Lam{x}{x}}$ from state
+4 to 5 is rather familiar from our earlier example, where we specified more or
+less the same $\FunV(f)$.
+
+$\semst{\Lam{x}{x}}$ finishes in state 5, where $upd$ picks up to guide the
+$\UpdateT$ transition. Crucially, it also updates the $d$ stored in the heap
+so that its semantics matches that of the updated value; take note of the
+similarity to the lambda clause in the definition of $\semst{\wild}$. Since
+$\Lam{x}{x}$ was a value to begin with, there is no observable change to the
+heap.
+
+After $\semst{i}$ concludes in state 6, the $apply$ function from $\semst{i~i}$
+picks up. Since $apply$ is defined on state 6, it reduces to $f(\pa_1)$%
+\footnote{We omitted $apply$ and $f(\pa_1)$ from the call graph for space reasons, but
+their activation spans from state 7 to the final state 10.}.
+$f(\pa_1)$ will perform an $\AppET$ transition to state 7, binding $x$ to $i$'s
+address $\pa_1$ and finally entering the lambda body $\semst{x}$. Since $x$ is
+an alias for $i$, steps 7 to 10 just repeat the same same heap update sequence
+we observed in steps 3 to 6.
+
+It is useful to review another example involving an observable heap update.
+The following trace begins right before the heap update occurs in
+$\Let{i}{(\Lam{y}{\Lam{x}{x}})~i}{i~i}$, that is, after reaching the value
+in $\semst{(\Lam{y}{\Lam{x}{x}})~i}$:
+\[\begin{array}{l}
+  \newcommand{\myleftbrace}[4]{\draw[mymatrixbrace] (m-#2-#1.west) -- node[right=2pt] {#4} (m-#3-#1.west);}
+  \begin{tikzpicture}[baseline={-0.5ex},mymatrixenv]
+      \matrix [mymatrix] (m)
+      {
+        1  & ((\Lam{x}{x},\FunV(f)), ρ_2, μ_1, κ_2); & \hspace{3.5em} & \hspace{3.5em} & \hspace{4.5em} & \hspace{7.5em} \\
+        2  & ((\Lam{x}{x},\FunV(f)), ρ_2, μ_2, κ_1); & & & & \\
+        3  & (x, ρ_3, μ, \StopF); & & & & \\
+        4  & (\Lam{x}{x}, ρ_2, μ, κ_3); & & & & \\
+        5  & ((\Lam{x}{x}, \FunV(f)), ρ_2, μ, κ_3); & & & & \\
+        6  & ((\Lam{x}{x}, \FunV(f)), ρ_1, μ, \StopF); & & & & \\
+      };
+      % Braces, using the node name prev as the state for the previous east
+      % anchor. Only the east anchor is relevant
+      \foreach \i in {1,...,\the\pgfmatrixcurrentrow}
+        \draw[dotted] (m.east||-m-\i-\the\pgfmatrixcurrentcolumn.east) -- (m-\i-2);
+      \myleftbrace{3}{1}{6}{$\semst{i~i}$}
+      \myleftbrace{4}{1}{2}{$\semst{i}$}
+      \myleftbrace{4}{2}{3}{$app_2(\Lam{x}{x},\pa_1)$}
+      \myleftbrace{4}{3}{6}{$\semst{x}$}
+      \myleftbrace{5}{1}{2}{$upd$}
+      \myleftbrace{5}{3}{4}{$look(x)$}
+      \myleftbrace{5}{4}{5}{$\semst{\Lam{x}{x}}$}
+      \myleftbrace{5}{5}{6}{$upd$}
+      \myleftbrace{6}{4}{5}{$ret(\Lam{x}{x},\FunV(f))$}
+  \end{tikzpicture} \\
+  \quad \text{where} \quad \begin{array}{ll}
+  ρ_1 = [i ↦ \pa_1] & κ_1 = \ApplyF(\pa_1) \pushF \StopF \\
+  ρ_2 = [i ↦ \pa_1, y ↦ \pa_1] & κ_2 = \UpdateF(\pa_1) \pushF κ_1 \\
+  μ_1 = [\pa_1 ↦ ((\Lam{y}{\Lam{x}{x}})~i,ρ_1,\semst{(\Lam{y}{\Lam{x}{x}})~i})] & κ_3 = \UpdateF(\pa_1) \pushF \StopF \\
+  μ_2 = [\pa_1 ↦ (\Lam{x}{x},ρ_2,\semst{\Lam{x}{x}})] & f = \pa \mapsto step(app_2(\Lam{\px}{\px},\pa)) \sfcomp \semst{\px} \\
+  \end{array} \\
+\end{array}\]
+Note that both the environment \emph{and} the denotation in the heap is updated
+in state 2, and that the new denotation is immediately visible on the next heap
+lookup in state 3, so that $\semst{\Lam{x}{x}}$ takes control rather than
+$\semst{(\Lam{y}{\Lam{x}{x}})~i}$, just as the transition system requires.
+
+\subsection{Conformance}
+
+Having a good grasp on the workings of $\semst{\wild}$ now, let us show that
+$\semst{\wild}$ conforms to its specification in \Cref{defn:semst-spec}.
+
+\begin{lemma}[(S1)]
+  Let $σ$ be any state, $\pe$ its control expression and $\pe'$ an expression
+  such that $\pe \not= \pe'$. \\
+  Then $\semst{\pe}(σ) = σ\straceend$.
 \end{lemma}
 \begin{proof}
-  Every $d$ produced by $\semst{\pe}$ is either $\fn{σ}{σ\straceend}$, where
-  $\validtrace{σ\straceend}$, or it is built from $\sfcomp$, $step$ or $apply$.
+  By the first clause of $\semst{\wild}$.
+\end{proof}
 
-  $(d_1 \sfcomp d_2)(σ)$ produces valid CESK traces whenever its inputs
-  $d_i$ do so. An interesting case is when $d_1(σ)$ is infinite; then
+\begin{lemma}[(S2)]
+  Let $σ$ be a well-addressed state and $\pe$ an arbitrary expression.
+  Then $σ$ is the source state of $\semst{\pe}(σ)$, \eg, $src_\StateD(\semst{\pe}(σ)) = σ$.
+\end{lemma}
+\begin{proof}
+  Trivial for the first clause of $\semst{\wild}$.
+  Now, realising that
+  $src_\StateD((l \sfcomp r)(σ)) = src_\StateD(l(σ))$
+  and that $src_\StateD(step(f)(σ)) = σ$ for any $f$,
+  we can see that the proposition follows for other clauses by applying these
+  two rewrites to completion.
+\end{proof}
+
+\begin{lemma}[(S3)]
+  Let $σ$ be a well-addressed state and $\pe$ an arbitrary expression.
+  Then $σ$ is the source state of $\semst{\pe}(σ)$, \eg, $src_\StateD(\semst{\pe}(σ)) = σ$.
+\end{lemma}
+\begin{proof}
+  Trivial for the first clause of $\semst{\wild}$.
+  Now, realising that
+  $src_\StateD((l \sfcomp r)(σ)) = src_\StateD(l(σ))$
+  and that $src_\StateD(step(f)(σ)) = σ$ for any $f$,
+  we can see that the proposition follows for other clauses by applying these
+  two rewrites to completion.
+\end{proof}
+
+\begin{lemma}
+  If $σ$ is a well-addressed state, then $\validtrace{\semst{\pe}(σ)}$.
+\end{lemma}
+\begin{proof}
+  Let us abbreviate the property of interest to
+  \[
+    OK(d) = ∀σ. σ\text{ well-addressed} \Longrightarrow \validtrace{d(σ)}
+  \]
+  Let $σ$ be a well-addressed state.
+  For the first clause of $\semst{\wild}$, the proposition follows by
+  $\validtraceTriv$.
+
+  Every other clause of $\semst{\wild}$ is built from applications of
+  $\sfcomp$, $step$ or $apply$ and it suffices to show that these combinators
+  yield valid CESK traces when applied to $σ$.
+
+  We can see that $OK(d_1 \sfcomp d_2)$ whenever $OK(d_1)$ and $OK(d_2)$ holds,
+  because the destination state of $d_1(σ)$, if it exists, is well-addressed by
+  \Cref{lemma:preserve-well-addressed} and $OK(d_2)$ can be usefully applied.
+  An interesting case is when $d_1(σ)$ is infinite; then
   $(d_1 \sfcomp d_2)(σ) = d_1(σ)$ and $\validtrace{(d_1 \sfcomp d_2)(σ)}$ follows
   from $\validtrace{d_1(σ)}$.
 
@@ -882,6 +964,9 @@ an important observation:
   By (bi-)induction that is always the case.
 \end{proof}
 
+Let us begin by defining that a denotation $d$ is \emph{valid everywhere} when
+for every initial $σ$, we have $\validtrace{σ}$. This definition lets us express
+an important observation:
 
 We can now formulate our correctness theorem as follows:
 
@@ -934,6 +1019,9 @@ maximally balanced trace for the transition semantics starting at $(\pe,[],[],\S
     σ \straceend & \text{otherwise} \\
   \end{cases} \\
   \\[-0.5em]
+  % We need this case, otherwise we'd continue e.g.
+  %   S[x]((sv,v),ρ,μ,upd(a).κ) = ((sv,v),ρ,μ,upd(a).κ); ((sv,v),ρ,μ[a...],κ)
+  % Because of how the composition operator works.
   \semst{\pe}(\pe',ρ,μ,κ) & = & (\pe',ρ,μ,κ)\straceend\ \text{when $\atlbl{\pe} \not= \atlbl{\pe'}$} \\
   \\[-0.5em]
   \semst{\px} & = & step(look(\px)) \sfcomp step(upd) \\
