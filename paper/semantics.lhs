@@ -732,20 +732,36 @@ predicate:
   in $π$ is well-addressed.
 \end{corollary}
 
+Well-addressedness of states is a useful property of the $\smallstep$ system
+in its own right, for $\semst{\wild}$ to continue a state sensibly, we need to
+relate the occurring denotations to their respective syntactic counterparts:
+
+\begin{definition}[Well-elaborated]
+  We say that a well-addressed state $σ$ is \emph{well-elaborated}, if
+  \begin{itemize}
+    \item For every heap entry $(\pe, ρ, d) ∈ \rng(μ)$, where $μ$ is the heap of
+          $σ$, we have $d=\semst{\pe}$.
+    \item If $σ$ is a return state of the form $((\Lam{\px}{\pe'}, \FunV(f)), ρ, μ, \ApplyF(\pa) \pushF κ)$, \\
+          then $f(\pa)(σ') = σ'; \semst{\pe'}(\pe', ρ[\px ↦ \pa], μ, κ)$.
+  \end{itemize}
+\end{definition}
+The initial state of $\smallstep$, $(\pe,[],[],\StopF)$, is well-elaborated,
+because it is never a return state and its heap is empty.
+
 We can now give a specification for $\semst{\wild}$:
 
 \begin{definition}[Specification of $\semst{\wild}$]
 \label{defn:semst-spec}
-Let $σ$ be a well-addressed state and $\pe$ an arbitrary expression. Then
+Let $σ$ be a well-elaborated state and $\pe$ an arbitrary expression. Then
 \begin{itemize}
   \item[(S1)] $\semst{\pe}(σ) = σ \straceend$ if the control expression $\pe'$ of $σ$ is not $\pe$. Otherwise,
   \item[(S2)] $σ$ is the initial state of the trace $\semst{\pe}(σ)$, and
-  \item[(S3)] $\maxbaltrace{\semst{\pe}(σ)}$, and
-  \item[(S4)] If $dst_\States(\semst{\pe}(σ)) = σ' = ((\Lam{\px}{\pe'}, \FunV(f)), ρ, μ, \ApplyF(\pa) \pushF κ)$ exists,
-        where $\ApplyF(\pa) \pushF κ$ is also the continuation of $σ$,
-        then $f(\pa)(σ') = σ'; \semst{\pe'}(\pe', ρ[\px ↦ \pa], μ, κ)$.
+  \item[(S3)] All states in the trace $\semst{\pe}(σ)$ are well-elaborated, and
+  \item[(S4)] $\maxbaltrace{\semst{\pe}(σ)}$
 \end{itemize}
 \end{definition}
+Clearly, $(S4)$ is the key property for adequacy, but we can't prove it without
+the other 3 properties.
 
 \subsection{Definition}
 
