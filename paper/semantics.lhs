@@ -534,11 +534,9 @@ Trace of the expression:
   \ruleform{ π_1 \sconcat π_2 = π_3 } \\
   \\[-0.5em]
   π_1 \sconcat π_2 = \begin{cases}
-    π_1       & \text{if $π_1$ infinite} \\
-    undefined & \text{if $π_1$ finite and $dst_\States(π_1) \not= src_\States(π_2)$} \\
-    σ         & π_1 = π_2 = σ\straceend \\
-    π_1'; π_2 &  π_1 = π_1'; σ\straceend \\
-    π_1; π_2' &  π_2 = σ; π_2' \\
+    σ; (π_1' \sconcat π_2) & \text{if $π_1 = σ; π_1'$} \\
+    π_2                    & \text{if $π_1 = σ\straceend$ and $src_\States(π_2) = σ$} \\
+    undefined              & \text{if $π_1 = σ\straceend$ and $src_\States(π_2) \not= σ$} \\
   \end{cases} \\
  \end{array} \\
  \\
@@ -666,38 +664,109 @@ Perhaps earlier, where we'll discuss labels.}}
 
 A stuck trace is one way in which $\semst{\wild}$ does not \emph{always} return
 a balanced trace. The other way is when the trace diverges before yielding to
-the original continuation. We call a trace \emph{maximally balanced} if it is a
-valid CESK trace and falls in either of the these categories. More precisely:
+the initial continuation. We call a trace \emph{maximally-balanced} if it is a
+valid CESK trace and falls in either of the three categories. More precisely:
 
-\begin{definition}[Maximally balanced trace]
-  A CESK trace $π = (e_1,ρ_1,μ_1,κ_1); ... (e_i,ρ_i,μ_i,κ_i); ... $ is \emph{maximally balanced} if
+\begin{definition}[Non-retreating and maximally-balanced trace]
+  A CESK trace $π = (e_1,ρ_1,μ_1,κ_1); ... (e_i,ρ_i,μ_i,κ_i); ... $ is
+  \emph{non-retreating} if
   \begin{itemize}
     \item $\validtrace{π}$, and
-    \item Every intermediate continuation $κ_i$ extends $κ_1$ (so $κ_i = ... \pushF κ_1$), and
-    \item If $π$ is finite, then there is no $σ'$ such that $π; σ'$ is maximally balanced.
+    \item Every intermediate continuation $κ_i$ extends $κ_1$ (so $κ_i = κ_1$ or $κ_i = ... \pushF κ_1$)
   \end{itemize}
-  We notate maximally-balanced traces as $\maxbaltrace{π}$.
+  A non-retreating CESK trace $π$ is \emph{maximally-balanced} if it is either
+  infinite or there is no $σ$ such that $π \sconcat (dst_\States(π); σ \straceend)$
+  is non-retreating.
 \end{definition}
 
-In other words, a trace is maximally balanced if it follows the transition
-semantics, never leaves the initial evaluation context and is either infinite,
-stuck, or its final state $σ_n$ has $(\pv,v)$ in its focus and $κ_n = κ_i$.
+We notate maximally-balanced traces as $\maxbaltrace{π}$.
 
-For the initial state with an empty stack, the balanced maximal trace is
-exactly the result of running the transition semantics to completion.
+\begin{definition}[Return states]
+  $σ$ is a \emph{return state} if its control is of the form $(\pv, v)$, \eg,
+  the situation following a $\ValueT$ transition.
+\end{definition}
+
+The final states of the CESK semantics are the return states with a $\StopF$
+continuation.
+A state $σ$ that cannot make a step (so there exists no $σ'$ such that $σ
+\smallstep σ'$) and is not a final state is called \emph{stuck}.
 
 \begin{example}[Stuck]
+  \label{ex:stuck}
   The following trace is stuck because $x$ is not in scope:
   \[
     \semst{x~y}(x~y,[y↦\pa], [\pa↦...], κ) = (x~y,[y↦\pa], [\pa↦...], κ); (x,[y↦\pa], [\pa↦...], \ApplyF(\pa) \pushF κ)\straceend
   \]
 \end{example}
 
-In fact, out-of-scope references are the only way in which our simple lambda calculus
-without algebraic data types can get stuck. It is useful to limit such out-of-scope
-errors to the lookup of program variables in the environment $ρ$ and require
-that lookups in the heap $μ$ are always well-defined, captured in the following
-predicate:
+A trace is stuck if its destination state is stuck.
+
+\begin{lemma}[Characterisation of destination states of maximally-balanced traces]
+  Let $π$ be a maximally-balanced trace. Then
+  \begin{itemize}
+    \item Either $π$ is infinite, or
+    \item $π$ is stuck, or
+    \item $π$ is \emph{balanced}, meaning that $dst_\States(π)$ is a return
+          state, the continuation of which is that of the initial state
+          $src_\States(π)$.
+  \end{itemize}
+\end{lemma}
+\begin{proof}
+  Let $π$ be defined as in the proposition.
+  If $π$ is infinite or stuck, we are done; so assume that $π$ is finite and not
+  stuck. Let $σ_1 = src_\States(π)$, $σ_n = dst_\States(π)$ and let $κ_1$ denote
+  the continuation of $σ_1$ and $κ_n$ that of $σ_n$.
+
+  If $σ_n$ is a final state, then clearly $σ_n$ is a return state with $κ_n =
+  \StopF$, hence balanced.
+
+  Now assume that $σ_n$ is neither stuck nor final.
+  Our goal is to show that $κ_n = κ_1$ and that $σ$ is a return state.
+
+  Since $σ_n$ is neither stuck nor final, there is $σ_{n+1}$ such that $σ_n
+  \smallstep σ_{n+1}$; let $π' = π \sconcat (σ_n; σ_{n+1} \straceend)$ be the
+  continued trace.
+  $π'$ forms a valid CESK trace, but since $π$ is maximally-balanced, it can't
+  be non-retreating.
+  Hence the continuation $κ_{n+1}$ of $σ_{n+1}$ cannot be an extension of $κ_1$.
+  On the other hand, $σ_n$ \emph{is} an extension of $κ_1$ because $π$ is
+  non-retreating.
+
+  We proceed by cases over the transition rule taken:
+  \begin{itemize}
+    \item \textbf{Case} $\ValueT$, $\LookupT$, $\AppIT$, $\LetT$:
+      These are all non-retreating transitions. Since $κ_n$ extends $κ_1$,
+      so must $κ_{n+1}$; contradiction.
+    \item \textbf{Case} $\UpdateT$, $\AppET$:
+      In both cases we see that $σ$ is a return state and
+      we have either $κ_n = \UpdateF(\pa) \pushF κ_{n+1}$ or
+      $κ_n = \ApplyF(\pa) \pushF κ_{n+1}$.
+
+      Suppose that $κ_n \not= κ_1$. Then , where we can write $κ_n$ as $... \pushF κ_1$
+  \end{itemize}
+
+
+\end{proof}
+
+In other words, a trace is maximally-balanced if it follows the transition
+semantics, never leaves the initial evaluation context and is either infinite,
+stuck, or successfully returns a value to its initial evaluation context.
+
+For the initial state with an empty stack, the balanced maximal trace is
+exactly the result of running the transition semantics to completion.
+
+Unsurprisingly, infinite traces are never stuck or balanced.
+We could also show that no balanced trace is ever stuck, thus proving the three
+categories disjoint. Unfortunately, the introduction of algebraic data types
+gives rise to balanced but stuck traces, so we won't make use of that fact in
+the theory that follows.
+
+\Cref{ex:stuck} gives an example program that is stuck because of an
+out-of-scope reference. This is in fact the only way in which our simple lambda
+calculus without algebraic data types can get stuck; it is useful to limit such
+out-of-scope errors to the lookup of program variables in the environment $ρ$
+and require that lookups in the heap $μ$ are always well-defined, captured in
+the following predicate:
 
 \begin{definition}[Well-addressed]
   We say that
@@ -922,26 +991,26 @@ $\semst{\wild}$ conforms to its specification in \Cref{defn:semst-spec}.
 
 \begin{lemma}[(S2)]
   Let $σ$ be a well-addressed state and $\pe$ an arbitrary expression.
-  Then $σ$ is the source state of $\semst{\pe}(σ)$, \eg, $src_\StateD(\semst{\pe}(σ)) = σ$.
+  Then $σ$ is the source state of $\semst{\pe}(σ)$, \eg, $src_\States(\semst{\pe}(σ)) = σ$.
 \end{lemma}
 \begin{proof}
   Trivial for the first clause of $\semst{\wild}$.
   Now, realising that
-  $src_\StateD((l \sfcomp r)(σ)) = src_\StateD(l(σ))$
-  and that $src_\StateD(step(f)(σ)) = σ$ for any $f$,
+  $src_\States((l \sfcomp r)(σ)) = src_\States(l(σ))$
+  and that $src_\States(step(f)(σ)) = σ$ for any $f$,
   we can see that the proposition follows for other clauses by applying these
   two rewrites to completion.
 \end{proof}
 
 \begin{lemma}[(S3)]
   Let $σ$ be a well-addressed state and $\pe$ an arbitrary expression.
-  Then $σ$ is the source state of $\semst{\pe}(σ)$, \eg, $src_\StateD(\semst{\pe}(σ)) = σ$.
+  Then $σ$ is the source state of $\semst{\pe}(σ)$, \eg, $src_\States(\semst{\pe}(σ)) = σ$.
 \end{lemma}
 \begin{proof}
   Trivial for the first clause of $\semst{\wild}$.
   Now, realising that
-  $src_\StateD((l \sfcomp r)(σ)) = src_\StateD(l(σ))$
-  and that $src_\StateD(step(f)(σ)) = σ$ for any $f$,
+  $src_\States((l \sfcomp r)(σ)) = src_\States(l(σ))$
+  and that $src_\States(step(f)(σ)) = σ$ for any $f$,
   we can see that the proposition follows for other clauses by applying these
   two rewrites to completion.
 \end{proof}
@@ -992,7 +1061,7 @@ Let $d = \semst{\pe}$. Then for all $ρ,μ$ with $\vdash_\Heaps μ$, we have $μ
 \end{theorem}
 
 \begin{corollary} Let $d = \semst{\pe}$. Then $π=d(\pe,[],[],\StopF)$ is a
-maximally balanced trace for the transition semantics starting at $(\pe,[],[],\StopF)$.
+maximally-balanced trace for the transition semantics starting at $(\pe,[],[],\StopF)$.
 \end{corollary}
 
 \begin{figure}
