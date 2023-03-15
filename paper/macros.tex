@@ -27,7 +27,8 @@
 \newcommand{\ruleform}[1]{\fbox{$#1$}}
 \newcommand{\highlight}[1]{\setlength{\fboxsep}{2pt}\colorbox[gray]{0.8}{\ensuremath{#1}}}
 \newcommand{\nelems}[1]{\lvert#1\rvert}
-\newcommand{\fn}[2]{\ensuremath{λ#1.\ #2}}
+%\newcommand{\fn}[2]{\ensuremath{λ#1.\ #2}}
+\newcommand{\fn}[2]{#1 ↦ #2}
 \newcommand{\constfn}[1]{\fn{\mathunderscore}{#1}}
 %\newcommand{\repeat}[2]{\foreach \n in {1,...,#1}{#2}} % https://tex.stackexchange.com/a/16190/52414
 % https://tex.stackexchange.com/a/21647
@@ -122,6 +123,7 @@
 \newcommand{\Domain}[1]{{\mathbb{D}^{#1}}}
 \newcommand{\PrefD}{\Domain{*}}
 \newcommand{\MaxD}{\Domain{+\infty}}
+\newcommand{\ScottD}{\Domain{}}
 \newcommand{\AbsD}{\Domain{\raisebox{0.1em}{\scalebox{0.4}{$\square$}}}}
 \newcommand{\AbsCD}{\Domain{\raisebox{0.1em}{\scalebox{0.4}{c$\square$}}}}
 \newcommand{\StateD}{\Domain{\States}}
@@ -153,6 +155,7 @@
 
 % Semantics
 \newcommand{\denot}[1]{\llbracket {#1} \rrbracket}
+\newcommand{\semscott}[1]{\mathcal{S}\denot{#1}}
 \newcommand{\sempref}[1]{\mathcal{S}^*\denot{#1}}
 \newcommand{\seminf}[1]{\mathcal{S}^{+\infty}\denot{#1}}
 \newcommand{\semst}[1]{\mathcal{S}^{\States}\denot{#1}}

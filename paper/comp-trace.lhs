@@ -57,6 +57,7 @@
 \usepackage{cleveref}
 \usepackage{xspace}
 \usepackage{mathpartir}
+\usepackage{subcaption}
 \usepackage{tikz}
 \usepackage{mathbbol} % \bbcolon and \bbquestionmark
 %\usepackage{eucal}
@@ -178,7 +179,8 @@
 
 \maketitle
 
-%include semantics.lhs
+%include intro.lhs
+%%include semantics.lhs
 
 \nocite{*}
 
