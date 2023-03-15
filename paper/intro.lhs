@@ -5,12 +5,11 @@
 \[\begin{array}{c}
  \arraycolsep=3pt
  \begin{array}{rrclcl}
-  \text{Variables}       & \px,\py,\pz & ∈ & \Var    &     & \\
-  \text{Values}          &         \pv & ∈ & \Val    & ::= & \Lam{\px}{\pe} \\
-  \text{Expressions}     &         \pe & ∈ & \Exp    & ::= & \slbl \px \mid \slbl \pv \mid \slbl \pe~\px \mid \slbl \Let{\px}{\pe_1}{\pe_2} \\
+  \text{Variables}       &    \px & ∈ & \Var    &     & \\
+  \text{Expressions}     &    \pe & ∈ & \Exp    & ::= & \slbl \px \mid \slbl \Lam{\px}{\pe} \mid \slbl \pe~\px \mid \slbl \Let{\px}{\pe_1}{\pe_2} \\
   \\
-  \text{Scott Domain}    &          d  & ∈ & \ScottD & ::= & \FunV([\ScottD \to \ScottD]) \mid \bot \\
-  \text{Liveness Domain} &      d^{∃l} & ∈ & \LiveD  & =   & \poset{\Var} \\
+  \text{Scott Domain}    &      d & ∈ & \ScottD & ::= & \FunV([\ScottD \to \ScottD]) \mid \bot \\
+  \text{Liveness Domain} & d^{∃l} & ∈ & \LiveD  & =   & \poset{\Var} \\
  \end{array} \\
 \end{array}\]
 \subcaption{Syntax of expressions and Scott Domain}
