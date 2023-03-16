@@ -59,6 +59,7 @@
 \usepackage{mathpartir}
 \usepackage{subcaption}
 \usepackage{tikz}
+\usepackage{xr} % reference stuff in the appendix
 \usepackage{mathbbol} % \bbcolon and \bbquestionmark
 %\usepackage{eucal}
 %\usepackage{wasysym} % \currency
