@@ -15,20 +15,6 @@
   series = {POPL '77}
 }
 
-@InProceedings{Wadler-Hughes:FPCA87,
-  author="Wadler, Philip
-  and Hughes, R. J. M.",
-  editor="Kahn, Gilles",
-  title="Projections for strictness analysis",
-  booktitle="Functional Programming Languages and Computer Architecture",
-  year="1987",
-  publisher="Springer Berlin Heidelberg",
-  address="Berlin, Heidelberg",
-  pages="385--407",
-  abstract="Contexts have been proposed as a means of performing strictness analysis on non-flat domains. Roughly speaking, a context describes how much a sub-expression will be evaluated by the surrounding program. This paper shows how contexts can be represented using the notion of projection from domain theory. This is clearer than the previous explanation of contexts in terms of continuations. In addition, this paper describes finite domains of contexts over the non-flat list domain. This means that recursive context equations can be solved using standard fixpoint techniques, instead of the algebraic manipulation previously used.",
-  isbn="978-3-540-47879-9"
-}
-
 @techreport{Scott:81,
   title = {LECTURES ON A MATHEMATICAL THEORY OF COMPUTATION},
   author = {Dana S. Scott},
@@ -36,41 +22,6 @@
   institution = {Department of Computer Science, University of Oxford},
   number = {PRG19},
   pages = {152},
-}
-
-@inproceedings{Kubiak-al:FP91,
-  author="Kubiak, Ryszard
-  and Hughes, John
-  and Launchbury, John",
-  editor="Heldal, Rogardt
-  and Holst, Carsten Kehler
-  and Wadler, Philip",
-  title="Implementing Projection-based Strictness Analysis",
-  booktitle="Functional Programming, Glasgow 1991",
-  year="1992",
-  publisher="Springer London",
-  address="London",
-  pages="207--224",
-  abstract="Projection-based backwards strictness analysis has been understood for some years. Surprisingly, even though the method is fairly simple and quite general, no reports of its implementation have appeared. This paper describes ideas underlying our prototype implementation of the analysis for a simple programming language. The implementation serves as a case study before applying the method in the Glasgow Haskell compiler.",
-  isbn="978-1-4471-3196-0"
-}
-
-@inproceedings{SergeyVytiniotisSPJ:POPL14,
-  author = {Sergey, Ilya and Vytiniotis, Dimitrios and Peyton Jones, Simon},
-  title = {Modular, Higher-Order Cardinality Analysis in Theory and Practice},
-  year = {2014},
-  isbn = {9781450325448},
-  publisher = {Association for Computing Machinery},
-  address = {New York, NY, USA},
-  url = {https://doi.org/10.1145/2535838.2535861},
-  doi = {10.1145/2535838.2535861},
-  abstract = {Since the mid '80s, compiler writers for functional languages (especially lazy ones) have been writing papers about identifying and exploiting thunks and lambdas that are used only once. However it has proved difficult to achieve both power and simplicity in practice. We describe a new, modular analysis for a higher-order language, which is both simple and effective, and present measurements of its use in a full-scale, state of the art optimising compiler. The analysis finds many single-entry thunks and one-shot lambdas and enables a number of program optimisations.},
-  booktitle = {Proceedings of the 41st ACM SIGPLAN-SIGACT Symposium on Principles of Programming Languages},
-  pages = {335–347},
-  numpages = {13},
-  keywords = {haskell, program optimisation, static analysis, compilers, types and effects, thunks, operational semantics, lazy evaluation, cardinality analysis, functional programming languages},
-  location = {San Diego, California, USA},
-  series = {POPL '14}
 }
 
 @inproceedings{imprecise-exceptions,
@@ -125,4 +76,50 @@
   timestamp = {Tue, 16 May 2017 01:00:00 +0200},
   biburl    = {https://dblp.org/rec/books/daglib/0098888.bib},
   bibsource = {dblp computer science bibliography, https://dblp.org}
+}
+
+@book{Cousot:21,
+  title={Principles of Abstract Interpretation},
+  author={Cousot, Patrick},
+  isbn={9780262044905},
+  lccn={2020041256},
+  url={https://mitpress.mit.edu/9780262044905/principles-of-abstract-interpretation/},
+  year={2021},
+  publisher={MIT Press}
+}
+
+@techreport{Scott:70,
+  title = "Outline of a Mathematical Theory of Computation",
+  author = "Dana Scott",
+  year = "1970",
+  institution = "OUCL",
+  month = "November",
+  number = "PRG02",
+  pages = "30",
+}
+
+@techreport{ScottStrachey:71,
+  title = "Toward a Mathematical Semantics for Computer Languages",
+  author = "Dana Scott and Christopher Strachey",
+  year = "1971",
+  institution = "OUCL",
+  month = "August",
+  number = "PRG06",
+  pages = "49",
+}
+
+@inproceedings{Shivers:91,
+  author = {Shivers, Olin},
+  title = {The Semantics of Scheme Control-Flow Analysis},
+  year = {1991},
+  isbn = {0897914333},
+  publisher = {Association for Computing Machinery},
+  address = {New York, NY, USA},
+  url = {https://doi.org/10.1145/115865.115884},
+  doi = {10.1145/115865.115884},
+  booktitle = {Proceedings of the 1991 ACM SIGPLAN Symposium on Partial Evaluation and Semantics-Based Program Manipulation},
+  pages = {190–198},
+  numpages = {9},
+  location = {New Haven, Connecticut, USA},
+  series = {PEPM '91}
 }

@@ -86,7 +86,7 @@
 \setlength{\pdfpagewidth}{\paperwidth}
 
 \title{A Compositional Trace Semantics for Lambda Calculus}
-\subtitle{}
+\subtitle{Or: Denotational semantics for Call-by-need Lambda Calculus}
 
 \author{Sebastian Graf}
 \affiliation{%
