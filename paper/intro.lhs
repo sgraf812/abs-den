@@ -248,7 +248,7 @@ analyses of the Glasgow Haskell Compiler into a fixpoint iteration on the
 approximated states of a transition system.
 
 Furthermore, the weakness of the accepted notion of adequacy is not unique to
-liveness analysis; it concerns preservation proofs for type systems (is the
+liveness analysis; it concerns progress proofs for type systems (is the
 term stuck or diverging?) and correctness proofs for control-flow analysis
 \cite{Shivers:91} as well (does the analysis approximate the control-flow of
 diverging programs?).
