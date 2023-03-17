@@ -1,6 +1,30 @@
 \section{Problem Statement}
 \label{sec:problem}
 
+\subsection{Notation}
+
+Collection of stuff to explain, for now:
+\begin{itemize}
+  \item $\triangleq$ for defining an object (defn eq), rather than $=$
+  \item $\text{letrec}$
+    The (meta-level, math) notation
+    \[
+    \text{letrec}~l.~\many{x = rhs_x} ~ l = rhs_{l} ~ \many{y = rhs_y}~\text{in}~body
+    \]
+    where $l$ might occur freely in any $rhs_{\wild}$ and $body$, is syntactic sugar for
+    \[
+    snd(\lfp(\fn{(l,\wild)}{\text{let}~\many{x = rhs_x} ~ \many{y = rhs_y}~\text{in}~(rhs_{l},body)}))
+    \]
+    Where $\lfp$ is the least fixpoint operator and $snd(a,b) = b$. Clearly, this
+    desugaring's use of $\lfp$ is well-defined for its use on elements of the
+    powerset lattice $\LiveD$.
+
+    But \cite{Shivers:91} uses the similar $\text{whererec}$ and gets by without
+    ever explaining it, so we might as well.
+\end{itemize}
+
+\subsection{Lax Adequacy and Potential Liveness Analysis}
+
 The fact ``never evaluates $x$'' can be established by a liveness analysis such
 as $\semlive{\wild}$, depicted in \Cref{fig:liveness}, analysing a call-by-name
 (or call-by-need? Can you tell?) lambda calculus with recursive let bindings
@@ -203,17 +227,7 @@ diverging programs?).
 %describing the potentially live variables of $\pe_1$, including $\px$ to
 %symbollically stand for liveness of $\pe_1$.
 %
-%The (meta-level, math) notation
-%\[
-%\text{letrec}~l.~\many{x = rhs_x} ~ l = rhs_{l} ~ \many{y = rhs_y}~\text{in}~body
-%\]
-%where $l$ might occur freely in any $rhs_{\wild}$ and $body$, is syntactic sugar for
-%\[
-%snd(\lfp(\fn{(l,\wild)}{\text{let}~\many{x = rhs_x} ~ \many{y = rhs_y}~\text{in}~(rhs_{l},body)}))
-%\]
-%Where $\lfp$ is the least fixpoint operator and $snd(a,b) = b$. Clearly, this
-%desugaring's use of $\lfp$ is well-defined for its use on elements of the
-%powerset lattice $\LiveD$.
 %
 %Intuition suggests that the facts produced by $\semlive{\wild}$ is correct in
 %some sense,
+

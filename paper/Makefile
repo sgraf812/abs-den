@@ -9,7 +9,7 @@ comp-trace.tex: *.lhs
 	lhs2TeX --poly comp-trace.lhs > comp-trace.tex
 
 comp-trace-ext.tex: *.lhs
-	lhs2TeX --poly appendix.lhs >appendix.tex
+	lhs2TeX --poly appendix.lhs > appendix.tex
 	lhs2TeX --poly comp-trace.lhs | sed -e 's/^%\\extended/\\extended/g' > comp-trace-ext.tex
 
 %.pdf: %.tex macros.tex references.bib
@@ -22,7 +22,7 @@ quick: comp-trace.tex macros.tex
 	$(PDFLATEX) comp-trace
 	$(PDFLATEX) comp-trace
 
-quick-ext: comp-trace-ext.tex appendix.tex macros.tex
+quick-ext: comp-trace-ext.tex macros.tex
 	$(PDFLATEX) comp-trace-ext
 	$(PDFLATEX) comp-trace-ext
 

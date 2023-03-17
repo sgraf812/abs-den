@@ -1,6 +1,6 @@
 %include custom.fmt
 
-\externaldocument{comp-trace-ext}
+%\externaldocument{comp-trace-ext}
 
 \renewcommand\thefigure{\thesection.\arabic{figure}}
 
