@@ -50,8 +50,8 @@ optimisation opportunities) and a reason for ... reflection (users didn't expect
 their infinite loop to be optimised into a crash). Such issues come up in
 practice \sg{cite GHC issues}.
 
-More seriously, it is impossible to prove that a static analysis does not
-misoptimise infinite behaviors by way of denotational semantics.
+More seriously, it is impossible to prove by way of a denotational semantics
+that a static analysis does not misoptimise infinite behaviors.
 (a) The \emph{potential liveness} analysis that says ``$\pe_{loop}$ never
 evaluates $id$'' could be proven ``correct''.
 (b) A type analysis that says ``$\Let{loop}{id~loop}{loop}$ is closed and
@@ -65,7 +65,7 @@ in terms of the denotational semantics.
 
 Furthermore, although it is sensible (in the terminating case) to ask whether or
 not $x$ is \emph{never} evaluated in terms of the denotational semantics, asking
-whether $x$ is evaluated \emph{at least once} is not, for the same reason that
+whether $x$ is evaluated \emph{at most once} is not, for the same reason that
 traditional denotational semantics is not able to discern call-by-name from
 call-by-need. Yet, to the Glasgow Haskell Compiler, this distinction is very
 much of concern!

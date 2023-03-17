@@ -5,8 +5,8 @@ By way of the poster child example of potential liveness analysis, we showcase
 how the notion of adequacy in traditional denotational semantics is too weak
 to substantiate a correctness criterion. Further consideration of more elaborate
 cardinality analyses~\cite{cardinality} and quantitative type
-systems~\cite{Atkey:18} characterise this weakness not only in terms of a lack
-of observable divergence but also in terms of evaluation cardinality.
+systems~\cite{Atkey:18} characterise this weakness not only in terms of
+unobservable divergence but also in terms of evaluation cardinality.
 
 %\subsection{Notation}
 %
@@ -106,7 +106,7 @@ analysis $\semlive{\wild}$. (It is naïve in that its treatment of function
 application assumes that every function deeply evaluates its argument.)
 
 Assuming that all program variables are distinct (a silent assumption from
-hereon throughout), the result of $\semlive{\wild}$ is an element $d ∈ \LiveD$,
+here on throughout), the result of $\semlive{\wild}$ is an element $d ∈ \LiveD$,
 itself a subset of all program variables that are \emph{potentially live}.
 Intuitively, if $x \not∈ d$, then $x$ is considered to be \emph{dead}, \eg,
 \emph{never evaluated}; thus $\semlive{\wild}$ can be used to infer facts of
