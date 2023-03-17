@@ -159,3 +159,122 @@
   location = {Baltimore, Maryland, USA},
   series = {ICFP '10}
 }
+
+@inproceedings{Felleisen:87,
+  author = {Felleisen, Mattias and Friedman, D. P.},
+  title = {A Calculus for Assignments in Higher-Order Languages},
+  year = {1987},
+  isbn = {0897912152},
+  publisher = {Association for Computing Machinery},
+  address = {New York, NY, USA},
+  url = {https://doi.org/10.1145/41625.41654},
+  doi = {10.1145/41625.41654},
+  abstract = {Imperative assignments are abstractions of recurring programming patterns in purely functional programming languages. When added to higher-order functional languages, they provide a higher-level of modularity and security but invalidate the simple substitution semantics. We show that, given an operational interpretation of a denotational semantics for such a language, it is possible to design a two-level extension of the λu-calculus. This calculus provides a location-free rewriting semantics of the language and offers new possibilities for reasoning with assignments. The upper level of the calculus factors out all the steps in a reduction sequence which must be in a linear order; the lower level allows a partial ordering of reduction steps.},
+  booktitle = {Proceedings of the 14th ACM SIGACT-SIGPLAN Symposium on Principles of Programming Languages},
+  pages = {314},
+  location = {Munich, West Germany},
+  series = {POPL '87}
+}
+
+@article{cardinality-ext,
+  title={Modular, higher order cardinality analysis in theory and practice},
+  volume={27},
+  DOI={10.1017/S0956796817000016},
+  journal={Journal of Functional Programming},
+  publisher={Cambridge University Press},
+  author={Sergey, Ilya and Vytiniotis, Dimitrios and Peyton Jones, Simon and Breitner, Joachim},
+  year={2017},
+  pages={e11}
+}
+
+@inproceedings{Ariola:95,
+  author = {Ariola, Zena M. and Maraist, John and Odersky, Martin and Felleisen, Matthias and Wadler, Philip},
+  title = {A Call-by-Need Lambda Calculus},
+  year = {1995},
+  isbn = {0897916921},
+  publisher = {Association for Computing Machinery},
+  address = {New York, NY, USA},
+  url = {https://doi.org/10.1145/199448.199507},
+  doi = {10.1145/199448.199507},
+  abstract = {The mismatch between the operational semantics of the lambda calculus and the actual behavior of implementations is a major obstacle for compiler writers. They cannot explain the behavior of their evaluator in terms of source level syntax, and they cannot easily compare distinct implementations of different lazy strategies. In this paper we derive an equational characterization of call-by-need and prove it correct with respect to the original lambda calculus. The theory is a strictly smaller theory than the lambda calculus. Immediate applications of the theory concern the correctness proofs of a number of implementation strategies, e.g., the call-by-need continuation passing transformation and the realization of sharing via assignments.},
+  booktitle = {Proceedings of the 22nd ACM SIGPLAN-SIGACT Symposium on Principles of Programming Languages},
+  pages = {233–246},
+  numpages = {14},
+  location = {San Francisco, California, USA},
+  series = {POPL '95}
+}
+
+@inproceedings{Atkey:18,
+  author = {Atkey, Robert},
+  title = {Syntax and Semantics of Quantitative Type Theory},
+  year = {2018},
+  isbn = {9781450355834},
+  publisher = {Association for Computing Machinery},
+  address = {New York, NY, USA},
+  url = {https://doi.org/10.1145/3209108.3209189},
+  doi = {10.1145/3209108.3209189},
+  abstract = {We present Quantitative Type Theory, a Type Theory that records usage information for each variable in a judgement, based on a previous system by McBride. The usage information is used to give a realizability semantics using a variant of Linear Combinatory Algebras, refining the usual realizability semantics of Type Theory by accurately tracking resource behaviour. We define the semantics in terms of Quantitative Categories with Families, a novel extension of Categories with Families for modelling resource sensitive type theories.},
+  booktitle = {Proceedings of the 33rd Annual ACM/IEEE Symposium on Logic in Computer Science},
+  pages = {56–65},
+  numpages = {10},
+  keywords = {Type Theory, Linear Logic},
+  location = {Oxford, United Kingdom},
+  series = {LICS '18}
+}
+
+@inproceedings{Ullrich:19,
+  author = {Ullrich, Sebastian and de Moura, Leonardo},
+  title = {Counting Immutable Beans: Reference Counting Optimized for Purely Functional Programming},
+  year = {2019},
+  isbn = {9781450375627},
+  publisher = {Association for Computing Machinery},
+  address = {New York, NY, USA},
+  url = {https://doi.org/10.1145/3412932.3412935},
+  doi = {10.1145/3412932.3412935},
+  abstract = {Most functional languages rely on some kind of garbage collection for automatic memory management. They usually eschew reference counting in favor of a tracing garbage collector, which has less bookkeeping overhead at runtime. On the other hand, having an exact reference count of each value can enable optimizations such as destructive updates. We explore these optimization opportunities in the context of an eager, purely functional programming language. We propose a new mechanism for efficiently reclaiming memory used by nonshared values, reducing stress on the global memory allocator. We describe an approach for minimizing the number of reference counts updates using borrowed references and a heuristic for automatically inferring borrow annotations. We implemented all these techniques in a new compiler for an eager and purely functional programming language with support for multi-threading. Our preliminary experimental results demonstrate our approach is competitive and often outperforms state-of-the-art compilers.},
+  booktitle = {Proceedings of the 31st Symposium on Implementation and Application of Functional Languages},
+  articleno = {3},
+  numpages = {12},
+  keywords = {lean, purely functional programming, reference counting},
+  location = {Singapore, Singapore},
+  series = {IFL '19}
+}
+
+@inproceedings{perceus,
+author = {Reinking, Alex and Xie, Ningning and de Moura, Leonardo and Leijen, Daan},
+title = {Perceus: Garbage Free Reference Counting with Reuse},
+year = {2021},
+isbn = {9781450383912},
+publisher = {Association for Computing Machinery},
+address = {New York, NY, USA},
+url = {https://doi.org/10.1145/3453483.3454032},
+doi = {10.1145/3453483.3454032},
+abstract = {We introduce Perceus, an algorithm for precise reference counting with reuse and specialization. Starting from a functional core language with explicit control-flow, Perceus emits precise reference counting instructions such that (cycle-free) programs are _garbage free_, where only live references are retained. This enables further optimizations, like reuse analysis that allows for guaranteed in-place updates at runtime. This in turn enables a novel programming paradigm that we call _functional but in-place_ (FBIP). Much like tail-call optimization enables writing loops with regular function calls, reuse analysis enables writing in-place mutating algorithms in a purely functional way. We give a novel formalization of reference counting in a linear resource calculus, and prove that Perceus is sound and garbage free. We show evidence that Perceus, as implemented in Koka, has good performance and is competitive with other state-of-the-art memory collectors.},
+booktitle = {Proceedings of the 42nd ACM SIGPLAN International Conference on Programming Language Design and Implementation},
+pages = {96–111},
+numpages = {16},
+keywords = {Reference Counting, Handlers, Algebraic Effects},
+location = {Virtual, Canada},
+series = {PLDI 2021}
+}
+
+@article{Lorenzen:22,
+  author = {Lorenzen, Anton and Leijen, Daan},
+  title = {Reference Counting with Frame Limited Reuse},
+  year = {2022},
+  issue_date = {August 2022},
+  publisher = {Association for Computing Machinery},
+  address = {New York, NY, USA},
+  volume = {6},
+  number = {ICFP},
+  url = {https://doi.org/10.1145/3547634},
+  doi = {10.1145/3547634},
+  abstract = {The recently introduced _Perceus_ algorithm can automatically insert reference count instructions such that the resulting (cycle-free) program is _garbage free_: objects are freed at the very moment they can no longer be referenced. An important extension is reuse analysis. This optimization pairs objects of known size with fresh allocations of the same size and tries to reuse the object in-place at runtime if it happens to be unique. Unfortunately, current implementations of reuse analysis are fragile with respect to small program transformations, or can cause an arbitrary increase in the peak heap usage. We present a novel _drop-guided_ reuse algorithm that is simpler and more robust than previous approaches. Moreover, we generalize the linear resource calculus to precisely characterize garbage-free and frame-limited evaluations. On each function call, a frame-limited evaluation may hold on to memory longer if the size is bounded by a constant factor. Using this framework we show that our drop-guided reuse _is_ frame-limited and find that an implementation of our new reuse approach in Koka can provide significant speedups.},
+  journal = {Proc. ACM Program. Lang.},
+  month = {aug},
+  articleno = {103},
+  numpages = {24},
+  keywords = {Koka, Reuse, Frame Limited, Reference Counting}
+}
+
+

@@ -59,7 +59,6 @@
 \usepackage{mathpartir}
 \usepackage{subcaption}
 \usepackage{tikz}
-\usepackage{xr} % reference stuff in the appendix
 \usepackage{mathbbol} % \bbcolon and \bbquestionmark
 %\usepackage{eucal}
 %\usepackage{wasysym} % \currency
@@ -183,6 +182,7 @@
 %include intro.lhs
 %include problem.lhs
 %%include semantics.lhs
+%%include related-work.lhs
 
 \nocite{*}
 

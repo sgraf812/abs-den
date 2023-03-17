@@ -1,7 +1,5 @@
 %include custom.fmt
 
-%\externaldocument{comp-trace-ext}
-
 \renewcommand\thefigure{\thesection.\arabic{figure}}
 
 \subsection{Proofs}
@@ -9,6 +7,7 @@
 \providecommand{\tr}{\ensuremath{\tilde{ρ}}}
 
 \begin{proof}[Of \Cref{thm:semlive-correct-1}]
+  \label{prf:semlive-correct-1}
   Let us fix $\pe$ and $\px$ and let us assume that there exists $\tr$ such that
   $\tr(\px) \not⊆ \semlive{\pe}$. The goal is to show that $\px$ is dead in $\pe$,
   so we are given an arbitrary $ρ$, $d_1$ and $d_2$ and have to show that
