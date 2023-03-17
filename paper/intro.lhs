@@ -6,196 +6,94 @@ glean facts about a program such as ``this program is well-typed'', ``this
 higher-order function is always called with argument $\Lam{x}{x+1}$'' or ``this
 program never evaluates $x$'' by way of static analysis.
 
-The fact ``never evaluates $x$'' can be established by a liveness analysis such
-as $\semlive{\wild}$, depicted in \Cref{fig:liveness}, analysing a call-by-name
-(or call-by-need? Can you tell?) lambda calculus with recursive let bindings
-defined in \Cref{fig:scott-syntax}.
-%It is in \emph{administrative normal form} (ANF),
-%that is, the arguments of applications are restricted to be variables, so
-%the difference between call-by-name and call-by-value manifests purely in
-%the semantics of let.
-Assuming that all program variables are distinct, the result of
-$\semlive{\wild}$ is an element $d ∈ \LiveD$, itself a subset of all program
-variables that are \emph{potentially live}.
-Intuitively, if $x \not∈ d$, then $x$ is considered to be \emph{dead}, \eg,
-never evaluated. The \emph{requirement} (in the sense of informal specification)
-on an assertion such as ``$x$ is dead'' is that if $x$ was let-bound (rather
-than lambda-bound), we can replace its right-hand side with whatever expression
-we want, perhaps to minimise code size.
+If the implementation language is a functional one, then often such static
+analyses are formulated as a function defined by \emph{structural recursion} on
+the input term.
+For example, given an application expression $(\pe_1~\pe_2)$,
+the property ``$(\pe_1~\pe_2)$ never evaluates $x$'' can be \emph{conservatively
+approximated} (here: It's OK to say ``No'' more often) by the property ``$\pe_1$
+and $\pe_2$ never evaluate $x$''.
 
-%More formally, given an expression $\pe$ and a mapping $ρ : \Var \to \LiveD$
-%that describes which variables are potentially live after any one of $\pe$'s
-%free variables have been evaluated deeply, $\semlive{\pe}_ρ$ is the set of
-%potentially live variables after a deep evaluation of $\pe$.
+Such a structural formulation is quite convenient:
+(1) Structural recursion gives an immediate proof of termination and can
+    further be exploited in other inductive proofs.
+(2) A structural definition is often \emph{compositional}, meaning that
+    if you replace a sub-expression by another sub-expression with the same
+    result under the function, the overall result of the containing expression
+    does not change. This makes it easy for humans to understand and reason
+    about.
 
-Without going into further detail of how exactly $\semlive{\wild}$ produces a
-result, note that its definition is \emph{compositional}, that is, by
-\emph{structural recursion} over the input term, as is a common scheme in
-functional programming. Apart from a trivial proof of termination, structural
-definitions allow humans (and proofs) to reason about what a function returns
-(``What is live in $(λx. x+y)~z$?'')
-for a complex expression by considering what the function returns on its parts
-(``I know that $y$ is live in $(λx.x+y)$ and $z$ is live in $z$, so both $y$ and
-$z$ are live in $(λx. x+y)~z$ by the application rule'').
+For static analyses, especially more complicated ones, it is good practice to
+provide a proof of correctness of some sort. If the correctness statement can
+be expressed in terms of a \emph{denotational semantics}
+\cite{ScottStrachey:71}, then the recursion structure of analysis function and
+semantics function line up nicely. As a result, the proof of correctness can be
+conducted by simple induction over the expression.
 
-Squinting a bit, we find that $\semlive{\wild}$ looks a lot like the function
-to its left in \Cref{fig:denotational}. $\semscott{\wild}$ is the canonical
-denotational semantics for lambda calculus after Scott and Strachey
-\cite{ScottStrachey:71}.
-The structure of $\semlive{\wild}$ lines up quite nicely with $\semscott{\wild}$:
-It recurses in all the right places, the variable case is an exact match and
-the other three cases differ only very slightly.
-
-We can now give a formal definition of deadness in terms of this semantics:
-
-\begin{definition}[Deadness]
-  Let $\pe$ be an expression and $\px$ a variable.
-  $\px$ is \emph{dead} in $\pe$ if and only if, for all $ρ ∈ Var \to \ScottD$
-  and $d_1, d_2 ∈ \ScottD$ we have
-  $\semscott{\pe}_{ρ[\px↦d_1]} = \semscott{\pe}_{ρ[\px↦d_2]}$.
-  Otherwise, $\px$ is \emph{potentially live}.
-\end{definition}
-
-Now, consider a program $\Let{x}{\pe_1}{\pe_2}$. If $x$ is dead in $\pe_2$,
-then a compiler can drop the entire let binding, because
-$\semscott{\Let{x}{\pe_1}{\pe_2}}_ρ = \semscott{\pe_2}_{ρ[x↦d]} =
-\semscott{\pe_2}_ρ$ (for a suitable $d$). So our definition of deadness is not
-only simple to grasp, but also simple to exploit.
-
-\begin{figure}
-\begin{minipage}{\textwidth}
-\[\begin{array}{c}
- \arraycolsep=3pt
- \begin{array}{rrclcl}
-  \text{Variables}       & \px,\py & ∈ & \Var    &     & \\
-  \text{Expressions}     &     \pe & ∈ & \Exp    & ::= & \px \mid \Lam{\px}{\pe} \mid \pe~\px \mid \Let{\px}{\pe_1}{\pe_2} \\
-  \\
-  \text{Scott Domain}    &       d & ∈ & \ScottD & =   & [\ScottD \to_c \ScottD]_\bot \\
-  \text{Liveness Domain} &  d^{∃l} & ∈ & \LiveD  & =   & \poset{\Var} \\
- \end{array} \\
-\end{array}\]
-\subcaption{Syntax of expressions and domain equations}
-  \label{fig:scott-syntax}
-\end{minipage}
-\begin{minipage}{0.52\textwidth}
-\arraycolsep=0pt
-\[\begin{array}{rcl}
-  \multicolumn{3}{c}{ \ruleform{ \semscott{\wild} \colon \Exp → (\Var \to \ScottD) → \ScottD } } \\
-  \\[-0.5em]
-  \semscott{\px}_ρ & {}={} & ρ(\px) \\
-  \semscott{\Lam{\px}{\pe}}_ρ & {}={} & d ↦_c \semscott{\pe}_{ρ[\px ↦ d]} \\
-  \semscott{\pe~\px}_ρ & {}={} & \begin{cases}
-     f(ρ(x)) & \text{if $\semscott{\pe} = \FunV(f)$}  \\
-     \bot   & \text{otherwise}  \\
-   \end{cases} \\
-  \semscott{\Let{\px}{\pe_1}{\pe_2}}_ρ & {}={} &
-    \begin{letarray}
-      \text{letrec}~ρ'. & ρ' = ρ \mathord{⊔} [\px \mathord{↦} d_1] \\
-                        & d_1 = \semscott{\pe_1}_{ρ'} \\
-      \text{in}         & \semscott{\pe_2}_{ρ'}
-    \end{letarray} \\
-\end{array}\]
-\subcaption{Denotational semantics after Scott}
-  \label{fig:denotational}
-\end{minipage}%
-\begin{minipage}{0.5\textwidth}
-\arraycolsep=0pt
-\[\begin{array}{rcl}
-  \multicolumn{3}{c}{ \ruleform{ \semlive{\wild} \colon \Exp → (\Var → \LiveD) → \LiveD } } \\
-  \\[-0.5em]
-  \semlive{\px}_ρ & {}={} & ρ(\px) \\
-  \semlive{\Lam{\px}{\pe}}_ρ & {}={} & \semlive{\pe}_{ρ[\px ↦ \varnothing]} \\
-  \\[-0.5em]
-  \semlive{\pe~\px}_ρ & {}={} & \semlive{\pe} ∪ ρ(\px) \\
-  \\[-0.5em]
-  \semlive{\Let{\px}{\pe_1}{\pe_2}}_ρ& {}={} & \begin{letarray}
-      \text{letrec}~ρ'. & ρ' = ρ \mathord{⊔} [\px \mathord{↦} d_1] \\
-                        & d_1 = \{\px\} \mathord{∪} \semscott{\pe_1}_{ρ'} \\
-      \text{in}         & \semlive{\pe_2}_{ρ'}
-    \end{letarray} \\
-\end{array}\]
-\subcaption{Naïve potential liveness analysis}
-  \label{fig:liveness}
-\end{minipage}%
-  \label{fig:intro}
-\caption{Connecting liveness analysis to denotational semantics}
-\end{figure}
-We can now try to prove our liveness analysis correct in terms of this notion of
-deadness:
-
-\newcommand{\tr}{\ensuremath{\tilde{ρ}}}
-
-\begin{theorem}[Correctness of $\semlive{\wild}$]
-  \label{thm:semlive-correct-1}
-  Let $\pe$ be an expression and $\px$ a variable.
-  Then $\px$ is dead in $\pe$ whenever
-  there exists $\tr ∈ \Var \to \LiveD$ such that
-  $\tr(\px) \not⊆ \semlive{\pe}_{\tr}$.
-\end{theorem}
-\begin{proof}
-  By induction over $\pe$. Full proof in the Appendix.
-\end{proof}
-
-The proof capitalises on the similarities in structure by using induction on the
-program expression, hence it is simple and direct. Often, such a proof needs to
-assume conformance to some logical relation to strengthen the induction hypothesis
-for the application case, but for our very simple analysis we do not need to be
-so crafty.
-
-Unfortunately, our notion of deadness is also insufficient. Consider the
-infinitely-looping program
+Alas, it turns out that the traditional denotational semantics for lambda
+calculus (like the traditional notion of natural semantics) conflates diverging
+and stuck programs. Consider the following program using recursive let that is
+infinitely-looping
 \[
-  \pe \triangleq \Let{id}{\Lam{x}{x}}{\Let{loop}{id~loop}{loop}}
+  \pe_{loop} \triangleq \Let{id}{\Lam{x}{x}}{\Let{loop}{id~loop}{loop}}
 \]
-Its denotation is $\semscott{\pe}_ρ = \bot$ in every environment $ρ$ since
-$loop$ never terminates, hence $\pe$ and its subexpression $loop$ are dead in
-all variables, including $id$.
+The traditional denotational semantics after Scott and Strachey would equate all
+of the following programs:
+$\semscott{\pe_{loop}}_ρ = \semscott{\Let{loop}{id~loop}{loop}}_ρ =
+\semscott{\mathsf{segfault}}_ρ = \bot$.
+Note that the first program has an infinite loop, the second one a scoping bug
+and the last one is a straight out crash in the style of an imprecise exception
+\cite{imprecise-exceptions}.
+To a compiler developer, this conflation is both a reason for joy (more
+optimisation opportunities) and a reason for reflection (users didn't expect
+their infinite loop to be optimised into a crash). Such issues come up in
+practice \sg{cite GHC issues}.
 
-Imagine a compiler exploiting the deadness of $id$ to optimise to
-$\Let{loop}{id~loop}{loop}$ or even just $segfault$! The former program is not
-even well-scoped (thus stuck at some point), and the latter program crashes
-immediately instead of running into an infinite loop, yet both programs have the
-same denotation $\bot$.
+More seriously, it is impossible to prove that a static analysis does not
+misoptimise infinite behaviors by way of denotational semantics.
+(a) The \emph{potential liveness} analysis that says ``$\pe_{loop}$ never
+evaluates $id$'' could be proven ``correct''.
+(b) A type analysis that says ``$\Let{loop}{id~loop}{loop}$ is well-typed'' can
+still be proven progressing (assuming that the system is not strongly
+normalising), because $\pe_{loop}$ should be well-typed and is
+denotationally equivalent to the former.
+(c) Imagine that $id$ was passed as an argument to $loop$ instead, \eg
+$...\ \Let{loop}{\Lam{f}{f~(loop~f)}}{loop~id}$. Then a control-flow analysis
+\cite{Shivers:91} that says ``$f$ is never bound to $id$'' can be proven correct
+in terms of the denotational semantics.
 
-We have just seen how the traditional notion of adequacy in denotational
-semantics (similar to the natural semantics) does not give distinct denotations to
-programs that are very much observationally distinct (stuck, looping, crashing)
-to a compiler developer and users of said compiler.
+Furthermore, although it is sensible (in the terminating case) to ask whether or
+not $x$ is \emph{never} evaluated in terms of the denotational semantics, asking
+whether $x$ is evaluated \emph{more than once} is not, for the same reason that
+traditional denotational semantics is not able to discern call-by-name from
+call-by-need. Yet, to the Glasgow Haskell Compiler, this distinction is very
+much of concern!
 
-%\sg{Move to related work.}
-%There have been attempts to discern crashes from other kinds of loops, such as
-%\cite{imprecise-exceptions}. Unfortunately, in Section 5.3 they find it
-%impossible give non-terminating programs a denotation other than $\bot$, which
-%still encompasses all possible exception behaviors.
-
-There is no use in fretting and the compiler developer will instead
-try to find a suitable definition of correctness in terms of a \emph{structural
-operational semantics}. Unfortunately, such a semantics does not share structure
-with our neat and, ultimately, sound definition $\semlive{\wild}$. That severely
-complicates both the correctness criterion and the associated proof with
-details such as substitution, thinking about multiple activations of the same
-let binding leading to heap allocation, \etc.
+When denotational semantics fails the compiler developer, they turn to a
+correctness criterion in terms of a \emph{structural operational semantics}.
+This was the approach taken by \cite{cardinality} to prove evaluation
+cardinality properties such as potential liveness. The drawback of this approach
+is the immense proof complexity arising from the disconnect between a structural
+definition and a transition system; matters such as substitution, multiple heap
+activations of the let binding, non-determinism and fixpoint induction abound.
+It is hard to raise confidence in such a proof without full mechanisation.
 
 One could adopt the approach of \emph{Abstracting Abstract Machines} \cite{aam}
 and let the structure of the semantics dictate the structure of the
 analysis for a re-usable proof of correctness via abstract interpretation
 \cite{Cousot:21}.
-Alas, that is not how the static analyses work that the author is familiar with.
+However, that is not how the static analyses work that the author is familiar with.
 For example, it would be quite an effort to rewrite the neat, compositional
 analyses of the Glasgow Haskell Compiler into a fixpoint iteration on the
-approximated states of a transition system.
-
-Furthermore, the weakness of the accepted notion of adequacy is not unique to
-liveness analysis; it concerns progress proofs for type systems (is the
-term stuck or diverging?) and correctness proofs for control-flow analysis
-\cite{Shivers:91} as well (does the analysis approximate the control-flow of
-diverging programs?).
+approximated states of an abstract transition system.
 
 The contributions of this work are as follows:
 \begin{itemize}
+  \item In \Cref{sec:problem}, we give a more formal illustration of the
+    problems we just introduced and are inclined to solve.
   \item In \Cref{sec:semantics}, we give a \emph{structurally-defined} semantics
     for lambda calculus that is \emph{able to discern stuck, diverging and
-    evaluating programs}. Furthermore, it is a semantics for \emph{call-by-need}
+    converging programs}. Furthermore, it is a semantics for \emph{call-by-need}
     lambda calculus that is distinct from similar ones for call-by-name or
     call-by-value. We believe that our semantics is the first with the
     aforementioned two qualities and prove it correct \wrt a standard
@@ -204,53 +102,12 @@ The contributions of this work are as follows:
   \item The semantics in \Cref{sec:semantics} is one generating \emph{stateful}
     traces in a standard operational semantics, and serves mostly as a
     convenient bridge for proving bisimulation. In \Cref{sec:stateless} we will
-    define an equivalent \emph{stateless} semantics and we will see how to
-    recover necessary state as needed.
+    define an equivalent, but more convenient \emph{stateless} semantics and we
+    will see how to recover necessary state as needed.
   \item We employ the stateless semantics as a collecting semantics and derive
     $\semlive{\wild}$ by calculational design \cite{Cousot:21}.
     Similar derivations will be made for a simple type system as well as for
     control flow analysis.
+  \item Talk about prototype in Haskell?
   \item Related Work
 \end{itemize}
-
-%The free variable case $\semlive{\wild}$ simply looks up
-%what variables are potentially live when evaluating $x$ in $ρ$.
-%
-%Most interesting is its handling of lambda abstractions:
-%Even if evaluating a lambda does not evaluate any variables whatsoever, $\semlive{\wild}$
-%conservatibely accounts for potential beta reductions in the future (``deep
-%evaluation'') by returning the potentially live varables of the lambda body
-%$\pe$ minus the lambda-bound variable
-%\sg{Removing the lambda-bound variable isn't strictly necessary as they
-%are never added in the first place. Yet, omission may lead to a few head
-%scratches...}.
-%The recursive call into the lambda body adds an entry to $ρ$ for the variable
-%$x$ bound by the lambda, which may occur free in $\pe$. Its mapping to the empty
-%set reveals another interesting invariant about $\semlive{\wild}$: That any
-%evaluation of lambda-bound variables has been accounted for by the application
-%site.
-%
-%Indeed, the application case $\semlive{\pe~\px}$ simply unites the potentially
-%live variables of the argument $ρ(x)$ with the ones from the application head,
-%whether the head evaluates its argument or not.
-%
-%Finally, $\semlive{\Let{\px}{\pe_1}{\pe_2}}$ extends $ρ$ in a useful way,
-%analysing $\pe_2$ in the extended environment $ρ'$ that contains an entry
-%describing the potentially live variables of $\pe_1$, including $\px$ to
-%symbollically stand for liveness of $\pe_1$.
-%
-%The (meta-level, math) notation
-%\[
-%\text{letrec}~l.~\many{x = rhs_x} ~ l = rhs_{l} ~ \many{y = rhs_y}~\text{in}~body
-%\]
-%where $l$ might occur freely in any $rhs_{\wild}$ and $body$, is syntactic sugar for
-%\[
-%snd(\lfp(\fn{(l,\wild)}{\text{let}~\many{x = rhs_x} ~ \many{y = rhs_y}~\text{in}~(rhs_{l},body)}))
-%\]
-%Where $\lfp$ is the least fixpoint operator and $snd(a,b) = b$. Clearly, this
-%desugaring's use of $\lfp$ is well-defined for its use on elements of the
-%powerset lattice $\LiveD$.
-%
-%Intuition suggests that the facts produced by $\semlive{\wild}$ is correct in
-%some sense,
-

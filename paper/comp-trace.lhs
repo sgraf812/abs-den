@@ -181,6 +181,7 @@
 \maketitle
 
 %include intro.lhs
+%include problem.lhs
 %%include semantics.lhs
 
 \nocite{*}

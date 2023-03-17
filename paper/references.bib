@@ -123,3 +123,39 @@
   location = {New Haven, Connecticut, USA},
   series = {PEPM '91}
 }
+
+@inproceedings{cardinality,
+  author = {Sergey, Ilya and Vytiniotis, Dimitrios and Peyton Jones, Simon},
+  title = {Modular, Higher-Order Cardinality Analysis in Theory and Practice},
+  year = {2014},
+  isbn = {9781450325448},
+  publisher = {Association for Computing Machinery},
+  address = {New York, NY, USA},
+  url = {https://doi.org/10.1145/2535838.2535861},
+  doi = {10.1145/2535838.2535861},
+  abstract = {Since the mid '80s, compiler writers for functional languages (especially lazy ones) have been writing papers about identifying and exploiting thunks and lambdas that are used only once. However it has proved difficult to achieve both power and simplicity in practice. We describe a new, modular analysis for a higher-order language, which is both simple and effective, and present measurements of its use in a full-scale, state of the art optimising compiler. The analysis finds many single-entry thunks and one-shot lambdas and enables a number of program optimisations.},
+  booktitle = {Proceedings of the 41st ACM SIGPLAN-SIGACT Symposium on Principles of Programming Languages},
+  pages = {335–347},
+  numpages = {13},
+  keywords = {types and effects, operational semantics, thunks, compilers, functional programming languages, program optimisation, lazy evaluation, haskell, static analysis, cardinality analysis},
+  location = {San Diego, California, USA},
+  series = {POPL '14}
+}
+
+@inproceedings{aam,
+  author = {Van Horn, David and Might, Matthew},
+  title = {Abstracting Abstract Machines},
+  year = {2010},
+  isbn = {9781605587943},
+  publisher = {Association for Computing Machinery},
+  address = {New York, NY, USA},
+  url = {https://doi.org/10.1145/1863543.1863553},
+  doi = {10.1145/1863543.1863553},
+  abstract = {We describe a derivational approach to abstract interpretation that yields novel and transparently sound static analyses when applied to well-established abstract machines. To demonstrate the technique and support our claim, we transform the CEK machine of Felleisen and Friedman, a lazy variant of Krivine's machine, and the stack-inspecting CM machine of Clements and Felleisen into abstract interpretations of themselves. The resulting analyses bound temporal ordering of program events; predict return-flow and stack-inspection behavior; and approximate the flow and evaluation of by-need parameters. For all of these machines, we find that a series of well-known concrete machine refactorings, plus a technique we call store-allocated continuations, leads to machines that abstract into static analyses simply by bounding their stores. We demonstrate that the technique scales up uniformly to allow static analysis of realistic language features, including tail calls, conditionals, side effects, exceptions, first-class continuations, and even garbage collection.},
+  booktitle = {Proceedings of the 15th ACM SIGPLAN International Conference on Functional Programming},
+  pages = {51–62},
+  numpages = {12},
+  keywords = {abstract machines, abstract interpretation},
+  location = {Baltimore, Maryland, USA},
+  series = {ICFP '10}
+}
