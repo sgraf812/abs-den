@@ -1,114 +1,105 @@
 \section{Semantics}
 \label{sec:semantics}
 
+\subsection{Transititon System}
+
+\begin{itemize}
+  \item Introduce syntax, labels, notation. $\StateD$ is not the exponential!
+  \item Introduce transition system+states, clarifying that we don't care about
+        $\StateD$ yet, only that we'll instantiate in a way that makes the
+        semantics deterministic
+\end{itemize}
+
 \begin{figure}
 \[\begin{array}{c}
- \arraycolsep=3pt
  \begin{array}{rrclcl}
-  \text{Variables}    & \px & ∈ & \Var        &     & \\
-  \text{Values}    &         \pv & ∈ & \Val        & ::= & \Lam{\px}{\pe} \\
-  \text{Expressions}  &         \pe & ∈ & \Exp        & ::= & \slbl \px \mid \slbl \pv \mid \slbl \pe~\px \mid \slbl \Let{\px}{\pe_1}{\pe_2} \\
-  \text{Addresses}    &         \pa & ∈ & \Addresses  &  ⊆  & ℕ \\
+  \text{Variables}    & \px, \py & ∈ & \Var        &     & \\
+  \text{Values}       &      \pv & ∈ & \Val        & ::= & \Lam{\px}{\pe} \\
+  \text{Expressions}  &      \pe & ∈ & \Exp        & ::= & \slbl \px \mid \slbl \pv \mid \slbl \pe~\px \mid \slbl \Let{\px}{\pe_1}{\pe_2} \\
+  \text{Addresses}    &      \pa & ∈ & \Addresses  &  ⊆  & ℕ \\
   \\
-  \text{Actions} & a & ∈ & \Actions & ::=  & \AppIA \mid \AppEA \mid \LookupA(\pa) \mid \BindA \mid \ValA(v) \\
-  \text{Finite Traces} & π^+ & ∈ & \Traces^+ & ::=  & \lbl \mid \lbl \act{a} π^+  \\
-
-  \text{Semantic Domain} &     d & ∈ & \AbsD & & \text{Specified as needed} \\
-  \text{Values}          &     v & ∈ & \Values & ::= & \FunV(\AbsD \to \AbsD) \\
-  \\
-  \text{Limit of a set of traces} & && \lim \mathcal{T} & = & \{ π \mid ∀n∈\mathbb{N}. π[0..n] ∈ \mathcal{T} \} \\
-  \\
-  \text{Infinite Traces} & π^\infty & ∈ & \Traces^{\infty} &  ::=  & \lim \Traces^+    \\
-  \text{Finite and infinite Traces} & π & ∈ & \Traces^{+\infty} & ::=  & \Traces^+ ∪ \Traces^\infty    \\
-  \\
-  \text{Domain of prefix traces} & && \PrefD & = & \Traces^+ \to \poset{\Traces^+} \\
-  \text{Domain of deterministic maximal traces} & && \MaxD & = & \Traces^+ \to \Traces^{+\infty} \\
-  \\
+  \text{States}                             & σ      & ∈ & \States  & = & \Control \times \Environments \times \Heaps \times \Continuations \\
+  \text{Control}                            & γ      & ∈ & \Control & = & \Exp ∪ (\Val \times \Values^\States) \\
+  \text{Environments}                       & ρ      & ∈ & \Environments & = & \Var \pfun \Addresses \\
+  \text{Heaps}                              & μ      & ∈ & \Heaps & = & \Addresses \pfun \Exp \times \Environments \times \StateD \\
+  \text{Continuations}                      & κ      & ∈ & \Continuations & ::= & \StopF \mid \ApplyF(\pa) \pushF κ \mid \UpdateF(\pa) \pushF κ \\
+  \\[-0.5em]
+  \text{Stateful traces}                    & π      & ∈ & \STraces & ::=_{\gfp} & σ\straceend \mid σ; π \\
+  \text{Domain of stateful trace semantics} & d      & ∈ & \StateD  & = & \States \to_c \STraces \\
+  \text{Values}                             & v      & ∈ & \Values^\States & ::= & \FunV(\Addresses \to \StateD) \\
  \end{array} \\
- \\[-0.5em]
- \ruleform{hash : \Traces^+ \to \Addresses} \quad \text{an injective function on the number of $\BindA$ actions in the trace} \\
  \\
- \begin{array}{rcl}
-  \multicolumn{3}{c}{ \ruleform{ \atlbl{\pe} = \lbl } } \\
+ \begin{array}{c}
+  \ruleform{ σ_1 \smallstep σ_2 } \\
   \\[-0.5em]
-  \atlbl{ \slbln{1} \pv \slbln{2} } & = & \slbln{1} \\
-  \atlbl{ \slbl \wild \ } & = & \slbl \\
+  \inferrule*
+    [right=$\ValueT$]
+    {\quad}
+    {(\pv, ρ, μ, κ) \smallstep ((\pv, v), ρ, μ, κ)}
+  \qquad
+  \inferrule*
+    [right=$\LookupT$]
+    {\pa = ρ(\px) \quad (\pe,ρ',\wild) = μ(\pa)}
+    {(\px, ρ, μ, κ) \smallstep (\pe, ρ', μ, \UpdateF(\pa) \pushF κ)}
+  \\
+  \inferrule*
+    [right=$\UpdateT$]
+    {\quad}
+    {((\pv,v), ρ, μ, \UpdateF(\pa) \pushF κ) \smallstep ((\pv,v), ρ, μ[\pa ↦ (\pv,ρ,d)], κ)} \\
+  \\[-0.5em]
+  \inferrule*
+    [right=$\AppIT$]
+    {\pa = ρ(\px)}
+    {(\pe~\px,ρ,μ,κ) \smallstep (\pe,ρ,μ,\ApplyF(\pa) \pushF κ)}
+  \quad
+  \inferrule*
+    [right=$\AppET$]
+    {\quad}
+    {((\Lam{\px}{\pe},\wild),ρ,μ, \ApplyF(\pa) \pushF κ) \smallstep (\pe,ρ[\px ↦ \pa],μ,κ)} \\
+  \\[-0.5em]
+  \inferrule*
+    [right=$\LetT$]
+    {\fresh{\pa}{μ} \quad ρ' = ρ[\px↦\pa]}
+    {(\Let{\px}{\pe_1}{\pe_2},ρ,μ,κ) \smallstep (\pe_2,ρ',μ[\pa↦(\pe_1,ρ',d_1)], κ)} \\
   \\
  \end{array} \\
  \begin{array}{rcl}
-  \multicolumn{3}{c}{ \ruleform{ src(π) = \lbl \qquad dst(π^+) = \lbl } } \\
+  \multicolumn{3}{c}{ \ruleform{ src_\States(π) = σ \qquad dst_\States(π) = σ } } \\
   \\[-0.5em]
-  src(\lbl)           & = & \lbl \\
-  src(\lbl \act{a} π) & = & \lbl \\
+  src_\States(σ\straceend)    & = & σ \\
+  src_\States(σ; π) & = & σ \\
   \\[-0.5em]
-  dst(\lbl)           & = & \lbl \\
-  dst(π^+ \act{a} \lbl) & = & \lbl \\
-  \\
- \end{array} \qquad
+  dst_\States(π)    & = & \begin{cases}
+    undefined & \text{if $π$ infinite} \\
+    σ         & \text{if $π = ...; σ \straceend$}
+  \end{cases} \\
+ \end{array} \quad
  \begin{array}{c}
-  \ruleform{ π_1 \concat π_2 = π_3 } \\
+  \ruleform{ π_1 \sconcat π_2 = π_3 } \\
   \\[-0.5em]
-  π_1 \concat π_2 = \begin{cases}
-    π_1              & \text{if $π_1$ infinite} \\
-    undefined        & \text{if $π_1$ finite and $dst(π_1) \not= src(π_2)$} \\
-    \lbl             & π_1 = π_2 = \lbl \\
-    π_1' \act{a} π_2 &  π_1 = π_1' \act{a} \lbl \\
-    π_1 \act{a} π_2' &  π_2 = \lbl \act{a} π_2' \\
+  π_1 \sconcat π_2 = \begin{cases}
+    σ; (π_1' \sconcat π_2) & \text{if $π_1 = σ; π_1'$} \\
+    π_2                    & \text{if $π_1 = σ\straceend$ and $src_\States(π_2) = σ$} \\
+    undefined              & \text{if $π_1 = σ\straceend$ and $src_\States(π_2) \not= σ$} \\
   \end{cases} \\
  \end{array} \\
  \\
- \begin{array}{ll}
-  \begin{array}{c}
-  \ruleform{ \getval{π}{v} }
+ \begin{array}{c}
+  \ruleform{ \validtrace{π} } \\
   \\[-0.5em]
-  \inferrule*[right=\textsc{ValVal}]
+  \inferrule*
     {\quad}
-    {\getval{π \act{\ValA(v)} \lbl}{v}}
-  \\[-0.5em]
-  \end{array} &
-  \begin{array}{c}
-  \ruleform{ \balanced{π} } \\
-  \\[-0.5em]
-  \inferrule*[right=\textsc{BalVal}]
-    {\quad}
-    {\balanced{\lbln{1} \act{\ValA(v)} \lbln{2}}}
+    {\validtrace{σ\straceend}}
   \qquad
-  \inferrule*[right=\textsc{BalApp}]
-    {\balanced{π_1}\quad\balanced{π_2}}
-    {\balanced{\lbl \act{\AppIA} π_1 \act{\AppEA} π_2}} \\
-  \\[-0.5em]
-  \inferrule*[right=\textsc{BalVar}]
-    {\balanced{π}}
-    {\balanced{\lbl \act{\LookupA(\wild)} π}}
-  \qquad
-  \inferrule*[right=\textsc{BalLet}]
-    {\balanced{π}}
-    {\balanced{\lbl \act{\BindA} π}} \\
-  \\[-0.5em]
-  \end{array} \\
+  \inferrule*
+    {σ \smallstep src_\States(π) \quad \validtrace{π}}
+    {\validtrace{σ; π}} \\
+  \\
  \end{array} \\
 \end{array}\]
-\caption{Syntax of expressions, labels and traces}
-  \label{fig:syntax}
+\caption{Call-by-need CESK transition system $\smallstep$}
+  \label{fig:cesk-syntax}
 \end{figure}
-
-Labelled expression:
-\begin{gather*}
-   \Let{x}{\Lam{y}{y}}{x~x~x)} \\
-   \slbln{1}\Let{x}{\slbln{2}(\Lam{y}{\slbln{3}y})\slbln{4}}{\slbln{5}(\slbln{6}(\slbln{7}x~x)~x)}
-\end{gather*}
-
-Trace of the expression:
-\[
-\begin{array}{r@@{}l}
-   \multicolumn{2}{c}{\slbln{1}\Let{x}{\slbln{2}(\Lam{y}{\slbln{3}y})\slbln{4}}{\slbln{5}(\slbln{6}(\slbln{7}x~x)~x)}} \\
-   \\
-   \lbln{1} & \act{\BindA} \lbln{5} \act{\AppIA} \lbln{6} \act{\AppIA} \lbln{7} \\
-            & \act{\LookupA} \lbln{2} \act{\ValA(\FunV(f))} \lbln{4} \act{\AppEA} \lbln{3} \\
-            & \act{\LookupA} \lbln{2} \act{\ValA(\FunV(f))} \lbln{4} \act{\AppEA} \lbln{3} \\
-            & \act{\LookupA} \lbln{2} \act{\ValA(\FunV(f))} \lbln{4}
-\end{array}
-\]
 
 % Note [On the role of labels]
 % ~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -152,442 +143,7 @@ Trace of the expression:
 % expression, we'll never see two concrete, structurally equivalent expressions,
 % so it's OK to omit labels and use the expression we recurse over (and its immediate
 % subexpressions captured as meta variables) as if it contained the omitted labels.
-
-\begin{figure}
-\[\begin{array}{c}
- \begin{array}{rcl}
-  \multicolumn{3}{c}{ \ruleform{ \seminf{\wild} \colon \Exp → (\Var \pfun \MaxD) → \MaxD } } \\
-  \\[-0.5em]
-  \bot(π_i^+)   & = & dst(π_i^+) \text{ is the bottom element of $\MaxD$} \\
-  \\[-0.5em]
-  \stepm{p}{a}{\pe}(π_i^+)   & = & \begin{cases}
-    dst(π_i^+) \act{a} \pe & \text{if $dst(π_i^+)$ matches $p$} \\
-    \bot(π_i^+) & \text{otherwise} \\
-  \end{cases} \\
-  \\[-0.5em]
-  (d_1 \fcomp d_2)(π_i^+)   & = & d_1(π_i^+) \concat d_2(π_i^+ \concat d_1(π_i^+)) \\
-  \\[-0.5em]
-  \seminf{\pe}_ρ    (π_i^+)   & = & \bot(π_i^+) \qquad \text{if $dst(π_i^+) \not= \pe$} \\
-  \\[-0.5em]
-  \seminf{\px}_ρ              & = & ρ(\px) \\
-  \\[-0.5em]
-  \seminf{\Lam{\px}{\pe}}_ρ & = &
-    \begin{letarray}
-      \text{let} & f = d ↦ \stepm{\ddagger}{\AppEA}{\pe} \fcomp \seminf{\pe}_{ρ[\px↦d]} \\
-      \text{in}  & \step{\ValA(\FunV(f))}{\ddagger} \\
-    \end{letarray} \\
-  \\[-0.5em]
-  \seminf{\pe~\px}_ρ & = &
-    \begin{letarray}
-      \text{let} & apply(π_e^+) = \begin{cases}
-                     f(ρ(\px))(π_e^+) & \text{if $\getval{π_e^+}{\FunV(f)}$}  \\
-                     \bot(π_e^+) & \text{otherwise}  \\
-                   \end{cases} \\
-      \text{in}  & \ternary{\px ∈ \dom(ρ)}{\step{\AppIA}{\pe} \fcomp \seminf{\pe}_ρ \fcomp apply}{\bot} \\
-    \end{letarray} \\
-  \\[-0.5em]
-  \seminf{\Let{\px}{\pe_1}{\pe_2}}_ρ(π_i^+) & = &
-    \begin{letarray}
-      \text{letrec}~ρ'. & \pa = hash(π_i^+) \\
-                        & ρ' = ρ ⊔ [\px ↦ \step{\LookupA(\pa)}{\pe_1} \fcomp \seminf{\pe_1}_{ρ'}] \\
-      \text{in}         & (\step{\BindA}{\pe_2} \fcomp \seminf{\pe_2}_{ρ'})(π_i^+)
-    \end{letarray} \\
-  \\[-0.5em]
- \end{array} \\
-\end{array}\]
-\caption{Structural Maximal Trace Semantics With Crazy Traces}
-  \label{fig:semantics}
-\end{figure}
-
-% Note [Design of Maximal Trace Semantics]
-% ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-% A stateless (prefix) trace semantics' defining feature is the absence of
-% full-blown configurations between actions. However, states can be
-% reconstructed from looking at the history of actions in the initialisation
-% trace. So it is quite vital that the actions carry enough information.
 %
-% The need for a value action
-% ---------------------------
-% Values have after labels, so that when we reach at(v) we make one value
-% transition to announce the value of at(v) in the trace. Without this
-% action, it would be hard to differentiate between stuck and successful
-% maximal traces. Furthermore, it plays a crucial role in the memoisation
-% mechanism, where we reconstruct the memoised value from the trace.
-%
-% The need for an update action
-% -----------------------------
-% Memoisation could well work by looking for a balanced sub-trace in the
-% initialisation trace that started with look(π_k). In fact, earlier
-% versions did exactly that, and it worked great!
-% Unfortunately, it has the following drawbacks:
-%   * CESK semantics does have update frames and we want to match those
-%     rather simply. It is a matter of producing "complete" states, see
-%     "Which info do we need to attach to an action?"
-%   * We need to define relatively early what a balanced trace is.
-%     The semantics itself should not depend on that...
-%   * It is simpler to define the abstraction to stateful prefix trace semantics
-%     when there are corresponding update actions
-%   * It is better to be explicit to announce exactly when "the heap binding
-%     changes" for the perspective of weak memory models and interleavings of
-%     parallel traces (TODO: Read up on that!), which is one of the prime
-%     reasons to consider stateless trace semantics in the first place.
-%
-% Why is the stateless semantics not simply (V, T+ -> T+∞)?
-% ---------------------------------------------------------
-% ... and in the process could abandon the value action (if we were willing
-% to detect stuckness by looking at V)?
-%
-% Because then we can't see the prefix T+ when we have to extend ρ at let
-% bindings. But this is our primary mechanism for sharing! Similarly for
-% call-by-value.
-%
-% So we are stuck with value actions. Still, we could decide to return the
-% value "out of band", in a pair, T+ -> (V, T+∞). That yields the worse of
-% both worlds; the definition is similar to T+ -> T+∞ but we often need to
-% adjust the second component of the pair; plus, in `memo`, we still have
-% to "execute" the semantics S for its value, because we can't recover it
-% from the trace.
-%
-% Which info do we need to attach to an action?
-% ---------------------------------------------
-% TLDR; that is determined by transition semantics that we want to
-% be to abstract a trace into. The reasoning is as follows:
-%
-%   * "The transition semantics" is really the semantics we get by
-%     applying the transition abstraction α_τ to a *stateful* trace
-%     semantics, where the states capture enough information for
-%     the resulting transition system to become deterministic.
-%     (The transition system we get by abstracting the *stateless* trace
-%     semantics isn't very useful precisely for that reason; taking
-%     labels as state yields too many spurious transitions.)
-%   * So determinism of the abstracted transition system is a quality
-%     of the semantic richness of states (given that the sequence of states
-%     is fixed); let's call state structure that allows for deterministic
-%     abstraction "complete"
-%   * (Are all complete state structures isomorph? Probably not)
-%   * The stateful trace semantics is an abstraction of the stateless trace
-%     semantics by way of α_S. We want to produce (at least one) stateful
-%     semantics where the state space is complete. To produce such states, the
-%     necessary information must be part of the stateless trace, otherwise we
-%     can't write the abstraction function from stateless to stateful.
-%
-% So given the completeness of the states produced by α_S as a goal, we can
-% make the following claims for action kinds in a trace:
-%
-%   * AppI, AppE, Lookup, Bind are all necessary actions because they make
-%     a step from one label to a label of a subexpression.
-%   * Val actions are the trace semantics' means of communicating a successful
-%     (e.g., not stuck) execution as well as playing the role of `Just value`.
-%     They correspond to Val transtitions in CESK or STG's ReturnCon
-%   * We do *not* strictly need Update actions -- we just need update frames
-%     in the stateful trace, but those could be reconstructed from when a
-%     Lookup's balanced trace ended. Update actions make our life simpler in
-%     other ways, though: See "The need for an update action".
-%
-% In fact, given that each action corresponds to a CESK transition, α_S can be
-% defined inductively (by prefixes) on actions and states:
-%
-%   * The data on actions is simply erased and the corresopnding CESK transition
-%     is taken. (Vital to realise that a well-formed stateless trace results in
-%     an ok stateful trace.)
-%   * For the state after prefix π, we simply call \varrho(π). It is a function
-%     that Cousot uses throughout his book, and so should we.
-%
-% Now as to what information we need on the actions:
-%
-%   * AppI: We need the Var so that α_S can produce an Apply frame
-%   * AppE: We need both the Var *and* the D so that varrho can produce the
-%           proper environment.
-%   * Lookup: We need the address so that we can push an update frame in α_S.
-%             Also we need it to find the corresponding Bind.
-%   * Bind: We need the address, so α_S can find it when encountering a Lookup
-%           at that address. Then we also need the Var and the D for varrho.
-%   * Update: The address is convenient (as are update actions to begin with),
-%             otherwise we'd have to fiddle with balanced traces in memo to find
-%             the corresponding Lookup.
-%   * Values: It is convenient to attach values to Val actions; this is not strictly
-%     necessary, just convenient. (See page 4 of 61e6f8a, quite ugly.)
-
-\begin{figure}
-\[\begin{array}{c}
- \begin{array}{rcl}
-  \mathbb{P}^* & = & \{ C \in \poset{\Traces^+} \mid C \text{ is a prefix-closed chain of traces} \} \\
-  \\[-0.5em]
-  \multicolumn{3}{c}{ \ruleform{ α^{*} : \Traces^{+\infty} \to \mathbb{P}^* \qquad γ^{*} : \mathbb{P}^* \to \Traces^{+\infty} } } \\
-  \\[-0.5em]
-  α^{*}(π) & = & \{ π^+ \mid π^+ \text{ is a prefix of } π \} \\
-  γ^{*}(C) & = & \Lub C \qquad \text{where $\lub$ is defined on the prefix-closed chain $C$} \\
-  \Traces^{+\infty} & \GaloiS{α^{*}}{γ^{*}} & \mathbb{P}^* \\
-  \Traces^+ \to \Traces^{+\infty} & \GaloiS{\dot{α}^{*}}{\dot{γ}^{*}} & \Traces^+ \to \mathbb{P}^* \\
-  \seminf{\pe} & \GaloiS{\ddot{α}^{*}}{\ddot{γ}^{*}} & \sempref{\pe} \\
-  \\
- \end{array}
-\end{array}\]
-\caption{Prefix Trace Abstraction}
-  \label{fig:semantics}
-\end{figure}
-
-\begin{figure}
-\[
-\begin{array}{ll}
-  & \text{Let } ρ_x = \lfp(λρ. [x ↦ cons(\LookupA,\lbln{2}],\seminf{\slbln{2}(\Lam{y}{\slbln{3}y})\slbln{4}}_ρ) \\
-  & \text{and } ρ_{x,y} = ρ_x[y ↦ ρ_1(x)] \\
-  & \text{and } f = d ↦ cons(\AppEA,\lbln{3},\seminf{\slbln{3}y}_{ρ[y↦d]}) \\
-  & \text{Evaluate }\slbln{1}\Let{x}{\slbln{2}(\Lam{y}{\slbln{3}y})\slbln{4}}{\slbln{5}(\slbln{6}(\slbln{7}x~x)~x)} \\
-  & \\
-  & \seminf{\slbln{1}\Let{x}{\slbln{2}(\Lam{y}{\slbln{3}y})\slbln{4}}{\slbln{5}(\slbln{6}(\slbln{7}x~x)~x)}}_\bot(\lbln{1}) \\
-  & \\[-0.9em]
-  ⇒ & \lbln{1} \act{\BindA} \seminf{\slbln{5}(\slbln{6}(\slbln{7}x~x)~x)}_{ρ_x}(\lbln{1} \act{\BindA} \lbln{5}) \\
-  & \\[-0.9em]
-  ⇒ & \lbln{1} \act{\BindA} \lbln{5} \act{\AppIA} \seminf{\slbln{6}(\slbln{7}x~x)}_{ρ_x}(\lbln{1} \act{\BindA} \lbln{5} \act{\AppIA} \lbln{6}) \\
-  & \\[-0.9em]
-  ⇒ & \lbln{1} \act{\BindA} \lbln{5} \act{\AppIA} \lbln{6} \act{\AppIA} \seminf{\slbln{7}x}_{ρ_x}(\overbrace{\lbln{1} \act{\BindA} \lbln{5} \act{\AppIA} \lbln{6} \act{\AppIA} \lbln{7}}^{π_1}) \\
-  & \\[-0.9em]
-  ⇒ & π_1 \act{\LookupA} \seminf{\slbln{2}(\Lam{y}{\slbln{3}y})\slbln{4}}_{ρ_x}(π_1 \act{\LookupA} \lbln{2}) \\
-  & \\[-0.9em]
-  ⇒ & π_1 \act{\LookupA} \lbln{2} \act{\ValA(\FunV(f))} f(ρ_x(x))(π_1 \act{\LookupA} \lbln{2} \act{\ValA(\FunV(f))} \lbln{4}) \\
-  & \\[-0.9em]
-  ⇒ & π_1 \act{\LookupA} \lbln{2} \act{\ValA(\FunV(f))} \lbln{4} \act{\AppEA} \seminf{\slbln{3}y}_{ρ_{x,y}}(\overbrace{π_1 \act{\LookupA} \lbln{2} \act{\ValA(\FunV(f))} \lbln{4} \act{\AppEA} \lbln{3}}^{π_2}) \\
-  & \\[-0.9em]
-  ⇒ & π_2 \act{\LookupA} \seminf{\slbln{2}(\Lam{y}{\slbln{3}y})\slbln{4}}_{ρ_x}(π_2 \act{\LookupA} \lbln{2}) \\
-  & \\[-0.9em]
-  ⇒ & π_2 \act{\LookupA} \lbln{2} \act{\ValA(\FunV(f))} f(ρ_x(x))(π_2 \act{\LookupA} \lbln{2} \act{\ValA(\FunV(f))} \lbln{4}) \\
-  & \\[-0.9em]
-  ⇒ & π_2 \act{\LookupA} \lbln{2} \act{\ValA(\FunV(f))} \lbln{4} \act{\AppEA} \seminf{\slbln{3}y}_{ρ_{x,y}}(\overbrace{π_2 \act{\LookupA} \lbln{2} \act{\ValA(\FunV(f))} \lbln{4} \act{\AppEA} \lbln{3}}^{π_3}) \\
-  & \\[-0.9em]
-  ⇒ & π_3 \act{\LookupA} \seminf{\slbln{2}(\Lam{y}{\slbln{3}y})\slbln{4}}_{ρ_x}(π_3 \act{\LookupA} \lbln{2}) \\
-  & \\[-0.9em]
-  ⇒ & π_3 \act{\LookupA} \lbln{2} \act{\ValA(\FunV(f))} \lbln{4} \\
-  & \\[-0.9em]
-  & \\
-  = \lbln{1} & \act{\BindA} \lbln{5} \act{\AppIA} \lbln{6} \act{\AppIA} \lbln{7} \\
-             & \act{\LookupA} \lbln{2} \act{\ValA(\FunV(f))} \lbln{4} \act{\AppEA} \lbln{3} \\
-             & \act{\LookupA} \lbln{2} \act{\ValA(\FunV(f))} \lbln{4} \act{\AppEA} \lbln{3} \\
-             & \act{\LookupA} \lbln{2} \act{\ValA(\FunV(f))} \lbln{4}
-\end{array}
-\]
-\caption{Evalation of $\seminf{\wild}$}
-\end{figure}
-
-\begin{figure}
-\[\begin{array}{c}
-  \ruleform{ \sempref{\wild} \colon \Exp → (\Var → \PrefD) → \PrefD } \\
-  \\[-0.5em]
-  cons(a,\lbl,S)(π_i^+)   = \{\; dst(π_i^+) \act{a} π_o \mid π_o ∈ S(π_i^+ \act{a} \lbl) \;\} \\
-  \\[-0.5em]
-  \inferrule*[right=\textsc{Bot}]
-    {\quad}
-    {dst(π) ∈ \sempref{\slbl \pe}_ρ(π)}
-  \qquad
-  \inferrule*[right=\textsc{Var}]
-    {π_c ∈ ρ(\px)(π_i^+)}
-    {π_c ∈ \sempref{\slbl \px}_ρ(π_i^+)} \\
-  \\[-0.5em]
-  \inferrule*[right=\textsc{Let}]
-    {   ρ' = \lfp(λρ'. ρ ⊔ [\px ↦ cons(\LookupA(hash(π_i^+)),\atlbl{\pe_1},\sempref{\pe_1}_{ρ'})])
-     \\ π_c ∈ cons(\BindA,\atlbl{\pe_2},\sempref{\pe_2}_{ρ'})(π_i^+)}
-    {π_c ∈ \sempref{\slbl(\Let{\px}{\pe_1}{\pe_2})}_ρ(π_i^+)} \\
-  \\[-0.5em]
-  \inferrule*[right=\textsc{Lam}]
-    {f = d ↦ cons(\AppEA,\atlbl{\pe},\sempref{\pe}_{ρ[\px↦d]})}
-    {\lbln{1} \act{\ValA(\FunV(f))} \lbln{2} ∈ \sempref{\slbln{1}(\Lam{\px}{\pe})\slbln{2}}_ρ(π_i^+)} \qquad
-  \inferrule*[right=$\textsc{App}_1$]
-    {π_c ∈ cons(\AppIA,\atlbl{\pe},\sempref{\pe}_ρ)(π_i^+)}
-    {π_c ∈ \sempref{\slbl(\pe~\px)}_ρ(π_i^+)} \\
-  \\[-0.5em]
-  \inferrule*[right=$\textsc{App}_2$]
-    {\balanced{π_e} \quad π_e ∈ cons(\AppIA,\atlbl{\pe},\sempref{\pe}_ρ)(π_i^+)
-    \\\\ \getval{π_e}{\FunV(f)} \qquad π_f ∈ f(ρ(\px))(π_i^+ \act{\AppIA} π_e)}
-    {\lbl \act{\AppIA} π_e \concat π_f ∈ \sempref{\slbl(\pe~\px)}_ρ(π_i^+)} \\
-  \\
-
-  \\[-0.5em]
-\end{array}\]
-\caption{Structural Deductive Stateless Prefix Trace Semantics for call-by-name lambda calculus}
-  \label{fig:semantics}
-\end{figure}
-
-\begin{figure}
-\[\begin{array}{c}
- \begin{array}{rrclcl}
-  \text{Constructors} &     K & ∈ & \Con     & \subseteq & \Nat \\
-  \text{Expressions}  &   \pe & ∈ & \Exp     & ::=       & \ldots \mid K~\many{\px} \mid \Case{\pe}{\Sel} \\
-  \\
-  \text{Actions}      &     a & ∈ & \Actions & ::=       & \ldots \mid \CaseIA \mid \CaseEA \\
-  \text{Values}       &     v & ∈ & \Values  & ::=       & \ldots \mid \ConV(\Sigma_{K ∈ \Con}(\Pi_{i=1}^{A_K}d_i)) \text{ where $K$ has $A_K$ fields} \\
- \end{array} \\
- \\
-  \ruleform{ \balanced{π} } \\
-  \\[-0.5em]
-  \inferrule*[right=\textsc{BalCase}]
-    {\balanced{π_1}\quad\balanced{π_2}}
-    {\balanced{\lbl \act{\CaseIA} π_1 \act{\CaseEA} π_2}} \\
- \\
- \begin{array}{rcl}
-  \multicolumn{3}{c}{ \ruleform{ \seminf{\wild} \colon \Exp → (\Var → \MaxD) → \MaxD } } \\
-  \\[-0.5em]
-  \seminf{K~\many{\px}}_ρ(π_i^+) & = & K~\many{\px} \act{\ValA(\ConV(K,\many{ρ(\px)}))} \ddagger \\
-  \\[-0.5em]
-  \seminf{\Case{\pe_s}{\Sel}}_ρ(π_i^+) & = & π_s \concat \begin{cases}
-      Rhs(K,\many{d})(π_i^+ \concat π_s) & \text{if $\getval{π_s}{\ConV(K,\many{d})}$}  \\
-      \bot(π_i^+ \concat π_s) & \text{otherwise}  \\
-    \end{cases} \\
-    & & \text{where} \begin{array}{lcl}
-                       π_s & = & cons( \CaseIA, \pe_s,\seminf{\pe_s}_ρ)(π_i^+) \\
-                       Rhs(K,\many{d}) & = & cons(\CaseEA,\pe_K,\seminf{\pe_K}_{ρ[\many{\px↦d}]}) \\
-                     \end{array} \\
-  \\
- \end{array} \\
-\end{array}\]
-\caption{Algebraic data types in Structural Maximal Trace Semantics}
-  \label{fig:semantics}
-\end{figure}
-
-\cleardoublepage
-
-\begin{figure}
-\[\begin{array}{c}
- \begin{array}{rrclcl}
-  \text{Actions}      &     a & ∈ & \Actions & ::=       & \ldots \mid \UpdateA(\pa) \\
- \end{array} \\
- \\
- \begin{array}{rcl}
-  \multicolumn{3}{c}{ \ruleform{ \seminf{\wild} \colon \Exp → (\Var → \MaxD) → \MaxD } } \\
-  \\[-0.5em]
-  π_s \subtrceq π & = & \exists π_1, π_2.\ π = π_1 \concat π_s \concat π_2  \\
-  \\[-0.5em]
-  μ(π_i^+)(\pa) & = & \begin{cases}
-    (\pv, v) & \text{if $\pv \act{\ValA(v)} \ddagger \left(\act{\UpdateA(\wild)} \ddagger \right)^* \act{\UpdateA(\pa)} \ddagger \subtrceq π_i^+$} \\
-    undefined & \text{otherwise} \\
-  \end{cases}  \\
-  \\[-0.5em]
-  memo(\pa,\pe,d)(π_i^+)   & = & \begin{cases}
-    dst(π_i^+) \act{\LookupA(\pa)} \pv \act{\ValA(v)} \ddagger \act{\UpdateA(\pa)} \ddagger & \text{if $μ(π_i^+)(\pa) = (\pv,v)$} \\
-    (\step{\LookupA(\pa)}{\pe} \fcomp d \fcomp \stepm{\ddagger}{\UpdateA(\pa)}{\ddagger})(π_i^+) & \text{otherwise} \\
-  \end{cases} \\
-  \\[-0.5em]
-  \seminf{\Let{\px}{\pe_1}{\pe_2}}_ρ(π_i^+) & = &
-    \begin{letarray}
-      \text{letrec}~ρ'. & \pa = hash(π_i^+) \\
-                        & ρ' = ρ ⊔ [\px ↦ \highlight{memo(\pa,\pe_1,\seminf{\pe_1}_{ρ'})}] \\
-      \text{in}         & (\step{\BindA}{\pe_2} \fcomp \seminf{\pe_2}_{ρ'})(π_i^+)
-    \end{letarray} \\
-  \\
-  \multicolumn{3}{l}{\text{(Unchanged call-by-name equations:)}} \\
-  \\[-0.5em]
-  \seminf{\pe}_ρ    (π_i^+)   & = & \bot(π_i^+) \qquad \text{if $dst(π_i^+) \not= \pe$} \\
-  \\[-0.5em]
-  \seminf{\px}_ρ              & = & ρ(\px) \\
-  \\[-0.5em]
-  \seminf{\Lam{\px}{\pe}}_ρ & = &
-    \begin{letarray}
-      \text{let} & f = d ↦ \stepm{\ddagger}{\AppEA}{\pe} \fcomp \seminf{\pe}_{ρ[\px↦d]} \\
-      \text{in}  & \step{\ValA(\FunV(f))}{\ddagger} \\
-    \end{letarray} \\
-  \\[-0.5em]
-  \seminf{\pe~\px}_ρ & = &
-    \begin{letarray}
-      \text{let} & apply(π_e^+) = \begin{cases}
-                     f(ρ(\px))(π_e^+) & \text{if $\getval{π_e^+}{\FunV(f)}$}  \\
-                     \bot(π_e^+) & \text{otherwise}  \\
-                   \end{cases} \\
-      \text{in}  & \ternary{\px ∈ \dom(ρ)}{\step{\AppIA}{\pe} \fcomp \seminf{\pe}_ρ \fcomp apply}{\bot} \\
-    \end{letarray} \\
-  \\[-0.5em]
- \end{array} \\
-\end{array}\]
-\caption{Structural Maximal Trace Semantics for call-by-need}
-  \label{fig:semantics}
-\end{figure}
-
-\begin{figure}
-\[\begin{array}{c}
- \begin{array}{rrclcl}
-  \text{Variables}    & \px & ∈ & \Var        &     & \\
-  \text{Values}    &         \pv & ∈ & \Val        & ::= & \Lam{\px}{\pe} \\
-  \text{Expressions}  &         \pe & ∈ & \Exp        & ::= & \slbl \px \mid \slbl \pv \mid \slbl \pe~\px \mid \slbl \Let{\px}{\pe_1}{\pe_2} \\
-  \text{Addresses}    &         \pa & ∈ & \Addresses  &  ⊆  & ℕ \\
-  \\
-  \text{States}                             & σ      & ∈ & \States  & = & \Control \times \Environments \times \Heaps \times \Continuations \\
-  \text{Control}                            & γ      & ∈ & \Control & = & \Exp ∪ (\Val \times \Values^\States) \\
-  \text{Environments}                       & ρ      & ∈ & \Environments & = & \Var \pfun \Addresses \\
-  \text{Heaps}                              & μ      & ∈ & \Heaps & = & \Addresses \pfun \Exp \times \Environments \times \StateD \\
-  \text{Continuations}                      & κ      & ∈ & \Continuations & ::= & \StopF \mid \ApplyF(\pa) \pushF κ \mid \UpdateF(\pa) \pushF κ \\
-  \\[-0.5em]
-  \text{Stateful traces}                    & π      & ∈ & \STraces  & ::=_\gfp & σ\straceend \mid σ; π \\
-  \text{Domain of stateful trace semantics} & d      & ∈ & \StateD  & = & \States \to \STraces \\
-  \text{Values}                             & v      & ∈ & \Values^\States & ::= & \FunV(\Addresses \to \StateD) \\
- \end{array} \\
- \\
- \begin{array}{rcl}
-  \multicolumn{3}{c}{ \ruleform{ src_\States(π) = σ \qquad dst_\States(π) = σ } } \\
-  \\[-0.5em]
-  src_\States(σ\straceend)    & = & σ \\
-  src_\States(σ; π) & = & σ \\
-  \\[-0.5em]
-  dst_\States(π)    & = & \begin{cases}
-    undefined & \text{if $π$ infinite} \\
-    σ         & \text{if $π = ...; σ \straceend$}
-  \end{cases} \\
- \end{array} \quad
- \begin{array}{c}
-  \ruleform{ π_1 \sconcat π_2 = π_3 } \\
-  \\[-0.5em]
-  π_1 \sconcat π_2 = \begin{cases}
-    σ; (π_1' \sconcat π_2) & \text{if $π_1 = σ; π_1'$} \\
-    π_2                    & \text{if $π_1 = σ\straceend$ and $src_\States(π_2) = σ$} \\
-    undefined              & \text{if $π_1 = σ\straceend$ and $src_\States(π_2) \not= σ$} \\
-  \end{cases} \\
- \end{array} \\
- \\
- \begin{array}{c}
-  \ruleform{ σ_1 \smallstep σ_2 \qquad \validtrace{π} } \\
-  \\[-0.5em]
-  \inferrule*
-    [right=$\ValueT$]
-    {\quad}
-    {(\pv, ρ, μ, κ) \smallstep ((\pv, v), ρ, μ, κ)}
-  \qquad
-  \inferrule*
-    [right=$\LookupT$]
-    {\pa = ρ(\px) \quad (\pe,ρ',\wild) = μ(\pa)}
-    {(\px, ρ, μ, κ) \smallstep (\pe, ρ', μ, \UpdateF(\pa) \pushF κ)}
-  \\
-  \inferrule*
-    [right=$\UpdateT$]
-    {\quad}
-    {((\pv,v), ρ, μ, \UpdateF(\pa) \pushF κ) \smallstep ((\pv,v), ρ, μ[\pa ↦ (\pv,ρ,d)], κ)} \\
-  \\[-0.5em]
-  \inferrule*
-    [right=$\AppIT$]
-    {\pa = ρ(\px)}
-    {(\pe~\px,ρ,μ,κ) \smallstep (\pe,ρ,μ,\ApplyF(\pa) \pushF κ)}
-  \quad
-  \inferrule*
-    [right=$\AppET$]
-    {\quad}
-    {((\Lam{\px}{\pe},\wild),ρ,μ, \ApplyF(\pa) \pushF κ) \smallstep (\pe,ρ[\px ↦ \pa],μ,κ)} \\
-  \\[-0.5em]
-  \inferrule*
-    [right=$\LetT$]
-    {\fresh{\pa}{μ} \quad ρ' = ρ[\px↦\pa]}
-    {(\Let{\px}{\pe_1}{\pe_2},ρ,μ,κ) \smallstep (\pe_2,ρ',μ[\pa↦(\pe_1,ρ',d_1)], κ)} \\
-  \\
-  \\
-  \inferrule*
-    {\quad}
-    {\validtrace{σ\straceend}}
-  \qquad
-  \inferrule*
-    {σ \smallstep src_\States(π) \quad \validtrace{π}}
-    {\validtrace{σ; π}} \\
-  \\
- \end{array} \\
-\end{array}\]
-\caption{Call-by-need CESK transition system $\smallstep$}
-  \label{fig:cesk-syntax}
-\end{figure}
-
 % Note [The use of a CESK trace semantics]
 % ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 % Why is CESK trace semantics useful?
@@ -603,9 +159,28 @@ Trace of the expression:
 %   * It's a lazy semantics in ANF, hence inspired by Sestoft's Mark II machine
 %   * The Val transition is key to line up with the trace-based semantics and is
 %     inspired by CESK's \ddagger as well as STG's ReturnCon code.
-%
 
-\FloatBarrier
+\subsection{Domain Theory}
+
+Here we need to prove that $\StateD$ is well-defined as a domain.
+(Of course, we need the quotient where $src(f(σ)) = σ$.)
+
+Caveat: The order on $\Exp$ is the (flat) one by Labels. A deep embedding.
+
+1. Express $\States$ as a functor over occs of $\StateD$. Clearly well-defined.
+2. Express $\STraces$ as a (signature) functor $F : \mathcal{Cont} \to \mathcal{Cont}$.
+   For that, we have to prove that $F(D)$ is a cont domain for any continuous $D$.
+
+Then the fixpoint of the composition of those functors is a cont domain.
+
+Define directed-complete partial order on $F(D)$.
+
+\begin{itemize}
+  \item $\bot = λσ.σ\straceend$.
+  \item pointwise, lifting the obv prefix order over $σ_1 ⊑ σ_2$.
+  \item obv. partial order
+  \item directed-complete? Yes. How to prove formally? Unsure!
+\end{itemize}
 
 \subsection{Informal Specification}
 
@@ -1154,496 +729,3 @@ maximally-balanced trace for the transition semantics starting at $(\pe,[],[],\S
 \caption{Structural call-by-need stateful trace semantics $\semst{-}$}
   \label{fig:cesk-semantics}
 \end{figure}
-
-\begin{figure}
-\[\begin{array}{c}
- \begin{array}{rrclcl}
-  \text{Liveness Domain} & d^{∃l} & ∈ & \LiveD & = & \poset{\Var} \times \Values^{∃l} \\
- \end{array} \\
- \\
- \begin{array}{rcl}
-  \multicolumn{3}{c}{ \ruleform{ \semlive{\wild} \colon \Exp → (\Var → \LiveD) → \LiveD } } \\
-  \\[-0.5em]
-  \bot_{∃l} & = & (\varnothing, \bot_{\Values^{∃l}}) \\
-  \\[-0.5em]
-  L_1 ∪_1 (L_2,v) & = & (L_1 ∪ L_2,v) \\
-  \\[-0.5em]
-  %L_1 \fcomp^l L_2 & = & α^{∃l}_φ(γ^{∃l}_φ(L_1) \fcomp γ^{∃l}_φ(L_2)) ⊑ L_1 ∪ L_2 \\
-  %\\[-0.5em]
-  %shortcut^l & = & α^{∃l}_φ \circ shortcut \circ γ^{∃l}_φ = id \\
-  %\\[-0.5em]
-  \semlive{\px}_ρ & = & ρ(\px) \\
-  \\[-0.5em]
-  \semlive{\Lam{\px}{\pe}}_ρ & = & (\varnothing, \FunV(\fn{d^l}{\semlive{\pe}_{ρ[\px↦d^l]}})) \\
-  \\[-0.5em]
-  \semlive{\pe~\px}_ρ & = &
-    \begin{letarray}
-      \text{let} & (L_1,v_1) = \semlive{\pe}_ρ \\
-      \text{in}  & L_1 ∪_1 \begin{cases}
-                     f(ρ(\px)) & \text{if $v = \FunV(f)$} \\
-                     \bot_{∃l} & \text{otherwise}
-                   \end{cases} \\
-    \end{letarray} \\
-  \\[-0.5em]
-  \semlive{\Let{\px}{\pe_1}{\pe_2}}_ρ& = & \begin{letarray}
-      \text{letrec}~ρ'. & ρ' = ρ ⊔ [\px ↦ \{\px\} ∪_1 \semlive{\pe_1}_{ρ'}] \\
-      \text{in}         & \semlive{\pe_2}_{ρ'}
-    \end{letarray} \\
- \end{array} \\
- \\
- \begin{array}{c}
-  \ruleform{ v_1 ⊑ v_2 \qquad d_1 ⊑ d_2 } \\
-  \\[-0.5em]
-  \inferrule*
-    {\quad}
-    {\bot_{\Values^{∃l}} ⊑ v}
-  \qquad
-  \inferrule*
-    {\forall d.\ f_1(d) ⊑ f_2(d)}
-    {\FunV(f_1) ⊑ \FunV(f_2)} \\
-  %TODO: We want the gfp, I think
-  \\[-0.5em]
-  \inferrule*
-    {L_1 ⊆ L_2 \qquad v_1 ⊑ v_2}
-    {(L_1,v_1) ⊑ (L_2,v_2)}
-  \qquad
-  \inferrule*
-    {L_1 ⊆ L_2 \quad (\forall L,v.\ L_2 ⊆ L \Rightarrow f_1(L,v) ⊑ f_2(L,v)) }
-    {(L_1,\FunV(f_1)) ⊑ (L_2,\FunV(f_2))} \\
-  %TODO: We want the gfp, I think
- \end{array} \\
- \\
- \begin{array}{rcl}
-  \multicolumn{3}{c}{ \ruleform{ α^{∃l}_\SSD \colon \SSD → \LiveD \qquad α^{∃l}_φ \colon (\Configurations \to \SSTraces^{+\infty}) → \poset{\Var} \qquad α^{∃l}_{\Values^\Sigma} \colon \Values^\Sigma → \Values^{∃l} } } \\
-  \\[-0.5em]
-  α^{∃l}(σ) & = & \{ \px \in \Var \mid ∃i.\ σ_i = (\wild, \px, \wild, \wild) \wedge σ_{i+1}\ \text{exists} \} \\
-  α^{∃l}_φ(φ) & = & \bigcup_{κ∈\Configurations}\{ α^{∃l}(φ(κ)) \} \\
-  α^{∃l}_{\Values^\Sigma}(\FunV(f)) & = & \FunV(α^{∃l}_\SSD \circ f \circ γ^{∃l}_\SSD) \\
-  α^{∃l}_{\Values^\Sigma}(\bot_{\Values^{\Sigma}}) & = & \bot_{\Values^{∃l}} \\
-  α^{∃l}_\SSD(φ,v) & = & (α^{∃l}_φ(φ), α^{∃l}_{\Values^\Sigma}(v)) \\
-  \dot{α}^{∃l}(ρ) & = & λx. α^{∃l}_\SSD(ρ(x)) \\
-  \ddot{α}^{∃l}(S) & = & λρ. α^{∃l}_\SSD(S_{\dot{α}^{∃l}(ρ)}) \\
-  \ddot{α}^{∃l}(\semss{e}) & ⊑ & \semlive{e} \\
- \end{array} \\
- \\
- \begin{array}{rcl}
-  \multicolumn{3}{c}{ \ruleform{ γ^{∃l}_\SSD \colon \LiveD → \poset{\SSD} \qquad γ^{∃l}_φ \colon \poset{\Var} → \poset{\Configurations \to \SSTraces^{+\infty}} \qquad γ^{∃l}_{\Values^\Sigma} \colon \Values^{∃l} → \poset{\Values^\Sigma} } } \\
-  \\[-0.5em]
-  γ^{∃l}(L) & = & \{ σ \mid ∀\px ∈ L.\ ∃i.\ σ_i = (\wild, \px, \wild, \wild) \wedge σ_{i+1}\ \text{exists}  \} \\
-  γ^{∃l}_φ(L) & = & \{ (κ,σ) \mid σ ∈ γ^{∃l}(L) \} \\
-  γ^{∃l}_\SSD(L,v) & = & \{ (φ,v') \mid φ ∈ γ^{∃l}_φ(L) \wedge v' ∈ γ'^{∃l}_{\Values^\Sigma}(L,v) \} \\
-  γ^{∃l}_{\Values^\Sigma}(v) & = & γ'^{∃l}_{\Values^\Sigma}(\varnothing,v) \\
-  γ'^{∃l}_{\Values^\Sigma}(\wild,\bot_{\Values^{\Sigma}}) & = & \{ \bot_{\Values^{∃l}} \} \\
-  γ'^{∃l}_{\Values^\Sigma}(L_1,\FunV(f^\sharp)) & = & \{ \bot_{\Values^{∃l}} \} ∪ \{ \FunV(f) \mid \forall L_2,v.\ L_1 ⊆ L_2 \Rightarrow α^{∃l}_\SSD(f(γ^{∃l}_\SSD(L_2,v))) ⊑ f^\sharp(L_2,v) \} \\
-  %     α(γ(L,fun(f#))) ⊑ (L,fun(f#))
-  %    ⊔{ (α(φ),α(v)) | φ∈γ(L), v∈γ(L,fun(f#)) } ⊑ (L,fun(f#))
-  %    forall φ v. φ∈γ(L) n v∈γ(L,fun(f#)) => (α(φ),α(v)) ⊑ (L,fun(f#))
-  %    (case v=bottom => trivial)
-  %    forall φ f. φ∈γ(L) n fun(f)∈γ(L,fun(f#)) => (α(φ),α(fun(f))) ⊑ (L,fun(f#))
-  %    forall φ f. φ∈γ(L) n (forall L' v. L ⊆ L' => f(γ(L',v)) ⊆ γ(f#(L',v))) => (α(φ),α(fun(f))) ⊑ (L,fun(f#))
-  %    forall φ f. φ∈γ(L) n (forall L' v. L ⊆ L' => f(γ(L',v)) ⊆ γ(f#(L',v))) => (α(φ),fun(α.f.γ)) ⊑ (L,fun(f#))
-  %    (special rule)
-  %    forall φ f. φ∈γ(L) n (forall L' v. L ⊆ L' => f(γ(L',v)) ⊆ γ(f#(L',v))) => α(φ) ⊑ L n (forall L' v. L⊆L' => (α.f.γ)(L',v) ⊑ f#(L',v))
-  %    (α(γ(L)) ⊑ L)
-  %    forall f. (forall L' v. L ⊆ L' => f(γ(L',v)) ⊆ γ(f#(L',v))) => (forall L' v. L⊆L' => (α.f.γ)(L',v) ⊑ f#(L',v))
-  %    (rearrange)
-  %    forall f L' v. L⊆L' => (forall L' v. L ⊆ L' => f(γ(L',v)) ⊆ γ(f#(L',v))) => (α.f.γ)(L',v) ⊑ f#(L',v)
-  %    forall f L' v. L⊆L' => f(γ(L',v)) ⊆ γ(f#(L',v)) => (α.f.γ)(L',v) ⊑ f#(L',v)
-  %    forall f L' v. L⊆L' => f(γ(L',v)) ⊆ γ(f#(L',v)) => (α.f.γ)(L',v) ⊑ f#(L',v)
-  %
-  %    Urgh, we need (α.f.γ)(L',v) ⊑ f#(L',v), not f(γ(L',v)) ⊆ γ(f#(L',v))!
-  %
-  %
-  %    α(φ,v) ⊑ (L,v#) => (φ,v) ∈ γ(L,v#)
-  %    α(φ,v) ⊑ (L,v#) => φ∈γ(L) n v∈γ(L,v#)
-  %    (v = bot is trivial; consider v=fun(f),v#=fun(f#))
-  %    α(φ,fun(f)) ⊑ (L,fun(f#)) => φ∈γ(L) n (forall L' v. L⊆L' => f(γ(L',v)) ⊆ γ(f#(L',v)))
-  %    (α(φ),α(fun(f))) ⊑ (L,fun(f#)) => φ∈γ(L) n (forall L' v. L⊆L' => f(γ(L',v)) ⊆ γ(f#(L',v)))
-  %    α(φ) ⊆ L n (forall L' v. L⊆L' => (γ.f.α)(L',v) ⊑ f#(L',v)) => φ∈γ(L) n (forall L' v. L⊆L' => f(γ(L',v)) ⊆ γ(f#(L',v)))
-  %    (α(φ) ⊆ L <=> φ∈γ(L) Galois, eta)
-  %    forall L' v. L⊆L' => (γ.f.α)(L',v) ⊑ f#(L',v) => f(γ(L',v)) ⊆ γ(f#(L',v))
-  %
-  %    Again, we need (α.f.γ)(L',v) ⊑ f#(L',v), not f(γ(L',v)) ⊆ γ(f#(L',v))!
- \end{array}
-\end{array}\]
-\caption{Potential liveness}
-  \label{fig:liveness-abstraction}
-\end{figure}
-
-\begin{figure}
-\[\begin{array}{c}
- \begin{array}{rrclcl}
-  \text{Symbolic variables} & X & ∈ & \SVar &   & \\
-  \text{Symbolic Liveness Domain} & d^{sl} & ∈ & \LiveSD & = & \poset{\Var ∪ \SVar} \times \Values^{sl} \\
-  \text{Symbolic Liveness Values} & v^{sl} & ∈ & \Values^{sl} & = & \FunV_{\Values^{sl}}(X.\ d^{sl}) \mid \bot_{\Values^{sl}} \\
- \end{array} \\
- \\
- \begin{array}{rcl}
-  \multicolumn{3}{c}{ \ruleform{ \semslive{\wild} \colon \Exp → (\Var → \LiveSCD) → \LiveSCD } } \\
-  \\[-0.5em]
-  \bot_{sl} & = & (\varnothing, \bot_{\Values^{sl}}) \\
-  \\[-0.5em]
-  L_1 ∪_1 \wild & = & \fn{(L_2,v)}{(L_1 ∪ L_2, v)} \\
-  \\[-0.5em]
-  sym(X) & = & (\{ X \}, inert_{\Values^{sl}}) \\
-  \\[-0.5em]
-  \semslive{\px}_ρ & = & ρ(\px) \\
-  \\[-0.5em]
-  \semslive{\Lam{\px}{\pe}}_ρ & = & (\varnothing, \FunV(X_\px.\ \semslive{\pe}_{ρ[\px↦sym(X_\px)]})) \\
-  \\[-0.5em]
-  \semslive{\pe~\px}_ρ & = &
-    \begin{letarray}
-      \text{let} & (L_1,v_1) = \semslive{\pe}_ρ \\
-      \text{in}  & L_1 ∪_1 \begin{cases}
-                     d[ρ(\px) \mapsfrom X] & \text{if $v = \FunV(X.\ d)$} \\
-                     \bot_{∃l}             & \text{otherwise}
-                   \end{cases} \\
-    \end{letarray} \\
-  \\[-0.5em]
-  \semslive{\Let{\px}{\pe_1}{\pe_2}}_ρ& = & \begin{letarray}
-      \text{letrec}~ρ'. & ρ' = ρ ⊔ [\px ↦ \{\px\} ∪_1 \semslive{\pe_1}_{ρ'}] \\
-      \text{in}         & \semslive{\pe_2}_{ρ'}
-    \end{letarray} \\
-  \\
- \end{array}
- \\
- \begin{array}{rcl}
-  \multicolumn{3}{c}{ \ruleform{ α^{sl}_{\Values^{∃l}} \colon \Values^{∃l} → \Values^{sl}} } \\
-  \\[-0.5em]
-  α^{sl}_{\Values^{∃l}}(\FunV(f)) & = & \FunV(X.\ f(X)) \\
-  γ^{sl}_{\Values^{∃l}}(\FunV(X,d)) & = & \FunV(\fn{d'}{d[d' \mapsfrom X]}) \\
-  \\[-0.5em]
-  (L,v)[(L',v') \mapsfrom X] & = & (L \setminus \{X\} ∪ \{ deep(L',v') \mid X ∈ L \}, v[(L',v') \mapsfrom X]) \\
-  \FunV(f)[d' \mapsfrom X] & = & \FunV({\fn{d^{sl}}{f(d^{sl})[d' \mapsfrom X]}}) \\
-  \\[-0.5em]
-  deep_{\LiveSD}(L',v') & = & L' ∪ deep_{\Values^{sl}}(v') \\
-  deep_{\Values^{sl}}(\FunV(f)) & = & \bigcup_v\{deep_{\LiveSD}(f(\varnothing,v))\} \\  % TODO: Think harder. Not correct I think
-  inert_{\Values^{sl}} & = & \FunV(\fn{d^{sl}}{(deep(d^{sl}),inert_{\Values^{sl}})}) \\
- \end{array} \\
-\end{array}\]
-\begin{theorem}
-  $(L,v) ⊑ (deep(L,v),inert_{\Values^{sl}})$
-\end{theorem}
-\begin{theorem}
-  $\semslive{e}_{ρ[x↦d]} ⊑ \semslive{e}_{ρ[x↦sym(X)]}[d \mapsfrom X]$
-\end{theorem}
-\caption{Potential liveness, symbolic}
-  \label{fig:liveness-abstraction-symb}
-\end{figure}
-
-\begin{figure}
-\[\begin{array}{c}
- \begin{array}{rrclcl}
-  \text{Contextual Small-Step Domain} & d^{c\Sigma} & ∈ & \SSCD & = & \Values^{c\Sigma} \times (\Configurations \to \SSTraces^{+\infty}) \to \Values^{c\Sigma} \times (\Configurations \to \SSTraces^{+\infty}) \\
-  \text{Contextual Liveness Domain} & d^{cl} & ∈ & \LiveCD & = & \Values^{cl} \times \poset{\Var} \to \Values^{cl} \times \poset{\Var} \\
- \end{array} \\
- \\
- \begin{array}{rcl}
-  \multicolumn{3}{c}{ \ruleform{ α^{c}_\AbsD \colon \AbsD → \AbsCD \qquad α^{c\Sigma}_\SSD \colon \SSD → \SSCD \qquad α^{cl}_\SSD \colon \SSD → \LiveCD} } \\
-  \\[-0.5em]
-  α^{c}_\AbsD(d) & = & \fn{c}{c(d)} \\
-  γ^{c}_\AbsD(f) & = & f(id) \\
-  α^{c}_{\Values}(\FunV(f)) & = & \FunV(α^{c}_\AbsD \circ f \circ γ^{c}_\AbsD) \\
-  α^{c}_{\Values}(\bot_{\Values}) & = & \bot_{\Values^{c}} \\
-  \\[-0.5em]
-  α^{c\Sigma}_\SSD(v,φ) & = & \fn{c}{c(α^{c\Sigma}_{\Values^\Sigma}(v),φ)} \\
-  α^{cl}_\SSD(v,φ) & = & \fn{c}{c(α^{c}_{\Values^{∃l}}(v),α^{∃l}(φ))} \\
- \end{array} \\
- \\
- \begin{array}{rcl}
-  \multicolumn{3}{c}{ \ruleform{ \semclive{\wild} \colon \Exp → (\Var → \LiveCD) → \LiveCD } } \\
-  \\[-0.5em]
-  \bot_{cl} & = & \fn{c}{c (\bot_{\Values^{cl}}, \varnothing)} \\
-  \\[-0.5em]
-  L_1 ∪_1 \wild & = & \fn{(L_2,v)}{(L_1 ∪ L_2, v)} \\
-  \\[-0.5em]
-  apply(d^{cl},c) & = & \fn{(v_1,L_1)}{\begin{cases}
-      f(d^{cl})~(c \circ (L_1 ∪_1 \wild)) & \text{if $v_1 = \FunV(f)$} \\
-      \bot_{cl}~(c \circ (L_1 ∪_1 \wild)) & \text{otherwise}
-    \end{cases}} \\
-  \\[-0.5em]
-  \semclive{\px}_ρ~c & = & ρ(\px)~c \\
-  \\[-0.5em]
-  \semclive{\Lam{\px}{\pe}}_ρ~c & = & c(\FunV(\fn{d^{cl}}{\semclive{\pe}_{ρ[\px↦d^{cl}]}}), \varnothing) \\
-  \\[-0.5em]
-  \semclive{\pe~\px}_ρ~c & = & \semclive{\pe}_ρ~(apply(ρ(\px),c)) \\
-  \\[-0.5em]
-  \semclive{\Let{\px}{\pe_1}{\pe_2}}_ρ~c& = & \begin{letarray}
-      \text{letrec}~ρ'. & ρ' = ρ ⊔ [\px ↦ \fn{c}{~\semclive{\pe_1}_{ρ'}~(c \circ (\{\px\} ∪_1 \wild))}] \\
-      \text{in}         & \semclive{\pe_2}_{ρ'}~c
-    \end{letarray} \\
-  \\
- \end{array}
-\end{array}\]
-\begin{theorem} About pushing/reifying continuations
-  \[
-  f(α^{c}_\AbsD(d)(c')) = f(c'(d)) = α^{c}_\AbsD(d)(f \circ c')
-  \]
-\end{theorem}
-\caption{Potential liveness, contextual}
-  \label{fig:liveness-abstraction}
-\end{figure}
-
-\begin{figure}
-\[\begin{array}{c}
- \begin{array}{rrclcl}
-  \text{Symbolic variables} & X & ∈ & \SVar &   & \\
-  \text{Symbolic call} & sc & ∈ & \SCall & = & X(c) \\
-  \text{Symbolic Liveness Domain} & d^{sl} & ∈ & \LiveSD & = & \poset{\Var ∪ \SCall} \times \Values^{sl} \\
-  \text{Symbolic Liveness Values} & v^{sl} & ∈ & \Values^{sl} & = & \FunV_{\Values^{sl}}(X,d^{sl}) \mid \bot_{\Values^{sl}} \\
- \end{array} \\
- \\
- \begin{array}{c}
-  \ruleform{ sc_1 ⊑ sc_2 \qquad L_1 ⊑ L_2 \qquad d_1 ⊑ d_2 } \\
-  \\[-0.5em]
-  \inferrule*
-    {L_1 ∩ \Var ⊆ L_2 ∩ \Var \qquad ∀X(c_1)∈(L_1∩\SCall).\ ∃X(c_2)∈(L_1∩\SCall).\ c_1 ⊑ c_2}
-    {L_1 ⊑ L_2}
-  \qquad
-  \inferrule*
-    {L_1 ∩ \Var ⊆ L_2 ∩ \Var \qquad ∀X(c_1)∈(L_1∩\SCall).\ ∃X(c_2)∈(L_1∩\SCall).\ c_1 ⊑ c_2}
-    {L_1 ⊑ L_2}
-  \\[-0.5em]
-  \inferrule*
-    {L_1 ⊆ L_2 \qquad v_1 ⊑ v_2}
-    {(L_1,v_1) ⊑ (L_2,v_2)}
-  \qquad
-  \inferrule*
-    {L_1 ⊆ L_2 \quad (\forall L,v.\ L_2 ⊆ L \Rightarrow f_1(L,v) ⊑ f_2(L,v)) }
-    {(L_1,\FunV(f_1)) ⊑ (L_2,\FunV(f_2))} \\
-  %TODO: We want the gfp, I think
- \end{array} \\
- \\
- \begin{array}{rcl}
-  \multicolumn{3}{c}{ \ruleform{ α^{sl}_{\Values^{∃l}} \colon \Values^{∃l} → \Values^{sl}} } \\
-  \\[-0.5em]
-  α^{sl}_{\Values^{∃l}}(\FunV(f)) & = & \FunV(X,f(X)) \\
-  γ^{sl}_{\Values^{∃l}}(\FunV(X,d)) & = & \FunV(\fn{d'}{d[d' \mapsfrom X]}) \\
-  %α^{sl}_{\Values^{∃l}}(\bot_{\Values^{∃l}}) & = & \bot_{\Values^{c}} \\
- \end{array} \\
- \\
- \begin{array}{rcl}
-  \multicolumn{3}{c}{ \ruleform{ \semsclive{\wild} \colon \Exp → (\Var → \LiveSCD) → \LiveSCD } } \\
-  \\[-0.5em]
-  \bot_{sl} & = & (\varnothing, \bot_{\Values^{sl}}) \\
-  \\[-0.5em]
-  L_1 ∪_1 \wild & = & \fn{(L_2,v)}{(L_1 ∪ L_2, v)} \\
-  \\[-0.5em]
-  inert_{\Values^{scl}} & = & \FunV(\fn{d^{scl}}{\fn{c}{c(inert_{\Values^{scl}}, snd(d^{scl}~\top_{c}))}}) \\
-  %TODO: is inert well-defined???
-  \\[-0.5em]
-  sym(X) & = & \fn{c}{c (inert_{\Values^{scl}}, \{ X(c) \})} \\
-  \\[-0.5em]
-  apply(d^{scl},c) & = & \fn{(v_1,L_1)}{\begin{cases}
-      f(d^{scl})~(c \circ (L_1 ∪_1 \wild)) & \text{if $v_1 = \FunV(f)$} \\
-      \bot_{scl}~(c \circ (L_1 ∪_1 \wild)) & \text{otherwise}
-    \end{cases}} \\
-  \\[-0.5em]
-  \semslive{\px}_ρ~c & = & ρ(\px)~c \\
-  \\[-0.5em]
-  \semslive{\Lam{\px}{\pe}}_ρ~c & = & c(\FunV(\fn{d^{scl}}{~(\semslive{\pe}_{ρ[\px↦sym(X_\px)]})[X_\px \mapsfrom d^{scl}]}), \varnothing) \\
-  \\[-0.5em]
-  \semslive{\pe~\px}_ρ~c & = & \semslive{\pe}_ρ~(apply(ρ(\px),c)) \\
-  \\[-0.5em]
-  \semslive{\Let{\px}{\pe_1}{\pe_2}}_ρ~c& = & \begin{letarray}
-      \text{letrec}~ρ'. & ρ' = ρ ⊔ [\px ↦ \fn{c}{~\semslive{\pe_1}_{ρ'}~(c \circ look(\px))}] \\
-      \text{in}         & \semslive{\pe_2}_{ρ'}~c
-    \end{letarray} \\
-  \\
- \end{array}
-\end{array}\]
-\begin{theorem}
-  $(\semslive{e}_{ρ[x↦d]}~c)$ ⊑ $(\semslive{e}_{ρ[x↦sym(X)]}~c)[d \mapsfrom X]$
-\end{theorem}
-\caption{Potential liveness, symbolic}
-  \label{fig:liveness-abstraction-symb}
-\end{figure}
-
-\begin{figure}
-\[\begin{array}{c}
- \begin{array}{rrclcl}
-  \text{Abstract stack} &   \lS & ∈ & \lStacks & ::= & \lSBot \mid \lSAp{\lS} \mid \lSTop \\
-  \text{Liveness}       &     l & ∈ & \lLiveness & ::= & \lAbs \mid \lUsed{\lS} \\
- \end{array} \\
- \\
- \begin{array}{c}
-   \\[-0.5em]
-   \inferrule*
-     {\quad}
-     {\lSBot ⊑ \lS} \qquad
-   \inferrule*
-     {\lS_1 ⊑ \lS_2}
-     {\lSAp{\lS_1} ⊑ \lSAp{\lS_2}} \qquad
-   \inferrule*
-     {\quad}
-     {\lS ⊑ \lSTop} \\
-   \\[-0.5em]
-   \inferrule*
-     {\quad}
-     {\lAbs ⊑ l} \qquad
-   \inferrule*
-     {\lS_1 ⊑ \lS_2}
-     {\lUsed{\lS_1} ⊑ \lUsed{\lS_2}} \\
-   \\
- \end{array} \\
- \\
- \begin{array}{rcl}
-  \multicolumn{3}{c}{ \ruleform{ α^{∃l}_\SSD \colon \SSD → \LiveD \qquad α^{∃l}_φ \colon (\Configurations \to \SSTraces^{+\infty}) → \poset{\Var} \qquad α^{∃l}_{\Values^\Sigma} \colon \Values^\Sigma → \Values^{∃l} } } \\
-  \\[-0.5em]
-  α^{∃l}_\Stacks(\StopF) & = & \lSBot \\
-  α^{∃l}_\Stacks(\UpdateF(\pa) \pushF \lS) & = & α^{∃l}_\Stacks(\lS) \\
-  α^{∃l}_\Stacks(\ApplyF(\pa) \pushF \lS) & = & \lSAp{α^{∃l}_\Stacks(\lS)} \\
- \end{array} \\
- \\
- \begin{array}{rcl}
-  \multicolumn{3}{c}{ \ruleform{ \semlive{\wild} \colon \Exp → (\Var → \LiveD) → \LiveD } } \\
-  \\[-0.5em]
-  \bot_{∃l} & = & (\bot_{\Values}, \varnothing) \\
-  \\[-0.5em]
-  L_1 \fcomp^l L_2 & = & α^{∃l}_φ(γ^{∃l}_φ(L_1) \fcomp γ^{∃l}_φ(L_2)) ⊑ L_1 ∪ L_2 \\
-  \\[-0.5em]
-  shortcut^l & = & α^{∃l}_φ \circ shortcut \circ γ^{∃l}_φ = id \\
-  \\[-0.5em]
-  \semlive{\px}_ρ & = & ρ(\px) \\
-  \\[-0.5em]
-  \semlive{\Lam{\px}{\pe}}_ρ & = & (\FunV(\fn{d^l}{\semlive{\pe}_{ρ[\px↦d^l]}}, \varnothing) \\
-  \\[-0.5em]
-  \semlive{\pe~\px}_ρ & = &
-    \begin{letarray}
-      \text{let} & (v_1,L_1) = \semlive{\pe}_ρ \\
-                 & (v_2,L_2) = \begin{cases}
-                     f(ρ(\px)) & \text{if $v = \FunV(f)$} \\
-                     \bot_{∃l} & \text{otherwise}
-                   \end{cases} \\
-      \text{in}  & (v_2, L_1 ∪ L_2) \\
-    \end{letarray} \\
-  \\[-0.5em]
-  \semlive{\Let{\px}{\pe_1}{\pe_2}}_ρ& = & \begin{letarray}
-      \text{letrec}~ρ'. & (v_1,L_1) = \semlive{\pe_1}_{ρ'} \\
-                        & ρ' = ρ ⊔ [\px ↦ (v_1,\{\px\} ∪ L_1))] \\
-      \text{in}         & \semlive{\pe_2}_{ρ'}
-    \end{letarray} \\
-  \\
- \end{array}
- \\
-\end{array}\]
-\caption{Potential liveness}
-  \label{fig:liveness-abstraction}
-\end{figure}
-
-
-\begin{figure}
-\[
-\begin{array}{ll}
-  & \text{Let } ρ_x = \lfp(λρ. [x ↦ cons(\LookupT,\semss{\slbln{2}(\Lam{y}{\slbln{3}y})\slbln{4}}_ρ]) \\
-  & \text{and } ρ_{x,y} = ρ_x[y ↦ ρ_1(x)] \\
-  & \text{and } f = d ↦ cons(\AppET,\semss{\slbln{3}y}_{ρ[y↦d]}) \\
-  & \text{Evaluate }\Let{x}{\Lam{y}{y}}{x~x~x)} \\
-  & \\
-  & \semss{\slbln{1}\Let{x}{\slbln{2}(\Lam{y}{\slbln{3}y})\slbln{4}}{\slbln{5}(\slbln{6}(\slbln{7}x~x)~x)}}_\bot(\lbln{1}) \\
-  & \\[-0.9em]
-  ⇒ & \lbln{1} \act{\BindA} \semss{\slbln{5}(\slbln{6}(\slbln{7}x~x)~x)}_{ρ_x}(\lbln{1} \act{\BindA} \lbln{5}) \\
-  & \\[-0.9em]
-  ⇒ & \lbln{1} \act{\BindA} \lbln{5} \act{\AppIA} \semss{\slbln{6}(\slbln{7}x~x)}_{ρ_x}(\lbln{1} \act{\BindA} \lbln{5} \act{\AppIA} \lbln{6}) \\
-  & \\[-0.9em]
-  ⇒ & \lbln{1} \act{\BindA} \lbln{5} \act{\AppIA} \lbln{6} \act{\AppIA} \semss{\slbln{7}x}_{ρ_x}(\overbrace{\lbln{1} \act{\BindA} \lbln{5} \act{\AppIA} \lbln{6} \act{\AppIA} \lbln{7}}^{π_1}) \\
-  & \\[-0.9em]
-  ⇒ & π_1 \act{\LookupA} \semss{\slbln{2}(\Lam{y}{\slbln{3}y})\slbln{4}}_{ρ_x}(π_1 \act{\LookupA} \lbln{2}) \\
-  & \\[-0.9em]
-  ⇒ & π_1 \act{\LookupA} \lbln{2} \act{\ValA(\FunV(f))} f(ρ_x(x))(π_1 \act{\LookupA} \lbln{2} \act{\ValA(\FunV(f))} \lbln{4}) \\
-  & \\[-0.9em]
-  ⇒ & π_1 \act{\LookupA} \lbln{2} \act{\ValA(\FunV(f))} \lbln{4} \act{\AppEA} \semss{\slbln{3}y}_{ρ_{x,y}}(\overbrace{π_1 \act{\LookupA} \lbln{2} \act{\ValA(\FunV(f))} \lbln{4} \act{\AppEA} \lbln{3}}^{π_2}) \\
-  & \\[-0.9em]
-  ⇒ & π_2 \act{\LookupA} \semss{\slbln{2}(\Lam{y}{\slbln{3}y})\slbln{4}}_{ρ_x}(π_2 \act{\LookupA} \lbln{2}) \\
-  & \\[-0.9em]
-  ⇒ & π_2 \act{\LookupA} \lbln{2} \act{\ValA(\FunV(f))} f(ρ_x(x))(π_2 \act{\LookupA} \lbln{2} \act{\ValA(\FunV(f))} \lbln{4}) \\
-  & \\[-0.9em]
-  ⇒ & π_2 \act{\LookupA} \lbln{2} \act{\ValA(\FunV(f))} \lbln{4} \act{\AppEA} \semss{\slbln{3}y}_{ρ_{x,y}}(\overbrace{π_2 \act{\LookupA} \lbln{2} \act{\ValA(\FunV(f))} \lbln{4} \act{\AppEA} \lbln{3}}^{π_3}) \\
-  & \\[-0.9em]
-  ⇒ & π_3 \act{\LookupA} \semss{\slbln{2}(\Lam{y}{\slbln{3}y})\slbln{4}}_{ρ_x}(π_3 \act{\LookupA} \lbln{2}) \\
-  & \\[-0.9em]
-  ⇒ & π_3 \act{\LookupA} \lbln{2} \act{\ValA(\FunV(f))} \lbln{4} \\
-  & \\[-0.9em]
-  & \\
-  = \lbln{1} & \act{\BindA} \lbln{5} \act{\AppIA} \lbln{6} \act{\AppIA} \lbln{7} \\
-             & \act{\LookupA} \lbln{2} \act{\ValA(\FunV(f))} \lbln{4} \act{\AppEA} \lbln{3} \\
-             & \act{\LookupA} \lbln{2} \act{\ValA(\FunV(f))} \lbln{4} \act{\AppEA} \lbln{3} \\
-             & \act{\LookupA} \lbln{2} \act{\ValA(\FunV(f))} \lbln{4}
-\end{array}
-\]
-\caption{Evalation of $\semss{\wild}$}
-\end{figure}
-
-\begin{figure}
-\[\begin{array}{c}
- \begin{array}{rrclcl}
-  \text{Data Type Constructors}  & T & ∈ & \TyCon & \subseteq & \Nat \\
-  \text{Types}                   & τ & ∈ & \Type & ::= & τ_1 \ArrowTy τ_2 \mid T \\
-  \text{Constructor families}    & φ & ∈ & \multicolumn{3}{l}{\Con \twoheadrightarrow \TyCon} \\
-  \text{Constructor field types} & σ & ∈ & \multicolumn{3}{l}{\Con \to \Pi_{i=1}^{A_K} \Type_i} \\
- \end{array} \\
- \\
- \begin{array}{rcl}
-  \multicolumn{3}{c}{ \ruleform{ α_τ : (\Traces^+ \to \poset{\Traces^{+\infty}}) \to \poset{\Type} \qquad γ_τ : \poset{\Type} \to (\Traces^+ \to \poset{\Traces^{+\infty}})} } \\
-  \\[-0.5em]
-  single(S)   & = & \begin{cases}
-    S & S = \{ \pe \} \\
-    \varnothing & \text{otherwise} \\
-  \end{cases} \\
-  \\[-0.5em]
-  α_τ(S) & = & \{ α_v(v) \mid \exists π_i^+, π.\  (π \act{\ValA(v)} \wild) ∈ S(π_i^+) \wedge \balanced{π} \}  \\
-  α_v(\FunV(f)) & = & single(\{ τ_1 \ArrowTy τ_2 \mid τ_2 \in α_τ(f(γ_τ(τ_1))) \})  \\
-  α_v(\ConV(K,\many{d})) & = & \{ φ(K) \mid \many{σ(i) \in α_τ(d_i)}^i \}  \\
-  \\[-0.5em]
-  γ_τ(A)(π_i^+) & = & \{ π \act{\ValA(v)} \wild \mid \balanced{π} \wedge v ∈ γ_v(A) \}  \\
-  γ_v(A) & = &   \{ \ConV(K,\many{d}) \mid φ(K) ∈ A \wedge \many{d_i = γ_τ(σ(i))}^i \} \\
-         &   & ∪ \{ \FunV(f) \mid \forall (τ_1 \ArrowTy τ_2) ∈ A.\  f(γ_τ(τ_1)) \subseteq γ_τ(τ_2)  \}  \\
-  \\
- \end{array} \\
- \begin{array}{rcl}
-  \multicolumn{3}{c}{ \ruleform{ \seminf{\wild} \colon \Exp → (\Var → \poset{\Type}) → \poset{\Type} } } \\
-  \\[-0.5em]
-  cons(a,\lbl,S)(π_i^+)   & = & dst(π_i^+) \act{a} S(π_i^+ \act{a} \lbl) \\
-  \\[-0.5em]
-  \seminf{\slbl \pe}_ρ    (π_i^+)   & = & \varnothing \qquad \text{if $dst(π_i^+) \not= \lbl$} \\
-  \\[-0.9em]
-  \seminf{\slbl \px}_ρ    (π_i^+)   & = & ρ(\px)(π_i^+) \\
-  \\[-0.5em]
-  \seminf{\slbln{1}(\Lam{\px}{\pe})\slbln{2}}_ρ(π_i^+) & = &
-    \begin{letarray}
-      \text{let} & f = d ↦ cons(\AppEA,\atlbl{\pe},\seminf{\pe}_{ρ[\px↦d]}) \\
-      \text{in}  & α_v(\FunV(f)) \\
-    \end{letarray} \\
-  \\[-0.5em]
-  \seminf{\slbl(\pe~\px)}_ρ(π_i^+) & = &
-    \begin{letarray}
-      \text{let} & π_e = \seminf{\pe}_ρ(π_i^+ \act{\AppIA} \atlbl{\pe}) \\
-      \text{in}  & \begin{cases}
-                     \lbl \act{\AppIA} π_e \concat f(ρ(\px))(π_i^+ \act{\AppIA} π_e) & \text{if $π_e = \wild \act{\ValA(\FunV(f))} \wild$}  \\
-                     \lbl \act{\AppIA} π_e & \text{otherwise}  \\
-                   \end{cases} \\
-    \end{letarray} \\
-  \\[-0.5em]
-  \seminf{\slbl(\Let{\px}{\pe_1}{\pe_2})}_ρ(π_i^+) & = &
-    \begin{letarray}
-      \text{letrec}~ρ'. & ρ' = ρ ⊔ [\px ↦ \seminf{\pe_1}_{ρ'}] \\
-      \text{in}         & cons(\BindA,\atlbl{\pe_2},\seminf{\pe_2}_{ρ'})(π_i^+)
-    \end{letarray} \\
-  \\
-  \seminf{\slbln{1}(K~\many{\px})\slbln{2}}_ρ(π_i^+) & = & \lbln{1} \act{\ValA(\ConV(K,\many{ρ(\px)}))} \lbln{2} \\
-  \\[-0.5em]
-  \seminf{\slbl(\Case{\pe_s}{\Sel})}_ρ(π_i^+) & = & \begin{cases}
-      π_s \concat Rhs(K,\many{d})(π_i^+ \concat π_s) & \text{if $π_s = \wild \act{\ValA(\ConV(K,\many{d}))} \wild$}  \\
-      π_s & \text{otherwise}  \\
-    \end{cases} \\
-    & & \text{where} \begin{array}{lcl}
-                       π_s & = & cons( \CaseIA, \atlbl{\pe_s},\seminf{\pe_s}_ρ)(π_i^+) \\
-                       Rhs(K,\many{d}) & = & cons(\CaseEA,\atlbl{\pe_K},\seminf{\pe_K}_{ρ[\many{\px↦d}]}) \\
-                     \end{array} \\
-  \\
- \end{array} \\
-\end{array}\]
-\caption{Simple type inference as abstract interpretation}
-  \label{fig:semantics}
-\end{figure}
-

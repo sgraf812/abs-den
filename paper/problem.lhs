@@ -38,7 +38,7 @@ unobservable divergence but also in terms of evaluation cardinality.
  \arraycolsep=3pt
  \begin{array}{rrclcl}
   \text{Variables}       & \px,\py & ∈ & \Var    &     & \\
-  \text{Expressions}     &     \pe & ∈ & \Exp    & ::= & \px \mid \Lam{\px}{\pe} \mid \pe~\px \mid \Let{\px}{\pe_1}{\pe_2} \\
+  \text{Expressions}     &     \pe & ∈ & \Exp_0  & ::= & \px \mid \Lam{\px}{\pe} \mid \pe~\px \mid \Let{\px}{\pe_1}{\pe_2} \\
   \\
   \text{Scott Domain}    &       d & ∈ & \ScottD & =   & [\ScottD \to_c \ScottD]_\bot \\
   \text{Liveness Domain} &  d^{∃l} & ∈ & \LiveD  & =   & \poset{\Var} \\
