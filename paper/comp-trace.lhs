@@ -179,10 +179,10 @@
 
 \maketitle
 
-%%include intro.lhs
-%%include problem.lhs
-%include semantics.lhs
-%include stateless.lhs
+%include intro.lhs
+%include problem.lhs
+%%include semantics.lhs
+%%include stateless.lhs
 %%include related-work.lhs
 
 \nocite{*}

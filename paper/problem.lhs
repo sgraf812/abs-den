@@ -276,3 +276,47 @@ cardinality) as suggested in the introduction, the soundness proof for these
 type systems would still need to resort to an operational semantics for the lack
 of observable evaluation cardinality or postulate observability as is the case
 for the categorical semantics of \citep{Atkey:18}.
+
+\begin{figure}
+\begin{minipage}{0.52\textwidth}
+\[\begin{array}{c}
+ \arraycolsep=3pt
+ \begin{array}{rrclcl}
+  \text{Usage cardinality} &       u & ∈ & \Card & =   & \{ 0 ⊏ 1 ⊏ ω \} ⊂ \mathbb{N}_ω \\
+  \text{Liveness Domain}   &  d^{∃ω} & ∈ & \UsgD & =   & \Var \to \Card \\
+ \end{array} \\
+ \begin{array}{rcl}
+   (ρ_1 + ρ_2)(\px) & = & ρ_1(\px) + ρ_2(\px) \\
+   (u * ρ_1)(\px)   & = & u * ρ_1(\px) \\
+ \end{array} \\
+\end{array}\]
+\end{minipage}%
+\begin{minipage}{0.5\textwidth}
+\arraycolsep=0pt
+\[\begin{array}{rcl}
+  \multicolumn{3}{c}{ \ruleform{ \semusg{\wild} \colon \Exp → (\Var → \UsgD) → \UsgD } } \\
+  \\[-0.5em]
+  \semusg{\px}_ρ & {}={} & ρ(\px) \\
+  \semusg{\Lam{\px}{\pe}}_ρ & {}={} & ω*\semusg{\pe}_{ρ[\px ↦ \varnothing]} \\
+  \\[-0.5em]
+  \semusg{\pe~\px}_ρ & {}={} & \semusg{\pe} + ω*ρ(\px) \\
+  \\[-0.5em]
+  \semusg{\Let{\px}{\pe_1}{\pe_2}}_ρ& {}={} & \begin{letarray}
+      \text{letrec}~ρ'. & ρ' = ρ \mathord{⊔} [\px \mathord{↦} d_1] \\
+                        & d_1 = [\px\mathord{↦}1] \mathord{+} \semscott{\pe_1}_{ρ'} \\
+      \text{in}         & \semusg{\pe_2}_{ρ'}
+    \end{letarray} \\
+\end{array}\]
+\end{minipage}%
+\caption{Naïve usage analysis}
+  \label{fig:liveness}
+\end{figure}
+
+\begin{theorem}[Correctness of $\semlive{\wild}$]
+  \label{thm:semlive-correct-1}
+  Let $\pe$ be an expression and $\px$ a variable.
+  Then $\px$ is evaluated at most $u$ times whenever
+  there exists $\tr ∈ \Var \to \UsgD$ such that
+  $(u+1)*\tr(\px) \not⊑ \semlive{\pe}_{\tr}$.
+\end{theorem}
+% Curiosly, this is sound for call-by-name. Call-by-need would be a bit more complicated.
