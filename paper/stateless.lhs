@@ -5,56 +5,52 @@
 \[\begin{array}{c}
  \arraycolsep=3pt
  \begin{array}{rrclcl}
-  \text{Actions}         & a        & ∈ & \Actions              & ::= & \AppIA(\pa) \mid \AppEA(\pa) \mid \LookupA(\pa) \mid \BindA \mid \ValA(v) \\
-  \text{Finite Traces}   & π^+      & ∈ & \Traces^+             & ::= & \lbl \mid \return \act{a} π^+  \\
-  \text{Infinite Traces} & π^\infty & ∈ & \Traces^{\infty}      & ::= & \lim \Traces^+    \\
-  \text{Finite and infinite Traces} & π & ∈ & \Traces^{+\infty} & ::= & \Traces^+ ∪ \Traces^\infty    \\
-
-  \text{Domain of maximal traces} & d & ∈ & \MaxD   & = & \Traces^+ \to \Traces^{+\infty} \\
-  \text{Values}                   & v & ∈ & \Values & ::= & \FunV(\AbsD \to \AbsD) \\
+  \text{Program point}   & \pp      & ∈ & \ProgramPoints        &  =  & \{ \return \} ∪ \Exp \\
+  \text{Actions}         & a        & ∈ & \Actions              & ::= & \AppIA(\pa) \mid \AppEA(\pa) \mid \BindA \mid \LookupA(\pa) \mid \UpdateA(\pa) \mid \ValA(v) \\
+  \text{Finite Traces}   & π^+      & ∈ & \Traces^+             & ::= & \pp\trend \mid \pp \act{a} π^+  \\
+  \text{Infinite Traces} & π^\infty & ∈ & \Traces^{\infty}      & ::=_{\gfp} & \pp \act{a} π^\infty \hspace{1ex} = \lim \Traces^+    \\
+  \text{Finite and infinite Traces} & π & ∈ & \Traces^{+\infty} & ::=_{\gfp} & \pp\trend \mid \pp \act{a} π \hspace{1ex} =  \Traces^+ ∪ \Traces^\infty    \\
   \\
   \text{Limit of a set of traces} & && \lim \mathcal{T} & = & \{ π \mid ∀n∈\mathbb{N}. π[0..n] ∈ \mathcal{T} \} \\
   \\
+  \text{Domain of maximal traces} & d & ∈ & \MaxD   & ⊂ & \Traces^+ \to_c \Traces^{+\infty} \\
+  \text{Values}                   & v & ∈ & \Values & ::= & \FunV(\MaxD \to_c \MaxD) \\
  \end{array} \\
  \\[-0.5em]
  \ruleform{hash : \Traces^+ \to \Addresses} \quad \text{an injective function on the number of $\BindA$ actions in the trace} \\
  \\
  \begin{array}{rcl}
-  \multicolumn{3}{c}{ \ruleform{ \atlbl{\pe} = \lbl } } \\
+  \multicolumn{3}{c}{ \ruleform{ src(π) = \pp \qquad tgt(π) = \pp } } \\
   \\[-0.5em]
-  \atlbl{ \slbln{1} \pv \slbln{2} } & = & \slbln{1} \\
-  \atlbl{ \slbl \wild \ } & = & \slbl \\
-  \\
- \end{array} \\
- \begin{array}{rcl}
-  \multicolumn{3}{c}{ \ruleform{ src(π) = \lbl \qquad dst(π^+) = \lbl } } \\
+  src(\pp\trend)     & = & \pp \\
+  src(\pp \act{a} π) & = & \pp \\
   \\[-0.5em]
-  src(\lbl)           & = & \lbl \\
-  src(\lbl \act{a} π) & = & \lbl \\
-  \\[-0.5em]
-  dst(\lbl)           & = & \lbl \\
-  dst(π^+ \act{a} \lbl) & = & \lbl \\
-  \\
- \end{array} \qquad
+  tgt(π)    & = & \begin{cases}
+    undefined & \text{if $π$ infinite} \\
+    \pp       & \text{if $π = ... \act{a} \pp\trend$}
+  \end{cases} \\
+ \end{array} \quad
  \begin{array}{c}
   \ruleform{ π_1 \concat π_2 = π_3 } \\
   \\[-0.5em]
   π_1 \concat π_2 = \begin{cases}
-    π_1              & \text{if $π_1$ infinite} \\
-    undefined        & \text{if $π_1$ finite and $dst(π_1) \not= src(π_2)$} \\
-    \lbl             & π_1 = π_2 = \lbl \\
-    π_1' \act{a} π_2 &  π_1 = π_1' \act{a} \lbl \\
-    π_1 \act{a} π_2' &  π_2 = \lbl \act{a} π_2' \\
+    \pp \act{a} (π_1' \concat π_2) & \text{if $π_1 = \pp \act{a} π_1'$} \\
+    π_2                     & \text{if $π_1 = \pp\trend$ and $src(π_2) = \pp$} \\
+    undefined               & \text{if $π_1 = \pp\trend$ and $src(π_2) \not= \pp$} \\
   \end{cases} \\
  \end{array} \\
  \\
  \begin{array}{ll}
   \begin{array}{c}
-  \ruleform{ \getval{π}{v} }
+  \ruleform{ \getval{π}{(\pv,v)} }
   \\[-0.5em]
   \inferrule*[right=\textsc{ValVal}]
     {\quad}
-    {\getval{π \act{\ValA(v)} \lbl}{v}}
+    {\getval{π^{+} \act{} \pv \act{\ValA(v)} \return\trend}{(\pv,v)}} \\
+  \\[-0.5em]
+  \inferrule*[right=\textsc{ValUpd}]
+    {\getval{π^+}{(\pv,v)}}
+    {\getval{π^{+} \act{\UpdateA(\wild)} \return\trend}{(\pv,v)}}
   \\[-0.5em]
   \end{array} &
   \begin{array}{c}
@@ -62,19 +58,19 @@
   \\[-0.5em]
   \inferrule*[right=\textsc{BalVal}]
     {\quad}
-    {\balanced{\lbln{1} \act{\ValA(v)} \lbln{2}}}
+    {\balanced{\pp \act{\ValA(v)} \return\trend}}
   \qquad
   \inferrule*[right=\textsc{BalApp}]
     {\balanced{π_1}\quad\balanced{π_2}}
-    {\balanced{\lbl \act{\AppIA} π_1 \act{\AppEA} π_2}} \\
+    {\balanced{\pp \act{\AppIA} π_1 \act{\AppEA} π_2}} \\
   \\[-0.5em]
   \inferrule*[right=\textsc{BalVar}]
     {\balanced{π}}
-    {\balanced{\lbl \act{\LookupA(\wild)} π}}
+    {\balanced{\pp \act{\LookupA(\wild)} π \act{\UpdateA(\wild)} \return\trend}}
   \qquad
   \inferrule*[right=\textsc{BalLet}]
     {\balanced{π}}
-    {\balanced{\lbl \act{\BindA} π}} \\
+    {\balanced{\pp \act{\BindA} π}} \\
   \\[-0.5em]
   \end{array} \\
  \end{array} \\
@@ -106,44 +102,58 @@ Trace of the expression:
  \begin{array}{rcl}
   \multicolumn{3}{c}{ \ruleform{ \seminf{\wild} \colon \Exp → (\Var \pfun \MaxD) → \MaxD } } \\
   \\[-0.5em]
-  \bot(π_i^+)   & = & dst(π_i^+) \text{ is the bottom element of $\MaxD$} \\
+  \bot(π_i^+)   & = & tgt(π_i^+)\trend \text{ is the bottom element of $\MaxD$} \\
   \\[-0.5em]
-  \stepm{p}{a}{\pe}(π_i^+)   & = & \begin{cases}
-    dst(π_i^+) \act{a} \pe & \text{if $dst(π_i^+)$ matches $p$} \\
+  \stepm{p}{a}{\pp}(π_i^+)   & = & \begin{cases}
+    tgt(π_i^+) \act{a} \pp\trend & \text{if $tgt(π_i^+)$ matches $p$} \\
     \bot(π_i^+) & \text{otherwise} \\
   \end{cases} \\
   \\[-0.5em]
   (d_1 \fcomp d_2)(π_i^+)   & = & d_1(π_i^+) \concat d_2(π_i^+ \concat d_1(π_i^+)) \\
   \\[-0.5em]
-  \seminf{\pe}_ρ    (π_i^+)   & = & \bot(π_i^+) \qquad \text{if $dst(π_i^+) \not= \pe$} \\
+  apply(d_\px)(π_\pe^+)   & = & \begin{cases}
+    f(d_\px)(π_\pe^+) & \text{if $\getval{π_\pe^+}{(\wild,\FunV(f))}$}  \\
+    \bot(π_\pe^+) & \text{otherwise}  \\
+  \end{cases} \\
   \\[-0.5em]
-  \seminf{\px}_ρ              & = & ρ(\px) \\
+  π_s \subtrceq π & = & \exists π_1, π_2.\ (π = π_1 \concat π_s \concat π_2)  \\
+  \\[-0.5em]
+%  μ(π_i^+)(\pa) & = & \begin{cases}
+%    (\pv, v) & \text{if $\pv \act{\ValA(v)} \return \left(\act{\UpdateA(\wild)} \return \right)^* \act{\UpdateA(\pa)} \return \trend \subtrceq π_i^+$} \\
+%    undefined & \text{otherwise} \\
+%  \end{cases}  \\
+%  \\[-0.5em]
+  μ(π_i^+)(\pa) & = & \begin{cases}
+    (\pv, v) & \text{if $π_{\pv} \act{\UpdateA(\pa)} \return \trend \subtrceq π_i^+$ and $\getval{π_{\pv}}{(\pv,v)}$} \\
+    undefined & \text{otherwise} \\
+  \end{cases}  \\
+  \\[-0.5em]
+  memo(\pa,\pe,d)(π_i^+)   & = & \begin{cases}
+    tgt(π_i^+) \act{\LookupA(\pa)} \pv \act{\ValA(v)} \return \act{\UpdateA(\pa)} \return \trend & \text{if $μ(π_i^+)(\pa) = (\pv,v)$} \\
+    (\step{\LookupA(\pa)}{\pe} \fcomp d \fcomp \stepm{\return}{\UpdateA(\pa)}{\return})(π_i^+) & \text{otherwise} \\
+  \end{cases} \\
+  \\[-0.5em]
+  \seminf{\pe}_ρ    (π_i^+)   & = & \bot(π_i^+) \qquad \text{if $tgt(π_i^+) \not= \pe$} \\
+  \\[-0.5em]
+  \seminf{\px}_ρ              & = & \ternary{\px ∈ \dom(ρ)}{ρ(\px)}{\bot} \\
   \\[-0.5em]
   \seminf{\Lam{\px}{\pe}}_ρ & = &
     \begin{letarray}
-      \text{let} & f = d ↦ \stepm{\ddagger}{\AppEA}{\pe} \fcomp \seminf{\pe}_{ρ[\px↦d]} \\
-      \text{in}  & \step{\ValA(\FunV(f))}{\ddagger} \\
+      \text{let} & f = d ↦ \stepm{\return}{\AppEA}{\pe} \fcomp \seminf{\pe}_{ρ[\px↦d]} \\
+      \text{in}  & \step{\ValA(\FunV(f))}{\return} \\
     \end{letarray} \\
   \\[-0.5em]
-  \seminf{\pe~\px}_ρ & = &
-    \begin{letarray}
-      \text{let} & apply(π_e^+) = \begin{cases}
-                     f(ρ(\px))(π_e^+) & \text{if $\getval{π_e^+}{\FunV(f)}$}  \\
-                     \bot(π_e^+) & \text{otherwise}  \\
-                   \end{cases} \\
-      \text{in}  & \ternary{\px ∈ \dom(ρ)}{\step{\AppIA}{\pe} \fcomp \seminf{\pe}_ρ \fcomp apply}{\bot} \\
-    \end{letarray} \\
+  \seminf{\pe~\px}_ρ & = & \ternary{\px ∈ \dom(ρ)}{\step{\AppIA}{\pe} \fcomp \seminf{\pe}_ρ \fcomp apply(ρ(\px))}{\bot} \\
   \\[-0.5em]
   \seminf{\Let{\px}{\pe_1}{\pe_2}}_ρ(π_i^+) & = &
     \begin{letarray}
       \text{letrec}~ρ'. & \pa = hash(π_i^+) \\
-                        & ρ' = ρ ⊔ [\px ↦ \step{\LookupA(\pa)}{\pe_1} \fcomp \seminf{\pe_1}_{ρ'}] \\
+                        & ρ' = ρ ⊔ [\px ↦ memo(\pa,\pe_1,\seminf{\pe_1}_{ρ'})] \\
       \text{in}         & (\step{\BindA}{\pe_2} \fcomp \seminf{\pe_2}_{ρ'})(π_i^+)
     \end{letarray} \\
-  \\[-0.5em]
  \end{array} \\
 \end{array}\]
-\caption{Structural Maximal Trace Semantics With Crazy Traces}
+\caption{Stateless Maximal Trace Semantics}
   \label{fig:semantics}
 \end{figure}
 
@@ -259,15 +269,9 @@ Trace of the expression:
 \begin{figure}
 \[\begin{array}{c}
  \begin{array}{rcl}
-  \mathbb{P}^* & = & \{ C \in \poset{\Traces^+} \mid C \text{ is a prefix-closed chain of traces} \} \\
+  \multicolumn{3}{c}{ \ruleform{ α^{\States} : ((\Var \pfun \MaxD) \to \MaxD) \to \StateD } } \\
   \\[-0.5em]
-  \multicolumn{3}{c}{ \ruleform{ α^{*} : \Traces^{+\infty} \to \mathbb{P}^* \qquad γ^{*} : \mathbb{P}^* \to \Traces^{+\infty} } } \\
-  \\[-0.5em]
-  α^{*}(π) & = & \{ π^+ \mid π^+ \text{ is a prefix of } π \} \\
-  γ^{*}(C) & = & \Lub C \qquad \text{where $\lub$ is defined on the prefix-closed chain $C$} \\
-  \Traces^{+\infty} & \GaloiS{α^{*}}{γ^{*}} & \mathbb{P}^* \\
-  \Traces^+ \to \Traces^{+\infty} & \GaloiS{\dot{α}^{*}}{\dot{γ}^{*}} & \Traces^+ \to \mathbb{P}^* \\
-  \seminf{\pe} & \GaloiS{\ddot{α}^{*}}{\ddot{γ}^{*}} & \sempref{\pe} \\
+  α^{\States}(S)(σ) & = &
   \\
  \end{array}
 \end{array}\]
@@ -321,11 +325,11 @@ Trace of the expression:
 \[\begin{array}{c}
   \ruleform{ \sempref{\wild} \colon \Exp → (\Var → \PrefD) → \PrefD } \\
   \\[-0.5em]
-  cons(a,\lbl,S)(π_i^+)   = \{\; dst(π_i^+) \act{a} π_o \mid π_o ∈ S(π_i^+ \act{a} \lbl) \;\} \\
+  cons(a,\lbl,S)(π_i^+)   = \{\; tgt(π_i^+) \act{a} π_o \mid π_o ∈ S(π_i^+ \act{a} \lbl) \;\} \\
   \\[-0.5em]
   \inferrule*[right=\textsc{Bot}]
     {\quad}
-    {dst(π) ∈ \sempref{\slbl \pe}_ρ(π)}
+    {tgt(π) ∈ \sempref{\slbl \pe}_ρ(π)}
   \qquad
   \inferrule*[right=\textsc{Var}]
     {π_c ∈ ρ(\px)(π_i^+)}
@@ -374,7 +378,7 @@ Trace of the expression:
  \begin{array}{rcl}
   \multicolumn{3}{c}{ \ruleform{ \seminf{\wild} \colon \Exp → (\Var → \MaxD) → \MaxD } } \\
   \\[-0.5em]
-  \seminf{K~\many{\px}}_ρ(π_i^+) & = & K~\many{\px} \act{\ValA(\ConV(K,\many{ρ(\px)}))} \ddagger \\
+  \seminf{K~\many{\px}}_ρ(π_i^+) & = & K~\many{\px} \act{\ValA(\ConV(K,\many{ρ(\px)}))} \return \\
   \\[-0.5em]
   \seminf{\Case{\pe_s}{\Sel}}_ρ(π_i^+) & = & π_s \concat \begin{cases}
       Rhs(K,\many{d})(π_i^+ \concat π_s) & \text{if $\getval{π_s}{\ConV(K,\many{d})}$}  \\
@@ -388,62 +392,5 @@ Trace of the expression:
  \end{array} \\
 \end{array}\]
 \caption{Algebraic data types in Structural Maximal Trace Semantics}
-  \label{fig:semantics}
-\end{figure}
-
-\cleardoublepage
-
-\begin{figure}
-\[\begin{array}{c}
- \begin{array}{rrclcl}
-  \text{Actions}      &     a & ∈ & \Actions & ::=       & \ldots \mid \UpdateA(\pa) \\
- \end{array} \\
- \\
- \begin{array}{rcl}
-  \multicolumn{3}{c}{ \ruleform{ \seminf{\wild} \colon \Exp → (\Var → \MaxD) → \MaxD } } \\
-  \\[-0.5em]
-  π_s \subtrceq π & = & \exists π_1, π_2.\ π = π_1 \concat π_s \concat π_2  \\
-  \\[-0.5em]
-  μ(π_i^+)(\pa) & = & \begin{cases}
-    (\pv, v) & \text{if $\pv \act{\ValA(v)} \ddagger \left(\act{\UpdateA(\wild)} \ddagger \right)^* \act{\UpdateA(\pa)} \ddagger \subtrceq π_i^+$} \\
-    undefined & \text{otherwise} \\
-  \end{cases}  \\
-  \\[-0.5em]
-  memo(\pa,\pe,d)(π_i^+)   & = & \begin{cases}
-    dst(π_i^+) \act{\LookupA(\pa)} \pv \act{\ValA(v)} \ddagger \act{\UpdateA(\pa)} \ddagger & \text{if $μ(π_i^+)(\pa) = (\pv,v)$} \\
-    (\step{\LookupA(\pa)}{\pe} \fcomp d \fcomp \stepm{\ddagger}{\UpdateA(\pa)}{\ddagger})(π_i^+) & \text{otherwise} \\
-  \end{cases} \\
-  \\[-0.5em]
-  \seminf{\Let{\px}{\pe_1}{\pe_2}}_ρ(π_i^+) & = &
-    \begin{letarray}
-      \text{letrec}~ρ'. & \pa = hash(π_i^+) \\
-                        & ρ' = ρ ⊔ [\px ↦ \highlight{memo(\pa,\pe_1,\seminf{\pe_1}_{ρ'})}] \\
-      \text{in}         & (\step{\BindA}{\pe_2} \fcomp \seminf{\pe_2}_{ρ'})(π_i^+)
-    \end{letarray} \\
-  \\
-  \multicolumn{3}{l}{\text{(Unchanged call-by-name equations:)}} \\
-  \\[-0.5em]
-  \seminf{\pe}_ρ    (π_i^+)   & = & \bot(π_i^+) \qquad \text{if $dst(π_i^+) \not= \pe$} \\
-  \\[-0.5em]
-  \seminf{\px}_ρ              & = & ρ(\px) \\
-  \\[-0.5em]
-  \seminf{\Lam{\px}{\pe}}_ρ & = &
-    \begin{letarray}
-      \text{let} & f = d ↦ \stepm{\ddagger}{\AppEA}{\pe} \fcomp \seminf{\pe}_{ρ[\px↦d]} \\
-      \text{in}  & \step{\ValA(\FunV(f))}{\ddagger} \\
-    \end{letarray} \\
-  \\[-0.5em]
-  \seminf{\pe~\px}_ρ & = &
-    \begin{letarray}
-      \text{let} & apply(π_e^+) = \begin{cases}
-                     f(ρ(\px))(π_e^+) & \text{if $\getval{π_e^+}{\FunV(f)}$}  \\
-                     \bot(π_e^+) & \text{otherwise}  \\
-                   \end{cases} \\
-      \text{in}  & \ternary{\px ∈ \dom(ρ)}{\step{\AppIA}{\pe} \fcomp \seminf{\pe}_ρ \fcomp apply}{\bot} \\
-    \end{letarray} \\
-  \\[-0.5em]
- \end{array} \\
-\end{array}\]
-\caption{Structural Maximal Trace Semantics for call-by-need}
   \label{fig:semantics}
 \end{figure}

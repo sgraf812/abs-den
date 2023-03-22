@@ -24,8 +24,8 @@
   \text{Heaps}                              & μ      & ∈ & \Heaps & = & \Addresses \pfun \Exp \times \Environments \times \StateD \\
   \text{Continuations}                      & κ      & ∈ & \Continuations & ::= & \StopF \mid \ApplyF(\pa) \pushF κ \mid \UpdateF(\pa) \pushF κ \\
   \\[-0.5em]
-  \text{Stateful traces}                    & π      & ∈ & \STraces & ::=_{\gfp} & σ\straceend \mid σ; π \\
-  \text{Domain of stateful trace semantics} & d      & ∈ & \StateD  & = & \States \to_c \STraces \\
+  \text{Stateful traces}                    & π      & ∈ & \STraces & ::=_{\gfp} & σ\trend \mid σ; π \\
+  \text{Domain of stateful trace semantics} & d      & ∈ & \StateD  & ⊂ & \States \to_c \STraces \\
   \text{Values}                             & v      & ∈ & \Values^\States & ::= & \FunV(\Addresses \to \StateD) \\
  \end{array} \\
  \\
@@ -64,14 +64,14 @@
   \\
  \end{array} \\
  \begin{array}{rcl}
-  \multicolumn{3}{c}{ \ruleform{ src_\States(π) = σ \qquad dst_\States(π) = σ } } \\
+  \multicolumn{3}{c}{ \ruleform{ dst_\States(π) = σ \qquad dst_\States(π) = σ } } \\
   \\[-0.5em]
-  src_\States(σ\straceend)    & = & σ \\
-  src_\States(σ; π) & = & σ \\
+  dst_\States(σ\trend)    & = & σ \\
+  dst_\States(σ; π) & = & σ \\
   \\[-0.5em]
   dst_\States(π)    & = & \begin{cases}
     undefined & \text{if $π$ infinite} \\
-    σ         & \text{if $π = ...; σ \straceend$}
+    σ         & \text{if $π = ...; σ \trend$}
   \end{cases} \\
  \end{array} \quad
  \begin{array}{c}
@@ -79,8 +79,8 @@
   \\[-0.5em]
   π_1 \sconcat π_2 = \begin{cases}
     σ; (π_1' \sconcat π_2) & \text{if $π_1 = σ; π_1'$} \\
-    π_2                    & \text{if $π_1 = σ\straceend$ and $src_\States(π_2) = σ$} \\
-    undefined              & \text{if $π_1 = σ\straceend$ and $src_\States(π_2) \not= σ$} \\
+    π_2                    & \text{if $π_1 = σ\trend$ and $dst_\States(π_2) = σ$} \\
+    undefined              & \text{if $π_1 = σ\trend$ and $dst_\States(π_2) \not= σ$} \\
   \end{cases} \\
  \end{array} \\
  \\
@@ -89,10 +89,10 @@
   \\[-0.5em]
   \inferrule*
     {\quad}
-    {\validtrace{σ\straceend}}
+    {\validtrace{σ\trend}}
   \qquad
   \inferrule*
-    {σ \smallstep src_\States(π) \quad \validtrace{π}}
+    {σ \smallstep dst_\States(π) \quad \validtrace{π}}
     {\validtrace{σ; π}} \\
   \\
  \end{array} \\
@@ -163,7 +163,7 @@
 \subsection{Domain Theory}
 
 Here we need to prove that $\StateD$ is well-defined as a domain.
-(Of course, we need the quotient where $src(f(σ)) = σ$.)
+(Of course, we need the quotient where $dst(f(σ)) = σ$.)
 
 Caveat: The order on $\Exp$ is the (flat) one by Labels. A deep embedding.
 
@@ -176,7 +176,7 @@ Then the fixpoint of the composition of those functors is a cont domain.
 Define directed-complete partial order on $F(D)$.
 
 \begin{itemize}
-  \item $\bot = λσ.σ\straceend$.
+  \item $\bot = λσ.σ\trend$.
   \item pointwise, lifting the obv prefix order over $σ_1 ⊑ σ_2$.
   \item obv. partial order
   \item directed-complete? Yes. How to prove formally? Unsure!
@@ -189,12 +189,12 @@ structural definition of a function $\semst{\pe}$ that produces a denotation
 $d ∈ \StateD$ of $\pe$, with the following properties: For every CESK state $σ$
 where the control is $\pe$, $d(σ)$ is a trace in the transition system
 $\smallstep$ with $σ$ as its source state. In itself, that is a trivial
-specification, because $d(σ) = σ \straceend$ is a valid but hardly
+specification, because $d(σ) = σ \trend$ is a valid but hardly
 useful model. So we refine: Every such trace $d(σ)$ must follow the evaluation
 of $\pe$. For example, given a (sub-)expression $\Lam{x}{x}$ of
 some program $\pe$, we expect the following equation:
 \[
-  \semst{\Lam{x}{x}} (\Lam{x}{x}, ρ, μ, κ) = (\Lam{x}{x}, ρ, μ, κ); ((\Lam{x}{x},\FunV(f)), ρ, μ, κ) \straceend
+  \semst{\Lam{x}{x}} (\Lam{x}{x}, ρ, μ, κ) = (\Lam{x}{x}, ρ, μ, κ); ((\Lam{x}{x},\FunV(f)), ρ, μ, κ) \trend
 \]
 Note that even if $κ$ had an apply frame on top, we require $\semst{\wild}$ to
 stop after the value transition. In general, each intermediate continuation
@@ -234,7 +234,7 @@ Finally, it is a matter of good hygiene that $\semst{\pe}$ continues \emph{only}
 those states that have $\pe$ as control; it should produce a singleton trace on
 any other expression of the program, indicating stuck-ness. So even if $x~x$ and
 $y~y$ both structurally are well-scoped application expressions,
-$\semst{x~x}(y~y,ρ,μ,κ) = (y~y,ρ,μ,κ)\straceend$. In other words, if $(\pe_i)_i$
+$\semst{x~x}(y~y,ρ,μ,κ) = (y~y,ρ,μ,κ)\trend$. In other words, if $(\pe_i)_i$
 enumerates the sub-expressions of a program $\pe$, then for every state
 $σ$ that is not stuck in the transition semantics, there is at most one function
 $\semst{\pe_i}$ that is not stuck on $σ$.%
@@ -246,20 +246,20 @@ Perhaps earlier, where we'll discuss labels.}}
 
 A stuck trace is one way in which $\semst{\wild}$ does not \emph{always} return
 a balanced trace. The other way is when the trace diverges before yielding to
-the initial continuation. We call a trace \emph{maximally-balanced} if it is a
+the initial continuation. We call a trace \emph{maximal} if it is a
 valid CESK trace and falls in either of the three categories. More precisely:
 
-\begin{definition}[Non-retreating and maximally-balanced traces]\ \\
+\begin{definition}[Non-retreating and maximal traces]\ \\
   A CESK trace $π = (e_1,ρ_1,μ_1,κ_1); ... (e_i,ρ_i,μ_i,κ_i); ... $ is
   \emph{non-retreating} if
   \begin{itemize}
     \item $\validtrace{π}$, and
     \item Every intermediate continuation $κ_i$ extends $κ_1$ (so $κ_i = κ_1$ or $κ_i = ... \pushF κ_1$)
   \end{itemize}
-  A non-retreating CESK trace $π$ is \emph{maximally-balanced} if it is either
-  infinite or there is no $σ$ such that $π \sconcat (dst_\States(π); σ \straceend)$
+  A non-retreating CESK trace $π$ is \emph{maximal} if it is either
+  infinite or there is no $σ$ such that $π \sconcat (dst_\States(π); σ \trend)$
   is non-retreating.
-  We notate maximally-balanced traces as $\maxbaltrace{π}$.
+  We notate maximal traces as $\maxtrace{π}$.
 \end{definition}
 
 \begin{lemma}[Extension relation on continuations is prefix order]
@@ -288,28 +288,28 @@ A state $σ$ that cannot make a step (so there exists no $σ'$ such that $σ
   \label{ex:stuck}
   The following trace is stuck because $x$ is not in scope:
   \[
-    \semst{x~y}(x~y,[y↦\pa], [\pa↦...], κ) = (x~y,[y↦\pa], [\pa↦...], κ); (x,[y↦\pa], [\pa↦...], \ApplyF(\pa) \pushF κ)\straceend
+    \semst{x~y}(x~y,[y↦\pa], [\pa↦...], κ) = (x~y,[y↦\pa], [\pa↦...], κ); (x,[y↦\pa], [\pa↦...], \ApplyF(\pa) \pushF κ)\trend
   \]
 \end{example}
 
 A trace is stuck if its destination state is stuck.
 
-\begin{lemma}[Characterisation of destination states of maximally-balanced traces]
-  Let $π$ be a non-retreating trace. Then, $π$ is maximally-balanced if and
+\begin{lemma}[Characterisation of destination states of maximal traces]
+  Let $π$ be a non-retreating trace. Then, $π$ is maximal if and
   only if
   \begin{itemize}
     \item $π$ is infinite, or
     \item $π$ is stuck, or
     \item $π$ is \emph{balanced}, meaning that $dst_\States(π)$ is a return
           state, the continuation of which is that of the initial state
-          $src_\States(π)$.
+          $dst_\States(π)$.
   \end{itemize}
 \end{lemma}
 \begin{proof}
   =>:
-  Let $π$ be maximally-balanced.
+  Let $π$ be maximal.
   If $π$ is infinite or stuck, we are done; so assume that $π$ is finite and not
-  stuck. Let $σ_1 = src_\States(π)$, $σ_n = dst_\States(π)$ and let $κ_1$ denote
+  stuck. Let $σ_1 = dst_\States(π)$, $σ_n = dst_\States(π)$ and let $κ_1$ denote
   the continuation of $σ_1$ and $κ_n$ that of $σ_n$.
   Our goal is to show that $κ_n = κ_1$ and that $σ_n$ is a return state.
 
@@ -320,8 +320,8 @@ A trace is stuck if its destination state is stuck.
 
   Now assume that $σ_n$ is neither stuck nor final.
   Then there is $σ_{n+1}$ such that $σ_n \smallstep σ_{n+1}$; let $π' = π
-  \sconcat (σ_n; σ_{n+1} \straceend)$ be the continued trace.
-  $π'$ forms a valid CESK trace, but since $π$ is maximally-balanced, it can't
+  \sconcat (σ_n; σ_{n+1} \trend)$ be the continued trace.
+  $π'$ forms a valid CESK trace, but since $π$ is maximal, it can't
   be non-retreating.
   Hence the continuation $κ_{n+1}$ of $σ_{n+1}$ cannot be an extension of $κ_1$,
   so $κ_{n+1} \not\contextends κ_1$.
@@ -346,13 +346,13 @@ A trace is stuck if its destination state is stuck.
   <=: TODO
 \end{proof}
 
-In other words, a trace is maximally-balanced if it follows the transition
+In other words, a trace is maximal if it follows the transition
 semantics, never leaves the initial evaluation context and is either infinite,
 stuck, or successfully returns a value to its initial evaluation context.
 The latter case intuitively corresponds to the existence of derivation in a
 suitable big-step semantics.
 
-For the initial state with an empty stack, the maximally-balanced trace is
+For the initial state with an empty stack, the maximal trace is
 exactly the result of running the transition semantics to completion.
 
 Unsurprisingly, infinite traces are never stuck or balanced.
@@ -397,7 +397,7 @@ the following predicate:
 \end{proof}
 
 \begin{corollary}
-  If $\validtrace{π}$ and $src_\States(π)$ is well-addressed, then every state
+  If $\validtrace{π}$ and $dst_\States(π)$ is well-addressed, then every state
   in $π$ is well-addressed.
 \end{corollary}
 
@@ -423,10 +423,10 @@ Finally, we can give the specification for $\semst{\wild}$:
 \label{defn:semst-spec}
 Let $σ$ be a well-elaborated state and $\pe$ an arbitrary expression. Then
 \begin{itemize}
-  \item[(S1)] If the control of $σ$ is not $\pe$, then $\semst{\pe}(σ) = σ \straceend$.
+  \item[(S1)] If the control of $σ$ is not $\pe$, then $\semst{\pe}(σ) = σ \trend$.
   \item[(S2)] $σ$ is the source state of the trace $\semst{\pe}(σ)$.
   \item[(S3)] If the control of $σ$ is $\pe$, then
-              $\maxbaltrace{\semst{\pe}(σ)}$ and all states in the trace
+              $\maxtrace{\semst{\pe}(σ)}$ and all states in the trace
               $\semst{\pe}(σ)$ are well-elaborated.
 \end{itemize}
 \end{definition}
@@ -469,7 +469,7 @@ $\pe \triangleq \Let{i}{\Lam{x}{x}}{i~i}$:
         7  & (x, ρ_2, μ, \StopF); & & & & & \\
         8  & (\Lam{x}{x}, ρ_1, μ, κ_3); & & & & & \\
         9  & ((\Lam{x}{x}, \FunV(f)), ρ_1, μ, κ_3); & & & & & \\
-        10 & ((\Lam{x}{x}, \FunV(f)), ρ_1, μ, \StopF) \straceend & & & & & \\
+        10 & ((\Lam{x}{x}, \FunV(f)), ρ_1, μ, \StopF) \trend & & & & & \\
       };
       % Braces, using the node name prev as the state for the previous east
       % anchor. Only the east anchor is relevant
@@ -597,11 +597,11 @@ $\semst{(\Lam{y}{\Lam{x}{x}})~i}$, just as the transition system requires.
 Having a good grasp on the workings of $\semst{\wild}$ now, let us show that
 $\semst{\wild}$ conforms to its specification in \Cref{defn:semst-spec}.
 
-For the following three lemmas, let $σ$ denote a well-addressed state and $\pe$
+For the following three lemmas, let $σ$ denote a well-elaborated state and $\pe$
 an expression.
 
 \begin{lemma}[(S1)]
-  If the control of $σ$ is not $\pe$, then $\semst{\pe}(σ) = σ\straceend$.
+  If the control of $σ$ is not $\pe$, then $\semst{\pe}(σ) = σ\trend$.
 \end{lemma}
 \begin{proof}
   By the first clause of $\semst{\wild}$.
@@ -612,14 +612,14 @@ an expression.
 \end{lemma}
 \begin{proof}
   Trivial for the first clause of $\semst{\wild}$.
-  Now, realising that $src_\States((l \sfcomp r)(σ)) = src_\States(l(σ))$
-  and that $src_\States(step(f)(σ)) = σ$ for any $f$, we can see that the
+  Now, realising that $dst_\States((l \sfcomp r)(σ)) = dst_\States(l(σ))$
+  and that $dst_\States(step(f)(σ)) = σ$ for any $f$, we can see that the
   proposition follows for other clauses by applying these two rewrites to
   completion.
 \end{proof}
 
 \begin{lemma}[(S3)]
-  If the control of $σ$ is $\pe$, then $\maxbaltrace{\semst{\pe}(σ)}$ and all
+  If the control of $σ$ is $\pe$, then $\maxtrace{\semst{\pe}(σ)}$ and all
   states in the trace $\semst{\pe}(σ)$ are well-elaborated.
 \end{lemma}
 \begin{proof}
@@ -665,7 +665,7 @@ Let $d = \semst{\pe}$. Then for all $ρ,μ$ with $\vdash_\Heaps μ$, we have $μ
 \end{theorem}
 
 \begin{corollary} Let $d = \semst{\pe}$. Then $π=d(\pe,[],[],\StopF)$ is a
-maximally-balanced trace for the transition semantics starting at $(\pe,[],[],\StopF)$.
+maximal trace for the transition semantics starting at $(\pe,[],[],\StopF)$.
 \end{corollary}
 
 \begin{figure}
@@ -673,16 +673,16 @@ maximally-balanced trace for the transition semantics starting at $(\pe,[],[],\S
  \begin{array}{rcl}
   \multicolumn{3}{c}{ \ruleform{ \semst{\wild} \colon \Exp → \StateD } } \\
   \\[-0.5em]
-  \bot_\StateD(σ) & = & \fn{σ}{σ\straceend} \\
+  \bot_\StateD(σ) & = & \fn{σ}{σ\trend} \\
   \\[-0.5em]
   (d_1 \sfcomp d_2)(σ) & = & d_1(σ) \sconcat d_2(dst_\States(d_1(σ))) \\
   \\[-0.5em]
   step(f)(σ) & = & \begin{cases}
     σ; f(σ)     & \text{if $f(σ)$ is defined} \\
-    σ\straceend & \text{otherwise} \\
+    σ\trend & \text{otherwise} \\
   \end{cases} \\
   \\[-0.5em]
-  val(\pv,v)(\pv,ρ,μ,κ) & = & ((\pv,v),ρ,μ,κ) \straceend \\
+  val(\pv,v)(\pv,ρ,μ,κ) & = & ((\pv,v),ρ,μ,κ) \trend \\
   \\[-0.5em]
   look(\px)(\px,ρ,μ,κ) & = &
     \begin{letarray}
@@ -691,27 +691,27 @@ maximally-balanced trace for the transition semantics starting at $(\pe,[],[],\S
       \text{in}  & d(\pe,ρ',μ,\UpdateF(\pa) \pushF κ) \\
     \end{letarray} \\
   \\[-0.5em]
-  upd((\pv,v),ρ,μ,\UpdateF(\pa) \pushF κ) & = & ((\pv,v),ρ,μ[\pa ↦ (\pv,ρ,step(val(v)))], κ)\straceend \\
+  upd((\pv,v),ρ,μ,\UpdateF(\pa) \pushF κ) & = & ((\pv,v),ρ,μ[\pa ↦ (\pv,ρ,step(val(v)))], κ)\trend \\
   \\[-0.5em]
-  app_1(\pe~\px)(\pe~\px,ρ,μ,κ) & = & (\pe,ρ,μ,\ApplyF(ρ(\px)) \pushF κ)\straceend \\
+  app_1(\pe~\px)(\pe~\px,ρ,μ,κ) & = & (\pe,ρ,μ,\ApplyF(ρ(\px)) \pushF κ)\trend \\
   \\[-0.5em]
-  app_2(\Lam{\px}{\pe},\pa)((\Lam{\px}{\pe},\FunV(\wild)),ρ,μ, \ApplyF(\pa) \pushF κ) & = & (\pe,ρ[\px ↦ \pa],μ,κ) \straceend \\
+  app_2(\Lam{\px}{\pe},\pa)((\Lam{\px}{\pe},\FunV(\wild)),ρ,μ, \ApplyF(\pa) \pushF κ) & = & (\pe,ρ[\px ↦ \pa],μ,κ) \trend \\
   \\[-0.5em]
   let(d_1)(\Let{\px}{\pe_1}{\pe_2},ρ,μ,κ) & = &
     \begin{letarray}
       \text{let} & ρ' = ρ[\px ↦ \pa] \quad \text{where $\fresh{\pa}{μ}$} \\
-      \text{in}  & (\pe_2,ρ',μ[\pa ↦ (\pe_1, ρ', d_1)],κ)\straceend \\
+      \text{in}  & (\pe_2,ρ',μ[\pa ↦ (\pe_1, ρ', d_1)],κ)\trend \\
     \end{letarray} \\
   \\[-0.5em]
   apply(σ) & = & \begin{cases}
     f(\pa)(σ) & \text{if $σ=((\wild,\FunV(f)),\wild,\ApplyF(\pa) \pushF \wild)$} \\
-    σ \straceend & \text{otherwise} \\
+    σ \trend & \text{otherwise} \\
   \end{cases} \\
   \\[-0.5em]
   % We need this case, otherwise we'd continue e.g.
   %   S[x]((sv,v),ρ,μ,upd(a).κ) = ((sv,v),ρ,μ,upd(a).κ); ((sv,v),ρ,μ[a...],κ)
   % Because of how the composition operator works.
-  \semst{\pe}(σ) & = & σ\straceend\ \text{if the control of $σ$ is not $\pe$} \\
+  \semst{\pe}(σ) & = & σ\trend\ \text{if the control of $σ$ is not $\pe$} \\
   \\[-0.5em]
   \semst{\px} & = & step(look(\px)) \sfcomp step(upd) \\
   \\[-0.5em]
@@ -723,7 +723,6 @@ maximally-balanced trace for the transition semantics starting at $(\pe,[],[],\S
   \semst{\pe~\px} & = & step(app_1(\pe~\px)) \sfcomp \semst{\pe} \sfcomp apply \\
   \\[-0.5em]
   \semst{\Let{\px}{\pe_1}{\pe_2}} & = & step(let(\semst{\pe_1})) \sfcomp \semst{\pe_2} \\
-  \\
  \end{array} \\
 \end{array}\]
 \caption{Structural call-by-need stateful trace semantics $\semst{-}$}

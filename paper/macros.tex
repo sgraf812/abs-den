@@ -1,13 +1,11 @@
 % Theorems
-\theoremstyle{plain} % default
+\theoremstyle{plain} % Theorem/Definition/... in bold serif
 \newtheorem{theorem}{Theorem}
 \newtheorem{lemma}[theorem]{Lemma}
 \newtheorem{proposition}[theorem]{Proposition}
-\crefname{proof}{Proof}{Proofs}
-
-\theoremstyle{definition}
 \newtheorem{example}[theorem]{Example}
 \newtheorem{definition}[theorem]{Definition}
+\crefname{proof}{Proof}{Proofs}
 
 % Abbrev
 \newcommand\eg{e.g.\xspace}
@@ -56,6 +54,7 @@
 \newcommand{\pz}{\mathsf{z}}
 \newcommand{\pv}{\mathsf{v}}
 \newcommand{\pe}{\mathsf{e}}
+\newcommand{\pp}{\dot{\mathsf{e}}}
 \newcommand{\Lam}[2]{\lambda #1. #2}
 \newcommand{\LLam}[3]{\lambda_{#1} #2. #3}
 \newcommand{\Let}[3]{\mathbf{let}~{#1}={#2}~\mathbf{in}~{#3}}
@@ -86,8 +85,9 @@
 \newcommand{\slbl}{\raisebox{0.08em}{$\;\scriptstyle{\ell}\;$}}
 \newcommand{\slbln}[1]{\raisebox{0.1em}{$\;\scriptstyle{\ell_{#1}}\;$}}
 \newcommand{\atlbl}[1]{at(#1)}
+\newcommand{\trend}{\raisebox{-0.8pt}{\scalebox{0.3}{$\square$}}}
 %% Traces
-\newcommand{\return}[1]{\rotatebox[origin=c]{180}{$\Rsh$}}
+\newcommand{\return}{\rotatebox[origin=c]{180}{$\hspace{0.7pt}\Rsh$}}
 \newcommand{\Traces}{\mathbb{T}}
 \newcommand{\act}[1]{\xrightarrow{#1}}
 % https://latex.org/forum/viewtopic.php?p=62177&sid=26890ac77d076f3338384a47a2ffd4bc#p62177
@@ -108,7 +108,7 @@
 \newcommand{\subtrceq}{\superimpose[\mathrel]{\clipbox{0pt 0pt {0.3\width} 0pt}{${\subset}$}}{\hspace{0.6ex}\cdot}}
 \newcommand{\rightsubtrceq}{\subtrceq_r}
 \newcommand{\leftsubtrceq}{\subtrceq_l}
-\newcommand{\stepm}[3]{\lceil #1 \act{#2} #3 \rceil}
+\newcommand{\stepm}[3]{\lceil #1 \act{#2} #3\trend \rceil}
 \newcommand{\step}[2]{\stepm{\wild}{#1}{#2}}
 
 %% Values
@@ -118,6 +118,7 @@
 %% Domains
 \newcommand{\Environments}{\mathbb{E}}
 \newcommand{\Control}{\mathbb{C}}
+\newcommand{\ProgramPoints}{\mathbb{P}}
 \newcommand{\Heaps}{\mathbb{H}}
 \newcommand{\Continuations}{\mathbb{K}}
 \newcommand{\Domain}[1]{{\mathbb{D}^{#1}}}
@@ -189,7 +190,6 @@
 \newcommand{\pS}{\mathsf{S}}
 \newcommand{\SSTraces}{\mathsf{SSTrace}}
 \newcommand{\smallstep}{\hookrightarrow}
-\newcommand{\straceend}{\scalebox{0.5}{$\square$}}
 \newcommand{\ssconcat}{\concatop{\hspace{0.04ex}\scalebox{0.5}{\Sigma}}}
 \newcommand{\AppIT}{\textsc{App}_1}
 \newcommand{\AppET}{\textsc{App}_2}
@@ -201,7 +201,7 @@
 \newcommand{\validtrace}[1]{#1\;\mathsf{ok\text{-}}π}
 \newcommand{\validtraceTriv}{\textsc{ok}_1}
 \newcommand{\validtraceTrans}{\textsc{ok}_2}
-\newcommand{\maxbaltrace}[1]{#1\;\mathsf{maxbal\text{-}}π}
+\newcommand{\maxtrace}[1]{#1\;\mathsf{max\text{-}}π}
 \newcommand{\contextendsflipped}{⊑_\Continuations}
 \newcommand{\contextends}{⊒_\Continuations}
 \newcommand{\contextendsstrict}{⊐_\Continuations}
