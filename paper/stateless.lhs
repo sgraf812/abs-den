@@ -17,7 +17,7 @@
   \text{Values}                   & v & ∈ & \Values & ::= & \FunV(\MaxD \to_c \MaxD) \\
  \end{array} \\
  \\[-0.5em]
- \ruleform{hash : \Traces^+ \to \Addresses} \quad \text{an injective function on the number of $\BindA$ actions in the trace} \\
+ \ruleform{alloc : \Traces^+ \to \Addresses} \quad \text{an injective function on the number of $\BindA$ actions in the trace} \\
  \\
  \begin{array}{rcl}
   \multicolumn{3}{c}{ \ruleform{ src(π) = \pp \qquad tgt(π) = \pp } } \\
@@ -102,6 +102,8 @@ Trace of the expression:
  \begin{array}{rcl}
   \multicolumn{3}{c}{ \ruleform{ \seminf{\wild} \colon \Exp → (\Var \pfun \MaxD) → \MaxD } } \\
   \\[-0.5em]
+  \ternary{b}{t}{e} & = & \begin{cases} t & \text{if $b$ is true} \\ e & \text{otherwise} \\ \end{cases} \\
+  \\[-0.5em]
   \bot(π_i^+)   & = & tgt(π_i^+)\trend \text{ is the bottom element of $\MaxD$} \\
   \\[-0.5em]
   \stepm{p}{a}{\pp}(π_i^+)   & = & \begin{cases}
@@ -123,15 +125,13 @@ Trace of the expression:
 %    undefined & \text{otherwise} \\
 %  \end{cases}  \\
 %  \\[-0.5em]
+
   μ(π_i^+)(\pa) & = & \begin{cases}
-    (\pv, v) & \text{if $π_{\pv} \act{\UpdateA(\pa)} \return \trend \subtrceq π_i^+$ and $\getval{π_{\pv}}{(\pv,v)}$} \\
-    undefined & \text{otherwise} \\
+    (\pv, \stepm{\pv}{\ValA(v)}{\return}) & \text{if $π_{\pv} \act{\UpdateA(\pa)} \return \trend \subtrceq π_i^+$ and $\getval{π_{\pv}}{(\pv,v)}$} \\
+    (\pe, d) & \text{if $\wild \act{\BindA(\wild=\pe,\pa↦d)} \wild\, \trend \subtrceq π_i^+$} \\
   \end{cases}  \\
   \\[-0.5em]
-  memo(\pa,\pe,d)(π_i^+)   & = & \begin{cases}
-    tgt(π_i^+) \act{\LookupA(\pa)} \pv \act{\ValA(v)} \return \act{\UpdateA(\pa)} \return \trend & \text{if $μ(π_i^+)(\pa) = (\pv,v)$} \\
-    (\step{\LookupA(\pa)}{\pe} \fcomp d \fcomp \stepm{\return}{\UpdateA(\pa)}{\return})(π_i^+) & \text{otherwise} \\
-  \end{cases} \\
+  memo(\pa)(π_i^+)   & = & (\step{\LookupA(\pa)}{\pe} \fcomp d \fcomp \stepm{\return}{\UpdateA(\pa)}{\return})(π_i^+) \text{ where $(\pe,d) = μ(π_i^+)(\pa)$} \\
   \\[-0.5em]
   \seminf{\pe}_ρ    (π_i^+)   & = & \bot(π_i^+) \qquad \text{if $tgt(π_i^+) \not= \pe$} \\
   \\[-0.5em]
@@ -139,17 +139,17 @@ Trace of the expression:
   \\[-0.5em]
   \seminf{\Lam{\px}{\pe}}_ρ & = &
     \begin{letarray}
-      \text{let} & f = d ↦ \stepm{\return}{\AppEA}{\pe} \fcomp \seminf{\pe}_{ρ[\px↦d]} \\
+      \text{let} & f = d ↦ \stepm{\return}{\AppEA(\px↦d)}{\pe} \fcomp \seminf{\pe}_{ρ[\px↦d]} \\
       \text{in}  & \step{\ValA(\FunV(f))}{\return} \\
     \end{letarray} \\
   \\[-0.5em]
-  \seminf{\pe~\px}_ρ & = & \ternary{\px ∈ \dom(ρ)}{\step{\AppIA}{\pe} \fcomp \seminf{\pe}_ρ \fcomp apply(ρ(\px))}{\bot} \\
+  \seminf{\pe~\px}_ρ & = & \ternary{\px ∈ \dom(ρ)}{\step{\AppIA(ρ(x))}{\pe} \fcomp \seminf{\pe}_ρ \fcomp apply(ρ(\px))}{\bot} \\
   \\[-0.5em]
   \seminf{\Let{\px}{\pe_1}{\pe_2}}_ρ(π_i^+) & = &
     \begin{letarray}
-      \text{letrec}~ρ'. & \pa = hash(π_i^+) \\
-                        & ρ' = ρ ⊔ [\px ↦ memo(\pa,\pe_1,\seminf{\pe_1}_{ρ'})] \\
-      \text{in}         & (\step{\BindA}{\pe_2} \fcomp \seminf{\pe_2}_{ρ'})(π_i^+)
+      \text{let} & \pa = alloc(π_i^+) \\
+                 & ρ' = ρ[\px ↦ memo(\pa)] \\
+      \text{in}  & (\step{\BindA(\px=\pe_1,\pa↦\seminf{\pe_1}_{ρ'})}{\pe_2} \fcomp \seminf{\pe_2}_{ρ'})(π_i^+)
     \end{letarray} \\
  \end{array} \\
 \end{array}\]

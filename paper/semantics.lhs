@@ -704,7 +704,7 @@ maximal trace for the transition semantics starting at $(\pe,[],[],\StopF)$.
     \end{letarray} \\
   \\[-0.5em]
   apply(σ) & = & \begin{cases}
-    f(\pa)(σ) & \text{if $σ=((\wild,\FunV(f)),\wild,\ApplyF(\pa) \pushF \wild)$} \\
+    f(\pa)(σ) & \text{if $σ=((\wild,\FunV(f)),\wild,\wild,\ApplyF(\pa) \pushF \wild)$} \\
     σ \trend & \text{otherwise} \\
   \end{cases} \\
   \\[-0.5em]
