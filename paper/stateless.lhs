@@ -3,11 +3,12 @@
 
 \begin{figure}
 \[\begin{array}{c}
- \arraycolsep=3pt
+ \arraycolsep=2pt
  \begin{array}{rrclcl}
-  \text{Program point}   & \pp      & ∈ & \ProgramPoints        &  =  & \{ \return \} ∪ \Exp \\
-  \text{Actions}         & a        & ∈ & \Actions              & ::= & \AppIA(\pa) \mid \AppEA(\pa) \mid \BindA \mid \LookupA(\pa) \mid \UpdateA(\pa) \mid \ValA(v) \\
-  \text{Finite Traces}   & π^+      & ∈ & \Traces^+             & ::= & \pp\trend \mid \pp \act{a} π^+  \\
+  \text{Program point}   & \pp      & ∈ & \ProgramPoints        &  =         & \{ \return \} ∪ \Exp \\
+  \text{Actions}         & a        & ∈ & \Actions              & ::=        & \AppIA(d) \mid \AppEA(\px↦d) \mid \BindA(\px,\pa↦\pe,d) \\
+                         &          &   &                       & \mid       & \LookupA(\pa) \mid \UpdateA(\pa) \mid \ValueA(v) \\
+  \text{Finite Traces}   & π^+      & ∈ & \Traces^+             & ::=        & \pp\trend \mid \pp \act{a} π^+  \\
   \text{Infinite Traces} & π^\infty & ∈ & \Traces^{\infty}      & ::=_{\gfp} & \pp \act{a} π^\infty \hspace{1ex} = \lim \Traces^+    \\
   \text{Finite and infinite Traces} & π & ∈ & \Traces^{+\infty} & ::=_{\gfp} & \pp\trend \mid \pp \act{a} π \hspace{1ex} =  \Traces^+ ∪ \Traces^\infty    \\
   \\
@@ -46,7 +47,7 @@
   \\[-0.5em]
   \inferrule*[right=\textsc{ValVal}]
     {\quad}
-    {\getval{π^{+} \act{} \pv \act{\ValA(v)} \return\trend}{(\pv,v)}} \\
+    {\getval{π^{+} \act{} \pv \act{\ValueA(v)} \return\trend}{(\pv,v)}} \\
   \\[-0.5em]
   \inferrule*[right=\textsc{ValUpd}]
     {\getval{π^+}{(\pv,v)}}
@@ -58,7 +59,7 @@
   \\[-0.5em]
   \inferrule*[right=\textsc{BalVal}]
     {\quad}
-    {\balanced{\pp \act{\ValA(v)} \return\trend}}
+    {\balanced{\pp \act{\ValueA(v)} \return\trend}}
   \qquad
   \inferrule*[right=\textsc{BalApp}]
     {\balanced{π_1}\quad\balanced{π_2}}
@@ -91,9 +92,9 @@ Trace of the expression:
    \multicolumn{2}{c}{\slbln{1}\Let{x}{\slbln{2}(\Lam{y}{\slbln{3}y})\slbln{4}}{\slbln{5}(\slbln{6}(\slbln{7}x~x)~x)}} \\
    \\
    \lbln{1} & \act{\BindA} \lbln{5} \act{\AppIA} \lbln{6} \act{\AppIA} \lbln{7} \\
-            & \act{\LookupA} \lbln{2} \act{\ValA(\FunV(f))} \lbln{4} \act{\AppEA} \lbln{3} \\
-            & \act{\LookupA} \lbln{2} \act{\ValA(\FunV(f))} \lbln{4} \act{\AppEA} \lbln{3} \\
-            & \act{\LookupA} \lbln{2} \act{\ValA(\FunV(f))} \lbln{4}
+            & \act{\LookupA} \lbln{2} \act{\ValueA(\FunV(f))} \lbln{4} \act{\AppEA} \lbln{3} \\
+            & \act{\LookupA} \lbln{2} \act{\ValueA(\FunV(f))} \lbln{4} \act{\AppEA} \lbln{3} \\
+            & \act{\LookupA} \lbln{2} \act{\ValueA(\FunV(f))} \lbln{4}
 \end{array}
 \]
 
@@ -121,17 +122,17 @@ Trace of the expression:
   π_s \subtrceq π & = & \exists π_1, π_2.\ (π = π_1 \concat π_s \concat π_2)  \\
   \\[-0.5em]
 %  μ(π_i^+)(\pa) & = & \begin{cases}
-%    (\pv, v) & \text{if $\pv \act{\ValA(v)} \return \left(\act{\UpdateA(\wild)} \return \right)^* \act{\UpdateA(\pa)} \return \trend \subtrceq π_i^+$} \\
+%    (\pv, v) & \text{if $\pv \act{\ValueA(v)} \return \left(\act{\UpdateA(\wild)} \return \right)^* \act{\UpdateA(\pa)} \return \trend \subtrceq π_i^+$} \\
 %    undefined & \text{otherwise} \\
 %  \end{cases}  \\
 %  \\[-0.5em]
 
   μ(π_i^+)(\pa) & = & \begin{cases}
-    (\pv, \stepm{\pv}{\ValA(v)}{\return}) & \text{if $π_{\pv} \act{\UpdateA(\pa)} \return \trend \subtrceq π_i^+$ and $\getval{π_{\pv}}{(\pv,v)}$} \\
-    (\pe, d) & \text{if $\wild \act{\BindA(\wild=\pe,\pa↦d)} \wild\, \trend \subtrceq π_i^+$} \\
+    (\pv, \stepm{\pv}{\ValueA(v)}{\return}) & \text{if $π_{\pv} \act{\UpdateA(\pa)} \return \trend \subtrceq π_i^+$ and $\getval{π_{\pv}}{(\pv,v)}$} \\
+    (\pe, d) & \text{if $\wild \act{\BindA(\px,\pa↦\pe,d)} \wild\, \trend \subtrceq π_i^+$} \\
   \end{cases}  \\
   \\[-0.5em]
-  memo(\pa)(π_i^+)   & = & (\step{\LookupA(\pa)}{\pe} \fcomp d \fcomp \stepm{\return}{\UpdateA(\pa)}{\return})(π_i^+) \text{ where $(\pe,d) = μ(π_i^+)(\pa)$} \\
+  deref(\pa)(π_i^+)   & = & (\step{\LookupA(\pa)}{\pe} \fcomp d \fcomp \stepm{\return}{\UpdateA(\pa)}{\return})(π_i^+) \text{ where $(\pe,d) = μ(π_i^+)(\pa)$} \\
   \\[-0.5em]
   \seminf{\pe}_ρ    (π_i^+)   & = & \bot(π_i^+) \qquad \text{if $tgt(π_i^+) \not= \pe$} \\
   \\[-0.5em]
@@ -140,7 +141,7 @@ Trace of the expression:
   \seminf{\Lam{\px}{\pe}}_ρ & = &
     \begin{letarray}
       \text{let} & f = d ↦ \stepm{\return}{\AppEA(\px↦d)}{\pe} \fcomp \seminf{\pe}_{ρ[\px↦d]} \\
-      \text{in}  & \step{\ValA(\FunV(f))}{\return} \\
+      \text{in}  & \step{\ValueA(\FunV(f))}{\return} \\
     \end{letarray} \\
   \\[-0.5em]
   \seminf{\pe~\px}_ρ & = & \ternary{\px ∈ \dom(ρ)}{\step{\AppIA(ρ(x))}{\pe} \fcomp \seminf{\pe}_ρ \fcomp apply(ρ(\px))}{\bot} \\
@@ -148,8 +149,8 @@ Trace of the expression:
   \seminf{\Let{\px}{\pe_1}{\pe_2}}_ρ(π_i^+) & = &
     \begin{letarray}
       \text{let} & \pa = alloc(π_i^+) \\
-                 & ρ' = ρ[\px ↦ memo(\pa)] \\
-      \text{in}  & (\step{\BindA(\px=\pe_1,\pa↦\seminf{\pe_1}_{ρ'})}{\pe_2} \fcomp \seminf{\pe_2}_{ρ'})(π_i^+)
+                 & ρ' = ρ[\px ↦ deref(\pa)] \\
+      \text{in}  & (\step{\BindA(\px,\pa\pa↦\pe_1,\seminf{\pe_1}_{ρ'})}{\pe_2} \fcomp \seminf{\pe_2}_{ρ'})(π_i^+)
     \end{letarray} \\
  \end{array} \\
 \end{array}\]
@@ -271,7 +272,45 @@ Trace of the expression:
  \begin{array}{rcl}
   \multicolumn{3}{c}{ \ruleform{ α^{\States} : ((\Var \pfun \MaxD) \to \MaxD) \to \StateD } } \\
   \\[-0.5em]
-  α^{\States}(S)(σ) & = &
+  μ_ρ(π)(\pa) & = & \begin{cases}
+    \varrho(π_1) & \text{if $π_1 \act{\UpdateA(\pa)} \return \concat π_2 = π$} \\
+    \varrho(π_1 \act{\BindA(\px,\pa↦\pe,d)} \pp) & \text{if $π_1 \act{\BindA(\px,\pa↦\pe,d)} \pp \concat π_2 = π$} \\
+  \end{cases}  \\
+  \varrho(π \act{\BindA(\px,\pa↦\pe,d)} \pp\trend)(\px) & = & deref(\pa) \\
+  \varrho(π \act{\AppEA(\px↦d)} \pp\trend)(\px) & = & d \\
+  \varrho(π \act{\LookupA(\pa)} \pp\trend)(\px) & = & μ_ρ(π)(\pa)(\px) \\
+  \varrho(π \act{a} \pp\trend)(\px) & = & \varrho(π)(\px) \\
+  \\
+  deref^{-1}(d) & = & \pa \text{ such that $d = deref(\pa)$} \\
+  tgt_\States^{-1}(σ) & = & π \text{ such that $\validtrace{π}$ and $tgt_\States(π) = σ$} \\
+  \\
+  α_{\STraces}(π_i^+, \pp\trend) & = & α_{\States}(π_i^+ \concat \pp\trend)\trend \\
+  α_{\STraces}(π_i^+, π \act{a} \pp\trend) & = & α_{\STraces}(π_i^+,π); α_{\States}(π_i^+ \concat π \act{a} \pp\trend)\trend \\
+
+  α_{\States}(π) & = & (α_{\Control}(π,tgt(π)), α_{\Environments}(\varrho(π)), α_{\Heaps}(π) \circ μ(π), α_{\Continuations}(π)) \\
+  α_{\Control}(π, \return) & = & (\pv,α_{\Values^{\States}}(v)) \text{ where $\getval{π}{(\pv,v)}$} \\
+  α_{\Control}(π, \pe) & = & \pe \\
+  α_{\Environments}(ρ) & = & deref^{-1} \circ ρ \\
+  α_{\Heaps}(π)([\many{\pa ↦ (\pe,d)}]) & = & [\many{\pa ↦ (\pe, μ_ρ(π)(\pa), α_{\StateD}(d))}] \\
+  α_{\Continuations}(\pp\trend) & = & \StopF \\
+  α_{\Continuations}(π \act{\UpdateA(\pa)} \pp\trend) & = & \UpdateF(\pa) \pushF α_{\Continuations}(π) \\
+  α_{\Continuations}(π \act{\AppEA(\px,d)} \pp\trend) & = & \ApplyF(deref^{-1}(d)) \pushF α_{\Continuations}(π) \\
+  α_{\Continuations}(π \act{\wild} \pp\trend) & = & α_{\Continuations}(π) \\
+  α_{\StateD}(d) & = & (\fn{π}{α_{\STraces}(π,d(π))) \circ γ_{\STraces} \circ tgt_\States^{-1}} \\
+  γ_{\StateD}(d) & = & γ_{\STraces} \circ d \circ tgt_\States \circ α_{\STraces} \\
+  α_{\Values^\States}(\FunV(f)) & = & \FunV(α_{\StateD} \circ f \circ deref) \\
+  γ_{\Values^\States}(\FunV(f)) & = & \FunV(γ_{\StateD} \circ f \circ deref^{-1}) \\
+  γ_{\STraces}(σ\trend) & = & γ_{\States}(σ)\trend \\
+  γ_{\STraces}(π; σ\trend) & = & γ_{\STraces}(π) \act{γ_{\Actions}(tgt_\States(π) \smallstep σ)} γ_{\States}(π; σ\trend)\trend \\
+  γ_{\States}(γ,\wild,\wild,\wild) & = & α_{\Control}(γ) \\
+  γ_{\Control}((\pv,v)) & = & \return \\
+  γ_{\Control}(\pe) & = & \pe \\
+  γ_{\Actions}(\LetT(\px,\pa,\pe_1,d)) & = & \BindA(\px,\pa↦\pe_1,γ_{\StateD}(d)) \\
+  γ_{\Actions}(\UpdateT(\pa)) & = & \UpdateA(\pa) \\
+  γ_{\Actions}(\LookupT(\pa)) & = & \LookupA(\pa) \\
+  γ_{\Actions}(\AppIT(\pa)) & = & \AppIA(deref(\pa)) \\
+  γ_{\Actions}(\AppET(\px,\pa)) & = & \AppEA(\px,deref(\pa)) \\
+  γ_{\Actions}(\ValueT(\pv,v)) & = & \ValueA(\pv,γ_{\Values^\States}(v)) \\
   \\
  \end{array}
 \end{array}\]
@@ -297,25 +336,25 @@ Trace of the expression:
   & \\[-0.9em]
   ⇒ & π_1 \act{\LookupA} \seminf{\slbln{2}(\Lam{y}{\slbln{3}y})\slbln{4}}_{ρ_x}(π_1 \act{\LookupA} \lbln{2}) \\
   & \\[-0.9em]
-  ⇒ & π_1 \act{\LookupA} \lbln{2} \act{\ValA(\FunV(f))} f(ρ_x(x))(π_1 \act{\LookupA} \lbln{2} \act{\ValA(\FunV(f))} \lbln{4}) \\
+  ⇒ & π_1 \act{\LookupA} \lbln{2} \act{\ValueA(\FunV(f))} f(ρ_x(x))(π_1 \act{\LookupA} \lbln{2} \act{\ValueA(\FunV(f))} \lbln{4}) \\
   & \\[-0.9em]
-  ⇒ & π_1 \act{\LookupA} \lbln{2} \act{\ValA(\FunV(f))} \lbln{4} \act{\AppEA} \seminf{\slbln{3}y}_{ρ_{x,y}}(\overbrace{π_1 \act{\LookupA} \lbln{2} \act{\ValA(\FunV(f))} \lbln{4} \act{\AppEA} \lbln{3}}^{π_2}) \\
+  ⇒ & π_1 \act{\LookupA} \lbln{2} \act{\ValueA(\FunV(f))} \lbln{4} \act{\AppEA} \seminf{\slbln{3}y}_{ρ_{x,y}}(\overbrace{π_1 \act{\LookupA} \lbln{2} \act{\ValueA(\FunV(f))} \lbln{4} \act{\AppEA} \lbln{3}}^{π_2}) \\
   & \\[-0.9em]
   ⇒ & π_2 \act{\LookupA} \seminf{\slbln{2}(\Lam{y}{\slbln{3}y})\slbln{4}}_{ρ_x}(π_2 \act{\LookupA} \lbln{2}) \\
   & \\[-0.9em]
-  ⇒ & π_2 \act{\LookupA} \lbln{2} \act{\ValA(\FunV(f))} f(ρ_x(x))(π_2 \act{\LookupA} \lbln{2} \act{\ValA(\FunV(f))} \lbln{4}) \\
+  ⇒ & π_2 \act{\LookupA} \lbln{2} \act{\ValueA(\FunV(f))} f(ρ_x(x))(π_2 \act{\LookupA} \lbln{2} \act{\ValueA(\FunV(f))} \lbln{4}) \\
   & \\[-0.9em]
-  ⇒ & π_2 \act{\LookupA} \lbln{2} \act{\ValA(\FunV(f))} \lbln{4} \act{\AppEA} \seminf{\slbln{3}y}_{ρ_{x,y}}(\overbrace{π_2 \act{\LookupA} \lbln{2} \act{\ValA(\FunV(f))} \lbln{4} \act{\AppEA} \lbln{3}}^{π_3}) \\
+  ⇒ & π_2 \act{\LookupA} \lbln{2} \act{\ValueA(\FunV(f))} \lbln{4} \act{\AppEA} \seminf{\slbln{3}y}_{ρ_{x,y}}(\overbrace{π_2 \act{\LookupA} \lbln{2} \act{\ValueA(\FunV(f))} \lbln{4} \act{\AppEA} \lbln{3}}^{π_3}) \\
   & \\[-0.9em]
   ⇒ & π_3 \act{\LookupA} \seminf{\slbln{2}(\Lam{y}{\slbln{3}y})\slbln{4}}_{ρ_x}(π_3 \act{\LookupA} \lbln{2}) \\
   & \\[-0.9em]
-  ⇒ & π_3 \act{\LookupA} \lbln{2} \act{\ValA(\FunV(f))} \lbln{4} \\
+  ⇒ & π_3 \act{\LookupA} \lbln{2} \act{\ValueA(\FunV(f))} \lbln{4} \\
   & \\[-0.9em]
   & \\
   = \lbln{1} & \act{\BindA} \lbln{5} \act{\AppIA} \lbln{6} \act{\AppIA} \lbln{7} \\
-             & \act{\LookupA} \lbln{2} \act{\ValA(\FunV(f))} \lbln{4} \act{\AppEA} \lbln{3} \\
-             & \act{\LookupA} \lbln{2} \act{\ValA(\FunV(f))} \lbln{4} \act{\AppEA} \lbln{3} \\
-             & \act{\LookupA} \lbln{2} \act{\ValA(\FunV(f))} \lbln{4}
+             & \act{\LookupA} \lbln{2} \act{\ValueA(\FunV(f))} \lbln{4} \act{\AppEA} \lbln{3} \\
+             & \act{\LookupA} \lbln{2} \act{\ValueA(\FunV(f))} \lbln{4} \act{\AppEA} \lbln{3} \\
+             & \act{\LookupA} \lbln{2} \act{\ValueA(\FunV(f))} \lbln{4}
 \end{array}
 \]
 \caption{Evalation of $\seminf{\wild}$}
@@ -342,7 +381,7 @@ Trace of the expression:
   \\[-0.5em]
   \inferrule*[right=\textsc{Lam}]
     {f = d ↦ cons(\AppEA,\atlbl{\pe},\sempref{\pe}_{ρ[\px↦d]})}
-    {\lbln{1} \act{\ValA(\FunV(f))} \lbln{2} ∈ \sempref{\slbln{1}(\Lam{\px}{\pe})\slbln{2}}_ρ(π_i^+)} \qquad
+    {\lbln{1} \act{\ValueA(\FunV(f))} \lbln{2} ∈ \sempref{\slbln{1}(\Lam{\px}{\pe})\slbln{2}}_ρ(π_i^+)} \qquad
   \inferrule*[right=$\textsc{App}_1$]
     {π_c ∈ cons(\AppIA,\atlbl{\pe},\sempref{\pe}_ρ)(π_i^+)}
     {π_c ∈ \sempref{\slbl(\pe~\px)}_ρ(π_i^+)} \\
@@ -378,7 +417,7 @@ Trace of the expression:
  \begin{array}{rcl}
   \multicolumn{3}{c}{ \ruleform{ \seminf{\wild} \colon \Exp → (\Var → \MaxD) → \MaxD } } \\
   \\[-0.5em]
-  \seminf{K~\many{\px}}_ρ(π_i^+) & = & K~\many{\px} \act{\ValA(\ConV(K,\many{ρ(\px)}))} \return \\
+  \seminf{K~\many{\px}}_ρ(π_i^+) & = & K~\many{\px} \act{\ValueA(\ConV(K,\many{ρ(\px)}))} \return \\
   \\[-0.5em]
   \seminf{\Case{\pe_s}{\Sel}}_ρ(π_i^+) & = & π_s \concat \begin{cases}
       Rhs(K,\many{d})(π_i^+ \concat π_s) & \text{if $\getval{π_s}{\ConV(K,\many{d})}$}  \\
