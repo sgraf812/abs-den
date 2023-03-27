@@ -293,9 +293,11 @@ Trace of the expression:
   α_{\Environments}(ρ) & = & deref^{-1} \circ ρ \\
   α_{\Heaps}(π)([\many{\pa ↦ (\pe,d)}]) & = & [\many{\pa ↦ (\pe, μ_ρ(π)(\pa), α_{\StateD}(d))}] \\
   α_{\Continuations}(\pp\trend) & = & \StopF \\
-  α_{\Continuations}(π \act{\UpdateA(\pa)} \pp\trend) & = & \UpdateF(\pa) \pushF α_{\Continuations}(π) \\
-  α_{\Continuations}(π \act{\AppEA(\px,d)} \pp\trend) & = & \ApplyF(deref^{-1}(d)) \pushF α_{\Continuations}(π) \\
-  α_{\Continuations}(π \act{\wild} \pp\trend) & = & α_{\Continuations}(π) \\
+  α_{\Continuations}(π \act{\LookupA(\pa)} \pp\trend) & = & \UpdateF(\pa) \pushF α_{\Continuations}(π) \\
+  α_{\Continuations}(π \act{\UpdateA(\pa)} \pp\trend) & = & κ \text{ where $α_{\Continuations}(π) = \UpdateF(\pa) \pushF κ$} \\
+  α_{\Continuations}(π \act{\AppIA(d)} \pp\trend) & = & \ApplyF(deref^{-1}(d)) \pushF α_{\Continuations}(π) \\
+  α_{\Continuations}(π \act{\AppEA(\px↦d)}   \pp\trend) & = & κ \text{ where $α_{\Continuations}(π) = \ApplyF(deref^{-1}(d)) \pushF κ$} \\
+  α_{\Continuations}(π \act{} \pp\trend) & = & α_{\Continuations}(π) \\
   α_{\StateD}(d) & = & (\fn{π}{α_{\STraces}(π,d(π))) \circ γ_{\STraces} \circ tgt_\States^{-1}} \\
   γ_{\StateD}(d) & = & γ_{\STraces} \circ d \circ tgt_\States \circ α_{\STraces} \\
   α_{\Values^\States}(\FunV(f)) & = & \FunV(α_{\StateD} \circ f \circ deref) \\
