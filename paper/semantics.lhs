@@ -19,14 +19,14 @@
   \text{Addresses}    &      \pa & ∈ & \Addresses  &  ⊆  & ℕ \\
   \\
   \text{States}                             & σ      & ∈ & \States  & = & \Control \times \Environments \times \Heaps \times \Continuations \\
-  \text{Control}                            & γ      & ∈ & \Control & = & \Exp ∪ (\Val \times \Values^\States) \\
-  \text{Environments}                       & ρ      & ∈ & \Environments & = & \Var \pfun \Addresses \\
-  \text{Heaps}                              & μ      & ∈ & \Heaps & = & \Addresses \pfun \Exp \times \Environments \times \StateD \\
+  \text{Control}                            & γ      & ∈ & \Control & ::= & \pe \mid (\pv, v) \\
+  \text{Environments}                       & ρ      & ∈ & \Environments & = & \Var \pfun_c \Addresses \\
+  \text{Heaps}                              & μ      & ∈ & \Heaps & = & \Addresses \pfun_c \Exp \times \Environments \times \StateD \\
   \text{Continuations}                      & κ      & ∈ & \Continuations & ::= & \StopF \mid \ApplyF(\pa) \pushF κ \mid \UpdateF(\pa) \pushF κ \\
   \\[-0.5em]
   \text{Stateful traces}                    & π      & ∈ & \STraces & ::=_{\gfp} & σ\trend \mid σ; π \\
-  \text{Domain of stateful trace semantics} & d      & ∈ & \StateD  & ⊂ & \States \to_c \STraces \\
-  \text{Values}                             & v      & ∈ & \Values^\States & ::= & \FunV(\Addresses \to \StateD) \\
+  \text{Domain of stateful trace semantics} & d      & ∈ & \StateD  & = & \States \to_c \STraces \\
+  \text{Values}                             & v      & ∈ & \Values^\States & ::= & \FunV(f ∈ \Addresses \to_c \StateD) \\
  \end{array} \\
  \\
  \begin{array}{c}
@@ -64,12 +64,12 @@
   \\
  \end{array} \\
  \begin{array}{rcl}
-  \multicolumn{3}{c}{ \ruleform{ dst_\States(π) = σ \qquad dst_\States(π) = σ } } \\
+  \multicolumn{3}{c}{ \ruleform{ tgt_\States(π) = σ \qquad tgt_\States(π) = σ } } \\
   \\[-0.5em]
-  dst_\States(σ\trend)    & = & σ \\
-  dst_\States(σ; π) & = & σ \\
+  tgt_\States(σ\trend)    & = & σ \\
+  tgt_\States(σ; π) & = & σ \\
   \\[-0.5em]
-  dst_\States(π)    & = & \begin{cases}
+  tgt_\States(π)    & = & \begin{cases}
     undefined & \text{if $π$ infinite} \\
     σ         & \text{if $π = ...; σ \trend$}
   \end{cases} \\
@@ -79,8 +79,8 @@
   \\[-0.5em]
   π_1 \sconcat π_2 = \begin{cases}
     σ; (π_1' \sconcat π_2) & \text{if $π_1 = σ; π_1'$} \\
-    π_2                    & \text{if $π_1 = σ\trend$ and $dst_\States(π_2) = σ$} \\
-    undefined              & \text{if $π_1 = σ\trend$ and $dst_\States(π_2) \not= σ$} \\
+    π_2                    & \text{if $π_1 = σ\trend$ and $tgt_\States(π_2) = σ$} \\
+    undefined              & \text{if $π_1 = σ\trend$ and $tgt_\States(π_2) \not= σ$} \\
   \end{cases} \\
  \end{array} \\
  \\
@@ -92,7 +92,7 @@
     {\validtrace{σ\trend}}
   \qquad
   \inferrule*
-    {σ \smallstep dst_\States(π) \quad \validtrace{π}}
+    {σ \smallstep tgt_\States(π) \quad \validtrace{π}}
     {\validtrace{σ; π}} \\
   \\
  \end{array} \\
@@ -159,28 +159,6 @@
 %   * It's a lazy semantics in ANF, hence inspired by Sestoft's Mark II machine
 %   * The Val transition is key to line up with the trace-based semantics and is
 %     inspired by CESK's \ddagger as well as STG's ReturnCon code.
-
-\subsection{Domain Theory}
-
-Here we need to prove that $\StateD$ is well-defined as a domain.
-(Of course, we need the quotient where $dst(f(σ)) = σ$.)
-
-Caveat: The order on $\Exp$ is the (flat) one by Labels. A deep embedding.
-
-1. Express $\States$ as a functor over occs of $\StateD$. Clearly well-defined.
-2. Express $\STraces$ as a (signature) functor $F : \mathcal{Cont} \to \mathcal{Cont}$.
-   For that, we have to prove that $F(D)$ is a cont domain for any continuous $D$.
-
-Then the fixpoint of the composition of those functors is a cont domain.
-
-Define directed-complete partial order on $F(D)$.
-
-\begin{itemize}
-  \item $\bot = λσ.σ\trend$.
-  \item pointwise, lifting the obv prefix order over $σ_1 ⊑ σ_2$.
-  \item obv. partial order
-  \item directed-complete? Yes. How to prove formally? Unsure!
-\end{itemize}
 
 \subsection{Informal Specification}
 
@@ -257,7 +235,7 @@ valid CESK trace and falls in either of the three categories. More precisely:
     \item Every intermediate continuation $κ_i$ extends $κ_1$ (so $κ_i = κ_1$ or $κ_i = ... \pushF κ_1$)
   \end{itemize}
   A non-retreating CESK trace $π$ is \emph{maximal} if it is either
-  infinite or there is no $σ$ such that $π \sconcat (dst_\States(π); σ \trend)$
+  infinite or there is no $σ$ such that $π \sconcat (tgt_\States(π); σ \trend)$
   is non-retreating.
   We notate maximal traces as $\maxtrace{π}$.
 \end{definition}
@@ -300,16 +278,16 @@ A trace is stuck if its destination state is stuck.
   \begin{itemize}
     \item $π$ is infinite, or
     \item $π$ is stuck, or
-    \item $π$ is \emph{balanced}, meaning that $dst_\States(π)$ is a return
+    \item $π$ is \emph{balanced}, meaning that $tgt_\States(π)$ is a return
           state, the continuation of which is that of the initial state
-          $dst_\States(π)$.
+          $tgt_\States(π)$.
   \end{itemize}
 \end{lemma}
 \begin{proof}
   =>:
   Let $π$ be maximal.
   If $π$ is infinite or stuck, we are done; so assume that $π$ is finite and not
-  stuck. Let $σ_1 = dst_\States(π)$, $σ_n = dst_\States(π)$ and let $κ_1$ denote
+  stuck. Let $σ_1 = tgt_\States(π)$, $σ_n = tgt_\States(π)$ and let $κ_1$ denote
   the continuation of $σ_1$ and $κ_n$ that of $σ_n$.
   Our goal is to show that $κ_n = κ_1$ and that $σ_n$ is a return state.
 
@@ -397,7 +375,7 @@ the following predicate:
 \end{proof}
 
 \begin{corollary}
-  If $\validtrace{π}$ and $dst_\States(π)$ is well-addressed, then every state
+  If $\validtrace{π}$ and $tgt_\States(π)$ is well-addressed, then every state
   in $π$ is well-addressed.
 \end{corollary}
 
@@ -448,6 +426,51 @@ Let $σ$ be a well-elaborated state and $\pe$ an arbitrary expression. Then
 %\end{proof}
 %Clearly, $(S3)$ is the key property for adequacy, but we can't prove it without
 %the other 2 properties.
+
+\subsection{Domain Theory}
+
+Note that $\StateD$ in \Cref{fig:cesk-syntax} is not a well-formed inductive
+definition: It recurses in negative position via $\States \to \Heaps \to \StateD$
+and similarly through $\Values^\States$.
+Hence we must understand $\StateD$ as a Scott domain and its ``definition'' as
+a \emph{domain equation}, of which $\StateD$ is to be understood as the least
+solution.
+
+For that to carry meaning, the RHS $\States \to_c \STraces$ must be the domain
+of continuous functions between the hypothetical domains $\States$ and
+$\STraces$, indicated by the subscript $\wild_c$. Similarly, $f ∈ A \pfun_c B$
+denotes the domain of partial functions from $A$ to $B$ with finite domain
+$\dom(f)$. Whenever $a \not∈ \dom(f)$, we have $f(a) = \notfound$.
+Remarkably, we \emph{do not} conflate $\bot ∈ A \pfun_c B$ with $[] ∈ A \pfun_c
+B$, the partial function with $\dom(f) = \varnothing$. The former is a
+\emph{partial} element of the domain and assigns $\bot_B$ everywhere; the latter
+is a \emph{total} element of the domain and assigns $\notfound$ everywhere.
+
+The other domain constructors for products $\times$ and inductive EBNF-style
+syntax definitions such as the potentially infinite $\STraces$ (indicated by
+the $\gfp$ subscript) or finite $\Continuations$ are standard, see for example
+\cite{Cartwright:16}. The domains on $\Addresses$ and $\Var$ are the flat ones;
+the one on $\Exp$ is the flat one on labels.
+
+Here we need to state the exact subset that is $\StateD$ and prove that it is
+well-defined as a Scott domain (algebraic, bounded-complete, directed-complete poset).
+
+Caveat: The order on $\Exp$ is the discrete one by Labels.
+
+1. Express $\States$ as a functor over occs of $\StateD$. Clearly well-defined.
+2. Express $\STraces$ as a (signature) functor $F : Alg \to Alg$.
+   For that, we have to prove that $F(D)$ is an alg domain for any alg $D$.
+
+Then the fixpoint of the composition of those functors is an alg domain.
+
+Define directed-complete partial order on $F(D)$.
+
+\begin{itemize}
+  \item $\bot = λσ.σ\trend$.
+  \item pointwise, lifting the obv prefix order over $σ_1 ⊑ σ_2$.
+  \item obv. partial order
+  \item directed-complete? Yes. How to prove formally? Unsure!
+\end{itemize}
 
 \subsection{Definition}
 
@@ -612,8 +635,8 @@ an expression.
 \end{lemma}
 \begin{proof}
   Trivial for the first clause of $\semst{\wild}$.
-  Now, realising that $dst_\States((l \sfcomp r)(σ)) = dst_\States(l(σ))$
-  and that $dst_\States(step(f)(σ)) = σ$ for any $f$, we can see that the
+  Now, realising that $tgt_\States((l \sfcomp r)(σ)) = tgt_\States(l(σ))$
+  and that $tgt_\States(step(f)(σ)) = σ$ for any $f$, we can see that the
   proposition follows for other clauses by applying these two rewrites to
   completion.
 \end{proof}
@@ -675,7 +698,7 @@ maximal trace for the transition semantics starting at $(\pe,[],[],\StopF)$.
   \\[-0.5em]
   \bot_\StateD(σ) & = & \fn{σ}{σ\trend} \\
   \\[-0.5em]
-  (d_1 \sfcomp d_2)(σ) & = & d_1(σ) \sconcat d_2(dst_\States(d_1(σ))) \\
+  (d_1 \sfcomp d_2)(σ) & = & d_1(σ) \sconcat d_2(tgt_\States(d_1(σ))) \\
   \\[-0.5em]
   step(f)(σ) & = & \begin{cases}
     σ; f(σ)     & \text{if $f(σ)$ is defined} \\
