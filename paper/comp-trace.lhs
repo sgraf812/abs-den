@@ -37,30 +37,22 @@
 \citestyle{acmauthoryear}   %% For author/year citations
 
 %%%%%%%
-%\usepackage{multirow}
-%\usepackage{footmisc}
-%\usepackage{enumitem}
-%\usepackage{stmaryrd}
-%\usepackage{mathrsfs}
-\usepackage{amsmath,latexsym,amssymb,amsthm}
-\usepackage{upgreek}
 \usepackage{color}
+%\usepackage[svgnames]{xcolor}
+\usepackage{cleveref}
+\usepackage{xspace}
 \usepackage{url}
 \usepackage{galois}
 %\usepackage{scalerel}
-%\usepackage[svgnames]{xcolor}
 %\usepackage[all]{xy}
 %\usepackage{graphicx}
 %\usepackage{stackengine}
 \usepackage{mathtools} % xhookrightarrow
 \usepackage{trimclip} % clipbox
-\usepackage{cleveref}
-\usepackage{xspace}
-\usepackage{mathpartir}
+\usepackage{mathpartir} % inference rules
 \usepackage{subcaption}
-\usepackage{tikz}
 \usepackage{mathbbol} % \bbcolon and \bbquestionmark
-%\usepackage{eucal}
+\usepackage{tikz}
 %\usepackage{wasysym} % \currency
 %\usetikzlibrary{cd} % commutative diagrams
 \usetikzlibrary{calc}
@@ -68,7 +60,6 @@
 \usetikzlibrary{patterns}
 \usetikzlibrary{matrix}
 \usetikzlibrary{decorations.pathreplacing}
-%\usepackage{bibentry} % \nobibliography below
 \usepackage{placeins} % flush floats with \FloatBarrier
 \usepackage[T1]{fontenc} % https://tex.stackexchange.com/a/181119
 
