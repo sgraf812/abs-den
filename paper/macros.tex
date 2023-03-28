@@ -81,17 +81,17 @@
 \newcommand{\CaseIA}{\mathsf{case}_1}
 \newcommand{\CaseEA}{\mathsf{case}_2}
 %% Labels
-\newcommand{\Labels}{\mathbb{L}}
+\newcommand{\Labels}{\mathsf{Lab}}
 \newcommand{\lbl}{\ensuremath{\ell}}
 \newcommand{\lbln}[1]{\ensuremath{\ell_{#1}}}
-\newcommand{\slbl}{\raisebox{0.08em}{$\;\scriptstyle{\ell}\;$}}
+\newcommand{\slbl}{\raisebox{0.08em}{$\scriptstyle{\ell}$\;}}
 \newcommand{\slbln}[1]{\raisebox{0.1em}{$\;\scriptstyle{\ell_{#1}}\;$}}
 \newcommand{\atlbl}[1]{at(#1)}
-\newcommand{\trend}{\raisebox{-0.8pt}{\scalebox{0.3}{$\square$}}}
 %% Traces
 \newcommand{\return}{\rotatebox[origin=c]{180}{$\hspace{0.7pt}\Rsh$}}
 \newcommand{\Traces}{\mathbb{T}}
 \newcommand{\act}[1]{\xrightarrow{#1}}
+\newcommand{\trend}{\raisebox{-0.8pt}{\scalebox{0.3}{$\square$}}}
 % https://latex.org/forum/viewtopic.php?p=62177&sid=26890ac77d076f3338384a47a2ffd4bc#p62177
 \makeatletter
 \newcommand{\concatop}[1]{%
@@ -106,7 +106,6 @@
 \newcommand{\fcomp}{\compop{\cdot}}
 \newcommand{\balanced}[1]{#1\;\mathsf{bal}}
 \newcommand{\getval}[2]{#1 \Downarrow #2}
-\newcommand{\lookup}[2]{#1\;\mathsf{lookup}}
 \newcommand{\subtrceq}{\superimpose[\mathrel]{\clipbox{0pt 0pt {0.3\width} 0pt}{${\subset}$}}{\hspace{0.6ex}\cdot}}
 \newcommand{\rightsubtrceq}{\subtrceq_r}
 \newcommand{\leftsubtrceq}{\subtrceq_l}
@@ -124,6 +123,9 @@
 \newcommand{\Heaps}{\mathbb{H}}
 \newcommand{\Continuations}{\mathbb{K}}
 \newcommand{\Domain}[1]{{\mathbb{D}^{#1}}}
+\newcommand{\Base}[1]{\mathbf{#1}}
+\newcommand{\ApproxMap}[2]{\mathsf{Map}(#1,#2)}
+\newcommand{\FinStepMap}[2]{#1 \Rightarrow #2}
 \newcommand{\PrefD}{\Domain{*}}
 \newcommand{\MaxD}{\Domain{+\infty}}
 \newcommand{\ScottD}{\Domain{}}

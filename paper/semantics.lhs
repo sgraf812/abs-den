@@ -13,11 +13,12 @@
 \begin{figure}
 \[\begin{array}{c}
  \begin{array}{rrclcl}
-  \text{Variables}    & \px, \py & ∈ & \Var        &     & \\
-  \text{Values}       &      \pv & ∈ & \Val        & ::= & \Lam{\px}{\pe} \\
-  \text{Expressions}  &      \pe & ∈ & \Exp        & ::= & \slbl \px \mid \slbl \pv \mid \slbl \pe~\px \mid \slbl \Let{\px}{\pe_1}{\pe_2} \\
-  \text{Addresses}    &      \pa & ∈ & \Addresses  &  ⊆  & ℕ \\
-  \\
+  \text{Variables}    & \px, \py & ∈ & \Var        &        & \\
+  \text{Addresses}    &      \pa & ∈ & \Addresses  & \simeq & ℕ \\
+  \text{Labels}       &     \lbl & ∈ & \Labels     & \simeq & ℕ \\
+  \text{Values}       &      \pv & ∈ & \Val        & ::=    & \Lam{\px}{\pe} \\
+  \text{Expressions}  &      \pe & ∈ & \Exp        & ::=    & \slbl \px \mid \slbl \pv \mid \slbl \pe~\px \mid \slbl \Let{\px}{\pe_1}{\pe_2} \\
+  \\[-0.5em]
   \text{States}                             & σ      & ∈ & \States  & = & \Control \times \Environments \times \Heaps \times \Continuations \\
   \text{Control}                            & γ      & ∈ & \Control & ::= & \pe \mid (\pv, v) \\
   \text{Environments}                       & ρ      & ∈ & \Environments & = & \Var \pfun_c \Addresses \\
@@ -59,7 +60,7 @@
   \\[-0.5em]
   \inferrule*
     [right=$\LetT$]
-    {\fresh{\pa}{μ} \quad ρ' = ρ[\px↦\pa]}
+    {\pa \not∈ \dom(μ) \quad ρ' = ρ[\px↦\pa]}
     {(\Let{\px}{\pe_1}{\pe_2},ρ,μ,κ) \smallstep (\pe_2,ρ',μ[\pa↦(\pe_1,ρ',d_1)], κ)} \\
   \\
  \end{array} \\
@@ -429,22 +430,35 @@ Let $σ$ be a well-elaborated state and $\pe$ an arbitrary expression. Then
 
 \subsection{Domain Theory}
 
+\subsubsection{Domain construction}
+
 Note that $\StateD$ in \Cref{fig:cesk-syntax} is not a well-formed inductive
 definition: It recurses in negative position via $\States \to \Heaps \to \StateD$
 and similarly through $\Values^\States$.
 Hence we must understand $\StateD$ as a Scott domain and its ``definition'' as
-a \emph{domain equation}, of which $\StateD$ is to be understood as the least
-solution.
+a \emph{domain equation}, of which $\StateD$ is the least solution.
 
+\sg{Some of the ponderings about finite maps should come earlier once we've
+identified the right place to put them.}
 For that to carry meaning, the RHS $\States \to_c \STraces$ must be the domain
 of continuous functions between the hypothetical domains $\States$ and
-$\STraces$, indicated by the subscript $\wild_c$. Similarly, $f ∈ A \pfun_c B$
-denotes the domain of partial functions from $A$ to $B$ with finite domain
-$\dom(f)$. Whenever $a \not∈ \dom(f)$, we have $f(a) = \notfound$.
+$\STraces$, indicated by the subscript ${}_c$. The domain of finite maps
+$f ∈ A \pfun_c B$ (for flat domain $A$ and arbitrary domain $B$) is the
+sub-domain of $f ∈ A \to_c (\{\notfound\} + B)$ of strict functions (so $f(\bot)
+= \bot$) where the map's domain $\dom(f) ⊆ A$ is finite. Whenever $a \not∈
+\dom(f) \setminus \bot$, we have $f(a) = \notfound$.
+
+Recall that that an element $d$ of some domain $D$ is a \emph{total} element iff
+it is maximal, so there exists no $d' ∈ D$ such that $d ⊏ d'$. Otherwise if such
+a $d'$ exists, $d$ is \emph{partial}.
+
 Remarkably, we \emph{do not} conflate $\bot ∈ A \pfun_c B$ with $[] ∈ A \pfun_c
-B$, the partial function with $\dom(f) = \varnothing$. The former is a
-\emph{partial} element of the domain and assigns $\bot_B$ everywhere; the latter
-is a \emph{total} element of the domain and assigns $\notfound$ everywhere.
+B$, the finite map with $\dom(f) = \varnothing$.
+The former is a partial element of the domain and assigns $\bot_B$ everywhere;
+the latter is totally defined as an element of the domain and assigns
+$\notfound$ everywhere.
+As a consequence, $[a ↦ b] \triangleq [][a ↦ b] \not\sqsupseteq []$ and the
+total elements of the domain are discrete.
 
 The other domain constructors for products $\times$ and inductive EBNF-style
 syntax definitions such as the potentially infinite $\STraces$ (indicated by
@@ -452,25 +466,48 @@ the $\gfp$ subscript) or finite $\Continuations$ are standard, see for example
 \cite{Cartwright:16}. The domains on $\Addresses$ and $\Var$ are the flat ones;
 the one on $\Exp$ is the flat one on labels.
 
-Here we need to state the exact subset that is $\StateD$ and prove that it is
-well-defined as a Scott domain (algebraic, bounded-complete, directed-complete poset).
+This proves that $\StateD$ is well-defined as a domain.
 
-Caveat: The order on $\Exp$ is the discrete one by Labels.
+\subsubsection{Continuity}
 
-1. Express $\States$ as a functor over occs of $\StateD$. Clearly well-defined.
-2. Express $\STraces$ as a (signature) functor $F : Alg \to Alg$.
-   For that, we have to prove that $F(D)$ is an alg domain for any alg $D$.
+It is easy to verify (by simple type checking) that $\semst{\wild}$
+is indeed a function from elements of $\States$ to something close to the
+elements of $\STraces$ (ignoring embedding of recursive calls for a moment).
+The missing ingredient to show that $\semst{\wild} ∈ \StateD$ is well-defined is
+\emph{continuity}.
 
-Then the fixpoint of the composition of those functors is an alg domain.
+As given, the definition of $\semst{\wild}$ does not account for partial
+elements at all, although it does a sufficient job provided the elements it
+manipulates are total. This is a common kind of formulation in functional
+languages like Haskell, ML and other variants of the lambda calculus.
 
-Define directed-complete partial order on $F(D)$.
+In fact, the supplied artifact gives a model implementation of $\semst{\wild}$
+in Haskell. Note that this model must be computable; hence it must be possible
+to reflect this model as an element of $\StateD$. Doing so was the entire point
+of \citep{ScottStrachey:71} and we don't need to repeat it here.
 
-\begin{itemize}
-  \item $\bot = λσ.σ\trend$.
-  \item pointwise, lifting the obv prefix order over $σ_1 ⊑ σ_2$.
-  \item obv. partial order
-  \item directed-complete? Yes. How to prove formally? Unsure!
-\end{itemize}
+Ironically, we are at a point where it's easier to reflect a code listing in a
+sufficiently well-defined programming language into a continuous function than
+to find a language-agnostic, mathematical formulation that we laboriously have
+to prove continuous.
+Now, we might spend much time and space here clarifying boring technical
+details of strictness such as
+``Is $step(stay_\StateD)(\wild,\wild,\wild,\ApplyF(\pa) \pushF \bot) = \bot$?''
+and ``What is the continuous elaboration of $tgt_\States$?''
+that are implicit in the Haskell formulation, only to finally conclude that the
+clarified formulation is indeed continuous.
+
+We skip this laborious process and for the remainder of this work assume that
+$\semst{\wild}$ was implemented in a strict programming language like OCaml
+(both for familiarity with most readers and sanity of evaluation order),
+using a lazy field in one key position: The tail $π$ of the cons form $σ; π$ of
+$\STraces$. For easy reference of the ``ground truth'', we give such an
+implementation in the Appendix.%
+\footnote{Note that the artifact is implemented in Haskell because of
+familiarity to the authors, but makes abundant use of strictness annotations
+for good measure, debuggability and performance. This demonstrates the semantic
+leeway a denotational formulation such as $\semst{\wild}$ has while still being
+continuous.}
 
 \subsection{Definition}
 
@@ -537,7 +574,7 @@ $\semst{\Lam{x}{x}}$, which ends up in $ρ_1$.
 The auxiliary $step$ function and the forward composition operator $\sfcomp$
 have been inlined everywhere, as all steps and compositions are well-defined.
 One can find that $\sfcomp$ is quite well-behaved: It forms a monoid with
-$\bot_\StateD$ (which is just $step$ applied to the function that is undefined
+$stay_\StateD$ (which is just $step$ applied to the function that is undefined
 everywhere) as its neutral element.
 
 Evaluation of the let binding recurses into $\semst{i~i}$ on state 2,
@@ -696,7 +733,7 @@ maximal trace for the transition semantics starting at $(\pe,[],[],\StopF)$.
  \begin{array}{rcl}
   \multicolumn{3}{c}{ \ruleform{ \semst{\wild} \colon \Exp → \StateD } } \\
   \\[-0.5em]
-  \bot_\StateD(σ) & = & \fn{σ}{σ\trend} \\
+  stay_\StateD(σ) & = & σ\trend \\
   \\[-0.5em]
   (d_1 \sfcomp d_2)(σ) & = & d_1(σ) \sconcat d_2(tgt_\States(d_1(σ))) \\
   \\[-0.5em]
@@ -714,7 +751,7 @@ maximal trace for the transition semantics starting at $(\pe,[],[],\StopF)$.
       \text{in}  & d(\pe,ρ',μ,\UpdateF(\pa) \pushF κ) \\
     \end{letarray} \\
   \\[-0.5em]
-  upd((\pv,v),ρ,μ,\UpdateF(\pa) \pushF κ) & = & ((\pv,v),ρ,μ[\pa ↦ (\pv,ρ,step(val(v)))], κ)\trend \\
+  upd((\pv,v),ρ,μ,\UpdateF(\pa) \pushF κ) & = & ((\pv,v),ρ,μ[\pa ↦ (\pv,ρ,step(val(\pv,v)))], κ)\trend \\
   \\[-0.5em]
   app_1(\pe~\px)(\pe~\px,ρ,μ,κ) & = & (\pe,ρ,μ,\ApplyF(ρ(\px)) \pushF κ)\trend \\
   \\[-0.5em]
@@ -722,7 +759,7 @@ maximal trace for the transition semantics starting at $(\pe,[],[],\StopF)$.
   \\[-0.5em]
   let(d_1)(\Let{\px}{\pe_1}{\pe_2},ρ,μ,κ) & = &
     \begin{letarray}
-      \text{let} & ρ' = ρ[\px ↦ \pa] \quad \text{where $\fresh{\pa}{μ}$} \\
+      \text{let} & ρ' = ρ[\px ↦ \pa] \quad \text{where $\pa \not∈ \dom(μ)$} \\
       \text{in}  & (\pe_2,ρ',μ[\pa ↦ (\pe_1, ρ', d_1)],κ)\trend \\
     \end{letarray} \\
   \\[-0.5em]
@@ -734,7 +771,7 @@ maximal trace for the transition semantics starting at $(\pe,[],[],\StopF)$.
   % We need this case, otherwise we'd continue e.g.
   %   S[x]((sv,v),ρ,μ,upd(a).κ) = ((sv,v),ρ,μ,upd(a).κ); ((sv,v),ρ,μ[a...],κ)
   % Because of how the composition operator works.
-  \semst{\pe}(σ) & = & σ\trend\ \text{if the control of $σ$ is not $\pe$} \\
+  \semst{\pe}(σ) & = & stay_\StateD(σ) \text{ if the control of $σ$ is not $\pe$} \\
   \\[-0.5em]
   \semst{\px} & = & step(look(\px)) \sfcomp step(upd) \\
   \\[-0.5em]
