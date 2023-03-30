@@ -3,17 +3,10 @@
 
 \subsection{Transititon System}
 
-\begin{itemize}
-  \item Introduce syntax, labels, notation. $\StateD$ is not the exponential!
-  \item Introduce transition system+states, clarifying that we don't care about
-        $\StateD$ yet, only that we'll instantiate in a way that makes the
-        semantics deterministic
-\end{itemize}
-
 \begin{figure}
 \[\begin{array}{c}
  \begin{array}{rrclcl}
-  \text{Variables}    & \px, \py & ∈ & \Var        &        & \\
+  \text{Variables}    & \px, \py & ∈ & \Var        & \simeq & ℕ \\
   \text{Addresses}    &      \pa & ∈ & \Addresses  & \simeq & ℕ \\
   \text{Labels}       &     \lbl & ∈ & \Labels     & \simeq & ℕ \\
   \text{Values}       &      \pv & ∈ & \Val        & ::=    & \Lam{\px}{\pe} \\
@@ -24,51 +17,41 @@
   \text{Environments}                       & ρ      & ∈ & \Environments & = & \Var \pfun_c \Addresses \\
   \text{Heaps}                              & μ      & ∈ & \Heaps & = & \Addresses \pfun_c \Exp \times \Environments \times \StateD \\
   \text{Continuations}                      & κ      & ∈ & \Continuations & ::= & \StopF \mid \ApplyF(\pa) \pushF κ \mid \UpdateF(\pa) \pushF κ \\
+ \end{array} \\
   \\[-0.5em]
+\end{array}\]
+
+\newcolumntype{L}{>{$}l<{$}} % math-mode version of "l" column type
+\newcolumntype{R}{>{$}r<{$}} % math-mode version of "r" column type
+\newcolumntype{C}{>{$}c<{$}} % math-mode version of "c" column type
+\begin{tabular}{LRCLL}
+\toprule
+\text{Rule} & σ_1 & \smallstep & σ_2 & \text{where} \\
+\midrule
+\LetT & (\Let{\px}{\pe_1}{\pe_2},ρ,μ,κ) & \smallstep & (\pe_2,ρ',μ[\pa↦(\pe_1,ρ',d_1)], κ) & \pa \not∈ \dom(μ),\ ρ'\! = ρ[\px↦\pa] \\
+\AppIT & (\pe~\px,ρ,μ,κ) & \smallstep & (\pe,ρ,μ,\ApplyF(\pa) \pushF κ) & \pa = ρ(\px) \\
+\LookupT & (\px, ρ, μ, κ) & \smallstep & (\pe, ρ', μ, \UpdateF(\pa) \pushF κ) & \pa = ρ(\px),\ (\pe,ρ',\wild) = μ(\pa) \\
+\ValueT & (\pv, ρ, μ, κ) & \smallstep & ((\pv, v), ρ, μ, κ) & \\
+\UpdateT & ((\pv,v), ρ, μ, \UpdateF(\pa) \pushF κ) & \smallstep & ((\pv,v), ρ, μ[\pa ↦ (\pv,ρ,d)], κ) & \\
+\AppET & ((\Lam{\px}{\pe},\wild),ρ,μ, \ApplyF(\pa) \pushF κ) & \smallstep & (\pe,ρ[\px ↦ \pa],μ,κ) &  \\
+\bottomrule
+\end{tabular}
+\caption{Lazy Krivine (LK) transition system $\smallstep$}
+  \label{fig:sestoft-syntax}
+\end{figure}
+\begin{figure}
+\[\begin{array}{c}
+ \begin{array}{rrclcl}
   \text{Stateful traces}                    & π      & ∈ & \STraces & ::=_{\gfp} & σ\trend \mid σ; π \\
   \text{Domain of stateful trace semantics} & d      & ∈ & \StateD  & = & \States \to_c \STraces \\
   \text{Values}                             & v      & ∈ & \Values^\States & ::= & \FunV(f ∈ \Addresses \to_c \StateD) \\
  \end{array} \\
  \\
- \begin{array}{c}
-  \ruleform{ σ_1 \smallstep σ_2 } \\
-  \\[-0.5em]
-  \inferrule*
-    [right=$\ValueT$]
-    {\quad}
-    {(\pv, ρ, μ, κ) \smallstep ((\pv, v), ρ, μ, κ)}
-  \qquad
-  \inferrule*
-    [right=$\LookupT$]
-    {\pa = ρ(\px) \quad (\pe,ρ',\wild) = μ(\pa)}
-    {(\px, ρ, μ, κ) \smallstep (\pe, ρ', μ, \UpdateF(\pa) \pushF κ)}
-  \\
-  \inferrule*
-    [right=$\UpdateT$]
-    {\quad}
-    {((\pv,v), ρ, μ, \UpdateF(\pa) \pushF κ) \smallstep ((\pv,v), ρ, μ[\pa ↦ (\pv,ρ,d)], κ)} \\
-  \\[-0.5em]
-  \inferrule*
-    [right=$\AppIT$]
-    {\pa = ρ(\px)}
-    {(\pe~\px,ρ,μ,κ) \smallstep (\pe,ρ,μ,\ApplyF(\pa) \pushF κ)}
-  \quad
-  \inferrule*
-    [right=$\AppET$]
-    {\quad}
-    {((\Lam{\px}{\pe},\wild),ρ,μ, \ApplyF(\pa) \pushF κ) \smallstep (\pe,ρ[\px ↦ \pa],μ,κ)} \\
-  \\[-0.5em]
-  \inferrule*
-    [right=$\LetT$]
-    {\pa \not∈ \dom(μ) \quad ρ' = ρ[\px↦\pa]}
-    {(\Let{\px}{\pe_1}{\pe_2},ρ,μ,κ) \smallstep (\pe_2,ρ',μ[\pa↦(\pe_1,ρ',d_1)], κ)} \\
-  \\
- \end{array} \\
  \begin{array}{rcl}
-  \multicolumn{3}{c}{ \ruleform{ tgt_\States(π) = σ \qquad tgt_\States(π) = σ } } \\
+  \multicolumn{3}{c}{ \ruleform{ src_\States(π) = σ \qquad tgt_\States(π) = σ } } \\
   \\[-0.5em]
-  tgt_\States(σ\trend)    & = & σ \\
-  tgt_\States(σ; π) & = & σ \\
+  src_\States(σ\trend)    & = & σ \\
+  src_\States(σ; π) & = & σ \\
   \\[-0.5em]
   tgt_\States(π)    & = & \begin{cases}
     undefined & \text{if $π$ infinite} \\
@@ -80,8 +63,8 @@
   \\[-0.5em]
   π_1 \sconcat π_2 = \begin{cases}
     σ; (π_1' \sconcat π_2) & \text{if $π_1 = σ; π_1'$} \\
-    π_2                    & \text{if $π_1 = σ\trend$ and $tgt_\States(π_2) = σ$} \\
-    undefined              & \text{if $π_1 = σ\trend$ and $tgt_\States(π_2) \not= σ$} \\
+    π_2                    & \text{if $π_1 = σ\trend$ and $src_\States(π_2) = σ$} \\
+    undefined              & \text{if $π_1 = σ\trend$ and $src_\States(π_2) \not= σ$} \\
   \end{cases} \\
  \end{array} \\
  \\
@@ -93,13 +76,13 @@
     {\validtrace{σ\trend}}
   \qquad
   \inferrule*
-    {σ \smallstep tgt_\States(π) \quad \validtrace{π}}
+    {σ \smallstep src_\States(π) \quad \validtrace{π}}
     {\validtrace{σ; π}} \\
   \\
  \end{array} \\
 \end{array}\]
-\caption{Call-by-need CESK transition system $\smallstep$}
-  \label{fig:cesk-syntax}
+\caption{CESK traces and }
+  \label{fig:sestoft-syntax}
 \end{figure}
 
 % Note [On the role of labels]
@@ -160,6 +143,16 @@
 %   * It's a lazy semantics in ANF, hence inspired by Sestoft's Mark II machine
 %   * The Val transition is key to line up with the trace-based semantics and is
 %     inspired by CESK's \ddagger as well as STG's ReturnCon code.
+
+In \Cref{fig:sestoft-syntax} you can find
+The gold standard for treatements of programming language
+
+\begin{itemize}
+  \item Introduce syntax, labels, notation. $\StateD$ is not the exponential!
+  \item Introduce transition system+states, clarifying that we don't care about
+        $\StateD$ yet, only that we'll instantiate in a way that makes the
+        semantics deterministic
+\end{itemize}
 
 \subsection{Informal Specification}
 
@@ -281,14 +274,14 @@ A trace is stuck if its destination state is stuck.
     \item $π$ is stuck, or
     \item $π$ is \emph{balanced}, meaning that $tgt_\States(π)$ is a return
           state, the continuation of which is that of the initial state
-          $tgt_\States(π)$.
+          $src_\States(π)$.
   \end{itemize}
 \end{lemma}
 \begin{proof}
   =>:
   Let $π$ be maximal.
   If $π$ is infinite or stuck, we are done; so assume that $π$ is finite and not
-  stuck. Let $σ_1 = tgt_\States(π)$, $σ_n = tgt_\States(π)$ and let $κ_1$ denote
+  stuck. Let $σ_1 = src_\States(π)$, $σ_n = tgt_\States(π)$ and let $κ_1$ denote
   the continuation of $σ_1$ and $κ_n$ that of $σ_n$.
   Our goal is to show that $κ_n = κ_1$ and that $σ_n$ is a return state.
 
@@ -376,7 +369,7 @@ the following predicate:
 \end{proof}
 
 \begin{corollary}
-  If $\validtrace{π}$ and $tgt_\States(π)$ is well-addressed, then every state
+  If $\validtrace{π}$ and $src_\States(π)$ is well-addressed, then every state
   in $π$ is well-addressed.
 \end{corollary}
 
@@ -432,7 +425,7 @@ Let $σ$ be a well-elaborated state and $\pe$ an arbitrary expression. Then
 
 \subsubsection{Domain construction}
 
-Note that $\StateD$ in \Cref{fig:cesk-syntax} is not a well-formed inductive
+Note that $\StateD$ in \Cref{fig:sestoft-syntax} is not a well-formed inductive
 definition: It recurses in negative position via $\States \to \Heaps \to \StateD$
 and similarly through $\Values^\States$.
 Hence we must understand $\StateD$ as a Scott domain and its ``definition'' as
@@ -511,7 +504,7 @@ continuous.}
 
 \subsection{Definition}
 
-\Cref{fig:cesk-semantics} defines $\semst{\wild}$. Before we prove that
+\Cref{fig:sestoft-semantics} defines $\semst{\wild}$. Before we prove that
 $\semst{\wild}$ satisfies the specification in \Cref{defn:semst-spec},
 let us understand the function by way of evaluating the example program
 $\pe \triangleq \Let{i}{\Lam{x}{x}}{i~i}$:
@@ -672,8 +665,8 @@ an expression.
 \end{lemma}
 \begin{proof}
   Trivial for the first clause of $\semst{\wild}$.
-  Now, realising that $tgt_\States((l \sfcomp r)(σ)) = tgt_\States(l(σ))$
-  and that $tgt_\States(step(f)(σ)) = σ$ for any $f$, we can see that the
+  Now, realising that $src_\States((l \sfcomp r)(σ)) = src_\States(l(σ))$
+  and that $src_\States(step(f)(σ)) = σ$ for any $f$, we can see that the
   proposition follows for other clauses by applying these two rewrites to
   completion.
 \end{proof}
@@ -786,5 +779,5 @@ maximal trace for the transition semantics starting at $(\pe,[],[],\StopF)$.
  \end{array} \\
 \end{array}\]
 \caption{Structural call-by-need stateful trace semantics $\semst{-}$}
-  \label{fig:cesk-semantics}
+  \label{fig:sestoft-semantics}
 \end{figure}
