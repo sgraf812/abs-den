@@ -171,8 +171,8 @@ expression $e$. The ominous and yet undefined $d$ is a semantic representation
 of $e$ that we will define later. Finally, a \emph{stack} $κ$ memorises
 
 consisting of the usual \emph{control} component, either
-driving evaluation of an expression $e$ or $β$-reducing a value $(\sv,v)$, where
-$\sv$ is a syntactic value and $v$ is its corresponding semantic representation.
+driving evaluation of an expression $e$ or $β$-reducing a value $(\pv,v)$, where
+$\pv$ is a syntactic value and $v$ is its corresponding semantic representation.
 These semantic entities are irrelevant to the operation of the operational
 semantics, but play a crucial part when
 We will see later
