@@ -7,16 +7,16 @@
 \[\begin{array}{c}
  \begin{array}{rrclcl}
   \text{Variables}    & \px, \py & ∈ & \Var        & \simeq & ℕ \\
-  \text{Addresses}    &      \pa & ∈ & \Addresses  & \simeq & ℕ \\
   \text{Labels}       &     \lbl & ∈ & \Labels     & \simeq & ℕ \\
   \text{Values}       &      \pv & ∈ & \Val        & ::=    & \Lam{\px}{\pe} \\
   \text{Expressions}  &      \pe & ∈ & \Exp        & ::=    & \slbl \px \mid \slbl \pv \mid \slbl \pe~\px \mid \slbl \Let{\px}{\pe_1}{\pe_2} \\
   \\[-0.5em]
-  \text{States}                             & σ      & ∈ & \States  & = & \Control \times \Environments \times \Heaps \times \Continuations \\
-  \text{Control}                            & γ      & ∈ & \Control & ::= & \pe \mid (\pv, v) \\
-  \text{Environments}                       & ρ      & ∈ & \Environments & = & \Var \pfun_c \Addresses \\
-  \text{Heaps}                              & μ      & ∈ & \Heaps & = & \Addresses \pfun_c \Exp \times \Environments \times \StateD \\
-  \text{Continuations}                      & κ      & ∈ & \Continuations & ::= & \StopF \mid \ApplyF(\pa) \pushF κ \mid \UpdateF(\pa) \pushF κ \\
+  \text{States}        & σ & ∈ & \States        & =   & \Control \times \Environments \times \Heaps \times \Continuations \\
+  \text{Controls}      & γ & ∈ & \Control       & ::= & \pe \mid (\pv, v) \\
+  \text{Environments}  & ρ & ∈ & \Environments  & =   & \Var \pfun \Addresses \\
+  \text{Addresses}    &      \pa & ∈ & \Addresses  & \simeq & ℕ \\
+  \text{Heaps}         & μ & ∈ & \Heaps         & =   & \Addresses \pfun \Exp \times \Environments \times \StateD \\
+  \text{Continuations} & κ & ∈ & \Continuations & ::= & \StopF \mid \ApplyF(\pa) \pushF κ \mid \UpdateF(\pa) \pushF κ \\
  \end{array} \\
   \\[-0.5em]
 \end{array}\]
@@ -37,7 +37,7 @@
 \bottomrule
 \end{tabular}
 \caption{Lazy Krivine (LK) transition system $\smallstep$}
-  \label{fig:sestoft-syntax}
+  \label{fig:lk-syntax}
 \end{figure}
 \begin{figure}
 \[\begin{array}{c}
@@ -82,7 +82,7 @@
  \end{array} \\
 \end{array}\]
 \caption{CESK traces and }
-  \label{fig:sestoft-syntax}
+  \label{fig:lk-syntax}
 \end{figure}
 
 % Note [On the role of labels]
@@ -144,8 +144,40 @@
 %   * The Val transition is key to line up with the trace-based semantics and is
 %     inspired by CESK's \ddagger as well as STG's ReturnCon code.
 
-In \Cref{fig:sestoft-syntax} you can find
-The gold standard for treatements of programming language
+\Cref{fig:lk-syntax} defines the syntax and semantics of an untyped,
+call-by-name lambda calculus with recursive let bindings in the style of
+\citep{Launchbury:93} that we will focus on in this work.
+Any (sub-)expression in this calculus has a unique \emph{label} (think of it as
+the AST node's pointer identity) that we usually omit. For example, a correct
+labelling of $f~(g~f)$ would be
+\[
+  \slbln{1} (\slbln{2} f)~(\slbln{3}(\slbln{4} g)~(\slbln{5} f)).
+\]
+Labels are there so that we do not conflate the (otherwise structurally equal)
+sub-terms $(\slbln{2} f)$ and $(\slbln{5} f)$ as equivalent; this is an important
+distinction for, \eg, control-flow analysis. Since labels introduce excessive
+clutter, we will omit them unless they are distinctively important; if anything,
+labels make it so that everything ``works as expected''.
+
+The ground truth for this work is a small-step semantics modelling a lazy
+Krivine machine \cite{AgerDanvyMidtgaard:04} for Launchbury's language.
+It is worth having a closer look at the workings of our Gold Standard.
+The state comes as a quadruple in the style of a CESK machine
+\cite{Felleisen:87}, consisting of the usual \emph{control} component
+corresponding to the control-flow node under evaluation, the \emph{environment}
+mapping lexically-scoped variables to an address bound in the \emph{heap}.
+Heap entries are closures $(e,ρ,d)$, where the environment $ρ$ closes over the
+expression $e$. The ominous and yet undefined $d$ is a semantic representation
+of $e$ that we will define later. Finally, a \emph{stack} $κ$ memorises
+
+consisting of the usual \emph{control} component, either
+driving evaluation of an expression $e$ or $β$-reducing a value $(\sv,v)$, where
+$\sv$ is a syntactic value and $v$ is its corresponding semantic representation.
+These semantic entities are irrelevant to the operation of the operational
+semantics, but play a crucial part when
+We will see later
+When the control is simply
+
 
 \begin{itemize}
   \item Introduce syntax, labels, notation. $\StateD$ is not the exponential!
@@ -425,7 +457,7 @@ Let $σ$ be a well-elaborated state and $\pe$ an arbitrary expression. Then
 
 \subsubsection{Domain construction}
 
-Note that $\StateD$ in \Cref{fig:sestoft-syntax} is not a well-formed inductive
+Note that $\StateD$ in \Cref{fig:lk-syntax} is not a well-formed inductive
 definition: It recurses in negative position via $\States \to \Heaps \to \StateD$
 and similarly through $\Values^\States$.
 Hence we must understand $\StateD$ as a Scott domain and its ``definition'' as
