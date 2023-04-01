@@ -18,7 +18,6 @@ and semv = FUN of addr -> semd
 type heap = semd heap'
 
 exception Undefined
-fun undef () = raise Undefined
 fun eq_expr (c1 : expr) (c2 : expr) = true (* ommitted *)
 fun eq_ctrl (c1 : control) (c2 : control) = true (* ommitted *)
 fun eq_state (s1 : state) (s2 : state) = true (* ommitted *)
@@ -26,7 +25,7 @@ fun src (END(s))    = s
   | src (CONS(s,_)) = s
 fun tgt (END(s))    = s
   | tgt (CONS(_,t)) = tgt (t ())
-fun concat (END(s))     f  = let val t = f () in if eq_state s (src t) then t else undef () end
+fun concat (END(s))     f  = let val t = f () in if eq_state s (src t) then t else raise Undefined end
   | concat (CONS(s,f1)) f2 = CONS(s,fn () => concat (f1 ()) f2)
 fun stay s = END(s)
 fun comp (D(d1)) (D(d2)) = D(fn s => let val t1 = d1 s in concat t1 (fn () => d2 (tgt t1)) end)
@@ -34,10 +33,14 @@ fun >>>(d1,d2) = comp d1 d2
 infixr 5 >>>
 
 exception Stay
-fun at c1 c2 = if eq_ctrl c1 c2 then () else raise Stay
-fun at_expr e1 e2 = if eq_expr e1 e2 then () else raise Stay
+fun at c1 c2 = if eq_ctrl c1 c2 then () else raise Undefined
+fun at_expr e1 e2 = if eq_expr e1 e2 then () else raise Undefined
 fun step f = D (fn s => CONS(s,f s) handle Stay => END(s))
-fun val_ (v, semv) (S(c,e,h,k)) () = (at (EVAL(v)) c; END(S(RET(v,semv),e,h,k)))
+fun val_ (v, semv) (S(c,e,h,k)) =
+  let val _ = at (EVAL(v)) c
+  in
+    fn () => END(S(RET(v,semv),e,h,k))
+  end
 fun look (e as VAR(x)) (S(c,env,heap,k)) =
   let val _ = at (EVAL(e)) c
       val a = Env.lookup(env,x) handle NotFound => raise Stay
@@ -137,6 +140,6 @@ val e7 = read " let id = λa. let y = a in y in \
               \ d e d"
 ;
 (* Tests *)
-Control.Print.printDepth := 1000;
+Control.Print.printDepth := 100;
 val ts = map (run 10) [e1,e2,e3,e4,e5,e6,e7]
-val t = run 30 e7
+val t = tgt (case sem e7 of D d => d(S(EVAL(e7),Env.empty,Heap.empty,STOP)))
