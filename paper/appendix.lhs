@@ -72,3 +72,7 @@
       \end{itemize}
   \end{itemize}
 \end{proof}
+
+\subsection{Detailed Semantics Specification in ML}
+
+\lstinputlisting[style=hsyl-style,language=ML,firstline=3,lastline=90]{semantics.sml}
