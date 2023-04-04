@@ -36,15 +36,15 @@
 \AppET & ((\Lam{\px}{\pe},\wild),ρ,μ, \ApplyF(\pa) \pushF κ) & \smallstep & (\pe,ρ[\px ↦ \pa],μ,κ) &  \\
 \bottomrule
 \end{tabular}
-\caption{Lazy Krivine (LK) transition system $\smallstep$}
+\caption{Syntax of $Λ$ and Lazy Krivine (LK) transition semantics $\smallstep$}
   \label{fig:lk-syntax}
 \end{figure}
 \begin{figure}
 \[\begin{array}{c}
  \begin{array}{rrclcl}
   \text{Stateful traces}                    & π      & ∈ & \STraces & ::=_{\gfp} & σ\trend \mid σ; π \\
-  \text{Domain of stateful trace semantics} & d      & ∈ & \StateD  & = & \States \to_c \STraces \\
-  \text{Values}                             & v      & ∈ & \Values^\States & ::= & \FunV(f ∈ \Addresses \to_c \StateD) \\
+  \text{Domain of stateful trace semantics} & d      & ∈ & \StateD  & = & \States \to \STraces \\
+  \text{Values}                             & v      & ∈ & \Values^\States & ::= & \FunV(f ∈ \Addresses \to \StateD) \\
  \end{array} \\
  \\
  \begin{array}{rcl}
@@ -144,31 +144,42 @@
 %   * The Val transition is key to line up with the trace-based semantics and is
 %     inspired by CESK's \ddagger as well as STG's ReturnCon code.
 
-\Cref{fig:lk-syntax} defines the syntax and semantics of an untyped,
+\Cref{fig:lk-syntax} defines syntax and semantics of $Λ$: An untyped,
 call-by-name lambda calculus with recursive let bindings in the style of
-\citep{Launchbury:93} that we will focus on in this work.
-Any (sub-)expression in this calculus has a unique \emph{label} (think of it as
-the AST node's pointer identity) that we usually omit. For example, a correct
-labelling of $f~(g~f)$ would be
+\citep{Launchbury:93}.
+Any (sub-)expression of $Λ$ has a unique \emph{label} (think of it as the AST node's
+pointer identity) that we usually omit. For example, a correct labelling of
+$f~(g~f)$ would be
 \[
-  \slbln{1} (\slbln{2} f)~(\slbln{3}(\slbln{4} g)~(\slbln{5} f)).
+  (\slbln{1} (\slbln{2} f)~(\slbln{3}(\slbln{4} g)~(\slbln{5} f))).
 \]
 Labels are there so that we do not conflate the (otherwise structurally equal)
-sub-terms $(\slbln{2} f)$ and $(\slbln{5} f)$ as equivalent; this is an important
+sub-terms $(\slbln{2} f)$ and $(\slbln{5} f)$ as equivalent. This is an important
 distinction for, \eg, control-flow analysis. Since labels introduce excessive
-clutter, we will omit them unless they are distinctively important; if anything,
+clutter, we will omit them unless they are distinctively important. If anything,
 labels make it so that everything ``works as expected''.
 
-The ground truth for this work is a small-step semantics modelling a lazy
-Krivine machine \cite{AgerDanvyMidtgaard:04} for Launchbury's language.
+An operational semantics of $Λ$ is given in terms of a small-step transition
+system closest to the lazy Krivine machine \cite{AgerBiernackiDanvyMidtgaard:03}
+for Launchbury's language.
 It is worth having a closer look at the workings of our Gold Standard.
 The state comes as a quadruple in the style of a CESK machine
 \cite{Felleisen:87}, consisting of the usual \emph{control} component
-corresponding to the control-flow node under evaluation, the \emph{environment}
-mapping lexically-scoped variables to an address bound in the \emph{heap}.
-Heap entries are closures $(e,ρ,d)$, where the environment $ρ$ closes over the
-expression $e$. The ominous and yet undefined $d$ is a semantic representation
-of $e$ that we will define later. Finally, a \emph{stack} $κ$ memorises
+corresponding to the control-flow node $γ$ under evaluation, the \emph{environment}
+$ρ$ mapping lexically-scoped variables to an address bound in the \emph{heap}
+$μ$ and a \emph{stack} $κ$.
+The control component $γ$ determines whether is either an expression under evaluation $\pe$ or a value
+pairing $(\pv,v)$, where $v$ is a yet undefined semantic (one-to-one)
+representation of the syntactic value $\pv$ that we will discuss in due course.
+When the control of a state $σ$ is an expression $\pe$, we call $σ$ an
+\emph{evaluation} state and say that $\pe$ drives evaluation, whereas when the
+control is $(\pv, v)$ we call it a \emph{return} state in which the stack $κ$
+drives evaluation.
+The entries in the heap are closures of the form $(e,ρ,d)$, where the
+environment $ρ$ closes over the expression $e$.
+Similar to the value pairing $(\pv,v)$, the ominous and yet undefined $d$ is a
+semantic (one-to-one) representation of $e$ that we will define later.
+Finally, a \emph{stack} $κ$ memorises actions to be taken
 
 consisting of the usual \emph{control} component, either
 driving evaluation of an expression $e$ or $β$-reducing a value $(\pv,v)$, where
