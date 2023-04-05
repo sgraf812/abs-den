@@ -167,7 +167,9 @@ The machine's state comes as a quadruple in the style of a CESK machine
 \cite{Felleisen:87}, consisting of the usual \emph{control} component
 corresponding to the control-flow node $γ$ under evaluation, the
 \emph{environment} $ρ$ mapping lexically-scoped variables to an address bound in
-the \emph{heap} $μ$ and a \emph{stack} $κ$.
+the \emph{heap} $μ$ and a \emph{stack} $κ$. The notation $f ∈ A \pfun B$ used
+both in the definition of $ρ$ and $μ$ denotes a \emph{finite map} from $A$ to
+$B$, a partial function where the domain $\dom(f)$ is finite.
 
 The control component $γ$ is either an expression under evaluation $\pe$ or a
 value pairing $(\pv,v)$, where $v$ is a yet undefined semantic representation of
@@ -176,33 +178,44 @@ When the control of a state $σ$ is an expression $\pe$, we call $σ$ an
 \emph{evaluation} state and say that $\pe$ drives evaluation, whereas when the
 control is $(\pv, v)$ we call it a \emph{return} state in which the stack $κ$
 drives evaluation.
+The entries in the heap are \emph{closures} of the form $(e,ρ,d)$, where the
+environment $ρ$ closes over the expression $e$.
+Similar to the value pairing $(\pv,v)$, $d$ is a semantic representation of $e$
+that we will define later.
+Finally, the stack $κ$ lists actions to be taken when the control reaches a
+value, such as applying the result to an argument address or updating a heap
+entry with its value.
+
+Heap entries are introduced via $\LetT$ transitions under a \emph{fresh} address
+$\pa \not∈ \dom(μ)$ that we call an \emph{activation} of the let-bound variable
+$\px$. The lexically-scoped activation of every variables in scope is maintained
+in $ρ$. The $\AppIT$ rule pushes an \emph{application frame} with the address of
+the argument variable onto the stack, while the rule $\LookupT$ pushes an
+\emph{update frame} with the address of the variable the heap entry of which is
+accessed. When a return state is reached, the original heap entry is overwritten
+with the value in the control.
 An evaluation state transitions to a return state via rule $\ValueT$ when the
 control expression is a value.%
 \footnote{Operational semantics commonly don't explicate $\ValueT$
 transitions, but the original formulation of the CESK machine
 did~\cite{Felleisen:87}, as does the lazy Krivine
 machine of \citep{AgerDanvyMidtgaard:04}.}
-The entries in the heap are \emph{closures} of the form $(e,ρ,d)$, where the
-environment $ρ$ closes over the expression $e$.
-Similar to the value pairing $(\pv,v)$, $d$ is a semantic representation of $e$
-that we will define later.
-Finally, the stack $κ$ memorises actions to be taken when the control reaches a
-value, such as
 
-consisting of the usual \emph{control} component, either
-driving evaluation of an expression $e$ or $β$-reducing a value $(\pv,v)$, where
-$\pv$ is a syntactic value and $v$ is its corresponding semantic representation.
-These semantic entities are irrelevant to the operation of the operational
-semantics, but play a crucial part when
-We will see later
-When the control is simply
+We bake into $σ$ the invariant of \emph{well-addressedness}: Any address $\pa$
+occuring in $ρ$, $κ$ or the range of $μ$ must be an element of $\dom(μ)$.
+It is easy to see that the transition system maintains this invariant and that
+it is still possible to observe scoping errors which are thus confined to
+lookup in $ρ$.
 
+Note that the postulated semantic representations $v$ and $d$ never affect
+other state components or whether or not a transition can fire, although their
+mere existence makes the system non-deterministic. Yet, it is easy to see that
+for any strategy that picks $v$s and $d$s one-to-one to the syntactic $\pv$ and
+$\pe$ to which they correspond, we get a standard, deterministic call-by-need
+semantics.
 
 \begin{itemize}
-  \item Introduce syntax, labels, notation. $\StateD$ is not the exponential!
-  \item Introduce transition system+states, clarifying that we don't care about
-        $\StateD$ yet, only that we'll instantiate in a way that makes the
-        semantics deterministic
+  \item Introduce $\StateD$
 \end{itemize}
 
 \subsection{Informal Specification}
