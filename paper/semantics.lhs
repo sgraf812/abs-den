@@ -146,7 +146,7 @@
 
 \Cref{fig:lk-syntax} defines syntax and semantics of $Λ$: An untyped,
 call-by-name lambda calculus with recursive let bindings in the style of
-\citep{Launchbury:93}.
+\citep{Launchbury:93} and \citep{Sestoft:97}.
 Any (sub-)expression of $Λ$ has a unique \emph{label} (think of it as the AST node's
 pointer identity) that we usually omit. For example, a correct labelling of
 $f~(g~f)$ would be
@@ -160,26 +160,34 @@ clutter, we will omit them unless they are distinctively important. If anything,
 labels make it so that everything ``works as expected''.
 
 An operational semantics of $Λ$ is given in terms of a small-step transition
-system closest to the lazy Krivine machine \cite{AgerBiernackiDanvyMidtgaard:03}
-for Launchbury's language.
+system closest to the lazy Krivine machine \cite{AgerDanvyMidtgaard:04} for
+Launchbury's language.
 It is worth having a closer look at the workings of our Gold Standard.
-The state comes as a quadruple in the style of a CESK machine
+The machine's state comes as a quadruple in the style of a CESK machine
 \cite{Felleisen:87}, consisting of the usual \emph{control} component
-corresponding to the control-flow node $γ$ under evaluation, the \emph{environment}
-$ρ$ mapping lexically-scoped variables to an address bound in the \emph{heap}
-$μ$ and a \emph{stack} $κ$.
-The control component $γ$ determines whether is either an expression under evaluation $\pe$ or a value
-pairing $(\pv,v)$, where $v$ is a yet undefined semantic (one-to-one)
-representation of the syntactic value $\pv$ that we will discuss in due course.
+corresponding to the control-flow node $γ$ under evaluation, the
+\emph{environment} $ρ$ mapping lexically-scoped variables to an address bound in
+the \emph{heap} $μ$ and a \emph{stack} $κ$.
+
+The control component $γ$ is either an expression under evaluation $\pe$ or a
+value pairing $(\pv,v)$, where $v$ is a yet undefined semantic representation of
+the syntactic value $\pv$ that we will discuss in due course.
 When the control of a state $σ$ is an expression $\pe$, we call $σ$ an
 \emph{evaluation} state and say that $\pe$ drives evaluation, whereas when the
 control is $(\pv, v)$ we call it a \emph{return} state in which the stack $κ$
 drives evaluation.
-The entries in the heap are closures of the form $(e,ρ,d)$, where the
+An evaluation state transitions to a return state via rule $\ValueT$ when the
+control expression is a value.%
+\footnote{Operational semantics commonly don't explicate $\ValueT$
+transitions, but the original formulation of the CESK machine
+did~\cite{Felleisen:87}, as does the lazy Krivine
+machine of \citep{AgerDanvyMidtgaard:04}.}
+The entries in the heap are \emph{closures} of the form $(e,ρ,d)$, where the
 environment $ρ$ closes over the expression $e$.
-Similar to the value pairing $(\pv,v)$, the ominous and yet undefined $d$ is a
-semantic (one-to-one) representation of $e$ that we will define later.
-Finally, a \emph{stack} $κ$ memorises actions to be taken
+Similar to the value pairing $(\pv,v)$, $d$ is a semantic representation of $e$
+that we will define later.
+Finally, the stack $κ$ memorises actions to be taken when the control reaches a
+value, such as
 
 consisting of the usual \emph{control} component, either
 driving evaluation of an expression $e$ or $β$-reducing a value $(\pv,v)$, where

@@ -310,20 +310,17 @@ series = {PLDI 2021}
   series = {POPL '93}
 }
 
-@inproceedings{AgerBiernackiDanvyMidtgaard:03,
-  author = {Ager, Mads Sig and Biernacki, Dariusz and Danvy, Olivier and Midtgaard, Jan},
-  title = {A Functional Correspondence between Evaluators and Abstract Machines},
-  year = {2003},
-  isbn = {1581137052},
-  publisher = {Association for Computing Machinery},
-  address = {New York, NY, USA},
-  url = {https://doi.org/10.1145/888251.888254},
-  doi = {10.1145/888251.888254},
-  abstract = {We bridge the gap between functional evaluators and abstract machines for the λ-calculus, using closure conversion, transformation into continuation-passing style, and defunctionalization.We illustrate this approach by deriving Krivine's abstract machine from an ordinary call-by-name evaluator and by deriving an ordinary call-by-value evaluator from Felleisen et al.'s CEK machine. The first derivation is strikingly simpler than what can be found in the literature. The second one is new. Together, they show that Krivine's abstract machine and the CEK machine correspond to the call-by-name and call-by-value facets of an ordinary evaluator for the λ-calculus.We then reveal the denotational content of Hannan and Miller's CLS machine and of Landin's SECD machine. We formally compare the corresponding evaluators and we illustrate some degrees of freedom in the design spaces of evaluators and of abstract machines for the λ-calculus with computational effects.Finally, we consider the Categorical Abstract Machine and the extent to which it is more of a virtual machine than an abstract machine.},
-  booktitle = {Proceedings of the 5th ACM SIGPLAN International Conference on Principles and Practice of Declaritive Programming},
-  pages = {8–19},
-  numpages = {12},
-  keywords = {defunctionalization, closure conversion, abstract machines, transformation into continuation-passing style (CPS), interpreters},
-  location = {Uppsala, Sweden},
-  series = {PPDP '03}
+@article{AgerDanvyMidtgaard:04,
+  title = {A functional correspondence between call-by-need evaluators and lazy abstract machines},
+  journal = {Information Processing Letters},
+  volume = {90},
+  number = {5},
+  pages = {223-232},
+  year = {2004},
+  issn = {0020-0190},
+  doi = {https://doi.org/10.1016/j.ipl.2004.02.012},
+  url = {https://www.sciencedirect.com/science/article/pii/S0020019004000638},
+  author = {Mads Sig Ager and Olivier Danvy and Jan Midtgaard},
+  keywords = {Functional programming, Program derivation, Interpreters, Abstract machines, Closure conversion, CPS transformation, Defunctionalization},
+  abstract = {We bridge the gap between compositional evaluators and abstract machines for the lambda-calculus, using closure conversion, transformation into continuation-passing style, and defunctionalization of continuations. This article is a followup of our article at PPDP 2003, where we consider call by name and call by value. Here, however, we consider call by need. We derive a lazy abstract machine from an ordinary call-by-need evaluator that threads a heap of updatable cells. In this resulting abstract machine, the continuation fragment for updating a heap cell naturally appears as an ‘update marker’, an implementation technique that was invented for the Three Instruction Machine and subsequently used to construct lazy variants of Krivine's abstract machine. Tuning the evaluator leads to other implementation techniques such as unboxed values. The correctness of the resulting abstract machines is a corollary of the correctness of the original evaluators and of the program transformations used in the derivation.}
 }
