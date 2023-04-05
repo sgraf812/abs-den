@@ -204,19 +204,18 @@ bisimilar to the standard one.
   \label{fig:lk-traces}
 \end{figure}
 
-\subsection{Informal Specification}
+\subsection{Traces}
 
-% Traces
-
-Our next step is to give a function generating a \emph{trace} in $(\smallstep)$,
-that is, a non-empty and potentially infinite sequence of states
-$(σ_i)_{i∈\overline{n}}$ (where $\overline{n} = \{ m \mid m ≤ n \}, n∈ℕ_+ ∪
-\{ω\}$), such that $σ_i \smallstep σ_{i+1}$ for $i,(i+1)∈\overline{n}$.
-\Cref{fig:lk-traces} gives the definition of such a trace type $\STraces$
-which is to be understood as the greatest fixed-point of the functional
-$F(X) = \States + (\States \times X)$. This is isomorphic to the
-characterisation as a sequence, hence we will freely switch between notations
-for $π$, in particular to index its states.
+A transition system is characterised precisely by the set of \emph{traces} it
+generates.
+A trace in $(\smallstep)$ is a non-empty and potentially infinite sequence of
+states $(σ_i)_{i∈\overline{n}}$ (where $\overline{n} = \{ m \mid m ≤ n \}, n∈ℕ_+
+∪ \{ω\}$), such that $σ_i \smallstep σ_{i+1}$ for $i,(i+1)∈\overline{n}$.
+\Cref{fig:lk-traces} gives a (coinductive) definition of such a trace type
+$\STraces$ which is to be understood as the greatest fixed-point of the
+functional $F(X) = \States + (\States \times X)$.
+This is isomorphic to the definition as a sequence, hence we will freely
+switch between notations for $π$, in particular to index its states.
 
 The well-formedness of a trace $π$ wrt. to $(\smallstep)$ is asserted by
 the predicate $\validtrace{π}$.
@@ -230,6 +229,41 @@ finite traces.
 The expression $π_1 \sconcat π_2$ denotes the concatenation of two traces; it is
 simply $π_1$ when $π_1$ is infinite and undefined when the target state of $π_1$
 does not coincide with the source state of $π_2$.
+
+An important kind of trace is one that never leaves the evaluation context of its
+source state:
+
+\begin{definition}[Convex and balanced traces]
+  An LK trace $π = (e_1,ρ_1,μ_1,κ_1); ... (e_i,ρ_i,μ_i,κ_i); ... $ is
+  \emph{convex} if $\validtrace{π}$ and every intermediate continuation $κ_i$
+  extends $κ_1$ (so $κ_i = κ_1$ or $κ_i = ... \pushF κ_1$).
+
+  Furthermore, $π$ is \emph{balanced} \cite{Sestoft:97} if the target
+  continuation is $κ_1$.
+\end{definition}
+
+\begin{example}
+  Let $ρ=[x↦\pa_1],μ=[\pa_1↦(\Lam{y}{y},[],())]$ and $κ$ an arbitrary
+  continuation. The trace
+  \[
+     (x, ρ, μ, κ) \smallstep (\Lam{y}{y}, ρ, μ, \UpdateF(\pa_1) \pushF κ) \smallstep ((\Lam{y}{y},()), ρ, μ, \UpdateF(\pa_1) \pushF κ) \smallstep ((\Lam{y}{y},()), ρ, μ, κ)
+  \]
+  is convex and balanced. Its prefixes are convex but not balanced. The suffix
+  \[
+     ((\Lam{y}{y},()), ρ, μ, \UpdateF(\pa_1) \pushF κ) \smallstep ((\Lam{y}{y},()), ρ, μ, κ)
+  \]
+  is neither convex nor balanced.
+\end{example}
+
+Whenever $\pe$ terminates is the focus expression of the source state of $π$
+Loosely speaking, the existence of a balanced trace $π$ with source state $σ$ in
+a small-step semantics corresponds to an evaluation to weak head normal form of
+the focus expression $\pe$ and thus to a derivation in a natural (or big-step
+operational) semantics~\cite{Sestoft:97} or a non-$⊥$ result in a denotational
+semantics. If evaluation of $\pe$ terminates in the encoded context, its value
+is the control of the target state of $π$.
+
+
 
 % Introducing elaborated paramterisation
 
@@ -271,15 +305,6 @@ Note that even if $κ$ had an apply frame on top, we require $\semst{\wild}$ to
 stop after the value transition. In general, each intermediate continuation
 $κ_i$ in the produced trace will be an extension of the first $κ$, so
 $κ_i = ... \pushF κ$. We call traces with this property \emph{convex}:
-
-\begin{definition}[Convex and balanced traces]
-  An LK trace $π = (e_1,ρ_1,μ_1,κ_1); ... (e_i,ρ_i,μ_i,κ_i); ... $ is
-  \emph{convex} if $\validtrace{π}$ and every intermediate continuation $κ_i$
-  extends $κ_1$ (so $κ_i = κ_1$ or $κ_i = ... \pushF κ_1$).
-
-  Furthermore, $π$ is \emph{balanced} \cite{Sestoft:97} if the target
-  continuation is $κ_1$.
-\end{definition}
 
 Why produce convex traces rather than letting the individual traces
 eat their evaluation contexts to completion? Ultimately, we think it is just
