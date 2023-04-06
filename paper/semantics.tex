@@ -112,10 +112,12 @@ corresponding to the control-flow node $γ$ under evaluation, the
 the \emph{heap} $μ$ and a \emph{continuation}, or \emph{stack}, $κ$.
 The notation $f ∈ A \pfun B$ used in the definition of $ρ$ and $μ$ denotes a
 finite map from $A$ to $B$, a partial function where the domain $\dom(f)$ is
-finite.
+finite and $\rng(f)$ denotes its range.
 The literal notation $[a_1↦b_1,...,a_n↦b_n]$ denotes a finite map with domain
 $\{a_1,...,a_n\}$ that maps $a_i$ to $b_i$. The extended finite map $f[a ↦ b]$
 maps $a$ to $b$ and is otherwise equal to $f$.
+The initial machine state for a closed expression $\pe$ is given by the
+injection function $inj(\pe) = (\pe,[],[],\StopF)$.
 
 The semantics differs from the standard in one way: It is parameterised over
 occurrences of $d ∈ D$ and $v ∈ V$ which are meant to be \emph{elaborated} later
@@ -212,7 +214,7 @@ $\pe \triangleq \Let{i}{\Lam{x}{x}}{i~i}$ to completion:
     undefined & \text{if $π$ infinite} \\
     σ         & \text{if $π = ...; σ \trend$}
   \end{cases} \\
- \end{array} \qquad
+ \end{array} \quad
  \begin{array}{c}
   \ruleform{ π_1 \sconcat π_2 = π_3 } \\
   \\[-0.5em]
@@ -224,7 +226,7 @@ $\pe \triangleq \Let{i}{\Lam{x}{x}}{i~i}$ to completion:
  \end{array} \\
  \\
 \end{array}\]
-\caption{LK traces and the domain of LK trace semantics}
+\caption{LK traces}
   \label{fig:lk-traces}
 \end{figure}
 
@@ -337,8 +339,8 @@ A maximal trace that is not balanced either diverges or is stuck:
   \text{Semantic values}              & V      & \triangleq & \StateV & ::= & \FunV(f ∈ \Addresses \to \StateD) \\
  \end{array} \\
 \end{array}\]
-\caption{The domain of LK trace semantics}
-  \label{fig:lk-traces}
+\caption{Elaboration for LK trace semantics}
+  \label{fig:lk-domain}
 \end{figure}
 
 \subsection{Specification}
@@ -369,9 +371,10 @@ That is enough to begin ``calculating'' an elaborated trace with $\semst{\pe}$:
   \semst{\Lam{x}{x}}(\Lam{x}{x}, ρ, μ, κ) = (\Lam{x}{x}, ρ, μ, κ); ((\Lam{x}{x},\FunV(f)), ρ, μ, κ)\trend
 \]
 This undoubtedly is a maximal trace, but what is $f$ supposed to do?
-Similar to values in denotational semantics, $f$ corresponds to the
-\emph{reification} of the lambda expression into the meta language, to model
-beta reduction in a way that is compatible with a structural definition.
+Like function values in denotational semantics, $f$ corresponds to the
+\emph{reflection} of the lambda expression into the meta language (of Scott
+domains), to model beta reduction in a way that is compatible with a structural
+definition.
 The $f$ here serves a similar purpose, guiding the $\AppET$ rule.
 The following required equation captures this intuition:
 \[
@@ -379,6 +382,9 @@ The following required equation captures this intuition:
 \]
 This equation only specifies $f$'s behavior when the argument address on the
 stack matches that of $f$'s first argument.
+The free variables $\pa,ρ,μ,κ$ of this equation are intended to be universally
+quantified; that is, it matches all states where the lambda expression is
+applied.
 Note also that $f$ closes over the semantics of the sub-program $\semst{x}$;
 this is what ultimately enables a structural definition because it turns
 ``code'' for the recursive invocation into ``data''.
@@ -387,30 +393,45 @@ In general, semantic values pop exactly one frame from the stack and then produc
 another balanced trace of the redex. This statement extends to other kinds of
 values such as data constructors, as we shall see in \cref{ssec:adts}.
 
+So not only do we require $\semst{\wild}$ to return maximal traces, we also pose
+requirements on how these traces are elaborated. We have seen the requirement
+on function values, and of course there is a similar requirement on the $d$
+stored in a heap entry $(\pe, ρ, d)$: We require that $d = \semst{\pe}$.
 
+The elaboration requirements can be summarised by the following predicate on
+states and extends in the usual way to traces:
 
+\begin{definition}[Well-elaborated]
+  We say that a state $σ$ is \emph{well-elaborated} if
+  \begin{itemize}
+    \item For every heap entry $(\pe, ρ, d) ∈ \rng(μ)$, where $μ$ is the heap of
+          $σ$, we have $d=\semst{\pe}$.
+    \item If $σ$ is a return state with control $(\Lam{\px}{\pe}, \FunV(f))$,
+          then for any state $σ'$ of the form \\
+          $((\Lam{\px}{\pe}, \FunV(f)), ρ, μ, \ApplyF(\pa) \pushF κ)$,
+          we have
+          $f(\pa)(σ') = σ'; \semst{\pe}(\pe, ρ[\px ↦ \pa], μ, κ)$.
+  \end{itemize}
+  We notate well-elaborated states as $\elabstate{σ}$ and well-elaborated traces
+  as $\elabtrace{π}$ (defined coinductively over the states in $π$).
+\end{definition}
 
-Clearly, the syntactic value $\Lam{x}{x}$ determines $f$ one-to-one.
-There occurrence of $d$ in a heap entry $(\pe, ρ, d)$ is similarly required to
-determine $\pe$ one-to-one, even .
+Note that the initial configurations $inj(\pe)$ are well-elaborated, because
+they are never return states and their heap is empty.
+Whenever $\semst{\wild}$ is given a well-elaborated state, the trace it produces
+should be well-elaborated.
 
-is another occurrence of semantic denotations $d$ in the heap that is
-uninstantiated by the transition system. If $(\pa ↦ (\pe, ρ, d)) ∈ μ$, then we
-specify that $d = \semst{\pe}$. Since $\UpdateT$ modifies heap entries,
-the corresponding denotation $d$ of the heap entry will have to be updated
-accordingly to maintain this invariant.
+We conclude with the following specification:
 
-Finally, it is a matter of good hygiene that $\semst{\pe}$ continues \emph{only}
-those states that have $\pe$ as control; it should be undefined on any
-other expression of the program.
-So even if $x~x$ and $y~y$ both structurally are well-scoped application
-expressions, $\semst{x~x}(y~y,ρ,μ,κ)$ is undefined.
-In other words, if $(\pe_i)_i$ enumerates the (labelled) sub-expressions of a
-program $\pe$, then for every state $σ$ that is not stuck in the transition
-semantics there is at most one function $\semst{\pe_i}$ that is defined on $σ$.
-Take note that a correct labelling is crucial for this point. In an expression
-like $f (g f)$ the two, structurally equal occurrences of $f$ are distinct
-sub-expressions which would otherwise have the same image under $\semst{\wild}$.
+\begin{definition}[Specification of $\semst{\wild}$]
+\label{defn:semst-spec}
+Let $σ$ be a well-elaborated state and $\pe$ its control expression. Then
+\begin{itemize}
+  \item[(S1)] $σ$ is the source state of the trace $\semst{\pe}(σ)$.
+  \item[(S2)] $\maxtrace{\semst{\pe}(σ)}$
+  \item[(S3)] $\elabtrace{\semst{\pe}(σ)}$
+\end{itemize}
+\end{definition}
 
 \subsection{Formal Specification}
 
@@ -508,32 +529,8 @@ the following predicate:
 For $\semst{\wild}$ to continue a well-addressed state sensibly, we need to
 relate the occurring denotations to their respective syntactic counterparts:
 
-\begin{definition}[Well-elaborated]
-  We say that a well-addressed state $σ$ is \emph{well-elaborated}, if
-  \begin{itemize}
-    \item For every heap entry $(\pe, ρ, d) ∈ \rng(μ)$, where $μ$ is the heap of
-          $σ$, we have $d=\semst{\pe}$.
-    \item If $σ$ is a return state with control $(\Lam{\px}{\pe}, \FunV(f))$,
-          then for any state $σ'$ of the form $((\Lam{\px}{\pe}, \FunV(f)), ρ, μ, \ApplyF(\pa) \pushF κ)$,
-          we have $f(\pa)(σ') = σ'; \semst{\pe}(\pe, ρ[\px ↦ \pa], μ, κ)$.
-  \end{itemize}
-\end{definition}
-The initial state of $\smallstep$, $(\pe,[],[],\StopF)$, is well-elaborated,
-because it is never a return state and its heap is empty.
-
 Finally, we can give the specification for $\semst{\wild}$:
 
-\begin{definition}[Specification of $\semst{\wild}$]
-\label{defn:semst-spec}
-Let $σ$ be a well-elaborated state and $\pe$ an arbitrary expression. Then
-\begin{itemize}
-  \item[(S1)] If the control of $σ$ is not $\pe$, then $\semst{\pe}(σ) = σ \trend$.
-  \item[(S2)] $σ$ is the source state of the trace $\semst{\pe}(σ)$.
-  \item[(S3)] If the control of $σ$ is $\pe$, then
-              $\maxtrace{\semst{\pe}(σ)}$ and all states in the trace
-              $\semst{\pe}(σ)$ are well-elaborated.
-\end{itemize}
-\end{definition}
 % Urgh, flesh it out when we know better what to do with S1-S3
 %The purpose of $(S1)$ is to guarantee that $\semst{\pe}$ does not continue:
 %to make the mapping $\pe \mapsto \semst{\pe}$ injective
@@ -777,6 +774,18 @@ Note that both the environment \emph{and} the denotation in the heap is updated
 in state 2, and that the new denotation is immediately visible on the next heap
 lookup in state 3, so that $\semst{\Lam{x}{x}}$ takes control rather than
 $\semst{(\Lam{y}{\Lam{x}{x}})~i}$, just as the transition system requires.
+
+Finally, it is a matter of good hygiene that $\semst{\pe}$ continues \emph{only}
+those states that have $\pe$ as control; it should be undefined on any
+other expression of the program.
+So even if $x~x$ and $y~y$ both structurally are well-scoped application
+expressions, $\semst{x~x}(y~y,ρ,μ,κ)$ is undefined.
+In other words, if $(\pe_i)_i$ enumerates the (labelled) sub-expressions of a
+program $\pe$, then for every state $σ$ that is not stuck in the transition
+semantics there is at most one function $\semst{\pe_i}$ that is defined on $σ$.
+Take note that a correct labelling is crucial for this point. In an expression
+like $f (g f)$ the two, structurally equal occurrences of $f$ are distinct
+sub-expressions which would otherwise have the same image under $\semst{\wild}$.
 
 \subsection{Conformance}
 
