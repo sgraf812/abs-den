@@ -109,13 +109,19 @@ The machine's state comes as a quadruple in the style of a CESK machine
 \cite{Felleisen:87}, consisting of the usual \emph{control} component
 corresponding to the control-flow node $γ$ under evaluation, the
 \emph{environment} $ρ$ mapping lexically-scoped variables to an address bound in
-the \emph{heap} $μ$ and a \emph{continuation}, or \emph{stack}, $κ$. The
-notation $f ∈ A \pfun B$ used in the definition of $ρ$ and $μ$ denotes a finite
-map from $A$ to $B$, a partial function where the domain $\dom(f)$ is finite.
+the \emph{heap} $μ$ and a \emph{continuation}, or \emph{stack}, $κ$.
+The notation $f ∈ A \pfun B$ used in the definition of $ρ$ and $μ$ denotes a
+finite map from $A$ to $B$, a partial function where the domain $\dom(f)$ is
+finite.
+The literal notation $[a_1↦b_1,...,a_n↦b_n]$ denotes a finite map with domain
+$\{a_1,...,a_n\}$ that maps $a_i$ to $b_i$. The extended finite map $f[a ↦ b]$
+maps $a$ at $b$ and is otherwise equal to $f$.
+
 There is one non-standard extension: The semantics is parameterised over
 occurrences of $d ∈ D$ and $v ∈ V$ which are meant to be \emph{elaborated} later
-on. For now, we can assume that both parameters are instantiated to the unit
-type, $D \triangleq V \triangleq \mathbb{1} \triangleq \{ () \}$.
+on. For now, we can assume the \emph{standard instantiation}, where both
+parameters are instantiated to the unit type, $D \triangleq V \triangleq
+\mathbb{1} \triangleq \{ () \}$.
 
 The control component $γ$ is either an expression under evaluation $\pe$ or a
 value pairing $(\pv,v)$ (remember, $v = ()$).
@@ -262,8 +268,6 @@ the focus expression $\pe$ and thus to a derivation in a natural (or big-step
 operational) semantics~\cite{Sestoft:97} or a non-$⊥$ result in a denotational
 semantics. If evaluation of $\pe$ terminates in the encoded context, its value
 is the control of the target state of $π$.
-
-
 
 % Introducing elaborated paramterisation
 
