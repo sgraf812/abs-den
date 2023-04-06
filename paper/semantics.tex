@@ -665,7 +665,7 @@ $\pe \triangleq \Let{i}{\Lam{x}{x}}{i~i}$:
       % Braces, using the node name prev as the state for the previous east
       % anchor. Only the east anchor is relevant
       \foreach \i in {1,...,\the\pgfmatrixcurrentrow}
-        \draw[dotted] (m.east||-m-\i-\the\pgfmatrixcurrentcolumn.east) -- (m-\i-2);
+        \draw[dotted] (m.east|-m-\i-\the\pgfmatrixcurrentcolumn.east) -- (m-\i-2);
       \myleftbrace{3}{1}{10}{$\semst{\pe}$}
       \myleftbrace{4}{1}{2}{$let(\semst{\Lam{x}{x}})$}
       \myleftbrace{4}{2}{10}{$\semst{i~i}$}
@@ -760,7 +760,7 @@ in $\semst{(\Lam{y}{\Lam{x}{x}})~i}$:
       % Braces, using the node name prev as the state for the previous east
       % anchor. Only the east anchor is relevant
       \foreach \i in {1,...,\the\pgfmatrixcurrentrow}
-        \draw[dotted] (m.east||-m-\i-\the\pgfmatrixcurrentcolumn.east) -- (m-\i-2);
+        \draw[dotted] (m.east|-m-\i-\the\pgfmatrixcurrentcolumn.east) -- (m-\i-2);
       \myleftbrace{3}{1}{6}{$\semst{i~i}$}
       \myleftbrace{4}{1}{2}{$\semst{i}$}
       \myleftbrace{4}{2}{3}{$app_2(\Lam{x}{x},\pa_1)$}

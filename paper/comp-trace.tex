@@ -12,9 +12,6 @@
 
 %\documentclass[acmsmall,review,anonymous]{acmart}\settopmatter{printfolios=true,printccs=false,printacmref=false}
 
-\let\Bbbk\undefined % https://github.com/kosmikus/lhs2tex/issues/82
-%include custom.fmt
-
 %% Journal information
 %%
 \setcopyright{rightsretained}
@@ -37,6 +34,7 @@
 \citestyle{acmauthoryear}   %% For author/year citations
 
 %%%%%%%
+\usepackage{array} % \newcolumntype
 \usepackage{color}
 %\usepackage[svgnames]{xcolor}
 \usepackage{cleveref}
@@ -53,8 +51,8 @@
 \usepackage{mathpartir} % inference rules
 \usepackage{subcaption}
 \usepackage{mathbbol} % \bbcolon and \bbquestionmark
+\usepackage{wasysym} % \lightning
 \usepackage{tikz}
-%\usepackage{wasysym} % \currency
 %\usetikzlibrary{cd} % commutative diagrams
 \usetikzlibrary{calc}
 \usetikzlibrary{fit}
@@ -86,7 +84,7 @@
   \city{Karlsruhe}
   \country{Germany}
 }
-\email{sgraf1337@@gmail.com}
+\email{sgraf1337@gmail.com}
 
 \author{Simon Peyton Jones}
 \affiliation{%
@@ -94,7 +92,7 @@
   \city{Cambridge}
   \country{UK}
 }
-\email{simon.peytonjones@@gmail.com}
+\email{simon.peytonjones@gmail.com}
 
 % Some conditional build stuff for handling the Appendix
 
@@ -171,11 +169,11 @@
 
 \maketitle
 
-%%include intro.lhs
-%%include problem.lhs
-%include semantics.lhs
-%include stateless.lhs
-%%include related-work.lhs
+%\input{intro.tex}
+%\input{problem.tex}
+\input{semantics.tex}
+%\input{stateless.tex}
+%\input{related-work.tex}
 
 \nocite{*}
 
