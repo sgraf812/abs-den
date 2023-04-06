@@ -15,7 +15,7 @@
   \text{Limit of a set of traces} & && \lim \mathcal{T} & = & \{ π \mid ∀n∈\mathbb{N}. π[0..n] ∈ \mathcal{T} \} \\
   \\
   \text{Domain of maximal traces} & d & ∈ & \MaxD   & ⊂ & \Traces^+ \to_c \Traces^{+\infty} \\
-  \text{Values}                   & v & ∈ & \Values & ::= & \FunV(\MaxD \to_c \MaxD) \\
+  \text{Values}                   & v & ∈ & \Values{} & ::= & \FunV(\MaxD \to_c \MaxD) \\
  \end{array} \\
  \\[-0.5em]
  \ruleform{alloc : \Traces^+ \to \Addresses} \quad \text{an injective function on the number of $\BindA$ actions in the trace} \\
@@ -288,7 +288,7 @@ Trace of the expression:
   α_{\STraces}(π_i^+, π \act{a} \pp\trend) & = & α_{\STraces}(π_i^+,π); α_{\States}(π_i^+ \concat π \act{a} \pp\trend)\trend \\
 
   α_{\States}(π) & = & (α_{\Control}(π,tgt(π)), α_{\Environments}(\varrho(π)), α_{\Heaps}(π) \circ μ(π), α_{\Continuations}(π)) \\
-  α_{\Control}(π, \return) & = & (\pv,α_{\Values^{\States}}(v)) \text{ where $\getval{π}{(\pv,v)}$} \\
+  α_{\Control}(π, \return) & = & (\pv,α_{\StateV}(v)) \text{ where $\getval{π}{(\pv,v)}$} \\
   α_{\Control}(π, \pe) & = & \pe \\
   α_{\Environments}(ρ) & = & deref^{-1} \circ ρ \\
   α_{\Heaps}(π)([\many{\pa ↦ (\pe,d)}]) & = & [\many{\pa ↦ (\pe, μ_ρ(π)(\pa), α_{\StateD}(d))}] \\
@@ -300,8 +300,8 @@ Trace of the expression:
   α_{\Continuations}(π \act{} \pp\trend) & = & α_{\Continuations}(π) \\
   α_{\StateD}(d) & = & (\fn{π}{α_{\STraces}(π,d(π))) \circ γ_{\STraces} \circ tgt_\States^{-1}} \\
   γ_{\StateD}(d) & = & γ_{\STraces} \circ d \circ tgt_\States \circ α_{\STraces} \\
-  α_{\Values^\States}(\FunV(f)) & = & \FunV(α_{\StateD} \circ f \circ deref) \\
-  γ_{\Values^\States}(\FunV(f)) & = & \FunV(γ_{\StateD} \circ f \circ deref^{-1}) \\
+  α_{\StateV}(\FunV(f)) & = & \FunV(α_{\StateD} \circ f \circ deref) \\
+  γ_{\StateV}(\FunV(f)) & = & \FunV(γ_{\StateD} \circ f \circ deref^{-1}) \\
   γ_{\STraces}(σ\trend) & = & γ_{\States}(σ)\trend \\
   γ_{\STraces}(π; σ\trend) & = & γ_{\STraces}(π) \act{γ_{\Actions}(tgt_\States(π) \smallstep σ)} γ_{\States}(π; σ\trend)\trend \\
   γ_{\States}(γ,\wild,\wild,\wild) & = & α_{\Control}(γ) \\
@@ -312,7 +312,7 @@ Trace of the expression:
   γ_{\Actions}(\LookupT(\pa)) & = & \LookupA(\pa) \\
   γ_{\Actions}(\AppIT(\pa)) & = & \AppIA(deref(\pa)) \\
   γ_{\Actions}(\AppET(\px,\pa)) & = & \AppEA(\px,deref(\pa)) \\
-  γ_{\Actions}(\ValueT(\pv,v)) & = & \ValueA(\pv,γ_{\Values^\States}(v)) \\
+  γ_{\Actions}(\ValueT(\pv,v)) & = & \ValueA(\pv,γ_{\StateV}(v)) \\
   \\
  \end{array}
 \end{array}\]
@@ -407,7 +407,7 @@ Trace of the expression:
   \text{Expressions}  &   \pe & ∈ & \Exp     & ::=       & \ldots \mid K~\many{\px} \mid \Case{\pe}{\Sel} \\
   \\
   \text{Actions}      &     a & ∈ & \Actions & ::=       & \ldots \mid \CaseIA \mid \CaseEA \\
-  \text{Values}       &     v & ∈ & \Values  & ::=       & \ldots \mid \ConV(\Sigma_{K ∈ \Con}(\Pi_{i=1}^{A_K}d_i)) \text{ where $K$ has $A_K$ fields} \\
+  \text{Values}       &     v & ∈ & \Values{}  & ::=       & \ldots \mid \ConV(\Sigma_{K ∈ \Con}(\Pi_{i=1}^{A_K}d_i)) \text{ where $K$ has $A_K$ fields} \\
  \end{array} \\
  \\
   \ruleform{ \balanced{π} } \\

@@ -95,8 +95,8 @@
 % https://latex.org/forum/viewtopic.php?p=62177&sid=26890ac77d076f3338384a47a2ffd4bc#p62177
 \makeatletter
 \newcommand{\concatop}[1]{%
-  \mathbin{\mathop{#1}\limits^{\vbox to 1\ex@{\kern-\tw@\ex@
-   \hbox{\scriptsize$\smallfrown$}\vss}}}}
+  \mathbin{\mathop{#1}\limits^{\vbox to -1\ex@{\kern-\tw@\ex@
+   \hbox{$\smallfrown$}\vss}}}}
 \makeatother
 \makeatletter
 \newcommand{\compop}[1]{%
@@ -112,17 +112,16 @@
 \newcommand{\stepm}[3]{\lceil #1 \act{#2} #3\trend \rceil}
 \newcommand{\step}[2]{\stepm{\wild}{#1}{#2}}
 
-%% Values
-\newcommand{\Values}{\mathbb{V}}
+%% Domains
 \newcommand{\FunV}{\mathsf{fun}}
 \newcommand{\ConV}{\mathsf{con}}
-%% Domains
 \newcommand{\Environments}{\mathbb{E}}
 \newcommand{\Control}{\mathbb{C}}
 \newcommand{\ProgramPoints}{\mathbb{P}}
 \newcommand{\Heaps}{\mathbb{H}}
 \newcommand{\Continuations}{\mathbb{K}}
 \newcommand{\Domain}[1]{{\mathbb{D}^{#1}}}
+\newcommand{\Values}[1]{{\mathbb{V}^{#1}}}
 \newcommand{\Base}[1]{\mathbf{#1}}
 \newcommand{\ApproxMap}[2]{\mathsf{Map}(#1,#2)}
 \newcommand{\FinStepMap}[2]{#1 \Rightarrow #2}
@@ -132,6 +131,7 @@
 \newcommand{\AbsD}{\Domain{\raisebox{0.1em}{\scalebox{0.4}{$\square$}}}}
 \newcommand{\AbsCD}{\Domain{\raisebox{0.1em}{\scalebox{0.4}{c$\square$}}}}
 \newcommand{\StateD}{\Domain{\States}}
+\newcommand{\StateV}{\Values{\States}}
 \newcommand{\SSD}{\Domain{Σ}}
 \newcommand{\SSCD}{\Domain{cΣ}}
 \newcommand{\LiveD}{\Domain{\exists l}}

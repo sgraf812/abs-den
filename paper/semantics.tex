@@ -185,13 +185,21 @@ $\pe \triangleq \Let{i}{\Lam{x}{x}}{i~i}$ to completion:
   \end{array} \\
 \end{array}\]
 
-
 \begin{figure}
 \[\begin{array}{c}
  \begin{array}{rrclcl}
   \text{LK traces}                    & π      & ∈          & \STraces & ::=_{\gfp} & σ\trend \mid σ; π \\
-  \text{Domain of LK trace semantics} & D      & \triangleq & \StateD  & = & \States \to \STraces \\
-  \text{Values}                       & V      & \triangleq & \Values^\States & ::= & \FunV(f ∈ \Addresses \to \StateD) \\
+ \end{array} \qquad
+ \begin{array}{c}
+  \ruleform{ \validtrace{π} } \\
+  \\[-0.5em]
+  \inferrule*
+    {\quad}
+    {\validtrace{σ\trend}}
+  \quad
+  \inferrule*
+    {σ \smallstep src_\States(π) \quad \validtrace{π}}
+    {\validtrace{σ; π}} \\
  \end{array} \\
  \\
  \begin{array}{rcl}
@@ -204,7 +212,7 @@ $\pe \triangleq \Let{i}{\Lam{x}{x}}{i~i}$ to completion:
     undefined & \text{if $π$ infinite} \\
     σ         & \text{if $π = ...; σ \trend$}
   \end{cases} \\
- \end{array} \quad
+ \end{array} \qquad
  \begin{array}{c}
   \ruleform{ π_1 \sconcat π_2 = π_3 } \\
   \\[-0.5em]
@@ -215,18 +223,6 @@ $\pe \triangleq \Let{i}{\Lam{x}{x}}{i~i}$ to completion:
   \end{cases} \\
  \end{array} \\
  \\
- \begin{array}{c}
-  \ruleform{ \validtrace{π} } \\
-  \\[-0.5em]
-  \inferrule*
-    {\quad}
-    {\validtrace{σ\trend}}
-  \qquad
-  \inferrule*
-    {σ \smallstep src_\States(π) \quad \validtrace{π}}
-    {\validtrace{σ; π}} \\
-  \\
- \end{array} \\
 \end{array}\]
 \caption{LK traces and the domain of LK trace semantics}
   \label{fig:lk-traces}
@@ -250,7 +246,8 @@ the coinductive predicate $\validtrace{π}$.
 When a trace is finite, we often re-associate the right-associative structure
 of $;$ to the left and decompose it as $π'; σ\trend$, where $σ$ is the last,
 or \emph{target}, state of $π$, and $π'$ is its initial component without the
-target state.
+target state. When $π'$ is omitted, such as in $...; σ\trend$, we even allow
+the initial component to be empty, in which case $π = σ\trend$.
 The \emph{source} state $src_\States(π)$ can be computed for finite and infinite
 traces, while the target state of a trace $tgt_\States(π)$ is only defined for
 finite traces.
@@ -333,75 +330,65 @@ A maximal trace that is not balanced either diverges or is stuck:
   infinite $π$.
 \end{proof}
 
-The semantics of an expression $\pe$ is determined completely by the set of
-maximal traces which start with $\pe$ as focus, and its kinship with natural
-and denotational semantics makes it a nice substrate for our framework.
+\begin{figure}
+\[\begin{array}{c}
+ \begin{array}{rrclcl}
+  \text{Domain of LK trace semantics} & D      & \triangleq & \StateD  & = & \States \to \STraces \\
+  \text{Semantic values}              & V      & \triangleq & \StateV & ::= & \FunV(f ∈ \Addresses \to \StateD) \\
+ \end{array} \\
+\end{array}\]
+\caption{The domain of LK trace semantics}
+  \label{fig:lk-traces}
+\end{figure}
 
-% Introducing elaborated paramterisation
+\subsection{Specification}
 
-Finally, \Cref{fig:lk-traces} lists definitions for the parameter space $D$ and
-$V$ as function values that we will adopt from now on.
+Our goal is to define a function $\semst{\pe}$ that produces maximal traces that
+start out having $\pe$ in control. But there are as many traces as there
+are states that have $\pe$ in control, each corresponding to the different
+evaluation contexts in which $\pe$ might occur. Hence it makes sense to tell
+$\semst{\pe}$ the particular source state $σ$ for which we wish to generate a
+trace, leading to functionality $\semst{\pe} ∈ \States → \STraces$.
+
+We will call $\semst{\pe}$ the \emph{denotation} of $\pe$ (a term that is
+justified when we flesh out its properties relative to $\pe$) and abbreviate
+the set of denotations to $\StateD$, as in \Cref{fig:lk-domain}.
+$\StateD$ is used as the instantiation for parameter $D$ for our elaborated
+semantics.
+Likewise, we instantiate $V$ to a semantic representation of values
+$\StateV$.
 The keen reader may note immediately that $\StateD$ is not well-defined because
 of a recursive occurrence in negative position (through $\States \to \Heaps \to
 \StateD$); we discuss the necessary domain theory in \Cref{sec:domain-theory}
 and focus on its application here.
 
-% The type of S / applying denotations
-
-Let us work out an informal specification of our trace-generating function,
-$\semst{\pe}$.
-Our goal is to give a structural definition of $\semst{\pe}$ that produces
-traces that start out having $\pe$ in control.
-Since there are many such states, corresponding to the different evaluation
-contexts in which $\pe$ might occur, $\semst{\pe}$ should receive as its first
-argument the source state $σ$ for which we wish to generate a trace, hence
-$\semst{\pe} ∈ \States → \STraces$.
-We will call $\semst{\pe}$ the \emph{denotation} of $\pe$ (a term that is
-justified when we flesh out its properties relative to $\pe$) and abbreviate
-the set of denotations to $\StateD$, realising that we have at our hands a $d ∈
-D$ which our elaborated semantics is parameterised over.
-
-% Motivating convexity of the returned trace
-
-When $d$ is the denotation of $\pe$, then for every LK state $σ$ where the
-control is $\pe$, $d(σ)$ should be a well-formed trace (so $\validtrace{d(σ)}$)
-with $σ$ as its source state. In itself, that is a trivial specification,
-because $d(σ) = σ \trend$ is a valid but hardly useful model. So we refine:
-Every such trace $d(σ)$ must follow the evaluation of $\pe$. For example, given
-a (sub-)expression $\Lam{x}{x}$ of some program $\pe$, we expect the following
-equation:
+So far we have collected the following two requirements for $π = \semst{\pe}(σ)$:
+The source state of $π$ should be $σ$ again and $π$ should be a maximal trace.
+That is enough to begin ``calculating'' an elaborated trace with $\semst{\pe}$:
 \[
-  \semst{\Lam{x}{x}} (\Lam{x}{x}, ρ, μ, κ) = (\Lam{x}{x}, ρ, μ, κ); ((\Lam{x}{x},\FunV(f)), ρ, μ, κ) \trend
+  \semst{\Lam{x}{x}}(\Lam{x}{x}, ρ, μ, κ) = (\Lam{x}{x}, ρ, μ, κ); ((\Lam{x}{x},\FunV(f)), ρ, μ, κ)\trend
 \]
-Note that even if $κ$ had an apply frame on top, we require $\semst{\wild}$ to
-stop after the value transition. In general, each intermediate continuation
-$κ_i$ in the produced trace will be an extension of the first $κ$, so
-$κ_i = ... \pushF κ$. We call traces with this property \emph{convex}:
-
-Why produce convex traces rather than letting the individual traces
-eat their evaluation contexts to completion? Ultimately, we think it is just
-a matter of taste, but certainly it is simpler to identify and talk about
-the \emph{semantic value} $v ∈ \Values^\States$ of $\Lam{x}{x}$ this way: In
-a trace $\semst{\Lam{x}{x}}(σ)$ it is always the second component of the target
-state's control, regardless of the evaluation context encoded in $σ$, and the
-semantic value determines how evaluation continues.
-
-% Semantic values
-
-The $\ValueT$ transition pairs up the syntactic lambda value with an associated
-\emph{semantic value} $\FunV(f)$, the $f$ of which will involve the semantics of
-the sub-program $\semst{x}$. The transition semantics is indifferent to which
-$v$ is put in the control, but for $\semst{\wild}$ we specify that $f$ continues
-where our balanced trace left off. More precisely, we require the $f$ in a
-semantic value $\FunV(f)$ to
-closely follow β-reduction of the syntactic value $\Lam{x}{x}$ with the address
-of the argument variable $\pa$, as follows
+This undoubtedly is a maximal trace, but what is $f$ supposed to do?
+Similar to values in denotational semantics, $f$ corresponds to the
+\emph{reification} of the lambda expression into the meta language, to model
+beta reduction in a way that is compatible with a structural definition.
+The $f$ here serves a similar purpose, guiding the $\AppET$ rule.
+The following required equation captures this intuition:
 \[
   f(\pa)((\Lam{x}{x},\FunV(f)), ρ, μ, \ApplyF(\pa) \pushF κ) = ((\Lam{x}{x},\FunV(f)), ρ, μ, \ApplyF(\pa) \pushF κ); \semst{x}(x, ρ[x ↦ \pa], μ, κ)
 \]
-That is, semantic values pop exactly one frame from the stack and then produce
+This equation only specifies $f$'s behavior when the argument address on the
+stack matches that of $f$'s first argument.
+Note also that $f$ closes over the semantics of the sub-program $\semst{x}$;
+this is what ultimately enables a structural definition because it turns
+``code'' for the recursive invocation into ``data''.
+
+In general, semantic values pop exactly one frame from the stack and then produce
 another balanced trace of the redex. This statement extends to other kinds of
 values such as data constructors, as we shall see in \cref{ssec:adts}.
+
+
+
 
 Clearly, the syntactic value $\Lam{x}{x}$ determines $f$ one-to-one.
 There occurrence of $d$ in a heap entry $(\pe, ρ, d)$ is similarly required to
@@ -573,7 +560,7 @@ Let $σ$ be a well-elaborated state and $\pe$ an arbitrary expression. Then
 
 Note that $\StateD$ in \Cref{fig:lk-syntax} is not a well-formed inductive
 definition: It recurses in negative position via $\States \to \Heaps \to \StateD$
-and similarly through $\Values^\States$.
+and similarly through $\StateV$.
 Hence we must understand $\StateD$ as a Scott domain and its ``definition'' as
 a \emph{domain equation}, of which $\StateD$ is the least solution.
 
