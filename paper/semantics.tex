@@ -115,9 +115,9 @@ finite map from $A$ to $B$, a partial function where the domain $\dom(f)$ is
 finite.
 The literal notation $[a_1↦b_1,...,a_n↦b_n]$ denotes a finite map with domain
 $\{a_1,...,a_n\}$ that maps $a_i$ to $b_i$. The extended finite map $f[a ↦ b]$
-maps $a$ at $b$ and is otherwise equal to $f$.
+maps $a$ to $b$ and is otherwise equal to $f$.
 
-There is one non-standard extension: The semantics is parameterised over
+The semantics differs from the standard in one way: It is parameterised over
 occurrences of $d ∈ D$ and $v ∈ V$ which are meant to be \emph{elaborated} later
 on. For now, we can assume the \emph{standard instantiation}, where both
 parameters are instantiated to the unit type, $D \triangleq V \triangleq
@@ -137,7 +137,7 @@ entry with its value.
 
 Heap entries are introduced via $\LetT$ transitions under a \emph{fresh} address
 $\pa \not∈ \dom(μ)$ that we call an \emph{activation} of the let-bound variable
-$\px$. The lexically-scoped activation of every variable in scope is maintained
+$\px$. The lexical activation of every variable in scope is maintained
 in $ρ$. The $\AppIT$ rule pushes an \emph{application frame} with the address of
 the argument variable onto the stack, while the rule $\LookupT$ pushes an
 \emph{update frame} with the address of the variable the heap entry of which is
