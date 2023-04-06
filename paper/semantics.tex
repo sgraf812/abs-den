@@ -164,6 +164,28 @@ the proposed standard instantiation of $D$ and $V$ to the unit type.
 Moreover, any deterministic instantiation yields a transition system that is
 bisimilar to the standard one.
 
+Let us conclude with an example trace in this transition system, evaluating
+$\pe \triangleq \Let{i}{\Lam{x}{x}}{i~i}$ to completion:
+\[\begin{array}{c}
+  \arraycolsep2pt
+  \begin{array}{clclclcl}
+             & (\pe, [], [], \StopF)            & \smallstep & (i~i, ρ_1, μ, \StopF)
+                & \smallstep & (i, ρ_1, μ, κ_1) & \smallstep & (\Lam{x}{x}, ρ_1, μ, κ_2)
+                \\
+  \smallstep & ((\Lam{x}{x}, ()), ρ_1, μ, κ_2)  & \smallstep & ((\Lam{x}{x}, ()), ρ_1, μ, κ_1)
+                & \smallstep & (x, ρ_2, μ, \StopF) & \smallstep & (\Lam{x}{x}, ρ_1, μ, κ_3)
+                \\
+  \smallstep & ((\Lam{x}{x}, ()), ρ_1, μ, κ_3)  & \smallstep & ((\Lam{x}{x}, ()), ρ_1, μ, \StopF) \\
+  \end{array} \\
+  \\[-0.5em]
+  \quad \text{where} \quad \begin{array}{ll}
+  ρ_1 = [i ↦ \pa_1] & κ_1 = \ApplyF(\pa_1) \pushF \StopF \\
+  ρ_2 = [i ↦ \pa_1, x ↦ \pa_1] & κ_2 = \UpdateF(\pa_1) \pushF κ_1 \\
+  μ = [\pa_1 ↦ (\Lam{x}{x},ρ_1,())] & κ_3 = \UpdateF(\pa_1) \pushF \StopF \\
+  \end{array} \\
+\end{array}\]
+
+
 \begin{figure}
 \[\begin{array}{c}
  \begin{array}{rrclcl}
@@ -210,7 +232,7 @@ bisimilar to the standard one.
   \label{fig:lk-traces}
 \end{figure}
 
-\subsection{Traces}
+\subsection{Characterisation of LK Traces}
 
 A transition system is characterised precisely by the set of \emph{traces} it
 generates.
@@ -224,7 +246,7 @@ This is isomorphic to the definition as a sequence, hence we will freely
 switch between notations for $π$, in particular to index its states.
 
 The well-formedness of a trace $π$ wrt. to $(\smallstep)$ is asserted by
-the predicate $\validtrace{π}$.
+the coinductive predicate $\validtrace{π}$.
 When a trace is finite, we often re-associate the right-associative structure
 of $;$ to the left and decompose it as $π'; σ\trend$, where $σ$ is the last,
 or \emph{target}, state of $π$, and $π'$ is its initial component without the
@@ -244,8 +266,8 @@ source state:
   \emph{convex} if $\validtrace{π}$ and every intermediate continuation $κ_i$
   extends $κ_1$ (so $κ_i = κ_1$ or $κ_i = ... \pushF κ_1$).
 
-  Furthermore, $π$ is \emph{balanced} \cite{Sestoft:97} if the target
-  continuation is $κ_1$.
+  Furthermore, a convex trace $π$ is \emph{balanced} \cite{Sestoft:97} if the
+  target state is a return state with continuation $κ_1$.
 \end{definition}
 
 \begin{example}
@@ -261,13 +283,59 @@ source state:
   is neither convex nor balanced.
 \end{example}
 
-Whenever $\pe$ terminates is the focus expression of the source state of $π$
-Loosely speaking, the existence of a balanced trace $π$ with source state $σ$ in
-a small-step semantics corresponds to an evaluation to weak head normal form of
-the focus expression $\pe$ and thus to a derivation in a natural (or big-step
-operational) semantics~\cite{Sestoft:97} or a non-$⊥$ result in a denotational
-semantics. If evaluation of $\pe$ terminates in the encoded context, its value
-is the control of the target state of $π$.
+
+A balanced trace starting at a focus expression $\pe$ and ending with $(\pv,v)$
+loosely corresponds to a derivation of $\pe \Downarrow \pv$ in a natural
+big-step semantics~\cite{Sestoft:97} or a non-$⊥$ result in a denotational
+semantics.
+
+It is when a derivation in a natural semantics does not exist that a small-step
+semantics shows finesse, in that it differentiates two different kinds of
+\emph{maximally convex} (or, just \emph{maximal}) traces:
+
+\begin{definition}[Maximal trace]
+  An LK trace $π$ is \emph{maximal} if and only if it is convex and there is no $σ$ such
+  that $π; σ \trend$ is convex.
+  We notate maximal traces as $\maxtrace{π}$.
+\end{definition}
+
+We call infinite and convex traces \emph{diverging}.
+A maximally finite, but unbalanced trace $π$ is called \emph{stuck}.
+\footnote{Note that usually stuckness is associated with a state of a transition
+system rather than a trace. That is not possible in our framework; depending on
+the trace of which the state is a target, it might either be balanced or stuck.}
+
+\begin{example}[Stuck and diverging traces]
+The following trace is stuck because $x$ is not in scope:
+\[
+  (x~y,[y↦\pa], [\pa↦...], κ); (x,[y↦\pa], [\pa↦...], \ApplyF(\pa) \pushF κ)\trend
+\]
+An example for a diverging trace where $ρ=[x↦\pa_1]$ and $μ=[\pa_1↦(x,ρ,())]$ is
+\[
+  (\Let{x}{x}{x}, [], [], κ) \smallstep (x, ρ, μ, κ) \smallstep (x, ρ, μ, \UpdateF(\pa_1) \pushF κ) \smallstep ...
+\]
+\end{example}
+
+A maximal trace that is not balanced either diverges or is stuck:
+
+\begin{lemma}[Characterisation of maximal traces]
+  A trace $π$ is maximal if and only if it is balanced, diverging or stuck.
+\end{lemma}
+\begin{proof}
+  $\Rightarrow$: Let $π$ be maximal.
+  If $π$ is infinite, then it is diverging due to convexity, and if $π$ is
+  stuck, the goal follows immediately. So we assume that $π$ is maximal, finite
+  and not stuck, so it must be balanced by the definition of stuckness.
+
+  $\Leftarrow$: Both balanced and stuck traces are maximal.
+  A diverging trace $π$ is infinite and convex.
+  Indeed $π$ is maximal, because the expression $π; σ\trend$ is undefined for
+  infinite $π$.
+\end{proof}
+
+The semantics of an expression $\pe$ is determined completely by the set of
+maximal traces which start with $\pe$ as focus, and its kinship with natural
+and denotational semantics makes it a nice substrate for our framework.
 
 % Introducing elaborated paramterisation
 
@@ -393,67 +461,7 @@ continuation.
 A state $σ$ that cannot make a step (so there exists no $σ'$ such that $σ
 \smallstep σ'$) and is not a final state is called \emph{stuck}.
 
-\begin{example}[Stuck]
-  \label{ex:stuck}
-  The following trace is stuck because $x$ is not in scope:
-  \[
-    \semst{x~y}(x~y,[y↦\pa], [\pa↦...], κ) = (x~y,[y↦\pa], [\pa↦...], κ); (x,[y↦\pa], [\pa↦...], \ApplyF(\pa) \pushF κ)\trend
-  \]
-\end{example}
-
 A trace is stuck if its destination state is stuck.
-
-\begin{lemma}[Characterisation of destination states of maximal traces]
-  Let $π$ be a convex trace. Then, $π$ is maximal if and
-  only if
-  \begin{itemize}
-    \item $π$ is infinite, or
-    \item $π$ is stuck, or
-    \item $π$ is \emph{balanced}, meaning that $tgt_\States(π)$ is a return
-          state, the continuation of which is that of the initial state
-          $src_\States(π)$.
-  \end{itemize}
-\end{lemma}
-\begin{proof}
-  =>:
-  Let $π$ be maximal.
-  If $π$ is infinite or stuck, we are done; so assume that $π$ is finite and not
-  stuck. Let $σ_1 = src_\States(π)$, $σ_n = tgt_\States(π)$ and let $κ_1$ denote
-  the continuation of $σ_1$ and $κ_n$ that of $σ_n$.
-  Our goal is to show that $κ_n = κ_1$ and that $σ_n$ is a return state.
-
-  If $σ_n$ is a final state, then clearly $σ_n$ is a return state with $κ_n =
-  \StopF = κ_1$, where the latter equality follows from $π$ convex
-  and the fact that $\StopF$ is the unique minimal element of
-  $(\contextendsflipped)$.
-
-  Now assume that $σ_n$ is neither stuck nor final.
-  Then there is $σ_{n+1}$ such that $σ_n \smallstep σ_{n+1}$; let $π' = π
-  \sconcat (σ_n; σ_{n+1} \trend)$ be the continued trace.
-  $π'$ forms a valid CESK trace, but since $π$ is maximal, it can't
-  be convex.
-  Hence the continuation $κ_{n+1}$ of $σ_{n+1}$ cannot be an extension of $κ_1$,
-  so $κ_{n+1} \not\contextends κ_1$.
-  On the other hand, $κ_n \contextends κ_1$ because $π$ is convex.
-
-  We proceed by cases over $σ_n \smallstep σ_{n+1}$:
-  \begin{itemize}
-    \item \textbf{Case} $\ValueT$, $\LookupT$, $\AppIT$, $\LetT$:
-      These are all convex transitions, so
-      $κ_{n+1} \contextends κ_n \contextends κ_1$; contradiction.
-    \item \textbf{Case} $\UpdateT$, $\AppET$:
-      In both cases we see that $σ$ is a return state and
-      we have $κ_n \contextends κ_{n+1}$.
-
-      But we also have $κ_n \contextends κ_1$ and by downward totality of the
-      prefix order $(\contextendsflipped)$, we must have either $κ_{n+1}
-      \contextends κ_1$ or $κ_1 \contextends κ_{n+1}$. The former leads to a
-      contradiction, hence we have $κ_n \contextends κ_1 \contextendsstrict
-      κ_{n+1}$, and the first inequality must be an equality because the
-      difference between $κ_n$ and $κ_{n+1}$ is just a single frame.
-  \end{itemize}
-  <=: TODO
-\end{proof}
 
 In other words, a trace is maximal if it follows the transition
 semantics, never leaves the initial evaluation context and is either infinite,
