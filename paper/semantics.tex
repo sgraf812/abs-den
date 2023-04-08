@@ -4,17 +4,17 @@
 \begin{figure}
 \[\begin{array}{c}
  \begin{array}{rrclcl}
-  \text{Variables}    & \px, \py & ∈ & \Var        & \simeq & ℕ \\
-  \text{Labels}       &     \lbl & ∈ & \Labels     & \simeq & ℕ \\
-  \text{Values}       &      \pv & ∈ & \Val        & ::=    & \Lam{\px}{\pe} \\
-  \text{Expressions}  &      \pe & ∈ & \Exp        & ::=    & \slbl \px \mid \slbl \pv \mid \slbl \pe~\px \mid \slbl \Let{\px}{\pe_1}{\pe_2} \\
+  \text{Variables}    & \px, \py & ∈ & \Var        &     & \text{finite} \\
+  \text{Labels}       &     \lbl & ∈ & \Labels     &     & \text{finite} \\
+  \text{Values}       &      \pv & ∈ & \Val        & ::= & \Lam{\px}{\pe} \\
+  \text{Expressions}  &      \pe & ∈ & \Exp        & ::= & \slbl \px \mid \slbl \pv \mid \slbl \pe~\px \mid \slbl \Let{\px}{\pe_1}{\pe_2} \\
   \\[-0.5em]
-  \text{States}        & σ & ∈ & \States        & =   & \Control \times \Environments \times \Heaps \times \Continuations \\
-  \text{Controls}      & γ & ∈ & \Control       & ::= & \pe \mid (\pv, v) \\
-  \text{Environments}  & ρ & ∈ & \Environments  & =   & \Var \pfun \Addresses \\
-  \text{Addresses}    &      \pa & ∈ & \Addresses  & \simeq & ℕ \\
-  \text{Heaps}         & μ & ∈ & \Heaps         & =   & \Addresses \pfun \Exp \times \Environments \times \StateD \\
-  \text{Continuations} & κ & ∈ & \Continuations & ::= & \StopF \mid \ApplyF(\pa) \pushF κ \mid \UpdateF(\pa) \pushF κ \\
+  \text{States}        & σ   & ∈ & \States        & =      & \Control \times \Environments \times \Heaps \times \Continuations \\
+  \text{Controls}      & γ   & ∈ & \Control       & ::=    & \pe \mid (\pv, v) \\
+  \text{Environments}  & ρ   & ∈ & \Environments  & =      & \Var \pfun \Addresses \\
+  \text{Addresses}     & \pa & ∈ & \Addresses     & \simeq & ℕ \\
+  \text{Heaps}         & μ   & ∈ & \Heaps         & =      & \Addresses \pfun \Exp \times \Environments \times \StateD \\
+  \text{Continuations} & κ   & ∈ & \Continuations & ::=    & \StopF \mid \ApplyF(\pa) \pushF κ \mid \UpdateF(\pa) \pushF κ \\
   \text{Parameters}    & \multicolumn{5}{l}{d∈D,~v∈V} \\
  \end{array} \\
   \\[-0.5em]
@@ -33,7 +33,7 @@
 \ValueT & (\pv, ρ, μ, κ) & \smallstep & ((\pv, v), ρ, μ, κ) & \\
 \AppET & ((\Lam{\px}{\pe},\wild),ρ,μ, \ApplyF(\pa) \pushF κ) & \smallstep & (\pe,ρ[\px ↦ \pa],μ,κ) &  \\
 \UpdateT & ((\pv,v), ρ, μ, \UpdateF(\pa) \pushF κ) & \smallstep & ((\pv,v), ρ, μ[\pa ↦ (\pv,ρ,d)], κ) & \\
-\bottomrule
+⊥tomrule
 \end{tabular}
 \caption{Syntax of $Λ$ and Lazy Krivine (LK) transition semantics $\smallstep$}
   \label{fig:lk-syntax}
@@ -195,6 +195,7 @@ $\pe \triangleq \Let{i}{\Lam{x}{x}}{i~i}$ to completion:
  \begin{array}{c}
   \ruleform{ \validtrace{π} } \\
   \\[-0.5em]
+  \mprset{fraction={===}}
   \inferrule*
     {\quad}
     {\validtrace{σ\trend}}
@@ -244,7 +245,8 @@ This is isomorphic to the definition as a sequence, hence we will freely
 switch between notations for $π$, in particular to index its states.
 
 The well-formedness of a trace $π$ wrt. to $(\smallstep)$ is asserted by
-the coinductive predicate $\validtrace{π}$.
+$\validtrace{π}$, a predicate with a coinductive definition as indicated by use
+of a double-line for inference rules.
 When a trace is finite, we often re-associate the right-associative structure
 of $;$ to the left and decompose it as $π'; σ\trend$, where $σ$ is the last,
 or \emph{target}, state of $π$, and $π'$ is its initial component without the
@@ -366,7 +368,7 @@ and focus on its application here.
 
 So far we have collected the following two requirements for $π = \semst{\pe}(σ)$:
 The source state of $π$ should be $σ$ again and $π$ should be a maximal trace.
-That is enough to begin ``calculating'' an elaborated trace with $\semst{\pe}$:
+That is enough to begin ``calculating'' an elaborated trace with $\semst{\wild}$:
 \[
   \semst{\Lam{x}{x}}(\Lam{x}{x}, ρ, μ, κ) = (\Lam{x}{x}, ρ, μ, κ); ((\Lam{x}{x},\FunV(f)), ρ, μ, κ)\trend
 \]
@@ -410,7 +412,8 @@ states and extends in the usual way to traces:
           then for any state $σ'$ of the form \\
           $((\Lam{\px}{\pe}, \FunV(f)), ρ, μ, \ApplyF(\pa) \pushF κ)$,
           we have
-          $f(\pa)(σ') = σ'; \semst{\pe}(\pe, ρ[\px ↦ \pa], μ, κ)$.
+          $f(\pa)(σ') = σ'; \semst{\pe}(\pe, ρ[\px ↦ \pa], μ, κ)$
+          and $f(\pa)(σ') = σ'\trend$ everywhere else.
   \end{itemize}
   We notate well-elaborated states as $\elabstate{σ}$ and well-elaborated traces
   as $\elabtrace{π}$ (defined coinductively over the states in $π$).
@@ -432,436 +435,6 @@ Let $σ$ be a well-elaborated state and $\pe$ its control expression. Then
   \item[(S3)] $\elabtrace{\semst{\pe}(σ)}$
 \end{itemize}
 \end{definition}
-
-\subsection{Formal Specification}
-
-A stuck trace is one way in which $\semst{\wild}$ does not \emph{always} return
-a balanced trace. The other way is when the trace diverges before yielding to
-the initial continuation. We call a trace \emph{maximal} if it is a
-valid CESK trace and falls in either of the three categories. More precisely:
-
-\begin{definition}[Maximal trace]
-  An LK trace $π$ is \emph{maximal} iff it is convex and is either
-  infinite or there is no $σ$ such that $π \sconcat (tgt_\States(π); σ \trend)$
-  is convex.
-  We notate maximal traces as $\maxtrace{π}$.
-\end{definition}
-
-\begin{lemma}[Extension relation on continuations is prefix order]
-  The binary relation on continuations
-  \[
-    (\contextendsflipped) = \{ (κ_1,κ_2) ∈ \Continuations \times \Continuations \mid \text{$κ_2 = κ_1$ or $κ_2 = ... \pushF κ_1$} \}
-  \]
-  is a prefix order.
-\end{lemma}
-\begin{proof}
-  $(\contextendsflipped)$ is isomorphic to the usual prefix order on strings
-  over the alphabet of continuation frames.
-\end{proof}
-
-\begin{definition}[Return and evaluation states]
-  $σ$ is a \emph{return state} if its control is of the form $(\pv, v)$.
-  Otherwise, the control is of the form $\pe$ and $σ$ is an \emph{evaluation} state.
-\end{definition}
-
-The final states of the CESK semantics are the return states with a $\StopF$
-continuation.
-A state $σ$ that cannot make a step (so there exists no $σ'$ such that $σ
-\smallstep σ'$) and is not a final state is called \emph{stuck}.
-
-A trace is stuck if its destination state is stuck.
-
-In other words, a trace is maximal if it follows the transition
-semantics, never leaves the initial evaluation context and is either infinite,
-stuck, or successfully returns a value to its initial evaluation context.
-The latter case intuitively corresponds to the existence of derivation in a
-suitable big-step semantics.
-
-For the initial state with an empty stack, the maximal trace is
-exactly the result of running the transition semantics to completion.
-
-Unsurprisingly, infinite traces are never stuck or balanced.
-We could also show that no balanced trace is ever stuck, thus proving the three
-categories disjoint. Unfortunately, the introduction of algebraic data types
-gives rise to balanced but stuck traces, so we won't make use of that fact in
-the theory that follows.
-
-\Cref{ex:stuck} gives an example program that is stuck because of an
-out-of-scope reference. This is in fact the only way in which our simple lambda
-calculus without algebraic data types can get stuck; it is useful to limit such
-out-of-scope errors to the lookup of program variables in the environment $ρ$
-and require that lookups in the heap $μ$ are always well-defined, captured in
-the following predicate:
-
-\begin{definition}[Well-addressed]
-  We say that
-  \begin{itemize}
-    \item An environment $ρ$ is \emph{well-addressed} \wrt
-          a heap $μ$ if $\rng(ρ) ⊆ \dom(μ)$.
-    \item A continuation $κ$ is \emph{well-addressed} \wrt
-          a heap $μ$ if $\fa(κ) ⊆ \dom(μ)$, where
-          \[\begin{array}{rcl}
-            \fa(\ApplyF(\pa) \pushF κ) & = & \{ \pa \} ∪ \fa(κ) \\
-            \fa(\UpdateF(\pa) \pushF κ) & = & \{ \pa \} ∪ \fa(κ) \\
-            \fa(\StopF) & = & \{ \} \\
-          \end{array}\]
-    \item A heap $μ$ is \emph{well-addressed} if, for every entry $(\wild,ρ,\wild) ∈ μ$,
-          $ρ$ is well-addressed \wrt $μ$.
-    \item A state $(\wild, ρ, μ, κ)$ is \emph{well-addressed} if $ρ$
-          and $κ$ are well-addressed with respect to $μ$.
-  \end{itemize}
-\end{definition}
-
-\begin{lemma}[Transitions preserve well-addressedness]
-  \label{lemma:preserve-well-addressed}
-  Let $σ$ be a well-addressed state. If there exists $σ'$ such that $σ
-  \smallstep σ'$, then $σ'$ is well-addressed.
-\end{lemma}
-\begin{proof}
-  By cases over the transition relation.
-\end{proof}
-
-\begin{corollary}
-  If $\validtrace{π}$ and $src_\States(π)$ is well-addressed, then every state
-  in $π$ is well-addressed.
-\end{corollary}
-
-For $\semst{\wild}$ to continue a well-addressed state sensibly, we need to
-relate the occurring denotations to their respective syntactic counterparts:
-
-Finally, we can give the specification for $\semst{\wild}$:
-
-% Urgh, flesh it out when we know better what to do with S1-S3
-%The purpose of $(S1)$ is to guarantee that $\semst{\pe}$ does not continue:
-%to make the mapping $\pe \mapsto \semst{\pe}$ injective
-%and thus invertible.
-%\begin{lemma}
-%  Let $E$ denote the set of the expression $\pe$ and its (labelled)
-%  sub-expressions. Then the mapping $\fn{\pe}{\semst{\pe}}$ is injective.
-%\end{lemma}
-%\begin{proof}
-%  It is simple to see that for every $\pe$ there exists $σ, σ'$ such that $\pe$
-%  is the control of $σ$ and $σ \smallstep σ'$.
-%  \sg{Do we need to prove this? I think not.}
-%  Let $s(\pe)$ denote this state.
-%  Then $\semst{\pe}(s(\pe)) \not= \semst{\pe'}(s(\pe))$ unless $\pe = \pe'$:
-%
-%\end{proof}
-%Clearly, $(S3)$ is the key property for adequacy, but we can't prove it without
-%the other 2 properties.
-
-\subsection{Domain Theory}
-\label{sec:domain-theory}
-
-\subsubsection{Domain construction}
-
-Note that $\StateD$ in \Cref{fig:lk-syntax} is not a well-formed inductive
-definition: It recurses in negative position via $\States \to \Heaps \to \StateD$
-and similarly through $\StateV$.
-Hence we must understand $\StateD$ as a Scott domain and its ``definition'' as
-a \emph{domain equation}, of which $\StateD$ is the least solution.
-
-\sg{Some of the ponderings about finite maps should come earlier once we've
-identified the right place to put them.}
-For that to carry meaning, the RHS $\States \to_c \STraces$ must be the domain
-of continuous functions between the hypothetical domains $\States$ and
-$\STraces$, indicated by the subscript ${}_c$. The domain of finite maps
-$f ∈ A \pfun_c B$ (for flat domain $A$ and arbitrary domain $B$) is the
-sub-domain of $f ∈ A \to_c (\{\notfound\} + B)$ of strict functions (so $f(\bot)
-= \bot$) where the map's domain $\dom(f) ⊆ A$ is finite. Whenever $a \not∈
-\dom(f) \setminus \bot$, we have $f(a) = \notfound$.
-
-Recall that that an element $d$ of some domain $D$ is a \emph{total} element iff
-it is maximal, so there exists no $d' ∈ D$ such that $d ⊏ d'$. Otherwise if such
-a $d'$ exists, $d$ is \emph{partial}.
-
-Remarkably, we \emph{do not} conflate $\bot ∈ A \pfun_c B$ with $[] ∈ A \pfun_c
-B$, the finite map with $\dom(f) = \varnothing$.
-The former is a partial element of the domain and assigns $\bot_B$ everywhere;
-the latter is totally defined as an element of the domain and assigns
-$\notfound$ everywhere.
-As a consequence, $[a ↦ b] \triangleq [][a ↦ b] \not\sqsupseteq []$ and the
-total elements of the domain are discrete.
-
-The other domain constructors for products $\times$ and inductive EBNF-style
-syntax definitions such as the potentially infinite $\STraces$ (indicated by
-the $\gfp$ subscript) or finite $\Continuations$ are standard, see for example
-\cite{Cartwright:16}. The domains on $\Addresses$ and $\Var$ are the flat ones;
-the one on $\Exp$ is the flat one on labels.
-
-This proves that $\StateD$ is well-defined as a domain.
-
-\subsubsection{Continuity}
-
-It is easy to verify (by simple type checking) that $\semst{\wild}$
-is indeed a function from elements of $\States$ to something close to the
-elements of $\STraces$ (ignoring embedding of recursive calls for a moment).
-The missing ingredient to show that $\semst{\wild} ∈ \StateD$ is well-defined is
-\emph{continuity}.
-
-As given, the definition of $\semst{\wild}$ does not account for partial
-elements at all, although it does a sufficient job provided the elements it
-manipulates are total. This is a common kind of formulation in functional
-languages like Haskell, ML and other variants of the lambda calculus.
-
-In fact, the supplied artifact gives a model implementation of $\semst{\wild}$
-in Haskell. Note that this model must be computable; hence it must be possible
-to reflect this model as an element of $\StateD$. Doing so was the entire point
-of \citep{ScottStrachey:71} and we don't need to repeat it here.
-
-Ironically, we are at a point where it's easier to reflect a code listing in a
-sufficiently well-defined programming language into a continuous function than
-to find a language-agnostic, mathematical formulation that we laboriously have
-to prove continuous.
-Now, we might spend much time and space here clarifying boring technical
-details of strictness such as
-``Is $step(stay_\StateD)(\wild,\wild,\wild,\ApplyF(\pa) \pushF \bot) = \bot$?''
-and ``What is the continuous elaboration of $tgt_\States$?''
-that are implicit in the Haskell formulation, only to finally conclude that the
-clarified formulation is indeed continuous.
-
-We skip this laborious process and for the remainder of this work assume that
-$\semst{\wild}$ was implemented in a strict programming language like OCaml
-(both for familiarity with most readers and sanity of evaluation order),
-using a lazy field in one key position: The tail $π$ of the cons form $σ; π$ of
-$\STraces$. For easy reference of the ``ground truth'', we give such an
-implementation in the Appendix.%
-\footnote{Note that the artifact is implemented in Haskell because of
-familiarity to the authors, but makes abundant use of strictness annotations
-for good measure, debuggability and performance. This demonstrates the semantic
-leeway a denotational formulation such as $\semst{\wild}$ has while still being
-continuous.}
-
-\subsection{Definition}
-
-\Cref{fig:sestoft-semantics} defines $\semst{\wild}$. Before we prove that
-$\semst{\wild}$ satisfies the specification in \Cref{defn:semst-spec},
-let us understand the function by way of evaluating the example program
-$\pe \triangleq \Let{i}{\Lam{x}{x}}{i~i}$:
-\[\begin{array}{l}
-  \newcommand{\myleftbrace}[4]{\draw[mymatrixbrace] (m-#2-#1.west) -- node[right=2pt] {#4} (m-#3-#1.west);}
-  \begin{tikzpicture}[baseline={-0.5ex},mymatrixenv]
-      \matrix [mymatrix] (m)
-      {
-        1  & (\pe, [], [], \StopF); & \hspace{3.5em} & \hspace{3.5em} & \hspace{3.5em} & \hspace{4.5em} & \hspace{7.5em} \\
-        2  & (i~i, ρ_1, μ, \StopF); & & & & & \\
-        3  & (i, ρ_1, μ, κ_1); & & & & & \\
-        4  & (\Lam{x}{x}, ρ_1, μ, κ_2); & & & & & \\
-        5  & ((\Lam{x}{x}, \FunV(f)), ρ_1, μ, κ_2); & & & & & \\
-        6  & ((\Lam{x}{x}, \FunV(f)), ρ_1, μ, κ_1); & & & & & \\
-        7  & (x, ρ_2, μ, \StopF); & & & & & \\
-        8  & (\Lam{x}{x}, ρ_1, μ, κ_3); & & & & & \\
-        9  & ((\Lam{x}{x}, \FunV(f)), ρ_1, μ, κ_3); & & & & & \\
-        10 & ((\Lam{x}{x}, \FunV(f)), ρ_1, μ, \StopF) \trend & & & & & \\
-      };
-      % Braces, using the node name prev as the state for the previous east
-      % anchor. Only the east anchor is relevant
-      \foreach \i in {1,...,\the\pgfmatrixcurrentrow}
-        \draw[dotted] (m.east|-m-\i-\the\pgfmatrixcurrentcolumn.east) -- (m-\i-2);
-      \myleftbrace{3}{1}{10}{$\semst{\pe}$}
-      \myleftbrace{4}{1}{2}{$let(\semst{\Lam{x}{x}})$}
-      \myleftbrace{4}{2}{10}{$\semst{i~i}$}
-      \myleftbrace{5}{2}{3}{$app_1(i~i)$}
-      \myleftbrace{5}{3}{6}{$\semst{i}$}
-      \myleftbrace{5}{6}{7}{$app_2(\Lam{x}{x},\pa_1)$}
-      \myleftbrace{5}{7}{10}{$\semst{x}$}
-      \myleftbrace{6}{3}{4}{$look(i)$}
-      \myleftbrace{6}{4}{5}{$\semst{\Lam{x}{x}}$}
-      \myleftbrace{6}{5}{6}{$upd$}
-      \myleftbrace{6}{7}{8}{$look(x)$}
-      \myleftbrace{6}{8}{9}{$\semst{\Lam{x}{x}}$}
-      \myleftbrace{6}{9}{10}{$upd$}
-      \myleftbrace{7}{4}{5}{$ret(\Lam{x}{x},\FunV(f))$}
-      \myleftbrace{7}{8}{9}{$ret(\Lam{x}{x},\FunV(f))$}
-  \end{tikzpicture} \\
-  \quad \text{where} \quad \begin{array}{ll}
-  ρ_1 = [i ↦ \pa_1] & κ_1 = \ApplyF(\pa_1) \pushF \StopF \\
-  ρ_2 = [i ↦ \pa_1, x ↦ \pa_1] & κ_2 = \UpdateF(\pa_1) \pushF κ_1 \\
-  μ = [\pa_1 ↦ (\Lam{x}{x},ρ_1,\semst{\Lam{x}{x}})] & κ_3 = \UpdateF(\pa_1) \pushF \StopF \\
-  f = \pa \mapsto step(app_2(\Lam{\px}{\px},\pa)) \sfcomp \semst{\px} \\
-  \end{array} \\
-\end{array}\]
-The annotations to the right of the trace can be understood as denoting the
-``call graph'' of the $\semst{\pe}$, with the primitive transition $step$s such
-as $let_1$, $app_1$, $look$ \etc as leaves, each \emph{elaborating} the
-application of the corresponding transition rule $\LetT$, $\AppIT$, $\LookupT$,
-and so on, in the transition semantics with a matching denotation where
-necessary.
-
-Evaluation begins by decomposing the let binding and continuing the let body in
-the extended environment and heap, transitioning from state 1 to state 2.
-Beyond recognising the expected application of the $\LetT$ transition rule,
-it is interesting to see that indeed the $d$ in the heap is elaborated to
-$\semst{\Lam{x}{x}}$, which ends up in $ρ_1$.
-
-The auxiliary $step$ function and the forward composition operator $\sfcomp$
-have been inlined everywhere, as all steps and compositions are well-defined.
-One can find that $\sfcomp$ is quite well-behaved: It forms a monoid with
-$stay_\StateD$ (which is just $step$ applied to the function that is undefined
-everywhere) as its neutral element.
-
-Evaluation of the let binding recurses into $\semst{i~i}$ on state 2,
-where an $\AppIT$ transition to state 3, on which $\semst{i}$ is run.
-Note that the final state 6 of the call to $\semst{i}$ will later be fed
-(via $\sfcomp$) into the auxiliary function $apply$.
-
-$\semst{i}$ guides the trace from state 3 to state 6, during which we
-observe a heap update for the first time: Not only does $look$ look up
-the binding $\Lam{x}{x}$ of $i$ in the heap and push and update frame,
-it also hands over control to the $d = \semst{\Lam{x}{x}}$ stored alongside it.
-(And we make a mental note to pick up with $step(upd)$ when $d$ has finished.)
-Crucially, that happens without $\semst{\Lam{x}{x}}$ occurring in the definition
-of $\semst{i}$, thus the definition remains structural.
-
-By comparison, the value transition governed by $\semst{\Lam{x}{x}}$ from state
-4 to 5 is rather familiar from our earlier example, where we specified more or
-less the same $\FunV(f)$.
-
-$\semst{\Lam{x}{x}}$ finishes in state 5, where $upd$ picks up to guide the
-$\UpdateT$ transition. Crucially, it also updates the $d$ stored in the heap
-so that its semantics matches that of the updated value; take note of the
-similarity to the lambda clause in the definition of $\semst{\wild}$. Since
-$\Lam{x}{x}$ was a value to begin with, there is no observable change to the
-heap.
-
-After $\semst{i}$ concludes in state 6, the $apply$ function from $\semst{i~i}$
-picks up. Since $apply$ is defined on state 6, it reduces to $f(\pa_1)$%
-\footnote{We omitted $apply$ and $f(\pa_1)$ from the call graph for space reasons, but
-their activation spans from state 7 to the final state 10.}.
-$f(\pa_1)$ will perform an $\AppET$ transition to state 7, binding $x$ to $i$'s
-address $\pa_1$ and finally entering the lambda body $\semst{x}$. Since $x$ is
-an alias for $i$, steps 7 to 10 just repeat the same same heap update sequence
-we observed in steps 3 to 6.
-
-It is useful to review another example involving an observable heap update.
-The following trace begins right before the heap update occurs in
-$\Let{i}{(\Lam{y}{\Lam{x}{x}})~i}{i~i}$, that is, after reaching the value
-in $\semst{(\Lam{y}{\Lam{x}{x}})~i}$:
-\[\begin{array}{l}
-  \newcommand{\myleftbrace}[4]{\draw[mymatrixbrace] (m-#2-#1.west) -- node[right=2pt] {#4} (m-#3-#1.west);}
-  \begin{tikzpicture}[baseline={-0.5ex},mymatrixenv]
-      \matrix [mymatrix] (m)
-      {
-        1  & ((\Lam{x}{x},\FunV(f)), ρ_2, μ_1, κ_2); & \hspace{3.5em} & \hspace{3.5em} & \hspace{4.5em} & \hspace{7.5em} \\
-        2  & ((\Lam{x}{x},\FunV(f)), ρ_2, μ_2, κ_1); & & & & \\
-        3  & (x, ρ_3, μ, \StopF); & & & & \\
-        4  & (\Lam{x}{x}, ρ_2, μ, κ_3); & & & & \\
-        5  & ((\Lam{x}{x}, \FunV(f)), ρ_2, μ, κ_3); & & & & \\
-        6  & ((\Lam{x}{x}, \FunV(f)), ρ_1, μ, \StopF); & & & & \\
-      };
-      % Braces, using the node name prev as the state for the previous east
-      % anchor. Only the east anchor is relevant
-      \foreach \i in {1,...,\the\pgfmatrixcurrentrow}
-        \draw[dotted] (m.east|-m-\i-\the\pgfmatrixcurrentcolumn.east) -- (m-\i-2);
-      \myleftbrace{3}{1}{6}{$\semst{i~i}$}
-      \myleftbrace{4}{1}{2}{$\semst{i}$}
-      \myleftbrace{4}{2}{3}{$app_2(\Lam{x}{x},\pa_1)$}
-      \myleftbrace{4}{3}{6}{$\semst{x}$}
-      \myleftbrace{5}{1}{2}{$upd$}
-      \myleftbrace{5}{3}{4}{$look(x)$}
-      \myleftbrace{5}{4}{5}{$\semst{\Lam{x}{x}}$}
-      \myleftbrace{5}{5}{6}{$upd$}
-      \myleftbrace{6}{4}{5}{$ret(\Lam{x}{x},\FunV(f))$}
-  \end{tikzpicture} \\
-  \quad \text{where} \quad \begin{array}{ll}
-  ρ_1 = [i ↦ \pa_1] & κ_1 = \ApplyF(\pa_1) \pushF \StopF \\
-  ρ_2 = [i ↦ \pa_1, y ↦ \pa_1] & κ_2 = \UpdateF(\pa_1) \pushF κ_1 \\
-  μ_1 = [\pa_1 ↦ ((\Lam{y}{\Lam{x}{x}})~i,ρ_1,\semst{(\Lam{y}{\Lam{x}{x}})~i})] & κ_3 = \UpdateF(\pa_1) \pushF \StopF \\
-  μ_2 = [\pa_1 ↦ (\Lam{x}{x},ρ_2,\semst{\Lam{x}{x}})] & f = \pa \mapsto step(app_2(\Lam{\px}{\px},\pa)) \sfcomp \semst{\px} \\
-  \end{array} \\
-\end{array}\]
-Note that both the environment \emph{and} the denotation in the heap is updated
-in state 2, and that the new denotation is immediately visible on the next heap
-lookup in state 3, so that $\semst{\Lam{x}{x}}$ takes control rather than
-$\semst{(\Lam{y}{\Lam{x}{x}})~i}$, just as the transition system requires.
-
-Finally, it is a matter of good hygiene that $\semst{\pe}$ continues \emph{only}
-those states that have $\pe$ as control; it should be undefined on any
-other expression of the program.
-So even if $x~x$ and $y~y$ both structurally are well-scoped application
-expressions, $\semst{x~x}(y~y,ρ,μ,κ)$ is undefined.
-In other words, if $(\pe_i)_i$ enumerates the (labelled) sub-expressions of a
-program $\pe$, then for every state $σ$ that is not stuck in the transition
-semantics there is at most one function $\semst{\pe_i}$ that is defined on $σ$.
-Take note that a correct labelling is crucial for this point. In an expression
-like $f (g f)$ the two, structurally equal occurrences of $f$ are distinct
-sub-expressions which would otherwise have the same image under $\semst{\wild}$.
-
-\subsection{Conformance}
-
-Having a good grasp on the workings of $\semst{\wild}$ now, let us show that
-$\semst{\wild}$ conforms to its specification in \Cref{defn:semst-spec}.
-
-For the following three lemmas, let $σ$ denote a well-elaborated state and $\pe$
-an expression.
-
-\begin{lemma}[(S1)]
-  If the control of $σ$ is not $\pe$, then $\semst{\pe}(σ) = σ\trend$.
-\end{lemma}
-\begin{proof}
-  By the first clause of $\semst{\wild}$.
-\end{proof}
-
-\begin{lemma}[(S2)]
-  $σ$ is the source state of $\semst{\pe}(σ)$.
-\end{lemma}
-\begin{proof}
-  Trivial for the first clause of $\semst{\wild}$.
-  Now, realising that $src_\States((l \sfcomp r)(σ)) = src_\States(l(σ))$
-  and that $src_\States(step(f)(σ)) = σ$ for any $f$, we can see that the
-  proposition follows for other clauses by applying these two rewrites to
-  completion.
-\end{proof}
-
-\begin{lemma}[(S3)]
-  If the control of $σ$ is $\pe$, then $\maxtrace{\semst{\pe}(σ)}$ and all
-  states in the trace $\semst{\pe}(σ)$ are well-elaborated.
-\end{lemma}
-\begin{proof}
-  Let us abbreviate the property of interest to
-  \[
-    OK(d) = ∀σ. σ\text{ well-addressed} \Longrightarrow \validtrace{d(σ)}
-  \]
-  Let $σ$ be a well-addressed state.
-  For the first clause of $\semst{\wild}$, the proposition follows by
-  $\validtraceTriv$.
-
-  Every other clause of $\semst{\wild}$ is built from applications of
-  $\sfcomp$, $step$ or $apply$ and it suffices to show that these combinators
-  yield valid CESK traces when applied to $σ$.
-
-  We can see that $OK(d_1 \sfcomp d_2)$ whenever $OK(d_1)$ and $OK(d_2)$ holds,
-  because the destination state of $d_1(σ)$, if it exists, is well-addressed by
-  \Cref{lemma:preserve-well-addressed} and $OK(d_2)$ can be usefully applied.
-  An interesting case is when $d_1(σ)$ is infinite; then
-  $(d_1 \sfcomp d_2)(σ) = d_1(σ)$ and $\validtrace{(d_1 \sfcomp d_2)(σ)}$ follows
-  from $\validtrace{d_1(σ)}$.
-
-  We can see that $\validtrace{step(f)(σ)}$ whenever $f(σ)$ is undefined
-  (by $\validtraceTriv$) or $\validtrace{σ;f(σ)}$ (by $\validtraceTrans$).
-  Enumerating the arguments to $step$, we can see that $val, upd, app_1, app_2$
-  and $let$ follow $\ValueT, \UpdateT, \AppIT, \AppET$ and $\LetT$ closely by
-  making exactly one transition. That leaves $loop$, which corresponds to doing
-  one step with $\LookupT$ and then evaluating the heap-bound expression $\pe$
-  as expressed by $d$.
-
-  By (bi-)induction that is always the case.
-\end{proof}
-
-Let us begin by defining that a denotation $d$ is \emph{valid everywhere} when
-for every initial $σ$, we have $\validtrace{σ}$. This definition lets us express
-an important observation:
-
-We can now formulate our correctness theorem as follows:
-
-\begin{theorem}[Adequacy of the stateful trace semantics]
-Let $d = \semst{\pe}$. Then for all $ρ,μ$ with $\vdash_\Heaps μ$, we have $μ
-\vdash_\StateD \pe \sim_ρ d$.
-\end{theorem}
-
-\begin{corollary} Let $d = \semst{\pe}$. Then $π=d(\pe,[],[],\StopF)$ is a
-maximal trace for the transition semantics starting at $(\pe,[],[],\StopF)$.
-\end{corollary}
 
 \begin{figure}
 \[\begin{array}{c}
@@ -919,5 +492,461 @@ maximal trace for the transition semantics starting at $(\pe,[],[],\StopF)$.
  \end{array} \\
 \end{array}\]
 \caption{Structural call-by-need stateful trace semantics $\semst{-}$}
-  \label{fig:sestoft-semantics}
+  \label{fig:semst}
 \end{figure}
+
+\subsection{Definition}
+
+\Cref{fig:semst} defines $\semst{\wild}$.
+Let us understand the function by way of evaluating the example program from
+earlier, $\pe \triangleq \Let{i}{\Lam{x}{x}}{i~i}$:
+\[\begin{array}{l}
+  \newcommand{\myleftbrace}[4]{\draw[mymatrixbrace] (m-#2-#1.west) -- node[right=2pt] {#4} (m-#3-#1.west);}
+  \begin{tikzpicture}[mymatrixenv]
+      \matrix [mymatrix] (m)
+      {
+        1  & (\pe, [], [], \StopF); & \hspace{3.5em} & \hspace{3.5em} & \hspace{3.5em} & \hspace{4.5em} & \hspace{7.5em} \\
+        2  & (i~i, ρ_1, μ, \StopF); & & & & & \\
+        3  & (i, ρ_1, μ, κ_1); & & & & & \\
+        4  & (\Lam{x}{x}, ρ_1, μ, κ_2); & & & & & \\
+        5  & ((\Lam{x}{x}, \FunV(f)), ρ_1, μ, κ_2); & & & & & \\
+        6  & ((\Lam{x}{x}, \FunV(f)), ρ_1, μ, κ_1); & & & & & \\
+        7  & (x, ρ_2, μ, \StopF); & & & & & \\
+        8  & (\Lam{x}{x}, ρ_1, μ, κ_3); & & & & & \\
+        9  & ((\Lam{x}{x}, \FunV(f)), ρ_1, μ, κ_3); & & & & & \\
+        10 & ((\Lam{x}{x}, \FunV(f)), ρ_1, μ, \StopF) \trend & & & & & \\
+      };
+      % Braces, using the node name prev as the state for the previous east
+      % anchor. Only the east anchor is relevant
+      \foreach \i in {1,...,\the\pgfmatrixcurrentrow}
+        \draw[dotted] (m.east|-m-\i-\the\pgfmatrixcurrentcolumn.east) -- (m-\i-2);
+      \myleftbrace{3}{1}{10}{$\semst{\pe}$}
+      \myleftbrace{4}{1}{2}{$let(\semst{\Lam{x}{x}})$}
+      \myleftbrace{4}{2}{10}{$\semst{i~i}$}
+      \myleftbrace{5}{2}{3}{$app_1(i~i)$}
+      \myleftbrace{5}{3}{6}{$\semst{i}$}
+      \myleftbrace{5}{6}{7}{$app_2(\Lam{x}{x},\pa_1)$}
+      \myleftbrace{5}{7}{10}{$\semst{x}$}
+      \myleftbrace{6}{3}{4}{$look(i)$}
+      \myleftbrace{6}{4}{5}{$\semst{\Lam{x}{x}}$}
+      \myleftbrace{6}{5}{6}{$upd$}
+      \myleftbrace{6}{7}{8}{$look(x)$}
+      \myleftbrace{6}{8}{9}{$\semst{\Lam{x}{x}}$}
+      \myleftbrace{6}{9}{10}{$upd$}
+      \myleftbrace{7}{4}{5}{$ret(\Lam{x}{x},\FunV(f))$}
+      \myleftbrace{7}{8}{9}{$ret(\Lam{x}{x},\FunV(f))$}
+  \end{tikzpicture} \\
+  \quad \text{where} \quad \begin{array}{ll}
+  ρ_1 = [i ↦ \pa_1] & κ_1 = \ApplyF(\pa_1) \pushF \StopF \\
+  ρ_2 = [i ↦ \pa_1, x ↦ \pa_1] & κ_2 = \UpdateF(\pa_1) \pushF κ_1 \\
+  μ = [\pa_1 ↦ (\Lam{x}{x},ρ_1,\semst{\Lam{x}{x}})] & κ_3 = \UpdateF(\pa_1) \pushF \StopF \\
+  f = \pa \mapsto step(app_2(\Lam{\px}{\px},\pa)) \sfcomp \semst{\px}
+  \end{array}
+\end{array}\]
+The annotations to the right of the trace can be understood as denoting the
+``call graph'' of the $\semst{\pe}$, with the primitive transition $step$s such
+as $let_1$, $app_1$, $look$ \etc as leaves, each elaborating the application of
+the corresponding transition rule $\LetT$, $\AppIT$, $\LookupT$, and so on, in
+the transition semantics with a matching denotation where necessary.
+
+Evaluation begins by elaborating the $\LetT$ transition from state 1 to state 2.
+Indeed, the $d$ in the heap is elaborated to $\semst{\Lam{x}{x}}$, as (S3) of
+\Cref{defn:semst-spec} requires.
+
+The auxiliary $step$ function and the forward composition operator $\sfcomp$
+have been inlined.
+One can find that $\sfcomp$ is quite well-behaved: It forms a monoid with
+$λσ.σ\trend$ as its neutral element.
+
+Evaluation of the let binding recurses into $\semst{i~i}$ on state 2,
+generating an $\AppIT$ transition to state 3, on which $\semst{i}$ is run.
+Note that the final state 6 of the call to $\semst{i}$ will later be fed
+(via $\sfcomp$) into the auxiliary function $apply$. This scheme is quite
+common: Continuation items of the transition semantics (``data'') are reflected
+into the call stack of the trace semantics (``code'').
+
+$\semst{i}$ guides the trace from state 3 to state 6, during which we
+observe a heap update for the first time: Not only does $look$ look up
+the binding $\Lam{x}{x}$ of $i$ in the heap and push an update frame,
+it also hands over control to the $d = \semst{\Lam{x}{x}}$ stored alongside it.
+(And we make a meta-level note to pick up with $upd$ when $d$ has finished.)
+Crucially, that happens without $\semst{\Lam{x}{x}}$ syntactically occurring in
+the definition of $\semst{i}$, thus the definition remains structural.
+
+The value transition governed by $\semst{\Lam{x}{x}}$ from state 4 to 5 is
+familiar from our earlier example.
+$\semst{\Lam{x}{x}}$ finishes in state 5, where $upd$ picks up to guide the
+$\UpdateT$ transition. To restore invariant (S3), it also updates the $d$ stored
+in the heap so that its semantics matches that of the updated value; take note
+of the similarity to the lambda clause in the definition of $\semst{\wild}$.
+Since $\Lam{x}{x}$ was a value to begin with, there is no observable change to
+the heap.
+
+After $\semst{i}$ concludes in state 6, the $apply$ function from $\semst{i~i}$
+picks up. Since $apply$ is defined on state 6, it reduces to $f(\pa_1)$%
+\footnote{We omitted $apply$ and $f(\pa_1)$ from the call graph for space reasons, but
+their activation spans from state 7 to the final state 10.}.
+$f(\pa_1)$ will perform an $\AppET$ transition to state 7, binding $x$ to $i$'s
+address $\pa_1$ and finally entering the lambda body $\semst{x}$. Since $x$ is
+an alias for $i$, steps 7 to 10 just repeat the same same heap update sequence
+we observed in steps 3 to 6.
+
+It is useful to review another example involving an observable heap update.
+The following trace begins right before the heap update occurs in
+$\Let{i}{(\Lam{y}{\Lam{x}{x}})~i}{i~i}$, that is, after reaching the value
+in $\semst{(\Lam{y}{\Lam{x}{x}})~i}$:
+\[\begin{array}{l}
+  \newcommand{\myleftbrace}[4]{\draw[mymatrixbrace] (m-#2-#1.west) -- node[right=2pt] {#4} (m-#3-#1.west);}
+  \begin{tikzpicture}[baseline={-0.5ex},mymatrixenv]
+      \matrix [mymatrix] (m)
+      {
+        1  & ((\Lam{x}{x},\FunV(f)), ρ_2, μ_1, κ_2); & \hspace{3.5em} & \hspace{3.5em} & \hspace{4.5em} & \hspace{7.5em} \\
+        2  & ((\Lam{x}{x},\FunV(f)), ρ_2, μ_2, κ_1); & & & & \\
+        3  & (x, ρ_3, μ, \StopF); & & & & \\
+        4  & (\Lam{x}{x}, ρ_2, μ, κ_3); & & & & \\
+        5  & ((\Lam{x}{x}, \FunV(f)), ρ_2, μ, κ_3); & & & & \\
+        6  & ((\Lam{x}{x}, \FunV(f)), ρ_1, μ, \StopF); & & & & \\
+      };
+      % Braces, using the node name prev as the state for the previous east
+      % anchor. Only the east anchor is relevant
+      \foreach \i in {1,...,\the\pgfmatrixcurrentrow}
+        \draw[dotted] (m.east|-m-\i-\the\pgfmatrixcurrentcolumn.east) -- (m-\i-2);
+      \myleftbrace{3}{1}{6}{$\semst{i~i}$}
+      \myleftbrace{4}{1}{2}{$\semst{i}$}
+      \myleftbrace{4}{2}{3}{$app_2(\Lam{x}{x},\pa_1)$}
+      \myleftbrace{4}{3}{6}{$\semst{x}$}
+      \myleftbrace{5}{1}{2}{$upd$}
+      \myleftbrace{5}{3}{4}{$look(x)$}
+      \myleftbrace{5}{4}{5}{$\semst{\Lam{x}{x}}$}
+      \myleftbrace{5}{5}{6}{$upd$}
+      \myleftbrace{6}{4}{5}{$ret(\Lam{x}{x},\FunV(f))$}
+  \end{tikzpicture} \\
+  \quad \text{where} \quad \begin{array}{ll}
+  ρ_1 = [i ↦ \pa_1] & κ_1 = \ApplyF(\pa_1) \pushF \StopF \\
+  ρ_2 = [i ↦ \pa_1, y ↦ \pa_1] & κ_2 = \UpdateF(\pa_1) \pushF κ_1 \\
+  ρ_3 = [i ↦ \pa_1, y ↦ \pa_1, x ↦ \pa_1] & κ_3 = \UpdateF(\pa_1) \pushF \StopF \\
+  μ_1 = [\pa_1 ↦ ((\Lam{y}{\Lam{x}{x}})~i,ρ_1,\semst{(\Lam{y}{\Lam{x}{x}})~i})] & f = \pa \mapsto step(app_2(\Lam{\px}{\px},\pa)) \sfcomp \semst{\px} \\
+  μ_2 = [\pa_1 ↦ (\Lam{x}{x},ρ_2,\semst{\Lam{x}{x}})] &  \\
+  \end{array} \\
+\end{array}\]
+Note that both the denotation in the heap \emph{and} the environment are updated
+in state 2, and that the new denotation is immediately visible on the next heap
+lookup in state 3, so that $\semst{\Lam{x}{x}}$ takes control rather than
+$\semst{(\Lam{y}{\Lam{x}{x}})~i}$, just as the transition system requires.
+
+Note that $\semst{\pe}$ continues \emph{only} those states that have $\pe$ as
+control and is undefined on any other expression of the program.
+So even if $x~x$ and $y~y$ both structurally are well-scoped application
+expressions, $\semst{x~x}(y~y,ρ,μ,κ)$ is undefined.
+In other words, if $(\pe_i)_i$ enumerates the (labelled) sub-expressions of a
+program $\pe$, then for every state $σ$ there is exactly one function
+$\semst{\pe_i}$ that is defined on $σ$.
+Take note that a correct labelling is crucial for this point: In an expression
+like $f~(g~f)$ the two, structurally equal occurrences of $f$ are distinct
+sub-expressions which would otherwise have the same image under $\semst{\wild}$.
+
+Perhaps interestingly, the definition of the $\LetT$ case requires no explicit
+fixpoint, although the semantics of let allows recursion. That is because the
+action of the RHS $\semst{\pe_1}$ (``code'') is reified (into ``data'') and put
+in the heap, to be reflected back into code on variable lookup.
+Next we will prove that this process is actually well-defined and show that
+$\semst{\pe}$ produces total values everywhere it is defined%
+\footnote{We do not consider the partial value $⊥$ to be undefined, as we
+clarify in the next section.}.
+
+\subsection{Domain Theory}
+
+\label{sec:domain-theory}
+
+\subsubsection{Domain construction}
+
+Recall that $\StateD$ in \Cref{fig:lk-syntax} is not a well-formed inductive
+definition without further clarification: It recurses in negative position via
+$\States \to \Heaps \to \StateD$ and similarly through $\StateV$.
+Hence we must understand $\StateD$ as a Scott domain and its ``definition'' as
+a \emph{domain equation}, of which $\StateD$ is the least solution.
+
+For that to carry meaning, we interpret all occuring function types, such as
+$\States \to \STraces$, as continuous between their hypothetical source and
+target domains.
+This applies in the following way to finite maps:
+$f ∈ A \pfun B$ (for flat domain $A$ and arbitrary domain $B$) is the
+sub-domain of $f ∈ A \to (\{\notfound\} + B)$ of strict functions (so $f(⊥) =
+⊥$) where the map's domain $\dom(f) ⊆ A$ is finite. Whenever $a \not∈ \dom(f)
+\setminus ⊥$, we have $f(a) = \notfound$.
+
+Recall that that an element $d$ of some domain $D$ is a \emph{total} element iff
+there exists no $d' ∈ D$ such that $d ⊏ d'$. Otherwise if such a $d'$ exists,
+$d$ is \emph{partial}.
+
+Remarkably, we \emph{do not} conflate $⊥ ∈ A \pfun B$ with $[] ∈ A \pfun B$, the
+finite map with $\dom(f) = \varnothing$.
+The former is a partial element of the domain and assigns $⊥_B$ everywhere;
+the latter is totally defined as an element of the domain and assigns
+$\notfound$ everywhere.
+As a consequence, $[a ↦ b] \triangleq [][a ↦ b] \not\sqsupseteq []$ since the
+total elements of the domain are discrete.
+
+The other domain constructors for products $\times$, sums $+$, fixpoints and the
+derived inductive EBNF-style syntax definitions such as the potentially infinite
+$\STraces$ (indicated by the $\gfp$ subscript) or finite $\Continuations$ are
+standard, see for example \cite{Cartwright:16}. The domains on $\Addresses$ and
+$\Var$ are the flat ones; the one on $\Exp$ is the flat one on labels.
+
+This proves that $\StateD$ is well-defined as a domain.
+
+\subsubsection{Continuity}
+
+It is easy to verify (by simple type checking) that $\semst{\wild}$
+is indeed a function from elements of $\States$ to something close to the
+elements of $\STraces$ (ignoring embedding of recursive calls for a moment).
+The missing ingredient to show that $\semst{\wild} ∈ \StateD$ is well-defined is
+\emph{continuity}.
+
+As given, the definition of $\semst{\wild}$ does not account for partial
+elements at all, although it does a sufficient job provided the elements it
+manipulates are total. It quite clearly is computable, so it should have a
+continuous extension to partial elements; such was the entire point of
+\citep{ScottStrachey:71} and we don't need to repeat it here. Now, we might
+spend much time and space here clarifying boring technical details of strictness
+such as ``Is $step(look)(\wild,\wild,\wild,\ApplyF(\pa) \pushF ⊥) = ⊥$?'' and
+``What is the continuous elaboration of $tgt_\States$?'' that are implicit in a
+code listing, only to finally conclude that the clarified formulation is indeed
+continuous.
+
+We decide to give the code listing instead: In the Appendix you can find 2 pages
+of a model implementation in SML of New Jersey serving as a ``continuity
+specification'' of $\semst{\wild}$ that we will treat as its ``ground truth''.
+We chose SML because it has a standardised small-step operational semantics that
+gives rise to an adequate denotational semantics, the core of which can be found
+in \cite{Milner:78}.
+
+On the spectrum between viable continuous extensions of $\semst{\wild}$, the
+specification in ML is quite on the strict end. In fact, it introduces a lazy
+field in one key position: The tail $π$ of the cons form $σ; π$ of $\STraces$.
+That is hardly surprising given the coinductive nature of $π$.
+
+We find it ironic that in order to specify a semantics of a programming
+language it is easier to reflect a code listing in a sufficiently
+well-defined programming language (fittingly called ``Meta Language'') into a
+continuous function than to find a language-agnostic, mathematical formulation
+that we laboriously have to prove continuous.
+
+Note that the considerably larger \emph{artifact} associated to this work is
+implemented in Haskell because of familiarity to the authors and comfortable
+ecosystem, serving as an example for a viable extension of $\semst{\wild}$
+erring more towards the non-strict end. Still, it makes abundant use of
+strictness annotations for good measure, debuggability and performance.
+This demonstrates the semantic leeway a denotational formulation such as
+$\semst{\wild}$ has while still being continuous and enjoying the termination
+properties implied by our specification.
+
+\subsection{Conformance}
+
+Having a good grasp of the definition of $\semst{\wild}$ now, let us show that
+$\semst{\wild}$ conforms to its specification in \Cref{defn:semst-spec}.
+
+\begin{lemma}[S1]
+  Let $σ$ be a state and $\pe$ its control expression.
+  Then $σ$ is the source state of $\semst{\pe}(σ)$.
+\end{lemma}
+\begin{proof}
+  Trivial for the first clause of $\semst{\wild}$.
+  Now, realising that $src_\States((l \sfcomp r)(σ)) = src_\States(l(σ))$
+  and that $src_\States(step(f)(σ)) = σ$ for any $f$, we can see that the
+  proposition follows for other clauses by applying these two rewrites to
+  completion.
+\end{proof}
+
+The proof of (S2) depends on (S3), hence we will prove (S3) first.
+
+\begin{lemma}[S3]
+  Let $σ$ denote a well-elaborated state and $\pe$ its control expression.
+  Then $\elabtrace{\semst{\pe}(σ)}$.
+\end{lemma}
+\begin{proof}
+By coinduction, following~\citep{Czajka:2019}.
+The coinduction hypothesis is:
+\[
+  P(α) = ∀σ,\pe.\ \elabstate{σ} \wedge (\pe = ctrl(σ)) \Longrightarrow \elabtracen{α}{\semst{\pe}(σ)}
+\]
+Where $α$ is a limit ordinal smaller than or equal to the closure ordinal $ζ$,
+$ctrl(σ)$ selects the control of $σ$ and $\elabtracen{α}{π}$ is the
+$α$-approximant of the coinductive predicate $\elabtrace{π}$.
+
+Let us assume that $\elabstate{σ}$ for an arbitrary $σ$ with control expression
+$\pe$. Whenever $f(σ)$ is undefined for some $f$, we can see that
+$step(f)(σ) = σ\trend$ is well-elaborated. Furthermore, if both $g$ and $h$
+yield well-elaborated traces given a well-elaborated input state, then
+$g \sfcomp h$ does so, too.
+
+We abbreviate $π \triangleq \semst{\pe}(σ)$ and proceed by case analysis over
+$pe$. We have $π_1 = σ$ by (S1) which is thus well-elaborated.
+\begin{itemize}
+  \item \textbf{Case $\px$}:
+    Let us assume first that $look(\px)(σ)$ is undefined.
+    Then $step(look(\px))(σ) = σ\trend$.
+    On the other hand, $step(upd)(σ) = σ\trend$ because $upd$ is only defined on
+    return states.
+    Thus, $π = σ\trend$ and $\elabtracen{α+1}{π}$.
+    When $look(\px)(σ)$ is defined, $σ$ must be of the form $(\px,ρ,μ,κ)$, and
+    $\pa,\pe,ρ',d$ must exist as in the definition of $look$ (shadowing $\pe =
+    \px$ from the assumption, for simplicity).
+    Clearly, $σ' \triangleq (\pe, ρ', μ, \UpdateF(\pa) \pushF κ)$ is
+    well-elaborated, because $σ$ is and the heap did not change.
+    Similarly, by $\elabstate{σ}$ we have $d = \semst{\pe}$.
+    Now we apply the coinduction hypothesis to $π' = \semst{\pe}(σ')$ and see that
+    $\elabtracen{α}{π'}$, hence $\elabtracen{α+1}{σ; π'}$.
+    If $π'$ is infinite, we are done.
+    Otherwise, $σ_u \triangleq tgt_\States(π')$ is well-elaborated and if
+    $upd(σ_u)$ is undefined we are done, too, by our preceding considerations.
+    If $upd(σ_u)$ is defined, we $σ_u$ must have the form
+    $((\pv,v),ρ,μ,\UpdateF(\pa) \pushF κ)$. We must show that
+    $step(val(\pv,v)) = \semst{\pv}$ in order to show that the successor state
+    is well-elaborated.
+    That is the case: well-elaboratedness of $σ_u$ implies that $v = \FunV(f)$ for
+    an $f$ just like that in the definition of $\semst{\pe}$.
+  \item \textbf{Case $\Lam{\px}{\pe}$}:
+    The $\ValueT$ transition does not change the heap, but it transitions into a
+    return state. We have established in the previous point that the semantic
+    value $\FunV(f)$ fits our requirements for well-elaboratedness exactly,
+    hence well-elaboratedness for the trace follows.
+  \item \textbf{Case $\pe~\px$}:
+    The $\AppIT$ transition preserves well-elaboratedness to its target state, so
+    the input $σ'$ to $\semst{\pe}$ is well-elaborated. We apply the coinduction
+    hypothesis and and have $\elabtracen{α+1}{σ; \semst{\pe}(σ')}$.
+    Forward composition preserves well-elaboratedness, hence it suffices to
+    prove that given a well-elaborated input state $σ''$, $apply(σ'')$ is
+    well-elaborated.
+    That is the case if the occuring $f(\pa)(σ'')$ produces a well-elaborated
+    trace.
+    By $\elabstate{σ''}$, we know that $f$ must come from the
+    $\semst{\Lam{\px}{\pe'}}$ case.
+    $\AppET$ preserves well-elaboratedness to its target state and for
+    $\semst{\pe'}$ we can apply the coinductive hypothesis, concluding the argument.
+  \item \textbf{Case $\Let{\px}{\pe_1}{\pe_2}$}:
+    The $\LetT$ transition updates the heap, but it is clear that
+    $let(\semst{\pe_1})$ elaborates the correct $d_1$ into $σ'$.
+    For the recursive call, we apply the coinduction hypothesis
+    and conclude $\elabtracen{α+1}{σ; \semst{\pe_2}(σ')}$.
+\end{itemize}
+\end{proof}
+
+The preceding lemma implies a very desirable property:
+Whenever $σ$ is well-elaborated (and thus total), $\semst{\pe}(σ)$ is total,
+too. The approximation order restricted to total elements is discrete; hence we
+may forget about domain theoretic considerations now in favor of a coinductive
+framework.
+
+\begin{lemma}[S2]
+  Let $σ$ denote a well-elaborated state and $\pe$ its control expression.
+  Then $\maxtrace{\semst{\pe}(σ)}$.
+\end{lemma}
+\begin{proof}
+By coinduction, with the following hypothesis, similar to the proof of (S3):
+\[
+  P(α) = ∀σ,\pe.\ \elabstate{σ} \wedge (\pe = ctrl(σ)) \Longrightarrow \maxtracen{α}{\semst{\pe}(σ)}
+\]
+Let us assume that $\elabstate{σ}$ for an arbitrary $σ$ with control expression
+$\pe$. Whenever $f(σ)$ is undefined for some $f$, we can see that
+$step(f)(σ) = σ\trend$ is well-elaborated. Furthermore, if both $g$ and $h$
+yield well-elaborated traces given a well-elaborated input state, then
+$g \sfcomp h$ does so, too.
+
+We abbreviate $π \triangleq \semst{\pe}(σ)$ and proceed by case analysis over
+$pe$. We have $π_1 = σ$ by (S1) which is thus well-elaborated.
+\begin{itemize}
+  \item \textbf{Case $\px$}:
+    Let us assume first that $look(\px)(σ)$ is undefined.
+    Then $step(look(\px))(σ) = σ\trend$.
+    On the other hand, $step(upd)(σ) = σ\trend$ because $upd$ is only defined on
+    return states.
+    Thus, $π = σ\trend$ and $\elabtracen{α+1}{π}$.
+    When $look(\px)(σ)$ is defined, $σ$ must be of the form $(\px,ρ,μ,κ)$, and
+    $\pa,\pe,ρ',d$ must exist as in the definition of $look$ (shadowing $\pe =
+    \px$ from the assumption, for simplicity).
+    Clearly, $σ' \triangleq (\pe, ρ', μ, \UpdateF(\pa) \pushF κ)$ is
+    well-elaborated, because $σ$ is and the heap did not change.
+    Similarly, by $\elabstate{σ}$ we have $d = \semst{\pe}$.
+    Now we apply the coinduction hypothesis to $π' = \semst{\pe}(σ')$ and see that
+    $\elabtracen{α}{π'}$, hence $\elabtracen{α+1}{σ; π'}$.
+    If $π'$ is infinite, we are done.
+    Otherwise, $σ_u \triangleq tgt_\States(π')$ is well-elaborated and if
+    $upd(σ_u)$ is undefined we are done, too, by our preceding considerations.
+    If $upd(σ_u)$ is defined, we $σ_u$ must have the form
+    $((\pv,v),ρ,μ,\UpdateF(\pa) \pushF κ)$. We must show that
+    $step(val(\pv,v)) = \semst{\pv}$ in order to show that the successor state
+    is well-elaborated.
+    That is the case: well-elaboratedness of $σ_u$ implies that $v = \FunV(f)$ for
+    an $f$ just like that in the definition of $\semst{\pe}$.
+  \item \textbf{Case $\Lam{\px}{\pe}$}:
+    The $\ValueT$ transition does not change the heap, but it transitions into a
+    return state. We have established in the previous point that the semantic
+    value $\FunV(f)$ fits our requirements for well-elaboratedness exactly,
+    hence well-elaboratedness for the trace follows.
+  \item \textbf{Case $\pe~\px$}:
+    The $\AppIT$ transition preserves well-elaboratedness to its target state, so
+    the input $σ'$ to $\semst{\pe}$ is well-elaborated. We apply the coinduction
+    hypothesis and and have $\elabtracen{α+1}{σ; \semst{\pe}(σ')}$.
+    Forward composition preserves well-elaboratedness, hence it suffices to
+    prove that given a well-elaborated input state $σ''$, $apply(σ'')$ is
+    well-elaborated.
+    That is the case if the occuring $f(\pa)(σ'')$ produces a well-elaborated
+    trace.
+    By $\elabstate{σ''}$, we know that $f$ must come from the
+    $\semst{\Lam{\px}{\pe'}}$ case.
+    $\AppET$ preserves well-elaboratedness to its target state and for
+    $\semst{\pe'}$ we can apply the coinductive hypothesis, concluding the argument.
+  \item \textbf{Case $\Let{\px}{\pe_1}{\pe_2}$}:
+    The $\LetT$ transition updates the heap, but it is clear that
+    $let(\semst{\pe_1})$ elaborates the correct $d_1$ into $σ'$.
+    For the recursive call, we apply the coinduction hypothesis
+    and conclude $\elabtracen{α+1}{σ; \semst{\pe_2}(σ')}$.
+\end{itemize}
+\end{proof}
+\begin{proof}
+  Let us abbreviate the property of interest to
+  \[
+    OK(d) = ∀σ. σ\text{ well-addressed} \Longrightarrow \validtrace{d(σ)}
+  \]
+  Let $σ$ be a well-addressed state.
+  For the first clause of $\semst{\wild}$, the proposition follows by
+  $\validtraceTriv$.
+
+  Every other clause of $\semst{\wild}$ is built from applications of
+  $\sfcomp$, $step$ or $apply$ and it suffices to show that these combinators
+  yield valid CESK traces when applied to $σ$.
+
+  We can see that $OK(d_1 \sfcomp d_2)$ whenever $OK(d_1)$ and $OK(d_2)$ holds,
+  because the destination state of $d_1(σ)$, if it exists, is well-addressed by
+  \Cref{lemma:preserve-well-addressed} and $OK(d_2)$ can be usefully applied.
+  An interesting case is when $d_1(σ)$ is infinite; then
+  $(d_1 \sfcomp d_2)(σ) = d_1(σ)$ and $\validtrace{(d_1 \sfcomp d_2)(σ)}$ follows
+  from $\validtrace{d_1(σ)}$.
+
+  We can see that $\validtrace{step(f)(σ)}$ whenever $f(σ)$ is undefined
+  (by $\validtraceTriv$) or $\validtrace{σ;f(σ)}$ (by $\validtraceTrans$).
+  Enumerating the arguments to $step$, we can see that $val, upd, app_1, app_2$
+  and $let$ follow $\ValueT, \UpdateT, \AppIT, \AppET$ and $\LetT$ closely by
+  making exactly one transition. That leaves $loop$, which corresponds to doing
+  one step with $\LookupT$ and then evaluating the heap-bound expression $\pe$
+  as expressed by $d$.
+
+  By (bi-)induction that is always the case.
+\end{proof}
+
+Let us begin by defining that a denotation $d$ is \emph{valid everywhere} when
+for every initial $σ$, we have $\validtrace{σ}$. This definition lets us express
+an important observation:
+
+We can now formulate our correctness theorem as follows:
+
+\begin{theorem}[Adequacy of the stateful trace semantics]
+Let $d = \semst{\pe}$. Then for all $ρ,μ$ with $\vdash_\Heaps μ$, we have $μ
+\vdash_\StateD \pe \sim_ρ d$.
+\end{theorem}
+
+\begin{corollary} Let $d = \semst{\pe}$. Then $π=d(\pe,[],[],\StopF)$ is a
+maximal trace for the transition semantics starting at $(\pe,[],[],\StopF)$.
+\end{corollary}
+

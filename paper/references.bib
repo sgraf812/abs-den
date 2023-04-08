@@ -324,3 +324,26 @@ series = {PLDI 2021}
   keywords = {Functional programming, Program derivation, Interpreters, Abstract machines, Closure conversion, CPS transformation, Defunctionalization},
   abstract = {We bridge the gap between compositional evaluators and abstract machines for the lambda-calculus, using closure conversion, transformation into continuation-passing style, and defunctionalization of continuations. This article is a followup of our article at PPDP 2003, where we consider call by name and call by value. Here, however, we consider call by need. We derive a lazy abstract machine from an ordinary call-by-need evaluator that threads a heap of updatable cells. In this resulting abstract machine, the continuation fragment for updating a heap cell naturally appears as an ‘update marker’, an implementation technique that was invented for the Three Instruction Machine and subsequently used to construct lazy variants of Krivine's abstract machine. Tuning the evaluator leads to other implementation techniques such as unboxed values. The correctness of the resulting abstract machines is a corollary of the correctness of the original evaluators and of the program transformations used in the derivation.}
 }
+
+@article{Milner:78,
+  title = {A theory of type polymorphism in programming},
+  journal = {Journal of Computer and System Sciences},
+  volume = {17},
+  number = {3},
+  pages = {348-375},
+  year = {1978},
+  issn = {0022-0000},
+  doi = {https://doi.org/10.1016/0022-0000(78)90014-4},
+  url = {https://www.sciencedirect.com/science/article/pii/0022000078900144},
+  author = {Robin Milner},
+  abstract = {The aim of this work is largely a practical one. A widely employed style of programming, particularly in structure-processing languages which impose no discipline of types, entails defining procedures which work well on objects of a wide variety. We present a formal type discipline for such polymorphic procedures in the context of a simple programming language, and a compile time type-checking algorithm W which enforces the discipline. A Semantic Soundness Theorem (based on a formal semantics for the language) states that well-type programs cannot “go wrong” and a Syntactic Soundness Theorem states that if W accepts a program then it is well typed. We also discuss extending these results to richer languages; a type-checking algorithm based on W is in fact already implemented and working, for the metalanguage ML in the Edinburgh LCF system.}
+}
+
+@misc{Czajka:2019,
+  title={Coinduction: an elementary approach},
+  author={Łukasz Czajka},
+  year={2019},
+  eprint={1501.04354},
+  archivePrefix={arXiv},
+  primaryClass={cs.LO}
+}
