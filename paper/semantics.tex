@@ -749,8 +749,16 @@ $\semst{\wild}$ conforms to its specification in \Cref{defn:semst-spec}.
 We will need some auxiliary lemmas about $step$ and $\sfcomp$ to simplify the
 proofs that follow. We will abbreviate
 \[
-  OK(d,σ) \triangleq src_\States(d(σ)) = σ \wedge \maxtrace{d(σ)} \wedge \elabtrace{d(σ)}
+  OK(d,σ) = src_\States(d(σ)) = σ \wedge \maxtrace{d(σ)} \wedge \elabtrace{d(σ)}
 \]
+
+\begin{lemma}
+  If $σ$ is well-elaborated, $\maxtrace{f(σ)}$ and $\elabtrace{f(σ)}$,
+  then $OK(step(f),σ)$.
+\end{lemma}
+\begin{proof}
+  For undefined $f$, $σ\trend$ is well-elaborated and
+\end{proof}
 
 \begin{lemma}
   If $OK(d_1,σ_1)$ and $OK(d_2, σ_2)$ whenever $σ_2 = tgt_\States(d(σ))$, then
@@ -776,9 +784,15 @@ analysis over $π_1 \triangleq d_1(σ_1)$.
 If $π_1 = σ_1\trend$, then $tgt_\States(π_1) = σ_1$ and
 $(d_1 \sfcomp d_2)(σ_1) = d_2(σ_1)$. The goal follows from the assumption
 $OK(d_2,σ_1)$.
-If $π_1 = σ_1; π_1'$ then $\elabstate{σ_1}$ and $σ_1 \smallstep
-src_\States(π_1')$ by the assumption $OK(d_1,σ_1)$.
-
+If $π_1 = σ_1; π_1'$, then $OK(\fn{\wild}{π_1'},src_\States(π_1'))$ is easily
+derived from the assumption $OK(d_1,σ_1)$ and we can apply the coinduction
+hypothesis to get
+$\elabtracen{α}{π_1' \sconcat d_2(tgt_\States(π_1'))}$ and
+$\maxtracen{α}{π_1' \sconcat d_2(tgt_\States(π_1'))}$.
+But $\elabstate{σ_1}$ and $σ_1 \smallstep src_\States(π_1')$ by the assumption
+$OK(d_1,σ_1)$.
+Hence $\elabtracen{α+1}{π_1 \sconcat d_2(tgt_\States(π_1))}$
+and $\maxtracen{α+1}{π_1 \sconcat d_2(tgt_\States(π_1))}$.
 
 \end{proof}
 
