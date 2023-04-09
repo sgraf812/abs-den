@@ -746,6 +746,42 @@ properties implied by our specification.
 Having a good grasp of the definition of $\semst{\wild}$ now, let us show that
 $\semst{\wild}$ conforms to its specification in \Cref{defn:semst-spec}.
 
+We will need some auxiliary lemmas about $step$ and $\sfcomp$ to simplify the
+proofs that follow. We will abbreviate
+\[
+  OK(d,σ) \triangleq src_\States(d(σ)) = σ \wedge \maxtrace{d(σ)} \wedge \elabtrace{d(σ)}
+\]
+
+\begin{lemma}
+  If $OK(d_1,σ_1)$ and $OK(d_2, σ_2)$ whenever $σ_2 = tgt_\States(d(σ))$, then
+  then $OK(d_1 \sfcomp d_2, σ_1)$.
+\end{lemma}
+\begin{proof}
+By coinduction, following~\citep{Czajka:2019}.
+The coinduction hypothesis is:
+\begin{gather*}
+  P(α) = ∀d_1,d_2,σ_1,σ_2.\ OK(d_1,σ_1) \wedge (σ_2 = tgt_\States(d(σ)) \Longrightarrow OK(d_2,σ_2)) \Longrightarrow \\ src_\States((d_1 \sfcomp d_2)(σ)) = σ \wedge \maxtracen{α}{(d_1 \sfcomp d_2)(σ)} \wedge \elabtracen{α}{(d_1 \sfcomp d_2)(σ_1)}
+\end{gather*}
+Where $α$ is a limit ordinal smaller than or equal to the closure ordinal $ζ$
+and $\elabtracen{α}{π}$ and $\maxtracen{α}{π}$ are the $α$-approximants of the
+coinductive predicates $\elabtrace{π}$ and $\maxtrace{π}$.
+
+We have $src_\States((d_1 \sfcomp d_2)(σ_1)) = src_\States(d_1(σ_1)) = σ_1$,
+where the former equality follows by calculating with $\sconcat$ and the latter
+equality follows by $OK(d_1,σ_1)$.
+
+If $d_1(σ_1)$ is infinite, we have $(d_1 \sfcomp d_2)(σ_1) = d_1(σ_1)$ and the
+goal follows from $OK(d_1,σ_1)$. So $d_1(σ_1)$ must be finite. Proceed by case
+analysis over $π_1 \triangleq d_1(σ_1)$.
+If $π_1 = σ_1\trend$, then $tgt_\States(π_1) = σ_1$ and
+$(d_1 \sfcomp d_2)(σ_1) = d_2(σ_1)$. The goal follows from the assumption
+$OK(d_2,σ_1)$.
+If $π_1 = σ_1; π_1'$ then $\elabstate{σ_1}$ and $σ_1 \smallstep
+src_\States(π_1')$ by the assumption $OK(d_1,σ_1)$.
+
+
+\end{proof}
+
 \begin{lemma}[S1]
   Let $σ$ be a state and $\pe$ its control expression.
   Then $σ$ is the source state of $\semst{\pe}(σ)$.
@@ -795,7 +831,8 @@ $pe$. We have $π_1 = σ$ by (S1) which is thus well-elaborated.
     Clearly, $σ' \triangleq (\pe, ρ', μ, \UpdateF(\pa) \pushF κ)$ is
     well-elaborated, because $σ$ is and the heap did not change.
     Similarly, by $\elabstate{σ}$ we have $d = \semst{\pe}$.
-    Now we apply the coinduction hypothesis to $π' = \semst{\pe}(σ')$ and see that
+    Now we apply the coinduction hypothesis to $π' = \semst{\pe}(σ')$
+    (noting that $\semst{\pe}$ is well-defined on $σ'$) and see that
     $\elabtracen{α}{π'}$, hence $\elabtracen{α+1}{σ; π'}$.
     If $π'$ is infinite, we are done.
     Otherwise, $σ_u \triangleq tgt_\States(π')$ is well-elaborated and if
@@ -844,9 +881,10 @@ framework.
 \end{lemma}
 \begin{proof}
 By coinduction, with the following hypothesis, similar to the proof of (S3):
-\[
+\[\begin{array}{c}
+  OK(α,d) = ∀σ.\ \elabstate{σ} \Longrightarrow \maxtracen{α}{d(σ)} \\
   P(α) = ∀σ,\pe.\ \elabstate{σ} \wedge (\pe = ctrl(σ)) \Longrightarrow \maxtracen{α}{\semst{\pe}(σ)}
-\]
+\end{array}\]
 Let us assume that $\elabstate{σ}$ for an arbitrary $σ$ with control expression
 $\pe$. Whenever $f(σ)$ is undefined for some $f$, we can see that
 $step(f)(σ) = σ\trend$ is well-elaborated. Furthermore, if both $g$ and $h$
@@ -868,7 +906,8 @@ $pe$. We have $π_1 = σ$ by (S1) which is thus well-elaborated.
     Clearly, $σ' \triangleq (\pe, ρ', μ, \UpdateF(\pa) \pushF κ)$ is
     well-elaborated, because $σ$ is and the heap did not change.
     Similarly, by $\elabstate{σ}$ we have $d = \semst{\pe}$.
-    Now we apply the coinduction hypothesis to $π' = \semst{\pe}(σ')$ and see that
+    Now we apply the coinduction hypothesis to $π' = \semst{\pe}(σ')$
+    (noting that $\semst{\pe}$ is well-defined on $σ'$) and see that
     $\elabtracen{α}{π'}$, hence $\elabtracen{α+1}{σ; π'}$.
     If $π'$ is infinite, we are done.
     Otherwise, $σ_u \triangleq tgt_\States(π')$ is well-elaborated and if
@@ -909,9 +948,6 @@ $pe$. We have $π_1 = σ$ by (S1) which is thus well-elaborated.
   \[
     OK(d) = ∀σ. σ\text{ well-addressed} \Longrightarrow \validtrace{d(σ)}
   \]
-  Let $σ$ be a well-addressed state.
-  For the first clause of $\semst{\wild}$, the proposition follows by
-  $\validtraceTriv$.
 
   Every other clause of $\semst{\wild}$ is built from applications of
   $\sfcomp$, $step$ or $apply$ and it suffices to show that these combinators
