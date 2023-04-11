@@ -39,49 +39,6 @@
   \label{fig:lk-syntax}
 \end{figure}
 
-% Note [On the role of labels]
-% ~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-% Simon does not like program labels; he'd much rather just talk about
-% the expressions those labels are attached to. Yet it is important for
-% the simplicity of analyses *not* to identify structurally equivalent
-% sub-expressions, example below.
-%
-% Our solution is to assume that every expression is implicitly labelled
-% (uniquely, so). When we use the expression as an index, we implicitly use the
-% label as its identity rather than its structure. When labels are explicitly
-% required, we can obtain them via the at() function.
-%
-% When do we *not* want structural equality on expressions? Example:
-%
-%   \g -> f a + g (f a)
-%
-% Now imagine that given a call to the lambda with an unknown `g`, we'd like to
-% find out which subexpressions are evaluated strictly. We could annotate our
-% AST like this
-%
-%   \g -> ((f^S a^L)^S + (g (f^L a^L)^L)^S)^S
-%
-% Note how the two different occurrences of `f a` got different annotations.
-%
-% For obvious utility (who wants to redefine the entire syntax for *every*
-% analysis?), we might want to maintain the analysis information *outside* of
-% the syntax tree, as a map `Expr -> Strictness`. But doing so would conflate
-% the entries for both occurrences of `f a`! So what we rather do is assume
-% that every sub-expression of the syntax tree is labelled with a unique token
-% l∈Label and then use that to maintain our external map `Label -> Strictness`.
-%
-% We write ⌊Expr⌋ to denote the set of expressions where labels are "erased",
-% meaning that structural equivalent expressions are identified.
-% The mapping `Label -> Expr` is well-defined and injective; the mapping
-% `Label -> ⌊Expr⌋` is well-defined and often *not* injective.
-% Conversely, `at : Expr -> Label` extracts the label of an expression, whereas
-% `⌊Expr⌋ -> Label` is not well-defined.
-%
-% Note that as long as a function is defined by structural recursion over an
-% expression, we'll never see two concrete, structurally equivalent expressions,
-% so it's OK to omit labels and use the expression we recurse over (and its immediate
-% subexpressions captured as meta variables) as if it contained the omitted labels.
-
 \subsection{Labelled Syntax}
 
 \Cref{fig:lk-syntax} defines syntax and semantics of $Λ$: An untyped,
@@ -785,7 +742,6 @@ expression in control, hence we abbreviate this set as
 \[
   \States_\pe \triangleq \{σ ∈ \States \mid \elabstate{σ} \wedge ctrl(σ)=\pe\},
 \]
-where $ctrl(σ)$ denotes the control component of $σ$.
 
 \begin{lemma}[S1]
   \label{thm:s1}
@@ -1005,6 +961,9 @@ $\pe$.
 \end{itemize}
 \end{proof}
 
+\Cref{thm:s2} is the key to proving a strong version of adequacy for
+$\semst{\wild}$:
+
 \begin{lemma}[Adequacy of $\semst{\wild}$]
   Let $π = \semst{\pe}(inj(\pe))$.
   \begin{itemize}
@@ -1067,6 +1026,11 @@ $\pe$.
       \end{itemize}
   \end{itemize}
 \end{proof}
+
+But there's more. Let us define the following binary relation $\equiv_\States$
+by coinduction:
+\[
+\]
 
 % \begin{theorem}[Full abstraction]
 %   \label{thm:full-abstraction}
