@@ -5,17 +5,14 @@
 \[\begin{array}{c}
  \arraycolsep=2pt
  \begin{array}{rrclcl}
-  \text{Program point}   & \pp      & ∈ & \ProgramPoints        &  =         & \{ \return \} ∪ \Exp \\
+  \text{Program point}   & \pp      & ∈ & \ProgramPoints        &  =         & \{ \return \} + \Exp \\
   \text{Actions}         & a        & ∈ & \Actions              & ::=        & \AppIA(d) \mid \AppEA(\px↦d) \mid \BindA(\px,\pa↦\pe,d) \\
                          &          &   &                       & \mid       & \LookupA(\pa) \mid \UpdateA(\pa) \mid \ValueA(v) \\
   \text{Finite Traces}   & π^+      & ∈ & \Traces^+             & ::=        & \pp\trend \mid \pp \act{a} π^+  \\
-  \text{Infinite Traces} & π^\infty & ∈ & \Traces^{\infty}      & ::=_{\gfp} & \pp \act{a} π^\infty \hspace{1ex} = \lim \Traces^+    \\
-  \text{Finite and infinite Traces} & π & ∈ & \Traces^{+\infty} & ::=_{\gfp} & \pp\trend \mid \pp \act{a} π \hspace{1ex} =  \Traces^+ ∪ \Traces^\infty    \\
+  \text{Finite and infinite Traces} & π & ∈ & \Traces^{+\infty} & ::=_{\gfp} & \pp\trend \mid \pp \act{a} π    \\
   \\
-  \text{Limit of a set of traces} & && \lim \mathcal{T} & = & \{ π \mid ∀n∈\mathbb{N}. π[0..n] ∈ \mathcal{T} \} \\
-  \\
-  \text{Domain of maximal traces} & d & ∈ & \MaxD   & ⊂ & \Traces^+ \to_c \Traces^{+\infty} \\
-  \text{Values}                   & v & ∈ & \Values{} & ::= & \FunV(\MaxD \to_c \MaxD) \\
+  \text{Domain of maximal traces} & d & ∈ & \MaxD   & = & \Traces^+ \to \Traces^{+\infty} \\
+  \text{Stateless values}                   & v & ∈ & \Values{} & ::= & \FunV(f ∈ \MaxD \to \MaxD) \\
  \end{array} \\
  \\[-0.5em]
  \ruleform{alloc : \Traces^+ \to \Addresses} \quad \text{an injective function on the number of $\BindA$ actions in the trace} \\
@@ -31,60 +28,149 @@
     \pp       & \text{if $π = ... \act{a} \pp\trend$}
   \end{cases} \\
  \end{array} \quad
- \begin{array}{c}
-  \ruleform{ π_1 \concat π_2 = π_3 } \\
+ \begin{array}{rcl}
+  \multicolumn{3}{c}{ \ruleform{ π_1 \concat π_2 = π_3 \qquad π_1 \subtrceq π_2 } } \\
   \\[-0.5em]
-  π_1 \concat π_2 = \begin{cases}
+  π_1 \concat π_2 & = & \begin{cases}
     \pp \act{a} (π_1' \concat π_2) & \text{if $π_1 = \pp \act{a} π_1'$} \\
     π_2                     & \text{if $π_1 = \pp\trend$ and $src(π_2) = \pp$} \\
     undefined               & \text{if $π_1 = \pp\trend$ and $src(π_2) \not= \pp$} \\
   \end{cases} \\
+  \\[-0.5em]
+  π_s \subtrceq π & = & \exists π_1, π_2.\ (π = π_1 \concat π_s \concat π_2)  \\
  \end{array} \\
  \\
- \begin{array}{ll}
-  \begin{array}{c}
-  \ruleform{ \getval{π}{(\pv,v)} }
+ \begin{array}{c}
+  \ruleform{ \getval{π^+}{(\pv,v)} } \\
   \\[-0.5em]
   \inferrule*[right=\textsc{ValVal}]
     {\quad}
-    {\getval{π^{+} \act{} \pv \act{\ValueA(v)} \return\trend}{(\pv,v)}} \\
-  \\[-0.5em]
+    {\getval{π^{+} \act{} \pv \act{\ValueA(v)} \return\trend}{(\pv,v)}}
+  \quad
   \inferrule*[right=\textsc{ValUpd}]
     {\getval{π^+}{(\pv,v)}}
     {\getval{π^{+} \act{\UpdateA(\wild)} \return\trend}{(\pv,v)}}
   \\[-0.5em]
-  \end{array} &
-  \begin{array}{c}
-  \ruleform{ \balanced{π} } \\
-  \\[-0.5em]
-  \inferrule*[right=\textsc{BalVal}]
-    {\quad}
-    {\balanced{\pp \act{\ValueA(v)} \return\trend}}
-  \qquad
-  \inferrule*[right=\textsc{BalApp}]
-    {\balanced{π_1}\quad\balanced{π_2}}
-    {\balanced{\pp \act{\AppIA} π_1 \act{\AppEA} π_2}} \\
-  \\[-0.5em]
-  \inferrule*[right=\textsc{BalVar}]
-    {\balanced{π}}
-    {\balanced{\pp \act{\LookupA(\wild)} π \act{\UpdateA(\wild)} \return\trend}}
-  \qquad
-  \inferrule*[right=\textsc{BalLet}]
-    {\balanced{π}}
-    {\balanced{\pp \act{\BindA} π}} \\
-  \\[-0.5em]
-  \end{array} \\
- \end{array} \\
+ \end{array}
 \end{array}\]
-\caption{Syntax of expressions, labels and traces}
-  \label{fig:syntax}
+\caption{Syntax of stateless traces}
+  \label{fig:stateless-syntax}
 \end{figure}
 
-Labelled expression:
-\begin{gather*}
-   \Let{x}{\Lam{y}{y}}{x~x~x)} \\
-   \slbln{1}\Let{x}{\slbln{2}(\Lam{y}{\slbln{3}y})\slbln{4}}{\slbln{5}(\slbln{6}(\slbln{7}x~x)~x)}
-\end{gather*}
+
+\subsection{Going stateless}
+
+In the previous section, we gave a compositional trace-based semantics and
+proved it adequate wrt. the LK machine semantics the traces of which it
+generates. With compositionality and structural induction we recover a strong
+advantage of denotational semantics.
+
+Unfortunately, it is still ergonomically lacking in the following ways:
+
+\begin{enumerate}
+  \item
+    In contrast to $\semscott{\wild}$, the lexical environment $ρ$ is buried in
+    the states of the generated traces (thus manipulated as ``data'') rather
+    than reflected into a parameter (``code'') of $\semst{\wild}$.
+    That makes it awkward to express properties of free variables in terms of
+    the semantics such as done in our notion of deadness \Cref{defn:deadness}.
+
+  \item
+    Similarly, the continuation stack (data) seems largely redundant with the
+    meta-level call stack of $\semst{\wild}$.
+
+  \item
+    In a trace $π = \semst{\pe}(σ)$, the interesting information is not so much
+    encoded in the states but in the particular instance of transition rule
+    taken. Furthermore, often it is not enough to regard the states in isolation
+    but also the transition taken.
+
+    In light of this, it would be consequent to rematerialise the heap $μ$ on
+    the fly from the history of previous transitions, so that the only remaining
+    information attached to a state becomes its label and whether or not it is a
+    return state (which can be regarded as a special label).
+    The result is a (more explicitly) \emph{labelled} transition system%
+    \footnote{Here, the use of ``label'' refers to the name of the transition
+    rule rather than the labelling of expressions.},
+    in which the transitions carry the bulk of the meaning.
+\end{enumerate}
+
+A \emph{stateless trace semantics} alluded to in the last point is the preferred
+framework of \citep{Cousot:21}, for example. We shall follow suit and provide a
+stateless maximal prefix trace semantics in the style of Cousot in
+\Cref{fig:seminf}.
+
+\Cref{fig:stateless-syntax} provides the new syntactic building blocks of the
+semantics. A \emph{program point} $\pp$ is either a return point $\return$ or a
+labelled expression; each program point defines one of finitely many
+control-flow nodes of the program. Actions $a$ correspond one-to-one to the
+transition rules of the LK machine, only they are now retained in an AST-like
+fashion in the trace instead of eliminated (via functions $app_1$, $app_2$,
+$bind$, \etc) to produce the successor state. Stateless traces $π$ carry the
+the transition taken as an action $a$. We re-use the same greek letter as in
+\Cref{sec:semantics} and disambiguate as needed. We consider inductively-defined
+finite traces $π^+$ a subtype of the potentially infinite and thus
+coinductively-defined traces $π$.
+
+Comparing the domain of maximal traces with the one for LK traces from
+\Cref{fig:lk-domain}, we can see that a finite \emph{initialisation trace} takes
+the place of the initial state as a parameter to a domain element $d$.
+Similarly, the use of $\Addresses$ in the definition of semantic values $v$ is
+replaced in favor of a seemingly more complex argument of type $\MaxD$; in
+practice the $d$ passed will be one-to-one to the address passed in the stateful
+semantics.
+
+\begin{figure}
+\[\begin{array}{c}
+ \begin{array}{rcl}
+  \multicolumn{3}{c}{ \ruleform{ \seminf{\wild} \colon \Exp → (\Var \pfun \MaxD) → \MaxD } } \\
+  \\[-0.5em]
+  \ternary{b}{t}{e} & = & \begin{cases} t & \text{if $b$ is true} \\ e & \text{otherwise} \\ \end{cases} \\
+  \\[-0.5em]
+  stuck(π_i^+)   & = & tgt(π_i^+)\trend \\
+  \\[-0.5em]
+  \stepm{p}{a}{\pp}(π_i^+)   & = & \begin{cases}
+    tgt(π_i^+) \act{a} \pp\trend & \text{if $tgt(π_i^+)$ matches $p$} \\
+    stuck(π_i^+) & \text{otherwise} \\
+  \end{cases} \\
+  \\[-0.5em]
+  (d_1 \fcomp d_2)(π_i^+)   & = & d_1(π_i^+) \concat d_2(π_i^+ \concat d_1(π_i^+)) \\
+  \\[-0.5em]
+  apply(d_\px)(π_\pe^+)   & = & \begin{cases}
+    f(d_\px)(π_\pe^+) & \text{if $\getval{π_\pe^+}{(\wild,\FunV(f))}$}  \\
+    stuck(π_\pe^+) & \text{otherwise}  \\
+  \end{cases} \\
+  \\[-0.5em]
+  μ(π_i^+)(\pa) & = & \begin{cases}
+    (\pv, \stepm{\pv}{\ValueA(v)}{\return}) & \text{if $π_{\pv} \act{\UpdateA(\pa)} \return \trend \subtrceq π_i^+$ and $\getval{π_{\pv}}{(\pv,v)}$} \\
+    (\pe, d) & \text{if $\wild \act{\BindA(\px,\pa↦\pe,d)} \wild\, \trend \subtrceq π_i^+$} \\
+  \end{cases}  \\
+  \\[-0.5em]
+  deref(\pa)(π_i^+)   & = & (\step{\LookupA(\pa)}{\pe} \fcomp d \fcomp \stepm{\return}{\UpdateA(\pa)}{\return})(π_i^+) \text{ where $(\pe,d) = μ(π_i^+)(\pa)$} \\
+  \\[-0.5em]
+  \seminf{\pe}_ρ    (π_i^+)   & = & undefined \qquad \text{if $tgt(π_i^+) \not= \pe$} \\
+  \\[-0.5em]
+  \seminf{\px}_ρ              & = & \ternary{\px ∈ \dom(ρ)}{ρ(\px)}{stuck} \\
+  \\[-0.5em]
+  \seminf{\Lam{\px}{\pe}}_ρ & = &
+    \begin{letarray}
+      \text{let} & f = d ↦ \stepm{\return}{\AppEA(\px↦d)}{\pe} \fcomp \seminf{\pe}_{ρ[\px↦d]} \\
+      \text{in}  & \step{\ValueA(\FunV(f))}{\return} \\
+    \end{letarray} \\
+  \\[-0.5em]
+  \seminf{\pe~\px}_ρ & = & \ternary{\px ∈ \dom(ρ)}{\step{\AppIA(ρ(x))}{\pe} \fcomp \seminf{\pe}_ρ \fcomp apply(ρ(\px))}{stuck} \\
+  \\[-0.5em]
+  \seminf{\Let{\px}{\pe_1}{\pe_2}}_ρ(π_i^+) & = &
+    \begin{letarray}
+      \text{let} & \pa = alloc(π_i^+) \\
+                 & ρ' = ρ[\px ↦ deref(\pa)] \\
+      \text{in}  & (\step{\BindA(\px,\pa↦\pe_1,\seminf{\pe_1}_{ρ'})}{\pe_2} \fcomp \seminf{\pe_2}_{ρ'})(π_i^+)
+    \end{letarray} \\
+ \end{array} \\
+\end{array}\]
+\caption{Stateless Maximal Trace Semantics}
+  \label{fig:seminf}
+\end{figure}
 
 Trace of the expression:
 \[
@@ -97,66 +183,6 @@ Trace of the expression:
             & \act{\LookupA} \lbln{2} \act{\ValueA(\FunV(f))} \lbln{4}
 \end{array}
 \]
-
-\begin{figure}
-\[\begin{array}{c}
- \begin{array}{rcl}
-  \multicolumn{3}{c}{ \ruleform{ \seminf{\wild} \colon \Exp → (\Var \pfun \MaxD) → \MaxD } } \\
-  \\[-0.5em]
-  \ternary{b}{t}{e} & = & \begin{cases} t & \text{if $b$ is true} \\ e & \text{otherwise} \\ \end{cases} \\
-  \\[-0.5em]
-  \bot(π_i^+)   & = & tgt(π_i^+)\trend \text{ is the bottom element of $\MaxD$} \\
-  \\[-0.5em]
-  \stepm{p}{a}{\pp}(π_i^+)   & = & \begin{cases}
-    tgt(π_i^+) \act{a} \pp\trend & \text{if $tgt(π_i^+)$ matches $p$} \\
-    \bot(π_i^+) & \text{otherwise} \\
-  \end{cases} \\
-  \\[-0.5em]
-  (d_1 \fcomp d_2)(π_i^+)   & = & d_1(π_i^+) \concat d_2(π_i^+ \concat d_1(π_i^+)) \\
-  \\[-0.5em]
-  apply(d_\px)(π_\pe^+)   & = & \begin{cases}
-    f(d_\px)(π_\pe^+) & \text{if $\getval{π_\pe^+}{(\wild,\FunV(f))}$}  \\
-    \bot(π_\pe^+) & \text{otherwise}  \\
-  \end{cases} \\
-  \\[-0.5em]
-  π_s \subtrceq π & = & \exists π_1, π_2.\ (π = π_1 \concat π_s \concat π_2)  \\
-  \\[-0.5em]
-%  μ(π_i^+)(\pa) & = & \begin{cases}
-%    (\pv, v) & \text{if $\pv \act{\ValueA(v)} \return \left(\act{\UpdateA(\wild)} \return \right)^* \act{\UpdateA(\pa)} \return \trend \subtrceq π_i^+$} \\
-%    undefined & \text{otherwise} \\
-%  \end{cases}  \\
-%  \\[-0.5em]
-
-  μ(π_i^+)(\pa) & = & \begin{cases}
-    (\pv, \stepm{\pv}{\ValueA(v)}{\return}) & \text{if $π_{\pv} \act{\UpdateA(\pa)} \return \trend \subtrceq π_i^+$ and $\getval{π_{\pv}}{(\pv,v)}$} \\
-    (\pe, d) & \text{if $\wild \act{\BindA(\px,\pa↦\pe,d)} \wild\, \trend \subtrceq π_i^+$} \\
-  \end{cases}  \\
-  \\[-0.5em]
-  deref(\pa)(π_i^+)   & = & (\step{\LookupA(\pa)}{\pe} \fcomp d \fcomp \stepm{\return}{\UpdateA(\pa)}{\return})(π_i^+) \text{ where $(\pe,d) = μ(π_i^+)(\pa)$} \\
-  \\[-0.5em]
-  \seminf{\pe}_ρ    (π_i^+)   & = & \bot(π_i^+) \qquad \text{if $tgt(π_i^+) \not= \pe$} \\
-  \\[-0.5em]
-  \seminf{\px}_ρ              & = & \ternary{\px ∈ \dom(ρ)}{ρ(\px)}{\bot} \\
-  \\[-0.5em]
-  \seminf{\Lam{\px}{\pe}}_ρ & = &
-    \begin{letarray}
-      \text{let} & f = d ↦ \stepm{\return}{\AppEA(\px↦d)}{\pe} \fcomp \seminf{\pe}_{ρ[\px↦d]} \\
-      \text{in}  & \step{\ValueA(\FunV(f))}{\return} \\
-    \end{letarray} \\
-  \\[-0.5em]
-  \seminf{\pe~\px}_ρ & = & \ternary{\px ∈ \dom(ρ)}{\step{\AppIA(ρ(x))}{\pe} \fcomp \seminf{\pe}_ρ \fcomp apply(ρ(\px))}{\bot} \\
-  \\[-0.5em]
-  \seminf{\Let{\px}{\pe_1}{\pe_2}}_ρ(π_i^+) & = &
-    \begin{letarray}
-      \text{let} & \pa = alloc(π_i^+) \\
-                 & ρ' = ρ[\px ↦ deref(\pa)] \\
-      \text{in}  & (\step{\BindA(\px,\pa\pa↦\pe_1,\seminf{\pe_1}_{ρ'})}{\pe_2} \fcomp \seminf{\pe_2}_{ρ'})(π_i^+)
-    \end{letarray} \\
- \end{array} \\
-\end{array}\]
-\caption{Stateless Maximal Trace Semantics}
-  \label{fig:semantics}
-\end{figure}
 
 % Note [Design of Maximal Trace Semantics]
 % ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -267,11 +293,17 @@ Trace of the expression:
 %   * Values: It is convenient to attach values to Val actions; this is not strictly
 %     necessary, just convenient. (See page 4 of 61e6f8a, quite ugly.)
 
+\subsection{Abstraction}
+
+% 1. Move Lookup into Env; have Env = Name :-> D and let its action look into
+%    the Heap. Requires a bit of tricky setup in let_
+% 2. Move the Env to meta level
+% 3. Realise that we can now get rid of the stack, since everything happens
+%    on the meta call stack
+% 4. Materialise the state as needed during memo
+
 \begin{figure}
-\[\begin{array}{c}
- \begin{array}{rcl}
-  \multicolumn{3}{c}{ \ruleform{ α^{\States} : ((\Var \pfun \MaxD) \to \MaxD) \to \StateD } } \\
-  \\[-0.5em]
+\[\begin{array}{rcl}
   μ_ρ(π)(\pa) & = & \begin{cases}
     \varrho(π_1) & \text{if $π_1 \act{\UpdateA(\pa)} \return \concat π_2 = π$} \\
     \varrho(π_1 \act{\BindA(\px,\pa↦\pe,d)} \pp) & \text{if $π_1 \act{\BindA(\px,\pa↦\pe,d)} \pp \concat π_2 = π$} \\
@@ -280,13 +312,21 @@ Trace of the expression:
   \varrho(π \act{\AppEA(\px↦d)} \pp\trend)(\px) & = & d \\
   \varrho(π \act{\LookupA(\pa)} \pp\trend)(\px) & = & μ_ρ(π)(\pa)(\px) \\
   \varrho(π \act{a} \pp\trend)(\px) & = & \varrho(π)(\px) \\
-  \\
+\end{array}\]
+\caption{Materialising heap and environment from an initialisation trace}
+  \label{fig:materialisation}
+\end{figure}
+
+\begin{figure}
+\[\begin{array}{c}
+ \begin{array}{rcl}
+  \multicolumn{3}{c}{ \ruleform{ α^{\States} : ((\Var \pfun \MaxD) \to \MaxD) \to \StateD } } \\
+  \\[-0.5em]
   deref^{-1}(d) & = & \pa \text{ such that $d = deref(\pa)$} \\
   tgt_\States^{-1}(σ) & = & π \text{ such that $\validtrace{π}$ and $tgt_\States(π) = σ$} \\
-  \\
+  \\[-0.5em]
   α_{\STraces}(π_i^+, \pp\trend) & = & α_{\States}(π_i^+ \concat \pp\trend)\trend \\
   α_{\STraces}(π_i^+, π \act{a} \pp\trend) & = & α_{\STraces}(π_i^+,π); α_{\States}(π_i^+ \concat π \act{a} \pp\trend)\trend \\
-
   α_{\States}(π) & = & (α_{\Control}(π,tgt(π)), α_{\Environments}(\varrho(π)), α_{\Heaps}(π) \circ μ(π), α_{\Continuations}(π)) \\
   α_{\Control}(π, \return) & = & (\pv,α_{\StateV}(v)) \text{ where $\getval{π}{(\pv,v)}$} \\
   α_{\Control}(π, \pe) & = & \pe \\
@@ -299,15 +339,15 @@ Trace of the expression:
   α_{\Continuations}(π \act{\AppEA(\px↦d)}   \pp\trend) & = & κ \text{ where $α_{\Continuations}(π) = \ApplyF(deref^{-1}(d)) \pushF κ$} \\
   α_{\Continuations}(π \act{} \pp\trend) & = & α_{\Continuations}(π) \\
   α_{\StateD}(d) & = & (\fn{π}{α_{\STraces}(π,d(π))) \circ γ_{\STraces} \circ tgt_\States^{-1}} \\
-  γ_{\StateD}(d) & = & γ_{\STraces} \circ d \circ tgt_\States \circ α_{\STraces} \\
   α_{\StateV}(\FunV(f)) & = & \FunV(α_{\StateD} \circ f \circ deref) \\
+  γ_{\StateD}(d) & = & γ_{\STraces} \circ d \circ tgt_\States \circ α_{\STraces} \\
   γ_{\StateV}(\FunV(f)) & = & \FunV(γ_{\StateD} \circ f \circ deref^{-1}) \\
   γ_{\STraces}(σ\trend) & = & γ_{\States}(σ)\trend \\
   γ_{\STraces}(π; σ\trend) & = & γ_{\STraces}(π) \act{γ_{\Actions}(tgt_\States(π) \smallstep σ)} γ_{\States}(π; σ\trend)\trend \\
   γ_{\States}(γ,\wild,\wild,\wild) & = & α_{\Control}(γ) \\
   γ_{\Control}((\pv,v)) & = & \return \\
   γ_{\Control}(\pe) & = & \pe \\
-  γ_{\Actions}(\LetT(\px,\pa,\pe_1,d)) & = & \BindA(\px,\pa↦\pe_1,γ_{\StateD}(d)) \\
+  γ_{\Actions}(\BindT(\px,\pa,\pe_1,d)) & = & \BindA(\px,\pa↦\pe_1,γ_{\StateD}(d)) \\
   γ_{\Actions}(\UpdateT(\pa)) & = & \UpdateA(\pa) \\
   γ_{\Actions}(\LookupT(\pa)) & = & \LookupA(\pa) \\
   γ_{\Actions}(\AppIT(\pa)) & = & \AppIA(deref(\pa)) \\
@@ -364,44 +404,6 @@ Trace of the expression:
 
 \begin{figure}
 \[\begin{array}{c}
-  \ruleform{ \sempref{\wild} \colon \Exp → (\Var → \PrefD) → \PrefD } \\
-  \\[-0.5em]
-  cons(a,\lbl,S)(π_i^+)   = \{\; tgt(π_i^+) \act{a} π_o \mid π_o ∈ S(π_i^+ \act{a} \lbl) \;\} \\
-  \\[-0.5em]
-  \inferrule*[right=\textsc{Bot}]
-    {\quad}
-    {tgt(π) ∈ \sempref{\slbl \pe}_ρ(π)}
-  \qquad
-  \inferrule*[right=\textsc{Var}]
-    {π_c ∈ ρ(\px)(π_i^+)}
-    {π_c ∈ \sempref{\slbl \px}_ρ(π_i^+)} \\
-  \\[-0.5em]
-  \inferrule*[right=\textsc{Let}]
-    {   ρ' = \lfp(λρ'. ρ ⊔ [\px ↦ cons(\LookupA(hash(π_i^+)),\atlbl{\pe_1},\sempref{\pe_1}_{ρ'})])
-     \\ π_c ∈ cons(\BindA,\atlbl{\pe_2},\sempref{\pe_2}_{ρ'})(π_i^+)}
-    {π_c ∈ \sempref{\slbl(\Let{\px}{\pe_1}{\pe_2})}_ρ(π_i^+)} \\
-  \\[-0.5em]
-  \inferrule*[right=\textsc{Lam}]
-    {f = d ↦ cons(\AppEA,\atlbl{\pe},\sempref{\pe}_{ρ[\px↦d]})}
-    {\lbln{1} \act{\ValueA(\FunV(f))} \lbln{2} ∈ \sempref{\slbln{1}(\Lam{\px}{\pe})\slbln{2}}_ρ(π_i^+)} \qquad
-  \inferrule*[right=$\textsc{App}_1$]
-    {π_c ∈ cons(\AppIA,\atlbl{\pe},\sempref{\pe}_ρ)(π_i^+)}
-    {π_c ∈ \sempref{\slbl(\pe~\px)}_ρ(π_i^+)} \\
-  \\[-0.5em]
-  \inferrule*[right=$\textsc{App}_2$]
-    {\balanced{π_e} \quad π_e ∈ cons(\AppIA,\atlbl{\pe},\sempref{\pe}_ρ)(π_i^+)
-    \\\\ \getval{π_e}{\FunV(f)} \qquad π_f ∈ f(ρ(\px))(π_i^+ \act{\AppIA} π_e)}
-    {\lbl \act{\AppIA} π_e \concat π_f ∈ \sempref{\slbl(\pe~\px)}_ρ(π_i^+)} \\
-  \\
-
-  \\[-0.5em]
-\end{array}\]
-\caption{Structural Deductive Stateless Prefix Trace Semantics for call-by-name lambda calculus}
-  \label{fig:semantics}
-\end{figure}
-
-\begin{figure}
-\[\begin{array}{c}
  \begin{array}{rrclcl}
   \text{Constructors} &     K & ∈ & \Con     & \subseteq & \Nat \\
   \text{Expressions}  &   \pe & ∈ & \Exp     & ::=       & \ldots \mid K~\many{\px} \mid \Case{\pe}{\Sel} \\
@@ -423,7 +425,7 @@ Trace of the expression:
   \\[-0.5em]
   \seminf{\Case{\pe_s}{\Sel}}_ρ(π_i^+) & = & π_s \concat \begin{cases}
       Rhs(K,\many{d})(π_i^+ \concat π_s) & \text{if $\getval{π_s}{\ConV(K,\many{d})}$}  \\
-      \bot(π_i^+ \concat π_s) & \text{otherwise}  \\
+      stuck(π_i^+ \concat π_s) & \text{otherwise}  \\
     \end{cases} \\
     & & \text{where} \begin{array}{lcl}
                        π_s & = & cons( \CaseIA, \pe_s,\seminf{\pe_s}_ρ)(π_i^+) \\
