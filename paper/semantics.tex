@@ -363,12 +363,11 @@ That is enough to begin ``calculating'' an elaborated trace with $\semst{\wild}$
 \[
   \semst{\Lam{x}{x}}(\Lam{x}{x}, ρ, μ, κ) = (\Lam{x}{x}, ρ, μ, κ); ((\Lam{x}{x},\FunV(f)), ρ, μ, κ)\trend
 \]
-This undoubtedly is a maximal trace, but what is $f$ supposed to do?
-Like function values in denotational semantics, $f$ corresponds to the
-\emph{reflection} of the lambda expression into the meta language (of Scott
-domains), to model beta reduction in a way that is compatible with a structural
-definition.
-The $f$ here serves a similar purpose, guiding the $\AppET$ rule.
+This undoubtedly is a maximal trace because it is balanced.
+But what is $f$ supposed to do?
+Like function values in denotational semantics, $f$ \emph{reflects} beta
+reduction of the transition system into the meta language of Scott domains.
+Thus the $f$ here is meant to guide the $\AppET$ rule.
 The following required equation captures this intuition:
 \[
   f(\pa)((\Lam{x}{x},\FunV(f)), ρ, μ, \ApplyF(\pa) \pushF κ) = ((\Lam{x}{x},\FunV(f)), ρ, μ, \ApplyF(\pa) \pushF κ); \semst{x}(x, ρ[x ↦ \pa], μ, κ)
@@ -378,9 +377,10 @@ stack matches that of $f$'s first argument.
 The free variables $\pa,ρ,μ,κ$ of this equation are intended to be universally
 quantified; that is, it matches all states where the lambda expression is
 applied.
-Note also that $f$ closes over the semantics of the sub-program $\semst{x}$;
-this is what ultimately enables a structural definition because it turns
-``code'' for the recursive invocation into ``data''.
+Note also that $f$ closes over the semantics of the sub-program $\semst{x}$.
+This is possible only thanks to the ability of Scott domains to turn the
+``code'' (\eg, continuous functions) for the recursive invocation into ``data'',
+and it is what ultimately enables a structural definition!
 
 In general, semantic values pop exactly one frame from the stack and then produce
 another balanced trace of the redex. This statement extends to other kinds of
