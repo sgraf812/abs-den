@@ -432,12 +432,11 @@ Let $σ$ be a well-elaborated state and $\pe$ its control expression. Then
  \begin{array}{rcl}
   \multicolumn{3}{c}{ \ruleform{ \semst{\wild} \colon \Exp → \StateD } } \\
   \\[-0.5em]
-  (d_1 \sfcomp d_2)(σ) & = & d_1(σ) \sconcat d_2(tgt_\States(d_1(σ))) \\
+  \ternary{b}{t}{e} & = & \begin{cases} t & \text{if $b$ is true} \\ e & \text{otherwise} \\ \end{cases} \\
   \\[-0.5em]
-  step(f)(σ) & = & \begin{cases}
-    σ; f(σ)     & \text{if $f(σ)$ is defined} \\
-    σ\trend & \text{otherwise} \\
-  \end{cases} \\
+  (d_1 \sfcomp d_2)(σ) & = & \ternary{d_1(σ) = σ\trend}{σ\trend}{d_1(σ) \sconcat d_2(tgt_\States(d_1(σ)))} \\
+  \\[-0.5em]
+  step(f)(σ) & = & \ternary{σ ∈ \dom(f)}{σ; f(σ)}{σ\trend} \\
   \\[-0.5em]
   val(\pv,v)(\pv,ρ,μ,κ) & = & ((\pv,v),ρ,μ,κ) \trend \\
   \\[-0.5em]
