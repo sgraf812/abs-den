@@ -464,11 +464,6 @@ Let $σ$ be a well-elaborated state and $\pe$ its control expression. Then
     σ \trend & \text{otherwise} \\
   \end{cases} \\
   \\[-0.5em]
-  % We need this case, otherwise we'd continue e.g.
-  %   S[x]((sv,v),ρ,μ,upd(a).κ) = ((sv,v),ρ,μ,upd(a).κ); ((sv,v),ρ,μ[a...],κ)
-  % Because of how the composition operator works.
-  \semst{\pe}(σ) & = & undefined \text{ if the control of $σ$ is not $\pe$} \\
-  \\[-0.5em]
   \semst{\px} & = & step(look(\px)) \sfcomp step(upd) \\
   \\[-0.5em]
   \semst{\Lam{\px}{\pe}} & = & \begin{letarray}
