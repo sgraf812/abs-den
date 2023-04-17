@@ -93,6 +93,8 @@
 \newcommand{\return}{\rotatebox[origin=c]{180}{$\hspace{0.7pt}\Rsh$}}
 \newcommand{\Traces}{\mathbb{T}}
 \newcommand{\act}[1]{\xrightarrow{#1}}
+\newcommand{\sing}[1]{\langle #1 \rangle}
+\newcommand{\cons}{\mathbin{::}}
 \newcommand{\trend}{\raisebox{-0.8pt}{\scalebox{0.3}{$\square$}}}
 % https://latex.org/forum/viewtopic.php?p=62177&sid=26890ac77d076f3338384a47a2ffd4bc#p62177
 \makeatletter
@@ -195,7 +197,7 @@
 \newcommand{\LookupT}{\textsc{Look}}
 \newcommand{\UpdateT}{\textsc{Upd}}
 \newcommand{\BindT}{\textsc{Bind}}
-\newcommand{\validtrace}[1]{#1\,\mathsf{ok\text{-}}π}
+\newcommand{\validtrace}[1]{#1\,\mathsf{ok\text{-}}τ}
 \newcommand{\validtraceTriv}{\textsc{ok}_1}
 \newcommand{\validtraceTrans}{\textsc{ok}_2}
 \newcommand{\deep}[2]{#1\,\mathsf{deep}\,#2}
@@ -206,8 +208,8 @@
 \newcommand{\maxtrace}[1]{#1\,\mathsf{max}}
 \newcommand{\maxtracen}[2]{#2\,\mathsf{max}^{#1}}
 \newcommand{\elabstate}[1]{#1\,\mathsf{elab}_σ}
-\newcommand{\elabtrace}[1]{#1\,\mathsf{elab}_π}
-\newcommand{\elabtracen}[2]{#2\,\mathsf{elab}_π^{#1}}
+\newcommand{\elabtrace}[1]{#1\,\mathsf{elab}_τ}
+\newcommand{\elabtracen}[2]{#2\,\mathsf{elab}_τ^{#1}}
 \newcommand{\contextendsflipped}{⊑_\Continuations}
 \newcommand{\contextends}{⊒_\Continuations}
 \newcommand{\contextendsstrict}{⊐_\Continuations}

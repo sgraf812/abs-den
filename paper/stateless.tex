@@ -8,8 +8,8 @@
   \text{Program point}   & \pp      & ∈ & \ProgramPoints        &  =         & \{ \return \} + \Exp \\
   \text{Actions}         & a        & ∈ & \Actions              & ::=        & \AppIA(d) \mid \AppEA(\px↦d) \mid \BindA(\px,\pa↦\pe,d) \\
                          &          &   &                       & \mid       & \LookupA(\pa) \mid \UpdateA(\pa) \mid \ValueA(v) \\
-  \text{Finite Traces}   & π^+      & ∈ & \Traces^+             & ::=        & \pp\trend \mid \pp \act{a} π^+  \\
-  \text{Finite and infinite Traces} & π & ∈ & \Traces^{+\infty} & ::=_{\gfp} & \pp\trend \mid \pp \act{a} π    \\
+  \text{Finite Traces}   & τ^+      & ∈ & \Traces^+             & ::=        & \pp\trend \mid \pp \act{a} τ^+  \\
+  \text{Finite and infinite Traces} & τ & ∈ & \Traces^{+\infty} & ::=_{\gfp} & \pp\trend \mid \pp \act{a} τ    \\
   \\
   \text{Domain of maximal traces} & d & ∈ & \MaxD   & = & \Traces^+ \to \Traces^{+\infty} \\
   \text{Stateless values}                   & v & ∈ & \Values{} & ::= & \FunV(f ∈ \MaxD \to \MaxD) \\
@@ -18,38 +18,38 @@
  \ruleform{alloc : \Traces^+ \to \Addresses} \quad \text{an injective function on the number of $\BindA$ actions in the trace} \\
  \\
  \begin{array}{rcl}
-  \multicolumn{3}{c}{ \ruleform{ src(π) = \pp \qquad tgt(π) = \pp } } \\
+  \multicolumn{3}{c}{ \ruleform{ src(τ) = \pp \qquad tgt(τ) = \pp } } \\
   \\[-0.5em]
   src(\pp\trend)     & = & \pp \\
-  src(\pp \act{a} π) & = & \pp \\
+  src(\pp \act{a} τ) & = & \pp \\
   \\[-0.5em]
-  tgt(π)    & = & \begin{cases}
-    undefined & \text{if $π$ infinite} \\
-    \pp       & \text{if $π = ... \act{a} \pp\trend$}
+  tgt(τ)    & = & \begin{cases}
+    undefined & \text{if $τ$ infinite} \\
+    \pp       & \text{if $τ = ... \act{a} \pp\trend$}
   \end{cases} \\
  \end{array} \quad
  \begin{array}{rcl}
-  \multicolumn{3}{c}{ \ruleform{ π_1 \concat π_2 = π_3 \qquad π_1 \subtrceq π_2 } } \\
+  \multicolumn{3}{c}{ \ruleform{ τ_1 \concat τ_2 = τ_3 \qquad τ_1 \subtrceq τ_2 } } \\
   \\[-0.5em]
-  π_1 \concat π_2 & = & \begin{cases}
-    \pp \act{a} (π_1' \concat π_2) & \text{if $π_1 = \pp \act{a} π_1'$} \\
-    π_2                     & \text{if $π_1 = \pp\trend$ and $src(π_2) = \pp$} \\
-    undefined               & \text{if $π_1 = \pp\trend$ and $src(π_2) \not= \pp$} \\
+  τ_1 \concat τ_2 & = & \begin{cases}
+    \pp \act{a} (τ_1' \concat τ_2) & \text{if $τ_1 = \pp \act{a} τ_1'$} \\
+    τ_2                     & \text{if $τ_1 = \pp\trend$ and $src(τ_2) = \pp$} \\
+    undefined               & \text{if $τ_1 = \pp\trend$ and $src(τ_2) \not= \pp$} \\
   \end{cases} \\
   \\[-0.5em]
-  π_s \subtrceq π & = & \exists π_1, π_2.\ (π = π_1 \concat π_s \concat π_2)  \\
+  τ_s \subtrceq τ & = & \exists τ_1, τ_2.\ (τ = τ_1 \concat τ_s \concat τ_2)  \\
  \end{array} \\
  \\
  \begin{array}{c}
-  \ruleform{ \getval{π^+}{(\pv,v)} } \\
+  \ruleform{ \getval{τ^+}{(\pv,v)} } \\
   \\[-0.5em]
   \inferrule*[right=\textsc{ValVal}]
     {\quad}
-    {\getval{π^{+} \act{} \pv \act{\ValueA(v)} \return\trend}{(\pv,v)}}
+    {\getval{τ^{+} \act{} \pv \act{\ValueA(v)} \return\trend}{(\pv,v)}}
   \quad
   \inferrule*[right=\textsc{ValUpd}]
-    {\getval{π^+}{(\pv,v)}}
-    {\getval{π^{+} \act{\UpdateA(\wild)} \return\trend}{(\pv,v)}}
+    {\getval{τ^+}{(\pv,v)}}
+    {\getval{τ^{+} \act{\UpdateA(\wild)} \return\trend}{(\pv,v)}}
   \\[-0.5em]
  \end{array}
 \end{array}\]
@@ -80,7 +80,7 @@ Unfortunately, it is still ergonomically lacking in the following ways:
     meta-level call stack of $\semst{\wild}$.
 
   \item
-    In a trace $π = \semst{\pe}(σ)$, the interesting information is not so much
+    In a trace $τ = \semst{\pe}(σ)$, the interesting information is not so much
     encoded in the states but in the particular instance of transition rule
     taken. Furthermore, often it is not enough to regard the states in isolation
     but also the transition taken.
@@ -106,11 +106,11 @@ labelled expression; each program point defines one of finitely many
 control-flow nodes of the program. Actions $a$ correspond one-to-one to the
 transition rules of the LK machine, only they are now retained in an AST-like
 fashion in the trace instead of eliminated (via functions $app_1$, $app_2$,
-$bind$, \etc) to produce the successor state. Stateless traces $π$ carry the
+$bind$, \etc) to produce the successor state. Stateless traces $τ$ carry the
 the transition taken as an action $a$. We re-use the same greek letter as in
 \Cref{sec:semantics} and disambiguate as needed. We consider inductively-defined
-finite traces $π^+$ a subtype of the potentially infinite and thus
-coinductively-defined traces $π$.
+finite traces $τ^+$ a subtype of the potentially infinite and thus
+coinductively-defined traces $τ$.
 
 Comparing the domain of maximal traces with the one for LK traces from
 \Cref{fig:lk-domain}, we can see that a finite \emph{initialisation trace} takes
@@ -125,28 +125,31 @@ semantics.
  \begin{array}{rcl}
   \multicolumn{3}{c}{ \ruleform{ \seminf{\wild} \colon \Exp → (\Var \pfun \MaxD) → \MaxD } } \\
   \\[-0.5em]
-  stuck(π_i^+)   & = & tgt(π_i^+)\trend \\
+  stuck(τ_i^+)   & = & tgt(τ_i^+)\trend \\
   \\[-0.5em]
-  \stepm{p}{a}{\pp}(π_i^+)   & = & \begin{cases}
-    tgt(π_i^+) \act{a} \pp\trend & \text{if $tgt(π_i^+)$ matches $p$} \\
-    stuck(π_i^+) & \text{otherwise} \\
+  \stepm{p}{a}{\pp}(τ_i^+) & = &
+    \ternary{\text{$tgt(τ_i^+)$ matches $p$}}
+            {tgt(τ_i^+) \act{a} \pp\trend}
+            {tgt(τ_i^+)\trend} \\
+  \\[-0.5em]
+  (d_1 \fcomp d_2)(τ_i^+)   & = &
+    \ternary{d_1(τ_i^+) = tgt(τ_i^+)\trend}
+            {tgt(τ_i^+)}
+            {d_1(τ_i^+) \concat d_2(τ_i^+ \concat d_1(τ_i^+))} \\
+  \\[-0.5em]
+  apply(d_\px)(τ_\pe^+)   & = & \begin{cases}
+    f(d_\px)(τ_\pe^+) & \text{if $\getval{τ_\pe^+}{(\wild,\FunV(f))}$}  \\
+    stuck(τ_\pe^+) & \text{otherwise}  \\
   \end{cases} \\
   \\[-0.5em]
-  (d_1 \fcomp d_2)(π_i^+)   & = & d_1(π_i^+) \concat d_2(π_i^+ \concat d_1(π_i^+)) \\
-  \\[-0.5em]
-  apply(d_\px)(π_\pe^+)   & = & \begin{cases}
-    f(d_\px)(π_\pe^+) & \text{if $\getval{π_\pe^+}{(\wild,\FunV(f))}$}  \\
-    stuck(π_\pe^+) & \text{otherwise}  \\
-  \end{cases} \\
-  \\[-0.5em]
-  μ(π_i^+)(\pa) & = & \begin{cases}
-    (\pv, \stepm{\pv}{\ValueA(v)}{\return}) & \text{if $π_{\pv} \act{\UpdateA(\pa)} \return \trend \subtrceq π_i^+$ and $\getval{π_{\pv}}{(\pv,v)}$} \\
-    (\pe, d) & \text{if $\wild \act{\BindA(\px,\pa↦\pe,d)} \wild\, \trend \subtrceq π_i^+$} \\
+  μ(τ_i^+)(\pa) & = & \begin{cases}
+    (\pv, \stepm{\pv}{\ValueA(v)}{\return}) & \text{if $τ_{\pv} \act{\UpdateA(\pa)} \return \trend \subtrceq τ_i^+$ and $\getval{τ_{\pv}}{(\pv,v)}$} \\
+    (\pe, d) & \text{if $\wild \act{\BindA(\px,\pa↦\pe,d)} \wild\, \trend \subtrceq τ_i^+$} \\
   \end{cases}  \\
   \\[-0.5em]
-  deref(\pa)(π_i^+)   & = & (\step{\LookupA(\pa)}{\pe} \fcomp d \fcomp \stepm{\return}{\UpdateA(\pa)}{\return})(π_i^+) \text{ where $(\pe,d) = μ(π_i^+)(\pa)$} \\
+  deref(\pa)(τ_i^+)   & = & (\step{\LookupA(\pa)}{\pe} \fcomp d \fcomp \stepm{\return}{\UpdateA(\pa)}{\return})(τ_i^+) \text{ where $(\pe,d) = μ(τ_i^+)(\pa)$} \\
   \\[-0.5em]
-  \seminf{\pe}_ρ    (π_i^+)   & = & undefined \qquad \text{if $tgt(π_i^+) \not= \pe$} \\
+  \seminf{\pe}_ρ    (τ_i^+)   & = & undefined \qquad \text{if $tgt(τ_i^+) \not= \pe$} \\
   \\[-0.5em]
   \seminf{\px}_ρ              & = & \ternary{\px ∈ \dom(ρ)}{ρ(\px)}{stuck} \\
   \\[-0.5em]
@@ -158,11 +161,11 @@ semantics.
   \\[-0.5em]
   \seminf{\pe~\px}_ρ & = & \ternary{\px ∈ \dom(ρ)}{\step{\AppIA(ρ(x))}{\pe} \fcomp \seminf{\pe}_ρ \fcomp apply(ρ(\px))}{stuck} \\
   \\[-0.5em]
-  \seminf{\Let{\px}{\pe_1}{\pe_2}}_ρ(π_i^+) & = &
+  \seminf{\Let{\px}{\pe_1}{\pe_2}}_ρ(τ_i^+) & = &
     \begin{letarray}
-      \text{let} & \pa = alloc(π_i^+) \\
+      \text{let} & \pa = alloc(τ_i^+) \\
                  & ρ' = ρ[\px ↦ deref(\pa)] \\
-      \text{in}  & (\step{\BindA(\px,\pa↦\pe_1,\seminf{\pe_1}_{ρ'})}{\pe_2} \fcomp \seminf{\pe_2}_{ρ'})(π_i^+)
+      \text{in}  & (\step{\BindA(\px,\pa↦\pe_1,\seminf{\pe_1}_{ρ'})}{\pe_2} \fcomp \seminf{\pe_2}_{ρ'})(τ_i^+)
     \end{letarray} \\
  \end{array} \\
 \end{array}\]
@@ -200,7 +203,7 @@ Trace of the expression:
 % The need for an update action
 % -----------------------------
 % Memoisation could well work by looking for a balanced sub-trace in the
-% initialisation trace that started with look(π_k). In fact, earlier
+% initialisation trace that started with look(τ_k). In fact, earlier
 % versions did exactly that, and it worked great!
 % Unfortunately, it has the following drawbacks:
 %   * CESK semantics does have update frames and we want to match those
@@ -273,7 +276,7 @@ Trace of the expression:
 %   * The data on actions is simply erased and the corresopnding CESK transition
 %     is taken. (Vital to realise that a well-formed stateless trace results in
 %     an ok stateful trace.)
-%   * For the state after prefix π, we simply call \varrho(π). It is a function
+%   * For the state after prefix τ, we simply call \varrho(τ). It is a function
 %     that Cousot uses throughout his book, and so should we.
 %
 % Now as to what information we need on the actions:
@@ -302,14 +305,14 @@ Trace of the expression:
 
 \begin{figure}
 \[\begin{array}{rcl}
-  μ_ρ(π)(\pa) & = & \begin{cases}
-    \varrho(π_1) & \text{if $π_1 \act{\UpdateA(\pa)} \return \concat π_2 = π$} \\
-    \varrho(π_1 \act{\BindA(\px,\pa↦\pe,d)} \pp) & \text{if $π_1 \act{\BindA(\px,\pa↦\pe,d)} \pp \concat π_2 = π$} \\
+  μ_ρ(τ)(\pa) & = & \begin{cases}
+    \varrho(τ_1) & \text{if $τ_1 \act{\UpdateA(\pa)} \return \concat τ_2 = τ$} \\
+    \varrho(τ_1 \act{\BindA(\px,\pa↦\pe,d)} \pp) & \text{if $τ_1 \act{\BindA(\px,\pa↦\pe,d)} \pp \concat τ_2 = τ$} \\
   \end{cases}  \\
-  \varrho(π \act{\BindA(\px,\pa↦\pe,d)} \pp\trend)(\px) & = & deref(\pa) \\
-  \varrho(π \act{\AppEA(\px↦d)} \pp\trend)(\px) & = & d \\
-  \varrho(π \act{\LookupA(\pa)} \pp\trend)(\px) & = & μ_ρ(π)(\pa)(\px) \\
-  \varrho(π \act{a} \pp\trend)(\px) & = & \varrho(π)(\px) \\
+  \varrho(τ \act{\BindA(\px,\pa↦\pe,d)} \pp\trend)(\px) & = & deref(\pa) \\
+  \varrho(τ \act{\AppEA(\px↦d)} \pp\trend)(\px) & = & d \\
+  \varrho(τ \act{\LookupA(\pa)} \pp\trend)(\px) & = & μ_ρ(τ)(\pa)(\px) \\
+  \varrho(τ \act{a} \pp\trend)(\px) & = & \varrho(τ)(\px) \\
 \end{array}\]
 \caption{Materialising heap and environment from an initialisation trace}
   \label{fig:materialisation}
@@ -321,27 +324,27 @@ Trace of the expression:
   \multicolumn{3}{c}{ \ruleform{ α^{\States} : ((\Var \pfun \MaxD) \to \MaxD) \to \StateD } } \\
   \\[-0.5em]
   deref^{-1}(d) & = & \pa \text{ such that $d = deref(\pa)$} \\
-  tgt_\States^{-1}(σ) & = & π \text{ such that $\validtrace{π}$ and $tgt_\States(π) = σ$} \\
+  tgt_\States^{-1}(σ) & = & τ \text{ such that $\validtrace{τ}$ and $tgt_\States(τ) = σ$} \\
   \\[-0.5em]
-  α_{\STraces}(π_i^+, \pp\trend) & = & α_{\States}(π_i^+ \concat \pp\trend)\trend \\
-  α_{\STraces}(π_i^+, π \act{a} \pp\trend) & = & α_{\STraces}(π_i^+,π); α_{\States}(π_i^+ \concat π \act{a} \pp\trend)\trend \\
-  α_{\States}(π) & = & (α_{\Control}(π,tgt(π)), α_{\Environments}(\varrho(π)), α_{\Heaps}(π) \circ μ(π), α_{\Continuations}(π)) \\
-  α_{\Control}(π, \return) & = & (\pv,α_{\StateV}(v)) \text{ where $\getval{π}{(\pv,v)}$} \\
-  α_{\Control}(π, \pe) & = & \pe \\
+  α_{\STraces}(τ_i^+, \pp\trend) & = & α_{\States}(τ_i^+ \concat \pp\trend)\trend \\
+  α_{\STraces}(τ_i^+, τ \act{a} \pp\trend) & = & α_{\STraces}(τ_i^+,τ); α_{\States}(τ_i^+ \concat τ \act{a} \pp\trend)\trend \\
+  α_{\States}(τ) & = & (α_{\Control}(τ,tgt(τ)), α_{\Environments}(\varrho(τ)), α_{\Heaps}(τ) \circ μ(τ), α_{\Continuations}(τ)) \\
+  α_{\Control}(τ, \return) & = & (\pv,α_{\StateV}(v)) \text{ where $\getval{τ}{(\pv,v)}$} \\
+  α_{\Control}(τ, \pe) & = & \pe \\
   α_{\Environments}(ρ) & = & deref^{-1} \circ ρ \\
-  α_{\Heaps}(π)([\many{\pa ↦ (\pe,d)}]) & = & [\many{\pa ↦ (\pe, μ_ρ(π)(\pa), α_{\StateD}(d))}] \\
+  α_{\Heaps}(τ)([\many{\pa ↦ (\pe,d)}]) & = & [\many{\pa ↦ (\pe, μ_ρ(τ)(\pa), α_{\StateD}(d))}] \\
   α_{\Continuations}(\pp\trend) & = & \StopF \\
-  α_{\Continuations}(π \act{\LookupA(\pa)} \pp\trend) & = & \UpdateF(\pa) \pushF α_{\Continuations}(π) \\
-  α_{\Continuations}(π \act{\UpdateA(\pa)} \pp\trend) & = & κ \text{ where $α_{\Continuations}(π) = \UpdateF(\pa) \pushF κ$} \\
-  α_{\Continuations}(π \act{\AppIA(d)} \pp\trend) & = & \ApplyF(deref^{-1}(d)) \pushF α_{\Continuations}(π) \\
-  α_{\Continuations}(π \act{\AppEA(\px↦d)}   \pp\trend) & = & κ \text{ where $α_{\Continuations}(π) = \ApplyF(deref^{-1}(d)) \pushF κ$} \\
-  α_{\Continuations}(π \act{} \pp\trend) & = & α_{\Continuations}(π) \\
-  α_{\StateD}(d) & = & (\fn{π}{α_{\STraces}(π,d(π))) \circ γ_{\STraces} \circ tgt_\States^{-1}} \\
+  α_{\Continuations}(τ \act{\LookupA(\pa)} \pp\trend) & = & \UpdateF(\pa) \pushF α_{\Continuations}(τ) \\
+  α_{\Continuations}(τ \act{\UpdateA(\pa)} \pp\trend) & = & κ \text{ where $α_{\Continuations}(τ) = \UpdateF(\pa) \pushF κ$} \\
+  α_{\Continuations}(τ \act{\AppIA(d)} \pp\trend) & = & \ApplyF(deref^{-1}(d)) \pushF α_{\Continuations}(τ) \\
+  α_{\Continuations}(τ \act{\AppEA(\px↦d)}   \pp\trend) & = & κ \text{ where $α_{\Continuations}(τ) = \ApplyF(deref^{-1}(d)) \pushF κ$} \\
+  α_{\Continuations}(τ \act{} \pp\trend) & = & α_{\Continuations}(τ) \\
+  α_{\StateD}(d) & = & (\fn{τ}{α_{\STraces}(τ,d(τ))) \circ γ_{\STraces} \circ tgt_\States^{-1}} \\
   α_{\StateV}(\FunV(f)) & = & \FunV(α_{\StateD} \circ f \circ deref) \\
   γ_{\StateD}(d) & = & γ_{\STraces} \circ d \circ tgt_\States \circ α_{\STraces} \\
   γ_{\StateV}(\FunV(f)) & = & \FunV(γ_{\StateD} \circ f \circ deref^{-1}) \\
   γ_{\STraces}(σ\trend) & = & γ_{\States}(σ)\trend \\
-  γ_{\STraces}(π; σ\trend) & = & γ_{\STraces}(π) \act{γ_{\Actions}(tgt_\States(π) \smallstep σ)} γ_{\States}(π; σ\trend)\trend \\
+  γ_{\STraces}(τ; σ\trend) & = & γ_{\STraces}(τ) \act{γ_{\Actions}(tgt_\States(τ) \smallstep σ)} γ_{\States}(τ; σ\trend)\trend \\
   γ_{\States}(γ,\wild,\wild,\wild) & = & α_{\Control}(γ) \\
   γ_{\Control}((\pv,v)) & = & \return \\
   γ_{\Control}(\pe) & = & \pe \\
@@ -372,23 +375,23 @@ Trace of the expression:
   & \\[-0.9em]
   ⇒ & \lbln{1} \act{\BindA} \lbln{5} \act{\AppIA} \seminf{\slbln{6}(\slbln{7}x~x)}_{ρ_x}(\lbln{1} \act{\BindA} \lbln{5} \act{\AppIA} \lbln{6}) \\
   & \\[-0.9em]
-  ⇒ & \lbln{1} \act{\BindA} \lbln{5} \act{\AppIA} \lbln{6} \act{\AppIA} \seminf{\slbln{7}x}_{ρ_x}(\overbrace{\lbln{1} \act{\BindA} \lbln{5} \act{\AppIA} \lbln{6} \act{\AppIA} \lbln{7}}^{π_1}) \\
+  ⇒ & \lbln{1} \act{\BindA} \lbln{5} \act{\AppIA} \lbln{6} \act{\AppIA} \seminf{\slbln{7}x}_{ρ_x}(\overbrace{\lbln{1} \act{\BindA} \lbln{5} \act{\AppIA} \lbln{6} \act{\AppIA} \lbln{7}}^{τ_1}) \\
   & \\[-0.9em]
-  ⇒ & π_1 \act{\LookupA} \seminf{\slbln{2}(\Lam{y}{\slbln{3}y})\slbln{4}}_{ρ_x}(π_1 \act{\LookupA} \lbln{2}) \\
+  ⇒ & τ_1 \act{\LookupA} \seminf{\slbln{2}(\Lam{y}{\slbln{3}y})\slbln{4}}_{ρ_x}(τ_1 \act{\LookupA} \lbln{2}) \\
   & \\[-0.9em]
-  ⇒ & π_1 \act{\LookupA} \lbln{2} \act{\ValueA(\FunV(f))} f(ρ_x(x))(π_1 \act{\LookupA} \lbln{2} \act{\ValueA(\FunV(f))} \lbln{4}) \\
+  ⇒ & τ_1 \act{\LookupA} \lbln{2} \act{\ValueA(\FunV(f))} f(ρ_x(x))(τ_1 \act{\LookupA} \lbln{2} \act{\ValueA(\FunV(f))} \lbln{4}) \\
   & \\[-0.9em]
-  ⇒ & π_1 \act{\LookupA} \lbln{2} \act{\ValueA(\FunV(f))} \lbln{4} \act{\AppEA} \seminf{\slbln{3}y}_{ρ_{x,y}}(\overbrace{π_1 \act{\LookupA} \lbln{2} \act{\ValueA(\FunV(f))} \lbln{4} \act{\AppEA} \lbln{3}}^{π_2}) \\
+  ⇒ & τ_1 \act{\LookupA} \lbln{2} \act{\ValueA(\FunV(f))} \lbln{4} \act{\AppEA} \seminf{\slbln{3}y}_{ρ_{x,y}}(\overbrace{τ_1 \act{\LookupA} \lbln{2} \act{\ValueA(\FunV(f))} \lbln{4} \act{\AppEA} \lbln{3}}^{τ_2}) \\
   & \\[-0.9em]
-  ⇒ & π_2 \act{\LookupA} \seminf{\slbln{2}(\Lam{y}{\slbln{3}y})\slbln{4}}_{ρ_x}(π_2 \act{\LookupA} \lbln{2}) \\
+  ⇒ & τ_2 \act{\LookupA} \seminf{\slbln{2}(\Lam{y}{\slbln{3}y})\slbln{4}}_{ρ_x}(τ_2 \act{\LookupA} \lbln{2}) \\
   & \\[-0.9em]
-  ⇒ & π_2 \act{\LookupA} \lbln{2} \act{\ValueA(\FunV(f))} f(ρ_x(x))(π_2 \act{\LookupA} \lbln{2} \act{\ValueA(\FunV(f))} \lbln{4}) \\
+  ⇒ & τ_2 \act{\LookupA} \lbln{2} \act{\ValueA(\FunV(f))} f(ρ_x(x))(τ_2 \act{\LookupA} \lbln{2} \act{\ValueA(\FunV(f))} \lbln{4}) \\
   & \\[-0.9em]
-  ⇒ & π_2 \act{\LookupA} \lbln{2} \act{\ValueA(\FunV(f))} \lbln{4} \act{\AppEA} \seminf{\slbln{3}y}_{ρ_{x,y}}(\overbrace{π_2 \act{\LookupA} \lbln{2} \act{\ValueA(\FunV(f))} \lbln{4} \act{\AppEA} \lbln{3}}^{π_3}) \\
+  ⇒ & τ_2 \act{\LookupA} \lbln{2} \act{\ValueA(\FunV(f))} \lbln{4} \act{\AppEA} \seminf{\slbln{3}y}_{ρ_{x,y}}(\overbrace{τ_2 \act{\LookupA} \lbln{2} \act{\ValueA(\FunV(f))} \lbln{4} \act{\AppEA} \lbln{3}}^{τ_3}) \\
   & \\[-0.9em]
-  ⇒ & π_3 \act{\LookupA} \seminf{\slbln{2}(\Lam{y}{\slbln{3}y})\slbln{4}}_{ρ_x}(π_3 \act{\LookupA} \lbln{2}) \\
+  ⇒ & τ_3 \act{\LookupA} \seminf{\slbln{2}(\Lam{y}{\slbln{3}y})\slbln{4}}_{ρ_x}(τ_3 \act{\LookupA} \lbln{2}) \\
   & \\[-0.9em]
-  ⇒ & π_3 \act{\LookupA} \lbln{2} \act{\ValueA(\FunV(f))} \lbln{4} \\
+  ⇒ & τ_3 \act{\LookupA} \lbln{2} \act{\ValueA(\FunV(f))} \lbln{4} \\
   & \\[-0.9em]
   & \\
   = \lbln{1} & \act{\BindA} \lbln{5} \act{\AppIA} \lbln{6} \act{\AppIA} \lbln{7} \\
@@ -410,23 +413,23 @@ Trace of the expression:
   \text{Values}       &     v & ∈ & \Values{}  & ::=       & \ldots \mid \ConV(\Sigma_{K ∈ \Con}(\Pi_{i=1}^{A_K}d_i)) \text{ where $K$ has $A_K$ fields} \\
  \end{array} \\
  \\
-  \ruleform{ \balanced{π} } \\
+  \ruleform{ \balanced{τ} } \\
   \\[-0.5em]
   \inferrule*[right=\textsc{BalCase}]
-    {\balanced{π_1}\quad\balanced{π_2}}
-    {\balanced{\lbl \act{\CaseIA} π_1 \act{\CaseEA} π_2}} \\
+    {\balanced{τ_1}\quad\balanced{τ_2}}
+    {\balanced{\lbl \act{\CaseIA} τ_1 \act{\CaseEA} τ_2}} \\
  \\
  \begin{array}{rcl}
   \multicolumn{3}{c}{ \ruleform{ \seminf{\wild} \colon \Exp → (\Var → \MaxD) → \MaxD } } \\
   \\[-0.5em]
-  \seminf{K~\many{\px}}_ρ(π_i^+) & = & K~\many{\px} \act{\ValueA(\ConV(K,\many{ρ(\px)}))} \return \\
+  \seminf{K~\many{\px}}_ρ(τ_i^+) & = & K~\many{\px} \act{\ValueA(\ConV(K,\many{ρ(\px)}))} \return \\
   \\[-0.5em]
-  \seminf{\Case{\pe_s}{\Sel}}_ρ(π_i^+) & = & π_s \concat \begin{cases}
-      Rhs(K,\many{d})(π_i^+ \concat π_s) & \text{if $\getval{π_s}{\ConV(K,\many{d})}$}  \\
-      stuck(π_i^+ \concat π_s) & \text{otherwise}  \\
+  \seminf{\Case{\pe_s}{\Sel}}_ρ(τ_i^+) & = & τ_s \concat \begin{cases}
+      Rhs(K,\many{d})(τ_i^+ \concat τ_s) & \text{if $\getval{τ_s}{\ConV(K,\many{d})}$}  \\
+      stuck(τ_i^+ \concat τ_s) & \text{otherwise}  \\
     \end{cases} \\
     & & \text{where} \begin{array}{lcl}
-                       π_s & = & cons( \CaseIA, \pe_s,\seminf{\pe_s}_ρ)(π_i^+) \\
+                       τ_s & = & cons( \CaseIA, \pe_s,\seminf{\pe_s}_ρ)(τ_i^+) \\
                        Rhs(K,\many{d}) & = & cons(\CaseEA,\pe_K,\seminf{\pe_K}_{ρ[\many{\px↦d}]}) \\
                      \end{array} \\
   \\
