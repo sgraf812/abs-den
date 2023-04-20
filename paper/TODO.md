@@ -23,10 +23,44 @@
 * Read "Trace-based control-flow analysis" PLDI '21
 
 
+# Structure
 
+Introduction:
+- Tension for program analyses: Structure vs. Observable Cardinality
+- Compositionality, structural induction
+- Domain Theory is non-compositional
+- Full Abstraction might be nice
+
+# Problem statement
+
+- ...
 
 # Deriving the semantics from "first principles"
 
+## Evolve from a functional big-step semantics? / Why is it hard
+```
+eval env (Var x) = env(x)
+eval env (App e x) = case eval env e of
+  Lam y e' -> eval (env[y ↦ env(x)]) e'
+eval env (Lam x e) = Lam x e
+eval env (Let x e1 e2) =
+  let env' = env[x↦eval env' e1]
+  in eval env' e2
+```
+==> { Traces/Delay to encompass infinite behaviors }
+```
+data Delay a = Now a | Later (Delay a)
+(|>) = Later
+eval env (Var x) = |> env(x)
+eval env (App e x) = |> (case eval env e >>= \(Lam y e') ->
+  eval (env[y ↦ env(x)]) e')
+eval env (Lam x e) = |> Lam x e
+eval env (Let x e1 e2) =
+  let env' = env[x↦eval env' e1]
+  in |> eval env' e2
+```
+
+## Traces
 - First problem: What is the target? stateful or stateless?
 - If it is stateless:
   - Need to introduce quite a lot of stuff and intuition before even starting to
