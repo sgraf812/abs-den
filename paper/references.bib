@@ -361,3 +361,19 @@ series = {PLDI 2021}
   author = {G.D. Plotkin},
   abstract = {The paper studies connections between denotational and operational semantics for a simple programming language based on LCF. It begins with the connection between the behaviour of a program and its denotation. It turns out that a program denotes ⊥ in any of several possible semantics if it does not terminate. From this it follows that if two terms have the same denotation in one of these semantics, they have the same behaviour in all contexts. The converse fails for all the semantics. If, however, the language is extended to allow certain parallel facilities behavioural equivalence does coincide with denotational equivalence in one of the semantics considered, which may therefore be called “fully abstract”. Next a connection is given which actually determines the semantics up to isomorphism from the behaviour alone. Conversely, by allowing further parallel facilities, every r.e. element of the fully abstract semantics becomes definable, thus characterising the programming language, up to interdefinability, from the set of r.e. elements of the domains of the semantics.}
 }
+
+@article{LeroyGrall:09,
+  title = {Coinductive big-step operational semantics},
+  journal = {Information and Computation},
+  volume = {207},
+  number = {2},
+  pages = {284-304},
+  year = {2009},
+  note = {Special issue on Structural Operational Semantics (SOS)},
+  issn = {0890-5401},
+  doi = {https://doi.org/10.1016/j.ic.2007.12.004},
+  url = {https://www.sciencedirect.com/science/article/pii/S0890540108001296},
+  author = {Xavier Leroy and Hervé Grall},
+  keywords = {Coinduction, Operational semantics, Big-step semantics, Natural semantics, Small-step semantics, Reduction semantics, Type soundness, Compiler correctness, Mechanized proofs, The Coq proof assistant},
+  abstract = {Using a call-by-value functional language as an example, this article illustrates the use of coinductive definitions and proofs in big-step operational semantics, enabling it to describe diverging evaluations in addition to terminating evaluations. We formalize the connections between the coinductive big-step semantics and the standard small-step semantics, proving that both semantics are equivalent. We then study the use of coinductive big-step semantics in proofs of type soundness and proofs of semantic preservation for compilers. A methodological originality of this paper is that all results have been proved using the Coq proof assistant. We explain the proof-theoretic presentation of coinductive definitions and proofs offered by Coq, and show that it facilitates the discovery and the presentation of the results.}
+}
