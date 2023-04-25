@@ -6,22 +6,26 @@ glean facts about a program such as ``this program is well-typed'', ``this
 higher-order function is always called with argument $\Lam{x}{x+1}$'' or ``this
 program never evaluates $x$'' by way of \emph{static (program) analysis}.
 
+\paragraph{Analysis follows structure}
 If the implementation language is a functional one, then usually such static
 analyses are formulated as a function defined by \emph{structural recursion} on
 the input term.
 For example, given an application expression $(\pe_1~\pe_2)$,
-the property ``$(\pe_1~\pe_2)$ never evaluates $x$'' can be \emph{conservatively
-approximated} (here: It's OK to say ``No'' more often) by the property ``$\pe_1$
-and $\pe_2$ never evaluate $x$''.
+the property ``$(\pe_1~\pe_2)$ never evaluates its free variable $x$'' can be
+\emph{conservatively approximated} (here: It's OK to say ``No'' more often) by
+the property ``$\pe_1$ and $\pe_2$ never evaluate $x$''.
 
 Such a structural formulation is quite convenient:
 (1) Structural recursion gives an immediate proof of termination and can
-    further be exploited in other inductive proofs.
-(2) A structural definition is often \emph{compositional}, meaning that
-    if you replace a sub-expression by another sub-expression with the same
-    result under the function, the overall result of the containing expression
-    does not change. This makes it easy for humans to understand and reason
-    about.
+    further be exploited in other inductive proofs, all within decidable
+    territory.
+(2) A structurally-defined function $f$ is often \emph{compositional}, meaning that
+    if you replace a sub-expression $e$ in a bigger expression $C[e]$ by another
+    expression $e'$ with $f(e) = f(e')$, the overall result
+    of the containing expression $f(C[e]) = f(C[e'])$ does not change.
+    This makes it easy for humans to understand and reason about the function,
+    because the result of a big expression depends on the results of its parts
+    (and not on the shape of the sub-expressions themselves).
 
 For static analyses, especially more complicated ones, it is good practice to
 provide a proof of correctness of some sort. If the correctness statement can
@@ -30,8 +34,36 @@ semantics}~\cite{ScottStrachey:71}, then the recursion structure of analysis
 function and semantics function line up nicely. As a result, the proof of
 correctness can be conducted by simple induction over the expression.
 
-Alas, it turns out that the traditional denotational semantics for lambda
-calculus (like the traditional notion of natural semantics) conflates diverging
+\paragraph{Domain Theory is a leaky abstraction}
+Alas, even when the denotational semantics is ``standard'', the hard part is in
+coming up with a suitable correctness predicate!
+Traditionally, the semantic domain of denotational semantics models diverging
+and stuck programs with $\bot$, the function that is undefined everywhere.
+There is rich and complicated literature on defining an algebraic
+domain~\cite{Scott:71} that is suitable to denote untyped lambda calculus.
+The key is embedding the subclass of \emph{continuous} functions between domain
+elements into the domain itself. All computable functions can be proven
+continuous, so this is a sufficient substrate.
+Now, to prove a predicate $P(d)$ of some denotation $d$, such as ``$d$ has type
+$τ$'' by structural induction, one has to show first that $P$ is compatible
+with continuity; perhaps by proving that $P$ characterises a sub-domain or an
+ideal in the domain~\cite{Milner:78}.
+
+Note that this is all \emph{before} even attempting the proof! Often, the
+denotational semantics or even the domain itself needs adjustments.
+The former case needs a proof of continuity, while the latter can be quite
+involved and non-compositional for effects such as exceptions, concurrency and
+state, as \citep{WrightFelleisen:87} noted.
+
+We think that most of the troubles in the application of Domain Theory are
+caused by the non-commital nature of the approximation order, in that any
+predicate on total elements also needs to accept its partial approximation;
+hence it is desirable to strive for \emph{total} descriptions of the
+potentially program infinite behaviors.
+
+the crucial property that any
+, and it was
+a great achievement of \citep{Scott:71} turns out that Domain Theory is the result of equipping Doing so invites
 and stuck programs. Consider the following program using recursive let that is
 infinitely-looping
 \begin{equation}
