@@ -60,9 +60,9 @@
 \newcommand{\pp}{\dot{\mathsf{e}}}
 \newcommand{\Lam}[2]{\lambda #1. #2}
 \newcommand{\LLam}[3]{\lambda_{#1} #2. #3}
-\newcommand{\Lit}[1]{\#1}
+\newcommand{\Lit}[1]{\llparenthesis #1 \rrparenthesis}
 \newcommand{\Let}[3]{\mathbf{let}~{#1}={#2}~\mathbf{in}~{#3}}
-\newcommand{\Ifz}[3]{\mathbf{ifz}~{#1}~\mathbf{then}~{#2}~\mathbf{else}~{#3}}
+\newcommand{\Ifz}[3]{\mathbf{0?}(#1,#2,#3)}
 \newcommand{\LLet}[4]{\mathbf{let}_{#1}~{#2}={#3}~\mathbf{in}~{#4}}
 \newcommand{\Case}[2]{\mathbf{case}~{#1}~\mathbf{of}~{#2}}
 \newcommand{\Sel}[1][]{\many{K~\many{x} \rightarrow e_{#1}}}
