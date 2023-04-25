@@ -1,10 +1,20 @@
 # Motivation
 
 - Observe cardinality/control-flow (hence trace-based)
-- Enjoy compositionality (nice proofs)
+- Enjoy compositionality and easy mathematical abstractions (nice proofs)
+- No partiality! Hence no reasoning about ideals / the Domain
 - Simple and compositional semantic framework
-  (no Domain Theory necessary for new language features)
+  - no Domain Theory necessary for new language features
+  - use of guarded recursion in very few key places
+  - operational semantics (esp. big-step) suffers from duplication for exceptions.
+    - we can just use CPS!
 - Full abstraction (WHY?)
+- Sterling:
+  - modular and reusable (?)
+  - mathematical abstractions are available (!)
+  - language extensibility (?)
+  - OpSem monolithic (=> exceptions), impedes composition and re-use
+  - mathematical abstraction difficult to adapt
 
 # Topics
 
