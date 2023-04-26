@@ -6,7 +6,6 @@ glean facts about a program such as ``this program is well-typed'', ``this
 higher-order function is always called with argument $\Lam{x}{x+1}$'' or ``this
 program never evaluates $x$'' by way of \emph{static (program) analysis}.
 
-\paragraph{Analysis follows structure}
 If the implementation language is a functional one, then usually such static
 analyses are formulated as a function defined by \emph{structural recursion} on
 the input term.
@@ -24,8 +23,8 @@ Such a structural formulation is quite convenient:
     expression $e'$ with $f(e) = f(e')$, the overall result
     of the containing expression $f(C[e]) = f(C[e'])$ does not change.
     This makes it easy for humans to understand and reason about the function,
-    because the result of a big expression depends on the results of its parts
-    (and not on the shape of the sub-expressions themselves).
+    because the result of a big expression depends only on the results of its
+    parts (and not on the shape of the sub-expressions themselves).
 
 For static analyses, especially more complicated ones, it is good practice to
 provide a proof of correctness of some sort. If the correctness statement can
@@ -34,32 +33,54 @@ semantics}~\cite{ScottStrachey:71}, then the recursion structure of analysis
 function and semantics function line up nicely. As a result, the proof of
 correctness can be conducted by simple induction over the expression.
 
+Alas, traditional denotational semantics denotes both infinite and stuck
+stuck program behaviors with $\bot$, the least element of the approximation
+order on elements of the semantic domain.
+
+\paragraph{Analysis follows structure}
 \paragraph{Domain Theory is a leaky abstraction}
 Alas, even when the denotational semantics is ``standard'', the hard part is in
 coming up with a suitable correctness predicate!
-Traditionally, the semantic domain of denotational semantics models diverging
-and stuck programs with $\bot$, the function that is undefined everywhere.
+
+Traditionally, denotational semantics denotes diverging and stuck programs with
+$\bot$, corresponding to the function that is undefined everywhere.
 There is rich and complicated literature on defining an algebraic
 domain~\cite{Scott:71} that is suitable to denote untyped lambda calculus.
 The key is embedding the subclass of \emph{continuous} functions between domain
-elements into the domain itself. All computable functions can be proven
-continuous, so this is a sufficient substrate.
+elements into the domain itself. All computable functions are continuous,
+so an algebraic domain is a sufficient substrate for giving meaning to all
+computable functions.
+
 Now, to prove a predicate $P(d)$ of some denotation $d$, such as ``$d$ has type
 $τ$'' by structural induction, one has to show first that $P$ is compatible
 with continuity; perhaps by proving that $P$ characterises a sub-domain or an
 ideal in the domain~\cite{Milner:78}.
 
 Note that this is all \emph{before} even attempting the proof! Often, the
-denotational semantics or even the domain itself needs adjustments.
+denotational semantics (for example to distinguish \textbf{wrong} behaviors from
+diverging ones~\cite{Milner:78}) or even the domain itself needs adjustments.
 The former case needs a proof of continuity, while the latter can be quite
 involved and non-compositional for effects such as exceptions, concurrency and
-state, as \citep{WrightFelleisen:87} noted.
+state, as \citep{WrightFelleisen:94} noted.
 
-We think that most of the troubles in the application of Domain Theory are
-caused by the non-commital nature of the approximation order, in that any
-predicate on total elements also needs to accept its partial approximation;
-hence it is desirable to strive for \emph{total} descriptions of the
-potentially program infinite behaviors.
+We think that most of the troubles in the application of domain theory are
+ultimately caused by the non-commital nature of the approximation order, in that
+any predicate on total elements also needs to accept its partial approximations;
+hence it is desirable to strive for \emph{total} descriptions of the potentially
+program infinite behaviors.
+
+\paragraph{Rewrite systems are syntactic and not structural}
+\citep{WrightFelleisen:94} give a detailed account of the shortcomings of
+partial denotational semantics and propose to use small-step operational
+semantics paired with the now standard syntactic approach to type soundness.
+They demonstrate that their approach scales well to composition of different
+language features such as state, exceptions and nondeterminism. The past
+twenty years have scaled the approach to big and complicated type systems,
+building on techniques such as step-indexing~\cite{TODO}.
+
+What's more, small-step operational semantics distinguish infinite
+and stuck behaviors quite naturally; a distinction that is crucial
+in (a correctness property of) control-flow and liveness analysis.
 
 the crucial property that any
 , and it was
