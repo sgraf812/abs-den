@@ -8,7 +8,7 @@
   \text{Expressions}  &      \pe & ∈ & \Exp        & ::= & \slbl \px \mid \slbl \pv \mid \slbl \pe~\px \mid \slbl \Ifz{\pe_b}{\pe_t}{\pe_e} \mid \slbl \Let{\px}{\pe_1}{\pe_2} \\
   \\[-0.5em]
   \text{States}        & σ   & ∈ & \States        & =      & \Control \times \Heaps \\
-  \text{Controls}      & γ   & ∈ & \Control       & ::=    & \pe \mid (\pv, v) \\
+  \text{Controls}      & γ   & ∈ & \Control       & ::=    & \pe \mid (\lbl, v) \\
   \text{Addresses}     & \pa & ∈ & \Addresses     & \simeq & ℕ \\
   \text{Environments}  & ρ   & ∈ & \Environments  & =      & \Var \pfun \,\blacktriangleright\!\StateD \\
   \text{Heaps}         & μ   & ∈ & \Heaps         & =      & \Addresses \pfun \,\blacktriangleright\!\StateD \\
@@ -24,10 +24,10 @@
  \begin{array}{rcl}
   \multicolumn{3}{c}{ \ruleform{ val \colon (\Val \times \StateV) \to \StateD \quad update \colon \STraces \to \STraces \quad deref \colon \Addresses \to \,\blacktriangleright\!\StateD \quad apply \colon \STraces \to \StateD \to \STraces} } \\
   \\[-0.5em]
-  val(\pv,v)(μ,κ) & = & (\pv,μ,κ) \cons \sing{((\pv,v),μ,κ)} \\
+  val(\pv,v)(μ,κ) & = & (\pv,μ,κ) \cons \sing{(v,μ,κ)} \\
   \\[-0.5em]
   update(\pa,τ) & = & \begin{cases}
-      τ :: \sing{((\pv,v),μ[\pa ↦ val(\pv,v)],κ)} & \text{$τ = ... \cons \sing{((\pv,v),μ,\UpdateF \pushF κ)}$} \\
+      τ :: \sing{(v,μ[\pa ↦ val(\pv,v)],κ)} & \text{$τ = ... \cons (\pv,\wild,\wild) \cons \sing{(v,μ,\UpdateF \pushF κ)}$} \\
       τ & \text{otherwise} \\
     \end{cases} \\
   \\[-0.5em]
