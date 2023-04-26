@@ -14,144 +14,105 @@ the property ``$(\pe_1~\pe_2)$ never evaluates its free variable $x$'' can be
 \emph{conservatively approximated} (here: It's OK to say ``No'' more often) by
 the property ``$\pe_1$ and $\pe_2$ never evaluate $x$''.
 
-Such a structural formulation is quite convenient:
+It is quite convenient to formulate \emph{potential liveness analysis}
+structurally:
 (1) Structural recursion gives an immediate proof of termination and can
     further be exploited in other inductive proofs, all within decidable
     territory.
 (2) A structurally-defined function $f$ is often \emph{compositional}, meaning that
-    if you replace a sub-expression $e$ in a bigger expression $C[e]$ by another
-    expression $e'$ with $f(e) = f(e')$, the overall result
-    of the containing expression $f(C[e]) = f(C[e'])$ does not change.
-    This makes it easy for humans to understand and reason about the function,
-    because the result of a big expression depends only on the results of its
-    parts (and not on the shape of the sub-expressions themselves).
+    the result of $f\denot{\pe_1~\pe_2}$ is a function of $f\denot{\pe_1}$ and
+    $f\denot{\pe_2}$, but not of the structure of either $\pe_1$ or $\pe_2$.
+    Compositionality makes it easy for humans to understand and reason about the
+    function, as well as allowing to abstract away program syntax in the first
+    place.
 
 For static analyses, especially more complicated ones, it is good practice to
 provide a proof of correctness of some sort. If the correctness statement can
 be expressed in terms of a \emph{denotational
 semantics}~\cite{ScottStrachey:71}, then the recursion structure of analysis
 function and semantics function line up nicely. As a result, the proof of
-correctness can be conducted by simple induction over the expression.
+correctness can be conducted by simple induction over the expression and
+abstract interpretation~\cite{Cousot:21} provides a neat framework to derive
+static analyses that are proven correct by simple calculation.
 
-Alas, traditional denotational semantics denotes both infinite and stuck
-stuck program behaviors with $\bot$, the least element of the approximation
-order on elements of the semantic domain.
-
-\paragraph{Analysis follows structure}
-\paragraph{Domain Theory is a leaky abstraction}
-Alas, even when the denotational semantics is ``standard'', the hard part is in
-coming up with a suitable correctness predicate!
-
-Traditionally, denotational semantics denotes diverging and stuck programs with
-$\bot$, corresponding to the function that is undefined everywhere.
-There is rich and complicated literature on defining an algebraic
-domain~\cite{Scott:71} that is suitable to denote untyped lambda calculus.
-The key is embedding the subclass of \emph{continuous} functions between domain
-elements into the domain itself. All computable functions are continuous,
-so an algebraic domain is a sufficient substrate for giving meaning to all
-computable functions.
-
-Now, to prove a predicate $P(d)$ of some denotation $d$, such as ``$d$ has type
-$τ$'' by structural induction, one has to show first that $P$ is compatible
-with continuity; perhaps by proving that $P$ characterises a sub-domain or an
-ideal in the domain~\cite{Milner:78}.
-
-Note that this is all \emph{before} even attempting the proof! Often, the
-denotational semantics (for example to distinguish \textbf{wrong} behaviors from
-diverging ones~\cite{Milner:78}) or even the domain itself needs adjustments.
-The former case needs a proof of continuity, while the latter can be quite
-involved and non-compositional for effects such as exceptions, concurrency and
-state, as \citep{WrightFelleisen:94} noted.
-
-We think that most of the troubles in the application of domain theory are
-ultimately caused by the non-commital nature of the approximation order, in that
-any predicate on total elements also needs to accept its partial approximations;
-hence it is desirable to strive for \emph{total} descriptions of the potentially
-program infinite behaviors.
-
-\paragraph{Rewrite systems are syntactic and not structural}
-\citep{WrightFelleisen:94} give a detailed account of the shortcomings of
-partial denotational semantics and propose to use small-step operational
-semantics paired with the now standard syntactic approach to type soundness.
-They demonstrate that their approach scales well to composition of different
-language features such as state, exceptions and nondeterminism. The past
-twenty years have scaled the approach to big and complicated type systems,
-building on techniques such as step-indexing~\cite{TODO}.
-
-What's more, small-step operational semantics distinguish infinite
-and stuck behaviors quite naturally; a distinction that is crucial
-in (a correctness property of) control-flow and liveness analysis.
-
-the crucial property that any
-, and it was
-a great achievement of \citep{Scott:71} turns out that Domain Theory is the result of equipping Doing so invites
-and stuck programs. Consider the following program using recursive let that is
-infinitely-looping
-\begin{equation}
-  \label{eqn:loop}
-  \pe_{loop} \triangleq \Let{id}{\Lam{x}{x}}{\Let{loop}{id~loop}{loop}}
-\end{equation}
-The traditional denotational semantics after Scott and Strachey would equate all
-of the following programs:
-$\semscott{\pe_{loop}}_ρ = \semscott{\Let{loop}{id~loop}{loop}}_ρ =
-\semscott{\mathsf{segfault}}_ρ = \bot$.
-Note that the first program has an infinite loop, the second one is not
-well-scoped (thus stuck at some point) and the last one is a straight out crash
-in the style of an imprecise exception \cite{imprecise-exceptions}.
-To a compiler developer, this conflation is both a reason for joy (more
-optimisation opportunities) and a reason for ... reflection (users didn't expect
-their infinite loop to be optimised into a crash). Such issues come up in
-practice \sg{cite GHC issues}.
-
-More seriously, it is impossible to prove by way of a denotational semantics
-that a static analysis does not misoptimise infinite behaviors.
-(a) The \emph{potential liveness} analysis that says ``$\pe_{loop}$ never
-evaluates $id$'' could be proven ``correct''.
-(b) A type analysis that says ``$\Let{loop}{id~loop}{loop}$ is closed and
-well-typed'' can still be proven progressing as long as $\pe_{loop}$ can
-be well-typed (which would not be too surprising), because the latter is
-denotationally equivalent to the former.
-(c) Imagine that $id$ was supplied as a parameter to $loop$ instead, \eg
-$...\ \Let{loop}{\Lam{f}{f~(loop~f)}}{loop~id}$. Then a control-flow analysis
-\cite{Shivers:91} that says ``$f$ is never bound to $id$'' can be proven correct
-in terms of the denotational semantics.
-
-Furthermore, although it is sensible (in the terminating case) to ask whether or
-not $x$ is \emph{never} evaluated in terms of the denotational semantics, asking
-whether $x$ is evaluated \emph{at most once} is not, for the same reason that
-traditional denotational semantics is not able to discern call-by-name from
-call-by-need. Yet, to the Glasgow Haskell Compiler, this distinction is very
-much of concern!
-
-When denotational semantics fails the compiler developer, they turn to a
-correctness criterion in terms of a \emph{structural operational semantics}.
-This was the approach taken by \cite{cardinality} to prove evaluation
-cardinality properties such as potential liveness. The drawback of this proof
-framework is the immense complexity arising from the disconnect between a
-structural definition and a transition system; matters such as substitution,
-multiple heap activations of the let binding, non-determinism and fixpoint
-induction abound. It is hard to raise confidence in such a proof without full
-mechanisation.
-
-One could adopt the approach of \emph{Abstracting Abstract Machines} \cite{aam}
-and let the structure of the semantics dictate the structure of the
-analysis for a re-usable proof of correctness via abstract interpretation
-\cite{Cousot:21}.
-However, that is not how the static analyses work that the authors are familiar
-with.
-For example, it would be quite an effort to rewrite the neat,
-structurally-defined analyses of the Glasgow Haskell Compiler into a fixpoint
-iteration on the approximated states of an abstract transition system.
-
-The contributions of this work are as follows:
+\subsection{Domain Theory is leaky and too abstract}
+Alas, there are several shortcomings to traditional denotational semantics:
 \begin{itemize}
-  \item In \Cref{sec:problem}, we give a more formal exposition to the
-    problems we just introduced and are inclined to solve.
-  \item In \Cref{sec:semantics}, we give a \emph{structurally-defined} semantics
-    for lambda calculus that is \emph{able to discern stuck, diverging and
-    converging programs}. Furthermore, it is a semantics for \emph{call-by-need}
-    lambda calculus that is distinct from similar ones for call-by-name or
-    call-by-value and allows to observe evaluation cardinality as needed.
+  \item Infinite program behaviors are denoted by $\bot$, the least element of
+        the approximation order on elements of an algebraic domain.
+        This encoding necessitates semantic properties to be proven
+        \emph{admissable} before they can be used. This means that although
+        the denotational semantics might be ``standard'', the semantic domain
+        can't be treated like a black box --- the abstraction is leaky and
+        $\bot$ is lurking everywhere to make life complicated.
+  \item Traditional domain theory proved non-compositional~\cite{WrightFelleisen:94},
+        in that language features such as exceptions, state and nondeterminism
+        require individual, complicated adjustments where it is far from clear
+        how to combine these adjustments.
+  \item There have been denotational semantics for call-by-name and
+        call-by-value, but none for call-by-need. That is a symptom of the fact
+        that traditional domain theory eschews any account of operational
+        detail, such as evaluation cardinality.
+\end{itemize}
+
+The third point is important in the context of quantitative type
+systems~\cite{Atkey:18} and optimising compilers for call-by-need languages such
+as the Glasgow Haskell Compiler.
+The first two points have been noted by \citep{WrightFelleisen:94}, establishing
+the now standard approach of operational semantics as the Gold Standard.
+The past twenty years have proven that the methodology scales to
+big and complicate type systems, building on techniques such as
+\emph{step-indexing}~\cite{AppelMcAllester:01,DreyerAhmedBirkedal:11}.
+
+\subsection{Rewrite systems are syntactic and not structural}
+However, transition systems don't easily admit a compositional definition as a
+function of the input expression \sg{Cousot has derived trace-based fixpoint
+semantics from a transition system~\cite{Cousot:02}, but the resulting function
+is not structurally-recursive in the expression}. In giving in to operational
+semantics, semanticists have chosen predictable step-wise reasoning over elegant
+equational reasoning backed by compositionality.
+
+In preservation proofs of type systems, step-wise reasoning necessitates
+substitution lemmas to cope with the non-structural recursion during variable
+lookup and beta reduction, an inconvenience that is readily accepted when the
+alternative would be to tame domain theory.
+
+It is not so simple in lattice-based compiler analyses, because recursive let
+bindings invite fixpoint iteration. If you think about ``well-annotatedness''
+of a machine configuration according to an analysis as a type system, the
+corresponding ``preservation lemma'' needs to relate fixpoints before and after
+\emph{every} kind of machine transition! This necessitates a dreadful application of fixpoint
+induction, unfolding the whole analysis function body before and after and thus
+culminating in beaurocratic nightmare.
+Of course, the definition of ``well-annotatedness'' needs to encompass whole
+machine configurations, including the mutually recursive stack and heap, see the
+proofs in~\cite{cardinality-ext} for a taste. It is hard to raise confidence in
+such a proof without full mechanisation.
+A denotational semantics would arguably simplify the proof, unfortunately one
+allowing to observe evaluation cardinality of call-by-need is lacking to this
+day.
+
+When there is no semantics that structurally matches our analysis, we could
+try to rearrange our analysis. That is the idea of \emph{Abstracting Abstract
+Machines}~\cite{aam} which abandons compositional analysis in favour of a
+convenient proof by abstract interpretation of the transition semantics.
+Not only is it deeply unsatisfying to be pushed into such rearrangements, it
+is also impossible to perform in a production-grade compiler because of the
+inevitable regressions it introduces.
+
+\subsection{Summary of Contributions}
+
+Our ambitious goal is to resolve the aforementioned tensions via the following contributions:
+\begin{itemize}
+  \item In \Cref{sec:problem}, we highlight the main points raised in the
+    Introduction by way of example analyses.
+  \item In \Cref{sec:semantics}, we give a compositional semantics
+    for call-by-need lambda calculus that generates potentially infinite
+    traces. Unlike traditional formulations of denotational semantics, our
+    semantics is defined by \emph{guarded recursion} and thus total as a
+    mathematical function. Our semantics is also distinct from similar ones for
+    call-by-name or call-by-value and allows to observe evaluation cardinality
+    as needed.
     We believe that our semantics is the first with the aforementioned two
     qualities and prove it correct \wrt a standard operational semantics. The
     idea borrows heavily from the idea of a maximal prefix trace semantics
@@ -168,3 +129,106 @@ The contributions of this work are as follows:
   \item Talk about prototype in Haskell?
   \item Related Work \Cref{sec:related-work}
 \end{itemize}
+
+% TO RECYCLE:
+%
+%\paragraph{Analysis follows structure}
+%Alas, even when the denotational semantics is ``standard'', the hard part is in
+%coming up with a suitable correctness predicate!
+%
+%Traditionally, denotational semantics denotes diverging and stuck programs with
+%$\bot$, corresponding to the function that is undefined everywhere.
+%There is rich and complicated literature on defining an algebraic
+%domain~\cite{Scott:71} that is suitable to denote untyped lambda calculus.
+%The key is embedding the subclass of \emph{continuous} functions between domain
+%elements into the domain itself. All computable functions are continuous,
+%so an algebraic domain is a sufficient substrate for giving meaning to all
+%computable functions.
+%
+%Now, to prove a predicate $P(d)$ of some denotation $d$, such as ``$d$ has type
+%$τ$'' by structural induction, one has to show first that $P$ is compatible
+%with continuity; perhaps by proving that $P$ characterises a sub-domain or an
+%ideal in the domain~\cite{Milner:78}.
+%
+%Note that this is all \emph{before} even attempting the proof! Often, the
+%denotational semantics (for example to distinguish \textbf{wrong} behaviors from
+%diverging ones~\cite{Milner:78}) or even the domain itself needs adjustments.
+%The former case needs a proof of continuity, while the latter can be quite
+%involved and non-compositional for effects such as exceptions, concurrency and
+%state, as \citep{WrightFelleisen:94} noted.
+%
+%We think that most of the troubles in the application of domain theory are
+%ultimately caused by the non-commital nature of the approximation order, in that
+%any predicate on total elements also needs to accept its partial approximations;
+%hence it is desirable to strive for \emph{total} descriptions of the potentially
+%program infinite behaviors.
+%
+%\citep{WrightFelleisen:94} give a detailed account of the shortcomings of
+%partial denotational semantics and propose to use small-step operational
+%semantics paired with the now standard syntactic approach to type soundness.
+%They demonstrate that their approach scales well to composition of different
+%language features such as state, exceptions and nondeterminism. The past
+%twenty years have scaled the approach to big and complicated type systems,
+%
+%What's more, small-step operational semantics distinguish infinite
+%and stuck behaviors quite naturally; a distinction that is crucial
+%in (a correctness property of) control-flow and liveness analysis.
+%
+%the crucial property that any
+%, and it was
+%a great achievement of \citep{Scott:71} turns out that Domain Theory is the result of equipping Doing so invites
+%and stuck programs. Consider the following program using recursive let that is
+%infinitely-looping
+%\begin{equation}
+%  \label{eqn:loop}
+%  \pe_{loop} \triangleq \Let{id}{\Lam{x}{x}}{\Let{loop}{id~loop}{loop}}
+%\end{equation}
+%The traditional denotational semantics after Scott and Strachey would equate all
+%of the following programs:
+%$\semscott{\pe_{loop}}_ρ = \semscott{\Let{loop}{id~loop}{loop}}_ρ =
+%\semscott{\mathsf{segfault}}_ρ = \bot$.
+%Note that the first program has an infinite loop, the second one is not
+%well-scoped (thus stuck at some point) and the last one is a straight out crash
+%in the style of an imprecise exception \cite{imprecise-exceptions}.
+%To a compiler developer, this conflation is both a reason for joy (more
+%optimisation opportunities) and a reason for ... reflection (users didn't expect
+%their infinite loop to be optimised into a crash). Such issues come up in
+%practice \sg{cite GHC issues}.
+%
+%More seriously, it is impossible to prove by way of a denotational semantics
+%that a static analysis does not misoptimise infinite behaviors.
+%(a) The \emph{potential liveness} analysis that says ``$\pe_{loop}$ never
+%evaluates $id$'' could be proven ``correct''.
+%(b) A type analysis that says ``$\Let{loop}{id~loop}{loop}$ is closed and
+%well-typed'' can still be proven progressing as long as $\pe_{loop}$ can
+%be well-typed (which would not be too surprising), because the latter is
+%denotationally equivalent to the former.
+%(c) Imagine that $id$ was supplied as a parameter to $loop$ instead, \eg
+%$...\ \Let{loop}{\Lam{f}{f~(loop~f)}}{loop~id}$. Then a control-flow analysis
+%\cite{Shivers:91} that says ``$f$ is never bound to $id$'' can be proven correct
+%in terms of the denotational semantics.
+%
+%Furthermore, although it is sensible (in the terminating case) to ask whether or
+%not $x$ is \emph{never} evaluated in terms of the denotational semantics, asking
+%whether $x$ is evaluated \emph{at most once} is not, for the same reason that
+%traditional denotational semantics is not able to discern call-by-name from
+%call-by-need. Yet, to the Glasgow Haskell Compiler, this distinction is very
+%much of concern!
+%
+%When denotational semantics fails the compiler developer, they turn to a
+%correctness criterion in terms of a \emph{structural operational semantics}.
+%This was the approach taken by \cite{cardinality} to prove evaluation
+%cardinality properties such as potential liveness. The drawback of this proof
+%framework is the immense complexity arising from the disconnect between a
+%structural definition and a transition system; matters such as substitution,
+%multiple heap activations of the let binding, non-determinism and fixpoint
+%induction abound.
+%One could adopt the approach of \emph{Abstracting Abstract Machines} \cite{aam}
+%and let the structure of the semantics dictate the structure of the
+%analysis for a re-usable proof of correctness via abstract interpretation
+%\cite{Cousot:21}.
+%However, that is not how the static analyses work that the authors are familiar
+%with.
+%For example, it would be quite an effort to rewrite the neat,
+%structurally-defined analyses of the Glasgow Haskell Compiler into a fixpoint
+%iteration on the approximated states of an abstract transition system.
