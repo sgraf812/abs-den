@@ -1,9 +1,28 @@
 \begin{figure}
 \[\begin{array}{c}
- \begin{array}{rcl}
-  \multicolumn{3}{c}{ \ruleform{ \semst{\wild} \colon \Exp → (\Var \pfun \StateD) → \StateD } } \\
+ \begin{array}{rrclcl}
+  \text{Naturals}     &        n & ∈ & ℕ           &     &  \\
+  \text{Variables}    & \px, \py & ∈ & \Var        &     &  \\
+  \text{Labels}       &     \lbl & ∈ & \Labels     &     &  \\
+  \text{Values}       &      \pv & ∈ & \Val        & ::= & \Lit{n} \mid \Lam{\px}{\pe} \\
+  \text{Expressions}  &      \pe & ∈ & \Exp        & ::= & \slbl \px \mid \slbl \pv \mid \slbl \pe~\px \mid \slbl \Ifz{\pe_b}{\pe_t}{\pe_e} \mid \slbl \Let{\px}{\pe_1}{\pe_2} \\
   \\[-0.5em]
-  \ternary{b}{t}{e} & = & \begin{cases} t & \text{if $b$ is true} \\ e & \text{otherwise} \\ \end{cases} \\
+  \text{States}        & σ   & ∈ & \States        & =      & \Control \times \Heaps \\
+  \text{Controls}      & γ   & ∈ & \Control       & ::=    & \pe \mid (\pv, v) \\
+  \text{Addresses}     & \pa & ∈ & \Addresses     & \simeq & ℕ \\
+  \text{Environments}  & ρ   & ∈ & \Environments  & =      & \Var \pfun \,\blacktriangleright\!\StateD \\
+  \text{Heaps}         & μ   & ∈ & \Heaps         & =      & \Addresses \pfun \,\blacktriangleright\!\StateD \\
+  \\[-0.5em]
+  \text{Stateful traces} & τ      & ∈          & \STraces & ::= & \sing{σ} \mid σ \cons τ^{\blacktriangleright} \\
+  \text{Guarded trace} & τ^{\blacktriangleright} & ∈ & \blacktriangleright\!\STraces &   & \\
+  \text{Stateful domain} & d & ∈ & \StateD & = & \States \to \STraces \\
+  \text{Semantic values} & v & ∈ & \StateV & ::= & \FunV(f ∈ \,\blacktriangleright\!(\StateD \to \StateD)) \\
+ \end{array} \\
+  \\[-0.5em]
+\end{array}\]
+\[\begin{array}{c}
+ \begin{array}{rcl}
+  \multicolumn{3}{c}{ \ruleform{ val \colon (\Val \times \StateV) \to \StateD \quad update \colon \STraces \to \STraces \quad deref \colon \Addresses \to \,\blacktriangleright\!\StateD \quad apply \colon \STraces \to \StateD \to \STraces} } \\
   \\[-0.5em]
   val(\pv,v)(μ,κ) & = & (\pv,μ,κ) \cons \sing{((\pv,v),μ,κ)} \\
   \\[-0.5em]
@@ -25,7 +44,12 @@
     τ & \text{otherwise} \\
   \end{cases} \\
   \\[-0.5em]
-  \semst{\px}_ρ(μ,κ) & = & \ternary{\px ∈ \dom(ρ)}{(\px,μ,κ) \cons ρ(\px)(μ,\UpdateF \pushF κ)}{\sing{(\px,μ,κ)}} \\
+  \multicolumn{3}{c}{ \ruleform{ \semst{\wild} \colon \Exp → (\Var \pfun \,\blacktriangleright\!\StateD) → \StateD } } \\
+  \\[-0.5em]
+  \semst{\px}_ρ(μ,κ) & = & \begin{cases}
+    (\px,μ,κ) \cons ρ(\px)(μ,\UpdateF \pushF κ) & \px ∈ \dom(ρ) \\
+    \sing{(\px,μ,κ)} & \text{otherwise}
+    \end{cases} \\
   \\[-0.5em]
   \semst{\Lit{n}}_ρ & = & val(\Lit{n},\NatV(n)) \\
   \\[-0.5em]
@@ -62,23 +86,23 @@
   val(\pv,v)(σ) & = & σ \cons \sing{((\pv,v),σ.2)} \\
   \\[-0.5em]
   update(\pa,τ) & = & \begin{cases}
-      τ :: \sing{((\pv,v),μ[\pa ↦ val(\pv,v)])} & \text{$τ = ... \cons \sing{((\pv,v),μ)}$} \\
+      τ :: \sing{((\pv,v),μ[\pa ↦ val(\pv,v)],κ)} & \text{$τ = ... \cons \sing{((\pv,v),μ,\UpdateF \pushF κ)}$} \\
       τ & \text{otherwise} \\
     \end{cases} \\
   \\[-0.5em]
-  deref(\pa)(\px,μ) & = & \begin{letarray}
+  deref(\pa)(\px,μ,κ) & = & \begin{letarray}
       \text{let} & (\pe,d) = μ(\pa) \\
-      \text{in} & (\px,μ) \cons update(\pa,d(\pe,μ)) \\
+      \text{in} & (\px,μ,κ) \cons update(\pa,d(\pe,μ,\UpdateF \pushF κ)) \\
     \end{letarray} \\
   \\[-0.5em]
   apply(τ,d) & = & \begin{cases}
-    τ :: f(d)({\color{red} \pe},μ) & \text{if $τ =... \cons \sing{((\Lam{\px}{\pe},\FunV(f)),μ)}$} \\
+    τ :: f(d)({\color{red} \pe},μ,κ) & \text{if $τ =... \cons \sing{((\Lam{\px}{\pe},\FunV(f)),μ,\ApplyF \pushF κ)}$} \\
     τ & \text{otherwise} \\
   \end{cases} \\
   \\[-0.5em]
   ifz(τ,d_t,d_e) & = & \begin{cases}
-    τ :: d_t(μ,κ) & \text{if $τ =... \cons \sing{((\wild,\NatV(0)),μ,\mathbf{if} \pushF κ)}$} \\
-    τ :: d_e(μ,κ) & \text{if $τ =... \cons \sing{((\wild,\NatV(n)),μ,\mathbf{if} \pushF κ)}, n \not= 0$} \\
+    τ :: d_t({\color{red} ??},μ,κ) & \text{if $τ =... \cons \sing{((\wild,\NatV(0)),μ,\mathbf{if} \pushF κ)}$} \\
+    τ :: d_e({\color{red} ??},μ,κ) & \text{if $τ =... \cons \sing{((\wild,\NatV(n)),μ,\mathbf{if} \pushF κ)}, n \not= 0$} \\
     τ & \text{otherwise} \\
   \end{cases} \\
   \\[-0.5em]
