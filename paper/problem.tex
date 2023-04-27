@@ -32,41 +32,50 @@ complexities involved.
 %    \]
 %    Where $\lfp$ is the least fixpoint operator and $snd(a,b) = b$. Clearly, this
 %    desugaring's use of $\lfp$ is well-defined for its use on elements of the
-%    powerset lattice $\LiveD$.
+%    powerset lattice $\UsgD$.
 %
 %    But \cite{Shivers:91} uses the similar $\text{whererec}$ and gets by without
 %    ever explaining it, so we might as well.
 %\end{itemize}
 
-\subsection{Potential Liveness Analysis}
+\subsection{Usage Analysis}
 
 \begin{figure}
+\resizebox{0.9\textwidth}{!}{%
 \begin{minipage}{\textwidth}
 \[\begin{array}{c}
  \arraycolsep=3pt
  \begin{array}{rrclcl}
   \text{Variables}       & \px,\py & ∈ & \Var    &     & \\
-  \text{Expressions}     &     \pe & ∈ & \Exp_0  & ::= & \px \mid \Lam{\px}{\pe} \mid \pe~\px \mid \Let{\px}{\pe_1}{\pe_2} \\
-  \\
-  \text{Scott Domain}    &       d & ∈ & \ScottD & =   & [\ScottD \to_c \ScottD]_\bot \\
-  \text{Liveness Domain} &  d^{∃l} & ∈ & \LiveD  & =   & \poset{\Var} \\
+  \text{Expressions}     &     \pe & ∈ & \Exp_0  & ::= & \px \mid \Lam{\px}{\pe} \mid \pe~\px \mid \Letsmall{\px}{\pe_1}{\pe_2} \\
  \end{array} \\
+ \\[-0.5em]
+ \begin{array}{rrclcl}
+  \text{Scott Domain}      &  d & ∈ & \ScottD & =   & [\ScottD \to_c \ScottD]_\bot \\
+  \text{Usage cardinality} &  u & ∈ & \Card & =   & \{ 0 ⊏ 1 ⊏ ω \} ⊂ ℕ_ω \\
+  \text{Usage Domain}      &  d & ∈ & \UsgD & =   & \Var \to \Card \\
+ \end{array} \quad
+ \begin{array}{rcl}
+   (ρ_1 ⊔ ρ_2)(\px) & = & ρ_1(\px) ⊔ ρ_2(\px) \\
+   (ρ_1 + ρ_2)(\px) & = & ρ_1(\px) + ρ_2(\px) \\
+   (u * ρ_1)(\px)   & = & u * ρ_1(\px) \\
+ \end{array}
+ \\[-0.5em]
 \end{array}\]
-\subcaption{Syntax of expressions and domain equations}
+\subcaption{Syntax of expressions and semantic domains}
   \label{fig:scott-syntax}
-\end{minipage}
 \begin{minipage}{0.52\textwidth}
 \arraycolsep=0pt
 \[\begin{array}{rcl}
   \multicolumn{3}{c}{ \ruleform{ \semscott{\wild} \colon \Exp → (\Var \to \ScottD) → \ScottD } } \\
   \\[-0.5em]
   \semscott{\px}_ρ & {}={} & ρ(\px) \\
-  \semscott{\Lam{\px}{\pe}}_ρ & {}={} & d ↦_c \semscott{\pe}_{ρ[\px ↦ d]} \\
+  \semscott{\Lam{\px}{\pe}}_ρ & {}={} & d ↦ \semscott{\pe}_{ρ[\px ↦ d]} \\
   \semscott{\pe~\px}_ρ & {}={} & \begin{cases}
-     f(ρ(x)) & \text{if $\semscott{\pe} = \FunV(f)$}  \\
+     f(ρ(x)) & \text{if $\semscott{\pe} = f$}  \\
      \bot   & \text{otherwise}  \\
    \end{cases} \\
-  \semscott{\Let{\px}{\pe_1}{\pe_2}}_ρ & {}={} &
+  \semscott{\Letsmall{\px}{\pe_1}{\pe_2}}_ρ & {}={} &
     \begin{letarray}
       \text{letrec}~ρ'. & ρ' = ρ \mathord{⊔} [\px \mathord{↦} d_1] \\
                         & d_1 = \semscott{\pe_1}_{ρ'} \\
@@ -76,27 +85,32 @@ complexities involved.
 \subcaption{Denotational semantics after Scott}
   \label{fig:denotational}
 \end{minipage}%
+\quad
 \begin{minipage}{0.5\textwidth}
 \arraycolsep=0pt
 \[\begin{array}{rcl}
-  \multicolumn{3}{c}{ \ruleform{ \semlive{\wild} \colon \Exp → (\Var → \LiveD) → \LiveD } } \\
+  \multicolumn{3}{c}{ \ruleform{ \semusg{\wild} \colon \Exp → (\Var → \UsgD) → \UsgD } } \\
   \\[-0.5em]
-  \semlive{\px}_ρ & {}={} & ρ(\px) \\
-  \semlive{\Lam{\px}{\pe}}_ρ & {}={} & \semlive{\pe}_{ρ[\px ↦ \varnothing]} \\
-  \\[-0.5em]
-  \semlive{\pe~\px}_ρ & {}={} & \semlive{\pe} ∪ ρ(\px) \\
-  \\[-0.5em]
-  \semlive{\Let{\px}{\pe_1}{\pe_2}}_ρ& {}={} & \begin{letarray}
+  \semusg{\px}_ρ & {}={} & ρ(\px) \\
+  \semusg{\Lam{\px}{\pe}}_ρ & {}={} & ω*\semusg{\pe}_{ρ[\px ↦ \varnothing]} \\
+  \semusg{\pe~\px}_ρ & {}={} & \semusg{\pe} + ω*ρ(\px)
+    \phantom{\begin{cases}
+       f(ρ(x)) & \text{if $\semscott{\pe} = f$}  \\
+       \bot   & \text{otherwise}  \\
+     \end{cases}} \\
+  \semusg{\Letsmall{\px}{\pe_1}{\pe_2}}_ρ& {}={} & \begin{letarray}
       \text{letrec}~ρ'. & ρ' = ρ \mathord{⊔} [\px \mathord{↦} d_1] \\
-                        & d_1 = \{\px\} \mathord{∪} \semscott{\pe_1}_{ρ'} \\
-      \text{in}         & \semlive{\pe_2}_{ρ'}
-    \end{letarray} \\
+                        & d_1 = [\px\mathord{↦}1] \mathord{+} \semscott{\pe_1}_{ρ'} \\
+      \text{in}         & \semusg{\pe_2}_{ρ'}
+    \end{letarray}
 \end{array}\]
-\subcaption{Naïve potential liveness analysis}
-  \label{fig:liveness}
-\end{minipage}%
+\subcaption{Naïve usage analysis}
+  \label{fig:usage}
+\end{minipage}
+\end{minipage}
+}
   \label{fig:intro}
-\caption{Connecting liveness analysis to denotational semantics}
+\caption{Connecting usage analysis to denotational semantics}
 \end{figure}
 
 \Cref{fig:scott-syntax} defines the syntax of a lambda calculus with recursive
@@ -109,16 +123,23 @@ This semantics is given in \Cref{fig:denotational}, the standard denotational
 call-by-name semantics $\semscott{\wild}$ after \citep{ScottStrachey:71}, giving
 meaning to our syntax by means of the infamous Scott domain $\ScottD$.
 Squinting a bit, we find that it looks quite similar to the function
-on its right in \Cref{fig:liveness}, depicting a naïve potential liveness
-analysis $\semlive{\wild}$. (It is naïve in that its treatment of function
-application assumes that every function deeply evaluates its argument.)
+to its right in \Cref{fig:usage}, depicting a \emph{usage analysis}
+$\semusg{\wild}$, a static analysis for estimating an upper bound on how often
+a variable is evaluated. The given analysis quite is naïve, in that its
+treatment of function application assumes that every function deeply evaluates
+its argument. It also discards
 
 Assuming that all program variables are distinct (a silent assumption from
-here on throughout), the result of $\semlive{\wild}$ is an element $d ∈ \LiveD$,
-itself a subset of all program variables that are \emph{potentially live}.
-Intuitively, if $x \not∈ d$, then $x$ is considered to be \emph{dead}, \eg,
-\emph{never evaluated}; thus $\semlive{\wild}$ can be used to infer facts of
-the form ``$\pe$ never evaluates $x$'' from the introduction.
+here on throughout), the result of $\semusg{\wild}$ is an element $d ∈ \UsgD$,
+environment that maps to each variable an upper bound on its \emph{evaluation
+cardinality}, that is, how often the variable is evaluated.
+Whenever $0 ⊏ d(x)$, we say that it is \emph{potentially live} in $d$ and
+extend this meaning to a program $\pe$ whenever $\semusg{\pe} = d$.
+Likewise, when $d(x) = 0$ we say that $x$ is \emph{dead} in $d$ and the programs
+$d$ denotes, \eg, \emph{never evaluated}. In this way, $\semusg{\wild}$ can
+be used to infer facts of the form ``$\pe$ never evaluates $x$'' from the
+introduction.
+
 The \emph{requirement} (in the sense of informal specification) on an assertion
 such as ``$x$ is dead'' in a program like $\Let{x}{\pe_1}{\pe_2}$ is that we
 may rewrite to $\pe_2$ (perhaps to reduce allocations or code size) without
@@ -148,33 +169,36 @@ theorem:
 
 \newcommand{\tr}{\ensuremath{\tilde{ρ}}}
 
-\begin{theorem}[Correctness of $\semlive{\wild}$]
-  \label{thm:semlive-correct-1}
+\begin{theorem}[$\semusg{\wild}$ is a correct potential liveness analysis]
+  \label{thm:semusg-correct-live}
   Let $\pe$ be an expression and $\px$ a variable.
   Then $\px$ is dead in $\pe$ whenever
-  there exists $\tr ∈ \Var \to \LiveD$ such that
-  $\tr(\px) \not⊆ \semlive{\pe}_{\tr}$.
+  there exists $\tr ∈ \Var \to \UsgD$ such that
+  $\tr(\px) \not⊑ \semusg{\pe}_{\tr}$.
 \end{theorem}
 \begin{proof}
   By induction over $\pe$. The full proof can be found in
-  \Cref{prf:semlive-correct-1}.
+  \Cref{prf:semusg-correct-1}.
 \end{proof}
 
 Let us stop and reflect about this theorem for a bit.
 Whenever thinking about the witnessing $\tr$ giving values to free variables of
-$\pe$, it helps to think that $\tr(\py) \triangleq \{ \py \}$, then the
+$\pe$, it helps to think that $\tr(\px) \triangleq \fn{\py}{{}\ternary{\px = \py}{1}{0}}$, then the
 intuitive notion of deadness translates directly.
 \footnote{In fact, it can be proven that \emph{if} any $\tr$ exists, then the
 ``diagonal'' $\tr$ is also a witness.}
 
 It is surprising that the theorem does not relate $\tr$ with $ρ$; after all,
-$ρ(\py)$ might be bound to the \emph{meaning} of an expression that is
-potentially live in $\px$, and we have no way to observe that.
-On the other hand, our notion of deadness does not vary $ρ(\py)$, only
-$ρ(\px)$, so for all intents and purposes, the proof may assume that $ρ(\py)$
-is dead in $\px$. The analysis, on the other hand, encodes transitive deadness
-relationships via $\tr(\px) ⊆ \tr(\py)$ for the let-bound $\py$ in the
-$\mathsf{let}$ case, thus the proof succeeds.
+$ρ(\py)$ (for $\py \not= \px$) might be bound to the \emph{meaning} of an
+expression that is potentially live in $\px$, and we have no way to observe
+that.
+The key is to realise that our notion of deadness varies $ρ(\px)$ (the meaning
+of $\px$), but that does not vary $ρ(\py)$ because its occurrence of $\px$ had
+already been substituted, so for all intents and purposes, the proof may assume
+that $ρ(\py)$ is dead in $\px$.
+The analysis, on the other hand, encodes transitive deadness relationships via
+$\tr(\px) ⊑ \tr(\py)$ to couple the deadness result from the body to for the let-bound $\py$ in the $\mathsf{let}$ case, thus
+the proof succeeds.
 
 The proof capitalises on the similarities in structure by using induction on the
 program expression, hence it is simple and direct, at just under a page of
@@ -182,14 +206,14 @@ accessible prose. Often, such a proof needs to assume conformance to some
 logical relation to strengthen the induction hypothesis for the application
 case, but for our very simple analysis we do not need to be so crafty.
 
-Nevermind our confidence in the ultimate correctness of $\semlive{\wild}$,
+Nevermind our confidence in the ultimate correctness of $\semusg{\wild}$,
 we have seen in the introduction that our notion of deadness is insufficient.
 Recall again the infinitely-looping program $\pe_{loop}$ in \eqref{eqn:loop};
 our notion of deadness finds that $x$ is dead in $\pe_{loop}$ and the compiler
 would be justified to optimise to $\Let{loop}{id~loop}{loop}$ based on that
 fact.
 
-Fortunately, $id ∈ \semlive{\pe_{loop}}$, so our analysis seems to behave more
+Fortunately, $id ∈ \semusg{\pe_{loop}}$, so our analysis seems to behave more
 benign than ``necessary''. We are hopeful that it adheres to a stricter notion
 of deadness, perhaps in terms of a structural operational semantics such as
 Sestoft's Mark II machine \cite{Sestoft:97} (an obvious pick for call-by-value
@@ -286,46 +310,11 @@ type systems would still need to resort to an operational semantics for the lack
 of observable evaluation cardinality or postulate observability as is the case
 for the categorical semantics of \citep{Atkey:18}.
 
-\begin{figure}
-\begin{minipage}{0.52\textwidth}
-\[\begin{array}{c}
- \arraycolsep=3pt
- \begin{array}{rrclcl}
-  \text{Usage cardinality} &       u & ∈ & \Card & =   & \{ 0 ⊏ 1 ⊏ ω \} ⊂ \mathbb{N}_ω \\
-  \text{Liveness Domain}   &  d^{∃ω} & ∈ & \UsgD & =   & \Var \to \Card \\
- \end{array} \\
- \begin{array}{rcl}
-   (ρ_1 + ρ_2)(\px) & = & ρ_1(\px) + ρ_2(\px) \\
-   (u * ρ_1)(\px)   & = & u * ρ_1(\px) \\
- \end{array} \\
-\end{array}\]
-\end{minipage}%
-\begin{minipage}{0.5\textwidth}
-\arraycolsep=0pt
-\[\begin{array}{rcl}
-  \multicolumn{3}{c}{ \ruleform{ \semusg{\wild} \colon \Exp → (\Var → \UsgD) → \UsgD } } \\
-  \\[-0.5em]
-  \semusg{\px}_ρ & {}={} & ρ(\px) \\
-  \semusg{\Lam{\px}{\pe}}_ρ & {}={} & ω*\semusg{\pe}_{ρ[\px ↦ \varnothing]} \\
-  \\[-0.5em]
-  \semusg{\pe~\px}_ρ & {}={} & \semusg{\pe} + ω*ρ(\px) \\
-  \\[-0.5em]
-  \semusg{\Let{\px}{\pe_1}{\pe_2}}_ρ& {}={} & \begin{letarray}
-      \text{letrec}~ρ'. & ρ' = ρ \mathord{⊔} [\px \mathord{↦} d_1] \\
-                        & d_1 = [\px\mathord{↦}1] \mathord{+} \semscott{\pe_1}_{ρ'} \\
-      \text{in}         & \semusg{\pe_2}_{ρ'}
-    \end{letarray} \\
-\end{array}\]
-\end{minipage}%
-\caption{Naïve usage analysis}
-  \label{fig:liveness}
-\end{figure}
-
-\begin{theorem}[Correctness of $\semlive{\wild}$]
-  \label{thm:semlive-correct-1}
+\begin{theorem}[Correctness of $\semusg{\wild}$]
+  \label{thm:semusg-correct-1}
   Let $\pe$ be an expression and $\px$ a variable.
   Then $\px$ is evaluated at most $u$ times whenever
   there exists $\tr ∈ \Var \to \UsgD$ such that
-  $(u+1)*\tr(\px) \not⊑ \semlive{\pe}_{\tr}$.
+  $(u+1)*\tr(\px) \not⊑ \semusg{\pe}_{\tr}$.
 \end{theorem}
 % Curiosly, this is sound for call-by-name. Call-by-need would be a bit more complicated.

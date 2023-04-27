@@ -62,6 +62,7 @@
 \newcommand{\LLam}[3]{\lambda_{#1} #2. #3}
 \newcommand{\Lit}[1]{\llparenthesis #1 \rrparenthesis}
 \newcommand{\Let}[3]{\mathbf{let}~{#1}={#2}~\mathbf{in}~{#3}}
+\newcommand{\Letsmall}[3]{\mathbf{let}\,{#1}\!\!=\!\!{#2}\,\mathbf{in}\,{#3}}
 \newcommand{\Ifz}[3]{\mathbf{0?}(#1,#2,#3)}
 \newcommand{\LLet}[4]{\mathbf{let}_{#1}~{#2}={#3}~\mathbf{in}~{#4}}
 \newcommand{\Case}[2]{\mathbf{case}~{#1}~\mathbf{of}~{#2}}
@@ -133,7 +134,7 @@
 \newcommand{\FinStepMap}[2]{#1 \Rightarrow #2}
 \newcommand{\PrefD}{\Domain{*}}
 \newcommand{\MaxD}{\Domain{+\infty}}
-\newcommand{\ScottD}{\Domain{}}
+\newcommand{\ScottD}{\Domain{\bot}}
 \newcommand{\AbsD}{\Domain{\raisebox{0.1em}{\scalebox{0.4}{$\square$}}}}
 \newcommand{\AbsCD}{\Domain{\raisebox{0.1em}{\scalebox{0.4}{c$\square$}}}}
 \newcommand{\StateD}{\Domain{\States}}
@@ -141,7 +142,7 @@
 \newcommand{\SSD}{\Domain{Σ}}
 \newcommand{\SSCD}{\Domain{cΣ}}
 \newcommand{\LiveD}{\Domain{\exists l}}
-\newcommand{\UsgD}{\Domain{\exists ω}}
+\newcommand{\UsgD}{\Domain{\exists u}}
 \newcommand{\LiveSD}{\Domain{sl}}
 \newcommand{\LiveCD}{\Domain{cl}}
 \newcommand{\LiveSCD}{\Domain{scl}}
@@ -167,13 +168,13 @@
 
 % Semantics
 \newcommand{\denot}[1]{\llbracket {#1} \rrbracket}
-\newcommand{\semscott}[1]{\mathcal{S}\denot{#1}}
+\newcommand{\semscott}[1]{\mathcal{S}^{\bot}\denot{#1}}
 \newcommand{\sempref}[1]{\mathcal{S}^*\denot{#1}}
 \newcommand{\seminf}[1]{\mathcal{S}^{+\infty}\denot{#1}}
 \newcommand{\semst}[1]{\mathcal{S}^{\States}\denot{#1}}
 \newcommand{\semss}[1]{\mathcal{S}^{Σ}\denot{#1}}
 \newcommand{\semlive}[1]{\mathcal{S}^{∃l}\denot{#1}}
-\newcommand{\semusg}[1]{\mathcal{S}^{∃ω}\denot{#1}}
+\newcommand{\semusg}[1]{\mathcal{S}^{∃u}\denot{#1}}
 \newcommand{\semclive}[1]{\mathcal{S}^{cl}\denot{#1}}
 \newcommand{\semslive}[1]{\mathcal{S}^{sl}\denot{#1}}
 \newcommand{\semsclive}[1]{\mathcal{S}^{scl}\denot{#1}}
