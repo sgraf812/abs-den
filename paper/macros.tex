@@ -63,10 +63,11 @@
 \newcommand{\Lit}[1]{\llparenthesis #1 \rrparenthesis}
 \newcommand{\Let}[3]{\mathbf{let}~{#1}={#2}~\mathbf{in}~{#3}}
 \newcommand{\Letsmall}[3]{\mathbf{let}\,{#1}\!\!=\!\!{#2}\,\mathbf{in}\,{#3}}
-\newcommand{\Ifz}[3]{\mathbf{0?}(#1,#2,#3)}
+\newcommand{\Ifz}[3]{\mathbf{ifz}(#1,#2,#3)}
 \newcommand{\LLet}[4]{\mathbf{let}_{#1}~{#2}={#3}~\mathbf{in}~{#4}}
 \newcommand{\Case}[2]{\mathbf{case}~{#1}~\mathbf{of}~{#2}}
 \newcommand{\Sel}[1][]{\many{K~\many{x} \rightarrow e_{#1}}}
+\newcommand{\SelArity}{\many{K~\many{x}^{α_K} \rightarrow e}}
 \newcommand{\dom}{\mathop\mathsf{dom}}
 \newcommand{\rng}{\mathop\mathsf{rng}}
 \newcommand{\fv}{\mathop\mathsf{fv}}
@@ -126,7 +127,7 @@
 \newcommand{\NatV}{\mathsf{nat}}
 \newcommand{\ConV}{\mathsf{con}}
 \newcommand{\Environments}{\mathbb{E}}
-\newcommand{\Control}{\mathbb{C}}
+\newcommand{\Controls}{\mathbb{C}}
 \newcommand{\ProgramPoints}{\mathbb{P}}
 \newcommand{\Heaps}{\mathbb{H}}
 \newcommand{\Continuations}{\mathbb{K}}

@@ -1,14 +1,15 @@
 \begin{figure}
 \[\begin{array}{c}
  \begin{array}{rrclcl}
-  \text{Naturals}     &        n & ∈ & ℕ           &     &  \\
   \text{Variables}    & \px, \py & ∈ & \Var        &     &  \\
+  \text{Constructors} &        K & ∈ & \Con        & \simeq & ℕ \quad \text{with arity $α_K ∈ ℕ$} \\
+  \text{Arities}      &      A_K & ∈ & Ν           &     & \\
   \text{Labels}       &     \lbl & ∈ & \Labels     &     &  \\
-  \text{Values}       &      \pv & ∈ & \Val        & ::= & \Lit{n} \mid \Lam{\px}{\pe} \\
-  \text{Expressions}  &      \pe & ∈ & \Exp        & ::= & \slbl \px \mid \slbl \pv \mid \slbl \pe~\px \mid \slbl \Ifz{\pe_b}{\pe_t}{\pe_e} \mid \slbl \Let{\px}{\pe_1}{\pe_2} \\
+  \text{Values}       &      \pv & ∈ & \Val        & ::= & \Lam{\px}{\pe} \mid K~\many{\px}^{α_K} \\
+  \text{Expressions}  &      \pe & ∈ & \Exp        & ::= & \slbl \px \mid \slbl \pv \mid \slbl \pe~\px \mid \slbl \Let{\px}{\pe_1}{\pe_2} \mid \slbl \Case{\pe}{\SelArity} \\
   \\[-0.5em]
-  \text{States}        & σ   & ∈ & \States        & =      & \Control \times \Heaps \\
-  \text{Controls}      & γ   & ∈ & \Control       & ::=    & \pe \mid (\pv, v) \\
+  \text{States}        & σ   & ∈ & \States        & =      & \Controls \times \Heaps \\
+  \text{Controls}      & γ   & ∈ & \Controls      & ::=    & \pe \mid (\pv, v) \\
   \text{Addresses}     & \pa & ∈ & \Addresses     & \simeq & ℕ \\
   \text{Environments}  & ρ   & ∈ & \Environments  & =      & \Var \pfun \,\blacktriangleright\!\StateD \\
   \text{Heaps}         & μ   & ∈ & \Heaps         & =      & \Addresses \pfun \,\blacktriangleright\!\StateD \\
@@ -16,7 +17,8 @@
   \text{Stateful traces} & τ      & ∈          & \STraces & ::= & \goodend{σ} \mid \stuckend{σ} \mid σ \cons τ^{\blacktriangleright} \\
   \text{Guarded trace} & τ^{\blacktriangleright} & ∈ & \blacktriangleright\!\STraces &   & \\
   \text{Stateful domain} & d & ∈ & \StateD & = & \Heaps \to \STraces \\
-  \text{Semantic values} & v & ∈ & \StateV & ::= & \FunV(f ∈ \,\blacktriangleright\!(\StateD \to \StateD)) \\
+  \text{Guarded element} & d^{\blacktriangleright} & ∈ & \blacktriangleright\!\StateD &   & \\
+  \text{Semantic values} & v & ∈ & \StateV & ::= & \FunV(f ∈ \,\blacktriangleright\!(\StateD \to \StateD)) \mid \NatV(n) \mid \ConV(K,\many{d^{\blacktriangleright}}^{α_K}) \\
  \end{array} \\
   \\[-0.5em]
 \end{array}\]
@@ -32,11 +34,11 @@
   \\[-0.5em]
   val(\pv,v)(μ) & = & \goodend{((\pv,v),μ)} \\
   \\[-0.5em]
-  upd(\pa)((\pv,v),μ) & = & \goodend{((\pv,v),μ[\pa ↦ val(\pv,v)])} \\
+  update(\pa)((\pv,v),μ) & = & \goodend{((\pv,v),μ[\pa ↦ val(\pv,v)])} \\
   \\[-0.5em]
-  deref(\pa)(μ) & = & μ(\pa)(μ) \betastep upd(\pa) \\
+  deref(\pa)(μ) & = & μ(\pa)(μ) \betastep update(\pa) \\
   \\[-0.5em]
-  ifz(τ,d_t,d_e) & = & τ \betastep \fn{((\wild,\NatV(n)),μ)}{\ternary{n=0}{d_t(μ)}{d_e(μ)}} \\
+  select(τ,\many{f}) & = & τ \betastep \fn{((\wild,\ConV(K_s,\many{d_s})),μ)}{f_s(\many{d_s})} \\
   \\[-0.5em]
   apply(τ,d) & = & τ \betastep \fn{((\wild,\FunV(f)),μ)}{f(d)(μ)} \\
   \\[-0.5em]
@@ -47,11 +49,11 @@
     \stuckend{(\px,μ)} & \text{otherwise}
     \end{cases} \\
   \\[-0.5em]
-  \semst{\Lit{n}}_ρ & = & val(\Lit{n},\NatV(n)) \\
+  \semst{K~\many{\px}}_ρ & = & val(K~\many{\px},\ConV(K,\many{\semst{\px}_ρ})) \\
   \\[-0.5em]
   \semst{\Lam{\px}{\pe}}_ρ & = & val(\Lam{\px}{\pe},\FunV(\fn{d}{\semst{\pe}_{ρ[\px↦d]}})) \\
   \\[-0.5em]
-  \semst{\pe@(\Ifz{\pe_b}{\pe_t}{\pe_e})}_ρ(μ) & = & (\pe,μ) \cons ifz(\semst{\pe_b}_ρ(μ),\semst{\pe_t}_ρ,\semst{\pe_e}_ρ)  \\
+  \semst{\pe@(\Case{\pe}{\Sel[s]})}_ρ(μ) & = & (\pe,μ) \cons select(\semst{\pe}_ρ(μ),\many{\fn{\many{d}^{α_K}}{\semst{\pe_s}_{ρ[\many{\px↦d}]}}})  \\
   \\[-0.5em]
   \semst{\pe~\px}_ρ(μ) & = & \begin{cases}
       (\pe~\px,μ) \cons apply(\semst{\pe}_ρ(μ),ρ(\px)) & \px ∈ \dom(ρ) \\
@@ -70,122 +72,24 @@
   \label{fig:semst}
 \end{figure}
 
-\begin{figure}
-\[\begin{array}{c}
- \begin{array}{rcl}
-  \multicolumn{3}{c}{ \ruleform{ \semst{\wild} \colon \Exp → (\Var \pfun \StateD) → \StateD } } \\
-  \\[-0.5em]
-  \ternary{b}{t}{e} & = & \begin{cases} t & \text{if $b$ is true} \\ e & \text{otherwise} \\ \end{cases} \\
-  \\[-0.5em]
-  val(\pv,v)(σ) & = & σ \cons \goodend{((\pv,v),σ.2)} \\
-  \\[-0.5em]
-  update(\pa,τ) & = & \begin{cases}
-      τ :: \goodend{((\pv,v),μ[\pa ↦ val(\pv,v)])} & \text{$τ = ... \cons \goodend{((\pv,v),μ,\UpdateF \pushF κ)}$} \\
-      τ & \text{otherwise} \\
-    \end{cases} \\
-  \\[-0.5em]
-  deref(\pa)(\px,μ,κ) & = & \begin{letarray}
-      \text{let} & (\pe,d) = μ(\pa) \\
-      \text{in} & (\px,μ,κ) \cons update(\pa,d(\pe,μ,\UpdateF \pushF κ)) \\
-    \end{letarray} \\
-  \\[-0.5em]
-  apply(τ,d) & = & \begin{cases}
-    τ :: f(d)({\color{red} \pe},μ,κ) & \text{if $τ =... \cons \goodend{((\Lam{\px}{\pe},\FunV(f)),μ,\ApplyF \pushF κ)}$} \\
-    τ & \text{otherwise} \\
-  \end{cases} \\
-  \\[-0.5em]
-  ifz(τ,d_t,d_e) & = & \begin{cases}
-    τ :: d_t({\color{red} ??},μ,κ) & \text{if $τ =... \cons \goodend{((\wild,\NatV(0)),μ,\mathbf{if} \pushF κ)}$} \\
-    τ :: d_e({\color{red} ??},μ,κ) & \text{if $τ =... \cons \goodend{((\wild,\NatV(n)),μ,\mathbf{if} \pushF κ)}, n \not= 0$} \\
-    τ & \text{otherwise} \\
-  \end{cases} \\
-  \\[-0.5em]
-  \semst{\pe}_ρ(\pe', μ) & = & \goodend{(\pe', μ)} \quad \text{if $\pe' \not= \pe$} \\
-  \\[-0.5em]
-  \semst{\px}_ρ(σ) & = & \ternary{\px ∈ \dom(ρ)}{ρ(\px)(σ)}{\goodend{σ}} \\
-  \\[-0.5em]
-  \semst{\Lit{n}}_ρ & = & val(\Lit{n},\NatV(n)) \\
-  \\[-0.5em]
-  \semst{\Lam{\px}{\pe}}_ρ & = & val(\Lam{\px}{\pe},\FunV(\fn{d}{\semst{\pe}_{ρ[\px↦d]}})) \\
-  \\[-0.5em]
-  \semst{\Ifz{\px}{\pe_t}{\pe_e}}_ρ(σ) & = & \begin{cases}
-      σ \cons ifz(ρ(x)(σ.1,σ.2,\mathbf{if} \pushF σ.3),\semst{\pe_t}_ρ,\semst{\pe_e}_ρ) & \px ∈ \dom(ρ) \\
-      \goodend{σ} & \text{otherwise} \\
-    \end{cases} \\
-  \\[-0.5em]
-  \semst{\pe~\px}_ρ(σ) & = & \begin{cases}
-      σ \cons apply(\semst{\pe}_ρ(\pe,σ.2),ρ(\px)) & \px ∈ \dom(ρ) \\
-      \goodend{σ} & \text{otherwise} \\
-    \end{cases} \\
-  \\[-0.5em]
-  \semst{\Let{\px}{\pe_1}{\pe_2}}(σ) & = & \begin{letarray}
-    \text{let} & ρ' = ρ[\px ↦ deref(\pa)] \quad \text{where $\pa \not∈ \dom(μ)$} \\
-               & μ' = σ.2[\pa ↦ (\pe_1,\semst{\pe_1}_{ρ'})] \\
-    \text{in}  & σ \cons \semst{\pe_2}_{ρ'}(\pe_2,μ',σ.3) \\
-  \end{letarray} \\
- \end{array} \\
-\end{array}\]
-\caption{Experiment: Pass full state instead of just μ}
-  \label{fig:semst}
-\end{figure}
-
-\begin{figure}
-\[\begin{array}{c}
- \begin{array}{rcl}
-  \multicolumn{3}{c}{ \ruleform{ \seminf{\wild} \colon \Exp → (\Var \pfun \StateD) → \StateD } } \\
-  \\[-0.5em]
-  \ternary{b}{t}{e} & = & \begin{cases} t & \text{if $b$ is true} \\ e & \text{otherwise} \\ \end{cases} \\
-  \\[-0.5em]
-  val(\pv,v)(μ) & = & \cons \goodend{((\pv,v),μ)} \\
-  \\[-0.5em]
-  deref(\pa)(μ) & = & \begin{cases}
-      \cons^{\LookupT} μ(\pa)(μ) \cons^{\UpdateT} \goodend{((\pv,v),μ[\pa ↦ \fn{μ}{\color{red} ((\pv,v),μ) \cons val(\pv,v)(μ)}])} & \text{$μ(\pa)(μ) = ... \cons \goodend{((\pv,v),μ)}$} \\
-      \cons^{\LookupT} μ(\pa)(μ) & \text{otherwise} \\
-    \end{cases} \\
-  \\[-0.5em]
-  apply(τ,d) & = & \begin{cases}
-    τ :: f(d)(μ) & \text{if $τ =... \cons \goodend{((\pv,\FunV(f)),μ)}$} \\
-    τ & \text{otherwise} \\
-  \end{cases} \\
-  \\[-0.5em]
-  \seminf{\px}_ρ(μ) & = & \ternary{\px ∈ \dom(ρ)}{ρ(\px)(μ)}{\goodend{}} \\
-  \\[-0.5em]
-  \seminf{\Lam{\px}{\pe}}_ρ & = & val(\Lam{\px}{\pe},\FunV({\color{red} \fn{d\,μ}{\cons (\pe,μ) \cons \seminf{\pe}_{ρ[\px↦d]}(μ)}})) \\
-  \\[-0.5em]
-  \seminf{\pe~\px}_ρ(μ) & = & \begin{cases}
-      \cons (\pe,μ) \cons apply(\seminf{\pe}_ρ(μ),ρ(\px)) & \px ∈ \dom(ρ) \\
-      \goodend{} & \text{otherwise} \\
-    \end{cases} \\
-  \\[-0.5em]
-  \seminf{\Let{\px}{\pe_1}{\pe_2}}(μ) & = & \begin{letarray}
-    \text{let} & ρ' = ρ[\px ↦ deref(\pa)] \quad \text{where $\pa \not∈ \dom(μ)$} \\
-               & μ' = μ[{\color{red} \pa ↦ \fn{μ}{(\pe_1,μ) \cons \seminf{\pe_1}_{ρ'}(μ)}}] \\
-    \text{in}  & \cons (\pe_2,μ') \cons \seminf{\pe_2}_{ρ'}(μ') \\
-  \end{letarray} \\
- \end{array} \\
-\end{array}\]
-\caption{Experiment: Try not to include the source state in the produced trace}
-  \label{fig:semst}
-\end{figure}
-
 \section{Semantics}
 \label{sec:semantics}
 
 \begin{figure}
 \[\begin{array}{c}
  \begin{array}{rrclcl}
-  \text{Variables}    & \px, \py & ∈ & \Var        &     & \text{finite} \\
-  \text{Labels}       &     \lbl & ∈ & \Labels     &     & \text{finite} \\
-  \text{Values}       &      \pv & ∈ & \Val        & ::= & \Lam{\px}{\pe} \mid \Lit{n} \\
-  \text{Expressions}  &      \pe & ∈ & \Exp        & ::= & \slbl \px \mid \slbl \pv \mid \slbl \pe~\px \mid \slbl \Let{\px}{\pe_1}{\pe_2} \\
+  \text{Naturals}     &        n & ∈ & ℕ           &     &  \\
+  \text{Variables}    & \px, \py & ∈ & \Var        &     &  \\
+  \text{Labels}       &     \lbl & ∈ & \Labels     &     &  \\
+  \text{Values}       &      \pv & ∈ & \Val        & ::= & \Lit{n} \mid \Lam{\px}{\pe} \\
+  \text{Expressions}  &      \pe & ∈ & \Exp        & ::= & \slbl \px \mid \slbl \pv \mid \slbl \pe~\px \mid \slbl \Ifz{\pe_b}{\pe_t}{\pe_e} \mid \slbl \Let{\px}{\pe_1}{\pe_2} \\
   \\[-0.5em]
-  \text{States}        & σ   & ∈ & \States        & =      & \Control \times \Environments \times \Heaps \times \Continuations \\
-  \text{Controls}      & γ   & ∈ & \Control       & ::=    & \pe \mid (\pv, v) \\
+  \text{States}        & σ   & ∈ & \States        & =      & \Controls \times \Environments \times \Heaps \times \Continuations \\
+  \text{Controls}      & γ   & ∈ & \Controls      & =      & \pe \mid \pv \\
   \text{Environments}  & ρ   & ∈ & \Environments  & =      & \Var \pfun \Addresses \\
   \text{Addresses}     & \pa & ∈ & \Addresses     & \simeq & ℕ \\
-  \text{Heaps}         & μ   & ∈ & \Heaps         & =      & \Addresses \pfun \Exp \times \Environments \times \StateD \\
+  \text{Heaps}         & μ   & ∈ & \Heaps         & =      & \Addresses \pfun \Exp \times \Environments \\
   \text{Continuations} & κ   & ∈ & \Continuations & ::=    & \StopF \mid \ApplyF(\pa) \pushF κ \mid \UpdateF(\pa) \pushF κ \\
-  \text{Parameters}    & \multicolumn{5}{l}{d∈D,~v∈V} \\
  \end{array} \\
   \\[-0.5em]
 \end{array}\]
