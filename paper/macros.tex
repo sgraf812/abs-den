@@ -101,6 +101,7 @@
 \newcommand{\makestuck}[1]{\lightning(#1)}
 \newcommand{\cons}{\mathbin{::}}
 \newcommand{\trend}{\raisebox{-0.8pt}{\scalebox{0.3}{$\square$}}}
+\newcommand{\betastep}{\mathbin{>\hspace{-0.40em}>\hspace{-0.48em}\text{β}\hspace{-0.40em}=}}
 % https://latex.org/forum/viewtopic.php?p=62177&sid=26890ac77d076f3338384a47a2ffd4bc#p62177
 \makeatletter
 \newcommand{\concatop}[1]{%
@@ -158,7 +159,7 @@
 \DeclareMathSymbol{\bblparen}{\mathpunct}{bbold}{"28}
 \DeclareMathSymbol{\bbrparen}{\mathpunct}{bbold}{"29}
 \DeclareMathSymbol{\bbpipe}{\mathpunct}{bbold}{"7C}
-\newcommand{\ternary}[3]{\bblparen\, #1 \,\mathrel{\bbquestionmark}\, #2 \,\mathrel{\bbcolon}\, #3 \,\bbrparen}
+\newcommand{\ternary}[3]{\mathop{\bblparen} #1 \mathrel{\bbquestionmark} #2 \mathrel{\bbcolon} #3 \mathop{\bbrparen}}
 
 % Order theory
 \DeclareMathOperator*{\lub}{\sqcup}
