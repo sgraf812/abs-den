@@ -109,20 +109,21 @@ contributions:
     Introduction by way of example analyses.
   \item In \Cref{sec:semantics}, we give a compositional semantics
     for call-by-need lambda calculus that generates potentially infinite
-    traces. Unlike traditional formulations of denotational semantics, our
-    semantics is defined by \emph{guarded recursion} and thus total as a
-    mathematical function. Our semantics is also distinct from similar ones for
-    call-by-name or call-by-value and allows to observe evaluation cardinality
-    as needed.
+    small-step traces. Unlike traditional formulations of denotational
+    semantics, our semantics is defined by \emph{guarded recursion} and thus
+    total as a mathematical function. Our semantics is also distinct from
+    similar ones for call-by-name or call-by-value and allows to observe
+    evaluation cardinality as needed.
     We believe that our semantics is the first with the aforementioned two
     qualities and prove it correct \wrt a standard operational semantics. The
     idea borrows heavily from the idea of a maximal prefix trace semantics
     advocated by \citep{Cousot:21}.
   \item The semantics in \Cref{sec:semantics} is one generating \emph{stateful}
     traces in a standard operational semantics, and serves mostly as a
-    convenient bridge for proving bisimulation. In \Cref{sec:stateless} we will
-    define an equivalent, but more convenient \emph{stateless} semantics and we
-    will see how to recover necessary state from program history as needed.
+    convenient bridge for proving bisimulation \sg{No longer}. In
+    \Cref{sec:stateless} we will define an equivalent, but more convenient
+    \emph{stateless} semantics and we will see how to recover necessary state
+    from program history as needed.
   \item We employ the stateless semantics as a collecting semantics and derive
     $\semlive{\wild}$ by calculational design \cite{Cousot:21}.
     Similar derivations will be made for a simple type system as well as for

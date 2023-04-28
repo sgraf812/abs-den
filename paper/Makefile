@@ -5,7 +5,7 @@ main: comp-trace.pdf
 
 .PHONY: main quick watch clean
 
-comp-trace-ext.tex: *.lhs
+comp-trace-ext.tex: *.tex
 	cat comp-trace.tex | sed -e 's/^%\\extended/\\extended/g' > comp-trace-ext.tex
 
 %.pdf: %.tex macros.tex references.bib

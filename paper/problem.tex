@@ -4,7 +4,7 @@
 By way of the poster child example of a compositional definition of \emph{usage
 analysis}, we showcase how the operational detail available in traditional
 denotational semantics is too coarse to substantiate a correctness criterion,
-although the proof of (a weaker) correctness is simple and direct.
+although the proof of (a weaker notion of) correctness is simple and direct.
 While operational semantics observe sufficient detail to formulate a correctness
 relation, we give an excerpt from an exemplary proof attempt that highlights the
 complexities involved.
@@ -92,7 +92,7 @@ complexities involved.
   \multicolumn{3}{c}{ \ruleform{ \semusg{\wild} \colon \Exp → (\Var → \UsgD) → \UsgD } } \\
   \\[-0.5em]
   \semusg{\px}_ρ & {}={} & ρ(\px) \\
-  \semusg{\Lam{\px}{\pe}}_ρ & {}={} & ω*\semusg{\pe}_{ρ[\px ↦ \varnothing]} \\
+  \semusg{\Lam{\px}{\pe}}_ρ & {}={} & ω*\semusg{\pe}_{ρ[\px ↦ \bot]} \\
   \semusg{\pe~\px}_ρ & {}={} & \semusg{\pe} + ω*ρ(\px)
     \phantom{\begin{cases}
        f(ρ(x)) & \text{if $\semscott{\pe} = f$}  \\
@@ -125,14 +125,14 @@ meaning to our syntax by means of the infamous Scott domain $\ScottD$.
 Squinting a bit, we find that it looks quite similar to the function
 to its right in \Cref{fig:usage}, depicting a \emph{usage analysis}
 $\semusg{\wild}$, a static analysis for estimating an upper bound on how often
-a variable is evaluated. The given analysis quite is naïve, in that its
-treatment of function application assumes that every function deeply evaluates
-its argument. It also discards
+a variable is evaluated. The given analysis is naïve in that its treatment of
+function application assumes that every function deeply evaluates its argument.
 
 Assuming that all program variables are distinct (a silent assumption from
 here on throughout), the result of $\semusg{\wild}$ is an element $d ∈ \UsgD$,
-environment that maps to each variable an upper bound on its \emph{evaluation
-cardinality}, that is, how often the variable is evaluated.
+an environment that maps to each variable an upper bound on its \emph{evaluation
+cardinality}, that is, how often the variable is evaluated over the cause of any
+of its activations.
 Whenever $0 ⊏ d(x)$, we say that it is \emph{potentially live} in $d$ and
 extend this meaning to a program $\pe$ whenever $\semusg{\pe} = d$.
 Likewise, when $d(x) = 0$ we say that $x$ is \emph{dead} in $d$ and the programs
@@ -150,9 +150,8 @@ $\semscott{\wild}$:
 
 \begin{definition}[Deadness]
   \label{defn:deadness}
-  Let $\pe$ be an expression and $\px$ a variable.
-  $\px$ is \emph{dead} in $\pe$ if and only if, for all $ρ ∈ \Var \to \ScottD$
-  and $d_1, d_2 ∈ \ScottD$, we have
+  A variable $\px$ is \emph{dead} in an expression $\pe$ if and only
+  if, for all $ρ ∈ \Var \to \ScottD$ and $d_1, d_2 ∈ \ScottD$, we have
   $\semscott{\pe}_{ρ[\px↦d_1]} = \semscott{\pe}_{ρ[\px↦d_2]}$.
   Otherwise, $\px$ is \emph{potentially live}.
 \end{definition}
@@ -163,9 +162,9 @@ rewrite above: $\semscott{\Let{x}{\pe_1}{\pe_2}}_ρ = \semscott{\pe_2}_{ρ[x↦d
 So our definition of deadness is not only simple to grasp, but also simple to
 exploit.
 
-We can now try to prove our liveness analysis correct in terms of this notion of
-deadness. After a bit of trial and error, we could arrive at the following
-theorem:
+We can now try to prove our usage analysis correct as a liveness analysis in
+terms of this notion of deadness. After a bit of trial and error, we could
+arrive at the following theorem:
 
 \newcommand{\tr}{\ensuremath{\tilde{ρ}}}
 
@@ -184,56 +183,64 @@ theorem:
 Let us stop and reflect about this theorem for a bit.
 Whenever thinking about the witnessing $\tr$ giving values to free variables of
 $\pe$, it helps to think that $\tr(\px) \triangleq \fn{\py}{{}\ternary{\px = \py}{1}{0}}$, then the
-intuitive notion of deadness translates directly.
+intuitive notion of deadness translates directly.%
 \footnote{In fact, it can be proven that \emph{if} any $\tr$ exists, then the
 ``diagonal'' $\tr$ is also a witness.}
 
 It is surprising that the theorem does not relate $\tr$ with $ρ$; after all,
 $ρ(\py)$ (for $\py \not= \px$) might be bound to the \emph{meaning} of an
-expression that is potentially live in $\px$, and we have no way to observe
-that.
+expression that is potentially live in $\px$, such as $\semscott{\px}_{ρ'}$, and
+we have no way to observe the dependency on $\px$ just through $ρ(\py)$.
 The key is to realise that our notion of deadness varies $ρ(\px)$ (the meaning
-of $\px$), but that does not vary $ρ(\py)$ because its occurrence of $\px$ had
-already been substituted, so for all intents and purposes, the proof may assume
-that $ρ(\py)$ is dead in $\px$.
+of $\px$), but that does not vary $ρ(\py)$, because that only sees $ρ'(\px)$,
+so for all intents and purposes, the proof may assume that $ρ(\py)$ is dead in
+$\px$.
 The analysis, on the other hand, encodes transitive deadness relationships via
-$\tr(\px) ⊑ \tr(\py)$ to couple the deadness result from the body to for the let-bound $\py$ in the $\mathsf{let}$ case, thus
-the proof succeeds.
+$\tr(\px) ⊑ \tr(\py)$ in case $\px$ occurs in the RHS of a $\mathsf{let}$-bound
+$\py$ to encode that deadness of $\py$ is a necessary condition for deadness of
+$\px$.
 
 The proof capitalises on the similarities in structure by using induction on the
 program expression, hence it is simple and direct, at just under a page of
 accessible prose. Often, such a proof needs to assume conformance to some
 logical relation to strengthen the induction hypothesis for the application
-case, but for our very simple analysis we do not need to be so crafty.
+case or prove admissability to apply fixpoint induction in the let case, but for
+deadness and our very simple analysis we do not need to be so crafty.
 
 Nevermind our confidence in the ultimate correctness of $\semusg{\wild}$,
-we have seen in the introduction that our notion of deadness is insufficient.
-Recall again the infinitely-looping program $\pe_{loop}$ in \eqref{eqn:loop};
-our notion of deadness finds that $x$ is dead in $\pe_{loop}$ and the compiler
-would be justified to optimise to $\Let{loop}{id~loop}{loop}$ based on that
-fact.
+note that our notion of deadness has a blind spot \wrt diverging computations:
+A looping program is automatically dead in all its free variables.
+This is a central weakness of \emph{any} notion of correctness defined in terms
+of traditional denotational semantics because it assigns $\bot$ to any diverging
+computations. We could take inspiration in \cite{Milner:78} and work around the
+issue by introducing a $\mathbf{wrong}$ denotation which is propagated strictly;
+then we'd notice when we optimise a looping program into one that has a scoping
+error.
 
-Fortunately, $id ∈ \semusg{\pe_{loop}}$, so our analysis seems to behave more
-benign than ``necessary''. We are hopeful that it adheres to a stricter notion
-of deadness, perhaps in terms of a structural operational semantics such as
-Sestoft's Mark II machine \cite{Sestoft:97} (an obvious pick for call-by-value
-would be a CESK machine \cite{Felleisen:87} or a simpler derivative thereof).
-For example, (recall that the a state in Sestoft's transition system consists of
-heap, control, environment, stack, in this order)
+Fortunately, our analysis actually behaves more benign than ``necessary'', so we
+are hopeful that it adheres to a stricter notion of deadness, perhaps in terms
+of a structural operational semantics such as Sestoft's Mark II machine
+\cite{Sestoft:97} (an obvious pick for call-by-value would be a CESK machine
+\cite{Felleisen:87} or a simpler derivative thereof). Machine states in
+these transition systems are quadruples of control expression $\pe$, an
+environment $ρ$ mapping lexically-scoped variables to their current heap
+address, a heap $μ$ listing a closure for each adress, and a stack of
+continuation frames $κ$. Then we'd be able to define as our notion of ``strong
+deadness''
 
 \begin{definition}[Deadness, Mark II]
   Let $\pe$ be an expression and $\px$ a variable.
   $\px$ is \emph{dead} in $\pe$ if and only if
   there exists no sequence of transitions
-  $(\{\},\pe,\{\},[]) \smallstep^* (Γ,\px,E,S)$ such that the next transition
-  would apply the variable lookup rule $var_1$.
+  $(\pe,[],[],\StopF) \smallstep^* (\px,ρ,μ,κ)$ such that the next transition
+  would apply the variable lookup rule $\LookupT$.
   Otherwise, $\px$ is \emph{potentially live}.
 \end{definition}
 
 While more accurate a definition, the corresponding correctness proof
 requires an elaborate setup, extending the liveness analysis (or the correctness
-criterion) to every component of the machine states, \eg, the heap $Γ$,
-the environment $E$ and the stack $S$. Doing so usually culminates in
+criterion) to every component of the machine states, \eg, the heap $μ$,
+the environment $ρ$ and the stack $κ$. Doing so usually culminates in
 an extensive logical relation such as $\sim_V$ in \cite[Theorem
 2.21]{Nielson:99} or the ``well-typed'' relation for elaborated configurations
 in \cite[Lemma 4.3]{cardinality-ext} (only the extended version has the proof
