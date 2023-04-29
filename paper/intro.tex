@@ -29,10 +29,10 @@ structurally:
 For static analyses, especially more complicated ones, it is good practice to
 provide a proof of correctness of some sort. If the correctness statement can
 be expressed in terms of a \emph{denotational
-semantics}~\cite{ScottStrachey:71}, then the recursion structure of analysis
+semantics}~\citep{ScottStrachey:71}, then the recursion structure of analysis
 function and semantics function line up nicely. As a result, the proof of
 correctness can be conducted by simple induction over the expression and
-abstract interpretation~\cite{Cousot:21} provides a neat framework to derive
+abstract interpretation~\citep{Cousot:21} provides a neat framework to derive
 static analyses that are proven correct by simple calculation.
 
 \subsection{Domain Theory is leaky and too abstract}
@@ -45,7 +45,7 @@ Alas, there are several shortcomings to traditional denotational semantics:
         the denotational semantics might be ``standard'', the semantic domain
         can't be treated like a black box --- the abstraction is leaky and
         $\bot$ is lurking everywhere to make life complicated.
-  \item Traditional domain theory proved non-compositional~\cite{WrightFelleisen:94},
+  \item Traditional domain theory proved non-compositional~\citep{WrightFelleisen:94},
         in that language features such as exceptions, state and nondeterminism
         require individual, complicated adjustments where it is far from clear
         how to combine these adjustments.
@@ -56,18 +56,18 @@ Alas, there are several shortcomings to traditional denotational semantics:
 \end{itemize}
 
 The third point is important in the context of quantitative type
-systems~\cite{Atkey:18} and optimising compilers for call-by-need languages such
+systems~\citep{Atkey:18} and optimising compilers for call-by-need languages such
 as the Glasgow Haskell Compiler.
-The first two points have been noted by \citep{WrightFelleisen:94}, establishing
+The first two points have been noted by \citet{WrightFelleisen:94}, establishing
 the now standard approach of operational semantics as the Gold Standard.
 The past twenty years have proven that the methodology scales to
 big and complicate type systems, building on techniques such as
-\emph{step-indexing}~\cite{AppelMcAllester:01,DreyerAhmedBirkedal:11}.
+\emph{step-indexing}~\citep{AppelMcAllester:01,DreyerAhmedBirkedal:11}.
 
 \subsection{Rewrite systems are syntactic and not structural}
 However, transition systems don't easily admit a compositional definition as a
 function of the input expression \sg{Cousot has derived trace-based fixpoint
-semantics from a transition system~\cite{Cousot:02}, but the resulting function
+semantics from a transition system~\citep{Cousot:02}, but the resulting function
 is not structurally-recursive in the expression}. In giving in to operational
 semantics, semanticists have chosen predictable step-wise reasoning over elegant
 equational reasoning backed by compositionality.
@@ -86,7 +86,7 @@ induction, unfolding the whole analysis function body before and after and thus
 culminating in beaurocratic nightmare.
 Of course, the definition of ``well-annotatedness'' needs to encompass whole
 machine configurations, including the mutually recursive stack and heap, see the
-proofs in~\cite{cardinality-ext} for a taste. It is hard to raise confidence in
+proofs in~\citep{cardinality-ext} for a taste. It is hard to raise confidence in
 such a proof without full mechanisation.
 A denotational semantics would arguably simplify the proof, unfortunately one
 allowing to observe evaluation cardinality of call-by-need is lacking to this
@@ -94,7 +94,7 @@ day.
 
 When there is no semantics that structurally matches our analysis, we could
 try to rearrange our analysis. That is the idea of \emph{Abstracting Abstract
-Machines}~\cite{aam} which abandons compositional analysis in favour of a
+Machines}~\citep{aam} which abandons compositional analysis in favour of a
 convenient proof by abstract interpretation of the transition semantics.
 Not only is it deeply unsatisfying to be pushed into such rearrangements, it
 is also impossible to perform in a production-grade compiler because of the
@@ -117,7 +117,7 @@ contributions:
     We believe that our semantics is the first with the aforementioned two
     qualities and prove it correct \wrt a standard operational semantics. The
     idea borrows heavily from the idea of a maximal prefix trace semantics
-    advocated by \citep{Cousot:21}.
+    advocated by \citet{Cousot:21}.
   \item The semantics in \Cref{sec:semantics} is one generating \emph{stateful}
     traces in a standard operational semantics, and serves mostly as a
     convenient bridge for proving bisimulation \sg{No longer}. In
@@ -125,7 +125,7 @@ contributions:
     \emph{stateless} semantics and we will see how to recover necessary state
     from program history as needed.
   \item We employ the stateless semantics as a collecting semantics and derive
-    $\semlive{\wild}$ by calculational design \cite{Cousot:21}.
+    $\semlive{\wild}$ by calculational design \citep{Cousot:21}.
     Similar derivations will be made for a simple type system as well as for
     control flow analysis. \sg{Hopefully :)}
   \item Talk about prototype in Haskell?
@@ -141,7 +141,7 @@ contributions:
 %Traditionally, denotational semantics denotes diverging and stuck programs with
 %$\bot$, corresponding to the function that is undefined everywhere.
 %There is rich and complicated literature on defining an algebraic
-%domain~\cite{Scott:71} that is suitable to denote untyped lambda calculus.
+%domain~\citep{Scott:71} that is suitable to denote untyped lambda calculus.
 %The key is embedding the subclass of \emph{continuous} functions between domain
 %elements into the domain itself. All computable functions are continuous,
 %so an algebraic domain is a sufficient substrate for giving meaning to all
@@ -150,14 +150,14 @@ contributions:
 %Now, to prove a predicate $P(d)$ of some denotation $d$, such as ``$d$ has type
 %$τ$'' by structural induction, one has to show first that $P$ is compatible
 %with continuity; perhaps by proving that $P$ characterises a sub-domain or an
-%ideal in the domain~\cite{Milner:78}.
+%ideal in the domain~\citep{Milner:78}.
 %
 %Note that this is all \emph{before} even attempting the proof! Often, the
 %denotational semantics (for example to distinguish \textbf{wrong} behaviors from
-%diverging ones~\cite{Milner:78}) or even the domain itself needs adjustments.
+%diverging ones~\citep{Milner:78}) or even the domain itself needs adjustments.
 %The former case needs a proof of continuity, while the latter can be quite
 %involved and non-compositional for effects such as exceptions, concurrency and
-%state, as \citep{WrightFelleisen:94} noted.
+%state, as \citet{WrightFelleisen:94} noted.
 %
 %We think that most of the troubles in the application of domain theory are
 %ultimately caused by the non-commital nature of the approximation order, in that
@@ -165,7 +165,7 @@ contributions:
 %hence it is desirable to strive for \emph{total} descriptions of the potentially
 %program infinite behaviors.
 %
-%\citep{WrightFelleisen:94} give a detailed account of the shortcomings of
+%\citet{WrightFelleisen:94} give a detailed account of the shortcomings of
 %partial denotational semantics and propose to use small-step operational
 %semantics paired with the now standard syntactic approach to type soundness.
 %They demonstrate that their approach scales well to composition of different
@@ -178,7 +178,7 @@ contributions:
 %
 %the crucial property that any
 %, and it was
-%a great achievement of \citep{Scott:71} turns out that Domain Theory is the result of equipping Doing so invites
+%a great achievement of \citet{Scott:71} turns out that Domain Theory is the result of equipping Doing so invites
 %and stuck programs. Consider the following program using recursive let that is
 %infinitely-looping
 %\begin{equation}
@@ -191,7 +191,7 @@ contributions:
 %\semscott{\mathsf{segfault}}_ρ = \bot$.
 %Note that the first program has an infinite loop, the second one is not
 %well-scoped (thus stuck at some point) and the last one is a straight out crash
-%in the style of an imprecise exception \cite{imprecise-exceptions}.
+%in the style of an imprecise exception \citep{imprecise-exceptions}.
 %To a compiler developer, this conflation is both a reason for joy (more
 %optimisation opportunities) and a reason for ... reflection (users didn't expect
 %their infinite loop to be optimised into a crash). Such issues come up in
@@ -207,7 +207,7 @@ contributions:
 %denotationally equivalent to the former.
 %(c) Imagine that $id$ was supplied as a parameter to $loop$ instead, \eg
 %$...\ \Let{loop}{\Lam{f}{f~(loop~f)}}{loop~id}$. Then a control-flow analysis
-%\cite{Shivers:91} that says ``$f$ is never bound to $id$'' can be proven correct
+%\citep{Shivers:91} that says ``$f$ is never bound to $id$'' can be proven correct
 %in terms of the denotational semantics.
 %
 %Furthermore, although it is sensible (in the terminating case) to ask whether or
@@ -219,16 +219,16 @@ contributions:
 %
 %When denotational semantics fails the compiler developer, they turn to a
 %correctness criterion in terms of a \emph{structural operational semantics}.
-%This was the approach taken by \cite{cardinality} to prove evaluation
+%This was the approach taken by \citep{cardinality} to prove evaluation
 %cardinality properties such as potential liveness. The drawback of this proof
 %framework is the immense complexity arising from the disconnect between a
 %structural definition and a transition system; matters such as substitution,
 %multiple heap activations of the let binding, non-determinism and fixpoint
 %induction abound.
-%One could adopt the approach of \emph{Abstracting Abstract Machines} \cite{aam}
+%One could adopt the approach of \emph{Abstracting Abstract Machines} \citep{aam}
 %and let the structure of the semantics dictate the structure of the
 %analysis for a re-usable proof of correctness via abstract interpretation
-%\cite{Cousot:21}.
+%\citep{Cousot:21}.
 %However, that is not how the static analyses work that the authors are familiar
 %with.
 %For example, it would be quite an effort to rewrite the neat,

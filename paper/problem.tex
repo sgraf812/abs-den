@@ -12,8 +12,8 @@ complexities involved.
 %At the same time,
 %we show how operational semantics
 %Further consideration of more
-%elaborate cardinality analyses~\cite{cardinality} and quantitative type
-%systems~\cite{Atkey:18} characterise this weakness not only in terms of
+%elaborate cardinality analyses~\citep{cardinality} and quantitative type
+%systems~\citep{Atkey:18} characterise this weakness not only in terms of
 %unobservable divergence but also in terms of evaluation cardinality.
 
 %\subsection{Notation}
@@ -34,20 +34,21 @@ complexities involved.
 %    desugaring's use of $\lfp$ is well-defined for its use on elements of the
 %    powerset lattice $\UsgD$.
 %
-%    But \cite{Shivers:91} uses the similar $\text{whererec}$ and gets by without
+%    But \citep{Shivers:91} uses the similar $\text{whererec}$ and gets by without
 %    ever explaining it, so we might as well.
 %\end{itemize}
 
 \subsection{Usage Analysis}
 
 \begin{figure}
-\resizebox{0.9\textwidth}{!}{%
 \begin{minipage}{\textwidth}
 \[\begin{array}{c}
  \arraycolsep=3pt
- \begin{array}{rrclcl}
-  \text{Variables}       & \px,\py & ∈ & \Var    &     & \\
-  \text{Expressions}     &     \pe & ∈ & \Exp_0  & ::= & \px \mid \Lam{\px}{\pe} \mid \pe~\px \mid \Letsmall{\px}{\pe_1}{\pe_2} \\
+ \begin{array}{rrclcrrclcl}
+  \text{Variables}    & \px, \py & ∈ & \Var        &     & \quad \text{Constructors} &        K & ∈ & \Con        &     & \text{with arity $α_K ∈ ℕ$} \\
+  \text{Labels}       &     \lbl & ∈ & \Labels     &     & \quad \text{Values}       &      \pv & ∈ & \Val        & ::= & \highlight{\Lam{\px}{\pe}} \mid K~\many{\px}^{α_K} \\
+  \text{Expressions}  &      \pe & ∈ & \Exp        & ::= & \multicolumn{6}{l}{\highlight{\slbl \px \mid \slbl \pv \mid \slbl \pe~\px \mid \slbl \Let{\px}{\pe_1}{\pe_2}} \mid \slbl \Case{\pe}{\SelArity}} \\
+  \\[-0.5em]
  \end{array} \\
  \\[-0.5em]
  \begin{array}{rrclcl}
@@ -64,7 +65,9 @@ complexities involved.
 \end{array}\]
 \subcaption{Syntax of expressions and semantic domains}
   \label{fig:scott-syntax}
-\begin{minipage}{0.52\textwidth}
+\newcommand{\scalefactordenot}{0.92}
+\scalebox{\scalefactordenot}{%
+\begin{minipage}{0.49\textwidth}
 \arraycolsep=0pt
 \[\begin{array}{rcl}
   \multicolumn{3}{c}{ \ruleform{ \semscott{\wild} \colon \Exp → (\Var \to \ScottD) → \ScottD } } \\
@@ -82,11 +85,11 @@ complexities involved.
       \text{in}         & \semscott{\pe_2}_{ρ'}
     \end{letarray} \\
 \end{array}\]
-\subcaption{Denotational semantics after Scott}
+\subcaption{\relscale{\fpeval{1/\scalefactordenot}} Denotational semantics after Scott}
   \label{fig:denotational}
 \end{minipage}%
 \quad
-\begin{minipage}{0.5\textwidth}
+\begin{minipage}{0.56\textwidth}
 \arraycolsep=0pt
 \[\begin{array}{rcl}
   \multicolumn{3}{c}{ \ruleform{ \semusg{\wild} \colon \Exp → (\Var → \UsgD) → \UsgD } } \\
@@ -104,29 +107,34 @@ complexities involved.
       \text{in}         & \semusg{\pe_2}_{ρ'}
     \end{letarray}
 \end{array}\]
-\subcaption{Naïve usage analysis}
+\subcaption{\relscale{\fpeval{1/\scalefactordenot}} Naïve usage analysis}
   \label{fig:usage}
 \end{minipage}
-\end{minipage}
 }
+\end{minipage}
   \label{fig:intro}
 \caption{Connecting usage analysis to denotational semantics}
 \end{figure}
 
-\Cref{fig:scott-syntax} defines the syntax of a lambda calculus with recursive
-let bindings. The calculus is factored into \emph{administrative normal form},
-that is, the arguments of applications are restricted to be variables, so the
-difference between call-by-name and call-by-value manifests purely in the
+\Cref{fig:scott-syntax} defines the labelled syntax of a lambda calculus with
+recursive let bindings and algebraic data types, reminiscent of
+\citet{Sestoft:97}. The calculus is factored into \emph{administrative normal
+form}, that is, the arguments of applications are restricted to be variables, so
+the difference between call-by-name and call-by-value manifests purely in the
 semantics of $\mathbf{let}$.
+In this section, only the highlighted parts are relevant; we will ignore labels
+and data types for brevity.
 
-This semantics is given in \Cref{fig:denotational}, the standard denotational
-call-by-name semantics $\semscott{\wild}$ after \citep{ScottStrachey:71}, giving
-meaning to our syntax by means of the infamous Scott domain $\ScottD$.
+We give a standard call-by-name denotational semantics $\semscott{\wild}$ in
+\Cref{fig:denotational} \citep{ScottStrachey:71}, assigning meaning to our
+syntax by means of the infamous Scott domain $\ScottD$.
 Squinting a bit, we find that it looks quite similar to the function
 to its right in \Cref{fig:usage}, depicting a \emph{usage analysis}
 $\semusg{\wild}$, a static analysis for estimating an upper bound on how often
 a variable is evaluated. The given analysis is naïve in that its treatment of
 function application assumes that every function deeply evaluates its argument.
+
+\subsubsection{Deadness, Continuity and Divergence}
 
 Assuming that all program variables are distinct (a silent assumption from
 here on throughout), the result of $\semusg{\wild}$ is an element $d ∈ \UsgD$,
@@ -142,7 +150,7 @@ introduction.
 
 The \emph{requirement} (in the sense of informal specification) on an assertion
 such as ``$x$ is dead'' in a program like $\Let{x}{\pe_1}{\pe_2}$ is that we
-may rewrite to $\pe_2$ (perhaps to reduce allocations or code size) without
+may rewrite to $\pe_2$ (perhaps to reduce heap allocations or code size) without
 observing any change in semantics.
 
 This can be made formal in the following definition of deadness in terms of
@@ -182,10 +190,10 @@ arrive at the following theorem:
 
 Let us stop and reflect about this theorem for a bit.
 Whenever thinking about the witnessing $\tr$ giving values to free variables of
-$\pe$, it helps to think that $\tr(\px) \triangleq \fn{\py}{{}\ternary{\px = \py}{1}{0}}$, then the
+$\pe$, it helps to think that $\tr(\px) \triangleq \fn{\py}{\ternary{\px = \py}{1}{0}}$, then the
 intuitive notion of deadness translates directly.%
 \footnote{In fact, it can be proven that \emph{if} any $\tr$ exists, then the
-``diagonal'' $\tr$ is also a witness.}
+``diagonal'' $\fn{\px~\py}{\ternary{\px = \py}{1}{0}}$ is also a witness.}
 
 It is surprising that the theorem does not relate $\tr$ with $ρ$; after all,
 $ρ(\py)$ (for $\py \not= \px$) might be bound to the \emph{meaning} of an
@@ -212,21 +220,67 @@ note that our notion of deadness has a blind spot \wrt diverging computations:
 A looping program is automatically dead in all its free variables.
 This is a central weakness of \emph{any} notion of correctness defined in terms
 of traditional denotational semantics because it assigns $\bot$ to any diverging
-computations. We could take inspiration in \cite{Milner:78} and work around the
-issue by introducing a $\mathbf{wrong}$ denotation which is propagated strictly;
-then we'd notice when we optimise a looping program into one that has a scoping
-error.
+computation. We could take inspiration in the work of \citet{Milner:78} and
+navigate around the issue by introducing a $\mathbf{wrong}$ denotation which is
+propagated strictly; then we would notice when we optimise a looping program
+into one that has a scoping error (the only kind of stuckness that our calculus
+admits without data types).
 
-Fortunately, our analysis actually behaves more benign than ``necessary'', so we
-are hopeful that it adheres to a stricter notion of deadness, perhaps in terms
-of a structural operational semantics such as Sestoft's Mark II machine
-\cite{Sestoft:97} (an obvious pick for call-by-value would be a CESK machine
-\cite{Felleisen:87} or a simpler derivative thereof). Machine states in
-these transition systems are quadruples of control expression $\pe$, an
-environment $ρ$ mapping lexically-scoped variables to their current heap
-address, a heap $μ$ listing a closure for each adress, and a stack of
-continuation frames $κ$. Then we'd be able to define as our notion of ``strong
-deadness''
+\begin{figure}
+\[\begin{array}{c}
+ \begin{array}{rrclcl}
+  \text{LK States}     & σ   & ∈ & \States        & =      & \Controls \times \Environments \times \Heaps \times \Continuations \\
+  \text{Controls}      & γ   & ∈ & \Controls      & =      & \pe \mid \pv \\
+  \text{Environments}  & ρ   & ∈ & \Environments  & =      & \Var \pfun \Addresses \\
+  \text{Addresses}     & \pa & ∈ & \Addresses     & \simeq & ℕ \\
+  \text{Heaps}         & μ   & ∈ & \Heaps         & =      & \Addresses \pfun \Environments \times \Exp \\
+  \text{Continuations} & κ   & ∈ & \Continuations & ::=    & \StopF \mid \ApplyF(\pa) \pushF κ \mid \SelF(ρ,\SelArity) \pushF κ \mid \UpdateF(\pa) \pushF κ \\
+ \end{array} \\
+  \\[-0.5em]
+\end{array}\]
+
+\newcolumntype{L}{>{$}l<{$}} % math-mode version of "l" column type
+\newcolumntype{R}{>{$}r<{$}} % math-mode version of "r" column type
+\newcolumntype{C}{>{$}c<{$}} % math-mode version of "c" column type
+\resizebox{\textwidth}{!}{%
+\begin{tabular}{LR@{\hspace{0.4em}}C@{\hspace{0.4em}}LL}
+\toprule
+\text{Rule} & σ_1 & \smallstep & σ_2 & \text{where} \\
+\midrule
+\BindT & (\Let{\px}{\pe_1}{\pe_2},ρ,μ,κ) & \smallstep & (\pe_2,ρ',μ[\pa↦(ρ',\pe_1)], κ) & \pa \not∈ \dom(μ),\ ρ'\! = ρ[\px↦\pa] \\
+\AppIT & (\pe~\px,ρ,μ,κ) & \smallstep & (\pe,ρ,μ,\ApplyF(\pa) \pushF κ) & \pa = ρ(\px) \\
+\CaseIT & (\Case{\pe}{\Sel},ρ,μ,κ) & \smallstep & (\pe,ρ,μ,\SelF(ρ,\Sel) \pushF κ) & \\
+\LookupT & (\px, ρ, μ, κ) & \smallstep & (\pe, ρ', μ, \UpdateF(\pa) \pushF κ) & \pa = ρ(\px),\ (ρ',\pe) = μ(\pa) \\
+\AppET & (\Lam{\px}{\pe},ρ,μ, \ApplyF(\pa) \pushF κ) & \smallstep & (\pe,ρ[\px ↦ \pa],μ,κ) &  \\
+\CaseET & (K'~\many{y},ρ,μ, \SelF(ρ',\Sel) \pushF κ) & \smallstep & (\pe_i,ρ'[\many{\px_i ↦ \pa}],μ,κ) & K_i = K',\ \many{\pa = ρ(\py)} \\
+\UpdateT & (\pv, ρ, μ, \UpdateF(\pa) \pushF κ) & \smallstep & (\pv, ρ, μ[\pa ↦ (ρ,\pv)], κ) & \\
+\bottomrule
+\end{tabular}
+} % resizebox
+\caption{Lazy Krivine transition semantics $\smallstep$}
+  \label{fig:lk-semantics}
+\end{figure}
+
+Fortunately, our analysis actually behaves more benevolently than ``necessary'',
+so we are hopeful that it adheres to a stricter notion of deadness. Indeed, we
+can give one in terms of a small-step operational semantics such as the Mark
+II machine of \citet{Sestoft:97} given in \Cref{fig:lk-semantics}, the Gold
+Standard for this work. (A close sibling for call-by-value would be a CESK machine
+\citep{Felleisen:87} or a simpler derivative thereof.) It is a variant of the
+Lazy Krivine (LK) machine implementing call-by-need, so for a meaningful
+comparison to $\semscott{\wild}$, we ignore rules $\CaseIT, \CaseET, \UpdateT$
+and the pushing of update frames in $\LookupT$ for now to recover a call-by-name
+semantics.%
+\footnote{Note that discarding update frames makes the heap append-only, which
+simplifies our proofs. Of course, for call-by-name we would not need a heap to
+begin with, but the point is to get a glimpse at the effort necessary for
+call-by-need.}
+
+The configurations in this transition system resemble abstract machine
+states, consisting of control expression $\pe$, an environment $ρ$ mapping
+lexically-scoped variables to their current heap address, a heap $μ$ listing a
+closure for each adress, and a stack of continuation frames $κ$.
+Now we are able to define a notion of ``strong deadness'', as follows
 
 \begin{definition}[Deadness, Mark II]
   Let $\pe$ be an expression and $\px$ a variable.
@@ -237,14 +291,90 @@ deadness''
   Otherwise, $\px$ is \emph{potentially live}.
 \end{definition}
 
+While this definition captures diverging behaviors correctly and is intuitively
+easy to grasp, it is quite a narrow property. For one, it only applies to
+closed terms. Furthermore, knowing that $x$ is dead in $\pe$ does not give us
+any information on whether $x$ is dead in $\pe~y$, because that evaluates
+$\pe$ in a non-empty stack! Consequently, it is impossible to prove that
+$\semusg{\pe}$ satisfies \Cref{thm:semusg-correct-live} by structural induction
+on $\pe$ (in a way that doing so would be useful).
+
+Instead, such proofs are often conducted by induction over the reflexive
+transitive closure of $(\pe,[],[],\StopF) \smallstep^* σ$, for any $σ$.
+For that it is necessary to give an inductive hypothesis that considers
+environments, stacks and heaps.
+One way is to extend the analysis function $\semusg{\wild}$ to entire
+configurations and then prove that if $σ_1 \smallstep σ_2$ we have $\semusg{σ_2}
+⊑ F(\semusg{σ_1})$, where $F$ is the abstraction of the particular transition
+rule taken and is often left implicit.
+This is a daunting task, for multiple reasons:
+First off, $\semusg{\wild}$ might be quite complicated in practice and extending
+it to entire configurations multiplies this complexity.
+Secondly, $\semusg{\wild}$ makes use of fixpoints in the let case and
+undoubtedly needs some more fixpoints in its extension to the heap,
+so $\semusg{σ_2} ⊑ F(\semusg{σ_1})$ relates fixpoints that are ``out of sync'',
+implying a need for fixpoint induction for every transition that touches
+the heap.
+
+(In call-by-need, there will be a fixpoint between the heap and stack due to
+update frames acting somewhat like heap bindings, so fixpoint induction needs to
+be applied \emph{at every case of the proof}, diminishing confidence in
+correctness unless the proof is fully mechanised.)
+
+For an analogy with type systems: What we just tried is like attempting a proof
+of preservation by referencing the result of an inference algorithm rather than
+the declarative type system. So what is often done instead is to define a
+declarative and more permissive \emph{correctness relation} $C(σ)$ to prove
+preservation $C(σ_1) \Rightarrow C(σ_2)$ (\eg, that $C$ is \emph{logical} \wrt
+$\smallstep$). $C$ is chosen such that
+  (1) it is strong enough to imply the property of interest (deadness)
+  (2) it is weak enough that it is implied by the analysis result for an initial state ($\tr(\px) \not⊑ \semusg{\pe}_{\tr}$).
+In our case, the correctness predicate $D = \gfp(F)$ is the greatest fixpoint of
+the functional%
+\footnote{Alternatively, we could have stratified the recursion and applied
+step-indexing~\citep{DreyerAhmedBirkedal:11}.}
+\[\begin{array}{rcl}
+  F(D)(\pe,ρ,μ,κ)(A) & \triangleq & \forall \pa ∈ \rng(κ).\ \pa \not∈ A \wedge (\forall μ',κ'.\ D(μ(\pa),μ',κ')(A)) \\
+  F(D)(\px,ρ,μ,κ)(A) & \triangleq & ρ(\px) \not∈ A \wedge \forall (ρ',\pe)=μ(ρ(\px)).\ D(\pe,ρ',μ,κ)\\
+  F(D)(\pe~\px,ρ,μ,κ)(A) & \triangleq & ρ(\px) \not∈ A \wedge F(D)(\pe,ρ,μ,\ApplyF(ρ(\px)) \pushF κ) \\
+  F(D)(\Lam{\px}{\pe},ρ,μ,\StopF)(A) & \triangleq & true \\
+  F(D)(\Lam{\px}{\pe},ρ,μ,\ApplyF(\pa) \pushF κ)(A) & \triangleq & D(\pe,ρ[\px↦\pa],μ,κ) \\
+  F(D)(\Let{\px}{\pe_1}{\pe_2},ρ,μ,κ)(A) & \triangleq & F(D)(\pe_2,ρ,μ[\pa↦(ρ',\pe_1)],κ)(A) \\
+\end{array}\]
+
+task,
+or define a notion of
+``well-annotatedness'' that
+It is possible to define the action
+an inductive hypothesis and first had to be strengthened into a \emph{logical
+relation}.
+Then the next question is: Under which conditions can this statement be
+generalised to executions of the form $(\pe,ρ_1,μ_1,κ_1) \smallstep^*
+(\px,ρ_2,μ_2,κ_2)$ and still be simple to prove? It's a bit tricky: For any
+address $\pa$ in the range of $ρ$ or pushed as an apply frame onto the stack, we
+have to assume that the closure $μ(\pa)$ satisfies this generalised condition,
+too.
+
+No, not immediately:
+First off, an argument pushed onto the stack $κ$ might evaluate $\px$ although
+$\pe$ itself is dead
+Thus, we have to generalise the
+inductive hypothesis
+
 While more accurate a definition, the corresponding correctness proof
 requires an elaborate setup, extending the liveness analysis (or the correctness
 criterion) to every component of the machine states, \eg, the heap $μ$,
 the environment $ρ$ and the stack $κ$. Doing so usually culminates in
-an extensive logical relation such as $\sim_V$ in \cite[Theorem
+an extensive logical relation such as $\sim_V$ in \citep[Theorem
 2.21]{Nielson:99} or the ``well-typed'' relation for elaborated configurations
-in \cite[Lemma 4.3]{cardinality-ext} (only the extended version has the proof
+in \citep[Lemma 4.3]{cardinality-ext} (only the extended version has the proof
 and full typing relations for heaps and stacks in the Appendix).
+
+\subsubsection{Evaluation Cardinality and Call-by-need}
+Our usage analysis can be used to justify optimisations beyond dead code
+elimination. Consider $\Let{id}{\Lam{x}{x}}{\Let{t}{id}{t~t}}$
+
+
 
 The situation is a bit less dire for call-by-name and call-by-value calculi
 because their heap is immutable. Furthermore, if evaluation cardinality is
@@ -254,10 +384,10 @@ stack can be reflected back into the premises of the judgment rules, so that
 the system distinguishes \emph{instruction transitions} from \emph{search
 transitions}, a distinction which is made explicit in a \emph{contextual
 semantics}. Happily, such a contextual semantics also exists for call-by-need
-\cite{Ariola:95}, although its complexity is comparatively mind-boggling.
-All this reflection is with the ultimate goal of simplifying proofs: Instead
-of defining an inductive well-formedness predicate on the heap, we prove a
-substitution lemma. Instead of a well-formedness predicate for the stack, we
+\citep{Ariola:95}, although its complexity is comparatively mind-boggling.
+All these considerations are with the ultimate goal of simplifying proofs:
+Instead of defining an inductive well-formedness predicate on the heap, we prove
+a substitution lemma. Instead of a well-formedness predicate for the stack, we
 appeal to the well-formedness of the search transition rule.
 \sg{Urgh, more rambling. This was an important realisation to me, although I
 fear it doesn't really belong here. Perhaps it belongs in the call-by-need
@@ -266,12 +396,12 @@ subsection?}
 To re-iterate: The mismatch in structure between analysis and semantics leads to
 a drastic increase in proof complexity to bridge said gap. It would be desirable
 to find a proof framework that allows us to re-use this bridge by means of
-abstract interpretation, in the spirit of \citep{Cousot:21}.
+abstract interpretation, in the spirit of \citet{Cousot:21}.
 
 Another way to work around the structure gap is to adopt the structure of the
 semantics in the analysis; this is done in the Abstracting Abstract
-Machines work \cite{aam}. To our knowledge, its exclusive application seems
-to be control-flow analysis \cite{Shivers:91}, so that the analyses and
+Machines work \citep{aam}. To our knowledge, its exclusive application seems
+to be control-flow analysis \citep{Shivers:91}, so that the analyses and
 optimisations that follow do not need to reason about arbitrary function call
 structure and can apply traditional intraprocedural analysis techniques that are
 well-explored in the imperative world. \sg{Move this babbling to Related Work?}
@@ -296,26 +426,26 @@ which corresponds to the operational interpretation of ``never evaluated'' and
 ``evaluated at least once or diverging'', there is no general way to observe
 properties of \emph{evaluation cardinality} such as ``evaluated at most once''
 (affine) or even ``called at most once'', such as inferred by the Glasgow
-Haskell Compiler \cite{cardinality}.
+Haskell Compiler \citep{cardinality}.
 
 You might still think that the symptoms described in this subsection should
 hardly affect the semantics of call-by-value languages, but the applications
 of evaluation cardinality go beyond lazy languages such as Haskell.
 For example, it affects linear, uniqueness and quantitative type
 theory.
-%, although~\citep{Atkey:18} is able to give a categorical semantics that
+%, although~\citet{Atkey:18} is able to give a categorical semantics that
 %postulates observability of cardinality in a suitable \emph{$R$-Quantitative Category with Families}.
 %\sg{I don't really understand what Atkey does there?! If anything, our
 %semantics is simpler... But this is quickly drifting towards Related Work}
 Another example is recent work on re-use analysis in reference-counted language
-implementations~\cite{Ullrich:19,perceus}.
+implementations~\citep{Ullrich:19,perceus}.
 \emph{Even if} we were uncaring towards infinite behaviors%
 \footnote{Such as strongly-normalising type theories},
 or had a denotational semantics that allowed us to observe them (but not
 cardinality) as suggested in the introduction, the soundness proof for these
 type systems would still need to resort to an operational semantics for the lack
 of observable evaluation cardinality or postulate observability as is the case
-for the categorical semantics of \citep{Atkey:18}.
+for the categorical semantics of \citet{Atkey:18}.
 
 \begin{theorem}[Correctness of $\semusg{\wild}$]
   \label{thm:semusg-correct-1}

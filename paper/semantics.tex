@@ -3,7 +3,6 @@
  \begin{array}{rrclcl}
   \text{Variables}    & \px, \py & ∈ & \Var        &     &  \\
   \text{Constructors} &        K & ∈ & \Con        & \simeq & ℕ \quad \text{with arity $α_K ∈ ℕ$} \\
-  \text{Arities}      &      A_K & ∈ & Ν           &     & \\
   \text{Labels}       &     \lbl & ∈ & \Labels     &     &  \\
   \text{Values}       &      \pv & ∈ & \Val        & ::= & \Lam{\px}{\pe} \mid K~\many{\px}^{α_K} \\
   \text{Expressions}  &      \pe & ∈ & \Exp        & ::= & \slbl \px \mid \slbl \pv \mid \slbl \pe~\px \mid \slbl \Let{\px}{\pe_1}{\pe_2} \mid \slbl \Case{\pe}{\SelArity} \\
@@ -78,18 +77,18 @@
 \begin{figure}
 \[\begin{array}{c}
  \begin{array}{rrclcl}
-  \text{Naturals}     &        n & ∈ & ℕ           &     &  \\
   \text{Variables}    & \px, \py & ∈ & \Var        &     &  \\
+  \text{Constructors} &        K & ∈ & \Con        &     & \text{with arity $α_K ∈ ℕ$} \\
   \text{Labels}       &     \lbl & ∈ & \Labels     &     &  \\
-  \text{Values}       &      \pv & ∈ & \Val        & ::= & \Lit{n} \mid \Lam{\px}{\pe} \\
-  \text{Expressions}  &      \pe & ∈ & \Exp        & ::= & \slbl \px \mid \slbl \pv \mid \slbl \pe~\px \mid \slbl \Ifz{\pe_b}{\pe_t}{\pe_e} \mid \slbl \Let{\px}{\pe_1}{\pe_2} \\
+  \text{Values}       &      \pv & ∈ & \Val        & ::= & \Lam{\px}{\pe} \mid K~\many{\px}^{α_K} \\
+  \text{Expressions}  &      \pe & ∈ & \Exp        & ::= & \slbl \px \mid \slbl \pv \mid \slbl \pe~\px \mid \slbl \Let{\px}{\pe_1}{\pe_2} \mid \slbl \Case{\pe}{\SelArity} \\
   \\[-0.5em]
-  \text{States}        & σ   & ∈ & \States        & =      & \Controls \times \Environments \times \Heaps \times \Continuations \\
+  \text{LK States}     & \varsigma & ∈ & \LKStates        & =      & \Controls \times \Environments \times \Heaps \times \Continuations \\
   \text{Controls}      & γ   & ∈ & \Controls      & =      & \pe \mid \pv \\
   \text{Environments}  & ρ   & ∈ & \Environments  & =      & \Var \pfun \Addresses \\
   \text{Addresses}     & \pa & ∈ & \Addresses     & \simeq & ℕ \\
-  \text{Heaps}         & μ   & ∈ & \Heaps         & =      & \Addresses \pfun \Exp \times \Environments \\
-  \text{Continuations} & κ   & ∈ & \Continuations & ::=    & \StopF \mid \ApplyF(\pa) \pushF κ \mid \UpdateF(\pa) \pushF κ \\
+  \text{Heaps}         & μ   & ∈ & \Heaps         & =      & \Addresses \pfun \Environments \times \Exp \\
+  \text{Continuations} & κ   & ∈ & \Continuations & ::=    & \StopF \mid \ApplyF(\pa) \pushF κ \mid \SelF(ρ,\SelArity) \pushF κ \mid \UpdateF(\pa) \pushF κ \\
  \end{array} \\
   \\[-0.5em]
 \end{array}\]
@@ -97,18 +96,21 @@
 \newcolumntype{L}{>{$}l<{$}} % math-mode version of "l" column type
 \newcolumntype{R}{>{$}r<{$}} % math-mode version of "r" column type
 \newcolumntype{C}{>{$}c<{$}} % math-mode version of "c" column type
-\begin{tabular}{LRCLL}
+\resizebox{\textwidth}{!}{%
+\begin{tabular}{LR@{\hspace{0.4em}}C@{\hspace{0.4em}}LL}
 \toprule
 \text{Rule} & σ_1 & \smallstep & σ_2 & \text{where} \\
 \midrule
-\BindT & (\Let{\px}{\pe_1}{\pe_2},ρ,μ,κ) & \smallstep & (\pe_2,ρ',μ[\pa↦(\pe_1,ρ',d_1)], κ) & \pa \not∈ \dom(μ),\ ρ'\! = ρ[\px↦\pa] \\
+\BindT & (\Let{\px}{\pe_1}{\pe_2},ρ,μ,κ) & \smallstep & (\pe_2,ρ',μ[\pa↦(ρ',\pe_1)], κ) & \pa \not∈ \dom(μ),\ ρ'\! = ρ[\px↦\pa] \\
 \AppIT & (\pe~\px,ρ,μ,κ) & \smallstep & (\pe,ρ,μ,\ApplyF(\pa) \pushF κ) & \pa = ρ(\px) \\
-\LookupT & (\px, ρ, μ, κ) & \smallstep & (\pe, ρ', μ, \UpdateF(\pa) \pushF κ) & \pa = ρ(\px),\ (\pe,ρ',\wild) = μ(\pa) \\
-\ValueT & (\pv, ρ, μ, κ) & \smallstep & ((\pv, v), ρ, μ, κ) & \\
-\AppET & ((\Lam{\px}{\pe},\wild),ρ,μ, \ApplyF(\pa) \pushF κ) & \smallstep & (\pe,ρ[\px ↦ \pa],μ,κ) &  \\
-\UpdateT & ((\pv,v), ρ, μ, \UpdateF(\pa) \pushF κ) & \smallstep & ((\pv,v), ρ, μ[\pa ↦ (\pv,ρ,d)], κ) & \\
+\CaseIT & (\Case{\pe}{\Sel},ρ,μ,κ) & \smallstep & (\pe,ρ,μ,\SelF(ρ,\Sel) \pushF κ) & \\
+\LookupT & (\px, ρ, μ, κ) & \smallstep & (\pe, ρ', μ, \UpdateF(\pa) \pushF κ) & \pa = ρ(\px),\ (ρ',\pe) = μ(\pa) \\
+\AppET & (\Lam{\px}{\pe},ρ,μ, \ApplyF(\pa) \pushF κ) & \smallstep & (\pe,ρ[\px ↦ \pa],μ,κ) &  \\
+\CaseET & (K'~\many{y},ρ,μ, \SelF(ρ',\Sel) \pushF κ) & \smallstep & (\pe_i,ρ'[\many{\px_i ↦ \pa}],μ,κ) & K_i = K',\ \many{\pa = ρ(\py)} \\
+\UpdateT & (\pv, ρ, μ, \UpdateF(\pa) \pushF κ) & \smallstep & (\pv, ρ, μ[\pa ↦ (ρ,\pv)], κ) & \\
 \bottomrule
 \end{tabular}
+} % resizebox
 \caption{Syntax of $Λ$ and Lazy Krivine (LK) transition semantics $\smallstep$}
   \label{fig:lk-syntax}
 \end{figure}
@@ -117,7 +119,7 @@
 
 \Cref{fig:lk-syntax} defines syntax and semantics of $Λ$: An untyped,
 call-by-name lambda calculus with recursive let bindings in the style of
-\citep{Launchbury:93} and \citep{Sestoft:97}.
+\citet{Launchbury:93} and \citet{Sestoft:97}.
 Any (sub-)expression of $Λ$ has a unique \emph{label} (think of it as the AST node's
 pointer identity) that we usually omit. For example, a correct labelling of
 $f~(g~f)$ would be
@@ -133,11 +135,11 @@ labels make it so that everything ``works as expected''.
 \subsection{Transition System}
 
 An operational semantics of $Λ$ is given in terms of a small-step transition
-system closest to the lazy Krivine machine \cite{AgerDanvyMidtgaard:04} for
+system closest to the lazy Krivine machine \citep{AgerDanvyMidtgaard:04} for
 Launchbury's language.
 It is worth having a closer look at the workings of our Gold Standard.
 The machine's state $σ$ comes as a quadruple in the style of a CESK machine
-\cite{Felleisen:87}, consisting of the usual \emph{control} component
+\citep{Felleisen:87}, consisting of the usual \emph{control} component
 corresponding to the control-flow node $γ$ under evaluation, the
 \emph{environment} $ρ$ mapping lexically-scoped variables to an address bound in
 the \emph{heap} $μ$ and a \emph{continuation}, or \emph{stack}, $κ$.
@@ -183,8 +185,8 @@ An evaluation state transitions to a return state via rule $\ValueT$ when the
 control expression is a value.%
 \footnote{Operational semantics commonly don't explicate $\ValueT$
 transitions, but the original formulation of the CESK machine
-did~\cite{Felleisen:87}, as does the lazy Krivine
-machine of \citep{AgerDanvyMidtgaard:04}.}
+did~\citep{Felleisen:87}, as does the lazy Krivine
+machine of \citet{AgerDanvyMidtgaard:04}.}
 
 We bake into $σ$ the invariant of \emph{well-addressedness}: Any address $\pa$
 occuring in $ρ$, $κ$ or the range of $μ$ must be an element of $\dom(μ)$.
@@ -313,7 +315,7 @@ its source state:
   $κ_i = cont(σ_i)$ extends $κ_1$ (so $κ_i = κ_1$ or $κ_i = ... \pushF κ_1$,
   abbreviated $κ_i = ...κ_1$).
 
-  Furthermore, an interior trace $τ$ is \emph{balanced} \cite{Sestoft:97} if the
+  Furthermore, an interior trace $τ$ is \emph{balanced} \citep{Sestoft:97} if the
   target state is a return state with continuation $κ_1$.
 \end{definition}
 
@@ -348,7 +350,7 @@ $\UpdateT$ are not.
 
 A balanced trace starting at a focus expression $\pe$ and ending with $(\pv,v)$
 loosely corresponds to a derivation of $\pe \Downarrow \pv$ in a natural
-big-step semantics~\cite{Sestoft:97} or a non-$⊥$ result in a denotational
+big-step semantics~\citep{Sestoft:97} or a non-$⊥$ result in a denotational
 semantics.
 
 It is when a derivation in a natural semantics does not exist that a small-step
@@ -365,7 +367,7 @@ semantics shows finesse, in that it differentiates two different kinds of
   We notate maximal traces as $\maxtrace{τ}$.
 \end{definition}
 
-\sg{\citep{LeroyGrall:09} show in Lemma 10 that there exists a maximal trace for
+\sg{\citet{LeroyGrall:09} show in Lemma 10 that there exists a maximal trace for
 every expression. Do we need something similar?}
 
 We call infinite and interior traces \emph{diverging}.
@@ -752,7 +754,7 @@ total elements of the domain are discrete.
 The other domain constructors for products $\times$, sums $+$, fixpoints and the
 derived inductive EBNF-style syntax definitions such as the potentially infinite
 $\STraces$ (indicated by the $\gfp$ subscript) or finite $\Continuations$ are
-standard, see for example \cite{Cartwright:16}. The domains on $\Addresses$ and
+standard, see for example \citep{Cartwright:16}. The domains on $\Addresses$ and
 $\Var$ are the flat ones; the one on $\Exp$ is the flat one on labels.
 
 This proves that $\StateD$ is well-defined as a domain.
@@ -769,7 +771,7 @@ As given, the definition of $\semst{\wild}$ does not account for partial
 elements at all, although it does a sufficient job provided the elements it
 manipulates are total. It quite clearly is computable, so it should have a
 continuous extension to partial elements; such was the entire point of
-\citep{ScottStrachey:71} and we don't need to repeat it here. Now, we might
+\citet{ScottStrachey:71} and we don't need to repeat it here. Now, we might
 spend much time and space here clarifying boring technical details of strictness
 such as ``Is $step(look)(\wild,\wild,\wild,\ApplyF(\pa) \pushF ⊥) = ⊥$?'' and
 ``What is the continuous elaboration of $tgt_\States$?'' that are implicit in a
@@ -781,7 +783,7 @@ of a model implementation in SML of New Jersey serving as a ``continuity
 specification'' of $\semst{\wild}$ that we will treat as its ``ground truth''.
 We chose SML because it has a standardised small-step operational semantics that
 gives rise to an adequate denotational semantics, the core of which can be found
-in \cite{Milner:78}.
+in \citep{Milner:78}.
 
 On the spectrum between viable continuous extensions of $\semst{\wild}$, the
 specification in ML is quite on the strict end. In fact, it introduces a lazy
@@ -833,7 +835,7 @@ The proof of (S2) depends on (S3), hence we will prove (S3) first.
   If $σ ∈ \States_\pe$, then $\elabtrace{\semst{\pe}(σ)}$.
 \end{lemma}
 \begin{proof}
-By coinduction, following~\citep{Czajka:2019}.
+By coinduction, following~\citet{Czajka:2019}.
 The coinduction hypothesis is:
 \[
   P(α) = ∀σ,\pe.\ σ ∈ \States_\pe \Longrightarrow \elabtracen{α}{\semst{\pe}(σ)}
@@ -1106,7 +1108,7 @@ by coinduction:
 % \begin{theorem}[Full abstraction]
 %   \label{thm:full-abstraction}
 %  The restriction $S = \fn{\pe}{\semst{\pe}\restrict{\States_\pe}}$ is
-%  \emph{fully abstract}~\cite{Plotkin:77}, meaning that
+%  \emph{fully abstract}~\citep{Plotkin:77}, meaning that
 %
 %  $\forall \pe_1,\pe_2.\ S(\pe_1) = S(\pe_2)
 %
