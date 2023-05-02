@@ -1,0 +1,13 @@
+\section{Abstraction Interpretation}
+
+\[\begin{array}{c}
+  \forall \tr.\ \tr(x) ⊑ \semusg{\pe}_{\tr} \\
+  \Uparrow \\
+  \exists \tr,\td_1,\td_2.\ \semusg{\pe}_{\tr[x ↦ \td_1]} \not= \semusg{\pe}_{\tr[x ↦ \td_2]} \\
+  \Uparrow ???? \text{ wrong. Need to skip this step; then we end up with the same proof as before}\\
+  \exists ρ,d_1,d_2.\ \seminf{\pe}_{ρ[x ↦ d_1]} \not= \seminf{\pe}_{ρ[x ↦ d_2]} \\
+  \Uparrow \\
+  \exists \pe_1,\pe_2.\ \seminf{\Let{x}{\pe_1}{\pe}} \not= \seminf{\Let{x}{\pe_2}{\pe}} \\
+  \Updownarrow \\
+  x \text{ live in } \pe \\
+\end{array}\]

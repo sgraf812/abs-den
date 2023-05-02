@@ -328,9 +328,9 @@ Trace of the expression:
   \\[-0.5em]
   α_{\STraces}(τ_i^+, \pp\trend) & = & α_{\States}(τ_i^+ \concat \pp\trend)\trend \\
   α_{\STraces}(τ_i^+, τ \act{a} \pp\trend) & = & α_{\STraces}(τ_i^+,τ); α_{\States}(τ_i^+ \concat τ \act{a} \pp\trend)\trend \\
-  α_{\States}(τ) & = & (α_{\Control}(τ,tgt(τ)), α_{\Environments}(\varrho(τ)), α_{\Heaps}(τ) \circ μ(τ), α_{\Continuations}(τ)) \\
-  α_{\Control}(τ, \return) & = & (\pv,α_{\StateV}(v)) \text{ where $\getval{τ}{(\pv,v)}$} \\
-  α_{\Control}(τ, \pe) & = & \pe \\
+  α_{\States}(τ) & = & (α_{\Controls}(τ,tgt(τ)), α_{\Environments}(\varrho(τ)), α_{\Heaps}(τ) \circ μ(τ), α_{\Continuations}(τ)) \\
+  α_{\Controls}(τ, \return) & = & (\pv,α_{\StateV}(v)) \text{ where $\getval{τ}{(\pv,v)}$} \\
+  α_{\Controls}(τ, \pe) & = & \pe \\
   α_{\Environments}(ρ) & = & deref^{-1} \circ ρ \\
   α_{\Heaps}(τ)([\many{\pa ↦ (\pe,d)}]) & = & [\many{\pa ↦ (\pe, μ_ρ(τ)(\pa), α_{\StateD}(d))}] \\
   α_{\Continuations}(\pp\trend) & = & \StopF \\
@@ -345,9 +345,9 @@ Trace of the expression:
   γ_{\StateV}(\FunV(f)) & = & \FunV(γ_{\StateD} \circ f \circ deref^{-1}) \\
   γ_{\STraces}(σ\trend) & = & γ_{\States}(σ)\trend \\
   γ_{\STraces}(τ; σ\trend) & = & γ_{\STraces}(τ) \act{γ_{\Actions}(tgt_\States(τ) \smallstep σ)} γ_{\States}(τ; σ\trend)\trend \\
-  γ_{\States}(γ,\wild,\wild,\wild) & = & α_{\Control}(γ) \\
-  γ_{\Control}((\pv,v)) & = & \return \\
-  γ_{\Control}(\pe) & = & \pe \\
+  γ_{\States}(γ,\wild,\wild,\wild) & = & α_{\Controls}(γ) \\
+  γ_{\Controls}((\pv,v)) & = & \return \\
+  γ_{\Controls}(\pe) & = & \pe \\
   γ_{\Actions}(\BindT(\px,\pa,\pe_1,d)) & = & \BindA(\px,\pa↦\pe_1,γ_{\StateD}(d)) \\
   γ_{\Actions}(\UpdateT(\pa)) & = & \UpdateA(\pa) \\
   γ_{\Actions}(\LookupT(\pa)) & = & \LookupA(\pa) \\
