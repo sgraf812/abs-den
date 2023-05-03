@@ -283,15 +283,15 @@ Now we are able to define a notion of ``strong deadness'', as follows
 \begin{definition}[Deadness, Mark II]
   Let $\pe$ be an expression and $\px$ a variable.
   $\px$ is \emph{dead} in $\pe$ if and only if
-  there exists no sequence of transitions
-  $(\pe,[],[],\StopF) \smallstep^* (\px,ρ,μ,κ)$ such that the next transition
-  would apply the variable lookup rule $\LookupT$.
+  for any $\pe_1,\pe_2$ and evaluation context $(ρ,μ,κ)$
+  (where $\px$ does not occur in the context)
+  the sequences of transitions $(\Let{\px}{\pe_1}{\pe},ρ,μ,κ) \smallstep^*$
+  and $(\Let{\px}{\pe_2}{\pe},ρ,μ,κ) \smallstep^*$ operate in lockstep.
   Otherwise, $\px$ is \emph{potentially live}.
 \end{definition}
 
 While this definition captures diverging behaviors correctly and is intuitively
-easy to grasp, it is quite a narrow property. For one, it only applies to
-closed terms. Furthermore, knowing that $x$ is dead in $\pe$ does not give us
+easy to grasp, it is quite a narrow property. Knowing that $x$ is dead in $\pe$ does not give us
 any information on whether $x$ is dead in $\pe~y$, because that evaluates
 $\pe$ in a non-empty stack! Consequently, it is impossible to prove that
 $\semusg{\pe}$ satisfies \Cref{thm:semusg-correct-live} by structural induction
