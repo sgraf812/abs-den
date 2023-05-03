@@ -5,11 +5,10 @@
 \[\begin{array}{c}
  \arraycolsep=2pt
  \begin{array}{rrclcl}
-  \text{Program point}   & \pp      & ∈ & \ProgramPoints        &  =         & \{ \return \} + \Exp \\
   \text{Actions}         & a        & ∈ & \Actions              & ::=        & \AppIA(d) \mid \AppEA(\px↦d) \mid \BindA(\px,\pa↦\pe,d) \\
                          &          &   &                       & \mid       & \LookupA(\pa) \mid \UpdateA(\pa) \mid \ValueA(v) \\
-  \text{Finite Traces}   & τ^+      & ∈ & \Traces^+             & ::=        & \pp\trend \mid \pp \act{a} τ^+  \\
-  \text{Finite and infinite Traces} & τ & ∈ & \Traces^{+\infty} & ::=_{\gfp} & \pp\trend \mid \pp \act{a} τ    \\
+  \text{Finite Traces}   & τ^+      & ∈ & \Traces^+             & ::=        & \goodend{\pc} \mid \stuckend{\pc} \mid \pc \act{a} τ^+  \\
+  \text{Finite and infinite Traces} & τ & ∈ & \Traces^{+\infty} & ::=_{\gfp} & \goodend{\pc} \mid \stuckend{\pc} \mid \pc \act{a} τ  \\
   \\
   \text{Domain of maximal traces} & d & ∈ & \MaxD   & = & \Traces^+ \to \Traces^{+\infty} \\
   \text{Stateless values}                   & v & ∈ & \Values{} & ::= & \FunV(f ∈ \MaxD \to \MaxD) \\
@@ -18,23 +17,23 @@
  \ruleform{alloc : \Traces^+ \to \Addresses} \quad \text{an injective function on the number of $\BindA$ actions in the trace} \\
  \\
  \begin{array}{rcl}
-  \multicolumn{3}{c}{ \ruleform{ src(τ) = \pp \qquad tgt(τ) = \pp } } \\
+  \multicolumn{3}{c}{ \ruleform{ src(τ) = \pc \qquad tgt(τ) = \pc } } \\
   \\[-0.5em]
-  src(\pp\trend)     & = & \pp \\
-  src(\pp \act{a} τ) & = & \pp \\
+  src(\pc\trend)     & = & \pc \\
+  src(\pc \act{a} τ) & = & \pc \\
   \\[-0.5em]
   tgt(τ)    & = & \begin{cases}
     undefined & \text{if $τ$ infinite} \\
-    \pp       & \text{if $τ = ... \act{a} \pp\trend$}
+    \pc       & \text{if $τ = ... \act{a} \pc\trend$}
   \end{cases} \\
  \end{array} \quad
  \begin{array}{rcl}
   \multicolumn{3}{c}{ \ruleform{ τ_1 \concat τ_2 = τ_3 \qquad τ_1 \subtrceq τ_2 } } \\
   \\[-0.5em]
   τ_1 \concat τ_2 & = & \begin{cases}
-    \pp \act{a} (τ_1' \concat τ_2) & \text{if $τ_1 = \pp \act{a} τ_1'$} \\
-    τ_2                     & \text{if $τ_1 = \pp\trend$ and $src(τ_2) = \pp$} \\
-    undefined               & \text{if $τ_1 = \pp\trend$ and $src(τ_2) \not= \pp$} \\
+    \pc \act{a} (τ_1' \concat τ_2) & \text{if $τ_1 = \pc \act{a} τ_1'$} \\
+    τ_2                     & \text{if $τ_1 = \pc\trend$ and $src(τ_2) = \pc$} \\
+    undefined               & \text{if $τ_1 = \pc\trend$ and $src(τ_2) \not= \pc$} \\
   \end{cases} \\
   \\[-0.5em]
   τ_s \subtrceq τ & = & \exists τ_1, τ_2.\ (τ = τ_1 \concat τ_s \concat τ_2)  \\
@@ -101,7 +100,7 @@ stateless maximal prefix trace semantics in the style of Cousot in
 \Cref{fig:seminf}.
 
 \Cref{fig:stateless-syntax} provides the new syntactic building blocks of the
-semantics. A \emph{program point} $\pp$ is either a return point $\return$ or a
+semantics. A \emph{program point} $\pc$ is either a return point $\return$ or a
 labelled expression; each program point defines one of finitely many
 control-flow nodes of the program. Actions $a$ correspond one-to-one to the
 transition rules of the LK machine, only they are now retained in an AST-like
@@ -125,26 +124,26 @@ semantics.
  \begin{array}{rcl}
   \multicolumn{3}{c}{ \ruleform{ \seminf{\wild} \colon \Exp → (\Var \pfun \MaxD) → \MaxD } } \\
   \\[-0.5em]
-  stuck(τ_i^+)   & = & tgt(τ_i^+)\trend \\
+  stuck(τ_i^+)   & = & \stuckend{tgt(τ_i^+)} \\
   \\[-0.5em]
-  \stepm{p}{a}{\pp}(τ_i^+) & = &
-    \ternary{\text{$tgt(τ_i^+)$ matches $p$}}
-            {tgt(τ_i^+) \act{a} \pp\trend}
-            {tgt(τ_i^+)\trend} \\
+  \stepm{p}{a}{\pc}(τ_i^+) & = &
+    \ternary{\text{$tgt(τ_i^+)$ matches $\goodend{p}$}}
+            {tgt(τ_i^+) \act{a} \goodend{\pc}}
+            {\stuckend{tgt(τ_i^+)}} \\
   \\[-0.5em]
   (d_1 \fcomp d_2)(τ_i^+)   & = &
-    \ternary{d_1(τ_i^+) = tgt(τ_i^+)\trend}
-            {tgt(τ_i^+)}
-            {d_1(τ_i^+) \concat d_2(τ_i^+ \concat d_1(τ_i^+))} \\
+    \ternary{d_1(τ_i^+) = ... \act{} \goodend{\pc}}
+            {d_1(τ_i^+) \concat d_2(τ_i^+ \concat d_1(τ_i^+))}
+            {d_1(τ_i^+)} \\
   \\[-0.5em]
   apply(d_\px)(τ_\pe^+)   & = & \begin{cases}
-    f(d_\px)(τ_\pe^+) & \text{if $\getval{τ_\pe^+}{(\wild,\FunV(f))}$}  \\
+    f(d_\px)(τ_\pe^+) & \text{if $τ_\pe^+ = ... \act{} (\wild,\FunV(f))$}  \\
     stuck(τ_\pe^+) & \text{otherwise}  \\
   \end{cases} \\
   \\[-0.5em]
   μ(τ_i^+)(\pa) & = & \begin{cases}
-    (\pv, \stepm{\pv}{\ValueA(v)}{\return}) & \text{if $τ_{\pv} \act{\UpdateA(\pa)} \return \trend \subtrceq τ_i^+$ and $\getval{τ_{\pv}}{(\pv,v)}$} \\
-    (\pe, d) & \text{if $\wild \act{\BindA(\px,\pa↦\pe,d)} \wild\, \trend \subtrceq τ_i^+$} \\
+    (\pv, \stepm{\pv}{\ValueA(v)}{\return}) & \text{if $τ_i^+ = ... \act{} (\pv,v) \act{\UpdateA(\pa)} ... $} \\
+    (\pe, d) & \text{if $τ_i^+ = ... \act{\BindA(\px,\pa↦\pe,d)} ...$} \\
   \end{cases}  \\
   \\[-0.5em]
   deref(\pa)(τ_i^+)   & = & (\step{\LookupA(\pa)}{\pe} \fcomp d \fcomp \stepm{\return}{\UpdateA(\pa)}{\return})(τ_i^+) \text{ where $(\pe,d) = μ(τ_i^+)(\pa)$} \\
@@ -172,18 +171,6 @@ semantics.
 \caption{Stateless Maximal Trace Semantics}
   \label{fig:seminf}
 \end{figure}
-
-Trace of the expression:
-\[
-\begin{array}{r@{}l}
-   \multicolumn{2}{c}{\slbln{1}\Let{x}{\slbln{2}(\Lam{y}{\slbln{3}y})\slbln{4}}{\slbln{5}(\slbln{6}(\slbln{7}x~x)~x)}} \\
-   \\
-   \lbln{1} & \act{\BindA} \lbln{5} \act{\AppIA} \lbln{6} \act{\AppIA} \lbln{7} \\
-            & \act{\LookupA} \lbln{2} \act{\ValueA(\FunV(f))} \lbln{4} \act{\AppEA} \lbln{3} \\
-            & \act{\LookupA} \lbln{2} \act{\ValueA(\FunV(f))} \lbln{4} \act{\AppEA} \lbln{3} \\
-            & \act{\LookupA} \lbln{2} \act{\ValueA(\FunV(f))} \lbln{4}
-\end{array}
-\]
 
 % Note [Design of Maximal Trace Semantics]
 % ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -307,12 +294,12 @@ Trace of the expression:
 \[\begin{array}{rcl}
   μ_ρ(τ)(\pa) & = & \begin{cases}
     \varrho(τ_1) & \text{if $τ_1 \act{\UpdateA(\pa)} \return \concat τ_2 = τ$} \\
-    \varrho(τ_1 \act{\BindA(\px,\pa↦\pe,d)} \pp) & \text{if $τ_1 \act{\BindA(\px,\pa↦\pe,d)} \pp \concat τ_2 = τ$} \\
+    \varrho(τ_1 \act{\BindA(\px,\pa↦\pe,d)} \pc) & \text{if $τ_1 \act{\BindA(\px,\pa↦\pe,d)} \pc \concat τ_2 = τ$} \\
   \end{cases}  \\
-  \varrho(τ \act{\BindA(\px,\pa↦\pe,d)} \pp\trend)(\px) & = & deref(\pa) \\
-  \varrho(τ \act{\AppEA(\px↦d)} \pp\trend)(\px) & = & d \\
-  \varrho(τ \act{\LookupA(\pa)} \pp\trend)(\px) & = & μ_ρ(τ)(\pa)(\px) \\
-  \varrho(τ \act{a} \pp\trend)(\px) & = & \varrho(τ)(\px) \\
+  \varrho(τ \act{\BindA(\px,\pa↦\pe,d)} \pc\trend)(\px) & = & deref(\pa) \\
+  \varrho(τ \act{\AppEA(\px↦d)} \pc\trend)(\px) & = & d \\
+  \varrho(τ \act{\LookupA(\pa)} \pc\trend)(\px) & = & μ_ρ(τ)(\pa)(\px) \\
+  \varrho(τ \act{a} \pc\trend)(\px) & = & \varrho(τ)(\px) \\
 \end{array}\]
 \caption{Materialising heap and environment from an initialisation trace}
   \label{fig:materialisation}
@@ -326,19 +313,19 @@ Trace of the expression:
   deref^{-1}(d) & = & \pa \text{ such that $d = deref(\pa)$} \\
   tgt_\States^{-1}(σ) & = & τ \text{ such that $\validtrace{τ}$ and $tgt_\States(τ) = σ$} \\
   \\[-0.5em]
-  α_{\STraces}(τ_i^+, \pp\trend) & = & α_{\States}(τ_i^+ \concat \pp\trend)\trend \\
-  α_{\STraces}(τ_i^+, τ \act{a} \pp\trend) & = & α_{\STraces}(τ_i^+,τ); α_{\States}(τ_i^+ \concat τ \act{a} \pp\trend)\trend \\
+  α_{\STraces}(τ_i^+, \pc\trend) & = & α_{\States}(τ_i^+ \concat \pc\trend)\trend \\
+  α_{\STraces}(τ_i^+, τ \act{a} \pc\trend) & = & α_{\STraces}(τ_i^+,τ); α_{\States}(τ_i^+ \concat τ \act{a} \pc\trend)\trend \\
   α_{\States}(τ) & = & (α_{\Controls}(τ,tgt(τ)), α_{\Environments}(\varrho(τ)), α_{\Heaps}(τ) \circ μ(τ), α_{\Continuations}(τ)) \\
   α_{\Controls}(τ, \return) & = & (\pv,α_{\StateV}(v)) \text{ where $\getval{τ}{(\pv,v)}$} \\
   α_{\Controls}(τ, \pe) & = & \pe \\
   α_{\Environments}(ρ) & = & deref^{-1} \circ ρ \\
   α_{\Heaps}(τ)([\many{\pa ↦ (\pe,d)}]) & = & [\many{\pa ↦ (\pe, μ_ρ(τ)(\pa), α_{\StateD}(d))}] \\
-  α_{\Continuations}(\pp\trend) & = & \StopF \\
-  α_{\Continuations}(τ \act{\LookupA(\pa)} \pp\trend) & = & \UpdateF(\pa) \pushF α_{\Continuations}(τ) \\
-  α_{\Continuations}(τ \act{\UpdateA(\pa)} \pp\trend) & = & κ \text{ where $α_{\Continuations}(τ) = \UpdateF(\pa) \pushF κ$} \\
-  α_{\Continuations}(τ \act{\AppIA(d)} \pp\trend) & = & \ApplyF(deref^{-1}(d)) \pushF α_{\Continuations}(τ) \\
-  α_{\Continuations}(τ \act{\AppEA(\px↦d)}   \pp\trend) & = & κ \text{ where $α_{\Continuations}(τ) = \ApplyF(deref^{-1}(d)) \pushF κ$} \\
-  α_{\Continuations}(τ \act{} \pp\trend) & = & α_{\Continuations}(τ) \\
+  α_{\Continuations}(\pc\trend) & = & \StopF \\
+  α_{\Continuations}(τ \act{\LookupA(\pa)} \pc\trend) & = & \UpdateF(\pa) \pushF α_{\Continuations}(τ) \\
+  α_{\Continuations}(τ \act{\UpdateA(\pa)} \pc\trend) & = & κ \text{ where $α_{\Continuations}(τ) = \UpdateF(\pa) \pushF κ$} \\
+  α_{\Continuations}(τ \act{\AppIA(d)} \pc\trend) & = & \ApplyF(deref^{-1}(d)) \pushF α_{\Continuations}(τ) \\
+  α_{\Continuations}(τ \act{\AppEA(\px↦d)}   \pc\trend) & = & κ \text{ where $α_{\Continuations}(τ) = \ApplyF(deref^{-1}(d)) \pushF κ$} \\
+  α_{\Continuations}(τ \act{} \pc\trend) & = & α_{\Continuations}(τ) \\
   α_{\StateD}(d) & = & (\fn{τ}{α_{\STraces}(τ,d(τ))) \circ γ_{\STraces} \circ tgt_\States^{-1}} \\
   α_{\StateV}(\FunV(f)) & = & \FunV(α_{\StateD} \circ f \circ deref) \\
   γ_{\StateD}(d) & = & γ_{\STraces} \circ d \circ tgt_\States \circ α_{\STraces} \\
@@ -359,48 +346,6 @@ Trace of the expression:
 \end{array}\]
 \caption{Prefix Trace Abstraction}
   \label{fig:semantics}
-\end{figure}
-
-\begin{figure}
-\[
-\begin{array}{ll}
-  & \text{Let } ρ_x = \lfp(λρ. [x ↦ cons(\LookupA,\lbln{2}],\seminf{\slbln{2}(\Lam{y}{\slbln{3}y})\slbln{4}}_ρ) \\
-  & \text{and } ρ_{x,y} = ρ_x[y ↦ ρ_1(x)] \\
-  & \text{and } f = d ↦ cons(\AppEA,\lbln{3},\seminf{\slbln{3}y}_{ρ[y↦d]}) \\
-  & \text{Evaluate }\slbln{1}\Let{x}{\slbln{2}(\Lam{y}{\slbln{3}y})\slbln{4}}{\slbln{5}(\slbln{6}(\slbln{7}x~x)~x)} \\
-  & \\
-  & \seminf{\slbln{1}\Let{x}{\slbln{2}(\Lam{y}{\slbln{3}y})\slbln{4}}{\slbln{5}(\slbln{6}(\slbln{7}x~x)~x)}}_\bot(\lbln{1}) \\
-  & \\[-0.9em]
-  ⇒ & \lbln{1} \act{\BindA} \seminf{\slbln{5}(\slbln{6}(\slbln{7}x~x)~x)}_{ρ_x}(\lbln{1} \act{\BindA} \lbln{5}) \\
-  & \\[-0.9em]
-  ⇒ & \lbln{1} \act{\BindA} \lbln{5} \act{\AppIA} \seminf{\slbln{6}(\slbln{7}x~x)}_{ρ_x}(\lbln{1} \act{\BindA} \lbln{5} \act{\AppIA} \lbln{6}) \\
-  & \\[-0.9em]
-  ⇒ & \lbln{1} \act{\BindA} \lbln{5} \act{\AppIA} \lbln{6} \act{\AppIA} \seminf{\slbln{7}x}_{ρ_x}(\overbrace{\lbln{1} \act{\BindA} \lbln{5} \act{\AppIA} \lbln{6} \act{\AppIA} \lbln{7}}^{τ_1}) \\
-  & \\[-0.9em]
-  ⇒ & τ_1 \act{\LookupA} \seminf{\slbln{2}(\Lam{y}{\slbln{3}y})\slbln{4}}_{ρ_x}(τ_1 \act{\LookupA} \lbln{2}) \\
-  & \\[-0.9em]
-  ⇒ & τ_1 \act{\LookupA} \lbln{2} \act{\ValueA(\FunV(f))} f(ρ_x(x))(τ_1 \act{\LookupA} \lbln{2} \act{\ValueA(\FunV(f))} \lbln{4}) \\
-  & \\[-0.9em]
-  ⇒ & τ_1 \act{\LookupA} \lbln{2} \act{\ValueA(\FunV(f))} \lbln{4} \act{\AppEA} \seminf{\slbln{3}y}_{ρ_{x,y}}(\overbrace{τ_1 \act{\LookupA} \lbln{2} \act{\ValueA(\FunV(f))} \lbln{4} \act{\AppEA} \lbln{3}}^{τ_2}) \\
-  & \\[-0.9em]
-  ⇒ & τ_2 \act{\LookupA} \seminf{\slbln{2}(\Lam{y}{\slbln{3}y})\slbln{4}}_{ρ_x}(τ_2 \act{\LookupA} \lbln{2}) \\
-  & \\[-0.9em]
-  ⇒ & τ_2 \act{\LookupA} \lbln{2} \act{\ValueA(\FunV(f))} f(ρ_x(x))(τ_2 \act{\LookupA} \lbln{2} \act{\ValueA(\FunV(f))} \lbln{4}) \\
-  & \\[-0.9em]
-  ⇒ & τ_2 \act{\LookupA} \lbln{2} \act{\ValueA(\FunV(f))} \lbln{4} \act{\AppEA} \seminf{\slbln{3}y}_{ρ_{x,y}}(\overbrace{τ_2 \act{\LookupA} \lbln{2} \act{\ValueA(\FunV(f))} \lbln{4} \act{\AppEA} \lbln{3}}^{τ_3}) \\
-  & \\[-0.9em]
-  ⇒ & τ_3 \act{\LookupA} \seminf{\slbln{2}(\Lam{y}{\slbln{3}y})\slbln{4}}_{ρ_x}(τ_3 \act{\LookupA} \lbln{2}) \\
-  & \\[-0.9em]
-  ⇒ & τ_3 \act{\LookupA} \lbln{2} \act{\ValueA(\FunV(f))} \lbln{4} \\
-  & \\[-0.9em]
-  & \\
-  = \lbln{1} & \act{\BindA} \lbln{5} \act{\AppIA} \lbln{6} \act{\AppIA} \lbln{7} \\
-             & \act{\LookupA} \lbln{2} \act{\ValueA(\FunV(f))} \lbln{4} \act{\AppEA} \lbln{3} \\
-             & \act{\LookupA} \lbln{2} \act{\ValueA(\FunV(f))} \lbln{4} \act{\AppEA} \lbln{3} \\
-             & \act{\LookupA} \lbln{2} \act{\ValueA(\FunV(f))} \lbln{4}
-\end{array}
-\]
-\caption{Evalation of $\seminf{\wild}$}
 \end{figure}
 
 \begin{figure}

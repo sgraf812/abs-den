@@ -1,13 +1,46 @@
+\pagebreak
 \section{Abstraction Interpretation}
 
 \[\begin{array}{c}
   \forall \tr.\ \tr(x) ⊑ \semusg{\pe}_{\tr} \\
   \Uparrow \\
   \exists \tr,\td_1,\td_2.\ \semusg{\pe}_{\tr[x ↦ \td_1]} \not= \semusg{\pe}_{\tr[x ↦ \td_2]} \\
-  \Uparrow ???? \text{ wrong. Need to skip this step; then we end up with the same proof as before}\\
+  \Uparrow \text{ This one is non-trivial, but we can take any $α(d_1),α(d_2)$ and add $[x_1↦1],[x_2↦1]$ for some "fresh" vars}\\
   \exists ρ,d_1,d_2.\ \seminf{\pe}_{ρ[x ↦ d_1]} \not= \seminf{\pe}_{ρ[x ↦ d_2]} \\
   \Uparrow \\
   \exists \pe_1,\pe_2.\ \seminf{\Let{x}{\pe_1}{\pe}} \not= \seminf{\Let{x}{\pe_2}{\pe}} \\
   \Updownarrow \\
   x \text{ live in } \pe \\
+\end{array}\]
+
+\[\begin{array}{c}
+ \begin{array}{rcl}
+  \multicolumn{3}{c}{ \ruleform{ defn : \Traces \to (\Addresses \pfun \Var) \qquad blub : \Traces \to (\Var \to \UsgD) \to (\Addresses \to \UsgD) } } \\
+  \\[-0.5em]
+  defn_{\Traces}(\lbl \act{a} τ) & = & defn(a) \uplus defn(τ) \\
+  defn_{\Actions}(\BindA(\px,\pa↦\pe,d)) & = & [\pa↦\px] \\
+  blub(τ)(ι)(\pa) & = & ι(defn_{\Traces}(τ)(\pa)) \text{ or $\bot$} \\
+  \\[-0.5em]
+  \multicolumn{3}{c}{ \ruleform{ usg : (\Addresses \to \UsgD) \to \Traces \to \UsgD \times \Values{\UsgD} } } \\
+  \\[-0.5em]
+  usg_{\Traces}(η)(\goodend{(\lbl, \FunV(f))}) & = & (0, α_{\Values{}}(\FunV(f))) \\
+  usg_{\Traces}(η)(\stuckend{\wild}) & = & (0, \bot_{\Values{\UsgD}}) \\
+  usg_{\Traces}(η)(\pe \act{a} τ) & = & α_{\Actions}(a) +_1 α_{\Traces}(τ) \\
+  usg_{\Actions}(η)(a) & = & \begin{cases}
+      η(\pa) & a = \LookupT(\pa) \\
+      0 & \text{otherwise}
+    \end{cases} \\
+  usg^{-1}_{\Traces}(η)(\goodend{(\lbl, \FunV(f))}) & = & (0, α_{\Values{}}(\FunV(f))) \\
+  usg_{\MaxD}(η)(d) & = & usg_{\Traces} \circ d \circ usg^{-1}_{\Traces} \\
+  usg^{-1}_{\MaxD}(η)(d) & = & usg^{-1}_{\Traces} \circ d \circ usg_{\Traces} \\
+  usg_{\Values{}}(η)(\FunV(f)) & = & \FunV(usg_{\MaxD} \circ f \circ usg^{-1}_{\MaxD}) \\
+  \\[-0.5em]
+  \multicolumn{3}{c}{ \ruleform{ intra : \UsgD \times \Values{\UsgD} \to \UsgD \times \Values{\UsgD} } } \\
+  \\[-0.5em]
+  intra(d, \FunV(f)) & = & (d + ω*f(\bot), \FunV(\fn{d}{ω*d})) \\
+  \\[-0.5em]
+  \multicolumn{3}{c}{ \ruleform{ α : \Traces \to \UsgD } } \\
+  \\[-0.5em]
+  α(τ) & = & fst(intra(usg_\Traces(blub(τ)(\fn{\px}{[\px↦1]}))(τ))) \\
+ \end{array}
 \end{array}\]

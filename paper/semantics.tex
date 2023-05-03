@@ -1,14 +1,14 @@
 \begin{figure}
 \[\begin{array}{c}
  \begin{array}{rrclcl}
-  \text{Variables}    & \px, \py & ∈ & \Var        &     &  \\
-  \text{Constructors} &        K & ∈ & \Con        & \simeq & ℕ \quad \text{with arity $α_K ∈ ℕ$} \\
-  \text{Labels}       &     \lbl & ∈ & \Labels     &     &  \\
-  \text{Values}       &      \pv & ∈ & \Val        & ::= & \Lam{\px}{\pe} \mid K~\many{\px}^{α_K} \\
-  \text{Expressions}  &      \pe & ∈ & \Exp        & ::= & \slbl \px \mid \slbl \pv \mid \slbl \pe~\px \mid \slbl \Let{\px}{\pe_1}{\pe_2} \mid \slbl \Case{\pe}{\SelArity} \\
-  \\[-0.5em]
+%  \text{Variables}    & \px, \py & ∈ & \Var        &     &  \\
+%  \text{Constructors} &        K & ∈ & \Con        & \simeq & ℕ \quad \text{with arity $α_K ∈ ℕ$} \\
+%  \text{Labels}       &     \lbl & ∈ & \Labels     &     &  \\
+%  \text{Values}       &      \pv & ∈ & \Val        & ::= & \Lam{\px}{\pe} \mid K~\many{\px}^{α_K} \\
+%  \text{Expressions}  &      \pe & ∈ & \Exp        & ::= & \slbl \px \mid \slbl \pv \mid \slbl \pe~\px \mid \slbl \Let{\px}{\pe_1}{\pe_2} \mid \slbl \Case{\pe}{\SelArity} \\
+%  \\[-0.5em]
   \text{States}        & σ   & ∈ & \States        & =      & \Controls \times \Heaps \\
-  \text{Controls}      & γ   & ∈ & \Controls      & ::=    & \pe \mid (\pv, v) \\
+  \text{Controls}      & \pc & ∈ & \Controls      & ::=    & \pe \mid (\pv, v) \\
   \text{Addresses}     & \pa & ∈ & \Addresses     & \simeq & ℕ \\
   \text{Environments}  & ρ   & ∈ & \Environments  & =      & \Var \pfun \,\blacktriangleright\!\StateD \\
   \text{Heaps}         & μ   & ∈ & \Heaps         & =      & \Addresses \pfun \,\blacktriangleright\!\StateD \\
@@ -52,7 +52,7 @@
   \\[-0.5em]
   \semst{\Lam{\px}{\pe}}_ρ & = & val(\Lam{\px}{\pe},\FunV(\fn{d}{\semst{\pe}_{ρ[\px↦d]}})) \\
   \\[-0.5em]
-  \semst{\pe@(\Case{\pe}{\Sel[s]})}_ρ(μ) & = & (\pe,μ) \cons select(\semst{\pe}_ρ(μ),\many{\fn{\many{d}^{α_K}}{\semst{\pe_s}_{ρ[\many{\px↦d}]}}})  \\
+  \semst{\pe@(\Case{\pe_s}{\Sel[r]})}_ρ(μ) & = & (\pe,μ) \cons select(\semst{\pe_s}_ρ(μ),\many{\fn{\many{d}^{α_K}}{\semst{\pe_r}_{ρ[\many{\px↦d}]}}})  \\
   \\[-0.5em]
   \semst{\pe~\px}_ρ(μ) & = & \begin{cases}
       (\pe~\px,μ) \cons apply(\semst{\pe}_ρ(μ),ρ(\px)) & \px ∈ \dom(ρ) \\
@@ -84,7 +84,7 @@
   \text{Expressions}  &      \pe & ∈ & \Exp        & ::= & \slbl \px \mid \slbl \pv \mid \slbl \pe~\px \mid \slbl \Let{\px}{\pe_1}{\pe_2} \mid \slbl \Case{\pe}{\SelArity} \\
   \\[-0.5em]
   \text{LK States}     & \varsigma & ∈ & \LKStates        & =      & \Controls \times \Environments \times \Heaps \times \Continuations \\
-  \text{Controls}      & γ   & ∈ & \Controls      & =      & \pe \mid \pv \\
+  \text{Controls}      & \pc & ∈ & \Controls      & =      & \pe \mid \pv \\
   \text{Environments}  & ρ   & ∈ & \Environments  & =      & \Var \pfun \Addresses \\
   \text{Addresses}     & \pa & ∈ & \Addresses     & \simeq & ℕ \\
   \text{Heaps}         & μ   & ∈ & \Heaps         & =      & \Addresses \pfun \Environments \times \Exp \\
@@ -140,7 +140,7 @@ Launchbury's language.
 It is worth having a closer look at the workings of our Gold Standard.
 The machine's state $σ$ comes as a quadruple in the style of a CESK machine
 \citep{Felleisen:87}, consisting of the usual \emph{control} component
-corresponding to the control-flow node $γ$ under evaluation, the
+corresponding to the control-flow node $\pc$ under evaluation, the
 \emph{environment} $ρ$ mapping lexically-scoped variables to an address bound in
 the \emph{heap} $μ$ and a \emph{continuation}, or \emph{stack}, $κ$.
 We use projection functions $ctrl(σ)$ and $cont(σ)$ to select the control and
@@ -161,7 +161,7 @@ on. For now, we can assume the \emph{standard instantiation}, where both
 parameters are instantiated to the unit type, $D \triangleq V \triangleq
 \mathbb{1} \triangleq \{ () \}$.
 
-The control component $γ$ is either an expression under evaluation $\pe$ or a
+The control component $\pc$ is either an expression under evaluation $\pe$ or a
 value pairing $(\pv,v)$ (remember, $v = ()$).
 When the control of a state $σ$ is an expression $\pe$, we call $σ$ an
 \emph{evaluation} state and say that $\pe$ drives evaluation, whereas when the
