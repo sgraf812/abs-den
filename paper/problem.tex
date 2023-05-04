@@ -269,10 +269,10 @@ Lazy Krivine (LK) machine implementing call-by-need, so for a meaningful
 comparison to $\semscott{\wild}$, we ignore rules $\CaseIT, \CaseET, \UpdateT$
 and the pushing of update frames in $\LookupT$ for now to recover a call-by-name
 semantics.%
-\footnote{Note that discarding update frames makes the heap append-only, which
-simplifies our proofs. Of course, for call-by-name we would not need a heap to
-begin with, but the point is to get a glimpse at the effort necessary for
-call-by-need.}
+\footnote{Note that discarding update frames makes the heap entries immutable,
+which makes the explicit heap unnecessary. Of course, for call-by-name we would
+not need a heap to begin with, but the point is to get a glimpse at the effort
+necessary for call-by-need.}
 
 The configurations in this transition system resemble abstract machine
 states, consisting of control expression $\pe$, an environment $ρ$ mapping
@@ -283,15 +283,17 @@ Now we are able to define a notion of ``strong deadness'', as follows
 \begin{definition}[Deadness, Mark II]
   Let $\pe$ be an expression and $\px$ a variable.
   $\px$ is \emph{dead} in $\pe$ if and only if
-  for any $\pe_1,\pe_2$ and evaluation context $(ρ,μ,κ)$
+  for any evaluation context $(ρ,μ,κ)$ and expressions $\pe_1,\pe_2$
   (where $\px$ does not occur in the context)
   the sequences of transitions $(\Let{\px}{\pe_1}{\pe},ρ,μ,κ) \smallstep^*$
   and $(\Let{\px}{\pe_2}{\pe},ρ,μ,κ) \smallstep^*$ operate in lockstep.
   Otherwise, $\px$ is \emph{potentially live}.
 \end{definition}
 
-While this definition captures diverging behaviors correctly and is intuitively
-easy to grasp, it is quite a narrow property. Knowing that $x$ is dead in $\pe$ does not give us
+This definition captures diverging behaviors correctly and is somewhat
+easy to grasp despite its description as a property relating two traces.
+Unfortunately, it is not a property preserved under evaluation:
+, it is quite a narrow property. Knowing that $x$ is dead in $\pe$ does not give us
 any information on whether $x$ is dead in $\pe~y$, because that evaluates
 $\pe$ in a non-empty stack! Consequently, it is impossible to prove that
 $\semusg{\pe}$ satisfies \Cref{thm:semusg-correct-live} by structural induction
