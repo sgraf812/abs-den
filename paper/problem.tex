@@ -217,13 +217,18 @@ deadness and our very simple analysis we do not need to be so crafty.
 Nevermind our confidence in the ultimate correctness of $\semusg{\wild}$,
 note that our notion of deadness has a blind spot \wrt diverging computations:
 A looping program is automatically dead in all its free variables.
-This is a central weakness of \emph{any} notion of correctness defined in terms
-of traditional denotational semantics because it assigns $\bot$ to any diverging
-computation. We could take inspiration in the work of \citet{Milner:78} and
-navigate around the issue by introducing a $\mathbf{wrong}$ denotation which is
-propagated strictly; then we would notice when we optimise a looping program
-into one that has a scoping error (the only kind of stuckness that our calculus
-admits without data types).
+Furthermore, $x$ is dead in $\Lam{y}{\Lam{z}{z}}~x$, but rewriting
+$\Let{x}{\pe_1}{\Lam{y}{\Lam{z}{z}}~x}$ to $\Lam{y}{\Lam{z}{z}}~x$ introduces
+a scoping error that is not observable under $\semscott{\wild}$.
+
+These issues are a central weakness of \emph{any} notion of correctness
+defined in terms of traditional denotational semantics because it (necessarily)
+assigns $\bot$ to any diverging computation, while also abusing $\bot$ as a
+collecting pool for error cases. We could take inspiration in the work
+of \citet{Milner:78} and navigate around the issue by introducing a
+$\mathbf{wrong}$ denotation for errors which is propagated strictly; then we
+would notice when we optimise a looping program into one that has a scoping
+error (the only kind of stuckness that our calculus admits without data types).
 
 \begin{figure}
 \[\begin{array}{c}
@@ -279,9 +284,17 @@ The configurations in this transition system resemble abstract machine
 states, consisting of control expression $\pe$, an environment $ρ$ mapping
 lexically-scoped variables to their current heap address, a heap $μ$ listing a
 closure for each adress, and a stack of continuation frames $κ$.
+
+Note that we bake into $σ$ the invariant of \emph{well-addressedness}: Any
+address $\pa$ occuring in $ρ$, $κ$ or the range of $μ$ must be an element of
+$\dom(μ)$. It is easy to see that the transition system maintains this invariant
+and that it is still possible to observe scoping errors which are thus confined
+to lookup in $ρ$.
+
 Now we are able to define a notion of ``strong deadness'', as follows
 
 \begin{definition}[Deadness, Mark II]
+  \label{defn:deadness2}
   Let $\pe$ be an expression and $\px$ a variable.
   $\px$ is \emph{dead} in $\pe$ if and only if
   for any evaluation context $(ρ,μ,κ)$ and expressions $\pe_1,\pe_2$
@@ -291,14 +304,27 @@ Now we are able to define a notion of ``strong deadness'', as follows
   Otherwise, $\px$ is \emph{potentially live}.
 \end{definition}
 
-This definition captures diverging behaviors correctly and is somewhat
-easy to grasp despite its description as a property relating two traces.
-Unfortunately, it is not a property preserved under evaluation:
-, it is quite a narrow property. Knowing that $x$ is dead in $\pe$ does not give us
-any information on whether $x$ is dead in $\pe~y$, because that evaluates
-$\pe$ in a non-empty stack! Consequently, it is impossible to prove that
-$\semusg{\pe}$ satisfies \Cref{thm:semusg-correct-live} by structural induction
-on $\pe$ (in a way that doing so would be useful).
+This definition captures diverging behaviors correctly and still is relatively
+easy to grasp despite it being a property relating two traces.
+
+However, it is not compositional in $\pe$: Consider the variable occurrence $y$;
+is it dead in $x$? That depends on which expression $y$ is bound to, but
+our deadness predicate has no notion of making assumptions about free variables,
+other than that $x$ does not occur in them. Consequently, it is impossible to
+prove that $\semusg{\pe}$ satisfies \Cref{thm:semusg-correct-live} by direct
+structural induction on $\pe$ (in a way that would be useful to the proof).
+
+Furthermore, \Cref{defn:deadness2} is not a property that is preserved under
+evaluation (\eg, it is not \emph{logical} \wrt the transition relation):
+Consider the case that $\pe~x$ is dead in $x$, which implies that $\pe$
+never evaluates its argument. By rule $\AppIT$, $x$'s address will be pushed
+onto the stack. But this address is not bound in the heap yet in the
+configuration $(\Let{x}{\pe_1}{\pe},ρ,μ,\ApplyF{\pa} \pushF κ)$, which is
+an inv
+We need that knowledge when we finally beta reduce the
+value of $\pe$, say, $\Lam{y}{\pe'}$, \Cref{defn:deadness2} makes no assumption
+on which addresses may appear in the stack.
+, it is quite a narrow property.
 
 Instead, such proofs are often conducted by induction over the reflexive
 transitive closure of $(\pe,[],[],\StopF) \smallstep^* σ$, for any $σ$.
