@@ -188,12 +188,6 @@ transitions, but the original formulation of the CESK machine
 did~\citep{Felleisen:87}, as does the lazy Krivine
 machine of \citet{AgerDanvyMidtgaard:04}.}
 
-We bake into $σ$ the invariant of \emph{well-addressedness}: Any address $\pa$
-occuring in $ρ$, $κ$ or the range of $μ$ must be an element of $\dom(μ)$.
-It is easy to see that the transition system maintains this invariant and that
-it is still possible to observe scoping errors which are thus confined to
-lookup in $ρ$.
-
 Note that whatever parameter sets $D,V$ we pick, the value of parameters $v$ and
 $d$ never affect other state components or whether or not a transition can fire.
 The transition system is deterministic iff the choice of the particular

@@ -150,8 +150,9 @@ introduction.
 
 The \emph{requirement} (in the sense of informal specification) on an assertion
 such as ``$x$ is dead'' in a program like $\Let{x}{\pe_1}{\pe_2}$ is that we
-may rewrite to $\pe_2$ (perhaps to reduce heap allocations or code size) without
-observing any change in semantics.
+may rewrite to $\Let{x}{panic}{\pe_2}$ and perhaps even to $\pe_2$ without
+observing any change in semantics. Doing so reduces code size and heap
+allocation.
 
 This can be made formal in the following definition of deadness in terms of
 $\semscott{\wild}$:
