@@ -31,7 +31,7 @@ hypothesis for the correctness proof.
 %    ever explaining it, so we might as well.
 %\end{itemize}
 
-\subsection{Usage Analysis}
+\subsection{Usage Analysis and Deadness, Intuitively}
 
 \begin{figure}
 \begin{minipage}{\textwidth}
@@ -127,8 +127,6 @@ $\semusg{\wild}$, a static analysis for estimating an upper bound on how often
 a variable is evaluated. The given analysis is naïve in that its treatment of
 function application assumes that every function deeply evaluates its argument.
 
-\subsubsection{Deadness, Continuity and Divergence}
-
 Assuming that all program variables are distinct (a silent assumption from
 here on throughout), the result of $\semusg{\wild}$ is an element $d ∈ \UsgD$,
 an environment that maps to each variable an upper bound on its \emph{evaluation
@@ -140,6 +138,8 @@ Likewise, when $d(x) = 0$ we say that $x$ is \emph{dead} in $d$ and the programs
 $d$ denotes, \eg, \emph{never evaluated}. In this way, $\semusg{\wild}$ can
 be used to infer facts of the form ``$\pe$ never evaluates $x$'' from the
 introduction.
+
+\subsection{Denotational Deadness, Continuity and Divergence}
 
 The \emph{requirement} (in the sense of informal specification) on an assertion
 such as ``$x$ is dead'' in a program like $\Let{x}{\pe_1}{\pe_2}$ is that we
@@ -155,7 +155,7 @@ $\semscott{\wild}$:
   A variable $\px$ is \emph{dead} in an expression $\pe$ if and only
   if, for all $ρ ∈ \Var \to \ScottD$ and $d_1, d_2 ∈ \ScottD$, we have
   $\semscott{\pe}_{ρ[\px↦d_1]} = \semscott{\pe}_{ρ[\px↦d_2]}$.
-  Otherwise, $\px$ is \emph{potentially live}.
+  Otherwise, $\px$ is \emph{live}.
 \end{definition}
 
 Indeed, if we know that $x$ is dead, then the following equation justifies our
@@ -183,8 +183,7 @@ arrive at the following theorem:
 Let us stop and reflect about this theorem for a bit.
 Deadness is witnessed by a particular $\tr$ and it helps to think of this
 witness as the ``diagonal'' $\tr(\px) \triangleq \fn{\py}{\ternary{\px =
-\py}{1}{0}}$, because then the intuitive notion of deadness translates
-directly.%
+\py}{1}{0}}$, because then the intuitive notion of deadness applies.%
 \footnote{In fact, it can be proven that if \emph{any} $\tr$ exists, then the
 diagonal is also a witness.}
 
@@ -203,32 +202,43 @@ $\px$.
 
 The proof capitalises on the similarities in structure by using induction on the
 program expression, hence it is simple and direct, at just under a page of
-accessible prose. Often, such a proof needs to assume conformance to some
-type-based logical relation to strengthen the induction hypothesis for the
-application case, or prove admissability to apply fixpoint induction in the let
-case, but for deadness and our very simple analysis we do not need to be so
-crafty.
+accessible prose. Often, such a proof needs to strengthen the induction
+hypothesis for the application case, or prove admissability of a predicate to
+apply fixpoint induction in the let case, but for deadness and our very simple
+analysis we do not need to be so crafty.
 
 Nevermind our confidence in the ultimate correctness of $\semusg{\wild}$,
 note that our notion of deadness has a blind spot \wrt diverging computations:
-A looping program is automatically dead in all its free variables.
-Furthermore, $x$ is dead in $(\Lam{y}{\Lam{z}{z}})~x$, but rewriting
-$\Let{x}{\pe_1}{(\Lam{y}{\Lam{z}{z}})~x}$ to $(\Lam{y}{\Lam{z}{z}})~x$ introduces
-a scoping error that is not observable under $\semscott{\wild}$.
+A looping program is automatically dead in all its free variables, even though
+any of them might influence which particular endless loop is taken.
 
-These issues are a central weakness of \emph{any} notion of correctness
-defined in terms of traditional denotational semantics because it (necessarily)
-assigns $\bot$ to any diverging computation, while also abusing $\bot$ as a
-collecting pool for error cases. We could take inspiration in the work
-of \citet{Milner:78} and navigate around the issue by introducing a
-$\mathbf{wrong}$ denotation for errors which is propagated strictly; then we
-would notice when we optimise a looping program into one that has a scoping
-error (the only kind of stuckness that our calculus admits without data types).
+This is not a curiosity of $\semusg{\wild}$; it also applies to the original
+control-flow analysis work~\citep[p. 23]{Shivers:91} where it is remedied
+by the introduction of a \emph{non-standard semantic interpretation} that
+assigns meaning to diverging programs where the denotational semantics only
+says $\bot$. Credibility of this approach solely rests on the structural
+similarity to the standard denotational semantics.
+
+So the issue is not with $\semusg{\wild}$ but with traditional denotational
+semantics because it (necessarily) assigns $\bot$ to any diverging computation.
+Furthermore, as is often done, $\semscott{\wild}$ abuses $\bot$ as a collecting
+pool for error cases.
+This shows in the following example:
+$x$ is dead in $(\Lam{y}{\Lam{z}{z}})~x$, but rewriting
+$\Let{x}{\pe_1}{(\Lam{y}{\Lam{z}{z}})~x}$ to $(\Lam{y}{\Lam{z}{z}})~x$
+introduces a scoping error, a change that is not observable under
+$\semscott{\wild}$.
+We could take inspiration in the work of \citet{Milner:78}
+and navigate around the issue by introducing a $\mathbf{wrong}$ denotation for
+errors which is propagated strictly; then we would notice when we optimise a
+looping program into one that has a scoping error (the only kind of stuckness
+that our calculus admits without data types).
+
 However, $\bot$ is still there as the denotation of diverging computations;
 hence a predicate such as ``Denotation $d$ will get stuck and not diverge'' is
 not an admissable one, because an admissable predicate would be true for $\bot$.
 
-\subsubsection{Evaluation Cardinality and Call-by-need}
+\subsection{Evaluation Cardinality and Call-by-need}
 Blind spots notwithstanding, the notion of deadness above is quite reasonable.
 But our usage analysis infers more detailed cardinality information; for
 example, it can infer whether a binding is evaluated at most once.
@@ -240,7 +250,7 @@ called at most once for every activation, because it allows floating of heap
 allocations from a hot code path into cold function bodies.
 Simplicity prohibits $\semusg{\wild}$ from inferring such properties.}
 Thus, our usage analysis should satisfy the following generalisation of
-\Cref{thm:semusg-correct-live}
+\Cref{thm:semusg-correct-live}:
 
 \begin{theorem}[Correctness of $\semusg{\wild}$]
   \label{thm:semusg-correct-2}
@@ -319,19 +329,19 @@ The notation $f ∈ A \pfun B$ used in the definition of $ρ$ and $μ$ denotes a
 finite map from $A$ to $B$, a partial function where the domain $\dom(f)$ is
 finite and $\rng(f)$ denotes its range.
 The literal notation $[a_1↦b_1,...,a_n↦b_n]$ denotes a finite map with domain
-$\{a_1,...,a_n\}$ that maps $a_i$ to $b_i$. The extended finite map $f[a ↦ b]$
+$\{a_1,...,a_n\}$ that maps $a_i$ to $b_i$. Function update $f[a ↦ b]$
 maps $a$ to $b$ and is otherwise equal to $f$.
-The initial machine state for a closed expression $\pe$ is given by the
-injection function $inj(\pe) = (\pe,[],[],\StopF)$.
-The final machine states are of the form $((\pv,v),\wild,\wild,[])$.
 
+The initial machine state for a closed expression $\pe$ is given by the
+injection function $inj(\pe) = (\pe,[],[],\StopF)$ and
+the final machine states are of the form $(\pv,\wild,\wild,\StopF)$.
 We bake into $σ$ the simplifying invariant of \emph{well-addressedness}: Any
 address $\pa$ occuring in $ρ$, $κ$ or the range of $μ$ must be an element of
 $\dom(μ)$. It is easy to see that the transition system maintains this invariant
 and that it is still possible to observe scoping errors which are thus confined
 to lookup in $ρ$.
 
-Now we are able to define a notion of ``strong deadness'', as follows
+Now we are able to define a notion of ``strong deadness'':
 
 \begin{definition}[Deadness, Mark II]
   \label{defn:deadness2}
@@ -341,7 +351,7 @@ Now we are able to define a notion of ``strong deadness'', as follows
   (where $\px$ does not occur in the context)
   the sequences of transitions $(\Let{\px}{\pe_1}{\pe},ρ,μ,κ) \smallstep^*$
   and $(\Let{\px}{\pe_2}{\pe},ρ,μ,κ) \smallstep^*$ operate in lockstep.
-  Otherwise, $\px$ is \emph{potentially live}.
+  Otherwise, $\px$ is \emph{live}.
 \end{definition}
 
 This definition captures diverging behaviors correctly and straightforwardly
@@ -387,32 +397,14 @@ update frames acting somewhat like heap bindings, so fixpoint induction needs to
 be applied \emph{at every case of the proof}, diminishing confidence in
 correctness unless the proof is fully mechanised.)
 
-The situation is a bit less dire for call-by-name and call-by-value calculi
-because their heap is immutable. Furthermore, if evaluation cardinality is
-unimportant, lambda-bound variables can be substituted immediately for their
-arguments during $β$-reduction, hence no need for a heap whatsoever. The
-stack can often be reflected back into the premises of the judgment rules, so
-that the system distinguishes \emph{instruction transitions} from \emph{search
-transitions}, a distinction which is made explicit in a \emph{contextual
-semantics}. Such a contextual semantics also exists for call-by-need
-\citep{Ariola:95}, although its complexity is comparatively mind-boggling and
-obscurs the operational event of variable lookup.
-All these considerations are with the ultimate goal of simplifying proofs:
-Instead of defining an inductive well-formedness predicate on the heap, we prove
-a substitution lemma. Instead of a well-formedness predicate for the stack, we
-appeal to the well-formedness of the search transition rule.
-\sg{Urgh, more rambling. This was an important realisation to me, although I
-fear it doesn't really belong here. Perhaps it belongs in the call-by-need
-subsection?}
-
 For an analogy with type systems: What we just tried is like attempting a proof
 of preservation by referencing the result of an inference algorithm rather than
 the declarative type system. So what is often done instead (see the
-``well-typed'' relation for elaborated configurations in \citep[Lemma
-4.3]{cardinality-ext} or $\sim_V$ in \citep[Theorem 2.21]{Nielson:99}) is to
-define a declarative and more permissive \emph{correctness relation} $C(σ)$ to
-prove preservation $C(σ_1) \Longrightarrow C(σ_2)$ (\eg, that $C$ is
-\emph{logical} \wrt $\smallstep$). $C$ is chosen such that
+``well-annotatedness'' relation in \citep[Lemma 4.3]{cardinality-ext} or
+$\sim_V$ in \citep[Theorem 2.21]{Nielson:99}) is to define a declarative and
+more permissive \emph{correctness relation} $C(σ)$ to prove preservation $C(σ_1)
+\Longrightarrow C(σ_2)$ (\eg, that $C$ is \emph{logical} \wrt $\smallstep$).
+$C$ is chosen such that
   (1) it is strong enough to imply the property of interest (deadness)
   (2) it is weak enough that it is implied by the analysis result for an initial state ($\tr(\px) \not⊑ \semusg{\pe}_{\tr}$).
 
@@ -420,20 +412,31 @@ We found it quite hard to come up with a suitable ad-hoc correctness relation
 and postpone discussion to \Cref{sec:abstractions} here, where the correctness
 relation and its proof is derived by abstract interpretation \citep{Cousot:21}.
 
+Conducting correctness proofs is a bit less dire for call-by-name and
+call-by-value calculi because their heap is immutable.
+Furthermore, if the operational event of variable lookup is unimportant,
+lambda-bound variables can be substituted immediately for their arguments during
+$β$-reduction rather than delaying lookup to the variable case, abolishing
+the need for any heap whatsoever.
+The stack can often be reflected back into the premises of the judgment
+rules, so that the system distinguishes \emph{instruction transitions}
+from \emph{search transitions}, a distinction which is made explicit in a
+\emph{contextual semantics}.
+Such a contextual semantics also exists for call-by-need \citep{Ariola:95},
+although its complexity is comparatively mind-boggling and obscurs the
+operational event of variable lookup.
+These refactorings are with the ultimate goal of simplifying proofs:
+Instead of defining an inductive well-formedness predicate on the heap, we prove
+a substitution lemma.
+Instead of a well-formedness predicate for the stack, we appeal to the
+well-formedness of the search transition rule.
+\sg{Urgh, perhaps too much rambling. This was an important realisation to me,
+although I fear it doesn't really belong here.}
+
 Another way to work around the structure gap is to adopt the structure of the
 semantics in the analysis; this is done in the Abstracting Abstract
 Machines work \citep{aam}. To our knowledge, its exclusive application seems
 to be control-flow analysis \citep{Shivers:91}, so that the analyses and
 optimisations that follow do not need to reason about arbitrary function call
 structure and can apply traditional intraprocedural analysis techniques that are
-well-explored in the imperative world. \sg{Move this babbling to Related Work?}
-
-\subsection{Type Analysis}
-
-Perhaps it's best if we simply give the analysis at the end with the adequate
-correctness criterion.
-
-\subsection{Control-Flow Analysis}
-
-Dito
-
+well-explored in the imperative world.
