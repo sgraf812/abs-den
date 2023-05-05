@@ -6,15 +6,8 @@ analysis}, we showcase how the operational detail available in traditional
 denotational semantics is too coarse to substantiate a correctness criterion,
 although the proof of (a weaker notion of) correctness is simple and direct.
 While operational semantics observe sufficient detail to formulate a correctness
-relation, we give an excerpt from an exemplary proof attempt that highlights the
-complexities involved.
-
-%At the same time,
-%we show how operational semantics
-%Further consideration of more
-%elaborate cardinality analyses~\citep{cardinality} and quantitative type
-%systems~\citep{Atkey:18} characterise this weakness not only in terms of
-%unobservable divergence but also in terms of evaluation cardinality.
+criterion, it is quite complicated to come up with a suitable inductive
+hypothesis for the correctness proof.
 
 %\subsection{Notation}
 %
@@ -188,11 +181,12 @@ arrive at the following theorem:
 \end{proof}
 
 Let us stop and reflect about this theorem for a bit.
-Whenever thinking about the witnessing $\tr$ giving values to free variables of
-$\pe$, it helps to think that $\tr(\px) \triangleq \fn{\py}{\ternary{\px = \py}{1}{0}}$, then the
-intuitive notion of deadness translates directly.%
-\footnote{In fact, it can be proven that \emph{if} any $\tr$ exists, then the
-``diagonal'' $\fn{\px~\py}{\ternary{\px = \py}{1}{0}}$ is also a witness.}
+Deadness is witnessed by a particular $\tr$ and it helps to think of this
+witness as the ``diagonal'' $\tr(\px) \triangleq \fn{\py}{\ternary{\px =
+\py}{1}{0}}$, because then the intuitive notion of deadness translates
+directly.%
+\footnote{In fact, it can be proven that if \emph{any} $\tr$ exists, then the
+diagonal is also a witness.}
 
 It is surprising that the theorem does not relate $\tr$ with $ρ$; after all,
 $ρ(\py)$ (for $\py \not= \px$) might be bound to the \emph{meaning} of an
@@ -210,15 +204,16 @@ $\px$.
 The proof capitalises on the similarities in structure by using induction on the
 program expression, hence it is simple and direct, at just under a page of
 accessible prose. Often, such a proof needs to assume conformance to some
-logical relation to strengthen the induction hypothesis for the application
-case or prove admissability to apply fixpoint induction in the let case, but for
-deadness and our very simple analysis we do not need to be so crafty.
+type-based logical relation to strengthen the induction hypothesis for the
+application case, or prove admissability to apply fixpoint induction in the let
+case, but for deadness and our very simple analysis we do not need to be so
+crafty.
 
 Nevermind our confidence in the ultimate correctness of $\semusg{\wild}$,
 note that our notion of deadness has a blind spot \wrt diverging computations:
 A looping program is automatically dead in all its free variables.
-Furthermore, $x$ is dead in $\Lam{y}{\Lam{z}{z}}~x$, but rewriting
-$\Let{x}{\pe_1}{\Lam{y}{\Lam{z}{z}}~x}$ to $\Lam{y}{\Lam{z}{z}}~x$ introduces
+Furthermore, $x$ is dead in $(\Lam{y}{\Lam{z}{z}})~x$, but rewriting
+$\Let{x}{\pe_1}{(\Lam{y}{\Lam{z}{z}})~x}$ to $(\Lam{y}{\Lam{z}{z}})~x$ introduces
 a scoping error that is not observable under $\semscott{\wild}$.
 
 These issues are a central weakness of \emph{any} notion of correctness
@@ -229,6 +224,42 @@ of \citet{Milner:78} and navigate around the issue by introducing a
 $\mathbf{wrong}$ denotation for errors which is propagated strictly; then we
 would notice when we optimise a looping program into one that has a scoping
 error (the only kind of stuckness that our calculus admits without data types).
+However, $\bot$ is still there as the denotation of diverging computations;
+hence a predicate such as ``Denotation $d$ will get stuck and not diverge'' is
+not an admissable one, because an admissable predicate would be true for $\bot$.
+
+\subsubsection{Evaluation Cardinality and Call-by-need}
+Blind spots notwithstanding, the notion of deadness above is quite reasonable.
+But our usage analysis infers more detailed cardinality information; for
+example, it can infer whether a binding is evaluated at most once.
+This information can be useful under call-by-need to omit pushing of update
+frames~\citep{cardinality-ext}.%
+\footnote{A more useful application of the ``at most once'' cardinality is the
+notion of a \emph{one-shot} lambda~\citep{cardinality-ext}, a function which is
+called at most once for every activation, because it allows floating of heap
+allocations from a hot code path into cold function bodies.
+Simplicity prohibits $\semusg{\wild}$ from inferring such properties.}
+Thus, our usage analysis should satisfy the following generalisation of
+\Cref{thm:semusg-correct-live}
+
+\begin{theorem}[Correctness of $\semusg{\wild}$]
+  \label{thm:semusg-correct-2}
+  Let $\pe$ be an expression and $\px$ a variable.
+  Then $\pe$ evaluates $\px$ at most $u$ times whenever
+  there exists $\tr ∈ \Var \to \UsgD$ such that
+  $(u+1)*\tr(\px) \not⊑ \semusg{\pe}_{\tr}$.
+\end{theorem}
+
+Unfortunately, our denotational semantics does not allow us to express the
+operational property ``$\pe$ evaluates $\px$ at most $u$ times'', so
+this theorem cannot be proven correct.
+
+% We should probably mvoe this RElated Work? Don't want to discuss it here
+%The problem of observable cardinality also comes up in Quantitative Type
+%Theory~\citep{Atkey:18}, where the solution is to give a categorical
+%semantics that postulates observability of cardinality in a suitable
+%\emph{$R$-Quantitative Category with Families} without giving a concrete
+%model.
 
 \begin{figure}
 \[\begin{array}{c}
@@ -265,16 +296,15 @@ error (the only kind of stuckness that our calculus admits without data types).
   \label{fig:lk-semantics}
 \end{figure}
 
-Fortunately, our analysis actually behaves more benevolently than ``necessary'',
-so we are hopeful that it adheres to a stricter notion of deadness. Indeed, we
-can give one in terms of a small-step operational semantics such as the Mark
-II machine of \citet{Sestoft:97} given in \Cref{fig:lk-semantics}, the Gold
-Standard for this work. (A close sibling for call-by-value would be a CESK machine
-\citep{Felleisen:87} or a simpler derivative thereof.) It is a variant of the
-Lazy Krivine (LK) machine implementing call-by-need, so for a meaningful
+Let us try a different approach then and define a stronger notion of deadness
+in terms of a small-step operational semantics such as the Mark II machine of
+\citet{Sestoft:97} given in \Cref{fig:lk-semantics}, the semantic ground truth
+for this work. (A close sibling for call-by-value would be a CESK machine
+\citep{Felleisen:87} or a simpler derivative thereof.) It is a variant of
+the Lazy Krivine (LK) machine implementing call-by-need, so for a meaningful
 comparison to $\semscott{\wild}$, we ignore rules $\CaseIT, \CaseET, \UpdateT$
 and the pushing of update frames in $\LookupT$ for now to recover a call-by-name
-semantics.%
+Krivine machine with explicit heap addresses.%
 \footnote{Note that discarding update frames makes the heap entries immutable,
 which makes the explicit heap unnecessary. Of course, for call-by-name we would
 not need a heap to begin with, but the point is to get a glimpse at the effort
@@ -285,7 +315,17 @@ states, consisting of control expression $\pe$, an environment $ρ$ mapping
 lexically-scoped variables to their current heap address, a heap $μ$ listing a
 closure for each adress, and a stack of continuation frames $κ$.
 
-Note that we bake into $σ$ the invariant of \emph{well-addressedness}: Any
+The notation $f ∈ A \pfun B$ used in the definition of $ρ$ and $μ$ denotes a
+finite map from $A$ to $B$, a partial function where the domain $\dom(f)$ is
+finite and $\rng(f)$ denotes its range.
+The literal notation $[a_1↦b_1,...,a_n↦b_n]$ denotes a finite map with domain
+$\{a_1,...,a_n\}$ that maps $a_i$ to $b_i$. The extended finite map $f[a ↦ b]$
+maps $a$ to $b$ and is otherwise equal to $f$.
+The initial machine state for a closed expression $\pe$ is given by the
+injection function $inj(\pe) = (\pe,[],[],\StopF)$.
+The final machine states are of the form $((\pv,v),\wild,\wild,[])$.
+
+We bake into $σ$ the simplifying invariant of \emph{well-addressedness}: Any
 address $\pa$ occuring in $ρ$, $κ$ or the range of $μ$ must be an element of
 $\dom(μ)$. It is easy to see that the transition system maintains this invariant
 and that it is still possible to observe scoping errors which are thus confined
@@ -304,30 +344,29 @@ Now we are able to define a notion of ``strong deadness'', as follows
   Otherwise, $\px$ is \emph{potentially live}.
 \end{definition}
 
-This definition captures diverging behaviors correctly and still is relatively
-easy to grasp despite it being a property relating two traces.
+This definition captures diverging behaviors correctly and straightforwardly
+legitimises the transformation we want to perform, without any mention of
+addresses. It is however unwieldy in a correctness proof due to its use of
+bisimulation, so a bit of rejigging is in order:
 
-However, it is not compositional in $\pe$: Consider the variable occurrence $y$;
-is it dead in $x$? That depends on which expression $y$ is bound to, but
-our deadness predicate has no notion of making assumptions about free variables,
-other than that $x$ does not occur in them. Consequently, it is impossible to
-prove that $\semusg{\pe}$ satisfies \Cref{thm:semusg-correct-live} by direct
-structural induction on $\pe$ (in a way that would be useful to the proof).
+\begin{lemma}[Without proof]
+  $\px$ is dead in $\pe$ if and only if for any evaluation context $(ρ,μ,κ)$
+  and $\pa \not∈ \dom(μ)$ there exists no sequence of transitions
+  $(\pe,ρ[\px↦\pa],μ[\pa↦([],\Lam{z}{z})],κ) \smallstep^* (\py,ρ',μ',κ')$ such
+  that $ρ'(\py) = \pa$.
+\end{lemma}
 
-Furthermore, \Cref{defn:deadness2} is not a property that is preserved under
-evaluation (\eg, it is not \emph{logical} \wrt the transition relation):
-Consider the case that $\pe~x$ is dead in $x$, which implies that $\pe$
-never evaluates its argument. By rule $\AppIT$, $x$'s address will be pushed
-onto the stack. But this address is not bound in the heap yet in the
-configuration $(\Let{x}{\pe_1}{\pe},ρ,μ,\ApplyF{\pa} \pushF κ)$, which is
-an inv
-We need that knowledge when we finally beta reduce the
-value of $\pe$, say, $\Lam{y}{\pe'}$, \Cref{defn:deadness2} makes no assumption
-on which addresses may appear in the stack.
-, it is quite a narrow property.
+This property is a bit easier to handle in a proof.
+Unfortunately, it is still not compositional in $\pe$: Consider a variable
+occurrence $y$; is $x$ dead in $y$? That depends on which expression $y$ is
+bound to in the heap, but our deadness predicate has no notion of making
+assumptions about free variables.
+Consequently, it is impossible to prove that $\semusg{\pe}$ satisfies
+\Cref{thm:semusg-correct-live} by direct structural induction on $\pe$ (in a way
+that would be useful to the proof).
 
 Instead, such proofs are often conducted by induction over the reflexive
-transitive closure of $(\pe,[],[],\StopF) \smallstep^* σ$, for any $σ$.
+transitive closure of the transition relation.
 For that it is necessary to give an inductive hypothesis that considers
 environments, stacks and heaps.
 One way is to extend the analysis function $\semusg{\wild}$ to entire
@@ -348,70 +387,16 @@ update frames acting somewhat like heap bindings, so fixpoint induction needs to
 be applied \emph{at every case of the proof}, diminishing confidence in
 correctness unless the proof is fully mechanised.)
 
-For an analogy with type systems: What we just tried is like attempting a proof
-of preservation by referencing the result of an inference algorithm rather than
-the declarative type system. So what is often done instead is to define a
-declarative and more permissive \emph{correctness relation} $C(σ)$ to prove
-preservation $C(σ_1) \Rightarrow C(σ_2)$ (\eg, that $C$ is \emph{logical} \wrt
-$\smallstep$). $C$ is chosen such that
-  (1) it is strong enough to imply the property of interest (deadness)
-  (2) it is weak enough that it is implied by the analysis result for an initial state ($\tr(\px) \not⊑ \semusg{\pe}_{\tr}$).
-In our case, the correctness predicate $D = \gfp(F)$ is the greatest fixpoint of
-the functional%
-\footnote{Alternatively, we could have stratified the recursion and applied
-step-indexing~\citep{DreyerAhmedBirkedal:11}.}
-\[\begin{array}{rcl}
-  F(D)(\pe,ρ,μ,κ)(A) & \triangleq & \forall \pa ∈ \rng(κ).\ \pa \not∈ A \wedge (\forall μ',κ'.\ D(μ(\pa),μ',κ')(A)) \\
-  F(D)(\px,ρ,μ,κ)(A) & \triangleq & ρ(\px) \not∈ A \wedge \forall (ρ',\pe)=μ(ρ(\px)).\ D(\pe,ρ',μ,κ)\\
-  F(D)(\pe~\px,ρ,μ,κ)(A) & \triangleq & ρ(\px) \not∈ A \wedge F(D)(\pe,ρ,μ,\ApplyF(ρ(\px)) \pushF κ) \\
-  F(D)(\Lam{\px}{\pe},ρ,μ,\StopF)(A) & \triangleq & true \\
-  F(D)(\Lam{\px}{\pe},ρ,μ,\ApplyF(\pa) \pushF κ)(A) & \triangleq & D(\pe,ρ[\px↦\pa],μ,κ) \\
-  F(D)(\Let{\px}{\pe_1}{\pe_2},ρ,μ,κ)(A) & \triangleq & F(D)(\pe_2,ρ,μ[\pa↦(ρ',\pe_1)],κ)(A) \\
-\end{array}\]
-
-task,
-or define a notion of
-``well-annotatedness'' that
-It is possible to define the action
-an inductive hypothesis and first had to be strengthened into a \emph{logical
-relation}.
-Then the next question is: Under which conditions can this statement be
-generalised to executions of the form $(\pe,ρ_1,μ_1,κ_1) \smallstep^*
-(\px,ρ_2,μ_2,κ_2)$ and still be simple to prove? It's a bit tricky: For any
-address $\pa$ in the range of $ρ$ or pushed as an apply frame onto the stack, we
-have to assume that the closure $μ(\pa)$ satisfies this generalised condition,
-too.
-
-No, not immediately:
-First off, an argument pushed onto the stack $κ$ might evaluate $\px$ although
-$\pe$ itself is dead
-Thus, we have to generalise the
-inductive hypothesis
-
-While more accurate a definition, the corresponding correctness proof
-requires an elaborate setup, extending the liveness analysis (or the correctness
-criterion) to every component of the machine states, \eg, the heap $μ$,
-the environment $ρ$ and the stack $κ$. Doing so usually culminates in
-an extensive logical relation such as $\sim_V$ in \citep[Theorem
-2.21]{Nielson:99} or the ``well-typed'' relation for elaborated configurations
-in \citep[Lemma 4.3]{cardinality-ext} (only the extended version has the proof
-and full typing relations for heaps and stacks in the Appendix).
-
-\subsubsection{Evaluation Cardinality and Call-by-need}
-Our usage analysis can be used to justify optimisations beyond dead code
-elimination. Consider $\Let{id}{\Lam{x}{x}}{\Let{t}{id}{t~t}}$
-
-
-
 The situation is a bit less dire for call-by-name and call-by-value calculi
 because their heap is immutable. Furthermore, if evaluation cardinality is
 unimportant, lambda-bound variables can be substituted immediately for their
 arguments during $β$-reduction, hence no need for a heap whatsoever. The
-stack can be reflected back into the premises of the judgment rules, so that
-the system distinguishes \emph{instruction transitions} from \emph{search
+stack can often be reflected back into the premises of the judgment rules, so
+that the system distinguishes \emph{instruction transitions} from \emph{search
 transitions}, a distinction which is made explicit in a \emph{contextual
-semantics}. Happily, such a contextual semantics also exists for call-by-need
-\citep{Ariola:95}, although its complexity is comparatively mind-boggling.
+semantics}. Such a contextual semantics also exists for call-by-need
+\citep{Ariola:95}, although its complexity is comparatively mind-boggling and
+obscurs the operational event of variable lookup.
 All these considerations are with the ultimate goal of simplifying proofs:
 Instead of defining an inductive well-formedness predicate on the heap, we prove
 a substitution lemma. Instead of a well-formedness predicate for the stack, we
@@ -420,10 +405,20 @@ appeal to the well-formedness of the search transition rule.
 fear it doesn't really belong here. Perhaps it belongs in the call-by-need
 subsection?}
 
-To re-iterate: The mismatch in structure between analysis and semantics leads to
-a drastic increase in proof complexity to bridge said gap. It would be desirable
-to find a proof framework that allows us to re-use this bridge by means of
-abstract interpretation, in the spirit of \citet{Cousot:21}.
+For an analogy with type systems: What we just tried is like attempting a proof
+of preservation by referencing the result of an inference algorithm rather than
+the declarative type system. So what is often done instead (see the
+``well-typed'' relation for elaborated configurations in \citep[Lemma
+4.3]{cardinality-ext} or $\sim_V$ in \citep[Theorem 2.21]{Nielson:99}) is to
+define a declarative and more permissive \emph{correctness relation} $C(σ)$ to
+prove preservation $C(σ_1) \Longrightarrow C(σ_2)$ (\eg, that $C$ is
+\emph{logical} \wrt $\smallstep$). $C$ is chosen such that
+  (1) it is strong enough to imply the property of interest (deadness)
+  (2) it is weak enough that it is implied by the analysis result for an initial state ($\tr(\px) \not⊑ \semusg{\pe}_{\tr}$).
+
+We found it quite hard to come up with a suitable ad-hoc correctness relation
+and postpone discussion to \Cref{sec:abstractions} here, where the correctness
+relation and its proof is derived by abstract interpretation \citep{Cousot:21}.
 
 Another way to work around the structure gap is to adopt the structure of the
 semantics in the analysis; this is done in the Abstracting Abstract
@@ -442,43 +437,3 @@ correctness criterion.
 
 Dito
 
-\subsection{Call-by-need and Evaluation Cardinality}
-
-While the traditional denotational semantics distinguishes call-by-name from
-call-by-value by termination, it has no means to distinguish call-by-need from
-call-by-name as there is no explicit notion of state or ``observable evaluation''.
-
-Furthermore, apart from the denotational property of deadness and strictness,
-which corresponds to the operational interpretation of ``never evaluated'' and
-``evaluated at least once or diverging'', there is no general way to observe
-properties of \emph{evaluation cardinality} such as ``evaluated at most once''
-(affine) or even ``called at most once'', such as inferred by the Glasgow
-Haskell Compiler \citep{cardinality}.
-
-You might still think that the symptoms described in this subsection should
-hardly affect the semantics of call-by-value languages, but the applications
-of evaluation cardinality go beyond lazy languages such as Haskell.
-For example, it affects linear, uniqueness and quantitative type
-theory.
-%, although~\citet{Atkey:18} is able to give a categorical semantics that
-%postulates observability of cardinality in a suitable \emph{$R$-Quantitative Category with Families}.
-%\sg{I don't really understand what Atkey does there?! If anything, our
-%semantics is simpler... But this is quickly drifting towards Related Work}
-Another example is recent work on re-use analysis in reference-counted language
-implementations~\citep{Ullrich:19,perceus}.
-\emph{Even if} we were uncaring towards infinite behaviors%
-\footnote{Such as strongly-normalising type theories},
-or had a denotational semantics that allowed us to observe them (but not
-cardinality) as suggested in the introduction, the soundness proof for these
-type systems would still need to resort to an operational semantics for the lack
-of observable evaluation cardinality or postulate observability as is the case
-for the categorical semantics of \citet{Atkey:18}.
-
-\begin{theorem}[Correctness of $\semusg{\wild}$]
-  \label{thm:semusg-correct-1}
-  Let $\pe$ be an expression and $\px$ a variable.
-  Then $\px$ is evaluated at most $u$ times whenever
-  there exists $\tr ∈ \Var \to \UsgD$ such that
-  $(u+1)*\tr(\px) \not⊑ \semusg{\pe}_{\tr}$.
-\end{theorem}
-% Curiosly, this is sound for call-by-name. Call-by-need would be a bit more complicated.
