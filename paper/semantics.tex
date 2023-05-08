@@ -23,7 +23,7 @@
 \end{array}\]
 \[\begin{array}{c}
  \begin{array}{rcl}
-  \multicolumn{3}{c}{ \ruleform{ val \colon (\Val \times \StateV) \to \StateD \quad update \colon \STraces \to \STraces \quad deref \colon \Addresses \to \,\blacktriangleright\!\StateD \quad apply \colon \STraces \to \StateD \to \STraces} } \\
+  \multicolumn{3}{c}{ \ruleform{ ret \colon (\Val \times \StateV) \to \StateD \quad update \colon \STraces \to \STraces \quad deref \colon \Addresses \to \,\blacktriangleright\!\StateD \quad apply \colon \STraces \to \StateD \to \STraces} } \\
   \\[-0.5em]
   τ \betastep f & = & \begin{cases}
       τ :: f(σ) & \text{$τ = ... \cons \goodend{σ}$ and $f(σ)$ defined} \\
@@ -31,9 +31,9 @@
       τ & \text{otherwise} \\
     \end{cases} \\
   \\[-0.5em]
-  val(\pv,v)(μ) & = & \goodend{((\pv,v),μ)} \\
+  ret(\pv,v)(μ) & = & \goodend{((\pv,v),μ)} \\
   \\[-0.5em]
-  update(\pa)((\pv,v),μ) & = & \goodend{((\pv,v),μ[\pa ↦ val(\pv,v)])} \\
+  update(\pa)((\pv,v),μ) & = & \goodend{((\pv,v),μ[\pa ↦ ret(\pv,v)])} \\
   \\[-0.5em]
   deref(\pa)(μ) & = & μ(\pa)(μ) \betastep update(\pa) \\
   \\[-0.5em]
@@ -48,9 +48,9 @@
     \stuckend{(\px,μ)} & \text{otherwise}
     \end{cases} \\
   \\[-0.5em]
-  \semst{K~\many{\px}}_ρ & = & val(K~\many{\px},\ConV(K,\many{\semst{\px}_ρ})) \\
+  \semst{K~\many{\px}}_ρ & = & ret(K~\many{\px},\ConV(K,\many{\semst{\px}_ρ})) \\
   \\[-0.5em]
-  \semst{\Lam{\px}{\pe}}_ρ & = & val(\Lam{\px}{\pe},\FunV(\fn{d}{\semst{\pe}_{ρ[\px↦d]}})) \\
+  \semst{\Lam{\px}{\pe}}_ρ & = & ret(\Lam{\px}{\pe},\FunV(\fn{d}{\semst{\pe}_{ρ[\px↦d]}})) \\
   \\[-0.5em]
   \semst{\pe@(\Case{\pe_s}{\Sel[r]})}_ρ(μ) & = & (\pe,μ) \cons select(\semst{\pe_s}_ρ(μ),\many{\fn{\many{d}^{α_K}}{\semst{\pe_r}_{ρ[\many{\px↦d}]}}})  \\
   \\[-0.5em]
