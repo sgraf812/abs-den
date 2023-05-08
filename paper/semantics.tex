@@ -1,58 +1,60 @@
 \begin{figure}
 \[\begin{array}{c}
- \begin{array}{rrclcl}
-%  \text{Variables}    & \px, \py & ∈ & \Var        &     &  \\
-%  \text{Constructors} &        K & ∈ & \Con        & \simeq & ℕ \quad \text{with arity $α_K ∈ ℕ$} \\
-%  \text{Labels}       &     \lbl & ∈ & \Labels     &     &  \\
-%  \text{Values}       &      \pv & ∈ & \Val        & ::= & \Lam{\px}{\pe} \mid K~\many{\px}^{α_K} \\
-%  \text{Expressions}  &      \pe & ∈ & \Exp        & ::= & \slbl \px \mid \slbl \pv \mid \slbl \pe~\px \mid \slbl \Let{\px}{\pe_1}{\pe_2} \mid \slbl \Case{\pe}{\SelArity} \\
-%  \\[-0.5em]
-  \text{States}        & σ   & ∈ & \States        & =      & \Controls \times \Heaps \\
-  \text{Controls}      & \pc & ∈ & \Controls      & ::=    & \pe \mid (\pv, v) \\
-  \text{Addresses}     & \pa & ∈ & \Addresses     & \simeq & ℕ \\
-  \text{Environments}  & ρ   & ∈ & \Environments  & =      & \Var \pfun \,\blacktriangleright\!\StateD \\
-  \text{Heaps}         & μ   & ∈ & \Heaps         & =      & \Addresses \pfun \,\blacktriangleright\!\StateD \\
+ \begin{array}{rrclclrrclcl}
+  \text{States}        & σ   & ∈ & \States        & =      & \Controls \times \Heaps
+  &
+  \text{Environments}  & ρ   & ∈ & \Environments  & =      & \Var \pfun \later\StateD
+  \\
+  \text{Controls}      & \pc & ∈ & \Controls      & ::=    & \pe \mid \pv \propto v
+  &
+  \text{Heaps}         & μ   & ∈ & \Heaps         & =      & \Addresses \pfun \later\StateD
+  \\
   \\[-0.5em]
-  \text{Stateful traces} & τ      & ∈          & \STraces & ::= & \goodend{σ} \mid \stuckend{σ} \mid σ \cons τ^{\blacktriangleright} \\
-  \text{Guarded trace} & τ^{\blacktriangleright} & ∈ & \blacktriangleright\!\STraces &   & \\
-  \text{Stateful domain} & d & ∈ & \StateD & = & \Heaps \to \STraces \\
-  \text{Guarded element} & d^{\blacktriangleright} & ∈ & \blacktriangleright\!\StateD &   & \\
-  \text{Semantic values} & v & ∈ & \StateV & ::= & \FunV(f ∈ \,\blacktriangleright\!(\StateD \to \StateD)) \mid \NatV(n) \mid \ConV(K,\many{d^{\blacktriangleright}}^{α_K}) \\
+ \end{array} \\
+ \begin{array}{rrclclrrclcl}
+  \text{Stateful traces} & τ      & ∈          & \STraces & ::= & \goodend{σ} \mid \stuckend{σ} \mid σ \cons τ^{\later}
+  &
+  \text{Guarded trace} & τ^{\later} & ∈ & \later\STraces &   &
+  \\
+  \text{Stateful domain} & d & ∈ & \StateD & = & \Heaps \to \STraces
+  &
+  \text{Guarded element} & d^{\later} & ∈ & \later\StateD &   &
+  \\
+  \\[-0.5em]
+ \end{array} \\
+ \begin{array}{rrclcl}
+  \text{Semantic values} & v & ∈ & \StateV & ::= & \FunV(f ∈ (\later\StateD \to \later\StateD)) \mid \ConV(K,\many{d^{\later}}^{α_K}) \\
  \end{array} \\
   \\[-0.5em]
 \end{array}\]
 \[\begin{array}{c}
  \begin{array}{rcl}
-  \multicolumn{3}{c}{ \ruleform{ ret \colon (\Val \times \StateV) \to \StateD \quad update \colon \STraces \to \STraces \quad deref \colon \Addresses \to \,\blacktriangleright\!\StateD \quad apply \colon \STraces \to \StateD \to \STraces} } \\
+  \multicolumn{3}{c}{ \ruleform{(\betastep) : \later\STraces \to (\later\States \pfun \later\STraces) \to \later\STraces \quad  ret : (\Val \times \StateV) \to \StateD} } \\
+  \multicolumn{3}{c}{ \ruleform{deref : \Addresses \to \later\StateD \quad apply : \later\STraces \to \later\StateD \to \later\STraces} } \\
+  \multicolumn{3}{c}{ \ruleform{select : \later\STraces \to ((\later\STraces)^{α_K} \pfun \later\STraces)^* \to \later\STraces} } \\
   \\[-0.5em]
   τ \betastep f & = & \begin{cases}
-      τ :: f(σ) & \text{$τ = ... \cons \goodend{σ}$ and $f(σ)$ defined} \\
-      τ' :: \stuckend{σ} & \text{$τ = τ' \cons \goodend{σ}$ and $f(σ)$ undefined} \\
+      τ :: f(σ) & \text{$τ = ... \cons \goodend{σ}$ and $σ ∈ \dom(f)$} \\
+      τ' :: \stuckend{σ} & \text{$τ = τ' \cons \goodend{σ}$ and $σ \not∈ \dom(f)$} \\
       τ & \text{otherwise} \\
     \end{cases} \\
   \\[-0.5em]
   ret(\pv,v)(μ) & = & \goodend{((\pv,v),μ)} \\
   \\[-0.5em]
-  update(\pa)((\pv,v),μ) & = & \goodend{((\pv,v),μ[\pa ↦ ret(\pv,v)])} \\
-  \\[-0.5em]
-  deref(\pa)(μ) & = & μ(\pa)(μ) \betastep update(\pa) \\
-  \\[-0.5em]
-  select(τ,\many{f}) & = & τ \betastep \fn{((\wild,\ConV(K_s,\many{d_s})),μ)}{f_s(\many{d_s})} \\
+  deref(\pa)(μ) & = & μ(\pa)(μ) \betastep \fn{((\pv,v),μ)}{\goodend{((\pv,v),μ[\pa ↦ ret(\pv,v)])}} \\
   \\[-0.5em]
   apply(τ,d) & = & τ \betastep \fn{((\wild,\FunV(f)),μ)}{f(d)(μ)} \\
   \\[-0.5em]
-  \multicolumn{3}{c}{ \ruleform{ \semst{\wild} \colon \Exp → (\Var \pfun \,\blacktriangleright\!\StateD) → \StateD } } \\
+  select(τ,\many{f}) & = & τ \betastep \fn{((\wild,\ConV(K_s,\many{d_s})),μ)}{f_s(\many{d_s})} \\
+  \\[-0.5em]
+  \multicolumn{3}{c}{ \ruleform{ \semst{\wild} \colon \Exp → (\Var \pfun \later\StateD) → \StateD } } \\
   \\[-0.5em]
   \semst{\px}_ρ(μ) & = & \begin{cases}
     (\px,μ) \cons ρ(\px)(μ) & \px ∈ \dom(ρ) \\
     \stuckend{(\px,μ)} & \text{otherwise}
     \end{cases} \\
   \\[-0.5em]
-  \semst{K~\many{\px}}_ρ & = & ret(K~\many{\px},\ConV(K,\many{\semst{\px}_ρ})) \\
-  \\[-0.5em]
   \semst{\Lam{\px}{\pe}}_ρ & = & ret(\Lam{\px}{\pe},\FunV(\fn{d}{\semst{\pe}_{ρ[\px↦d]}})) \\
-  \\[-0.5em]
-  \semst{\pe@(\Case{\pe_s}{\Sel[r]})}_ρ(μ) & = & (\pe,μ) \cons select(\semst{\pe_s}_ρ(μ),\many{\fn{\many{d}^{α_K}}{\semst{\pe_r}_{ρ[\many{\px↦d}]}}})  \\
   \\[-0.5em]
   \semst{\pe~\px}_ρ(μ) & = & \begin{cases}
       (\pe~\px,μ) \cons apply(\semst{\pe}_ρ(μ),ρ(\px)) & \px ∈ \dom(ρ) \\
@@ -64,6 +66,10 @@
                & μ' = μ[\pa ↦ \semst{\pe_1}_{ρ'}] \\
     \text{in}  & (\Let{\px}{\pe_1}{\pe_2},μ) \cons \semst{\pe_2}_{ρ'}(μ') \\
   \end{letarray} \\
+  \\[-0.5em]
+  \semst{K~\many{\px}}_ρ & = & ret(K~\many{\px},\ConV(K,\many{\semst{\px}_ρ})) \\
+  \\[-0.5em]
+  \semst{\pe@(\Case{\pe_s}{\Sel[r]})}_ρ(μ) & = & (\pe,μ) \cons select(\semst{\pe_s}_ρ(μ),\many{\fn{\many{d}^{α_K}}{\semst{\pe_r}_{ρ[\many{\px↦d}]}}})  \\
  \end{array}
   \\[-0.5em]
 \end{array}\]
