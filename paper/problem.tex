@@ -57,7 +57,7 @@ hypothesis for the correctness proof.
  \\[-0.5em]
 \end{array}\]
 \subcaption{Syntax of expressions and semantic domains}
-  \label{fig:scott-syntax}
+  \label{fig:syntax}
 \newcommand{\scalefactordenot}{0.92}
 \scalebox{\scalefactordenot}{%
 \begin{minipage}{0.49\textwidth}
@@ -109,7 +109,7 @@ hypothesis for the correctness proof.
 \caption{Connecting usage analysis to denotational semantics}
 \end{figure}
 
-\Cref{fig:scott-syntax} defines the labelled syntax of a lambda calculus with
+\Cref{fig:syntax} defines the labelled syntax of a lambda calculus with
 recursive let bindings and algebraic data types, reminiscent of
 \citet{Sestoft:97}. The calculus is factored into \emph{administrative normal
 form}, that is, the arguments of applications are restricted to be variables, so
@@ -275,7 +275,7 @@ this theorem cannot be proven correct.
 \[\begin{array}{c}
  \begin{array}{rrclcl}
   \text{LK States}     & σ   & ∈ & \States        & =      & \Controls \times \Environments \times \Heaps \times \Continuations \\
-  \text{Controls}      & \pc & ∈ & \Controls      & =      & \pe \mid \pv \\
+  \text{Controls}      & \pc & ∈ & \Controls      & ::=    & \pe \mid \pv \\
   \text{Environments}  & ρ   & ∈ & \Environments  & =      & \Var \pfun \Addresses \\
   \text{Addresses}     & \pa & ∈ & \Addresses     & \simeq & ℕ \\
   \text{Heaps}         & μ   & ∈ & \Heaps         & =      & \Addresses \pfun \Environments \times \Exp \\
@@ -323,7 +323,7 @@ necessary for call-by-need.}
 The configurations in this transition system resemble abstract machine
 states, consisting of control expression $\pe$, an environment $ρ$ mapping
 lexically-scoped variables to their current heap address, a heap $μ$ listing a
-closure for each adress, and a stack of continuation frames $κ$.
+closure for each address, and a stack of continuation frames $κ$.
 
 The notation $f ∈ A \pfun B$ used in the definition of $ρ$ and $μ$ denotes a
 finite map from $A$ to $B$, a partial function where the domain $\dom(f)$ is

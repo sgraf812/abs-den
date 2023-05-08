@@ -1,3 +1,6 @@
+\section{Semantics}
+\label{sec:semantics}
+
 \begin{figure}
 \[\begin{array}{c}
  \begin{array}{rrclclrrclcl}
@@ -77,72 +80,28 @@
   \label{fig:semst}
 \end{figure}
 
-\section{Semantics}
-\label{sec:semantics}
-
-\begin{figure}
-\[\begin{array}{c}
- \begin{array}{rrclcl}
-  \text{Variables}    & \px, \py & ∈ & \Var        &     &  \\
-  \text{Constructors} &        K & ∈ & \Con        &     & \text{with arity $α_K ∈ ℕ$} \\
-  \text{Labels}       &     \lbl & ∈ & \Labels     &     &  \\
-  \text{Values}       &      \pv & ∈ & \Val        & ::= & \Lam{\px}{\pe} \mid K~\many{\px}^{α_K} \\
-  \text{Expressions}  &      \pe & ∈ & \Exp        & ::= & \slbl \px \mid \slbl \pv \mid \slbl \pe~\px \mid \slbl \Let{\px}{\pe_1}{\pe_2} \mid \slbl \Case{\pe}{\SelArity} \\
-  \\[-0.5em]
-  \text{LK States}     & \varsigma & ∈ & \LKStates        & =      & \Controls \times \Environments \times \Heaps \times \Continuations \\
-  \text{Controls}      & \pc & ∈ & \Controls      & =      & \pe \mid \pv \\
-  \text{Environments}  & ρ   & ∈ & \Environments  & =      & \Var \pfun \Addresses \\
-  \text{Addresses}     & \pa & ∈ & \Addresses     & \simeq & ℕ \\
-  \text{Heaps}         & μ   & ∈ & \Heaps         & =      & \Addresses \pfun \Environments \times \Exp \\
-  \text{Continuations} & κ   & ∈ & \Continuations & ::=    & \StopF \mid \ApplyF(\pa) \pushF κ \mid \SelF(ρ,\SelArity) \pushF κ \mid \UpdateF(\pa) \pushF κ \\
- \end{array} \\
-  \\[-0.5em]
-\end{array}\]
-
-\newcolumntype{L}{>{$}l<{$}} % math-mode version of "l" column type
-\newcolumntype{R}{>{$}r<{$}} % math-mode version of "r" column type
-\newcolumntype{C}{>{$}c<{$}} % math-mode version of "c" column type
-\resizebox{\textwidth}{!}{%
-\begin{tabular}{LR@{\hspace{0.4em}}C@{\hspace{0.4em}}LL}
-\toprule
-\text{Rule} & σ_1 & \smallstep & σ_2 & \text{where} \\
-\midrule
-\BindT & (\Let{\px}{\pe_1}{\pe_2},ρ,μ,κ) & \smallstep & (\pe_2,ρ',μ[\pa↦(ρ',\pe_1)], κ) & \pa \not∈ \dom(μ),\ ρ'\! = ρ[\px↦\pa] \\
-\AppIT & (\pe~\px,ρ,μ,κ) & \smallstep & (\pe,ρ,μ,\ApplyF(\pa) \pushF κ) & \pa = ρ(\px) \\
-\CaseIT & (\Case{\pe}{\Sel},ρ,μ,κ) & \smallstep & (\pe,ρ,μ,\SelF(ρ,\Sel) \pushF κ) & \\
-\LookupT & (\px, ρ, μ, κ) & \smallstep & (\pe, ρ', μ, \UpdateF(\pa) \pushF κ) & \pa = ρ(\px),\ (ρ',\pe) = μ(\pa) \\
-\AppET & (\Lam{\px}{\pe},ρ,μ, \ApplyF(\pa) \pushF κ) & \smallstep & (\pe,ρ[\px ↦ \pa],μ,κ) &  \\
-\CaseET & (K'~\many{y},ρ,μ, \SelF(ρ',\Sel) \pushF κ) & \smallstep & (\pe_i,ρ'[\many{\px_i ↦ \pa}],μ,κ) & K_i = K',\ \many{\pa = ρ(\py)} \\
-\UpdateT & (\pv, ρ, μ, \UpdateF(\pa) \pushF κ) & \smallstep & (\pv, ρ, μ[\pa ↦ (ρ,\pv)], κ) & \\
-\bottomrule
-\end{tabular}
-} % resizebox
-\caption{Syntax of $Λ$ and Lazy Krivine (LK) transition semantics $\smallstep$}
-  \label{fig:lk-syntax}
-\end{figure}
-
 \subsection{Labelled Syntax}
 
-\Cref{fig:lk-syntax} defines syntax and semantics of $Λ$: An untyped,
-call-by-name lambda calculus with recursive let bindings in the style of
+Recall \Cref{fig:syntax}; it defines the syntax of $Λ$, an untyped lambda
+calculus with recursive let bindings and data types in the style of
 \citet{Launchbury:93} and \citet{Sestoft:97}.
 Any (sub-)expression of $Λ$ has a unique \emph{label} (think of it as the AST node's
 pointer identity) that we usually omit. For example, a correct labelling of
-$f~(g~f)$ would be
+$\Let{x}{g~f}{f~x}$ would be
 \[
-  (\slbln{1} (\slbln{2} f)~(\slbln{3}(\slbln{4} g)~(\slbln{5} f))).
+  (\slbln{1} \Let{x}{(\slbln{2} (\slbln{3} f)~y)}{(\slbln{4} (\slbln{5} f)~x)}).
 \]
 Labels are there so that we do not conflate the (otherwise structurally equal)
-sub-terms $(\slbln{2} f)$ and $(\slbln{5} f)$ as equivalent. This is an important
+sub-terms $(\slbln{3} f)$ and $(\slbln{5} f)$ as equivalent. This is an important
 distinction for, \eg, control-flow analysis. Since labels introduce excessive
 clutter, we will omit them unless they are distinctively important. If anything,
 labels make it so that everything ``works as expected''.
 
 \subsection{Transition System}
 
-An operational semantics of $Λ$ is given in terms of a small-step transition
-system closest to the lazy Krivine machine \citep{AgerDanvyMidtgaard:04} for
-Launchbury's language.
+\Cref{lk-semantics} gave an operational semantics for $Λ$ in terms of
+a small-step transition system closest to the lazy Krivine machine
+\citep{AgerDanvyMidtgaard:04} for Launchbury's language.
 It is worth having a closer look at the workings of our Gold Standard.
 The machine's state $σ$ comes as a quadruple in the style of a CESK machine
 \citep{Felleisen:87}, consisting of the usual \emph{control} component
@@ -151,27 +110,12 @@ corresponding to the control-flow node $\pc$ under evaluation, the
 the \emph{heap} $μ$ and a \emph{continuation}, or \emph{stack}, $κ$.
 We use projection functions $ctrl(σ)$ and $cont(σ)$ to select the control and
 continuation component, respectively.
-The notation $f ∈ A \pfun B$ used in the definition of $ρ$ and $μ$ denotes a
-finite map from $A$ to $B$, a partial function where the domain $\dom(f)$ is
-finite and $\rng(f)$ denotes its range.
-The literal notation $[a_1↦b_1,...,a_n↦b_n]$ denotes a finite map with domain
-$\{a_1,...,a_n\}$ that maps $a_i$ to $b_i$. The extended finite map $f[a ↦ b]$
-maps $a$ to $b$ and is otherwise equal to $f$.
-The initial machine state for a closed expression $\pe$ is given by the
-injection function $inj(\pe) = (\pe,[],[],\StopF)$.
-The final machine states are of the form $((\pv,v),\wild,\wild,[])$.
-
-The semantics differs from the standard in one way: It is parameterised over
-occurrences of $d ∈ D$ and $v ∈ V$ which are meant to be \emph{elaborated} later
-on. For now, we can assume the \emph{standard instantiation}, where both
-parameters are instantiated to the unit type, $D \triangleq V \triangleq
-\mathbb{1} \triangleq \{ () \}$.
 
 The control component $\pc$ is either an expression under evaluation $\pe$ or a
-value pairing $(\pv,v)$ (remember, $v = ()$).
+value $\pv$.
 When the control of a state $σ$ is an expression $\pe$, we call $σ$ an
 \emph{evaluation} state and say that $\pe$ drives evaluation, whereas when the
-control is $(\pv, v)$ we call it a \emph{return} state in which the continuation
+control is $\pv$ we call it a \emph{return} state in which the continuation
 $κ$ drives evaluation.
 The entries in the heap are \emph{closures} of the form $(e,ρ,d)$, where the
 environment $ρ$ closes over the expression $e$ ($d = ()$).
