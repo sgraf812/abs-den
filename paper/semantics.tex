@@ -66,7 +66,14 @@ $\pe \triangleq \Let{i}{\Lam{x}{x}}{i~i}$ to completion:
 
 The key to avoiding Domain Theory and $\bot$ as a semantic domain for our work
 is use of a total type theory with \emph{guarded recursive types}, such as
-Guarded Dependent Type Theory (GDTT) \citep{gdtt}.
+Guarded Dependent Type Theory (GDTT) \citep{gdtt}.%
+\footnote{Of course, in reality we are just using GDTT as a meta
+language~\citep{Moggi:07} with a known domain theoretic interpretation in terms
+of the topos of trees~\citep{gdtt}.
+Thanks to GDTT this meta language is sufficiently expressive as a logic to
+express proofs, though, justifying the view that we are extending ``math''
+with the ability to conveniently reason about infinite data without needing to
+think about topology and approximation directly.}
 The fundamental construct of this theory is addition of the ``later''
 modality $\later[κ]$ which allows to define coinductive data types with negative
 occurrences, as first realised by \citet{Nakano:00}.
@@ -94,9 +101,10 @@ typed lambda calculus defines a locally contractive functor as long as any
 occurrence of $X$ is under a $\later$, so we take that as the well-formedness
 criterion of coinductive types in this work.
 
-As a type constructor, $\later$ is an applicative functor via functions
+As a type constructor, $\later$ is an applicative
+functor~\citep{McBridePaterson:08} via functions
 \[
-  next : \forall A.\ A \to \later A \qquad \circledast : \forall A,B.\ \later (A \to B) \to \later A \to \later B,
+  \purelater : \forall A.\ A \to \later A \qquad \wild \aplater \wild : \forall A,B.\ \later (A \to B) \to \later A \to \later B,
 \]
 allowing us to apply a familar framework of reasoning
 around $\later$.
@@ -112,7 +120,7 @@ where the $\later$ ``effects'' happen; they should be easy to infer anyway.
   &
   \text{Environments}  & ρ   & ∈ & \Environments  & =      & \Var \pfun \later\StateD
   \\
-  \text{Controls}      & \pc & ∈ & \Controls      & ::=    & \pe \mid \pv \propto v
+  \text{Controls}      & \pc & ∈ & \Controls      & ::=    & \pe \mid (\pv, v)
   &
   \text{Heaps}         & μ   & ∈ & \Heaps         & =      & \Addresses \pfun \later\StateD
   \\
@@ -121,11 +129,11 @@ where the $\later$ ``effects'' happen; they should be easy to infer anyway.
  \begin{array}{rrclclrrclcl}
   \text{Stateful traces} & τ      & ∈          & \STraces & ::= & \goodend{σ} \mid \stuckend{σ} \mid σ \cons τ^{\later}
   &
-  \text{Guarded trace} & τ^{\later} & ∈ & \later\STraces &   &
+  \text{Delayed trace} & τ^{\later} & ∈ & \later\STraces &   &
   \\
   \text{Stateful domain} & d & ∈ & \StateD & = & \Heaps \to \STraces
   &
-  \text{Guarded element} & d^{\later} & ∈ & \later\StateD &   &
+  \text{Delayed element} & d^{\later} & ∈ & \later\StateD &   &
   \\
   \\[-0.5em]
  \end{array} \\
@@ -136,9 +144,13 @@ where the $\later$ ``effects'' happen; they should be easy to infer anyway.
 \end{array}\]
 \[\begin{array}{c}
  \begin{array}{rcl}
-  \multicolumn{3}{c}{ \ruleform{(\betastep) : \later\STraces \to (\later\States \pfun \later\STraces) \to \later\STraces \quad  ret : (\Val \times \StateV) \to \StateD} } \\
-  \multicolumn{3}{c}{ \ruleform{deref : \Addresses \to \later\StateD \quad apply : \later\STraces \to \later\StateD \to \later\STraces} } \\
-  \multicolumn{3}{c}{ \ruleform{select : \later\STraces \to ((\later\STraces)^{α_K} \pfun \later\STraces)^* \to \later\STraces} } \\
+  \multicolumn{3}{c}{ \ruleform{
+    \begin{array}{c}
+      (\betastep) : \later\STraces \to (\later\States \pfun \later\STraces) \to \later\STraces \quad  ret : (\Val \times \StateV) \to \StateD \\
+      deref : \Addresses \to \later\StateD \quad apply : \later\STraces \to \later\StateD \to \later\STraces \\
+      select : \later\STraces \to ((\later\STraces)^{α_K} \pfun \later\STraces)^* \to \later\STraces \\
+    \end{array}
+  }} \\
   \\[-0.5em]
   τ \betastep f & = & \begin{cases}
       τ :: f(σ) & \text{$τ = ... \cons \goodend{σ}$ and $σ ∈ \dom(f)$} \\
@@ -183,6 +195,227 @@ where the $\later$ ``effects'' happen; they should be easy to infer anyway.
 \caption{Structural call-by-need stateful trace semantics $\semst{-}$}
   \label{fig:semst}
 \end{figure}
+
+\subsection{Definition}
+
+\Cref{fig:semst} finally gives the definition for $\semst{\wild}$, a function
+defined by structural recursion on an input expression $\pe$. Given a denotation
+for free variables $ρ$, $\semst{\pe}_ρ$ assigns $\pe$ a denotation $d$ in terms of
+the semantic domain $\StateD$ of stateful call-by-need trace functions.
+If such a trace function is supplied the heap $μ$ just before $\pe$ takes
+control, then $d(μ)$ is a trace $τ$ starting at $\pe$ in that heap $μ$.
+If evaluation of $\pe$ terminates, then $τ$ will be a finite list of states
+ending with $\goodend{σ}$ for some return state $σ$. Otherwise, it might be
+finite but stuck ($\stuckend{σ}$), or diverge without ever leaving $\pe$, in
+which case $τ$ will be infinite.
+
+Compared to the LK transition semantics, the most striking difference in state
+structure is the lack of environment and stack components. The former is
+maintained as a parameter to $\semst{\wild}$, while the latter is implicit in
+the recursive call structure.
+As we have seen in \Cref{sec:problem} at the example of $\semscott{\wild}$,
+this reflection of machine state into ``math'' bears great potential for
+program analysis, one we will exploit in \Cref{sec:abstractions}.
+The second difference is that the environment $ρ$ and the heap $μ$ do not map to
+addresses or syntactic closures but to delayed semantic values $\later \StateD$,
+offering further abstraction possibilities compared to the rigid and indirect
+syntactic domain.
+The third difference is in control structure which explicitly signals the
+distinction between evaluation states and return states.
+In a return state $((\pv,v),μ)$, the syntactic value $\pv$ travels together with
+a \emph{semantic} value $v ∈ \StateV$.
+Crucially, this allows the embedding of function values $\FunV(f)$ in the
+lambda case $\semst{\Lam{\px}{\pe}}$, enabling a compositional definition of the
+application case $\semst{\pe~\px}$, just as in $\semscott{\wild}$.
+
+It is worth noting that without guarded recursive types, the definition of
+$\StateV$ would not be well-founded; a nuisance usually solved via restriction
+to continuous functions on Scott domains and solving the corresponding domain
+equation.
+
+Note that we will continue to use the notation $τ \cons τ'$ quite liberally to
+denote concatenation of traces. Doing so is unambiguous (because states are
+distinct from traces) and well-defined via the following guarded fixpoint:
+\[
+  \fix (f : \later (\STraces \to \STraces \to \STraces)).\ λ(τ : \STraces)~(τ' : \STraces).\ \begin{cases}
+    \stuckend{σ} & τ = \stuckend{σ} \\
+    σ \cons τ'   & τ = \goodend{σ} \\
+    σ \cons f \aplater τ^{\later} \aplater \purelater τ' & τ = σ \cons τ^{\later} \\
+  \end{cases}
+\]
+A similar productive definition can be given for $\betastep$, which is to be
+understood as yielding from the input trace $τ$ until it hits either end case of
+the trace.
+
+Intuitively, the heap lists the denotation of the expression at a particular
+address, while the environment passed to $\semst{\wild}$ assigns each
+free variable $\px$ a $deref(\pa)$ action for the particular address that $\px$
+should be bound to.
+
+Let us now understand $\semst{\wild}$ by way of evaluating the example program
+from earlier, $\pe \triangleq \Let{i}{\Lam{x}{x}}{i~i}$:
+\[\begin{array}{ll}
+  \newcommand{\myleftbrace}[4]{\draw[mymatrixbrace] (m-#2-#1.west) -- node[right=2pt] {#4} (m-#3-#1.west);}
+  \vcenter{\hbox{$
+    \begin{tikzpicture}[mymatrixenv,anchor=center]
+      \matrix [mymatrix] (m)
+      {
+        1 & (\pe, []) \cons {} & \hspace{3.7em} & \hspace{4.2em} & \hspace{3.9em} & \hspace{2.5em} \\
+        2 & (i~i, μ) \cons {} & & & & \\
+        3 & (i, μ) \cons {} & & & & \\
+        4 & ((\Lam{x}{x}, \FunV(f)), μ) \cons {} & & & & \\
+        5 & ((\Lam{x}{x}, \FunV(f)), μ) \cons {} & & & & \\
+        6 & (x, μ) \cons {} & & & & \\
+        7 & ((\Lam{x}{x}, \FunV(f)), μ) \cons {} & & & & \\
+        8 & \goodend{((\Lam{x}{x}, \FunV(f)), μ)} & & & & \\
+      };
+      % Braces, using the node name prev as the state for the previous east
+      % anchor. Only the east anchor is relevant
+      \foreach \i in {1,...,\the\pgfmatrixcurrentrow}
+        \draw[dotted] (m.east|-m-\i-\the\pgfmatrixcurrentcolumn.east) -- (m-\i-2);
+      \myleftbrace{3}{1}{8}{$\semst{\pe}_{[]}$}
+      \myleftbrace{4}{1}{2}{$\BindT$}
+      \myleftbrace{4}{2}{8}{$\semst{i~i}_{ρ_1}$}
+      \myleftbrace{5}{2}{3}{$\AppIT$}
+      \myleftbrace{5}{3}{5}{$\semst{i}_{ρ_1}$}
+      \myleftbrace{5}{5}{6}{$\AppET$}
+      \myleftbrace{5}{6}{8}{$\semst{x}_{ρ_2}$}
+      \myleftbrace{6}{3}{4}{$\LookupT$}
+      \myleftbrace{6}{4}{5}{$\UpdateT$}
+      \myleftbrace{6}{6}{7}{$\LookupT$}
+      \myleftbrace{6}{7}{8}{$\UpdateT$}
+  \end{tikzpicture}
+  $}} &
+  \!\!\!\!\text{where}  \begin{array}{ll}
+  ρ_1 = [i ↦ deref(\pa_1)] & \\
+  ρ_2 = ρ_1[x ↦ deref(\pa_1)] &  \\
+  μ = [\pa_1 ↦ \semst{\Lam{x}{x}}_{ρ_1}] & \\
+  f = d \mapsto \semst{\px}_{ρ_1[\px↦d]}
+  \end{array}
+\end{array}\]
+The annotations to the right of the trace can be understood as denoting the
+``call graph'' of $\semst{\pe}_{[]}$, with the corresponding LK transitions
+as leaves.
+Evaluation begins with a $\BindT$ transition from state 1 to state 2.
+A fresh address $\pa_1$ is allocated for variable $i$ and the heap is extended
+with $\semst{\Lam{x}{x}}_{ρ_1}$.
+It is interesting to realise that this process does not involve a fixpoint
+despite the recursive semantics of let.
+Of course the self-application in $deref$ does the job just as well, as we will
+see in due course.
+
+Evaluation recurses into the body $\semst{i~i}_{ρ_1}$ in the extended
+environment $ρ_1$ to produce state 2, also yielding another $\AppIT$ transition
+into $\semst{i}_{ρ_1}$.
+Note that the final state 5 of $\semst{i}_{ρ_1}$ will later be fed (via
+$\betastep$) into anonymous function in $apply$.
+This scheme is quite common: Continuation items of the transition semantics
+(``data'') are reflected into the call stack of the trace semantics (``code'').
+
+$\semst{i}_{ρ_1}$ guides the trace through a heap lookup:
+A $\LookupT$ goes straight into the $deref(\pa_1)$ action stored in the
+environment entry for $i$, which performs the aforementioned self-application
+to run the heap action $μ(\pa_1) = \semst{\Lam{x}{x}}_{ρ_1}$ starting in the
+current heap $μ$.
+Evaluation of $\semst{\Lam{x}{x}}_{ρ_1}$ terminates immediately in return state
+4.
+Returning to $deref(\pa_1)$, we witness for the first time a reduction
+operation via $\betastep$:
+Since the trace terminates, the anonymous function in $deref(\pa_1)$ is called
+(in $\betastep$) with state 4, making an $\UpdateT$ transition to state 5.
+Note that there is no observable change to the heap $μ$ because
+$ret(\Lam{x}{x}, \FunV(f))$ is precisely the same as $\semst{\Lam{x}{x}}_{ρ_1}$.
+
+After the heap update we leave $\semst{i}$ in return state 5, where $\betastep$
+yields to the anonymous function in $apply$ (from the call to
+$\semst{i~i}_{ρ_1}$), yielding another $\AppET$ reduction and giving control
+to $f(ρ_1(i)) = \semst{x}_{ρ_1[x ↦ ρ_1(i)]}$.
+Since $x$ is an alias for $i$, steps 6 to 8 just repeat the same same heap
+update sequence we observed in steps 3 to 5, concluding the example.
+
+It is useful to review another example involving an observable heap
+update. The following trace begins right before the heap update occurs in
+$\Let{i}{(\Lam{y}{\Lam{x}{x}})~i}{i~i}$, that is, after reaching the value
+in $\semst{(\Lam{y}{\Lam{x}{x}})~i}_{ρ_1}$:
+\[\begin{array}{ll}
+  \newcommand{\myleftbrace}[4]{\draw[mymatrixbrace] (m-#2-#1.west) -- node[right=2pt] {#4} (m-#3-#1.west);}
+  \vcenter{\hbox{$
+    \begin{tikzpicture}[baseline={-0.5ex},mymatrixenv]
+      \matrix [mymatrix] (m)
+      {
+        1 & ((\Lam{x}{x},\FunV(f)), μ_1) \cons {} & \hspace{4em} & \hspace{4em} & \hspace{2.5em} \\
+        2 & ((\Lam{x}{x},\FunV(f)), μ_2) \cons {} & & & \\
+        3 & (x, μ_2) \cons {} & & & \\
+        4 & ((\Lam{x}{x}, \FunV(f)), μ_2) \cons {} & & & \\
+        5 & \goodend{((\Lam{x}{x}, \FunV(f)), μ_2)} & & & \\
+      };
+      % Braces, using the node name prev as the state for the previous east
+      % anchor. Only the east anchor is relevant
+      \foreach \i in {1,...,\the\pgfmatrixcurrentrow}
+        \draw[dotted] (m.east|-m-\i-\the\pgfmatrixcurrentcolumn.east) -- (m-\i-2);
+      \myleftbrace{3}{1}{5}{$\semst{i~i}_{ρ_1}$}
+      \myleftbrace{4}{1}{2}{$\semst{i}_{ρ_1}$}
+      \myleftbrace{4}{2}{3}{$\AppET$}
+      \myleftbrace{4}{3}{5}{$\semst{x}_{ρ_3}$}
+      \myleftbrace{5}{1}{2}{$\UpdateT$}
+      \myleftbrace{5}{3}{4}{$\LookupT$}
+      \myleftbrace{5}{4}{5}{$\UpdateT$}
+    \end{tikzpicture}
+  $}} &
+  \!\!\!\text{where} \begin{array}{l}
+  ρ_1 = [i ↦ \pa_1] \\
+  ρ_2 = [i ↦ \pa_1, y ↦ \pa_1] \\
+  ρ_3 = [i ↦ \pa_1, y ↦ \pa_1, x ↦ \pa_1] \\
+  μ_1 = [\pa_1 ↦ \semst{(\Lam{y}{\Lam{x}{x}})~i}_{ρ_1}] \\
+  μ_2 = [\pa_1 ↦ \semst{\Lam{x}{x}}_{ρ_2}] \\
+  f = \fn{d}{\semst{\px}_{ρ_2[\px↦d}} \\
+  \end{array} \\
+\end{array}\]
+Note that both the denotation in the heap \emph{and} its environment are updated
+in state 2, and that the new denotation is immediately visible on the next heap
+lookup in state 3, so that $\semst{\Lam{x}{x}}_{ρ_2}$ takes control rather than
+$\semst{(\Lam{y}{\Lam{x}{x}})~i}_{ρ_1}$, just as the transition system requires.
+
+The handling of data types and case expressions is routine (if a bit
+syntactically heavy) and not different to denotational semantics in call-by-name
+or call-by-value, but it allows us to observe type errors other than scoping
+errors.
+Let us consider evaluation of the closed expression
+$\pe \triangleq \Let{x}{\ttrue}{\ttrue~x}$
+(where $\ttrue$ is one of two unary data constructors of the data type $\bool
+::= \ttrue \mid \ffalse$).
+$\semst{\wild}$ makes it is easy to observe that the trace gets stuck:
+\[\begin{array}{ll}
+  \newcommand{\myleftbrace}[4]{\draw[mymatrixbrace] (m-#2-#1.west) -- node[right=2pt] {#4} (m-#3-#1.west);}
+  \vcenter{\hbox{$
+    \begin{tikzpicture}[baseline={-0.5ex},mymatrixenv]
+      \matrix [mymatrix] (m)
+      {
+        1 & (\pe, []) \cons {} & \hspace{4em} & \hspace{5em} & \hspace{2.5em} \\
+        2 & (\ttrue~x, μ) \cons {} & & & \\
+        3 & \stuckend{((\ttrue,\ConV(\ttrue)), μ)} & & & \\
+      };
+      % Braces, using the node name prev as the state for the previous east
+      % anchor. Only the east anchor is relevant
+      \foreach \i in {1,...,\the\pgfmatrixcurrentrow}
+        \draw[dotted] (m.east|-m-\i-\the\pgfmatrixcurrentcolumn.east) -- (m-\i-2);
+      \myleftbrace{3}{1}{3}{$\semst{\pe}_{[]}$}
+      \myleftbrace{4}{1}{2}{$\BindT$}
+      \myleftbrace{4}{2}{3}{$\semst{\ttrue~x}_{ρ}$}
+      \myleftbrace{5}{2}{3}{$\AppIT$}
+    \end{tikzpicture}
+  $}} &
+  \!\!\!\text{where} \begin{array}{l}
+  ρ = [x ↦ \pa_1] \\
+  μ = [\pa_1 ↦ \semst{\ttrue}_ρ] \\
+  \end{array} \\
+\end{array}\]
+Crucially, $\betastep$ is equipped to propagate $\stuckend{\wild}$ up the call
+stack (through potential $\UpdateT$ transitions, in particular), similar to
+\citeauthor{Milner:78}'s $\mathbf{wrong}$.
+
+Diverging traces hold no new surprises, other than they are observably different
+to stuck traces.
 
 \begin{figure}
 \[\begin{array}{c}
@@ -523,163 +756,7 @@ Let $σ$ be a well-elaborated state and $\pe$ its control expression. Then
 \subsection{Definition}
 
 \Cref{fig:semst} defines $\semst{\wild}$.
-Let us understand the function by way of evaluating the example program from
-earlier, $\pe \triangleq \Let{i}{\Lam{x}{x}}{i~i}$:
-\[\begin{array}{l}
-  \newcommand{\myleftbrace}[4]{\draw[mymatrixbrace] (m-#2-#1.west) -- node[right=2pt] {#4} (m-#3-#1.west);}
-  \begin{tikzpicture}[mymatrixenv]
-      \matrix [mymatrix] (m)
-      {
-        1  & (\pe, [], [], \StopF) \cons & \hspace{3.5em} & \hspace{3.5em} & \hspace{3.5em} & \hspace{4.5em} & \hspace{7.5em} \\
-        2  & (i~i, ρ_1, μ, \StopF) \cons & & & & & \\
-        3  & (i, ρ_1, μ, κ_1) \cons & & & & & \\
-        4  & (\Lam{x}{x}, ρ_1, μ, κ_2) \cons & & & & & \\
-        5  & ((\Lam{x}{x}, \FunV(f)), ρ_1, μ, κ_2) \cons & & & & & \\
-        6  & ((\Lam{x}{x}, \FunV(f)), ρ_1, μ, κ_1) \cons & & & & & \\
-        7  & (x, ρ_2, μ, \StopF) \cons & & & & & \\
-        8  & (\Lam{x}{x}, ρ_1, μ, κ_3) \cons & & & & & \\
-        9  & ((\Lam{x}{x}, \FunV(f)), ρ_1, μ, κ_3) \cons & & & & & \\
-        10 & \goodend{((\Lam{x}{x}, \FunV(f)), ρ_1, μ, \StopF)} & & & & & \\
-      };
-      % Braces, using the node name prev as the state for the previous east
-      % anchor. Only the east anchor is relevant
-      \foreach \i in {1,...,\the\pgfmatrixcurrentrow}
-        \draw[dotted] (m.east|-m-\i-\the\pgfmatrixcurrentcolumn.east) -- (m-\i-2);
-      \myleftbrace{3}{1}{10}{$\semst{\pe}$}
-      \myleftbrace{4}{1}{2}{$bind(\semst{\Lam{x}{x}})$}
-      \myleftbrace{4}{2}{10}{$\semst{i~i}$}
-      \myleftbrace{5}{2}{3}{$app_1(i~i)$}
-      \myleftbrace{5}{3}{6}{$\semst{i}$}
-      \myleftbrace{5}{6}{7}{$app_2(\Lam{x}{x},\pa_1)$}
-      \myleftbrace{5}{7}{10}{$\semst{x}$}
-      \myleftbrace{6}{3}{4}{$look(i)$}
-      \myleftbrace{6}{4}{5}{$\semst{\Lam{x}{x}}$}
-      \myleftbrace{6}{5}{6}{$upd$}
-      \myleftbrace{6}{7}{8}{$look(x)$}
-      \myleftbrace{6}{8}{9}{$\semst{\Lam{x}{x}}$}
-      \myleftbrace{6}{9}{10}{$upd$}
-      \myleftbrace{7}{4}{5}{$ret(\Lam{x}{x},\FunV(f))$}
-      \myleftbrace{7}{8}{9}{$ret(\Lam{x}{x},\FunV(f))$}
-  \end{tikzpicture} \\
-  \quad \text{where} \quad \begin{array}{ll}
-  ρ_1 = [i ↦ \pa_1] & κ_1 = \ApplyF(\pa_1) \pushF \StopF \\
-  ρ_2 = [i ↦ \pa_1, x ↦ \pa_1] & κ_2 = \UpdateF(\pa_1) \pushF κ_1 \\
-  μ = [\pa_1 ↦ (\Lam{x}{x},ρ_1,\semst{\Lam{x}{x}})] & κ_3 = \UpdateF(\pa_1) \pushF \StopF \\
-  f = \pa \mapsto step(app_2(\Lam{\px}{\px},\pa)) \sfcomp \semst{\px}
-  \end{array}
-\end{array}\]
-The annotations to the right of the trace can be understood as denoting the
-``call graph'' of the $\semst{\pe}$, with the primitive transition $step$s such
-as $bind$, $app_1$, $look$ \etc as leaves, each elaborating the application of
-the corresponding transition rule $\BindT$, $\AppIT$, $\LookupT$, and so on, in
-the transition semantics with a matching denotation where necessary.
-
-Evaluation begins by elaborating the $\BindT$ transition from state 1 to state 2.
-Indeed, the $d$ in the heap is elaborated to $\semst{\Lam{x}{x}}$, as (S3) of
-\Cref{defn:semst-spec} requires.
-
-The auxiliary $step$ function and the forward composition operator $\sfcomp$
-have been inlined.
-One can find that $\sfcomp$ is quite well-behaved: It forms a monoid with
-$λσ.\goodend{σ}$ as its neutral element.
-
-Evaluation of the let binding recurses into $\semst{i~i}$ on state 2,
-generating an $\AppIT$ transition to state 3, on which $\semst{i}$ is run.
-Note that the final state 6 of the call to $\semst{i}$ will later be fed
-(via $\sfcomp$) into the auxiliary function $apply$. This scheme is quite
-common: Continuation items of the transition semantics (``data'') are reflected
-into the call stack of the trace semantics (``code'').
-
-$\semst{i}$ guides the trace from state 3 to state 6, during which we
-observe a heap update for the first time: Not only does $look$ look up
-the binding $\Lam{x}{x}$ of $i$ in the heap and push an update frame,
-it also hands over control to the $d = \semst{\Lam{x}{x}}$ stored alongside it.
-(And we make a meta-level note to pick up with $upd$ when $d$ has finished.)
-Crucially, that happens without $\semst{\Lam{x}{x}}$ syntactically occurring in
-the definition of $\semst{i}$, thus the definition remains structural.
-
-The value transition governed by $\semst{\Lam{x}{x}}$ from state 4 to 5 is
-familiar from our earlier example.
-$\semst{\Lam{x}{x}}$ finishes in state 5, where $upd$ picks up to guide the
-$\UpdateT$ transition. To restore invariant (S3), it also updates the $d$ stored
-in the heap so that its semantics matches that of the updated value; take note
-of the similarity to the lambda clause in the definition of $\semst{\wild}$.
-Since $\Lam{x}{x}$ was a value to begin with, there is no observable change to
-the heap.
-
-After $\semst{i}$ concludes in state 6, the $apply$ function from $\semst{i~i}$
-picks up. Since $apply$ is defined on state 6, it reduces to $f(\pa_1)$%
-\footnote{We omitted $apply$ and $f(\pa_1)$ from the call graph for space reasons, but
-their activation spans from state 7 to the final state 10.}.
-$f(\pa_1)$ will perform an $\AppET$ transition to state 7, binding $x$ to $i$'s
-address $\pa_1$ and finally entering the lambda body $\semst{x}$. Since $x$ is
-an alias for $i$, steps 7 to 10 just repeat the same same heap update sequence
-we observed in steps 3 to 6.
-
-It is useful to review another example involving an observable heap update.
-The following trace begins right before the heap update occurs in
-$\Let{i}{(\Lam{y}{\Lam{x}{x}})~i}{i~i}$, that is, after reaching the value
-in $\semst{(\Lam{y}{\Lam{x}{x}})~i}$:
-\[\begin{array}{l}
-  \newcommand{\myleftbrace}[4]{\draw[mymatrixbrace] (m-#2-#1.west) -- node[right=2pt] {#4} (m-#3-#1.west);}
-  \begin{tikzpicture}[baseline={-0.5ex},mymatrixenv]
-      \matrix [mymatrix] (m)
-      {
-        1  & ((\Lam{x}{x},\FunV(f)), ρ_2, μ_1, κ_2) \cons & \hspace{3.5em} & \hspace{3.5em} & \hspace{4.5em} & \hspace{7.5em} \\
-        2  & ((\Lam{x}{x},\FunV(f)), ρ_2, μ_2, κ_1) \cons & & & & \\
-        3  & (x, ρ_3, μ, \StopF) \cons & & & & \\
-        4  & (\Lam{x}{x}, ρ_2, μ, κ_3) \cons & & & & \\
-        5  & ((\Lam{x}{x}, \FunV(f)), ρ_2, μ, κ_3) \cons & & & & \\
-        6  & \goodend{((\Lam{x}{x}, \FunV(f)), ρ_1, μ, \StopF)} & & & & \\
-      };
-      % Braces, using the node name prev as the state for the previous east
-      % anchor. Only the east anchor is relevant
-      \foreach \i in {1,...,\the\pgfmatrixcurrentrow}
-        \draw[dotted] (m.east|-m-\i-\the\pgfmatrixcurrentcolumn.east) -- (m-\i-2);
-      \myleftbrace{3}{1}{6}{$\semst{i~i}$}
-      \myleftbrace{4}{1}{2}{$\semst{i}$}
-      \myleftbrace{4}{2}{3}{$app_2(\Lam{x}{x},\pa_1)$}
-      \myleftbrace{4}{3}{6}{$\semst{x}$}
-      \myleftbrace{5}{1}{2}{$upd$}
-      \myleftbrace{5}{3}{4}{$look(x)$}
-      \myleftbrace{5}{4}{5}{$\semst{\Lam{x}{x}}$}
-      \myleftbrace{5}{5}{6}{$upd$}
-      \myleftbrace{6}{4}{5}{$ret(\Lam{x}{x},\FunV(f))$}
-  \end{tikzpicture} \\
-  \quad \text{where} \quad \begin{array}{ll}
-  ρ_1 = [i ↦ \pa_1] & κ_1 = \ApplyF(\pa_1) \pushF \StopF \\
-  ρ_2 = [i ↦ \pa_1, y ↦ \pa_1] & κ_2 = \UpdateF(\pa_1) \pushF κ_1 \\
-  ρ_3 = [i ↦ \pa_1, y ↦ \pa_1, x ↦ \pa_1] & κ_3 = \UpdateF(\pa_1) \pushF \StopF \\
-  μ_1 = [\pa_1 ↦ ((\Lam{y}{\Lam{x}{x}})~i,ρ_1,\semst{(\Lam{y}{\Lam{x}{x}})~i})] & f = \pa \mapsto step(app_2(\Lam{\px}{\px},\pa)) \sfcomp \semst{\px} \\
-  μ_2 = [\pa_1 ↦ (\Lam{x}{x},ρ_2,\semst{\Lam{x}{x}})] &  \\
-  \end{array} \\
-\end{array}\]
-Note that both the denotation in the heap \emph{and} the environment are updated
-in state 2, and that the new denotation is immediately visible on the next heap
-lookup in state 3, so that $\semst{\Lam{x}{x}}$ takes control rather than
-$\semst{(\Lam{y}{\Lam{x}{x}})~i}$, just as the transition system requires.
-
-Note that $\semst{\pe}$ continues \emph{only} those states that have $\pe$ as
-control and is undefined on any other expression of the program.
-So even if $x~x$ and $y~y$ both structurally are well-scoped application
-expressions, $\semst{x~x}(y~y,ρ,μ,κ)$ is undefined.
-In other words, if $(\pe_i)_i$ enumerates the (labelled) sub-expressions of a
-program $\pe$, then for every state $σ$ there is exactly one function
-$\semst{\pe_i}$ that is defined on $σ$.
-Take note that a correct labelling is crucial for this point: In an expression
-like $f~(g~f)$ the two, structurally equal occurrences of $f$ are distinct
-sub-expressions which would otherwise have the same image under $\semst{\wild}$.
-
-Perhaps interestingly, the definition of the $\BindT$ case requires no explicit
-fixpoint, although the semantics of let allows recursion. That is because the
-action of the RHS $\semst{\pe_1}$ (``code'') is reified (into ``data'') and put
-in the heap, to be reflected back into code on variable lookup.
-Next we will prove that this process is actually well-defined and show that
-$\semst{\pe}$ produces total values everywhere it is defined%
-\footnote{We do not consider the partial value $⊥$ to be undefined, as we
-clarify in the next section.}.
-
-\subsection{Domain Theory}
+Let us understand the function by \subsection{Domain Theory}
 
 \label{sec:domain-theory}
 

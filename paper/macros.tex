@@ -44,6 +44,8 @@
 \newenvironment{letarray}{\begin{array}{@{}l@{\hspace{1ex}}l}}{\end{array}}
 \newcommand{\noleftdelimiter}{\left.\kern-\nulldelimiterspace}
 \newcommand{\later}{\mathop{\blacktriangleright}}
+\newcommand{\purelater}{\mathop{\mathsf{next}}}
+\newcommand{\aplater}{\mathbin{\circledast}}
 
 % Syntax
 %% LC
@@ -78,6 +80,9 @@
 \newcommand{\fresh}[2]{#1\mathbin{\#}#2}
 \newcommand{\delvar}[1]{{\setminus_{#1}}}
 \newcommand{\notfound}{\lightning}
+\newcommand{\bool}{\mathtt{bool}}
+\newcommand{\ttrue}{\mathtt{tt}}
+\newcommand{\ffalse}{\mathtt{ff}}
 %% Actions
 \newcommand{\Actions}{\mathbb{A}}
 \newcommand{\ValueA}{\mathsf{val}}
