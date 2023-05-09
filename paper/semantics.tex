@@ -1,6 +1,73 @@
 \section{Semantics}
 \label{sec:semantics}
 
+\subsection{Labelled Syntax}
+
+Recall \Cref{fig:syntax}; it defines the syntax of $Λ$, an untyped lambda
+calculus with recursive let bindings and data types in the style of
+\citet{Launchbury:93} and \citet{Sestoft:97}.
+Any (sub-)expression of $Λ$ has a unique \emph{label} (think of it as the AST node's
+pointer identity) that we usually omit. For example, a correct labelling of
+$\Let{x}{g~f}{f~x}$ would be
+\[
+  (\slbln{1} \Let{x}{(\slbln{2} (\slbln{3} f)~y)}{(\slbln{4} (\slbln{5} f)~x)}).
+\]
+Labels are there so that we do not conflate the (otherwise structurally equal)
+sub-terms $(\slbln{3} f)$ and $(\slbln{5} f)$ as equivalent. This is an important
+distinction for, \eg, control-flow analysis. Since labels introduce excessive
+clutter, we will omit them unless they are distinctively important. If anything,
+labels make it so that everything ``works as expected''.
+
+\subsection{Transition System}
+
+\Cref{lk-semantics} gave an operational semantics for $Λ$ in terms of
+a small-step transition system closest to the lazy Krivine machine
+\citep{AgerDanvyMidtgaard:04} for Launchbury's language.
+It is worth having a closer look at the workings of our Gold Standard.
+The machine's state $σ$ comes as a quadruple in the style of a CESK machine
+\citep{Felleisen:87}, consisting of the usual \emph{control} component
+corresponding to the control-flow node $\pc$ under evaluation, the
+\emph{environment} $ρ$ mapping lexically-scoped variables to an address bound in
+the \emph{heap} $μ$ and a \emph{continuation}, or \emph{stack}, $κ$.
+We use projection functions $ctrl(σ)$ and $cont(σ)$ to select the control and
+continuation component, respectively.
+
+When the control of a state $σ$ is a value $\pv$, we call $σ$ a \emph{return}
+state and say that the continuation $cont(σ)$ drives evaluation.
+Otherwise, $σ$ is an \emph{evaluation} state and $ctrl(σ)$ drives evaluation.
+The entries in the heap are \emph{closures} of the form $(ρ,e)$, where the
+environment $ρ$ closes over the expression $e$.
+Finally, the continuation $cont(σ)$ lists actions to be taken in a return state,
+such as applying the result to an argument address or updating a heap entry with
+its value.
+
+Heap entries are introduced via $\BindT$ transitions under a \emph{fresh} address
+$\pa \not∈ \dom(μ)$ that we call an \emph{activation} of the let-bound variable
+$\px$. The lexical activation of every variable in scope is maintained
+in $ρ$. The $\AppIT$ rule pushes an \emph{application frame} with the address of
+the argument variable onto the stack, while the rule $\LookupT$ pushes an
+\emph{update frame} with the address of the variable the heap entry of which is
+accessed. When a return state is reached, the original heap entry is overwritten
+with the value in the control.
+
+Let us conclude with an example trace in this transition system, evaluating
+$\pe \triangleq \Let{i}{\Lam{x}{x}}{i~i}$ to completion:
+\[\begin{array}{c}
+  \arraycolsep2pt
+  \begin{array}{clclclcl}
+             & (\pe, [], [], \StopF)         & \smallstep & (i~i, ρ_1, μ, \StopF)
+             & \smallstep & (i, ρ_1, μ, κ_1) & \smallstep & (\Lam{x}{x}, ρ_1, μ, κ_2)
+             \\
+  \smallstep & (\Lam{x}{x}, ρ_1, μ, κ_1)     & \smallstep & (x, ρ_2, μ, \StopF) & \smallstep & (\Lam{x}{x}, ρ_1, μ, κ_3)
+             & \smallstep & (\Lam{x}{x}, ρ_1, μ, \StopF) \\
+  \end{array} \\
+  \\[-0.5em]
+  \quad \text{where} \quad \begin{array}{lll}
+  ρ_1 = [i ↦ \pa_1] & ρ_2 = [i ↦ \pa_1, x ↦ \pa_1] & μ = [\pa_1 ↦ (ρ_1,\Lam{x}{x})] \\
+  κ_1 = \ApplyF(\pa_1) \pushF \StopF & κ_2 = \UpdateF(\pa_1) \pushF κ_1 & κ_3 = \UpdateF(\pa_1) \pushF \StopF
+  \end{array}
+\end{array}\]
+
 \begin{figure}
 \[\begin{array}{c}
  \begin{array}{rrclclrrclcl}
@@ -79,93 +146,6 @@
 \caption{Structural call-by-need stateful trace semantics $\semst{-}$}
   \label{fig:semst}
 \end{figure}
-
-\subsection{Labelled Syntax}
-
-Recall \Cref{fig:syntax}; it defines the syntax of $Λ$, an untyped lambda
-calculus with recursive let bindings and data types in the style of
-\citet{Launchbury:93} and \citet{Sestoft:97}.
-Any (sub-)expression of $Λ$ has a unique \emph{label} (think of it as the AST node's
-pointer identity) that we usually omit. For example, a correct labelling of
-$\Let{x}{g~f}{f~x}$ would be
-\[
-  (\slbln{1} \Let{x}{(\slbln{2} (\slbln{3} f)~y)}{(\slbln{4} (\slbln{5} f)~x)}).
-\]
-Labels are there so that we do not conflate the (otherwise structurally equal)
-sub-terms $(\slbln{3} f)$ and $(\slbln{5} f)$ as equivalent. This is an important
-distinction for, \eg, control-flow analysis. Since labels introduce excessive
-clutter, we will omit them unless they are distinctively important. If anything,
-labels make it so that everything ``works as expected''.
-
-\subsection{Transition System}
-
-\Cref{lk-semantics} gave an operational semantics for $Λ$ in terms of
-a small-step transition system closest to the lazy Krivine machine
-\citep{AgerDanvyMidtgaard:04} for Launchbury's language.
-It is worth having a closer look at the workings of our Gold Standard.
-The machine's state $σ$ comes as a quadruple in the style of a CESK machine
-\citep{Felleisen:87}, consisting of the usual \emph{control} component
-corresponding to the control-flow node $\pc$ under evaluation, the
-\emph{environment} $ρ$ mapping lexically-scoped variables to an address bound in
-the \emph{heap} $μ$ and a \emph{continuation}, or \emph{stack}, $κ$.
-We use projection functions $ctrl(σ)$ and $cont(σ)$ to select the control and
-continuation component, respectively.
-
-The control component $\pc$ is either an expression under evaluation $\pe$ or a
-value $\pv$.
-When the control of a state $σ$ is an expression $\pe$, we call $σ$ an
-\emph{evaluation} state and say that $\pe$ drives evaluation, whereas when the
-control is $\pv$ we call it a \emph{return} state in which the continuation
-$κ$ drives evaluation.
-The entries in the heap are \emph{closures} of the form $(e,ρ,d)$, where the
-environment $ρ$ closes over the expression $e$ ($d = ()$).
-Finally, the continuation $κ$ lists actions to be taken when the control reaches
-a value, such as applying the result to an argument address or updating a heap
-entry with its value.
-
-Heap entries are introduced via $\BindT$ transitions under a \emph{fresh} address
-$\pa \not∈ \dom(μ)$ that we call an \emph{activation} of the let-bound variable
-$\px$. The lexical activation of every variable in scope is maintained
-in $ρ$. The $\AppIT$ rule pushes an \emph{application frame} with the address of
-the argument variable onto the stack, while the rule $\LookupT$ pushes an
-\emph{update frame} with the address of the variable the heap entry of which is
-accessed. When a return state is reached, the original heap entry is overwritten
-with the value in the control.
-An evaluation state transitions to a return state via rule $\ValueT$ when the
-control expression is a value.%
-\footnote{Operational semantics commonly don't explicate $\ValueT$
-transitions, but the original formulation of the CESK machine
-did~\citep{Felleisen:87}, as does the lazy Krivine
-machine of \citet{AgerDanvyMidtgaard:04}.}
-
-Note that whatever parameter sets $D,V$ we pick, the value of parameters $v$ and
-$d$ never affect other state components or whether or not a transition can fire.
-The transition system is deterministic iff the choice of the particular
-$d$ or $v$ in rules $\BindT$, $\ValueT$ and $\UpdateT$ is. That is the case for
-the proposed standard instantiation of $D$ and $V$ to the unit type.
-Moreover, any deterministic instantiation yields a transition system that is
-bisimilar to the standard one.
-
-Let us conclude with an example trace in this transition system, evaluating
-$\pe \triangleq \Let{i}{\Lam{x}{x}}{i~i}$ to completion:
-\[\begin{array}{c}
-  \arraycolsep2pt
-  \begin{array}{clclclcl}
-             & (\pe, [], [], \StopF)            & \smallstep & (i~i, ρ_1, μ, \StopF)
-                & \smallstep & (i, ρ_1, μ, κ_1) & \smallstep & (\Lam{x}{x}, ρ_1, μ, κ_2)
-                \\
-  \smallstep & ((\Lam{x}{x}, ()), ρ_1, μ, κ_2)  & \smallstep & ((\Lam{x}{x}, ()), ρ_1, μ, κ_1)
-                & \smallstep & (x, ρ_2, μ, \StopF) & \smallstep & (\Lam{x}{x}, ρ_1, μ, κ_3)
-                \\
-  \smallstep & ((\Lam{x}{x}, ()), ρ_1, μ, κ_3)  & \smallstep & ((\Lam{x}{x}, ()), ρ_1, μ, \StopF) \\
-  \end{array} \\
-  \\[-0.5em]
-  \quad \text{where} \quad \begin{array}{ll}
-  ρ_1 = [i ↦ \pa_1] & κ_1 = \ApplyF(\pa_1) \pushF \StopF \\
-  ρ_2 = [i ↦ \pa_1, x ↦ \pa_1] & κ_2 = \UpdateF(\pa_1) \pushF κ_1 \\
-  μ = [\pa_1 ↦ (\Lam{x}{x},ρ_1,())] & κ_3 = \UpdateF(\pa_1) \pushF \StopF \\
-  \end{array} \\
-\end{array}\]
 
 \begin{figure}
 \[\begin{array}{c}
