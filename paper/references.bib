@@ -466,20 +466,57 @@ series = {PLDI 2021}
   bibsource    = {dblp computer science bibliography, https://dblp.org}
 }
 
-@inproceedings{Mogelberg:14,
-  author = {M\o{}gelberg, Rasmus Ejlers},
-  title = {A Type Theory for Productive Coprogramming via Guarded Recursion},
-  year = {2014},
-  isbn = {9781450328869},
-  publisher = {Association for Computing Machinery},
-  address = {New York, NY, USA},
-  url = {https://doi.org/10.1145/2603088.2603132},
-  doi = {10.1145/2603088.2603132},
-  abstract = {To ensure consistency and decidability of type checking, proof assistants impose a requirement of productivity on corecursive definitions. In this paper we investigate a type-based alternative to the existing syntactic productivity checks of Coq and Agda, using a combination of guarded recursion and quantification over clocks. This approach was developed by Atkey and McBride in the simply typed setting, here we extend it to a calculus with dependent types. Building on previous work on the topos-of-trees model we construct a model of the calculus using a family of presheaf toposes, each of which can be seen as a multi-dimensional version of the topos-of-trees. As part of the model construction we must solve the coherence problem for modelling dependent types in locally cartesian closed categories simulatiously in a whole family of locally cartesian closed categories. We do this by embedding all the categories in a large one and applying a recent approach to the coherence problem due to Streicher and Voevodsky.},
-  booktitle = {Proceedings of the Joint Meeting of the Twenty-Third EACSL Annual Conference on Computer Science Logic (CSL) and the Twenty-Ninth Annual ACM/IEEE Symposium on Logic in Computer Science (LICS)},
-  articleno = {71},
+@inproceedings{Nakano:00,
+  author = {Nakano, Hiroshi},
+  title = {A Modality for Recursion},
+  year = {2000},
+  isbn = {0769507255},
+  publisher = {IEEE Computer Society},
+  address = {USA},
+  abstract = {We propose a modal logic that enables us to handle self-referential formulae, including ones with negative self-references, which on one hand, would introduce a logical contradiction, namely Russell's paradox, in the conventional setting, while on the other hand, are necessary to capture a certain class of programs such as fixed point combinators and objects with so-called binary methods in object-oriented programming. Our logic provides a basis for axiomatic semantics of such a wider range of programs and a new framework for natural construction of recursive programs in the proofs-as-programs paradigm.},
+  booktitle = {Proceedings of the 15th Annual IEEE Symposium on Logic in Computer Science},
+  pages = {255},
+  keywords = {Logics of Programs, Lambda and Combinatory Caluculi, Type Systems and Type Theory, Specifications, Modal and Temporal Logics},
+  series = {LICS '00}
+}
+
+@inproceedings{gdtt,
+  author="Bizjak, Ale{\v{s}} and Grathwohl, Hans Bugge and Clouston, Ranald and M{\o}gelberg, Rasmus E. and Birkedal, Lars", editor="Jacobs, Bart and L{\"o}ding, Christof",
+  title="Guarded Dependent Type Theory with Coinductive Types",
+  booktitle="Foundations of Software Science and Computation Structures",
+  year="2016",
+  publisher="Springer Berlin Heidelberg",
+  address="Berlin, Heidelberg",
+  pages="20--35",
+  isbn="978-3-662-49630-5"
+}
+
+@inproceedings{Coquand:94,
+  author="Coquand, Thierry",
+  editor="Barendregt, Henk
+  and Nipkow, Tobias",
+  title="Infinite objects in type theory",
+  booktitle="Types for Proofs and Programs",
+  year="1994",
+  publisher="Springer Berlin Heidelberg",
+  address="Berlin, Heidelberg",
+  pages="62--78",
+  abstract="We show that infinite objects can be constructively understood without the consideration of partial elements, or greatest fixed-points, through the explicit consideration of proof objects. We present then a proof system based on these explanations. According to this analysis, the proof expressions should have the same structure as the program expressions of a pure functional lazy language: variable, constructor, application, abstraction, case expressions, and local let expressions.",
+  isbn="978-3-540-48440-0"
+}
+
+@inproceedings{BirkedalMogelbergEjlers:13,
+  author = {Birkedal, Lars and Mogelberg, Rasmus Ejlers},
+  title = {Intensional Type Theory with Guarded Recursive Types qua Fixed Points on Universes},
+  year = {2013},
+  isbn = {9780769550206},
+  publisher = {IEEE Computer Society},
+  address = {USA},
+  url = {https://doi.org/10.1109/LICS.2013.27},
+  doi = {10.1109/LICS.2013.27},
+  abstract = {Guarded recursive functions and types are useful for giving semantics to advanced programming languages and for higher-order programming with infinite data types, such as streams, e.g., for modeling reactive systems. We propose an extension of in tensional type theory with rules for forming fixed points of guarded recursive functions. Guarded recursive types can be formed simply by taking fixed points of guarded recursive functions on the universe of types. Moreover, we present a general model construction for constructing models of the in tensional type theory with guarded recursive functions and types. When applied to the groupoid model of in tensional type theory with the universe of small discrete groupoids, the construction gives a model of guarded recursion for which there is a one-to-one correspondence between fixed points of functions on the universe of types and fixed points of (suitable) operators on types. In particular, we find that the functor category ωop from the preordered set of natural numbers to the category of groupoids is a model of intensional type theory with guarded recursive types.},
+  booktitle = {Proceedings of the 2013 28th Annual ACM/IEEE Symposium on Logic in Computer Science},
+  pages = {213–222},
   numpages = {10},
-  keywords = {dependent types, denotational semantics, guarded recursion, categorical semantics, corecursion},
-  location = {Vienna, Austria},
-  series = {CSL-LICS '14}
+  series = {LICS '13}
 }

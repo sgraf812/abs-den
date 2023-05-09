@@ -43,7 +43,7 @@
 }
 \newenvironment{letarray}{\begin{array}{@{}l@{\hspace{1ex}}l}}{\end{array}}
 \newcommand{\noleftdelimiter}{\left.\kern-\nulldelimiterspace}
-\newcommand{\later}{\mathop{\raisebox{0.1em}{\scalebox{0.7}{$\blacktriangleright$}}}\!}
+\newcommand{\later}{\mathop{\blacktriangleright}}
 
 % Syntax
 %% LC
@@ -169,6 +169,7 @@
 \DeclareMathOperator*{\Lub}{\bigsqcup}
 \DeclareMathOperator*{\glb}{\sqcap}
 \DeclareMathOperator*{\Glb}{\bigsqcap}
+\newcommand{\fix}{\mathop\mathsf{fix}}
 \newcommand{\lfp}{\mathop\mathsf{lfp}}
 \newcommand{\gfp}{\mathop\mathsf{gfp}}
 
