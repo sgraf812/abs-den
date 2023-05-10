@@ -392,51 +392,63 @@ so $\semusg{σ_2} ⊑ F(\semusg{σ_1})$ relates fixpoints that are ``out of sync
 implying a need for fixpoint induction for every transition that touches
 the heap.
 
-(In call-by-need, there will be a fixpoint between the heap and stack due to
-update frames acting somewhat like heap bindings, so fixpoint induction needs to
-be applied \emph{at every case of the proof}, diminishing confidence in
-correctness unless the proof is fully mechanised.)
+In call-by-need, there will be a fixpoint between the heap and stack due to
+update frames acting like heap bindings whose right-hand side is under
+evaluation (a point that is very apparent in the contextual semantics of
+\citet{Ariola:95}), so fixpoint induction needs to be applied \emph{at every
+case of the proof}, diminishing confidence in correctness unless the proof is
+fully mechanised.
 
 For an analogy with type systems: What we just tried is like attempting a proof
 of preservation by referencing the result of an inference algorithm rather than
-the declarative type system. So what is often done instead (see the
-``well-annotatedness'' relation in \citep[Lemma 4.3]{cardinality-ext} or
-$\sim_V$ in \citep[Theorem 2.21]{Nielson:99}) is to define a declarative and
+the declarative type system. So what is often done instead is to define a declarative and
 more permissive \emph{correctness relation} $C(σ)$ to prove preservation $C(σ_1)
 \Longrightarrow C(σ_2)$ (\eg, that $C$ is \emph{logical} \wrt $\smallstep$).
 $C$ is chosen such that
   (1) it is strong enough to imply the property of interest (deadness)
   (2) it is weak enough that it is implied by the analysis result for an initial state ($\tr(\px) \not⊑ \semusg{\pe}_{\tr}$).
 
+Examples of this approach are the
+``well-annotatedness'' relation in \citep[Lemma 4.3]{cardinality-ext} or
+$\sim_V$ in \citep[Theorem 2.21]{Nielson:99}).
 We found it quite hard to come up with a suitable ad-hoc correctness relation
-and postpone discussion to \Cref{sec:abstractions} here, where the correctness
-relation and its proof is derived by abstract interpretation \citep{Cousot:21}.
+and postpone futher discussion to \Cref{sec:abstractions}, where the full
+correctness relation in \Cref{thm:semusg-correct-2} and its proof is derived by
+abstract interpretation~\citep{Cousot:21}.
 
-Conducting correctness proofs is a bit less dire for call-by-name and
-call-by-value calculi because their heap is immutable.
-Furthermore, if the operational event of variable lookup is unimportant,
-lambda-bound variables can be substituted immediately for their arguments during
-$β$-reduction rather than delaying lookup to the variable case, abolishing
-the need for any heap whatsoever.
+Often, correctness proofs do not need to keep track about which address
+is an activation of which let-bound program variable, in which case the
+distinction between addresses and variables is unnecessary and the
+environment component vanishes.
 The stack can often be reflected back into the premises of the judgment
 rules, so that the system distinguishes \emph{instruction transitions}
 from \emph{search transitions}, a distinction which is made explicit in a
 \emph{contextual semantics}.
-Such a contextual semantics also exists for call-by-need \citep{Ariola:95},
-although its complexity is comparatively mind-boggling and obscurs the
-operational event of variable lookup.
+Applying both these translations yields a CS machine~\citep{Felleisen:87}.
+For call-by-need, the evaluation context corresponding to an update frame
+is neither obvious nor simple~\citep{Ariola:95}.
+For effect-free call-by-value and call-by-name calculi, the heap becomes
+immutable and variables can be substituted immediately for their right-hand
+sides/arguments rather than delaying lookup to the variable case, abolishing the
+need for the heap altogether and yielding a contextual semantics where
+states are a simple expression.
+
 These refactorings are with the ultimate goal of simplifying proofs:
-Instead of defining an inductive well-formedness predicate on the heap, we prove
-a substitution lemma.
+Instead of defining an coinductive well-formedness predicate on the heap, we
+prove a substitution lemma.
 Instead of a well-formedness predicate for the stack, we appeal to the
 well-formedness of the search transition rule.
-\sg{Urgh, perhaps too much rambling. This was an important realisation to me,
-although I fear it doesn't really belong here.}
+
+\subsection{Abstracting Abstract Machines}
 
 Another way to work around the structure gap is to adopt the structure of the
 semantics in the analysis; this is done in the Abstracting Abstract
-Machines work \citep{aam}. To our knowledge, its exclusive application seems
-to be control-flow analysis \citep{Shivers:91}, so that the analyses and
-optimisations that follow do not need to reason about arbitrary function call
-structure and can apply traditional intraprocedural analysis techniques that are
-well-explored in the imperative world.
+Machines work \citep{aam}.
+To our knowledge, its exclusive application seems to be control-flow analysis
+\citep{Shivers:91}, so that the analyses and optimisations that follow do not
+need to reason about arbitrary function call structure and can apply traditional
+intraprocedural analysis techniques that are well-explored in the imperative
+world.
+Unfortunately, control-flow information is often invalidated during compiler
+passes and we would expect re-running or interleaving the analysis after or
+during each pass to be quite costly.

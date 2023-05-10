@@ -13,3 +13,8 @@
 % RHS. Since we will never return to the "eval site" of $f$, IMO this qualifies
 % as push/enter rather than eval/apply. Which is in contrast to what the Krivine
 % paper says, which dubs return states as "apply" transitions
+%
+% Mention how >>β= is similar to the bind operator on interaction trees and probably
+% corresponds to Moggi's monadic semantics.i
+% Traces are somewhat like the simpler monad `M e a = Good a | Bad e | Later |>(M e a)`
+% which combines the delay monad with the error monad

@@ -233,8 +233,8 @@ $\StateV$ would not be well-founded; a nuisance usually solved via restriction
 to continuous functions on Scott domains and solving the corresponding domain
 equation.
 
-Note that we will continue to use the notation $τ \cons τ'$ quite liberally to
-denote concatenation of traces. Doing so is unambiguous (because states are
+Note that we will continue to use the cons notation $τ \cons τ'$ quite liberally
+to denote concatenation of traces. Doing so is unambiguous (because states are
 distinct from traces) and well-defined via the following guarded fixpoint:
 \[
   \fix (f : \later (\STraces \to \STraces \to \STraces)).\ λ(τ : \STraces)~(τ' : \STraces).\ \begin{cases}
@@ -247,8 +247,8 @@ A similar productive definition can be given for $\betastep$, which is to be
 understood as yielding from the input trace $τ$ until it hits either end case of
 the trace.
 
-Intuitively, the heap lists the denotation of the expression at a particular
-address, while the environment passed to $\semst{\wild}$ assigns each
+Intuitively, the heap lists the denotation of the expression bound at a
+particular address, while the environment passed to $\semst{\wild}$ assigns each
 free variable $\px$ a $deref(\pa)$ action for the particular address that $\px$
 should be bound to.
 
@@ -301,7 +301,7 @@ A fresh address $\pa_1$ is allocated for variable $i$ and the heap is extended
 with $\semst{\Lam{x}{x}}_{ρ_1}$.
 It is interesting to realise that this process does not involve a fixpoint
 despite the recursive semantics of let.
-Of course the self-application in $deref$ does the job just as well, as we will
+Of course, the self-application in $deref$ does the job just as well, as we will
 see in due course.
 
 Evaluation recurses into the body $\semst{i~i}_{ρ_1}$ in the extended
