@@ -119,7 +119,7 @@ where the $\later$ ``effects'' happen; they should be easy to infer anyway.
   &
   \text{Environments}  & ρ   & ∈ & \Environments  & =      & \Var \pfun \later\StateD
   \\
-  \text{Controls}      & \pc & ∈ & \Controls      & ::=    & \pe \mid (\pv, v)
+  \text{Controls}      & \pc & ∈ & \Controls      & ::=    & \pe \mid (\lbl, v)
   &
   \text{Heaps}         & μ   & ∈ & \Heaps         & =      & \Addresses \pfun \later\StateD
   \\
@@ -157,9 +157,9 @@ where the $\later$ ``effects'' happen; they should be easy to infer anyway.
       τ & \text{otherwise} \\
     \end{cases} \\
   \\[-0.5em]
-  \mathit{ret}(\pv,v)(μ) & = & \goodend{((\pv,v),μ)} \\
+  \mathit{ret}(\lbl,v)(μ) & = & \goodend{((\lbl,v),μ)} \\
   \\[-0.5em]
-  \mathit{deref}(\pa)(μ) & = & μ(\pa)(μ) \betastep \fn{((\pv,v),μ)}{\goodend{((\pv,v),μ[\pa ↦ \mathit{ret}(\pv,v)])}} \\
+  \mathit{deref}(\pa)(μ) & = & μ(\pa)(μ) \betastep \fn{((\lbl,v),μ)}{\goodend{((\lbl,v),μ[\pa ↦ \mathit{ret}(\lbl,v)])}} \\
   \\[-0.5em]
   \mathit{apply}(τ,d) & = & τ \betastep \fn{((\wild,\FunV(f)),μ)}{f(d)(μ)} \\
   \\[-0.5em]
@@ -172,7 +172,7 @@ where the $\later$ ``effects'' happen; they should be easy to infer anyway.
     \stuckend{(\px,μ)} & \text{otherwise}
     \end{cases} \\
   \\[-0.5em]
-  \semst{\Lam{\px}{\pe}}_ρ & = & \mathit{ret}(\Lam{\px}{\pe},\FunV(\fn{d}{\semst{\pe}_{ρ[\px↦d]}})) \\
+  \semst{\slbl~\Lam{\px}{\pe}}_ρ & = & \mathit{ret}(\lbl,\FunV(\fn{d}{\semst{\pe}_{ρ[\px↦d]}})) \\
   \\[-0.5em]
   \semst{\pe~\px}_ρ(μ) & = & \begin{cases}
       (\pe~\px,μ) \cons \mathit{apply}(\semst{\pe}_ρ(μ),ρ(\px)) & \px ∈ \dom(ρ) \\
@@ -185,7 +185,7 @@ where the $\later$ ``effects'' happen; they should be easy to infer anyway.
     \text{in}  & (\Let{\px}{\pe_1}{\pe_2},μ) \cons \semst{\pe_2}_{ρ'}(μ') \\
   \end{letarray} \\
   \\[-0.5em]
-  \semst{K~\many{\px}}_ρ & = & \mathit{ret}(K~\many{\px},\ConV(K,\many{\semst{\px}_ρ})) \\
+  \semst{\slbl~K~\many{\px}}_ρ & = & \mathit{ret}(\lbl,\ConV(K,\many{\semst{\px}_ρ})) \\
   \\[-0.5em]
   \semst{\pe@(\Case{\pe_s}{\Sel[r]})}_ρ(μ) & = & (\pe,μ) \cons \mathit{select}(\semst{\pe_s}_ρ(μ),\many{\fn{\many{d}^{α_K}}{\semst{\pe_r}_{ρ[\many{\px↦d}]}}})  \\
  \end{array}
@@ -221,8 +221,8 @@ offering further abstraction possibilities compared to the rigid and indirect
 syntactic domain.
 The third difference is in control structure which explicitly signals the
 distinction between evaluation states and return states.
-In a return state $((\pv,v),μ)$, the syntactic value $\pv$ travels together with
-a \emph{semantic} value $v ∈ \StateV$.
+In a return state $((\lbl,v),μ)$, the syntactic value's label $\lbl$ travels
+together with a \emph{semantic} value $v ∈ \StateV$.
 Crucially, this allows the embedding of function values $\FunV(f)$ in the
 lambda case $\semst{\Lam{\px}{\pe}}$, enabling a compositional definition of the
 application case $\semst{\pe~\px}$, just as in $\semscott{\wild}$.
@@ -536,7 +536,7 @@ We will say that the transition rules $\LookupT$, $\AppIT$, $\CaseIT$ and $\Bind
 are interior, because the lifting into a trace is, whereas the returning
 transitions $\UpdateT$, $\AppET$ and $\CaseET$ are not.
 
-A balanced trace starting at a focus expression $\pe$ and ending with $(\pv,v)$
+A balanced trace starting at a focus expression $\pe$ and ending with $\pv$
 loosely corresponds to a derivation of $\pe \Downarrow \pv$ in a natural
 big-step semantics~\citep{Sestoft:97} or a non-$⊥$ result in a denotational
 semantics.
