@@ -27,8 +27,8 @@
 \newcommand{\ruleform}[1]{\fbox{$#1$}}
 \newcommand{\highlight}[1]{\setlength{\fboxsep}{2pt}\colorbox[gray]{0.8}{\ensuremath{#1}}}
 \newcommand{\nelems}[1]{\lvert#1\rvert}
-%\newcommand{\fn}[2]{\ensuremath{λ#1.\ #2}}
-\newcommand{\fn}[2]{#1 ↦ #2}
+\newcommand{\fn}[2]{\ensuremath{λ#1.\ #2}}
+%\newcommand{\fn}[2]{#1 ↦ #2}
 \newcommand{\constfn}[1]{\fn{\mathunderscore}{#1}}
 %\newcommand{\repeat}[2]{\foreach \n in {1,...,#1}{#2}} % https://tex.stackexchange.com/a/16190/52414
 % https://tex.stackexchange.com/a/21647
@@ -62,7 +62,7 @@
 \newcommand{\pe}{\mathsf{e}}
 \newcommand{\pc}{\mathsf{c}}
 \newcommand{\pp}{\dot{\mathsf{e}}}
-\newcommand{\Lam}[2]{\lambda #1. #2}
+\newcommand{\Lam}[2]{\mathbf{\bar{\lambdaup}} #1. #2}
 \newcommand{\LLam}[3]{\lambda_{#1} #2. #3}
 \newcommand{\Lit}[1]{\llparenthesis #1 \rrparenthesis}
 \newcommand{\Let}[3]{\mathbf{let}~{#1}={#2}~\mathbf{in}~{#3}}
