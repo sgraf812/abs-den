@@ -495,15 +495,21 @@ The \emph{source} state $σ_1$ exists for finite and infinite traces, while the
 An important kind of trace is one that never leaves the evaluation context of
 its source state:
 
-\begin{definition}[Interior and balanced traces]
+\begin{definition}[Deep, interior and balanced traces]
   An LK trace $(σ_i)_{i∈\overline{n}}$ is
-  \emph{interior} if every intermediate continuation
-  $κ_i = cont(σ_i)$ extends $κ_1$ (so $κ_i = κ_1$ or $κ_i = ... \pushF κ_1$,
-  abbreviated $κ_i = ...κ_1$).
+  \emph{$κ$-deep} if every intermediate continuation
+  $κ_i = cont(σ_i)$ extends $κ$ (so $κ_i = κ$ or $κ_i = ... \pushF κ$,
+  abbreviated $κ_i = ...κ$).
 
+  A trace $(σ_i)_{i∈\overline{n}}$ is called \emph{interior} if it is
+  $cont(σ_1)$-deep.
   Furthermore, an interior trace $(σ_i)_{i∈\overline{n}}$ is
   \emph{balanced}~\citep{Sestoft:97} if the target state exists and is a return
   state with continuation $κ_1$.
+
+  We notate $κ$-deep, interior and balanced traces as
+  $\deep{κ}{(σ_i)_{i∈\overline{n}}}$, $\interior{(σ_i)_{i∈\overline{n}}}$ and
+  $\balanced{(σ_i)_{i∈\overline{n}}}$, respectively.
 \end{definition}
 
 \begin{example}
@@ -519,18 +525,6 @@ its source state:
   \]
   is neither interior nor balanced.
 \end{example}
-
-%We will later use the following alternative characterisation of interior traces
-%in terms of the coinductive predicate $\deep{κ}{τ}$ from \Cref{fig:lk-traces}:
-%
-%\begin{lemma}
-%  An LK trace $τ$ is interior iff $\deep{κ}{τ}$, where $(κ,\wild,\wild,\wild) =
-%  src_\States(τ)$.
-%\end{lemma}
-%\begin{proof}
-%  The coinductive predicate is a constructive encoding of the informal
-%  definition of interior traces that ``inlines'' the well-formedness condition.
-%\end{proof}
 
 We will say that the transition rules $\LookupT$, $\AppIT$, $\CaseIT$ and $\BindT$
 are interior, because the lifting into a trace is, whereas the returning
@@ -599,7 +593,21 @@ A maximal trace that is not balanced either diverges or is stuck:
   is undefined and hence does not exist.
 \end{proof}
 
-\subsection{Specification}
+\subsection{Correctness predicate}
+
+\[\begin{array}{rcl}
+  α_\States(ρ) & = & deref \circ ρ \\
+  α_\States([\many{\pa ↦ (ρ,\pe)}]) & = & [\many{\pa ↦ \semst{\pe}_{α_\States(ρ)}}] \\
+  α_\States(\slbl~\Lam{\px}{\pe},ρ,μ,κ) & = & ((\lbl,\FunV(\fn{d}{\semst{\pe}_{α_\States(ρ)[\px↦d]}})),α_\States(μ)) \\
+  α_\States(\slbl~K~\overline{\px},ρ,μ,κ) & = & ((\lbl,\ConV(K,\overline{\semst{\px}_{α_\States(ρ)}})),α_\States(μ)) \\
+  α_\States(\pe,ρ,μ,κ) & = & (\pe,α_\States(μ)) \\
+  α_\States((σ_i)_{i∈\overline{n}},κ) & = & \begin{cases}
+    α_\States(σ_1) \cons α_\States((σ_(i-1))_{i∈\overline{n-1}},κ) & n > 1 \\
+    \goodend{α_\States(σ_1)} & \\
+    \stuckend{α_\States(σ_1)} & \\
+  \end{cases} \\
+\end{array}\]
+
 
 Our goal is to define a function $\semst{\pe}$ that produces maximal traces that
 start out having $\pe$ in control. But there are as many traces as there
