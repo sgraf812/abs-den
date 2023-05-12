@@ -547,7 +547,7 @@ is irrelevant to execution, so maximal traces that differ only in the initial
 stack are bisimilar.
 
 One class of maximal traces is of particular interest:
-The maximal trace starting in $inj(\pe)$ (or, rather whether it is infinite,
+The maximal trace starting in $\inj(\pe)$ (or, rather whether it is infinite,
 stuck or balanced) is the defining operational characteristic of $\pe$.
 
 If we can show that $\semst{\pe}$ associates similar meaning to $\pe$, we have
@@ -696,107 +696,12 @@ properties of LK traces are preserved by $α_\States$ and in which way.
   The stuck case is similar.
 \end{proof}
 
-%\begin{lemma}[S3]
-%  \label{thm:s3}
-%  If $σ ∈ \States_\pe$, then $\elabtrace{\semst{\pe}(σ)}$.
-%\end{lemma}
-%\begin{proof}
-%By coinduction, following~\citet{Czajka:2019}.
-%The coinduction hypothesis is:
-%\[
-%  P(α) = ∀σ,\pe.\ σ ∈ \States_\pe \Longrightarrow \elabtracen{α}{\semst{\pe}(σ)}
-%\]
-%Where $α$ is a limit ordinal smaller than or equal to the closure ordinal $ζ$,
-%$\ctrl(σ)$ selects the control of $σ$ and $\elabtracen{α}{τ}$ is the
-%$α$-approximant of the coinductive predicate $\elabtrace{τ}$.
-%
-%Let us assume that $\elabstate{σ}$ for an arbitrary $σ$ with control expression
-%$\pe$. Whenever $f(σ)$ is undefined for some $f$, we can see that
-%$step(f)(σ) = \goodend{σ}$ is well-elaborated. Furthermore, if both $g$ and $h$
-%yield well-elaborated traces given a well-elaborated input state, then
-%$g \sfcomp h$ does so, too.
-%
-%We abbreviate $τ \triangleq \semst{\pe}(σ)$ and proceed by case analysis over
-%$\pe$. We have $src_\States(τ) = σ$ by (S1) which is thus well-elaborated.
-%\begin{itemize}
-%  \item \textbf{Case $\px$}:
-%    Let us assume first that $look(\px)(σ)$ is undefined.
-%    Then $step(look(\px))(σ) = \goodend{σ}$.
-%    On the other hand, $step(upd)(σ) = \goodend{σ}$ because $upd$ is only defined on
-%    return states.
-%    Thus, $τ = \goodend{σ}$ and $\elabtracen{α+1}{τ}$.
-%
-%    When $look(\px)(σ)$ is defined, $σ$ must be of the form $(\px,ρ,μ,κ)$, and
-%    $\pa,\pe,ρ',d$ must exist as in the definition of $look$ (shadowing $\pe =
-%    \px$ from the assumption, for simplicity).
-%    Clearly, $σ' \triangleq (\pe, ρ', μ, \UpdateF(\pa) \pushF κ)$ is
-%    well-elaborated, because $σ$ is and the heap did not change.
-%    Similarly, by $\elabstate{σ}$ we have $d = \semst{\pe}$.
-%    Now we apply the coinduction hypothesis to $τ' = \semst{\pe}(σ')$
-%    (noting that $\semst{\pe}$ is well-defined on $σ'$) and see that
-%    $\elabtracen{α}{τ'}$, hence $\elabtracen{α+1}{(σ \cons τ')}$.
-%
-%    If $τ'$ is infinite, we are done.
-%    Otherwise, $σ_u \triangleq tgt_\States(τ')$ is well-elaborated and if
-%    $upd(σ_u)$ is undefined we are done, too, by our preceding considerations.
-%    If $σ_v \triangleq upd(σ_u)$, the $σ_u$ must have the form
-%    $((\pv,v),ρ,μ,\UpdateF(\pa) \pushF κ)$. We must show that
-%    $step(val(\pv,v)) = \semst{\pv}$ in order to show that $σ_v$ is
-%    well-elaborated.
-%    That is the case: well-elaboratedness of $σ_u$ implies that $v = \FunV(f)$
-%    for an $f$ just like that in the definition of $\semst{\pv}$.
-%    Since $τ'$ is finite, we have $\elabtracen{α+1}{(σ \cons τ' \cons \goodend{σ_v})}$ by
-%    reassociating the applications of the $\elabtrace{\wild}$ functional.
-%  \item \textbf{Case $\Lam{\px}{\pe}$}:
-%    The $\ValueT$ transition does not change the heap, but it transitions into a
-%    return state. We have established in the previous point that the semantic
-%    value $\FunV(f)$ fits our requirements for well-elaboratedness exactly,
-%    hence well-elaboratedness for the trace follows.
-%  \item \textbf{Case $\pe~\px$}:
-%    The $\AppIT$ transition preserves well-elaboratedness to its target state, so
-%    the input $σ'$ to $\semst{\pe}$ is well-elaborated. We apply the coinduction
-%    hypothesis and and have $\elabtracen{α+1}{(σ \cons \semst{\pe}(σ'))}$.
-%    (As before, if the resulting trace is infinite, we are done.)
-%    Forward composition preserves well-elaboratedness, hence it suffices to
-%    prove that given a well-elaborated input state $σ''$, $\apply(σ'')$ is
-%    well-elaborated.
-%    That is the case if the subterm $f(\pa)(σ'')$ produces a well-elaborated
-%    trace.
-%    By $\elabstate{σ''}$, we know that $f$ must come from the
-%    $\semst{\Lam{\px}{\pe'}}$ case.
-%    $\AppET$ preserves well-elaboratedness to its target state and for
-%    $\semst{\pe'}$ we can apply the coinductive hypothesis.
-%    Now we have $\elabtracen{α+1}{(σ \cons \semst{\pe}(σ'))}$ and
-%    $\elabtracen{α+1}{\apply(σ'')}$, so the same must hold for its concatenation.
-%  \item \textbf{Case $\Let{\px}{\pe_1}{\pe_2}$}:
-%    The $\BindT$ transition updates the heap, but it is clear that
-%    $bind(\semst{\pe_1})$ elaborates the correct $d_1$ into $σ'$.
-%    For the recursive call, we apply the coinduction hypothesis
-%    and conclude $\elabtracen{α+1}{(σ \cons \semst{\pe_2}(σ'))}$.
-%\end{itemize}
-%\end{proof}
-%
-%The preceding lemma implies a very desirable property:
-%Whenever $σ$ is well-elaborated (and thus a total element of the approximation
-%order), $\semst{\pe}(σ)$ is total, too.
-%The approximation order restricted to total elements is discrete; hence we may
-%now put domain theoretic considerations behind us in favor of a coinductive
-%understanding.
-%We can capture the termination properties of $\semst{\wild}$ as follows:
-%
-%\begin{corollary}
-%  The restriction of $\semst{\pe}$ to $\States_\pe$ is a total function, defined
-%  by \emph{guarded recursion}.
-%\end{corollary}
-%
-%\begin{lemma}
-%  \label{thm:step-interior}
-%  If $f(σ) = τ$ implies $σ \smallstep src_\States(τ)$ interior and
-%  $τ$ interior, then $step(f)(σ)$ interior.
-%\end{lemma}
-%\begin{proof}
-%  Immediate. The case where $f$ is undefined is trivial.
-%\end{proof}
+The previous lemma is interesting as it allows us to apply the classifying
+terminology of interior traces to a $τ$ that is an abstraction of a
+\emph{maximal} LK trace.
+For such a maximal $τ$ we will say that it is balanced when it ends with
+$\goodend{\wild}$, stuck if ending in $\stuckend{\wild}$ and diverging if
+infinite.
 
 With increased clarity, we go on to prove the correctness predicate:
 
@@ -844,151 +749,141 @@ We do so by cases over $\pe$, abbreviating $\tm \triangleq α_\Heaps(μ), \tr
     $\idiom{α_\STraces((σ_{i+1})_{i∈\overline{m}},\UpdateF(\pa) \pushF κ) = τ^{\later}}$.
 
     When $τ^{\later}$ is infinite, we are done. Similarly, if $τ^{\later}$ ends
-    in $\stuckend{\wild}$, $\betastep$ will return $τ^{\later}$; indicating
+    in $\stuckend{\wild}$ then $\betastep$ will return $τ^{\later}$ indicating
     by \Cref{thm:abs-length} and \Cref{thm:abs-max-trace} that
     $(σ_{i+1})_{i∈\overline{n-1}}$ is stuck and hence $(σ_i)_{i∈\overline{n}}$
     is, too.
 
-    When $τ^{\later}$ ends with $\goodend{\tilde{σ}}$, then by
-    \Cref{thm:abs-max-trace} $σ_{i+1})_{i∈\overline{m}}$ is balanced; hence
+    Otherwise $τ^{\later}$ ends with $\goodend{\tilde{σ}_m}$ and by
+    \Cref{thm:abs-max-trace} $(σ_{i+1})_{i∈\overline{m}}$ is balanced; hence
     $\cont(σ_m) = \UpdateF(\pa) \pushF κ$ and $\ctrl(σ_m)$ is a value.
-    The $\UpdateT$ transition fires and we end up in a state that must be
-    the final state $σ_n$, because it remains a return state and has
-    continuation $κ$, so $(σ_i)_{i∈\overline{n}}$ is balanced.
-    Likewise, $\tilde{σ}_m \triangleq α_\States(σ_m)$ is a return state, so
-    $\betastep$ calls its second argument which makes another step to update the heap.
+    So $σ_m = (\pv,ρ_m,μ_m,\UpdateF(\pa) \pushF κ)$ and the
+    $\UpdateT$ transition fires, reaching $(\pv,ρ_m,μ_m[\pa ↦ (ρ_m, \pv)],κ)$
+    and this must be the final state $σ_n$, because it remains a return state
+    and has continuation $κ$, so $(σ_i)_{i∈\overline{n}}$ is balanced.
+    Likewise, $\tilde{σ}_m \triangleq α_\States(σ_m) = ((\lbl,v),\tm_m)$ is the
+    state that $τ^{\later}$ ends in and is a return state, so $\betastep$ calls
+    its second argument which makes another step to the final state of $τ$,
+    updating the heap to
+    \[
+      \tilde{σ}_n \triangleq ((\lbl,v),\tm_m[\pa ↦ \idiom{\ret(\lbl,v)}]) = ((\lbl,v),\tm_m[\pa ↦ \idiom{\semst{\pv}_{α_\Environments(ρ_m)}}]) = α_\States(σ_n),
+    \]
+    and this equality concludes the proof.
 
-    If $upd(σ_u)$ is defined, then the $\UpdateT$ transition exists as can
-    easily be checked.
-    Furthermore, since exactly one frame is popped, we must have
-    $\cont(σ) = \cont(σ_v)$ and thus $\deepn{α+1}{\cont(σ)}{(σ \cons τ \cons \goodend{σ_v})}$ by slight
-    (corecursive) rearrangement of the proof for $\interiorn{α}{τ}$.
-    $σ_v$ is a return state and any further transition must pop a continuation
-    frame; hence $\maxtracen{α+1}{(σ \cons τ \cons \goodend{σ_v})}$.
-
-    If $upd(σ_u)$ is undefined, then the $\UpdateT$ transition could not have
-    fired. But the $\AppET$ transition can't have fired either, because if it
-    could, we'd have $\cont(σ_u) = \cont(σ')$ by $\maxtracen{α}{τ'}$, but the top
-    of $σ'$ is an update frame. Thus, again by maximality, there is no
-    transition $σ_u \smallstep σ_v$ whatsoever and $\maxtracen{α+1}{σ \cons τ'}$.
-
-  \item \textbf{Case $\Lam{\px}{\pe}$}:
-    If $val(v, \FunV(f))$ is defined, then $σ \smallstep{\ValueT} σ'$ must
-    exist. Furthermore, $σ \cons \goodend{σ'}$ is a maximal trace, as $σ'$ is a return
-    state and any applicable transition leaves $\cont(σ) = \cont(σ')$.
-
-    If $val(v, \FunV(f))$ is undefined, then $\ctrl(σ) \not= \Lam{\px}{\pe}$, a
-    contradiction.
   \item \textbf{Case $\pe~\px$}:
-    If $app_1(\pe~\px)$ is undefined, then either $\ctrl(σ) \not=\pe~\px$
-    (contradiction), or $ρ(\px)$ was undefined, in which case $\goodend{σ}$ is stuck
-    and thus maximal.
+    The cases where $τ$ gets stuck or diverges before finishing evaluation of
+    $\pe$ are similar to the variable case.
 
-    If $app_1(\pe~\px)$ is defined, then
-    $σ \smallstep{\AppIT} (σ' \triangleq (\pe,ρ,μ,\ApplyF(ρ(\px)) \pushF κ))$
-    and $τ_1 \triangleq \semst{\pe}(σ')$ with $\maxtracen{α}{τ_1}$.
+    So let us focus on the situation when $τ^{\later} \triangleq
+    \idiom{\semst{\pe'}_{\tr'}(\tm)}$ returns and let $σ_m$ be LK state at the
+    end of the finite maximal trace $(σ_{i+1})_{i∈\overline{m-1}}$ through $\pe$
+    starting in stack $\ApplyF(\pa) \pushF κ$.
+    Since it is maximal, any transition $σ_m \smallstep σ_{m+1}$ must leave
+    the stack $\ApplyF(\pa) \pushF κ$, necessarily by an $\AppET$ transition.
+    That in turn means that the value in $\ctrl(σ_m)$ must a lambda
+    $\Lam{\py}{\pe'}$, hence $τ^{\later}$ ends in $\goodend{\tilde{σ}_m}$,
+    where
+    $\tilde{σ}_m \triangleq (\lbl, \FunV(\fn{d}{\idiom{\semst{\pe'}_{\tr_m[\py ↦ d]}}}), \tm_m) = σ_\States(σ_m)$,
+    assuming that $\lbl$ is the label of the lambda and $\tr_m, \tm_m$ correspond
+    to $ρ_m,μ_m$ of $σ_m$ as usual.
 
-    Similar to the variable case, if $τ_\pe$ is infinite, $σ \cons τ_\pe$ is
-    diverging and we are done. Otherwise, we have $σ_a \triangleq
-    tgt_\States(τ_\pe)$ and either there is no transition $σ_a \smallstep σ_e$
-    or it leaves $\cont(σ')$, in which case we know $\cont(σ') = \cont(σ_a)$ and
-    that the transition must have been $\AppET$.
+    Now let $σ_{i+m})_{i∈\overline{k}}$ be the maximal trace starting at
+    $σ_{m+1}=(\pe',ρ_m[\py↦\pa], μ_m,κ)$.
+    We can apply the induction hypothesis to this LK trace and
+    $τ_2^{\later} \triangleq \idiom{\semst{\pe'}_{\tr_m}(\tm_m[\py↦\deref(\pa))}$
+    to get the equality
+    $\idiom{α_\STraces((σ_{i+m})_{i∈\overline{k}},κ) = τ_2^{\later}}$.
+    From this and our earlier equalities, we get
+    $α_\STraces((σ_i)_{i∈\overline{n}},κ) = τ$, concluding the proof.
 
-    When the $\AppET$ transition exists, the first case of $\apply(σ_a)$ matches.
-    With $\elabstate{σ}$, we know that $f$ is defined just like in
-    $\semst{\Lam{\px'}{\pe'}}$, where $\ctrl(σ_a) = (\Lam{\px'}{\pe'}, \FunV(f))$.
-    Similar to the variable case, we can see that
-    $app_2$ matches and that $\maxtracen{α+1}{σ \cons τ_1 \cons \goodend{σ_e}}$, because
-    $\cont(σ_e) = \cont(σ)$. By the coinductive hypothesis,
-    $\maxtracen{α}{(τ_2 \triangleq \semst{\pe'}(σ_e))}$. By $\cont(σ_e) = \cont(σ)$
-    and rearrangement we can see that $\interiorn{α+1}{σ \cons τ_1 \cons σ_e \cons τ_2}$ and
-    maximality follows directly from maximality of $τ_2$.
+  \item \textbf{Case $\Case{\pe_s}{\Sel[r]}$}:
+    Similar to the application and lookup case.
 
-    When the $\AppET$ transition does not exist, no other transition from $σ_a$
-    does. Then the first case of $\apply$ could not match, because the only
-    syntactic values $\pv$ are lambdas and $\elabstate{σ_a}$ requires that
-    $\FunV(f)$ matches accordingly.
-    Thus, $σ \cons τ_1$ is the final, maximal trace.
+  \item \textbf{Cases $\Lam{\px}{\pe}$, $K~\many{\px}$}:
+    The length of both traces is $n = 1$ and the goal follows by simple calculation.
 
   \item \textbf{Case $\Let{\px}{\pe_1}{\pe_2}$}:
-    The $σ \smallstep{\BindT} σ'$ transition (which always exists for our choice
-    of $σ$) does not push a new stack frame, hence $\cont(σ) = \cont(σ')$ and
-    from the coinductive hypothesis $\maxtracen{α}{\semst{\pe_2}(σ')}$ we can
-    immediately see $\maxtracen{α+1}{σ \cons \semst{\pe_2}(σ')}$.
+    The equality on the source states holds as in the other cases.
+    Let $σ_1 = (\Let{\px}{\pe_1}{\pe_2},ρ_1,μ_1,κ)$.
+    Then $σ_2 = (\pe_2, ρ_2, μ_2,κ)$ by $\BindT$, where $ρ_2 = ρ_1[\px↦\pa], μ_2
+    = μ_1[\pa↦(ρ_2,\pe_1)]$.
+    Since the stack does not grow, maximality from $σ_{i+1})_{i∈\overline{n-1}}$
+    must be maximal, too.
+    Straightforward application of the induction hypothesis to
+    $σ_{i+1})_{i∈\overline{n-1}}$ yields the equality for the tail (after a bit
+    of calculation for the updated environment and heap), which concludes the
+    proof.
 \end{itemize}
 \end{proof}
 
-\Cref{thm:s2} is the key to proving a strong version of adequacy for
-$\semst{\wild}$:
+\Cref{thm:semst-correct} and \Cref{thm:abs-max-trace} are the key to proving a
+strong version of adequacy for $\semst{\wild}$:
 
 \begin{lemma}[Adequacy of $\semst{\wild}$]
-  Let $τ = \semst{\pe}(inj(\pe))$.
+  Let $τ = \semst{\pe}_{[]}([])$.
   \begin{itemize}
     \item
-      $τ$ is balanced iff there exists a final state $σ$ such that
-      $inj(\pe) \smallstep^* σ$.
+      $τ$ ends with $\goodend{\wild}$ (is balanced) iff there exists a final
+      $state $σ$ such that \inj(\pe) \smallstep^* σ$.
     \item
-      $τ$ is stuck iff there exists a non-final state $σ$ such that
-      $inj(\pe) \smallstep^* σ$ and there exists no $σ'$ such that $σ \smallstep
-      σ'$.
+      $τ$ ends with $\stuckend{\wild}$ (is stuck) iff there exists a non-final
+      state $σ$ such that $\inj(\pe) \smallstep^* σ$ and there exists no $σ'$
+      such that $σ \smallstep σ'$.
     \item
-      $τ$ is diverging iff for all $σ$ with $inj(\pe) \smallstep^* σ$ there
-      exists $σ'$ with $σ \smallstep σ'$.
+      $τ$ is infinite (is diverging) iff for all $σ$ with $\inj(\pe)
+      \smallstep^* σ$ there exists $σ'$ with $σ \smallstep σ'$.
   \end{itemize}
 \end{lemma}
 \begin{proof}
-  Note that $\maxtrace{τ}$ since $inj(\pe) ∈ \States_\pe$
-  and the initial state $inj(\pe) = src_\States(τ)$ has an empty continuation.
-
-  Clearly, the trace $τ'$ determined by a $σ$ such that $inj(\pe)
-  \smallstep^* σ$ is an interior trace. Since $(\smallstep)$ is
-  deterministic, it must be a prefix of the maximally interior trace $τ$.
-
+  There exists a maximal trace $(σ_i)_{i∈\overline{n}}$ starting
+  from $σ_1 = \inj(\pe)$, and by \Cref{thm:semst-correct} we have
+  $α_\STraces((σ_i)_{i∈\overline{n}},\StopF) = τ$.
   \begin{itemize}
     \item[$\Rightarrow$]
       \begin{itemize}
         \item
-          If $τ$ is balanced, its target state $σ \triangleq tgt_\States(τ)$
-          is a return state that must also have the empty continuation. Hence
-          it is a final state and there exists $inj(\pe) \smallstep^* σ$ by
-          $\validtrace{τ}$.
+          If $(σ_i)_{i∈\overline{n}}$ is balanced, its target state $σ_n$
+          is a return state that must also have the empty continuation, hence it
+          is a final state.
         \item
-          If $τ$ is stuck, it is finite and maximal, but not balanced, so its
-          target state $σ \triangleq tgt_\States(τ)$ cannot be a return state;
-          otherwise maximality implies $σ$ has an (initial) empty continuation
-          and the trace would be balanced. on the other hand, the only two
-          returning transitions apply to return states, so maximality implies
-          there is no $σ'$ such that $σ \smallstep σ'$ whatsoever.
+          If $(σ_i)_{i∈\overline{n}}$ is stuck, it is finite and maximal, but not balanced, so its
+          target state $σ_n$ cannot be a return state;
+          otherwise maximality implies $σ_n$ has an (initial) empty continuation
+          and the trace would be balanced. On the other hand, the only returning
+          transitions apply to return states, so maximality implies there is no
+          $σ'$ such that $σ \smallstep σ'$ whatsoever.
         \item
-          If $τ$ is diverging it is infinite and for every $σ$ with $inj(\pe)
-          \smallstep^* σ$ determinism allows us to trace a finite prefix of
-          $τ$, and there always exists $σ'$ such that $σ \smallstep σ'$ since
-          $\validtrace{τ}$.
+          If $(σ_i)_{i∈\overline{n}}$ is diverging, $n=ω$ and for every $σ$ with
+          $\inj(\pe) \smallstep^* σ$ there exists an $i$ such that $σ = σ_i$ by
+          determinism.
       \end{itemize}
 
     \item[$\Leftarrow$]
       \begin{itemize}
         \item
-          If $σ$ is a final state, it has $\cont(σ) = \cont(inj(\pe)) = []$, so it
-          is balanced.
+          If $σ_n$ is a final state, it has $\cont(σ) = \cont(\inj(\pe)) = []$,
+          so the trace is balanced.
         \item
           If $σ$ is not a final state, $τ'$ is not balanced. Since there is no
           $σ'$ such that $σ \smallstep^* σ'$, it is still maximal; hence it must
           be stuck.
         \item
-          If for every choice of $σ$ (and thus $τ'$) there exists $σ'$ such that
-          $σ \smallstep σ'$, there must be an infinite number of such $τ'$, all
-          of which are prefixes of $τ$. Hence $τ$ must be infinite and interior,
-          hence diverging.
+          Suppose that $n∈ℕ_ω$ was finite.
+          Then, if for every choice of $σ$ there exists $σ'$ such that $σ
+          \smallstep σ'$, then there must be $σ_{n+1}$ with $σ_n \smallstep
+          σ_{n+1}$, violating maximality of the trace.
+          Hence it must be infinite.
+          It is also interior, because every stack extends the empty stack,
+          hence it is diverging.
       \end{itemize}
   \end{itemize}
 \end{proof}
 
-But there's more. Let us define the following binary relation $\equiv_\States$
-by coinduction:
-\[
-\]
-
+%But there's more. Let us define the following binary relation $\equiv_\States$
+%by coinduction:
+%\[
+%\]
+%
 % \begin{theorem}[Full abstraction]
 %   \label{thm:full-abstraction}
 %  The restriction $S = \fn{\pe}{\semst{\pe}\restrict{\States_\pe}}$ is
