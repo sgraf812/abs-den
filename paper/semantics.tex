@@ -25,13 +25,13 @@ a small-step transition system closest to the lazy Krivine machine
 \citep{AgerDanvyMidtgaard:04} for Launchbury's language.
 It is worth having a second look at the workings of our Gold Standard.
 
-When the control expression $ctrl(σ)$ of a state $σ$ is a value $\pv$, we
-call $σ$ a \emph{return} state and say that the continuation $cont(σ)$ drives
+When the control expression $\mathit{ctrl}(σ)$ of a state $σ$ is a value $\pv$, we
+call $σ$ a \emph{return} state and say that the continuation $\mathit{cont}(σ)$ drives
 evaluation.
-Otherwise, $σ$ is an \emph{evaluation} state and $ctrl(σ)$ drives evaluation.
+Otherwise, $σ$ is an \emph{evaluation} state and $\mathit{ctrl}(σ)$ drives evaluation.
 The entries in the heap $μ$ are \emph{closures} of the form $(ρ,e)$, where the
 environment $ρ$ closes over the expression $e$.
-Finally, the $cont(σ)$ lists actions to be taken in a return state, such as
+Finally, the $\mathit{cont}(σ)$ lists actions to be taken in a return state, such as
 applying the result to an argument address or updating a heap entry with its
 value.
 
@@ -106,10 +106,12 @@ functor~\citep{McBridePaterson:08} via functions
 \[
   \purelater : \forall A.\ A \to \later A \qquad \wild \aplater \wild : \forall A,B.\ \later (A \to B) \to \later A \to \later B,
 \]
-allowing us to apply a familar framework of reasoning around $\later$.
-In order not to obscure our work with pointless symbol pushing, we will omit
-the idiom brackets that would be necessary in a mechanised form to indicate
-where the $\later$ ``effects'' happen; they should be easy to infer anyway.
+allowing us to apply a familiar framework of reasoning around $\later$.
+In order not to obscure our work with pointless symbol pushing
+in, \eg, \Cref{fig:semst}, we will often omit the idiom
+brackets~\citep{McBridePaterson:08} $\idiom{}$ that would be necessary in a
+mechanised form to indicate where the $\later$ ``effects'' happen; they should
+be easy to infer anyway.
 \sg{Perhaps we should add the elaborated version in the Appendix.}
 
 \begin{figure}
@@ -172,7 +174,7 @@ where the $\later$ ``effects'' happen; they should be easy to infer anyway.
     \stuckend{(\px,μ)} & \text{otherwise}
     \end{cases} \\
   \\[-0.5em]
-  \semst{\slbl~\Lam{\px}{\pe}}_ρ & = & \mathit{ret}(\lbl,\FunV(\fn{d}{\semst{\pe}_{ρ[\px↦d]}})) \\
+  \semst{\slbl \Lam{\px}{\pe}}_ρ & = & \mathit{ret}(\lbl,\FunV(\fn{d}{\semst{\pe}_{ρ[\px↦d]}})) \\
   \\[-0.5em]
   \semst{\pe~\px}_ρ(μ) & = & \begin{cases}
       (\pe~\px,μ) \cons \mathit{apply}(\semst{\pe}_ρ(μ),ρ(\px)) & \px ∈ \dom(ρ) \\
@@ -185,7 +187,7 @@ where the $\later$ ``effects'' happen; they should be easy to infer anyway.
     \text{in}  & (\Let{\px}{\pe_1}{\pe_2},μ) \cons \semst{\pe_2}_{ρ'}(μ') \\
   \end{letarray} \\
   \\[-0.5em]
-  \semst{\slbl~K~\many{\px}}_ρ & = & \mathit{ret}(\lbl,\ConV(K,\many{\semst{\px}_ρ})) \\
+  \semst{\slbl K~\many{\px}}_ρ & = & \mathit{ret}(\lbl,\ConV(K,\many{\semst{\px}_ρ})) \\
   \\[-0.5em]
   \semst{\pe@(\Case{\pe_s}{\Sel[r]})}_ρ(μ) & = & (\pe,μ) \cons \mathit{select}(\semst{\pe_s}_ρ(μ),\many{\fn{\many{d}^{α_K}}{\semst{\pe_r}_{ρ[\many{\px↦d}]}}})  \\
  \end{array}
@@ -416,60 +418,8 @@ stack (through potential $\UpdateT$ transitions, in particular), similar to
 Diverging traces hold no new surprises, other than they are observably different
 to stuck traces.
 
-%\begin{figure}
-%\[\begin{array}{c}
-% \begin{array}{rrclcl}
-%  \text{LK traces}                    & τ      & ∈          & \STraces & ::=_{\gfp} & \goodend{σ} \mid σ \cons τ \\
-% \end{array} \qquad
-% \begin{array}{c}
-%  \ruleform{ \validtrace{τ} \quad \deep{κ}{τ}} \\
-%  \\[-0.5em]
-%  \mprset{fraction={===}}
-%  \inferrule*
-%    {\quad}
-%    {\validtrace{\goodend{σ}}}
-%  \quad
-%  \inferrule*
-%    {σ \smallstep src_\States(τ) \quad \validtrace{τ}}
-%    {\validtrace{(σ \cons τ)}} \\
-% \end{array} \\
-% \begin{array}{c} \\
-% \mprset{fraction={===}}
-% \inferrule*
-%   {cont(σ) = ...κ}
-%   {\deep{κ}{\goodend{σ}}}
-% \quad
-% \inferrule*
-%   {cont(σ) = ... κ \quad σ \smallstep src_\States(τ) \quad \deep{κ}{τ}}
-%   {\deep{κ}{(σ \cons τ)}}
-% \end{array} \\
-% \\
-% \begin{array}{rcl}
-%  \multicolumn{3}{c}{ \ruleform{ src_\States(τ) = σ \qquad tgt_\States(τ) = σ } } \\
-%  \\[-0.5em]
-%  src_\States(\goodend{σ})    & = & σ \\
-%  src_\States(σ \cons τ) & = & σ \\
-%  \\[-0.5em]
-%  tgt_\States(τ)    & = & \begin{cases}
-%    undefined & \text{if $τ$ infinite} \\
-%    σ         & \text{if $τ = ... \cons \goodend{σ}$}
-%  \end{cases} \\
-% \end{array} \quad
-% \begin{array}{c}
-%  \ruleform{ τ_1 \sconcat τ_2 = τ_3 } \\
-%  \\[-0.5em]
-%  τ_1 \sconcat τ_2 = \begin{cases}
-%    σ \cons (τ_1' \sconcat τ_2) & \text{if $τ_1 = σ \cons τ_1'$} \\
-%    τ_2                    & \text{if $τ_1 = \goodend{σ}$ and $src_\States(τ_2) = σ$} \\
-%    undefined              & \text{if $τ_1 = \goodend{σ}$ and $src_\States(τ_2) \not= σ$} \\
-%  \end{cases} \\
-% \end{array} \\
-%\end{array}\]
-%\caption{LK traces}
-%  \label{fig:lk-traces}
-%\end{figure}
-
 \subsection{Maximal LK Traces}
+\label{sec:maximal-traces}
 
 It turns out that the traces $\semst{\pe}$ generates correspond to
 \emph{maximal} traces in the LK transition system.
@@ -478,19 +428,22 @@ Let us make precise what that means.
 A transition system is characterised by the set of \emph{traces} it generates.
 An \emph{LK trace} is a trace in $(\smallstep)$, \eg, a non-empty and
 potentially infinite sequence of LK states $(σ_i)_{i∈\overline{n}}$
-(where $\overline{n} = \{ m ∈ ℕ_+ \mid m ≤ n \}, \overline{ω} = ℕ_+ $),
+(where $\overline{n} = \{ m ∈ ℕ_+ \mid m ≤ n \}$ when $n∈ℕ_+$, $\overline{ω} = ℕ_+$),
 such that $σ_i \smallstep σ_{i+1}$ for $i,(i+1)∈\overline{n}$.
-%\Cref{fig:lk-traces} gives a (coinductive) definition of such a trace type
-%$\STraces$ which is to be understood as the greatest fixed-point of the
-%functional $F(X) = \States + (\States \times X)$.
-%This is isomorphic to the definition as a sequence, hence we will freely
-%switch between notations for $τ$, in particular to index its states.
 
 The \emph{source} state $σ_1$ exists for finite and infinite traces, while the
 \emph{target} state $σ_n$ is only defined when $n \not= ω$ is finite.
-%The expression $τ_1 \sconcat τ_2$ denotes the concatenation of two traces; it is
-%simply $τ_1$ when $τ_1$ is infinite and undefined when the target state of $τ_1$
-%does not coincide with the source state of $τ_2$.
+
+For proofs, we will often regard $(σ_i)_{i∈\overline{n}}$ as an object of type
+$∃n∈ℕ_ω.\ \overline{n} \to \States$, where $ℕ_ω$ is defined by guarded recursion
+as $ℕ_ω = \{1\} + \later ℕ_ω$.
+The constructor for the right sum alternative is written $1 + $ (a different
+kind of $+$ than in the recursive equation for $ℕ_ω$).
+Now $ℕ_ω$ contains all natural numbers (where $n$ is encoded as $(1+)^{n-1}(1)$) and
+the transfinite limit ordinal $ω = 1 + (1 + ...)$.
+Hence, when $(σ_i)_{i∈\overline{n}} ∈ \STraces$ is an LK trace and $n > 1$, then
+$(σ_{i+1})_{i∈\overline{n-1}} ∈ \later \STraces$ is the guarded tail of the
+trace with an associated induction principle.
 
 An important kind of trace is one that never leaves the evaluation context of
 its source state:
@@ -498,11 +451,11 @@ its source state:
 \begin{definition}[Deep, interior and balanced traces]
   An LK trace $(σ_i)_{i∈\overline{n}}$ is
   \emph{$κ$-deep} if every intermediate continuation
-  $κ_i = cont(σ_i)$ extends $κ$ (so $κ_i = κ$ or $κ_i = ... \pushF κ$,
+  $κ_i = \mathit{cont}(σ_i)$ extends $κ$ (so $κ_i = κ$ or $κ_i = ... \pushF κ$,
   abbreviated $κ_i = ...κ$).
 
   A trace $(σ_i)_{i∈\overline{n}}$ is called \emph{interior} if it is
-  $cont(σ_1)$-deep.
+  $\mathit{cont}(σ_1)$-deep.
   Furthermore, an interior trace $(σ_i)_{i∈\overline{n}}$ is
   \emph{balanced}~\citep{Sestoft:97} if the target state exists and is a return
   state with continuation $κ_1$.
@@ -545,14 +498,10 @@ semantics shows finesse, in that it differentiates two different kinds of
   interior.
   More formally (and without a negative occurrence of ``interior''),
   \[
-    \maxtrace{(σ_i)_{i∈\overline{n}}} \triangleq \interior{(σ_i)_{i∈\overline{n}}} \wedge (\not\exists σ_{n+1}.\ σ_n \smallstep σ_{n+1} \wedge cont(σ_{n+1}) = ...cont(σ_1))
+    \maxtrace{(σ_i)_{i∈\overline{n}}} \triangleq \interior{(σ_i)_{i∈\overline{n}}} \wedge (\not\exists σ_{n+1}.\ σ_n \smallstep σ_{n+1} \wedge \mathit{cont}(σ_{n+1}) = ...\mathit{cont}(σ_1))
   \]
   We notate maximal traces as $\maxtrace{(σ_i)_{i∈\overline{n}}}$.
 \end{definition}
-
-For call-by-value semantics there exists a maximal trace for every
-expression~\citep[Lemma 10]{LeroyGrall:09}; it is not difficult to see that the
-same holds for the LK transition semantics.
 
 We call infinite and interior traces \emph{diverging}.
 A maximally finite, but unbalanced trace is called \emph{stuck}.
@@ -593,391 +542,275 @@ A maximal trace that is not balanced either diverges or is stuck:
   is undefined and hence does not exist.
 \end{proof}
 
-\subsection{Correctness predicate}
+Interiority guarantees that the particular initial stack $κ$ of a maximal trace
+is irrelevant to execution, so maximal traces that differ only in the initial
+stack are bisimilar.
 
-\[\begin{array}{rcl}
-  α_\States(ρ) & = & deref \circ ρ \\
-  α_\States([\many{\pa ↦ (ρ,\pe)}]) & = & [\many{\pa ↦ \semst{\pe}_{α_\States(ρ)}}] \\
-  α_\States(\slbl~\Lam{\px}{\pe},ρ,μ,κ) & = & ((\lbl,\FunV(\fn{d}{\semst{\pe}_{α_\States(ρ)[\px↦d]}})),α_\States(μ)) \\
-  α_\States(\slbl~K~\overline{\px},ρ,μ,κ) & = & ((\lbl,\ConV(K,\overline{\semst{\px}_{α_\States(ρ)}})),α_\States(μ)) \\
-  α_\States(\pe,ρ,μ,κ) & = & (\pe,α_\States(μ)) \\
-  α_\States((σ_i)_{i∈\overline{n}},κ) & = & \begin{cases}
-    α_\States(σ_1) \cons α_\States((σ_(i-1))_{i∈\overline{n-1}},κ) & n > 1 \\
-    \goodend{α_\States(σ_1)} & \\
-    \stuckend{α_\States(σ_1)} & \\
-  \end{cases} \\
-\end{array}\]
+One class of maximal traces is of particular interest:
+The maximal trace starting in $inj(\pe)$ (or, rather whether it is infinite,
+stuck or balanced) is the defining operational characteristic of $\pe$.
 
+If we can show that $\semst{\pe}$ associates similar meaning to $\pe$, we have
+proven it an adequate replacement for the LK transition system.
 
-Our goal is to define a function $\semst{\pe}$ that produces maximal traces that
-start out having $\pe$ in control. But there are as many traces as there
-are states that have $\pe$ in control, each corresponding to the different
-evaluation contexts in which $\pe$ might occur. Hence it makes sense to tell
-$\semst{\pe}$ the particular source state $σ$ for which we wish to generate a
-trace, leading to functionality $\semst{\pe} ∈ \States → \STraces$.
+\subsection{Adequacy}
 
-We will call $\semst{\pe}$ the \emph{denotation} of $\pe$ (a term that is
-justified when we flesh out its properties relative to $\pe$) and abbreviate
-the set of denotations to $\StateD$, as in \Cref{fig:lk-domain}.
-$\StateD$ is used as the instantiation for parameter $D$ for our elaborated
-semantics.
-Likewise, we instantiate $V$ to a semantic representation of values
-$\StateV$.
-The keen reader may note immediately that $\StateD$ is not well-defined because
-of a recursive occurrence in negative position (through $\States \to \Heaps \to
-\StateD$); we discuss the necessary domain theory in \Cref{sec:domain-theory}
-and focus on its application here.
-
-So far we have collected the following two requirements for $τ = \semst{\pe}(σ)$:
-The source state of $τ$ should be $σ$ again and $τ$ should be a maximal trace.
-That is enough to begin ``calculating'' an elaborated trace with $\semst{\wild}$:
-\[
-  \semst{\Lam{x}{x}}(\Lam{x}{x}, ρ, μ, κ) = (\Lam{x}{x}, ρ, μ, κ) \cons ((\Lam{x}{x},\FunV(f)), ρ, μ, κ)\trend
-\]
-This undoubtedly is a maximal trace because it is balanced.
-But what is $f$ supposed to do?
-Like function values in denotational semantics, $f$ \emph{reflects} beta
-reduction of the transition system into the meta language of Scott domains.
-Thus the $f$ here is meant to guide the $\AppET$ rule.
-The following required equation captures this intuition:
-\[
-  f(\pa)((\Lam{x}{x},\FunV(f)), ρ, μ, \ApplyF(\pa) \pushF κ) = ((\Lam{x}{x},\FunV(f)), ρ, μ, \ApplyF(\pa) \pushF κ) \cons \semst{x}(x, ρ[x ↦ \pa], μ, κ)
-\]
-This equation only specifies $f$'s behavior when the argument address on the
-stack matches that of $f$'s first argument.
-The free variables $\pa,ρ,μ,κ$ of this equation are intended to be universally
-quantified; that is, it matches all states where the lambda expression is
-applied.
-Note also that $f$ closes over the semantics of the sub-program $\semst{x}$.
-This is possible only thanks to the ability of Scott domains to turn the
-``code'' (\eg, continuous functions) for the recursive invocation into ``data'',
-and it is what ultimately enables a structural definition!
-
-In general, semantic values pop exactly one frame from the stack and then produce
-another balanced trace of the redex. This statement extends to other kinds of
-values such as data constructors, as we shall see in \cref{ssec:adts}.
-
-So not only do we require $\semst{\wild}$ to return maximal traces, we also pose
-requirements on how these traces are elaborated. We have seen the requirement
-on function values, and of course there is a similar requirement on the $d$
-stored in a heap entry $(\pe, ρ, d)$: We require that $d = \semst{\pe}$.
-
-The elaboration requirements can be summarised by the following predicate on
-states and extends in the usual way to traces:
-
-\begin{definition}[Well-elaborated]
-  We say that a state $σ$ is \emph{well-elaborated} if
-  \begin{itemize}
-    \item For every heap entry $(\pe, ρ, d) ∈ \rng(μ)$, where $μ$ is the heap of
-          $σ$, we have $d=\semst{\pe}$.
-    \item If $σ$ is a return state with control $(\Lam{\px}{\pe}, \FunV(f))$,
-          then for any state $σ'$ of the form \\
-          $((\Lam{\px}{\pe}, \FunV(f)), ρ, μ, \ApplyF(\pa) \pushF κ)$,
-          we have
-          $f(\pa)(σ') = σ' \cons \semst{\pe}(\pe, ρ[\px ↦ \pa], μ, κ)$
-          and $f(\pa)(σ') = σ'\trend$ everywhere else.
-  \end{itemize}
-  We notate well-elaborated states as $\elabstate{σ}$ and well-elaborated traces
-  as $\elabtrace{τ}$ (defined coinductively over the states in $τ$).
-\end{definition}
-
-Note that the initial configurations $inj(\pe)$ are well-elaborated, because
-they are never return states and their heap is empty.
-Whenever $\semst{\wild}$ is given a well-elaborated state, the trace it produces
-should be well-elaborated.
-
-We conclude with the following specification:
-
-\begin{definition}[Specification of $\semst{\wild}$]
-\label{defn:semst-spec}
-Let $σ$ be a well-elaborated state and $\pe$ its control expression. Then
-\begin{itemize}
-  \item[(S1)] $σ$ is the source state of the trace $\semst{\pe}(σ)$.
-  \item[(S2)] $\maxtrace{\semst{\pe}(σ)}$
-  \item[(S3)] $\elabtrace{\semst{\pe}(σ)}$
-\end{itemize}
-\end{definition}
+\Cref{fig:semst-correctness} shows the correctness predicate $\mathcal{C}$ in
+our endeavour to prove $\semst{\wild}$ adequate.
+It builds on the framework of maximal LK traces established in the last section;
+specifically it encodes that an abstraction of every maximal LK trace can be
+recovered by running $\semst{\wild}$ starting from the abstraction of an initial
+state.
 
 \begin{figure}
-\[\begin{array}{c}
- \begin{array}{rcl}
-  \multicolumn{3}{c}{ \ruleform{ \semst{\wild} \colon \Exp → \StateD } } \\
-  \\[-0.5em]
-  \ternary{b}{t}{e} & = & \begin{cases} t & \text{if $b$ is true} \\ e & \text{otherwise} \\ \end{cases} \\
-  \\[-0.5em]
-  (d_1 \sfcomp d_2)(σ) & = & \ternary{d_1(σ) = \goodend{σ}}{\goodend{σ}}{d_1(σ) \sconcat d_2(tgt_\States(d_1(σ)))} \\
-  \\[-0.5em]
-  step(f)(σ) & = & \ternary{σ ∈ \dom(f)}{σ \cons f(σ)}{\goodend{σ}} \\
-  \\[-0.5em]
-  val(\pv,v)(\pv,ρ,μ,κ) & = & ((\pv,v),ρ,μ,κ) \trend \\
-  \\[-0.5em]
-  look(\px)(\px,ρ,μ,κ) & = &
-    \begin{letarray}
-      \text{let} & \pa = ρ(\px) \\
-                 & (\pe,ρ',d) = μ(\pa) \\
-      \text{in}  & d(\pe,ρ',μ,\UpdateF(\pa) \pushF κ) \\
-    \end{letarray} \\
-  \\[-0.5em]
-  upd((\pv,v),ρ,μ,\UpdateF(\pa) \pushF κ) & = & ((\pv,v),ρ,μ[\pa ↦ (\pv,ρ,step(val(\pv,v)))], κ)\trend \\
-  \\[-0.5em]
-  app_1(\pe~\px)(\pe~\px,ρ,μ,κ) & = & (\pe,ρ,μ,\ApplyF(ρ(\px)) \pushF κ)\trend \\
-  \\[-0.5em]
-  app_2(\Lam{\px}{\pe},\pa)((\Lam{\px}{\pe},\FunV(\wild)),ρ,μ, \ApplyF(\pa) \pushF κ) & = & (\pe,ρ[\px ↦ \pa],μ,κ) \trend \\
-  \\[-0.5em]
-  bind(d_1)(\Let{\px}{\pe_1}{\pe_2},ρ,μ,κ) & = &
-    \begin{letarray}
-      \text{let} & ρ' = ρ[\px ↦ \pa] \quad \text{where $\pa \not∈ \dom(μ)$} \\
-      \text{in}  & (\pe_2,ρ',μ[\pa ↦ (\pe_1, ρ', d_1)],κ)\trend \\
-    \end{letarray} \\
-  \\[-0.5em]
-  \mathit{apply}(σ) & = & \begin{cases}
-    f(\pa)(σ) & \text{if $σ=((\pv,\FunV(f)),\wild,\wild,\ApplyF(\pa) \pushF \wild)$} \\
-    σ \trend & \text{otherwise} \\
+\[\begin{array}{rcl}
+  α_\Environments(ρ) & = & \mathit{deref} \circ ρ \\
+  α_\Heaps([\many{\pa ↦ (ρ,\pe)}]) & = & [\many{\pa ↦ \idiom{\semst{\pe}_{α_\Environments(ρ)}}}] \\
+  α_\States(\slbl \Lam{\px}{\pe},ρ,μ,κ) & = & ((\lbl,\FunV(\fn{d}{\idiom{\semst{\pe}_{α_\Environments(ρ)[\px↦d]}}})),α_\Heaps(μ)) \\
+  α_\States(\slbl K~\overline{\px},ρ,μ,κ) & = & ((\lbl,\ConV(K,\overline{\idiom{\semst{\px}_{α_\Environments(ρ)}}})),α_\Heaps(μ)) \\
+  α_\States(\pe,ρ,μ,κ) & = & (\pe,α_\Heaps(μ)) \\
+  α_{\STraces}((σ_i)_{i∈\overline{n}},κ) & = & \begin{cases}
+    α_\States(σ_1) \cons \idiom{α_{\STraces}((σ_{i+1})_{i∈\overline{n-1}},κ)} & n > 1 \\
+    \goodend{α_\States(σ_1)} & \mathit{ctrl}(σ_1) \text{ value } \wedge \mathit{cont}(σ_1) = κ \\
+    \stuckend{α_\States(σ_1)} & \text{otherwise} \\
   \end{cases} \\
-  \\[-0.5em]
-  \semst{\px} & = & step(look(\px)) \sfcomp step(upd) \\
-  \\[-0.5em]
-  \semst{\Lam{\px}{\pe}} & = & \begin{letarray}
-    \text{let} & f = \pa \mapsto step(app_2(\Lam{\px}{\pe},\pa)) \sfcomp \semst{\pe} \\
-    \text{in}  & step(val(\Lam{\px}{\pe},\FunV(f))) \\
-  \end{letarray} \\
-  \\[-0.5em]
-  \semst{\pe~\px} & = & step(app_1(\pe~\px)) \sfcomp \semst{\pe} \sfcomp \mathit{apply} \\
-  \\[-0.5em]
-  \semst{\Let{\px}{\pe_1}{\pe_2}} & = & step(bind(\semst{\pe_1})) \sfcomp \semst{\pe_2} \\
- \end{array} \\
+  \mathcal{C}((σ_i)_{i∈\overline{n}}) & = & \maxtrace{(σ_i)_{i∈\overline{n}}} \Longrightarrow ∀((\pe,ρ,μ,κ) = σ_1).\ α_{\STraces}((σ_i)_{i∈\overline{n}},κ) = \semst{\pe}_{α_\Environments(ρ)}(α_\Heaps(μ)) \\
 \end{array}\]
-\caption{Structural call-by-need stateful trace semantics $\semst{-}$}
-  \label{fig:semst}
+\caption{Correctness predicate for $\semst{\wild}$, defining the family of functions $α_\LKStates$}
+  \label{fig:semst-correctness}
 \end{figure}
 
-\subsection{Definition}
+The family of abstraction functions (which we henceworth refer to as
+$α_\LKStates$ and treat as overloaded for $\Environments,\Heaps,\States$ and
+$\STraces$) makes precise the intuitive connection between the semantic objects
+in $\semst{\wild}$ and the syntactic objects in the transition system.
 
-\Cref{fig:semst} defines $\semst{\wild}$.
-Let us understand the function by \subsection{Domain Theory}
+We will sometimes need to disambiguate the clashing definitions from
+\Cref{sec:semantics} and \Cref{sec:problem}.
+We do so by adorning semantic objects with a tilde, so $\tr \triangleq
+α_\Environments(ρ)$ denotes a semantic environment which in this instance is
+defined to be the abstraction of a syntactic environment $ρ$.
 
-\label{sec:domain-theory}
+%We will often talk about states that are well-elaborated and have a certain
+%expression in control, hence we abbreviate this set as
+%\[
+%  \States_\pe \triangleq \{σ ∈ \States \mid \elabstate{σ} \wedge \mathit{ctrl}(σ)=\pe\},
+%\]
 
-\subsubsection{Domain construction}
+Note first that $α_\STraces$ is effectively defined by guarded recursion over
+the LK trace, in the sense defined in \Cref{sec:maximal-traces}.
+As such, the expression $\idiom{α_{\STraces}((σ_{i+1})_{i∈\overline{n-1}},κ)}$ has type
+$\later \tSTraces$ (the $\later$ in the type of $(σ_{i+1})_{i∈\overline{n-1}}$
+maps through $α_\STraces$ via the idiom brackets).
+Likewise, $=$ on $\tSTraces$ is defined in the obvious structural way by guarded
+recursion (as it would be if it was a finite, inductive type).
 
-Recall that $\StateD$ in \Cref{fig:lk-syntax} is not a well-formed inductive
-definition without further clarification: It recurses in negative position via
-$\States \to \Heaps \to \StateD$ and similarly through $\StateV$.
-Hence we must understand $\StateD$ as a Scott domain and its ``definition'' as
-a \emph{domain equation}, of which $\StateD$ is the least solution.
+Our first goal is to establish a few auxiliary lemmas showing what kind of
+properties of LK traces are preserved by $α_\States$ and in which way.
 
-For that to carry meaning, we interpret all occuring function types, such as
-$\States \to \STraces$, as continuous between their hypothetical source and
-target domains.
-This applies in the following way to finite maps:
-$f ∈ A \pfun B$ (for flat domain $A$ and arbitrary domain $B$) is the
-sub-domain of $f ∈ A \to (\{\notfound\} + B)$ of strict functions (so $f(⊥) =
-⊥$) where the map's domain $\dom(f) ⊆ A$ is finite. Whenever $a \not∈ \dom(f)
-\setminus ⊥$, we have $f(a) = \notfound$.
-
-Recall that that an element $d$ of some domain $D$ is a \emph{total} element iff
-there exists no $d' ∈ D$ such that $d ⊏ d'$. Otherwise if such a $d'$ exists,
-$d$ is \emph{partial}.
-
-Remarkably, we \emph{do not} conflate $⊥ ∈ A \pfun B$ with $[] ∈ A \pfun B$, the
-finite map with $\dom(f) = \varnothing$.
-The former is a partial element of the domain and assigns $⊥_B$ everywhere;
-the latter is totally defined as an element of the domain and assigns
-$\notfound$ everywhere.
-As a consequence, $[a ↦ b] \triangleq [][a ↦ b] \not\sqsupseteq []$ since the
-total elements of the domain are discrete.
-
-The other domain constructors for products $\times$, sums $+$, fixpoints and the
-derived inductive EBNF-style syntax definitions such as the potentially infinite
-$\STraces$ (indicated by the $\gfp$ subscript) or finite $\Continuations$ are
-standard, see for example \citep{Cartwright:16}. The domains on $\Addresses$ and
-$\Var$ are the flat ones; the one on $\Exp$ is the flat one on labels.
-
-This proves that $\StateD$ is well-defined as a domain.
-
-\subsubsection{Continuity}
-
-It is easy to verify (by simple type checking) that $\semst{\wild}$
-is indeed a function from elements of $\States$ to something close to the
-elements of $\STraces$ (ignoring embedding of recursive calls for a moment).
-The missing ingredient to show that $\semst{\wild} ∈ \StateD$ is well-defined is
-\emph{continuity}.
-
-As given, the definition of $\semst{\wild}$ does not account for partial
-elements at all, although it does a sufficient job provided the elements it
-manipulates are total. It quite clearly is computable, so it should have a
-continuous extension to partial elements; such was the entire point of
-\citet{ScottStrachey:71} and we don't need to repeat it here. Now, we might
-spend much time and space here clarifying boring technical details of strictness
-such as ``Is $step(look)(\wild,\wild,\wild,\ApplyF(\pa) \pushF ⊥) = ⊥$?'' and
-``What is the continuous elaboration of $tgt_\States$?'' that are implicit in a
-code listing, only to finally conclude that the clarified formulation is indeed
-continuous.
-
-We decide to give the code listing instead: In the Appendix you can find 2 pages
-of a model implementation in SML of New Jersey serving as a ``continuity
-specification'' of $\semst{\wild}$ that we will treat as its ``ground truth''.
-We chose SML because it has a standardised small-step operational semantics that
-gives rise to an adequate denotational semantics, the core of which can be found
-in \citep{Milner:78}.
-
-On the spectrum between viable continuous extensions of $\semst{\wild}$, the
-specification in ML is quite on the strict end. In fact, it introduces a lazy
-field in one key position: The tail $τ$ of the cons form $σ \cons τ$ of $\STraces$.
-That is hardly surprising given the coinductive nature of $τ$.
-
-We find it ironic that in order to specify a semantics of a programming
-language it is easier to reflect a code listing in a sufficiently
-well-defined programming language (fittingly called ``Meta Language'') into a
-continuous function than to find a language-agnostic, mathematical formulation
-that we laboriously have to prove continuous.
-
-Note that the considerably larger \emph{artifact} associated to this work is
-implemented in Haskell because of familiarity to the authors and comfortable
-ecosystem, serving as an example for a viable extension of $\semst{\wild}$
-erring more towards the non-strict end. Still, it makes abundant use of
-strictness annotations for good measure, debuggability and performance.
-This demonstrates the semantic leeway a denotational formulation such as
-$\semst{\wild}$ has while still being continuous and enjoying the termination
-properties implied by our specification.
-
-\subsection{Conformance}
-
-Having a good grasp on the definition of $\semst{\wild}$ now, let us show that
-$\semst{\wild}$ conforms to its specification in \Cref{defn:semst-spec}.
-
-We will often talk about states that are well-elaborated and have a certain
-expression in control, hence we abbreviate this set as
-\[
-  \States_\pe \triangleq \{σ ∈ \States \mid \elabstate{σ} \wedge ctrl(σ)=\pe\},
-\]
-
-\begin{lemma}[S1]
-  \label{thm:s1}
-  Let $σ ∈ \States_\pe$. Then $σ$ is the source state of $\semst{\pe}(σ)$.
+\begin{lemma}[Preservation of length]
+  \label{thm:abs-length}
+  Let us define the length $\mathit{len} : \tSTraces \to ℕ_ω$ of a trace by
+  guarded recursion
+  \[
+    \mathit{len}(τ) = \begin{cases}
+      1 + \idiom{\mathit{len}(τ^{\later})} & τ = σ \cons τ^{\later} \\
+      1 & \text{otherwise} \\
+    \end{cases}
+  \]
+  Now let $(σ_i)_{i∈\overline{n}}$ be an arbitrary trace.
+  Then $\mathit{len}(α_\STraces((σ_i)_{i∈\overline{n}},\mathit{cont}(σ_1))) = n$.
 \end{lemma}
 \begin{proof}
-  Trivial for the first clause of $\semst{\wild}$.
-  Now, realising that $src_\States((l \sfcomp r)(σ)) = src_\States(l(σ))$
-  and that $src_\States(step(f)(σ)) = σ$ for any $f$, we can see that the
-  proposition follows for other clauses by applying these two rewrites to
-  completion.
+  This is quite simple to see and hence a good opportunity to familiarise
+  ourselves with the concept of \emph{Löb induction}, the induction principle of
+  guarded recursion.
+  Löb induction arises simply from applying the guarded recursive fixpoint
+  combinator to a proposition:
+  \[
+    \textsf{löb} = \fix : \forall P.\ (\later P \Longrightarrow P) \Longrightarrow P
+  \]
+  That is, we assume that our proposition holds \emph{later}, \eg
+  \[
+    IH ∈ (\later P \triangleq \later (
+        \forall n ∈ ℕ_ω.\
+        \forall (σ_i)_{i∈\overline{n}}.\
+        \mathit{len}(α_\STraces((σ_i)_{i∈\overline{n}},\mathit{cont}(σ_1))) = n
+      ))
+  \]
+  and use $IH$ to prove $P$.
+  Let us assume $n$ and $(σ_i)_{i∈\overline{n}}$ are given, define
+  $τ \triangleq α_\STraces((σ_i)_{i∈\overline{n}},\mathit{cont}(σ_1))$ and proceed by case analysis
+  over $n$:
+  \begin{itemize}
+    \item \textbf{Case $n=1$}: Then either we have $τ = \goodend{α_\States(σ_1)}$
+      or $τ = \stuckend{α_\States(σ_1)}$, $j = 1$, both of which map to $1$ under
+      $\mathit{len}$.
+    \item \textbf{Case $n>1$}: Then $n = 1+m$ and $m ∈ \later ℕ_ω$ and the
+      first case of $α_\States$ applies, hence $τ = σ \cons τ^{\later}$ for some
+      $σ∈\States, τ^{\later}∈\later \tSTraces$.
+      Now we apply the inductive hypothesis, as follows:
+      Let $(σ_{i+1})_{i∈\overline{m}} ∈ \later \STraces$ be the guarded
+      tail of the LK trace $(σ_i)_{i∈\overline{n}}$.
+      Then we can apply $IH \aplater m \aplater (σ_{i+1})_{i∈\overline{m}}$ and
+      get a proof for $\later (\mathit{len}(τ^{\later}) = m)$.
+      Now we can prove
+      \[
+        n = 1 + m = 1 + \mathit{len}(τ^{\later}) = \mathit{len}(τ).
+      \]
+  \end{itemize}
 \end{proof}
 
-The proof of (S2) depends on (S3), hence we will prove (S3) first.
-
-\begin{lemma}[S3]
-  \label{thm:s3}
-  If $σ ∈ \States_\pe$, then $\elabtrace{\semst{\pe}(σ)}$.
+\begin{lemma}[Preservation of components]
+  \label{thm:abs-states}
+  Let $(σ_i)_{i∈\overline{n}}$ be a trace and let $τ = α_\STraces((σ_i)_{i∈\overline{n}},\mathit{cont}(σ_1))$.
+  Then for all $j∈\overline{n}$, $τ_j = α_\States(σ_j)$
+  (where $τ_j$ denotes the $j$th state in $τ$).
 \end{lemma}
 \begin{proof}
-By coinduction, following~\citet{Czajka:2019}.
-The coinduction hypothesis is:
-\[
-  P(α) = ∀σ,\pe.\ σ ∈ \States_\pe \Longrightarrow \elabtracen{α}{\semst{\pe}(σ)}
-\]
-Where $α$ is a limit ordinal smaller than or equal to the closure ordinal $ζ$,
-$ctrl(σ)$ selects the control of $σ$ and $\elabtracen{α}{τ}$ is the
-$α$-approximant of the coinductive predicate $\elabtrace{τ}$.
-
-Let us assume that $\elabstate{σ}$ for an arbitrary $σ$ with control expression
-$\pe$. Whenever $f(σ)$ is undefined for some $f$, we can see that
-$step(f)(σ) = \goodend{σ}$ is well-elaborated. Furthermore, if both $g$ and $h$
-yield well-elaborated traces given a well-elaborated input state, then
-$g \sfcomp h$ does so, too.
-
-We abbreviate $τ \triangleq \semst{\pe}(σ)$ and proceed by case analysis over
-$\pe$. We have $src_\States(τ) = σ$ by (S1) which is thus well-elaborated.
-\begin{itemize}
-  \item \textbf{Case $\px$}:
-    Let us assume first that $look(\px)(σ)$ is undefined.
-    Then $step(look(\px))(σ) = \goodend{σ}$.
-    On the other hand, $step(upd)(σ) = \goodend{σ}$ because $upd$ is only defined on
-    return states.
-    Thus, $τ = \goodend{σ}$ and $\elabtracen{α+1}{τ}$.
-
-    When $look(\px)(σ)$ is defined, $σ$ must be of the form $(\px,ρ,μ,κ)$, and
-    $\pa,\pe,ρ',d$ must exist as in the definition of $look$ (shadowing $\pe =
-    \px$ from the assumption, for simplicity).
-    Clearly, $σ' \triangleq (\pe, ρ', μ, \UpdateF(\pa) \pushF κ)$ is
-    well-elaborated, because $σ$ is and the heap did not change.
-    Similarly, by $\elabstate{σ}$ we have $d = \semst{\pe}$.
-    Now we apply the coinduction hypothesis to $τ' = \semst{\pe}(σ')$
-    (noting that $\semst{\pe}$ is well-defined on $σ'$) and see that
-    $\elabtracen{α}{τ'}$, hence $\elabtracen{α+1}{(σ \cons τ')}$.
-
-    If $τ'$ is infinite, we are done.
-    Otherwise, $σ_u \triangleq tgt_\States(τ')$ is well-elaborated and if
-    $upd(σ_u)$ is undefined we are done, too, by our preceding considerations.
-    If $σ_v \triangleq upd(σ_u)$, the $σ_u$ must have the form
-    $((\pv,v),ρ,μ,\UpdateF(\pa) \pushF κ)$. We must show that
-    $step(val(\pv,v)) = \semst{\pv}$ in order to show that $σ_v$ is
-    well-elaborated.
-    That is the case: well-elaboratedness of $σ_u$ implies that $v = \FunV(f)$
-    for an $f$ just like that in the definition of $\semst{\pv}$.
-    Since $τ'$ is finite, we have $\elabtracen{α+1}{(σ \cons τ' \cons \goodend{σ_v})}$ by
-    reassociating the applications of the $\elabtrace{\wild}$ functional.
-  \item \textbf{Case $\Lam{\px}{\pe}$}:
-    The $\ValueT$ transition does not change the heap, but it transitions into a
-    return state. We have established in the previous point that the semantic
-    value $\FunV(f)$ fits our requirements for well-elaboratedness exactly,
-    hence well-elaboratedness for the trace follows.
-  \item \textbf{Case $\pe~\px$}:
-    The $\AppIT$ transition preserves well-elaboratedness to its target state, so
-    the input $σ'$ to $\semst{\pe}$ is well-elaborated. We apply the coinduction
-    hypothesis and and have $\elabtracen{α+1}{(σ \cons \semst{\pe}(σ'))}$.
-    (As before, if the resulting trace is infinite, we are done.)
-    Forward composition preserves well-elaboratedness, hence it suffices to
-    prove that given a well-elaborated input state $σ''$, $\mathit{apply}(σ'')$ is
-    well-elaborated.
-    That is the case if the subterm $f(\pa)(σ'')$ produces a well-elaborated
-    trace.
-    By $\elabstate{σ''}$, we know that $f$ must come from the
-    $\semst{\Lam{\px}{\pe'}}$ case.
-    $\AppET$ preserves well-elaboratedness to its target state and for
-    $\semst{\pe'}$ we can apply the coinductive hypothesis.
-    Now we have $\elabtracen{α+1}{(σ \cons \semst{\pe}(σ'))}$ and
-    $\elabtracen{α+1}{\mathit{apply}(σ'')}$, so the same must hold for its concatenation.
-  \item \textbf{Case $\Let{\px}{\pe_1}{\pe_2}$}:
-    The $\BindT$ transition updates the heap, but it is clear that
-    $bind(\semst{\pe_1})$ elaborates the correct $d_1$ into $σ'$.
-    For the recursive call, we apply the coinduction hypothesis
-    and conclude $\elabtracen{α+1}{(σ \cons \semst{\pe_2}(σ'))}$.
-\end{itemize}
+  With \Cref{thm:abs-length} it is enough to regard the finite prefix of the
+  trace $(σ_i)_{i∈\overline{j}}$, for which the proposition is easily shown by
+  induction on $j$.
 \end{proof}
 
-The preceding lemma implies a very desirable property:
-Whenever $σ$ is well-elaborated (and thus a total element of the approximation
-order), $\semst{\pe}(σ)$ is total, too.
-The approximation order restricted to total elements is discrete; hence we may
-now put domain theoretic considerations behind us in favor of a coinductive
-understanding.
-We can capture the termination properties of $\semst{\wild}$ as follows:
-
-\begin{corollary}
-  The restriction of $\semst{\pe}$ to $\States_\pe$ is a total function, defined
-  by \emph{guarded recursion}.
-\end{corollary}
-
-\begin{lemma}
-  \label{thm:step-interior}
-  If $f(σ) = τ$ implies $σ \smallstep src_\States(τ)$ interior and
-  $τ$ interior, then $step(f)(σ)$ interior.
+\begin{lemma}[Preservation of characteristic]
+  \label{thm:abs-max-trace}
+  Let $(σ_i)_{i∈\overline{n}}$ be a maximal trace.
+  Then $α_\STraces((σ_i)_{i∈\overline{n}}, cont(σ_1))$ is ...
+  \begin{itemize}
+    \item ... infinite if and only if $(σ_i)_{i∈\overline{n}})$ is diverging
+    \item ... ending with $\goodend{\wild}$ if and only if $(σ_i)_{i∈\overline{n}}$ is balanced
+    \item ... ending with $\stuckend{\wild}$ if and only if $(σ_i)_{i∈\overline{n}}$ is stuck
+  \end{itemize}
 \end{lemma}
 \begin{proof}
-  Immediate. The case where $f$ is undefined is trivial.
+  The first point follows by a similar inductive argument as in \Cref{thm:abs-length}.
+
+  In the other cases, we may assume that $n$ is finite.
+  If $(σ_i)_{i∈\overline{n}}$ is balanced, then $σ_n$ is a return state with
+  continuation $\mathit{cont}(σ_1)$, so its control expression is a value.
+  Then $α_\STraces$ will conclude with $\goodend{\wild}$.
+  Conversely, if the trace ended with $\goodend{\wild}$, then $\mathit{cont}(σ_n) = \mathit{cont}(σ_1)$
+  and $\mathit{ctrl}(σ_n)$ is a value, so $(σ_i)_{i∈\overline{n}}$ forms a
+  balanced trace.
+  The stuck case is similar.
 \end{proof}
 
-With increased clarity, we go on to prove the keystone property:
+%\begin{lemma}[S3]
+%  \label{thm:s3}
+%  If $σ ∈ \States_\pe$, then $\elabtrace{\semst{\pe}(σ)}$.
+%\end{lemma}
+%\begin{proof}
+%By coinduction, following~\citet{Czajka:2019}.
+%The coinduction hypothesis is:
+%\[
+%  P(α) = ∀σ,\pe.\ σ ∈ \States_\pe \Longrightarrow \elabtracen{α}{\semst{\pe}(σ)}
+%\]
+%Where $α$ is a limit ordinal smaller than or equal to the closure ordinal $ζ$,
+%$\mathit{ctrl}(σ)$ selects the control of $σ$ and $\elabtracen{α}{τ}$ is the
+%$α$-approximant of the coinductive predicate $\elabtrace{τ}$.
+%
+%Let us assume that $\elabstate{σ}$ for an arbitrary $σ$ with control expression
+%$\pe$. Whenever $f(σ)$ is undefined for some $f$, we can see that
+%$step(f)(σ) = \goodend{σ}$ is well-elaborated. Furthermore, if both $g$ and $h$
+%yield well-elaborated traces given a well-elaborated input state, then
+%$g \sfcomp h$ does so, too.
+%
+%We abbreviate $τ \triangleq \semst{\pe}(σ)$ and proceed by case analysis over
+%$\pe$. We have $src_\States(τ) = σ$ by (S1) which is thus well-elaborated.
+%\begin{itemize}
+%  \item \textbf{Case $\px$}:
+%    Let us assume first that $look(\px)(σ)$ is undefined.
+%    Then $step(look(\px))(σ) = \goodend{σ}$.
+%    On the other hand, $step(upd)(σ) = \goodend{σ}$ because $upd$ is only defined on
+%    return states.
+%    Thus, $τ = \goodend{σ}$ and $\elabtracen{α+1}{τ}$.
+%
+%    When $look(\px)(σ)$ is defined, $σ$ must be of the form $(\px,ρ,μ,κ)$, and
+%    $\pa,\pe,ρ',d$ must exist as in the definition of $look$ (shadowing $\pe =
+%    \px$ from the assumption, for simplicity).
+%    Clearly, $σ' \triangleq (\pe, ρ', μ, \UpdateF(\pa) \pushF κ)$ is
+%    well-elaborated, because $σ$ is and the heap did not change.
+%    Similarly, by $\elabstate{σ}$ we have $d = \semst{\pe}$.
+%    Now we apply the coinduction hypothesis to $τ' = \semst{\pe}(σ')$
+%    (noting that $\semst{\pe}$ is well-defined on $σ'$) and see that
+%    $\elabtracen{α}{τ'}$, hence $\elabtracen{α+1}{(σ \cons τ')}$.
+%
+%    If $τ'$ is infinite, we are done.
+%    Otherwise, $σ_u \triangleq tgt_\States(τ')$ is well-elaborated and if
+%    $upd(σ_u)$ is undefined we are done, too, by our preceding considerations.
+%    If $σ_v \triangleq upd(σ_u)$, the $σ_u$ must have the form
+%    $((\pv,v),ρ,μ,\UpdateF(\pa) \pushF κ)$. We must show that
+%    $step(val(\pv,v)) = \semst{\pv}$ in order to show that $σ_v$ is
+%    well-elaborated.
+%    That is the case: well-elaboratedness of $σ_u$ implies that $v = \FunV(f)$
+%    for an $f$ just like that in the definition of $\semst{\pv}$.
+%    Since $τ'$ is finite, we have $\elabtracen{α+1}{(σ \cons τ' \cons \goodend{σ_v})}$ by
+%    reassociating the applications of the $\elabtrace{\wild}$ functional.
+%  \item \textbf{Case $\Lam{\px}{\pe}$}:
+%    The $\ValueT$ transition does not change the heap, but it transitions into a
+%    return state. We have established in the previous point that the semantic
+%    value $\FunV(f)$ fits our requirements for well-elaboratedness exactly,
+%    hence well-elaboratedness for the trace follows.
+%  \item \textbf{Case $\pe~\px$}:
+%    The $\AppIT$ transition preserves well-elaboratedness to its target state, so
+%    the input $σ'$ to $\semst{\pe}$ is well-elaborated. We apply the coinduction
+%    hypothesis and and have $\elabtracen{α+1}{(σ \cons \semst{\pe}(σ'))}$.
+%    (As before, if the resulting trace is infinite, we are done.)
+%    Forward composition preserves well-elaboratedness, hence it suffices to
+%    prove that given a well-elaborated input state $σ''$, $\mathit{apply}(σ'')$ is
+%    well-elaborated.
+%    That is the case if the subterm $f(\pa)(σ'')$ produces a well-elaborated
+%    trace.
+%    By $\elabstate{σ''}$, we know that $f$ must come from the
+%    $\semst{\Lam{\px}{\pe'}}$ case.
+%    $\AppET$ preserves well-elaboratedness to its target state and for
+%    $\semst{\pe'}$ we can apply the coinductive hypothesis.
+%    Now we have $\elabtracen{α+1}{(σ \cons \semst{\pe}(σ'))}$ and
+%    $\elabtracen{α+1}{\mathit{apply}(σ'')}$, so the same must hold for its concatenation.
+%  \item \textbf{Case $\Let{\px}{\pe_1}{\pe_2}$}:
+%    The $\BindT$ transition updates the heap, but it is clear that
+%    $bind(\semst{\pe_1})$ elaborates the correct $d_1$ into $σ'$.
+%    For the recursive call, we apply the coinduction hypothesis
+%    and conclude $\elabtracen{α+1}{(σ \cons \semst{\pe_2}(σ'))}$.
+%\end{itemize}
+%\end{proof}
+%
+%The preceding lemma implies a very desirable property:
+%Whenever $σ$ is well-elaborated (and thus a total element of the approximation
+%order), $\semst{\pe}(σ)$ is total, too.
+%The approximation order restricted to total elements is discrete; hence we may
+%now put domain theoretic considerations behind us in favor of a coinductive
+%understanding.
+%We can capture the termination properties of $\semst{\wild}$ as follows:
+%
+%\begin{corollary}
+%  The restriction of $\semst{\pe}$ to $\States_\pe$ is a total function, defined
+%  by \emph{guarded recursion}.
+%\end{corollary}
+%
+%\begin{lemma}
+%  \label{thm:step-interior}
+%  If $f(σ) = τ$ implies $σ \smallstep src_\States(τ)$ interior and
+%  $τ$ interior, then $step(f)(σ)$ interior.
+%\end{lemma}
+%\begin{proof}
+%  Immediate. The case where $f$ is undefined is trivial.
+%\end{proof}
 
-\begin{theorem}[S2]
-  \label{thm:s2}
-  If $σ ∈ \States_\pe$, then $\maxtrace{\semst{\pe}(σ)}$.
+With increased clarity, we go on to prove the correctness predicate:
+
+\begin{theorem}[Correctness of $\semst{\wild}$]
+  \label{thm:semst-correct}
+  $\mathcal{C}$ from \Cref{fig:semst-correctness} holds everywhere.
+  That is, whenever $(σ_i)_{i∈\overline{n}}$ is a maximal LK trace with source
+  state $(\pe,ρ,μ,κ)$, we have
+  $α_{\STraces}((σ_i)_{i∈\overline{n}},κ) = \semst{\pe}_{α_\Environments(ρ)}(α_\Heaps(μ))$.
 \end{theorem}
 \begin{proof}
-By coinduction, with the following hypothesis, similar to the proof of (S3):
+By Löb induction, with the following hypothesis:
 \[
-  P(α) = ∀σ,\pe.\ σ ∈ \States_\pe \Longrightarrow \maxtracen{α}{\semst{\pe}(σ)}
+  IH ∈ \later (\forall (σ_i)_{i∈\overline{n}}.\ C((σ_i)_{i∈\overline{n}}))
 \]
 Furthermore, we tacitly assume by (S3) that all occuring states are
 well-elaborated. We will say that a state $σ$ is stuck if there is no applicable
@@ -1004,35 +837,35 @@ $\pe$.
 
     If $τ'$ is infinite, it is diverging and $\maxtracen{α+1}{σ \consτ'}$ follows.
     Otherwise, $σ_u \triangleq tgt_\States(τ')$ and either there is no
-    transition $σ_u \smallstep σ_v$ or it leaves $cont(σ')$.
+    transition $σ_u \smallstep σ_v$ or it leaves $\mathit{cont}(σ')$.
     The only two returning (\eg, non-interior) transitions are $\UpdateT$ and
-    $\AppET$. Both pop a single continuation frame, thus $cont(σ_u) = cont(σ')$,
-    because otherwise $cont(σ_u) = ... \pushF cont(σ')$ and popping one frame
+    $\AppET$. Both pop a single continuation frame, thus $\mathit{cont}(σ_u) = \mathit{cont}(σ')$,
+    because otherwise $\mathit{cont}(σ_u) = ... \pushF \mathit{cont}(σ')$ and popping one frame
     yields an interior transition.
 
     If $upd(σ_u)$ is defined, then the $\UpdateT$ transition exists as can
     easily be checked.
     Furthermore, since exactly one frame is popped, we must have
-    $cont(σ) = cont(σ_v)$ and thus $\deepn{α+1}{cont(σ)}{(σ \cons τ \cons \goodend{σ_v})}$ by slight
+    $\mathit{cont}(σ) = \mathit{cont}(σ_v)$ and thus $\deepn{α+1}{\mathit{cont}(σ)}{(σ \cons τ \cons \goodend{σ_v})}$ by slight
     (corecursive) rearrangement of the proof for $\interiorn{α}{τ}$.
     $σ_v$ is a return state and any further transition must pop a continuation
     frame; hence $\maxtracen{α+1}{(σ \cons τ \cons \goodend{σ_v})}$.
 
     If $upd(σ_u)$ is undefined, then the $\UpdateT$ transition could not have
     fired. But the $\AppET$ transition can't have fired either, because if it
-    could, we'd have $cont(σ_u) = cont(σ')$ by $\maxtracen{α}{τ'}$, but the top
+    could, we'd have $\mathit{cont}(σ_u) = \mathit{cont}(σ')$ by $\maxtracen{α}{τ'}$, but the top
     of $σ'$ is an update frame. Thus, again by maximality, there is no
     transition $σ_u \smallstep σ_v$ whatsoever and $\maxtracen{α+1}{σ \cons τ'}$.
 
   \item \textbf{Case $\Lam{\px}{\pe}$}:
     If $val(v, \FunV(f))$ is defined, then $σ \smallstep{\ValueT} σ'$ must
     exist. Furthermore, $σ \cons \goodend{σ'}$ is a maximal trace, as $σ'$ is a return
-    state and any applicable transition leaves $cont(σ) = cont(σ')$.
+    state and any applicable transition leaves $\mathit{cont}(σ) = \mathit{cont}(σ')$.
 
-    If $val(v, \FunV(f))$ is undefined, then $ctrl(σ) \not= \Lam{\px}{\pe}$, a
+    If $val(v, \FunV(f))$ is undefined, then $\mathit{ctrl}(σ) \not= \Lam{\px}{\pe}$, a
     contradiction.
   \item \textbf{Case $\pe~\px$}:
-    If $app_1(\pe~\px)$ is undefined, then either $ctrl(σ) \not=\pe~\px$
+    If $app_1(\pe~\px)$ is undefined, then either $\mathit{ctrl}(σ) \not=\pe~\px$
     (contradiction), or $ρ(\px)$ was undefined, in which case $\goodend{σ}$ is stuck
     and thus maximal.
 
@@ -1043,16 +876,16 @@ $\pe$.
     Similar to the variable case, if $τ_\pe$ is infinite, $σ \cons τ_\pe$ is
     diverging and we are done. Otherwise, we have $σ_a \triangleq
     tgt_\States(τ_\pe)$ and either there is no transition $σ_a \smallstep σ_e$
-    or it leaves $cont(σ')$, in which case we know $cont(σ') = cont(σ_a)$ and
+    or it leaves $\mathit{cont}(σ')$, in which case we know $\mathit{cont}(σ') = \mathit{cont}(σ_a)$ and
     that the transition must have been $\AppET$.
 
     When the $\AppET$ transition exists, the first case of $\mathit{apply}(σ_a)$ matches.
     With $\elabstate{σ}$, we know that $f$ is defined just like in
-    $\semst{\Lam{\px'}{\pe'}}$, where $ctrl(σ_a) = (\Lam{\px'}{\pe'}, \FunV(f))$.
+    $\semst{\Lam{\px'}{\pe'}}$, where $\mathit{ctrl}(σ_a) = (\Lam{\px'}{\pe'}, \FunV(f))$.
     Similar to the variable case, we can see that
     $app_2$ matches and that $\maxtracen{α+1}{σ \cons τ_1 \cons \goodend{σ_e}}$, because
-    $cont(σ_e) = cont(σ)$. By the coinductive hypothesis,
-    $\maxtracen{α}{(τ_2 \triangleq \semst{\pe'}(σ_e))}$. By $cont(σ_e) = cont(σ)$
+    $\mathit{cont}(σ_e) = \mathit{cont}(σ)$. By the coinductive hypothesis,
+    $\maxtracen{α}{(τ_2 \triangleq \semst{\pe'}(σ_e))}$. By $\mathit{cont}(σ_e) = \mathit{cont}(σ)$
     and rearrangement we can see that $\interiorn{α+1}{σ \cons τ_1 \cons σ_e \cons τ_2}$ and
     maximality follows directly from maximality of $τ_2$.
 
@@ -1064,7 +897,7 @@ $\pe$.
 
   \item \textbf{Case $\Let{\px}{\pe_1}{\pe_2}$}:
     The $σ \smallstep{\BindT} σ'$ transition (which always exists for our choice
-    of $σ$) does not push a new stack frame, hence $cont(σ) = cont(σ')$ and
+    of $σ$) does not push a new stack frame, hence $\mathit{cont}(σ) = \mathit{cont}(σ')$ and
     from the coinductive hypothesis $\maxtracen{α}{\semst{\pe_2}(σ')}$ we can
     immediately see $\maxtracen{α+1}{σ \cons \semst{\pe_2}(σ')}$.
 \end{itemize}
@@ -1121,7 +954,7 @@ $\semst{\wild}$:
     \item[$\Leftarrow$]
       \begin{itemize}
         \item
-          If $σ$ is a final state, it has $cont(σ) = cont(inj(\pe)) = []$, so it
+          If $σ$ is a final state, it has $\mathit{cont}(σ) = \mathit{cont}(inj(\pe)) = []$, so it
           is balanced.
         \item
           If $σ$ is not a final state, $τ'$ is not balanced. Since there is no
@@ -1149,3 +982,12 @@ by coinduction:
 %  $\forall \pe_1,\pe_2.\ S(\pe_1) = S(\pe_2)
 %
 % \end{theorem}
+
+\subsection{Discussion}
+
+\begin{itemize}
+  \item Generated traces are not enough to recover transition system. Unnecessary!
+  \item Correctness predicate simpler to come up than for liveness analysis directly
+  \item Compare to coinductive big-step \citep{LeroyGrall:09}? Perhaps in related work
+  \item Full Abstraction. Do we want to prove it? Seems boring and obvious
+\end{itemize}
