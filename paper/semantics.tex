@@ -591,12 +591,6 @@ We do so by adorning semantic objects with a tilde, so $\tr \triangleq
 α_\Environments(ρ)$ denotes a semantic environment which in this instance is
 defined to be the abstraction of a syntactic environment $ρ$.
 
-%We will often talk about states that are well-elaborated and have a certain
-%expression in control, hence we abbreviate this set as
-%\[
-%  \States_\pe \triangleq \{σ ∈ \States \mid \elabstate{σ} \wedge \ctrl(σ)=\pe\},
-%\]
-
 Note first that $α_\STraces$ is effectively defined by guarded recursion over
 the LK trace, in the sense defined in \Cref{sec:maximal-traces}.
 As such, the expression $\idiom{α_{\STraces}((σ_{i+1})_{i∈\overline{n-1}},κ)}$ has type
@@ -879,25 +873,46 @@ strong version of adequacy for $\semst{\wild}$:
   \end{itemize}
 \end{proof}
 
-%But there's more. Let us define the following binary relation $\equiv_\States$
-%by coinduction:
-%\[
-%\]
-%
-% \begin{theorem}[Full abstraction]
-%   \label{thm:full-abstraction}
-%  The restriction $S = \fn{\pe}{\semst{\pe}\restrict{\States_\pe}}$ is
-%  \emph{fully abstract}~\citep{Plotkin:77}, meaning that
-%
-%  $\forall \pe_1,\pe_2.\ S(\pe_1) = S(\pe_2)
-%
-% \end{theorem}
-
 \subsection{Discussion}
 
-\begin{itemize}
-  \item Generated traces are not enough to recover transition system. Unnecessary!
-  \item Correctness predicate simpler to come up than for liveness analysis directly
-  \item Compare to coinductive big-step \citep{LeroyGrall:09}? Perhaps in related work
-  \item Full Abstraction. Do we want to prove it? Seems boring and obvious
-\end{itemize}
+It is striking that although the stateful trace semantics $\semst{\wild}$ is as
+expressive as the LK transition system, the information encoded in the states of
+the generated traces alone are not enough to recover the LK transition system,
+in the sense of \citep[]{Cousot:21}.
+For example, every return state $((\lbl,v),\tm)$ admits at least two possible
+transitions:
+Either a heap update or a $β$-reduction.
+In the LK transition system, the particular transition is governed by the
+continuation stack, which $\semst{\wild}$ is unconcerned about.
+It is however trivial to ``elaborate'' $\semst{\wild}$ to include the proper
+stack manipulations and emit the current lexical environment as part of every
+state.
+We think that is rather uninteresting; it is more interesting to see how much
+we can omit before compromising on expressivity.
+\sg{Why not omit labelled expressions, then?}
+
+Yet often, one is not so much interested in particular representations of state
+rather than in the particular transition rule taken.
+Take our usage analysis as an example: We aren't so much interested in the
+\emph{state} in which variable lookup happens, but rather in the instantiation
+of the $\LookupT$ transition, telling us which variable was looked up and which
+address is bound to it.
+It is easy to see how to elaborate $\semst{\wild}$ to include that information,
+too; however, it quickly becomes unwieldy to present with all the symbolic
+manipulation going on.
+
+We have seen that the stack and environment can be omitted from the state
+without repercussions to expressivity, hence it makes sense to try the same for
+the heap.
+
+For traditional denotational semantics, there also is the ``problem'' of Full
+Abstraction~\citep{Plotkin:77}.
+It has been shown that denotational semantics is not fully abstract, because
+the obvious equivalence relation on Scott domains is finer than the contextual
+equivalence relation derived from the transition semantics, so neither can be
+used as a proxy for the other.
+On the other hand, we are confident that we can give an equivalence relation
+on $\STraces$ such that our trace-based semantics in fact \emph{is} fully
+abstract, by restricting the domain elements to the range of $α_\LKStates$.
+However, we lack expertise in the area to capitalise on this finding and hence
+lack motivation to formalise this claim.
