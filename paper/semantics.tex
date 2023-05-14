@@ -3,10 +3,10 @@
 
 \subsection{Labelled Syntax}
 
-Recall \Cref{fig:syntax}; it defines the syntax of $Λ$, an untyped lambda
+Recall \Cref{fig:syntax}; it defines the syntax of an untyped lambda
 calculus with recursive let bindings and data types in the style of
 \citet{Launchbury:93} and \citet{Sestoft:97}.
-Any (sub-)expression of $Λ$ has a unique \emph{label} (think of it as the AST node's
+Any (sub-)expression has a unique \emph{label} (think of it as the AST node's
 pointer identity) that we usually omit. For example, a correct labelling of
 $\Let{x}{f~y}{f~x}$ would be
 \[
@@ -20,9 +20,10 @@ labels make it so that everything ``works as expected''.
 
 \subsection{Transition System}
 
-\Cref{fig:lk-semantics} gave an operational semantics for $Λ$ in terms of
+\Cref{fig:lk-semantics} gave an operational semantics in terms of
 a small-step transition system closest to the lazy Krivine machine
-\citep{AgerDanvyMidtgaard:04} for Launchbury's language.
+\citep{AgerDanvyMidtgaard:04} for Launchbury's language as presented
+in \citet{Sestoft:97}.
 It is worth having a second look at the workings of our Gold Standard.
 
 When the control expression $\ctrl(σ)$ of a state $σ$ is a value $\pv$, we
@@ -70,12 +71,12 @@ Guarded Dependent Type Theory (GDTT) \citep{gdtt}.%
 \footnote{Of course, in reality we are just using GDTT as a meta
 language~\citep{Moggi:07} with a known domain theoretic interpretation in terms
 of the topos of trees~\citep{gdtt}.
-Thanks to GDTT this meta language is sufficiently expressive as a logic to
+This meta language is sufficiently expressive as a logic to
 express proofs, though, justifying the view that we are extending ``math''
 with the ability to conveniently reason about infinite data without needing to
 think about topology and approximation directly.}
 The fundamental construct of this theory is addition of the ``later''
-modality $\later[κ]$ which allows to define coinductive data types with negative
+modality $\later$ which allows to define coinductive data types with negative
 occurrences, as first realised by \citet{Nakano:00}.
 Whereas previous theories of coinduction require syntactic productivity
 checks~\citep{Coquand:94}, requiring tiresome constraints on the form of guarded
@@ -109,7 +110,7 @@ functor~\citep{McBridePaterson:08} via functions
 allowing us to apply a familiar framework of reasoning around $\later$.
 In order not to obscure our work with pointless symbol pushing
 in, \eg, \Cref{fig:semst}, we will often omit the idiom
-brackets~\citep{McBridePaterson:08} $\idiom{}$ that would be necessary in a
+brackets~\citep{McBridePaterson:08} $\idiom{\wild}$ that would be necessary in a
 mechanised form to indicate where the $\later$ ``effects'' happen; they should
 be easy to infer anyway.
 \sg{Perhaps we should add the elaborated version in the Appendix.}
@@ -154,18 +155,18 @@ be easy to infer anyway.
   }} \\
   \\[-0.5em]
   τ \betastep f & = & \begin{cases}
-      τ :: f(σ) & \text{$τ = ... \cons \goodend{σ}$ and $σ ∈ \dom(f)$} \\
-      τ' :: \stuckend{σ} & \text{$τ = τ' \cons \goodend{σ}$ and $σ \not∈ \dom(f)$} \\
+      τ :: \idiom{f(σ)} & \text{$τ = ... \cons \goodend{σ}$ and $σ ∈ \dom(f)$} \\
+      τ' :: \idiom{\stuckend{σ}} & \text{$τ = τ' \cons \goodend{σ}$ and $σ \not∈ \dom(f)$} \\
       τ & \text{otherwise} \\
     \end{cases} \\
   \\[-0.5em]
   \ret(\lbl,v)(μ) & = & \goodend{((\lbl,v),μ)} \\
   \\[-0.5em]
-  \deref(\pa)(μ) & = & μ(\pa)(μ) \betastep \fn{((\lbl,v),μ)}{\goodend{((\lbl,v),μ[\pa ↦ \ret(\lbl,v)])}} \\
+  \deref(\pa)(μ) & = & μ(\pa)(μ) \betastep \fn{((\lbl,v),μ)}{\idiom{\goodend{((\lbl,v),μ[\pa ↦ \idiom{\ret(\lbl,v)}])}}} \\
   \\[-0.5em]
-  \apply(τ,d) & = & τ \betastep \fn{((\wild,\FunV(f)),μ)}{f(d)(μ)} \\
+  \apply(τ,d) & = & τ \betastep \fn{((\wild,\FunV(f)),μ)}{\idiom{f(d)(μ)}} \\
   \\[-0.5em]
-  \select(τ,\many{f}) & = & τ \betastep \fn{((\wild,\ConV(K_s,\many{d_s})),μ)}{f_s(\many{d_s})} \\
+  \select(τ,\many{f}) & = & τ \betastep \fn{((\wild,\ConV(K_s,\many{d_s})),μ)}{\idiom{f_s(\many{d_s})}} \\
   \\[-0.5em]
   \multicolumn{3}{c}{ \ruleform{ \semst{\wild} \colon \Exp → (\Var \pfun \later\StateD) → \StateD } } \\
   \\[-0.5em]
@@ -174,22 +175,22 @@ be easy to infer anyway.
     \stuckend{(\px,μ)} & \text{otherwise}
     \end{cases} \\
   \\[-0.5em]
-  \semst{\slbl \Lam{\px}{\pe}}_ρ & = & \ret(\lbl,\FunV(\fn{d}{\semst{\pe}_{ρ[\px↦d]}})) \\
+  \semst{\slbl \Lam{\px}{\pe}}_ρ & = & \ret(\lbl,\FunV(\fn{d}{\idiom{\semst{\pe}_{ρ[\px↦d]}}})) \\
   \\[-0.5em]
   \semst{\pe~\px}_ρ(μ) & = & \begin{cases}
-      (\pe~\px,μ) \cons \apply(\semst{\pe}_ρ(μ),ρ(\px)) & \px ∈ \dom(ρ) \\
+      (\pe~\px,μ) \cons \idiom{\apply(\semst{\pe}_ρ(μ),ρ(\px))} & \px ∈ \dom(ρ) \\
       \stuckend{(\pe~\px,μ)} & \text{otherwise} \\
     \end{cases} \\
   \\[-0.5em]
   \semst{\Let{\px}{\pe_1}{\pe_2}}_ρ(μ) & = & \begin{letarray}
     \text{let} & ρ' = ρ[\px ↦ \deref(\pa)] \quad \text{where $\pa \not∈ \dom(μ)$} \\
-               & μ' = μ[\pa ↦ \semst{\pe_1}_{ρ'}] \\
-    \text{in}  & (\Let{\px}{\pe_1}{\pe_2},μ) \cons \semst{\pe_2}_{ρ'}(μ') \\
+               & μ' = μ[\pa ↦ \idiom{\semst{\pe_1}_{ρ'}}] \\
+    \text{in}  & (\Let{\px}{\pe_1}{\pe_2},μ) \cons \idiom{\semst{\pe_2}_{ρ'}(μ')} \\
   \end{letarray} \\
   \\[-0.5em]
-  \semst{\slbl K~\many{\px}}_ρ & = & \ret(\lbl,\ConV(K,\many{\semst{\px}_ρ})) \\
+  \semst{\slbl K~\many{\px}}_ρ & = & \ret(\lbl,\ConV(K,\many{\idiom{\semst{\px}_ρ}})) \\
   \\[-0.5em]
-  \semst{\pe@(\Case{\pe_s}{\Sel[r]})}_ρ(μ) & = & (\pe,μ) \cons \select(\semst{\pe_s}_ρ(μ),\many{\fn{\many{d}^{α_K}}{\semst{\pe_r}_{ρ[\many{\px↦d}]}}})  \\
+  \semst{\pe@(\Case{\pe_s}{\Sel[r]})}_ρ(μ) & = & (\pe,μ) \cons \select(\semst{\pe_s}_ρ(μ),\many{\fn{\many{d}^{α_K}}{\idiom{\semst{\pe_r}_{ρ[\many{\px↦d}]}}}})  \\
  \end{array}
   \\[-0.5em]
 \end{array}\]
@@ -244,9 +245,12 @@ distinct from traces) and well-defined via the following guarded fixpoint:
     σ \cons f \aplater τ^{\later} \aplater \purelater τ' & τ = σ \cons τ^{\later} \\
   \end{cases}
 \]
+We usually write $f \aplater τ^{\later} \aplater \purelater τ'$ with idiom
+bracket notation as $\idiom{f(τ^{\later})(τ')}$.
 A similar productive definition can be given for $\betastep$, which is to be
 understood as yielding from the input trace $τ$ until it hits either end case of
 the trace.
+We have left out the idiom brackets to avoid distraction from the payload.
 
 Intuitively, the heap lists the denotation of the expression bound at a
 particular address, while the environment passed to $\semst{\wild}$ assigns each
@@ -308,10 +312,11 @@ see in due course.
 Evaluation recurses into the body $\semst{i~i}_{ρ_1}$ in the extended
 environment $ρ_1$ to produce state 2, also yielding another $\AppIT$ transition
 into $\semst{i}_{ρ_1}$.
-Note that the final state 5 of $\semst{i}_{ρ_1}$ will later be fed (via
-$\betastep$) into anonymous function in $\apply$.
+Note that the target state 5 of $\semst{i}_{ρ_1}$ will later be fed (via
+$\betastep$) into the anonymous function in $\apply$.
 This scheme is quite common: Continuation items of the transition semantics
 (``data'') are reflected into the call stack of the trace semantics (``code'').
+The reverse process an be recognised as defunctionalisation~\citep{Reynolds:72}.
 
 $\semst{i}_{ρ_1}$ guides the trace through a heap lookup:
 A $\LookupT$ goes straight into the $\deref(\pa_1)$ action stored in the
@@ -379,11 +384,12 @@ $\semst{(\Lam{y}{\Lam{x}{x}})~i}_{ρ_1}$, just as the transition system requires
 
 The handling of data types and case expressions is routine (if a bit
 syntactically heavy) and not different to denotational semantics in call-by-name
-or call-by-value, but it allows us to observe type errors other than scoping
-errors.
+or call-by-value.
+It is a useful inclusion because it allows us to observe type errors other than
+scoping errors.
 Let us consider evaluation of the closed expression
 $\pe \triangleq \Let{x}{\ttrue}{\ttrue~x}$
-(where $\ttrue$ is one of two unary data constructors of the data type $\bool
+(where $\ttrue$ is one of two nullary data constructors of the data type $\bool
 ::= \ttrue \mid \ffalse$).
 $\semst{\wild}$ makes it is easy to observe that the trace gets stuck:
 \[\begin{array}{ll}
@@ -437,10 +443,12 @@ The \emph{source} state $σ_1$ exists for finite and infinite traces, while the
 For proofs, we will often regard $(σ_i)_{i∈\overline{n}}$ as an object of type
 $∃n∈ℕ_ω.\ \overline{n} \to \States$, where $ℕ_ω$ is defined by guarded recursion
 as $ℕ_ω = \{1\} + \later ℕ_ω$.
-The constructor for the right sum alternative is written $1 + $ (a different
-kind of $+$ than in the recursive equation for $ℕ_ω$).
-Now $ℕ_ω$ contains all natural numbers (where $n$ is encoded as $(1+)^{n-1}(1)$) and
-the transfinite limit ordinal $ω = 1 + (1 + ...)$.
+The constructor for the right sum alternative is written $\mathit{succ}$.
+Now $ℕ_ω$ contains all natural numbers (where $n$ is encoded as
+$(\mathit{succ})^{n-1}(1)$) and the transfinite limit ordinal
+$ω = \mathit{succ}(\mathit{succ}(...))$.
+We will write $1+m$ to denote $\mathit{succ}(m)$ (a different kind of $+$ than
+in the recursive equation for $ℕ_ω$), just as we are used to from $ℕ_+$.
 Hence, when $(σ_i)_{i∈\overline{n}} ∈ \STraces$ is an LK trace and $n > 1$, then
 $(σ_{i+1})_{i∈\overline{n-1}} ∈ \later \STraces$ is the guarded tail of the
 trace with an associated induction principle.
@@ -536,9 +544,9 @@ A maximal trace that is not balanced either diverges or is stuck:
   so it must be balanced by the definition of stuckness.
 
   $\Leftarrow$: Both balanced and stuck traces are maximal.
-  A diverging trace $(σ_i)_{i∈\overline{n}}$ is interior and infintie,
+  A diverging trace $(σ_i)_{i∈\overline{n}}$ is interior and infinite,
   hence $n=ω$.
-  Indeed $(σ_i)_{i∈\overline{ω}}$ is maximal, because the expression $σ_{ω+1}$
+  Indeed $(σ_i)_{i∈\overline{ω}}$ is maximal, because the expression $σ_ω$
   is undefined and hence does not exist.
 \end{proof}
 
@@ -591,7 +599,7 @@ We do so by adorning semantic objects with a tilde, so $\tr \triangleq
 α_\Environments(ρ)$ denotes a semantic environment which in this instance is
 defined to be the abstraction of a syntactic environment $ρ$.
 
-Note first that $α_\STraces$ is effectively defined by guarded recursion over
+Note first that $α_\STraces$ is defined by guarded recursion over
 the LK trace, in the sense defined in \Cref{sec:maximal-traces}.
 As such, the expression $\idiom{α_{\STraces}((σ_{i+1})_{i∈\overline{n-1}},κ)}$ has type
 $\later \tSTraces$ (the $\later$ in the type of $(σ_{i+1})_{i∈\overline{n-1}}$
@@ -637,8 +645,8 @@ properties of LK traces are preserved by $α_\States$ and in which way.
   $τ \triangleq α_\STraces((σ_i)_{i∈\overline{n}},\cont(σ_1))$ and proceed by case analysis
   over $n$:
   \begin{itemize}
-    \item \textbf{Case $n=1$}: Then either we have $τ = \goodend{α_\States(σ_1)}$
-      or $τ = \stuckend{α_\States(σ_1)}$, $j = 1$, both of which map to $1$ under
+    \item \textbf{Case $n=1$}: Then we have $j = 1$ and either $τ = \goodend{α_\States(σ_1)}$
+      or $τ = \stuckend{α_\States(σ_1)}$, both of which map to $1$ under
       $\mathit{len}$.
     \item \textbf{Case $n>1$}: Then $n = 1+m$ and $m ∈ \later ℕ_ω$ and the
       first case of $α_\States$ applies, hence $τ = σ \cons τ^{\later}$ for some
@@ -728,13 +736,15 @@ We do so by cases over $\pe$, abbreviating $\tm \triangleq α_\Heaps(μ), \tr
 
     Otherwise, $σ_2 \triangleq (\pe', ρ', μ, \UpdateF(\pa) \pushF κ), σ_1 \smallstep σ_2$
     via $\LookupT$, and $ρ(\px) = \pa, μ(\pa) = (ρ', \pe')$.
-    The between the head of $τ$ and $α_\States(σ_1)$ follows as in the stuck case.
+    The equality between the head of $τ$ and $α_\States(σ_1)$ follows as in the
+    stuck case.
     To show that the tails equate, it suffices to show that they equate \emph{later}.
 
-    Let us abbreviate $\tr \triangleq α_\Environments(ρ)$.
+    Let us abbreviate $\tr' \triangleq α_\Environments(ρ')$.
     Then we can infer that $\tm(\pa) = \idiom{\semst{\pe'}_{\tr'}}$, as well as
-    $\tr(\px) = \deref(\pa) = \tm(\pa)(\tm) =
-    \idiom{\semst{\pe'}_{\tr'}(\tm)} \betastep \fn{((\lbl,v),μ)}{\goodend{((\lbl,v),μ[\pa ↦ \ret(\lbl,v)])}}$
+    \[
+    \tr(\px)(\tm) = \idiom{\semst{\pe'}_{\tr'}(\tm)} \betastep \fn{((\lbl,v),μ)}{\idiom{\goodend{((\lbl,v),μ[\pa ↦ \idiom{\ret(\lbl,v)}])}}}
+    \]
     from the definition of $α_\Environments$.
 
     Let us define $τ^{\later} \triangleq \idiom{\semst{\pe'}_{\tr'}(\tm)}$ and
@@ -743,7 +753,7 @@ We do so by cases over $\pe$, abbreviating $\tm \triangleq α_\Heaps(μ), \tr
     $\idiom{α_\STraces((σ_{i+1})_{i∈\overline{m}},\UpdateF(\pa) \pushF κ) = τ^{\later}}$.
 
     When $τ^{\later}$ is infinite, we are done. Similarly, if $τ^{\later}$ ends
-    in $\stuckend{\wild}$ then $\betastep$ will return $τ^{\later}$ indicating
+    in $\stuckend{\wild}$ then $\betastep$ will return $τ^{\later}$, indicating
     by \Cref{thm:abs-length} and \Cref{thm:abs-max-trace} that
     $(σ_{i+1})_{i∈\overline{n-1}}$ is stuck and hence $(σ_i)_{i∈\overline{n}}$
     is, too.
@@ -753,11 +763,11 @@ We do so by cases over $\pe$, abbreviating $\tm \triangleq α_\Heaps(μ), \tr
     $\cont(σ_m) = \UpdateF(\pa) \pushF κ$ and $\ctrl(σ_m)$ is a value.
     So $σ_m = (\pv,ρ_m,μ_m,\UpdateF(\pa) \pushF κ)$ and the
     $\UpdateT$ transition fires, reaching $(\pv,ρ_m,μ_m[\pa ↦ (ρ_m, \pv)],κ)$
-    and this must be the final state $σ_n$, because it remains a return state
+    and this must be the target state $σ_n$, because it remains a return state
     and has continuation $κ$, so $(σ_i)_{i∈\overline{n}}$ is balanced.
     Likewise, $\tilde{σ}_m \triangleq α_\States(σ_m) = ((\lbl,v),\tm_m)$ is the
     state that $τ^{\later}$ ends in and is a return state, so $\betastep$ calls
-    its second argument which makes another step to the final state of $τ$,
+    its second argument which makes another step to the target state of $τ$,
     updating the heap to
     \[
       \tilde{σ}_n \triangleq ((\lbl,v),\tm_m[\pa ↦ \idiom{\ret(\lbl,v)}]) = ((\lbl,v),\tm_m[\pa ↦ \idiom{\semst{\pv}_{α_\Environments(ρ_m)}}]) = α_\States(σ_n),
@@ -769,19 +779,19 @@ We do so by cases over $\pe$, abbreviating $\tm \triangleq α_\Heaps(μ), \tr
     $\pe$ are similar to the variable case.
 
     So let us focus on the situation when $τ^{\later} \triangleq
-    \idiom{\semst{\pe'}_{\tr'}(\tm)}$ returns and let $σ_m$ be LK state at the
+    \idiom{\semst{\pe}_{\tr'}(\tm)}$ returns and let $σ_m$ be LK state at the
     end of the finite maximal trace $(σ_{i+1})_{i∈\overline{m-1}}$ through $\pe$
     starting in stack $\ApplyF(\pa) \pushF κ$.
     Since it is maximal, any transition $σ_m \smallstep σ_{m+1}$ must leave
     the stack $\ApplyF(\pa) \pushF κ$, necessarily by an $\AppET$ transition.
-    That in turn means that the value in $\ctrl(σ_m)$ must a lambda
+    That in turn means that the value in $\ctrl(σ_m)$ must be a lambda
     $\Lam{\py}{\pe'}$, hence $τ^{\later}$ ends in $\goodend{\tilde{σ}_m}$,
     where
     $\tilde{σ}_m \triangleq (\lbl, \FunV(\fn{d}{\idiom{\semst{\pe'}_{\tr_m[\py ↦ d]}}}), \tm_m) = σ_\States(σ_m)$,
     assuming that $\lbl$ is the label of the lambda and $\tr_m, \tm_m$ correspond
     to $ρ_m,μ_m$ of $σ_m$ as usual.
 
-    Now let $σ_{i+m})_{i∈\overline{k}}$ be the maximal trace starting at
+    Now let $(σ_{i+m})_{i∈\overline{k}}$ be the maximal trace starting at
     $σ_{m+1}=(\pe',ρ_m[\py↦\pa], μ_m,κ)$.
     We can apply the induction hypothesis to this LK trace and
     $τ_2^{\later} \triangleq \idiom{\semst{\pe'}_{\tr_m}(\tm_m[\py↦\deref(\pa))}$
@@ -801,24 +811,25 @@ We do so by cases over $\pe$, abbreviating $\tm \triangleq α_\Heaps(μ), \tr
     Let $σ_1 = (\Let{\px}{\pe_1}{\pe_2},ρ_1,μ_1,κ)$.
     Then $σ_2 = (\pe_2, ρ_2, μ_2,κ)$ by $\BindT$, where $ρ_2 = ρ_1[\px↦\pa], μ_2
     = μ_1[\pa↦(ρ_2,\pe_1)]$.
-    Since the stack does not grow, maximality from $σ_{i+1})_{i∈\overline{n-1}}$
-    must be maximal, too.
+    Since the stack does not grow, maximality from the tail $(σ_{i+1})_{i∈\overline{n-1}}$
+    transfers to $(σ_{i})_{i∈\overline{n}}$.
     Straightforward application of the induction hypothesis to
-    $σ_{i+1})_{i∈\overline{n-1}}$ yields the equality for the tail (after a bit
+    $(σ_{i+1})_{i∈\overline{n-1}}$ yields the equality for the tail (after a bit
     of calculation for the updated environment and heap), which concludes the
     proof.
 \end{itemize}
 \end{proof}
 
 \Cref{thm:semst-correct} and \Cref{thm:abs-max-trace} are the key to proving a
-strong version of adequacy for $\semst{\wild}$:
+strong version of adequacy for $\semst{\wild}$, where $σ$ is defined to be a
+\emph{final} state if $\ctrl(σ)$ is a value and $\cont(σ) = \StopF$.
 
 \begin{lemma}[Adequacy of $\semst{\wild}$]
   Let $τ = \semst{\pe}_{[]}([])$.
   \begin{itemize}
     \item
       $τ$ ends with $\goodend{\wild}$ (is balanced) iff there exists a final
-      $state $σ$ such that \inj(\pe) \smallstep^* σ$.
+      state $σ$ such that $\inj(\pe) \smallstep^* σ$.
     \item
       $τ$ ends with $\stuckend{\wild}$ (is stuck) iff there exists a non-final
       state $σ$ such that $\inj(\pe) \smallstep^* σ$ and there exists no $σ'$
@@ -875,10 +886,14 @@ strong version of adequacy for $\semst{\wild}$:
 
 \subsection{Discussion}
 
+\sg{This section is a bit in limbo and might resolve into the next chapter about
+stateless trace semantics and Related Work later on. Simon might find the first
+part here interesting}
+
 It is striking that although the stateful trace semantics $\semst{\wild}$ is as
 expressive as the LK transition system, the information encoded in the states of
 the generated traces alone are not enough to recover the LK transition system,
-in the sense of \citep[]{Cousot:21}.
+in the sense of \citet[Chapter 43]{Cousot:21}.
 For example, every return state $((\lbl,v),\tm)$ admits at least two possible
 transitions:
 Either a heap update or a $β$-reduction.
@@ -889,7 +904,8 @@ stack manipulations and emit the current lexical environment as part of every
 state.
 We think that is rather uninteresting; it is more interesting to see how much
 we can omit before compromising on expressivity.
-\sg{Why not omit labelled expressions, then?}
+\sg{Why not omit labelled expressions, then? CFA, of course, but then the
+preceding sentence seems like a bit of a red herring}
 
 Yet often, one is not so much interested in particular representations of state
 rather than in the particular transition rule taken.

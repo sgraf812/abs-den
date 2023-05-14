@@ -4,32 +4,10 @@
 By way of the poster child example of a compositional definition of \emph{usage
 analysis}, we showcase how the operational detail available in traditional
 denotational semantics is too coarse to substantiate a correctness criterion,
-although the proof of (a weaker notion of) correctness is simple and direct.
+although the \emph{proof} of (a weaker notion of) correctness is simple and direct.
 While operational semantics observe sufficient detail to formulate a correctness
 criterion, it is quite complicated to come up with a suitable inductive
 hypothesis for the correctness proof.
-
-%\subsection{Notation}
-%
-%Collection of stuff to explain, for now:
-%\begin{itemize}
-%  \item $\triangleq$ for defining an object (defn eq), rather than $=$
-%  \item $\text{letrec}$
-%    The (meta-level, math) notation
-%    \[
-%    \text{letrec}~l.~\many{x = rhs_x} ~ l = rhs_{l} ~ \many{y = rhs_y}~\text{in}~body
-%    \]
-%    where $l$ might occur freely in any $rhs_{\wild}$ and $body$, is syntactic sugar for
-%    \[
-%    snd(\lfp(\fn{(l,\wild)}{\text{let}~\many{x = rhs_x} ~ \many{y = rhs_y}~\text{in}~(rhs_{l},body)}))
-%    \]
-%    Where $\lfp$ is the least fixpoint operator and $snd(a,b) = b$. Clearly, this
-%    desugaring's use of $\lfp$ is well-defined for its use on elements of the
-%    powerset lattice $\UsgD$.
-%
-%    But \citep{Shivers:91} uses the similar $\text{whererec}$ and gets by without
-%    ever explaining it, so we might as well.
-%\end{itemize}
 
 \subsection{Usage Analysis and Deadness, Intuitively}
 
@@ -134,14 +112,14 @@ cardinality}, that is, how often the variable is evaluated over the cause of any
 of its activations.
 Whenever $0 ⊏ d(x)$, we say that it is \emph{potentially live} in $d$ and
 extend this meaning to a program $\pe$ whenever $\semusg{\pe} = d$.
-Likewise, when $d(x) = 0$ we say that $x$ is \emph{dead} in $d$ and the programs
-$d$ denotes, \eg, \emph{never evaluated}. In this way, $\semusg{\wild}$ can
-be used to infer facts of the form ``$\pe$ never evaluates $x$'' from the
-introduction.
+Likewise, when $d(x) = 0$ we say that $x$ is \emph{dead} in $d$/$\pe$, \eg,
+\emph{never evaluated}.
+In this way, $\semusg{\wild}$ can be used to infer facts of the form ``$\pe$
+never evaluates $x$'' from the introduction.
 
 \subsection{Denotational Deadness, Continuity and Divergence}
 
-The \emph{requirement} (in the sense of informal specification) on an assertion
+The requirement (in the sense of informal specification) on an assertion
 such as ``$x$ is dead'' in a program like $\Let{x}{\pe_1}{\pe_2}$ is that we
 may rewrite to $\Let{x}{panic}{\pe_2}$ and perhaps even to $\pe_2$ without
 observing any change in semantics. Doing so reduces code size and heap
@@ -224,10 +202,10 @@ semantics because it (necessarily) assigns $\bot$ to any diverging computation.
 Furthermore, as is often done, $\semscott{\wild}$ abuses $\bot$ as a collecting
 pool for error cases.
 This shows in the following example:
-$x$ is dead in $(\Lam{y}{\Lam{z}{z}})~x$, but rewriting
-$\Let{x}{\pe_1}{(\Lam{y}{\Lam{z}{z}})~x}$ to $(\Lam{y}{\Lam{z}{z}})~x$
-introduces a scoping error, a change that is not observable under
-$\semscott{\wild}$.
+$x$ is dead in $(\Lam{y}{\Lam{z}{z}})~x$, but dropping the $\mathbf{let}$
+binding in $\Let{x}{\pe_1}{(\Lam{y}{\Lam{z}{z}})~x}$
+introduces a scoping error which is not observable under $\semscott{\wild}$.
+
 We could take inspiration in the work of \citet{Milner:78}
 and navigate around the issue by introducing a $\mathbf{wrong}$ denotation for
 errors which is propagated strictly; then we would notice when we optimise a
@@ -332,13 +310,14 @@ $\{a_1,...,a_n\}$ that maps $a_i$ to $b_i$. Function update $f[a ↦ b]$
 maps $a$ to $b$ and is otherwise equal to $f$.
 
 The initial machine state for a closed expression $\pe$ is given by the
-injection function $inj(\pe) = (\pe,[],[],\StopF)$ and
+injection function $\inj(\pe) = (\pe,[],[],\StopF)$ and
 the final machine states are of the form $(\pv,\wild,\wild,\StopF)$.
-We bake into $σ$ the simplifying invariant of \emph{well-addressedness}: Any
-address $\pa$ occuring in $ρ$, $κ$ or the range of $μ$ must be an element of
-$\dom(μ)$. It is easy to see that the transition system maintains this invariant
-and that it is still possible to observe scoping errors which are thus confined
-to lookup in $ρ$.
+We bake into $σ∈\States$ the simplifying invariant of \emph{well-addressedness}:
+Any address $\pa$ occuring in $ρ$, $κ$ or the range of $μ$ must be an element of
+$\dom(μ)$.
+It is easy to see that the transition system maintains this invariant and that
+it is still possible to observe scoping errors which are thus confined to lookup
+in $ρ$.
 
 Now we are able to define a notion of ``strong deadness'':
 
@@ -393,7 +372,7 @@ the heap.
 
 In call-by-need, there will be a fixpoint between the heap and stack due to
 update frames acting like heap bindings whose right-hand side is under
-evaluation (a point that is very apparent in the contextual semantics of
+evaluation (a point that is very apparent in the semantics of
 \citet{Ariola:95}), so fixpoint induction needs to be applied \emph{at every
 case of the proof}, diminishing confidence in correctness unless the proof is
 fully mechanised.
@@ -406,7 +385,6 @@ more permissive \emph{correctness relation} $C(σ)$ to prove preservation $C(σ_
 $C$ is chosen such that
   (1) it is strong enough to imply the property of interest (deadness)
   (2) it is weak enough that it is implied by the analysis result for an initial state ($\tr(\px) \not⊑ \semusg{\pe}_{\tr}$).
-
 Examples of this approach are the
 ``well-annotatedness'' relation in \citep[Lemma 4.3]{cardinality-ext} or
 $\sim_V$ in \citep[Theorem 2.21]{Nielson:99}).
@@ -415,24 +393,26 @@ and postpone futher discussion to \Cref{sec:abstractions}, where the full
 correctness relation in \Cref{thm:semusg-correct-2} and its proof is derived by
 abstract interpretation~\citep{Cousot:21}.
 
-Often, correctness proofs do not need to keep track about which address
-is an activation of which let-bound program variable, in which case the
-distinction between addresses and variables is unnecessary and the
-environment component vanishes.
+Often, correctness proofs do not need the full operational detail of a
+CESK-style machine, in which case a simpler machine definition leads to simpler
+proof.
+If the correctness statement does not need to keep track about which address
+is an activation of which let-bound program variable, the distinction between
+addresses and variables is unnecessary and the environment component vanishes.
 The stack can often be reflected back into the premises of the judgment
-rules, so that the system distinguishes \emph{instruction transitions}
-from \emph{search transitions}, a distinction which is made explicit in a
-\emph{contextual semantics}.
-Applying both these translations yields a CS machine~\citep{Felleisen:87}.
-For call-by-need, the evaluation context corresponding to an update frame
-is neither obvious nor simple~\citep{Ariola:95}.
+rules, distinguishing \emph{instruction transitions} from \emph{search
+transitions}, a distinction which is made explicit in a \emph{contextual
+semantics}.
+Applying both these transformations yields a CS machine~\citep{Felleisen:87}.
+However for call-by-need, the evaluation context corresponding to an update
+frame is neither obvious nor simple~\citep{Ariola:95}.
 For effect-free call-by-value and call-by-name calculi, the heap becomes
 immutable and variables can be substituted immediately for their right-hand
 sides/arguments rather than delaying lookup to the variable case, abolishing the
 need for the heap altogether and yielding a contextual semantics where
 states are a simple expression.
 
-These refactorings are with the ultimate goal of simplifying proofs:
+These refactorings help in simplifying proofs:
 Instead of defining an coinductive well-formedness predicate on the heap, we
 prove a substitution lemma.
 Instead of a well-formedness predicate for the stack, we appeal to the
@@ -443,11 +423,10 @@ well-formedness of the search transition rule.
 Another way to work around the structure gap is to adopt the structure of the
 semantics in the analysis; this is done in the Abstracting Abstract
 Machines work \citep{aam}.
-To our knowledge, its exclusive application seems to be control-flow analysis
-\citep{Shivers:91}, so that the analyses and optimisations that follow do not
-need to reason about arbitrary function call structure and can apply traditional
-intraprocedural analysis techniques that are well-explored in the imperative
-world.
+To our knowledge, its exclusive application is control-flow analysis
+\citep{Shivers:91}, so that the analyses and optimisations that follow can apply
+traditional intraprocedural analysis techniques that are well-explored in the
+imperative world.
 Unfortunately, control-flow information is often invalidated during compiler
-passes and we would expect re-running or interleaving the analysis after or
-during each pass to be quite costly.
+passes and we expect re-running after or interleaving the analysis during each
+pass to be quite costly.

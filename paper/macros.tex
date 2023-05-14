@@ -43,10 +43,12 @@
 }
 \newenvironment{letarray}{\begin{array}{@{}l@{\hspace{1ex}}l}}{\end{array}}
 \newcommand{\noleftdelimiter}{\left.\kern-\nulldelimiterspace}
-\newcommand{\later}{\mathop{\blacktriangleright}}
+\newcommand{\later}{\mathop{\vcenter{\hbox{$\scriptstyle\blacktriangleright$}}}}
 \newcommand{\purelater}{\mathop{\mathsf{next}}}
 \newcommand{\aplater}{\mathbin{\circledast}}
-\newcommand{\idiom}[1]{\llparenthesis #1 \rrparenthesis}
+\newcommand{\lBrace}{{\{\hspace{-0.22em}\mid}}
+\newcommand{\rBrace}{{\mid\hspace{-0.22em}\}}}
+\DeclarePairedDelimiter\idiom{\lBrace}{\rBrace}
 
 % Syntax
 %% LC
