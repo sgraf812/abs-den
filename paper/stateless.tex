@@ -127,8 +127,8 @@ semantics.
   stuck(τ_i^+)   & = & \stuckend{tgt(τ_i^+)} \\
   \\[-0.5em]
   \stepm{p}{a}{\pc}(τ_i^+) & = &
-    \ternary{\text{$tgt(τ_i^+)$ matches $\goodend{p}$}}
-            {tgt(τ_i^+) \act{a} \goodend{\pc}}
+    \ternary{\text{$τ_i^+$ matches $... \act{} \goodend{p}$}}
+            {p \act{a} \goodend{\pc}}
             {\stuckend{tgt(τ_i^+)}} \\
   \\[-0.5em]
   (d_1 \fcomp d_2)(τ_i^+)   & = &
@@ -186,6 +186,11 @@ semantics.
 % action, it would be hard to differentiate between stuck and successful
 % maximal traces. Furthermore, it plays a crucial role in the memoisation
 % mechanism, where we reconstruct the memoised value from the trace.
+%
+% A different design would be to have controls `expr | (lbl, sem value)`,
+% but then we still need the value transition: Otherwise, callers of
+% S[λx.e] must supply the semantic value of the lambda at the end of the
+% initialisation trace which defeats the point.
 %
 % The need for an update action
 % -----------------------------
