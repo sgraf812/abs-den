@@ -150,7 +150,7 @@ be easy to infer anyway.
     \begin{array}{c}
       (\betastep) : \later\STraces \to (\later\States \pfun \later\STraces) \to \later\STraces \quad  \ret : (\Val \times \StateV) \to \StateD \\
       \deref : \Addresses \to \later\StateD \quad \apply : \later\STraces \to \later\StateD \to \later\STraces \\
-      \select : \later\STraces \to ((\later\STraces)^{α_K} \pfun \later\STraces)^* \to \later\STraces \\
+      \select : \later\STraces \to ((\later\StateD)^{α_K} \pfun \later\STraces)^* \to \later\STraces \\
     \end{array}
   }} \\
   \\[-0.5em]
@@ -161,11 +161,8 @@ be easy to infer anyway.
     \end{cases} \\
   \\[-0.5em]
   \ret(\lbl,v)(μ) & = & \goodend{((\lbl,v),μ)} \\
-  \\[-0.5em]
   \deref(\pa)(μ) & = & μ(\pa)(μ) \betastep \fn{((\lbl,v),μ)}{\idiom{\goodend{((\lbl,v),μ[\pa ↦ \idiom{\ret(\lbl,v)}])}}} \\
-  \\[-0.5em]
   \apply(τ,d) & = & τ \betastep \fn{((\wild,\FunV(f)),μ)}{\idiom{f(d)(μ)}} \\
-  \\[-0.5em]
   \select(τ,\many{f}) & = & τ \betastep \fn{((\wild,\ConV(K_s,\many{d_s})),μ)}{\idiom{f_s(\many{d_s})}} \\
   \\[-0.5em]
   \multicolumn{3}{c}{ \ruleform{ \semst{\wild} \colon \Exp → (\Var \pfun \later\StateD) → \StateD } } \\
