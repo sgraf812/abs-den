@@ -2,6 +2,7 @@
 \section{Abstraction Interpretation}
 \label{sec:abstractions}
 
+\begin{figure}
 \[\begin{array}{c}
   \forall \tr.\ \tr(x) ⊑ \semusg{\pe}_{\tr} \\
   \Uparrow \\
@@ -45,6 +46,7 @@
   α(τ) & = & fst(intra(usg_\Traces(blub(τ)(\fn{\px}{[\px↦1]}))(τ))) \\
  \end{array}
 \end{array}\]
+\end{figure}
 
 \begin{itemize}
   \item Correctness predicate simpler to come up than for liveness analysis directly. Later
