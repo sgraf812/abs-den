@@ -65,9 +65,9 @@ $\pe \triangleq \Let{i}{\Lam{x}{x}}{i~i}$ to completion:
 
 \subsection{Guarded Recursive Types}
 
-The key to avoiding Domain Theory and $\bot$ as a semantic domain for our work
-is use of a total type theory with \emph{guarded recursive types}, such as
-Guarded Dependent Type Theory (GDTT) \citep{gdtt}.%
+The key to avoiding algebraic domains for our work is use of a total type theory
+with \emph{guarded recursive types}, such as Guarded Dependent Type Theory
+(GDTT) \citep{gdtt}.%
 \footnote{Of course, in reality we are just using GDTT as a meta
 language~\citep{Moggi:07} with a known domain theoretic interpretation in terms
 of the topos of trees~\citep{gdtt}.
@@ -78,6 +78,12 @@ think about topology and approximation directly.}
 The fundamental construct of this theory is addition of the ``later''
 modality $\later$ which allows to define coinductive data types with negative
 occurrences, as first realised by \citet{Nakano:00}.
+
+Thus, GDTT walks a fine line:
+The theory guarantees that all well-typed functions (naturally) correspond
+to continuous functions, while it also allows for embedding of a sufficiently
+expressive restriction of endofunctions for denotational semantics.
+
 Whereas previous theories of coinduction require syntactic productivity
 checks~\citep{Coquand:94}, requiring tiresome constraints on the form of guarded
 recursive functions, the appeal of GDTT is that productivity is instead proven

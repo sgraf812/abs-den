@@ -1,10 +1,10 @@
 \section{Introduction}
 \label{sec:introduction}
 
-To an implementor of a programming language, it is often useful to automatically
-glean facts about a program such as ``this program is well-typed'', ``this
-higher-order function is always called with argument $\Lam{x}{x+1}$'' or ``this
-program never evaluates $x$'' by way of \emph{static (program) analysis}.
+To an implementor of a programming language, it is often useful to employ a
+\emph{static program analysis} to automatically infer facts about a program such
+as ``this program is well-typed'', ``this higher-order function is always called
+with argument $\Lam{x}{x+1}$'' or ``this program never evaluates $x$''.
 
 If the implementation language is a functional one, then usually such static
 analyses are formulated as a function defined by \emph{structural recursion} on
@@ -12,9 +12,11 @@ the input term.
 For example, given an application expression $(\pe_1~\pe_2)$,
 the property ``$(\pe_1~\pe_2)$ never evaluates its free variable $x$'' can be
 \emph{conservatively approximated} (here: It's OK to say ``No'' more often) by
-the property ``$\pe_1$ and $\pe_2$ never evaluate $x$''.
+the properties ``$\pe_1$ never evaluates $x$'' and ``$\pe_2$ never evaluates
+$x$''.
 
-It is quite convenient to formulate \emph{potential liveness analysis}
+It is quite convenient to formulate such a \emph{deadness analysis}%
+\footnote{\citet{Cousot:21} calls it a \emph{potential liveness analysis}}
 structurally:
 (1) Structural recursion gives an immediate proof of termination and can
     further be exploited in other inductive proofs.
@@ -31,42 +33,60 @@ If the correctness statement can be expressed in terms of a \emph{denotational
 semantics}~\citep{ScottStrachey:71}, then the recursion structure of analysis
 function and semantics function line up nicely.
 As a result, the proof of correctness can be conducted by simple induction
-over the expression and abstract interpretation~\citep{Cousot:21} provides a
-neat framework to derive static analyses that are proven correct by simple
+over the expression. Abstract interpretation~\citep{Cousot:21} then provides
+a neat framework to derive static analyses that are proven correct by simple
 equational reasoning.
 
-\subsection{Domain Theory is leaky and too abstract}
-Alas, there are several shortcomings to traditional denotational semantics:
-\begin{itemize}
-  \item Infinite program behaviors are denoted by $\bot$, the least element of
-        the approximation order on elements of an algebraic domain.
-        This encoding necessitates semantic properties to be proven
-        \emph{admissable} before they can be used as an inductive hypothesis
-        \citep{Abramsky:94}.
-        This means that although the denotational semantics might be
-        ``standard'', the semantic domain can't be treated like a black box ---
-        the abstraction is leaky and $\bot$ is lurking everywhere to make life
-        complicated.
-  \item Traditional domain theory proved non-compositional~\citep{WrightFelleisen:94},
-        in that language features such as exceptions, state and nondeterminism
-        require individual, complicated adjustments where it is far from clear
-        how to combine these adjustments.
-  \item There have been denotational semantics for call-by-name and
-        call-by-value, but none for call-by-need. That is a symptom of the fact
-        that traditional domain theory eschews any account of operational
-        detail, such as evaluation cardinality.
-\end{itemize}
+%\subsection{Domain Theory is leaky and too abstract}
+%Alas, there are several shortcomings to traditional denotational semantics:
+%\begin{itemize}
+%  \item Program behaviors are denoted by elements of an algebraic domain.
+%        Crucially, such algebraic domains allow embedding of functions
+%        operating on algebraic domain elements~\citep{ScottStrachey:71}.
+%        However, this embedding is restricted to the subset of
+%        \emph{continuous} functions%
+%        \footnote{Continuous functions in turn form a superset of all
+%        \emph{computable} functions.}.
+%
+%        As a result, coming up with one's own denotational semantics requires a
+%        proof of continuity of all involved functions that is often hand-waved
+%        over when the semantics is ``sufficiently standard''.
+%        In other cases, continuity is proven for a number of combinators and
+%        their composition, and then the semantics is formulated in terms of this
+%        meta language of combinators, adversely affecting the presentation of the
+%        semantics.
+%  \item Traditional domain theory proved non-compositional~\citep{WrightFelleisen:94},
+%        in that language features such as exceptions, state and nondeterminism
+%        require individual, complicated adjustments where it is far from clear
+%        how to combine these adjustments in a way that the combined semantics'
+%        functions are still continuous.
+%  \item There have been denotational semantics for call-by-name and
+%        call-by-value, but none for call-by-need. That is a symptom of the fact
+%        that traditional domain theory eschews any account of operational
+%        detail, such as evaluation cardinality.
+%\end{itemize}
+%
+%The third point is important in the context of quantitative type
+%systems~\citep{Atkey:18} and optimising compilers for call-by-need languages such
+%as the Glasgow Haskell Compiler.
+%The first two points have been noted by \citet{WrightFelleisen:94}, establishing
+%operational semantics as the Gold Standard to this day.
+%The past twenty years have proven that the methodology scales to
+%big and complex type systems, building on techniques such as
+%\emph{step-indexing}~\citep{AppelMcAllester:01,DreyerAhmedBirkedal:11}.
 
-The third point is important in the context of quantitative type
-systems~\citep{Atkey:18} and optimising compilers for call-by-need languages such
-as the Glasgow Haskell Compiler.
-The first two points have been noted by \citet{WrightFelleisen:94}, establishing
-operational semantics as the Gold Standard to this day.
-The past twenty years have proven that the methodology scales to
+Alas, not only have traditional denotational semantics fallen out of fashion
+due to scaling issues~\citep{WrightFelleisen:94}, they are also insufficiently
+expressive to model operational detail such as \emph{evaluation cardinality},
+\eg, ``how often does $\pe$ evaluate its free variable $x$?''.
+A related issue is that up to this day, there are denotational semantics for
+call-by-name and call-by-value, but none for call-by-need.
+
+Thus, \citeauthor{WrightFelleisen:94} established operational semantics as the
+Gold Standard to this day.
+The past thirty years have proven that the methodology scales to
 big and complex type systems, building on techniques such as
 \emph{step-indexing}~\citep{AppelMcAllester:01,DreyerAhmedBirkedal:11}.
-
-\subsection{Transition systems are syntactic and not structural}
 However, transition systems don't easily admit a compositional definition as a
 function of the input expression.%
 \footnote{While~\citet{Cousot:02} has derived trace-based fixpoint
@@ -76,41 +96,43 @@ In giving in to operational semantics, semanticists have chosen predictable
 step-wise reasoning over elegant equational reasoning backed by
 compositionality.
 
-In preservation proofs of type systems, step-wise reasoning necessitates
-substitution lemmas to cope with the non-structural recursion during variable
-lookup and beta reduction, an inconvenience that is readily accepted when the
-alternative would be to tame domain theory.
-
-It is not so simple in lattice-based compiler analyses, because recursive
-$\mathbf{let}$ bindings invite fixpoint iteration. If you think about
-``well-annotatedness'' of a machine configuration according to an analysis as a
-type system, the corresponding ``preservation lemma'' needs to relate fixpoints
-before and after \emph{every} kind of machine transition!
-This necessitates a dreadful application of fixpoint induction, unfolding
-the whole analysis function body before and after each step and thus culminating
-in beaurocratic nightmare.
-Of course, the definition of ``well-annotatedness'' needs to encompass whole
-machine configurations, including the (mutually recursive, in call-by-need)
-stack and heap, see the proofs in~\citep{cardinality-ext} for a taste. It is
-hard to raise confidence in such a proof without full mechanisation.
-A denotational semantics would arguably simplify the proof, unfortunately one
-allowing to observe evaluation cardinality of call-by-need is lacking to this
-day.
+%In preservation proofs of type systems, step-wise reasoning necessitates
+%substitution lemmas to cope with the non-structural recursion during variable
+%lookup and beta reduction, an inconvenience that is readily accepted when the
+%alternative would be to tame domain theory.
 
 When there is no semantics that structurally matches our analysis, we could
 try to rearrange our analysis. That is the idea of \emph{Abstracting Abstract
 Machines}~\citep{aam} which abandons compositional analysis in favour of a
 convenient proof by abstract interpretation of the transition semantics.
-Not only is it deeply unsatisfying to be pushed into such rearrangements, it
-is also impossible to perform in a production-grade compiler because of the
-inevitable regressions it introduces.
+However, we have a large amount of literature and implementation on
+\emph{compositional} program analyses such as in \citet{cardinality-ext}
+that cannot easily be proven correct in this framework due to the structural
+mismatch.
+
+%It is not so simple in lattice-based compiler analyses, because recursive
+%$\mathbf{let}$ bindings invite fixpoint iteration. If you think about
+%``well-annotatedness'' of a machine configuration according to an analysis as a
+%type system, the corresponding ``preservation lemma'' needs to relate fixpoints
+%before and after \emph{every} kind of machine transition!
+%This necessitates a dreadful application of fixpoint induction, unfolding
+%the whole analysis function body before and after each step and thus culminating
+%in beaurocratic nightmare.
+%Of course, the definition of ``well-annotatedness'' needs to encompass whole
+%machine configurations, including the (mutually recursive, in call-by-need)
+%stack and heap, see the proofs in~\citep{cardinality-ext} for a taste. It is
+%hard to raise confidence in such a proof without full mechanisation.
+%A denotational semantics would arguably simplify the proof, unfortunately one
+%allowing to observe evaluation cardinality of call-by-need is lacking to this
+%day.
 
 \subsection{Summary of Contributions}
 
 Our ambitious goal is to resolve the aforementioned tensions via the following
 contributions:
 \begin{itemize}
-  \item In \Cref{sec:problem}, we corroborate our claims by the example of \emph{usage analysis}.
+  \item In \Cref{sec:problem}, we corroborate our claims by the example of
+    \emph{usage analysis}, a generalisation of deadness analysis.
   \item In \Cref{sec:semantics}, we give a compositional semantics
     for call-by-need lambda calculus that generates an abstraction of
     potentially infinite small-step traces. Unlike traditional formulations
@@ -124,7 +146,7 @@ contributions:
     traces.
     This is in line with the standard operational approach in which
     self-contained states are the objects of interest.
-    Borrowing the idea of a \emph{maximal prefix trace semantics} from
+    Borrowing ideas from the \emph{maximal prefix trace semantics} of
     \citet{Cousot:21}, we define an equivalent, but more convenient
     \emph{stateless} semantics in \Cref{sec:stateless} and will see how to
     recover state from program history as needed.
@@ -135,3 +157,4 @@ contributions:
   \item Talk about prototype in Haskell?
   \item Related Work \Cref{sec:related-work}
 \end{itemize}
+
