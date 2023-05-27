@@ -10,6 +10,7 @@ criterion, it is quite complicated to come up with a suitable inductive
 hypothesis for the correctness proof.
 
 \subsection{Usage Analysis and Deadness, Intuitively}
+\label{sec:usage-intuition}
 
 \begin{figure}
 \begin{minipage}{\textwidth}
@@ -44,7 +45,7 @@ hypothesis for the correctness proof.
   \multicolumn{3}{c}{ \ruleform{ \semscott{\wild} \colon \Exp → (\Var \to \ScottD) → \ScottD } } \\
   \\[-0.5em]
   \semscott{\px}_ρ & {}={} & ρ(\px) \\
-  \semscott{\Lam{\px}{\pe}}_ρ & {}={} & d ↦ \semscott{\pe}_{ρ[\px ↦ d]} \\
+  \semscott{\Lam{\px}{\pe}}_ρ & {}={} & \fn{d}{\semscott{\pe}_{ρ[\px ↦ d]}} \\
   \semscott{\pe~\px}_ρ & {}={} & \begin{cases}
      f(ρ(x)) & \text{if $\semscott{\pe} = f$}  \\
      \bot   & \text{otherwise}  \\
@@ -89,10 +90,10 @@ hypothesis for the correctness proof.
 
 \Cref{fig:syntax} defines the labelled syntax of a lambda calculus with
 recursive let bindings and algebraic data types, reminiscent of
-\citet{Sestoft:97}. The calculus is factored into \emph{administrative normal
-form}, that is, the arguments of applications are restricted to be variables, so
-the difference between call-by-name and call-by-value manifests purely in the
-semantics of $\mathbf{let}$.
+\citet{Sestoft:97}. The calculus is factored into \emph{A-normal form}, that is,
+the arguments of applications are restricted to be variables, so the difference
+between call-by-name and call-by-value manifests purely in the semantics of
+$\mathbf{let}$.
 In this section, only the highlighted parts are relevant; we will ignore labels
 and data types for brevity.
 
@@ -101,21 +102,36 @@ We give a standard call-by-name denotational semantics $\semscott{\wild}$ in
 syntax by means of the infamous Scott domain $\ScottD$.
 Squinting a bit, we find that it looks quite similar to the function
 to its right in \Cref{fig:usage}, depicting a \emph{usage analysis}
-$\semusg{\wild}$, a static analysis for estimating an upper bound on how often
-a variable is evaluated. The given analysis is naïve in that its treatment of
-function application assumes that every function deeply evaluates its argument.
+$\semusg{\wild}$, a static analysis for estimating an upper bound on
+\emph{evaluation cardinality}, \eg, how often a variable is evaluated.
 
+Let us call $\tr_Δ(\px) \triangleq \fn{\py}{\ternary{\px = \py}{1}{0}}$ the
+``diagonal'' usage environment.
+We will occassionally adorn with \textasciitilde{} to explicitly disambiguate
+elements of the analysis domain from the semantic domain.
 Assuming that all program variables are distinct (a silent assumption from
-here on throughout), the result of $\semusg{\wild}$ is an element $d ∈ \UsgD$,
-an environment that maps to each variable an upper bound on its \emph{evaluation
-cardinality}, that is, how often the variable is evaluated over the cause of any
-of its activations.
-Whenever $0 ⊏ d(x)$, we say that it is \emph{potentially live} in $d$ and
-extend this meaning to a program $\pe$ whenever $\semusg{\pe} = d$.
+here on throughout), the result of $\semusg{\wild}_{\tr_Δ}$ is an element
+$d ∈ \UsgD$, an environment that maps to each variable an upper bound on
+evaluation cardinality.
+
+Whenever $\bot = 0 ⊏ d(x)$ (where $\bot$ denotes the least element of a partial
+order that is inferred from context), we say that $x$ is \emph{potentially live}
+in $d$ and extend this meaning to a program $\pe$ whenever $\semusg{\pe}_{\tr_Δ}
+= d$.
 Likewise, when $d(x) = 0$ we say that $x$ is \emph{dead} in $d$/$\pe$, \eg,
 \emph{never evaluated}.
 In this way, $\semusg{\wild}$ can be used to infer facts of the form ``$\pe$
 never evaluates $x$'' from the introduction.
+
+Note that the usage analysis is naïve in its treatment of function application:
+It assumes that that every function deeply evaluates its argument.
+Whenever $y$ is assumed to be live in $x$ (which is encoded as $\tr(x) ⊑
+\tr(y)$), the analysis will report that $(f~y)$ is live in $x$, regardless of
+whether $f$ evaluates its argument.
+In turn, the analysis assumes in the lambda case that liveness of the argument
+has been accounted for at the call site, hence the lambda-bound variable $\px$
+is not live in any variable and denoted by $\bot$ in $\tr$ (according to the
+pointwise ordering, $\forall \px.\ \bot(\px) = \bot = 0$).
 
 \subsection{Denotational Deadness, Continuity and Divergence}
 
@@ -146,29 +162,40 @@ We can now try to prove our usage analysis correct as a liveness analysis in
 terms of this notion of deadness. After a bit of trial and error, we could
 arrive at the following theorem:
 
-\begin{theorem}[$\semusg{\wild}$ is a correct potential liveness analysis]
+\begin{theorem}[$\semusg{\wild}$ is a correct deadness analysis]
   \label{thm:semusg-correct-live}
-  Let $\pe$ be an expression and $\px$ a variable.
-  Then $\px$ is dead in $\pe$ whenever
-  there exists $\tr ∈ \Var \to \UsgD$ such that
-  $\tr(\px) \not⊑ \semusg{\pe}_{\tr}$.
+  Let $\pe$ be an expression, $\px$ a variable and $\tr$ a usage environment.
+  If $\tr(\px) \not⊑ \semusg{\pe}_{\tr}$
+  then $\px$ is dead in $\pe$.
 \end{theorem}
 \begin{proof}
   By induction over $\pe$. The full proof can be found in
   \Cref{prf:semusg-correct-live}.
 \end{proof}
 
-Let us stop and reflect about this theorem for a bit.
-Deadness is witnessed by a particular $\tr$ and it helps to think of this
-witness as the ``diagonal'' $\tr(\px) \triangleq \fn{\py}{\ternary{\px =
-\py}{1}{0}}$, because then the intuitive notion of deadness applies.%
-\footnote{In fact, it can be proven that if \emph{any} $\tr$ exists, then the
-diagonal is also a witness.}
+In practice, it is simpler to exploit the following lemma:
 
-It is surprising that the theorem does not relate $\tr$ with $ρ$; after all,
-$ρ(\py)$ (for $\py \not= \px$) might be bound to the \emph{meaning} of an
-expression that is potentially live in $\px$, such as $\semscott{\px}_{ρ'}$, and
-we have no way to observe the dependency on $\px$ just through $ρ(\py)$.
+\begin{corollary}
+  \label{thm:semusg-correct-live-simple}
+  Let $\pe$ be an expression and $\px$ a variable.
+  If $\semusg{\pe}_{\tr_Δ}(\px) = 0$
+  then $\px$ is dead in $\pe$.
+\end{corollary}
+\begin{proof}
+  From the assumption $0 = \semusg{\pe}_{\tr_Δ}(\px)$ we know that
+  $\tr_Δ(\px)(\px) = 1 \not⊑ 0 = \semusg{\pe}_{\tr_Δ}(\px)$ and hence that
+  $\tr_Δ(\px) \not⊑ \semusg{\pe}_{\tr_Δ}$.
+  Now we can apply \Cref{thm:semusg-correct-live}.
+\end{proof}
+
+This corollary proves that our intuitive notion of potential liveness/deadness
+from \Cref{sec:usage-intuition} lines up with the formal \Cref{defn:deadness}.
+
+It is surprising that the theorem does not need to relate $\tr_Δ$ to
+$ρ$; after all, $ρ(\py)$ (for $\py \not= \px$) might be bound to the
+\emph{meaning} of an expression that is potentially live in $\px$, such as
+$\semscott{\px}_{ρ'}$, and we have no way to observe the dependency on $\px$
+just through $ρ(\py)$.
 The key is to realise that our notion of deadness varies $ρ(\px)$ (the meaning
 of $\px$), but that does not vary $ρ(\py)$, because that only sees $ρ'(\px)$,
 so for all intents and purposes, the proof may assume that $ρ(\py)$ is dead in
@@ -176,14 +203,14 @@ $\px$.
 The analysis, on the other hand, encodes transitive deadness relationships via
 $\tr(\px) ⊑ \tr(\py)$ in case $\px$ occurs in the RHS of a $\mathsf{let}$-bound
 $\py$ to encode that deadness of $\py$ is a necessary condition for deadness of
-$\px$.
+$\px$, which requires generalisation of the inductive hypothesis.
 
 The proof capitalises on the similarities in structure by using induction on the
 program expression, hence it is simple and direct, at just under a page of
 accessible prose. Often, such a proof needs to strengthen the induction
-hypothesis for the application case, or prove admissability of a predicate to
-apply fixpoint induction in the let case, but for deadness and our very simple
-analysis we do not need to be so crafty.
+hypothesis for the application case, or prove admissability~\citep{Abramsky:94}
+of a predicate to apply fixpoint induction in the let case, but for deadness and
+our very simple analysis we do not need to be so crafty.
 
 Nevermind our confidence in the ultimate correctness of $\semusg{\wild}$,
 note that our notion of deadness has a blind spot \wrt diverging computations:
@@ -220,11 +247,11 @@ not an admissable one, because an admissable predicate would be true for $\bot$.
 Blind spots notwithstanding, the notion of deadness above is quite reasonable.
 But our usage analysis infers more detailed cardinality information; for
 example, it can infer whether a binding is evaluated at most once.
-This information can be useful under call-by-need to omit pushing of update
+This information can be useful under call-by-need to omit update
 frames~\citep{cardinality-ext}.%
 \footnote{A more useful application of the ``at most once'' cardinality is the
-notion of a \emph{one-shot} lambda~\citep{cardinality-ext}, a function which is
-called at most once for every activation, because it allows floating of heap
+identification of \emph{one-shot} lambdas~\citep{cardinality-ext} --- functions which are
+called at most once for every activation --- because it allows floating of heap
 allocations from a hot code path into cold function bodies.
 Simplicity prohibits $\semusg{\wild}$ from inferring such properties.}
 Thus, our usage analysis should satisfy the following generalisation of
@@ -232,11 +259,13 @@ Thus, our usage analysis should satisfy the following generalisation of
 
 \begin{theorem}[Correctness of $\semusg{\wild}$]
   \label{thm:semusg-correct-2}
-  Let $\pe$ be an expression and $\px$ a variable.
-  Then $\pe$ evaluates $\px$ at most $u$ times whenever
-  there exists $\tr ∈ \Var \to \UsgD$ such that
-  $(u+1)*\tr(\px) \not⊑ \semusg{\pe}_{\tr}$.
+  Let $\pe$ be an expression, $\px$ a variable and $\tr$ a usage environment.
+  If $(u+1)*\tr(\px) \not⊑ \semusg{\pe}_{\tr}$
+  then $\pe$ evaluates $\px$ at most $u$ times.
 \end{theorem}
+
+Again, we could simplify the condition to $\semusg{\pe}_{\tr_Δ}(\px) ⊑ u$ for
+practical use and intuition.
 
 Unfortunately, our denotational semantics does not allow us to express the
 operational property ``$\pe$ evaluates $\px$ at most $u$ times'', so
@@ -287,11 +316,11 @@ Let us try a different approach then and define a stronger notion of deadness
 in terms of a small-step operational semantics such as the Mark II machine of
 \citet{Sestoft:97} given in \Cref{fig:lk-semantics}, the semantic ground truth
 for this work. (A close sibling for call-by-value would be a CESK machine
-\citep{Felleisen:87} or a simpler derivative thereof.) It is a variant of
-the Lazy Krivine (LK) machine implementing call-by-need, so for a meaningful
-comparison to $\semscott{\wild}$, we ignore rules $\CaseIT, \CaseET, \UpdateT$
-and the pushing of update frames in $\LookupT$ for now to recover a call-by-name
-Krivine machine with explicit heap addresses.%
+\citep{Felleisen:87} or a simpler derivative thereof.)
+It is a Lazy Krivine (LK) machine implementing call-by-need, so for a meaningful
+comparison to the call-by-name semantics $\semscott{\wild}$, we ignore rules
+$\CaseIT, \CaseET, \UpdateT$ and the pushing of update frames in $\LookupT$ for
+now to recover a call-by-name Krivine machine with explicit heap addresses.%
 \footnote{Note that discarding update frames makes the heap entries immutable,
 which makes the explicit heap unnecessary. Of course, for call-by-name we would
 not need a heap to begin with, but the point is to get a glimpse at the effort

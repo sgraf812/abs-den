@@ -76,14 +76,14 @@ equational reasoning.
 %\emph{step-indexing}~\citep{AppelMcAllester:01,DreyerAhmedBirkedal:11}.
 
 Alas, not only have traditional denotational semantics fallen out of fashion
-due to scaling issues~\citep{WrightFelleisen:94}, they are also insufficiently
-expressive to model operational detail such as \emph{evaluation cardinality},
-\eg, ``how often does $\pe$ evaluate its free variable $x$?''.
+due to scaling issues~\citep{WrightFelleisen:94}, the existing ones are also
+insufficiently expressive to model operational detail such as \emph{evaluation
+cardinality}, \eg, ``how often does $\pe$ evaluate its free variable $x$?''.
 A related issue is that up to this day, there are denotational semantics for
 call-by-name and call-by-value, but none for call-by-need.
 
-Thus, \citeauthor{WrightFelleisen:94} established operational semantics as the
-Gold Standard to this day.
+This led \citet{WrightFelleisen:94} to establish operational semantics as the
+Gold Standard semantics for correctness proofs to this day.
 The past thirty years have proven that the methodology scales to
 big and complex type systems, building on techniques such as
 \emph{step-indexing}~\citep{AppelMcAllester:01,DreyerAhmedBirkedal:11}.
@@ -101,14 +101,22 @@ compositionality.
 %lookup and beta reduction, an inconvenience that is readily accepted when the
 %alternative would be to tame domain theory.
 
+As a result, we are stuck with a large amount of literature and implementation
+on \emph{compositional} program analyses such as in \citet{cardinality-ext}
+that have to be proven correct \wrt a transition system.
+The structural mismatch necessitates the invention of ad-hoc, complicated
+correctness relations that must proven to be preserved during transitions.
+
 When there is no semantics that structurally matches our analysis, we could
-try to rearrange our analysis. That is the idea of \emph{Abstracting Abstract
-Machines}~\citep{aam} which abandons compositional analysis in favour of a
-convenient proof by abstract interpretation of the transition semantics.
-However, we have a large amount of literature and implementation on
-\emph{compositional} program analyses such as in \citet{cardinality-ext}
-that cannot easily be proven correct in this framework due to the structural
-mismatch.
+try to rearrange our analysis.
+That is the idea of \emph{Abstracting Abstract Machines}~(AAM)~\citep{aam} which
+abandons compositional analysis --- and thus existing, practically correct
+implementations in existing compiler such as the Glasgow Haskell Compiler ---
+in favour of a convenient proof by abstract interpretation of the transition
+semantics.
+It is however impossible to harness AAM to derive correctness proofs for
+the many implementations in existing compilers that appear to be correct in
+practice.
 
 %It is not so simple in lattice-based compiler analyses, because recursive
 %$\mathbf{let}$ bindings invite fixpoint iteration. If you think about

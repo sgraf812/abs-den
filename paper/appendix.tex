@@ -8,11 +8,12 @@
 
 \begin{proof}[Of \Cref{thm:semusg-correct-live}]
   \label{prf:semusg-correct-live}
-  Let us fix $\pe$ and $\px$ and let us assume that there exists $\tr$ such that
-  $\tr(\px) \not⊑ \semusg{\pe}$. The goal is to show that $\px$ is dead in $\pe$,
+  By induction on $\pe$.
+  We fix $\pe$, $\px$ and $\tr$ such that $\tr(\px) \not⊑ \semusg{\pe}_{\tr}$.
+  The goal is to show that $\px$ is dead in $\pe$,
   so we are given an arbitrary $ρ$, $d_1$ and $d_2$ and have to show that
   $\semscott{\pe}_{ρ[\px↦d_1]} = \semscott{\pe}_{ρ[\px↦d_2]}$.
-  We proceed by induction on $\pe$:
+  By cases on $\pe$:
   \begin{itemize}
     \item \textbf{Case $\pe\triangleq\py$}: If $\px=\py$, then
       $\tr(\px) \not⊑ \semusg{\py}_{\tr} = \tr(\py) = \tr(\px)$, a contradiction.
@@ -22,9 +23,7 @@
       pointwise equality on functions, so we pick an arbitrary $d$ to show
       $\semscott{\pe'}_{ρ[\px↦d_1][\py↦d]} = \semscott{\pe'}_{ρ[\px↦d_2][\py↦d]}$.
 
-      This is simple to see if $\px=\py$. Otherwise, $\tr[\py↦\bot]$ (recall
-      that $\bot \colon \UsgD$ is defined pointwise, $\bot(\pz) \triangleq
-      \bot_u = 0$) witnesses the fact that
+      This is simple to see if $\px=\py$. Otherwise, $\tr[\py↦\bot]$ witnesses the fact that
       \[
         \tr[\py↦\bot](\px) = \tr(\px) \not⊑
         \semusg{\Lam{\px}{\pe'}}_{\tr} = \semusg{\pe'}_{\tr[\py↦\bot]}
@@ -83,7 +82,3 @@
       \end{itemize}
   \end{itemize}
 \end{proof}
-
-\subsection{Detailed Semantics Specification in ML}
-
-\lstinputlisting[style=hsyl-style,language=ML,firstline=3,lastline=90]{semantics.sml}
