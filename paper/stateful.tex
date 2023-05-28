@@ -197,7 +197,7 @@ be easy to infer anyway.
  \end{array}
   \\[-0.5em]
 \end{array}\]
-\caption{Structural call-by-need stateful trace semantics $\semst{-}$}
+\caption{Stateful Trace Semantics $\semst{-}$}
   \label{fig:semst}
 \end{figure}
 
@@ -889,42 +889,9 @@ strong version of adequacy for $\semst{\wild}$, where $σ$ is defined to be a
 
 \subsection{Discussion}
 
-\sg{This section is a bit in limbo and might resolve into the next chapter about
-stateless trace semantics and Related Work later on. Simon might find the first
-part here interesting}
+\sg{This section is a bit in limbo and might resolve into Related Work later on}
 
-It is striking that although the stateful trace semantics $\semst{\wild}$ is as
-expressive as the LK transition system, the information encoded in the states of
-the generated traces alone are not enough to recover the LK transition system,
-in the sense of \citet[Chapter 43]{Cousot:21}.
-For example, every return state $((\lbl,v),\tm)$ admits at least two possible
-transitions:
-Either a heap update or a $β$-reduction.
-In the LK transition system, the particular transition is governed by the
-continuation stack, which $\semst{\wild}$ is unconcerned about.
-It is however trivial to ``elaborate'' $\semst{\wild}$ to include the proper
-stack manipulations and emit the current lexical environment as part of every
-state.
-We think that is rather uninteresting; it is more interesting to see how much
-we can omit before compromising on expressivity.
-\sg{Why not omit labelled expressions, then? CFA, of course, but then the
-preceding sentence seems like a bit of a red herring}
-
-Yet often, one is not so much interested in particular representations of state
-rather than in the particular transition rule taken.
-Take our usage analysis as an example: We aren't so much interested in the
-\emph{state} in which variable lookup happens, but rather in the instantiation
-of the $\LookupT$ transition, telling us which variable was looked up and which
-address is bound to it.
-It is easy to see how to elaborate $\semst{\wild}$ to include that information,
-too; however, it quickly becomes unwieldy to present with all the symbolic
-manipulation going on.
-
-We have seen that the stack and environment can be omitted from the state
-without repercussions to expressivity, hence it makes sense to try the same for
-the heap.
-
-For traditional denotational semantics, there also is the ``problem'' of Full
+For traditional denotational semantics, there is the ``problem'' of Full
 Abstraction~\citep{Plotkin:77}.
 It has been shown that denotational semantics is not fully abstract, because
 the obvious equivalence relation on Scott domains is finer than the contextual

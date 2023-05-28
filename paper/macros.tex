@@ -154,7 +154,7 @@
 \newcommand{\ApproxMap}[2]{\mathsf{Map}(#1,#2)}
 \newcommand{\FinStepMap}[2]{#1 \Rightarrow #2}
 \newcommand{\PrefD}{\Domain{*}}
-\newcommand{\MaxD}{\Domain{+\infty}}
+\newcommand{\MaxD}{\Domain{\Actions}}
 \newcommand{\ScottD}{\Domain{\bot}}
 \newcommand{\AbsD}{\Domain{\raisebox{0.1em}{\scalebox{0.4}{$\square$}}}}
 \newcommand{\AbsCD}{\Domain{\raisebox{0.1em}{\scalebox{0.4}{c$\square$}}}}
@@ -194,7 +194,7 @@
 \newcommand{\denot}[1]{\llbracket {#1} \rrbracket}
 \newcommand{\semscott}[1]{\mathcal{S}^{\bot}\denot{#1}}
 \newcommand{\sempref}[1]{\mathcal{S}^*\denot{#1}}
-\newcommand{\seminf}[1]{\mathcal{S}^{+\infty}\denot{#1}}
+\newcommand{\semless}[1]{\mathcal{S}^{\Actions}\denot{#1}}
 \newcommand{\semst}[1]{\mathcal{S}^{\States}\denot{#1}}
 \newcommand{\semss}[1]{\mathcal{S}^{Σ}\denot{#1}}
 \newcommand{\semlive}[1]{\mathcal{S}^{∃l}\denot{#1}}
@@ -206,8 +206,8 @@
 
 % Stateful
 \newcommand{\States}{\mathbb{S}}
-\newcommand{\STraces}{\mathbb{S}^{+\infty}}
-\newcommand{\tSTraces}{\tilde{\mathbb{S}}^{+\infty}}
+\newcommand{\STraces}{\mathbb{S}^{\infty}}
+\newcommand{\tSTraces}{\tilde{\mathbb{S}}^{\infty}}
 \newcommand{\LKStates}{\mathbb{L}}
 \newcommand{\sconcat}{\concatop{\hspace{0.04ex}\scalebox{0.5}{$\States$}}}
 \newcommand{\sfcomp}{\compop{\scalebox{0.25}{\raisebox{0.7em}{$\States$}}}}

@@ -1,91 +1,66 @@
 \section{Stateless Semantics}
 \label{sec:stateless}
 
+In the previous section, we gave a compositional trace-based semantics and
+proved it adequate \wrt the LK transition semantics.
+With compositionality and structural induction we recover strong advantages of
+denotational semantics.
+
+It is striking that although $\semst{\wild}$ is as expressive as the LK
+transition system, the information encoded in the states of the generated traces
+is not enough to recover the LK transition system in the sense of
+\citet[Chapter 43]{Cousot:21}.
+For example, every return state $((\lbl,v),\tm)$ admits at least two possible
+transitions:
+Either a heap update or a $β$-reduction.
+In the LK transition system, the particular transition is governed by the
+continuation stack, of which $\semst{\wild}$ maintains no reification in its states.
+It is however trivial to ``elaborate'' $\semst{\wild}$ to include the proper
+stack manipulations and emit the current lexical environment as part of every
+state.
+We think it is rather uninteresting to give the closed, elaborated definition
+of $\semst{\wild}$ which necessarily gives up simplicity.
+It is more interesting to see what other parts of the traces we can \emph{omit}
+before compromising on expressivity.
+
+For example, in Control-Flow Analysis~\citep{Shivers:91}, we are interested in
+observing in each state of a trace the label of the expression in control.
+That makes $\semst{\wild}$ a suitable semantics for abstraction.
+Yet for our usage analysis in \Cref{sec:problem}, we do not care so much
+about the \emph{state} in which variable lookup happens, but rather about at
+which \emph{address} the $\LookupT$ transition happened, as well as the $\BindT$
+transition that tells us what $\mathbf{let}$ binding that particular address
+refers to.
+
+In this section, we will omit states --- including the explicitly maintained
+heap --- altogether in favor of tracing the instantiations of transition rules,
+called \emph{actions}.
+The resulting \emph{stateless trace semantics} $\semless{\wild}$ is the
+preferred framework of \citet{Cousot:21}, in which the heap will be
+rematerialised as needed from the history of previous actions.
+
 \begin{figure}
 \[\begin{array}{c}
- \arraycolsep=2pt
+ \arraycolsep=3pt
  \begin{array}{rrclcl}
-  \text{Actions}         & a        & ∈ & \Actions              & ::=        & \AppIA(d) \mid \AppEA(\px↦d) \mid \BindA(\px,\pa↦d^{\later}) \\
-                         &          &   &                       & \mid       & \CaseIA(d) \mid \CaseEA(K,\many{\px↦d}) \\
-                         &          &   &                       & \mid       & \LookupA(\pa) \mid \UpdateA(\pa) \mid \ValueA(v) \\
-  \text{Initialisation Traces}   & τ^i      & ∈ & \Traces       & =          & [a_1,...,a_n], n ∈ ℕ_0  \\
-  \text{Program Traces} & τ & ∈ & \Traces^{\infty} & ::= & \goodend{a} \mid \stuckend{} \mid a \cons τ^{\later}  \\
-  \text{Delayed Trace} & τ^{\later} & ∈ & \later \Traces^{\infty} &  &   \\
+  \text{Actions} & a & ∈ & \Actions & ::=  & \AppIA(d) \mid \AppEA(\px↦d) \mid \BindA(\px,\pa↦d^{\later}) \mid \LookupA(\pa) \mid \UpdateA(\pa) \\
+                 &   &   &          & \mid & \CaseIA(d) \mid \CaseEA(K,\many{\px↦d}) \mid \ValueA(v) \\
+ \end{array} \\
+ \arraycolsep=3pt
+ \begin{array}{rrclcl@{\quad}rrclcl}
+  \text{Initialisation Traces} & τ^i        & ∈ & \Traces^*               & ::= & [a_1,...,a_n], n ∈ ℕ_0
+  &
+  \text{Stateless domain}      & d          & ∈ & \MaxD                   & =   & \Traces^* \to \Traces^{\infty}
   \\
-  \text{Domain of maximal traces} & d & ∈ & \MaxD   & = & \Traces^+ \to \Traces^{\infty} \\
-  \text{Stateless values}                   & v & ∈ & \Values{} & ::= & \FunV(f ∈ \MaxD \to \later \MaxD) \mid \ConV(K,\many{d^{\later}}^{α_K}) \\
+  \text{Program Traces}        & τ          & ∈ & \Traces^{\infty}        & ::= & \goodend{a} \mid \stuckend{} \mid a \cons τ^{\later}
+  &
+  \text{Delayed Trace}         & τ^{\later} & ∈ & \later \Traces^{\infty} &     &   \\
+ \end{array} \\
+ \arraycolsep=3pt
+ \begin{array}{rrclcl}
+  \text{Stateless values} & v & ∈ & \Values{} & ::= & \FunV(f ∈ \MaxD \to \later \MaxD) \mid \ConV(K,\many{d^{\later}}^{α_K}) \\
  \end{array} \\
  \\[-0.5em]
-\end{array}\]
-\caption{Syntax of stateless traces}
-  \label{fig:stateless-syntax}
-\end{figure}
-
-
-\subsection{Going stateless}
-
-In the previous section, we gave a compositional trace-based semantics and
-proved it adequate wrt. the LK machine semantics the traces of which it
-generates. With compositionality and structural induction we recover a strong
-advantage of denotational semantics.
-
-Unfortunately, it is still ergonomically lacking in the following ways:
-
-\begin{enumerate}
-  \item
-    In contrast to $\semscott{\wild}$, the lexical environment $ρ$ is buried in
-    the states of the generated traces (thus manipulated as ``data'') rather
-    than reflected into a parameter (``code'') of $\semst{\wild}$.
-    That makes it awkward to express properties of free variables in terms of
-    the semantics such as done in our notion of deadness \Cref{defn:deadness}.
-
-  \item
-    Similarly, the continuation stack (data) seems largely redundant with the
-    meta-level call stack of $\semst{\wild}$.
-
-  \item
-    In a trace $τ = \semst{\pe}(σ)$, the interesting information is not so much
-    encoded in the states but in the particular instance of transition rule
-    taken. Furthermore, often it is not enough to regard the states in isolation
-    but also the transition taken.
-
-    In light of this, it would be consequent to rematerialise the heap $μ$ on
-    the fly from the history of previous transitions, so that the only remaining
-    information attached to a state becomes its label and whether or not it is a
-    return state (which can be regarded as a special label).
-    The result is a (more explicitly) \emph{labelled} transition system%
-    \footnote{Here, the use of ``label'' refers to the name of the transition
-    rule rather than the labelling of expressions.},
-    in which the transitions carry the bulk of the meaning.
-\end{enumerate}
-
-A \emph{stateless trace semantics} alluded to in the last point is the preferred
-framework of \citet{Cousot:21}, for example. We shall follow suit and provide a
-stateless maximal prefix trace semantics in the style of Cousot in
-\Cref{fig:seminf}.
-
-\Cref{fig:stateless-syntax} provides the new syntactic building blocks of the
-semantics. A \emph{program point} $\pc$ is either a return point $\return$ or a
-labelled expression; each program point defines one of finitely many
-control-flow nodes of the program. Actions $a$ correspond one-to-one to the
-transition rules of the LK machine, only they are now retained in an AST-like
-fashion in the trace instead of eliminated (via functions $app_1$, $app_2$,
-$bind$, \etc) to produce the successor state. Stateless traces $τ$ carry the
-the transition taken as an action $a$. We re-use the same greek letter as in
-\Cref{sec:stateful} and disambiguate as needed. We consider inductively-defined
-finite traces $τ^+$ a subtype of the potentially infinite and thus
-coinductively-defined traces $τ$.
-
-Comparing the domain of maximal traces with the one for LK traces from
-\Cref{fig:lk-domain}, we can see that a finite \emph{initialisation trace} takes
-the place of the initial state as a parameter to a domain element $d$.
-Similarly, the use of $\Addresses$ in the definition of semantic values $v$ is
-replaced in favor of a seemingly more complex argument of type $\MaxD$; in
-practice the $d$ passed will be one-to-one to the address passed in the stateful
-semantics.
-
-\begin{figure}
-\[\begin{array}{c}
  \ruleform{ (\concat) : \Traces^{\infty} \to \later\Traces^{\infty} \to \Traces^{\infty} \quad (\fcomp) : \MaxD \to \later\MaxD \to \MaxD \quad \tell{\wild} : \Actions \to \MaxD} \\
  \\[-0.5em]
  \begin{array}{cc}
@@ -129,91 +104,60 @@ semantics.
  \end{array} \\
  \\[-0.5em]
  \begin{array}{rcl}
-  \multicolumn{3}{c}{ \ruleform{ \seminf{\wild} \colon \Exp → (\Var \pfun \MaxD) → \MaxD } } \\
+  \multicolumn{3}{c}{ \ruleform{ \semless{\wild} \colon \Exp → (\Var \pfun \MaxD) → \MaxD } } \\
   \\[-0.5em]
-  \seminf{\px}_ρ       & = & \begin{cases}
+  \semless{\px}_ρ       & = & \begin{cases}
     ρ(\px) & \px ∈ \dom(ρ) \\
     \fn{\wild}{\stuckend{}}  & \text{otherwise} \\
   \end{cases} \\
   \\[-0.5em]
-  \seminf{\Lam{\px}{\pe}}_ρ & = & \tell{\ValueA(\FunV(\fn{d}{\tell{\AppEA(\px↦d)} \fcomp \seminf{\pe}_{ρ[\px↦d]}}))} \\
+  \semless{\Lam{\px}{\pe}}_ρ & = & \tell{\ValueA(\FunV(\fn{d}{\tell{\AppEA(\px↦d)} \fcomp \semless{\pe}_{ρ[\px↦d]}}))} \\
   \\[-0.5em]
-  \seminf{\pe~\px}_ρ   & = & \begin{cases}
-    \tell{\AppIA(ρ(x))} \fcomp \seminf{\pe}_ρ \fcomp \apply(ρ(\px)) & \px ∈ \dom(ρ) \\
+  \semless{\pe~\px}_ρ   & = & \begin{cases}
+    \tell{\AppIA(ρ(x))} \fcomp \semless{\pe}_ρ \fcomp \apply(ρ(\px)) & \px ∈ \dom(ρ) \\
     \fn{\wild}{\stuckend{}}  & \text{otherwise} \\
   \end{cases} \\
   \\[-0.5em]
-  \seminf{\Let{\px}{\pe_1}{\pe_2}}_ρ(τ^i) & = &
+  \semless{\Let{\px}{\pe_1}{\pe_2}}_ρ(τ^i) & = &
     \begin{letarray}
       \text{let} & ρ' = ρ[\px ↦ \deref(\pa)] \quad \text{where $\pa \not∈ \dom(μ(τ^i))$} \\
-      \text{in}  & (\tell{\BindA(\px,\pa↦\seminf{\pe_1}_{ρ'})} \fcomp \seminf{\pe_2}_{ρ'})(τ^i)
+      \text{in}  & (\tell{\BindA(\px,\pa↦\semless{\pe_1}_{ρ'})} \fcomp \semless{\pe_2}_{ρ'})(τ^i)
     \end{letarray} \\
   \\[-0.5em]
-  \seminf{K~\many{\px}}_ρ & = & \tell{\ValueA(\ConV(K,\many{\seminf{\px}_ρ}))} \\
+  \semless{K~\many{\px}}_ρ & = & \tell{\ValueA(\ConV(K,\many{\semless{\px}_ρ}))} \\
   \\[-0.5em]
-  \seminf{\Case{\pe_s}{\Sel[r]}}_ρ & = &
+  \semless{\Case{\pe_s}{\Sel[r]}}_ρ & = &
     \begin{letarray}
-      \text{let} & \many{f_K = \fn{\many{d}^{α_K}}{\tell{\CaseEA(K,\many{\px↦d})} \fcomp \seminf{\pe_r}_{ρ[\many{\px↦d}]}}} \\
-      \text{in} & \tell{\CaseIA(\seminf{\pe_s}_ρ)} \fcomp \seminf{\pe_s}_ρ \fcomp \select(\many{f})  \\
+      \text{let} & \many{f_K = \fn{\many{d}^{α_K}}{\tell{\CaseEA(K,\many{\px↦d})} \fcomp \semless{\pe_r}_{ρ[\many{\px↦d}]}}} \\
+      \text{in} & \tell{\CaseIA(\semless{\pe_s}_ρ)} \fcomp \semless{\pe_s}_ρ \fcomp \select(\many{f})  \\
     \end{letarray}
  \end{array} \\
 \end{array}\]
-\caption{Stateless Maximal Trace Semantics}
-  \label{fig:seminf}
+\caption{Stateless Trace Semantics}
+  \label{fig:semless}
 \end{figure}
 
-\begin{figure}
-\[\begin{array}{c}
- \begin{array}{rcl}
-  \multicolumn{3}{c}{ \ruleform{ \seminf{\wild} \colon \Exp → (\Var \pfun \MaxD) → \MaxD } } \\
-  \\[-0.5em]
-  stuck(τ^i)   & = & \stuckend{tgt(τ^i)} \\
-  \\[-0.5em]
-  \stepm{p}{a}{\pc}(τ^i) & = &
-    \ternary{\text{$τ^i$ matches $... \act{} \goodend{p}$}}
-            {p \act{a} \goodend{\pc}}
-            {\stuckend{tgt(τ^i)}} \\
-  \\[-0.5em]
-  (d_1 \fcomp d_2)(τ^i)   & = &
-    \ternary{d_1(τ^i) = ... \act{} \goodend{\pc}}
-            {d_1(τ^i) \concat d_2(τ^i \concat d_1(τ^i))}
-            {d_1(τ^i)} \\
-  \\[-0.5em]
-  apply(d_\px)(τ_\pe^+)   & = & \begin{cases}
-    f(d_\px)(τ_\pe^+) & \text{if $τ_\pe^+ = ... \act{} (\wild,\FunV(f))$}  \\
-    stuck(τ_\pe^+) & \text{otherwise}  \\
-  \end{cases} \\
-  \\[-0.5em]
-  μ(τ^i)(\pa) & = & \begin{cases}
-    (\pv, \stepm{\pv}{\ValueA(v)}{\return}) & \text{if $τ^i = ... \act{} (\pv,v) \act{\UpdateA(\pa)} ... $} \\
-    (\pe, d) & \text{if $τ^i = ... \act{\BindA(\px,\pa↦\pe,d)} ...$} \\
-  \end{cases}  \\
-  \\[-0.5em]
-  deref(\pa)(τ^i)   & = & (\step{\LookupA(\pa)}{\pe} \fcomp d \fcomp \stepm{\return}{\UpdateA(\pa)}{\return})(τ^i) \text{ where $(\pe,d) = μ(τ^i)(\pa)$} \\
-  \\[-0.5em]
-  \seminf{\pe}_ρ    (τ^i)   & = & undefined \qquad \text{if $tgt(τ^i) \not= \pe$} \\
-  \\[-0.5em]
-  \seminf{\px}_ρ              & = & \ternary{\px ∈ \dom(ρ)}{ρ(\px)}{stuck} \\
-  \\[-0.5em]
-  \seminf{\Lam{\px}{\pe}}_ρ & = &
-    \begin{letarray}
-      \text{let} & f = d ↦ \stepm{\return}{\AppEA(\px↦d)}{\pe} \fcomp \seminf{\pe}_{ρ[\px↦d]} \\
-      \text{in}  & \step{\ValueA(\FunV(f))}{\return} \\
-    \end{letarray} \\
-  \\[-0.5em]
-  \seminf{\pe~\px}_ρ & = & \ternary{\px ∈ \dom(ρ)}{\step{\AppIA(ρ(x))}{\pe} \fcomp \seminf{\pe}_ρ \fcomp apply(ρ(\px))}{stuck} \\
-  \\[-0.5em]
-  \seminf{\Let{\px}{\pe_1}{\pe_2}}_ρ(τ^i) & = &
-    \begin{letarray}
-      \text{let} & \pa = alloc(τ^i) \\
-                 & ρ' = ρ[\px ↦ deref(\pa)] \\
-      \text{in}  & (\step{\BindA(\px,\pa↦\pe_1,\seminf{\pe_1}_{ρ'})}{\pe_2} \fcomp \seminf{\pe_2}_{ρ'})(τ^i)
-    \end{letarray} \\
- \end{array} \\
-\end{array}\]
-\caption{Stateless Maximal Trace Semantics}
-  \label{fig:seminf}
-\end{figure}
+\subsection{Going stateless}
+
+\Cref{fig:stateless-syntax} provides the new syntactic building blocks of the
+semantics. A \emph{program point} $\pc$ is either a return point $\return$ or a
+labelled expression; each program point defines one of finitely many
+control-flow nodes of the program. Actions $a$ correspond one-to-one to the
+transition rules of the LK machine, only they are now retained in an AST-like
+fashion in the trace instead of eliminated (via functions $app_1$, $app_2$,
+$bind$, \etc) to produce the successor state. Stateless traces $τ$ carry the
+the transition taken as an action $a$. We re-use the same greek letter as in
+\Cref{sec:stateful} and disambiguate as needed. We consider inductively-defined
+finite traces $τ^+$ a subtype of the potentially infinite and thus
+coinductively-defined traces $τ$.
+
+Comparing the domain of maximal traces with the one for LK traces from
+\Cref{fig:lk-domain}, we can see that a finite \emph{initialisation trace} takes
+the place of the initial state as a parameter to a domain element $d$.
+Similarly, the use of $\Addresses$ in the definition of semantic values $v$ is
+replaced in favor of a seemingly more complex argument of type $\MaxD$; in
+practice the $d$ passed will be one-to-one to the address passed in the stateful
+semantics.
 
 % Note [Design of Maximal Trace Semantics]
 % ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
