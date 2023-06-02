@@ -126,16 +126,16 @@ be easy to infer anyway.
  \begin{array}{rrclclrrclcl}
   \text{States}        & σ   & ∈ & \States        & =      & \Controls \times \Heaps
   &
-  \text{Environments}  & ρ   & ∈ & \Environments  & =      & \Var \pfun \later\StateD
+  \text{Environments}  & ρ   & ∈ & \Environments  & =      & \Var \pfun \StateD
   \\
   \text{Controls}      & \pc & ∈ & \Controls      & ::=    & \pe \mid (\lbl, v)
   &
-  \text{Heaps}         & μ   & ∈ & \Heaps         & =      & \Addresses \pfun \later\StateD
+  \text{Heaps}         & μ   & ∈ & \Heaps         & =      & \Addresses \pfun \StateD
   \\
   \\[-0.5em]
  \end{array} \\
  \begin{array}{rrclclrrclcl}
-  \text{Stateful traces} & τ      & ∈          & \STraces & ::= & \goodend{σ} \mid \stuckend{σ} \mid σ \cons τ^{\later}
+  \text{Stateful trace} & τ      & ∈          & \STraces & ::= & \goodend{σ} \mid \stuckend{σ} \mid σ \cons τ^{\later}
   &
   \text{Delayed trace} & τ^{\later} & ∈ & \later\STraces &   &
   \\
@@ -146,7 +146,7 @@ be easy to infer anyway.
   \\[-0.5em]
  \end{array} \\
  \begin{array}{rrclcl}
-  \text{Semantic values} & v & ∈ & \StateV & ::= & \FunV(f ∈ (\later\StateD \to \later\StateD)) \mid \ConV(K,\many{d^{\later}}^{α_K}) \\
+  \text{Stateful value} & v & ∈ & \StateV & ::= & \FunV(f ∈ (\StateD \to \later\StateD)) \mid \ConV(K,\many{d^{\later}}^{α_K}) \\
  \end{array} \\
   \\[-0.5em]
 \end{array}\]
@@ -154,27 +154,27 @@ be easy to infer anyway.
  \begin{array}{rcl}
   \multicolumn{3}{c}{ \ruleform{
     \begin{array}{c}
-      (\betastep) : \later\STraces \to (\later\States \pfun \later\STraces) \to \later\STraces \quad  \ret : (\Val \times \StateV) \to \StateD \\
-      \deref : \Addresses \to \later\StateD \quad \apply : \later\STraces \to \later\StateD \to \later\STraces \\
-      \select : \later\STraces \to ((\later\StateD)^{α_K} \pfun \later\STraces)^* \to \later\STraces \\
+      (\betastep) : \STraces \to (\States \pfun \later\STraces) \to \STraces \quad  \ret : (\Val \times \StateV) \to \StateD \\
+      \deref : \Addresses \to \StateD \quad \apply : \STraces \to \StateD \to \STraces \\
+      \select : \STraces \to ((\StateD)^{α_K} \pfun \STraces)^* \to \STraces \\
     \end{array}
   }} \\
   \\[-0.5em]
   τ \betastep f & = & \begin{cases}
-      τ :: \idiom{f(σ)} & \text{$τ = ... \cons \goodend{σ}$ and $σ ∈ \dom(f)$} \\
-      τ' :: \idiom{\stuckend{σ}} & \text{$τ = τ' \cons \goodend{σ}$ and $σ \not∈ \dom(f)$} \\
+      τ :: f(σ) & \text{$τ = ... \cons \goodend{σ}$ and $σ ∈ \dom(f)$} \\
+      τ' :: \stuckend{σ} & \text{$τ = τ' \cons \goodend{σ}$ and $σ \not∈ \dom(f)$} \\
       τ & \text{otherwise} \\
     \end{cases} \\
   \\[-0.5em]
   \ret(\lbl,v)(μ) & = & \goodend{((\lbl,v),μ)} \\
-  \deref(\pa)(μ) & = & μ(\pa)(μ) \betastep \fn{((\lbl,v),μ)}{\idiom{\goodend{((\lbl,v),μ[\pa ↦ \idiom{\ret(\lbl,v)}])}}} \\
+  \deref(\pa)(μ) & = & μ(\pa)(μ) \betastep \fn{((\lbl,v),μ)}{\idiom{\goodend{((\lbl,v),μ[\pa ↦ \ret(\lbl,v)])}}} \\
   \apply(τ,d) & = & τ \betastep \fn{((\wild,\FunV(f)),μ)}{\idiom{f(d)(μ)}} \\
   \select(τ,\many{f}) & = & τ \betastep \fn{((\wild,\ConV(K_s,\many{d_s})),μ)}{\idiom{f_s(\many{d_s})}} \\
   \\[-0.5em]
-  \multicolumn{3}{c}{ \ruleform{ \semst{\wild} \colon \Exp → (\Var \pfun \later\StateD) → \StateD } } \\
+  \multicolumn{3}{c}{ \ruleform{ \semst{\wild} \colon \Exp → (\Var \pfun \StateD) → \StateD } } \\
   \\[-0.5em]
   \semst{\px}_ρ(μ) & = & \begin{cases}
-    (\px,μ) \cons ρ(\px)(μ) & \px ∈ \dom(ρ) \\
+    (\px,μ) \cons \idiom{ρ(\px)(μ)} & \px ∈ \dom(ρ) \\
     \stuckend{(\px,μ)} & \text{otherwise}
     \end{cases} \\
   \\[-0.5em]
@@ -187,13 +187,13 @@ be easy to infer anyway.
   \\[-0.5em]
   \semst{\Let{\px}{\pe_1}{\pe_2}}_ρ(μ) & = & \begin{letarray}
     \text{let} & ρ' = ρ[\px ↦ \deref(\pa)] \quad \text{where $\pa \not∈ \dom(μ)$} \\
-               & μ' = μ[\pa ↦ \idiom{\semst{\pe_1}_{ρ'}}] \\
-    \text{in}  & (\Let{\px}{\pe_1}{\pe_2},μ) \cons \idiom{\semst{\pe_2}_{ρ'}(μ')} \\
+               & μ^\later = \idiom{μ[\pa ↦ \semst{\pe_1}_{ρ'}]} \\
+    \text{in}  & (\Let{\px}{\pe_1}{\pe_2},μ) \cons \idiom{\semst{\pe_2}_{ρ'}(μ^\later)} \\
   \end{letarray} \\
   \\[-0.5em]
   \semst{\slbl K~\many{\px}}_ρ & = & \ret(\lbl,\ConV(K,\many{\idiom{\semst{\px}_ρ}})) \\
   \\[-0.5em]
-  \semst{\pe@(\Case{\pe_s}{\Sel[r]})}_ρ(μ) & = & (\pe,μ) \cons \select(\semst{\pe_s}_ρ(μ),\many{\fn{\many{d}^{α_K}}{\idiom{\semst{\pe_r}_{ρ[\many{\px↦d}]}}}})  \\
+  \semst{\pe@(\Case{\pe_s}{\Sel[r]})}_ρ(μ) & = & (\pe,μ) \cons \idiom{\select(\semst{\pe_s}_ρ(μ),\many{\fn{\many{d}^{α_K}}{\semst{\pe_r}_{ρ[\many{\px↦d}]}}})}  \\
  \end{array}
   \\[-0.5em]
 \end{array}\]
@@ -444,7 +444,7 @@ The \emph{source} state $σ_1$ exists for finite and infinite traces, while the
 \emph{target} state $σ_n$ is only defined when $n \not= ω$ is finite.
 
 For proofs, we will often regard $(σ_i)_{i∈\overline{n}}$ as an object of type
-$∃n∈ℕ_ω.\ \overline{n} \to \States$, where $ℕ_ω$ is defined by guarded recursion
+$\LKTraces \triangleq ∃n∈ℕ_ω.\ \overline{n} \to \States$, where $ℕ_ω$ is defined by guarded recursion
 as $ℕ_ω = \{1\} + \later ℕ_ω$.
 The constructor for the right sum alternative is written $\mathit{succ}$.
 Now $ℕ_ω$ contains all natural numbers (where $n$ is encoded as
@@ -452,8 +452,8 @@ $(\mathit{succ})^{n-1}(1)$) and the transfinite limit ordinal
 $ω = \mathit{succ}(\mathit{succ}(...))$.
 We will write $1+m$ to denote $\mathit{succ}(m)$ (a different kind of $+$ than
 in the recursive equation for $ℕ_ω$), just as we are used to from $ℕ_+$.
-Hence, when $(σ_i)_{i∈\overline{n}} ∈ \STraces$ is an LK trace and $n > 1$, then
-$(σ_{i+1})_{i∈\overline{n-1}} ∈ \later \STraces$ is the guarded tail of the
+Hence, when $(σ_i)_{i∈\overline{n}} ∈ \LKTraces$ is an LK trace and $n > 1$, then
+$(σ_{i+1})_{i∈\overline{n-1}} ∈ \later \LKTraces$ is the guarded tail of the
 trace with an associated induction principle.
 
 An important kind of trace is one that never leaves the evaluation context of
@@ -576,7 +576,7 @@ state.
 \begin{figure}
 \[\begin{array}{rcl}
   α_\Environments(ρ) & = & \deref \circ ρ \\
-  α_\Heaps([\many{\pa ↦ (ρ,\pe)}]) & = & [\many{\pa ↦ \idiom{\semst{\pe}_{α_\Environments(ρ)}}}] \\
+  α_\Heaps([\many{\pa ↦ (ρ,\pe)}]) & = & [\many{\pa ↦ \semst{\pe}_{α_\Environments(ρ)}}] \\
   α_\States(\slbl \Lam{\px}{\pe},ρ,μ,κ) & = & ((\lbl,\FunV(\fn{d}{\idiom{\semst{\pe}_{α_\Environments(ρ)[\px↦d]}}})),α_\Heaps(μ)) \\
   α_\States(\slbl K~\overline{\px},ρ,μ,κ) & = & ((\lbl,\ConV(K,\overline{\idiom{\semst{\px}_{α_\Environments(ρ)}}})),α_\Heaps(μ)) \\
   α_\States(\pe,ρ,μ,κ) & = & (\pe,α_\Heaps(μ)) \\
@@ -744,13 +744,13 @@ We do so by cases over $\pe$, abbreviating $\tm \triangleq α_\Heaps(μ), \tr
     To show that the tails equate, it suffices to show that they equate \emph{later}.
 
     Let us abbreviate $\tr' \triangleq α_\Environments(ρ')$.
-    Then we can infer that $\tm(\pa) = \idiom{\semst{\pe'}_{\tr'}}$, as well as
+    Then we can infer that $\tm(\pa) = \semst{\pe'}_{\tr'}$, as well as
     \[
-    \tr(\px)(\tm) = \idiom{\semst{\pe'}_{\tr'}(\tm)} \betastep \fn{((\lbl,v),μ)}{\idiom{\goodend{((\lbl,v),μ[\pa ↦ \idiom{\ret(\lbl,v)}])}}}
+    \tr(\px)(\tm) = \semst{\pe'}_{\tr'}(\tm) \betastep \fn{((\lbl,v),μ)}{\idiom{\goodend{((\lbl,v),μ[\pa ↦ \ret(\lbl,v)])}}}
     \]
     from the definition of $α_\Environments$.
 
-    Let us define $τ^{\later} \triangleq \idiom{\semst{\pe'}_{\tr'}(\tm)}$ and
+    Let us define $τ \triangleq \idiom{\semst{\pe'}_{\tr'}(\tm)}$ and
     apply the induction hypothesis to the maximal trace starting at $σ_2$.
     This yields an equality
     $\idiom{α_\STraces((σ_{i+1})_{i∈\overline{m}},\UpdateF(\pa) \pushF κ) = τ^{\later}}$.
@@ -773,7 +773,7 @@ We do so by cases over $\pe$, abbreviating $\tm \triangleq α_\Heaps(μ), \tr
     its second argument which makes another step to the target state of $τ$,
     updating the heap to
     \[
-      \tilde{σ}_n \triangleq ((\lbl,v),\tm_m[\pa ↦ \idiom{\ret(\lbl,v)}]) = ((\lbl,v),\tm_m[\pa ↦ \idiom{\semst{\pv}_{α_\Environments(ρ_m)}}]) = α_\States(σ_n),
+      \tilde{σ}_n \triangleq ((\lbl,v),\tm_m[\pa ↦ \ret(\lbl,v)]) = ((\lbl,v),\tm_m[\pa ↦ \semst{\pv}_{α_\Environments(ρ_m)}]) = α_\States(σ_n),
     \]
     and this equality concludes the proof.
 

@@ -73,8 +73,8 @@
 \newcommand{\Ifz}[3]{\mathbf{ifz}(#1,#2,#3)}
 \newcommand{\LLet}[4]{\mathbf{let}_{#1}~{#2}={#3}~\mathbf{in}~{#4}}
 \newcommand{\Case}[2]{\mathbf{case}~{#1}~\mathbf{of}~{#2}}
-\newcommand{\Sel}[1][]{\many{K~\many{x} \rightarrow e_{#1}}}
-\newcommand{\SelArity}{\many{K~\many{x}^{α_K} \rightarrow e}}
+\newcommand{\Sel}[1][]{\many{K~\many{\px} \rightarrow \pe_{#1}}}
+\newcommand{\SelArity}{\many{K~\many{\px}^{α_K} \rightarrow \pe}}
 \newcommand{\dom}{\mathop\mathsf{dom}}
 \newcommand{\rng}{\mathop\mathsf{rng}}
 \newcommand{\fv}{\mathop\mathsf{fv}}
@@ -132,6 +132,7 @@
 \makeatother
 \newcommand{\concat}{\concatop{\cdot}}
 \newcommand{\fcomp}{\compop{\cdot}}
+\newcommand{\fcons}{\mathbin{\vec{::}}}
 \newcommand{\getval}[2]{#1 \Downarrow #2}
 \newcommand{\subtrceq}{\superimpose[\mathrel]{\clipbox{0pt 0pt {0.3\width} 0pt}{${\subset}$}}{\hspace{0.6ex}\cdot}}
 \newcommand{\rightsubtrceq}{\subtrceq_r}
@@ -155,6 +156,7 @@
 \newcommand{\FinStepMap}[2]{#1 \Rightarrow #2}
 \newcommand{\PrefD}{\Domain{*}}
 \newcommand{\MaxD}{\Domain{\Actions}}
+\newcommand{\MaxV}{\Values{\Actions}}
 \newcommand{\ScottD}{\Domain{\bot}}
 \newcommand{\AbsD}{\Domain{\raisebox{0.1em}{\scalebox{0.4}{$\square$}}}}
 \newcommand{\AbsCD}{\Domain{\raisebox{0.1em}{\scalebox{0.4}{c$\square$}}}}
@@ -209,6 +211,7 @@
 \newcommand{\STraces}{\mathbb{S}^{\infty}}
 \newcommand{\tSTraces}{\tilde{\mathbb{S}}^{\infty}}
 \newcommand{\LKStates}{\mathbb{L}}
+\newcommand{\LKTraces}{\mathbb{L}^{\infty}}
 \newcommand{\sconcat}{\concatop{\hspace{0.04ex}\scalebox{0.5}{$\States$}}}
 \newcommand{\sfcomp}{\compop{\scalebox{0.25}{\raisebox{0.7em}{$\States$}}}}
 \newcommand{\pushF}{\cdot}
