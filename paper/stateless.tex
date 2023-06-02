@@ -1,8 +1,8 @@
 \section{Stateless Semantics}
 \label{sec:stateless}
 
-In the previous section, we gave a compositional trace-based semantics and
-proved it adequate \wrt the LK transition semantics.
+In the previous section, we gave a trace semantics and proved it adequate \wrt
+the LK transition semantics.
 With compositionality and structural induction we recover strong advantages of
 denotational semantics.
 
@@ -19,13 +19,17 @@ It is however trivial to ``elaborate'' $\semst{\wild}$ to include the proper
 stack manipulations and emit the current lexical environment as part of every
 state.
 We think it is rather uninteresting to give the closed, elaborated definition
-of $\semst{\wild}$ which necessarily gives up simplicity.
+of $\semst{\wild}$ which necessarily gives up simplicity \sg{Give it in the Appendix}.
 It is more interesting to see what other parts of the traces we can \emph{omit}
-before compromising on expressivity.
+before compromising on expressivity and retain just as much information as
+needed by the particular analysis we want to prove correct.
 
-For example, in Control-Flow Analysis~\citep{Shivers:91}, we are interested in
-observing in each state of a trace the label of the expression in control.
-That makes $\semst{\wild}$ a suitable semantics for abstraction.
+For example, in Control-Flow Analysis~\citep{Shivers:91}, we are ultimately
+interested in observing the different lambda labels a variable occurrence might
+evaluate to.
+We do not need the lexical environment or the continuation stack, but the
+call-by-need nature of our semantics needs the state.
+That makes $\semst{\wild}$ a suitable concrete semantics for abstraction.
 Yet for our usage analysis in \Cref{sec:problem}, we do not care so much
 about the \emph{state} in which variable lookup happens, but rather about at
 which \emph{address} the $\LookupT$ transition happened, as well as the $\BindT$
@@ -43,12 +47,12 @@ rematerialised as needed from the history of previous actions.
 \[\begin{array}{c}
  \arraycolsep=3pt
  \begin{array}{rrclcl}
-  \text{Actions} & a & ∈ & \Actions & ::=  & \AppIA(d) \mid \AppEA(\px↦d) \mid \BindA(\px,\pa↦d^{\later}) \mid \LookupA(\pa) \mid \UpdateA(\pa) \\
-                 &   &   &          & \mid & \CaseIA(d) \mid \CaseEA(K,\many{\px↦d}) \mid \ValueA(v) \\
+  \text{Actions} & a & ∈ & \Actions & ::=  & \BindA(\px,\pa↦d^{\later}) \mid \LookupA(\pa) \mid \UpdateA(\pa) \mid \ValueA(v) \\
+                 &   &   &          & \mid & \AppIA(d) \mid \AppEA(\px↦d) \mid \CaseIA(d) \mid \CaseEA(K,\many{\px↦d}) \\
  \end{array} \\
  \arraycolsep=3pt
  \begin{array}{rrclcl@{\quad}rrclcl}
-  \text{Initialisation Traces} & τ^i        & ∈ & \Traces^*               & ::= & [a_1,...,a_n], n ∈ ℕ_0
+  \text{Initialisation Traces} & ι        & ∈ & \Traces^*               & ::= & [a_1,...,a_n], n ∈ ℕ_0
   &
   \text{Stateless domain}      & d          & ∈ & \MaxD                   & =   & \Traces^* \to \Traces^{\infty}
   \\
@@ -73,9 +77,9 @@ rematerialised as needed from the history of previous actions.
   \end{array} &
   \begin{array}{rcl}
    \\[-0.5em]
-   (d_1 \fcomp d_2^{\later})(τ^i)   & = & d_1(τ^i) \concat \idiom{d_2^{\later}(τ^i \concat d_1(τ^i))} \\
+   (d_1 \fcomp d_2^{\later})(ι)   & = & d_1(ι) \concat \idiom{d_2^{\later}(ι \concat d_1(ι))} \\
    \\[-0.5em]
-   \tell{a}(τ^i) & = & \goodend{a} \\
+   \tell{a}(ι) & = & \goodend{a} \\
   \end{array} \\
  \end{array} \\
  \\[-0.5em]
@@ -88,17 +92,17 @@ rematerialised as needed from the history of previous actions.
     \end{array}
   }} \\
   \\[-0.5em]
-  β(f)(τ^i) & = & \begin{cases}
-      \idiom{f(v)(τ^i)} & \text{$τ^i = [..., \ValueA(v), \many{\UpdateA(\wild)}]$ and $v ∈ \dom(f)$} \\
+  β(f)(ι) & = & \begin{cases}
+      \idiom{f(v)(ι)} & \text{$ι = [..., \ValueA(v), \many{\UpdateA(\wild)}]$ and $v ∈ \dom(f)$} \\
       \idiom{\stuckend{}} & \text{otherwise} \\
     \end{cases} \\
   \\[-0.5em]
-  μ(τ^i)(\pa) & = & \begin{cases}
-    \tell{\ValueA(v)} & \text{if $τ^i = [..., \ValueA(v), \many{\UpdateA(\wild),}\, \UpdateA(\pa),...]$} \\
-    d & \text{if $τ^i = [..., \BindA(\px,\pa↦d), ...]$} \\
+  μ(ι)(\pa) & = & \begin{cases}
+    \tell{\ValueA(v)} & \text{if $ι = [..., \ValueA(v), \many{\UpdateA(\wild),}\, \UpdateA(\pa),...]$} \\
+    d & \text{if $ι = [..., \BindA(\px,\pa↦d), ...]$} \\
   \end{cases}  \\
   \\[-0.5em]
-  \deref(\pa)(τ^i)   & = & (\tell{\LookupA(\pa)} \fcomp μ(τ^i)(\pa) \fcomp \tell{\UpdateA(\pa)})(τ^i) \\
+  \deref(\pa)(ι)   & = & (\tell{\LookupA(\pa)} \fcomp μ(ι)(\pa) \fcomp \tell{\UpdateA(\pa)})(ι) \\
   \apply(d_\px) & = & β(\fn{(\FunV(f))}{\idiom{f(d_\px)}}) \\
   \select(\many{f}) & = & β(\fn{(\ConV(K_s,\many{d_s}))}{\idiom{f_s(\many{d_s})}}) \\
  \end{array} \\
@@ -118,10 +122,112 @@ rematerialised as needed from the history of previous actions.
     \fn{\wild}{\stuckend{}}  & \text{otherwise} \\
   \end{cases} \\
   \\[-0.5em]
-  \semless{\Let{\px}{\pe_1}{\pe_2}}_ρ(τ^i) & = &
+  \semless{\Let{\px}{\pe_1}{\pe_2}}_ρ(ι) & = &
     \begin{letarray}
-      \text{let} & ρ' = ρ[\px ↦ \deref(\pa)] \quad \text{where $\pa \not∈ \dom(μ(τ^i))$} \\
-      \text{in}  & (\tell{\BindA(\px,\pa↦\semless{\pe_1}_{ρ'})} \fcomp \semless{\pe_2}_{ρ'})(τ^i)
+      \text{let} & ρ' = ρ[\px ↦ \deref(\pa)] \quad \text{where $\pa \not∈ \dom(μ(ι))$} \\
+      \text{in}  & (\tell{\BindA(\px,\pa↦\semless{\pe_1}_{ρ'})} \fcomp \semless{\pe_2}_{ρ'})(ι)
+    \end{letarray} \\
+  \\[-0.5em]
+  \semless{K~\many{\px}}_ρ & = & \tell{\ValueA(\ConV(K,\many{\semless{\px}_ρ}))} \\
+  \\[-0.5em]
+  \semless{\Case{\pe_s}{\Sel[r]}}_ρ & = &
+    \begin{letarray}
+      \text{let} & \many{f_K = \fn{\many{d}^{α_K}}{\tell{\CaseEA(K,\many{\px↦d})} \fcomp \semless{\pe_r}_{ρ[\many{\px↦d}]}}} \\
+      \text{in} & \tell{\CaseIA(\semless{\pe_s}_ρ)} \fcomp \semless{\pe_s}_ρ \fcomp \select(\many{f})  \\
+    \end{letarray}
+ \end{array} \\
+\end{array}\]
+\caption{Stateless Trace Semantics}
+  \label{fig:semless}
+\end{figure}
+
+\begin{figure}
+\[\begin{array}{c}
+ \arraycolsep=3pt
+ \begin{array}{rrclcl}
+  \text{Actions} & a & ∈ & \Actions & ::=  & \BindA(\px,\pa↦d^{\later}) \mid \LookupA(\pa) \mid \UpdateA(\pa) \mid \ValueA(v) \\
+                 &   &   &          & \mid & \AppIA(d) \mid \AppEA(\px↦d) \mid \CaseIA(d) \mid \CaseEA(K,\many{\px↦d}) \\
+ \end{array} \\
+ \arraycolsep=3pt
+ \begin{array}{rrclcl@{\quad}rrclcl}
+  \text{Initialisation Traces} & ι        & ∈ & \Traces^*               & ::= & [a_1,...,a_n], n ∈ ℕ_0
+  &
+  \text{Stateless domain}      & d          & ∈ & \MaxD                   & =   & \Traces^* \to \Traces^{\infty}
+  \\
+  \text{Program Traces}        & τ          & ∈ & \Traces^{\infty}        & ::= & \goodend{v} \mid \stuckend{} \mid a \cons τ^{\later}
+  &
+  \text{Delayed Trace}         & τ^{\later} & ∈ & \later \Traces^{\infty} &     &   \\
+ \end{array} \\
+ \arraycolsep=3pt
+ \begin{array}{rrclcl}
+  \text{Stateless values} & v & ∈ & \Values{} & ::= & \FunV(f ∈ \MaxD \to \later \MaxD) \mid \ConV(K,\many{d^{\later}}^{α_K}) \\
+ \end{array} \\
+ \\[-0.5em]
+ \ruleform{ (\betastep) : \MaxD \to \later\MaxD \to \MaxD \quad (\fcomp) : \Actions \to \later\MaxD \to \MaxD} \\
+ \\[-0.5em]
+ \begin{array}{cc}
+  \begin{array}{rcl}
+  τ \betastep f & = & \begin{cases}
+      τ :: \idiom{f(σ)} & \text{$τ = ... \cons \goodend{σ}$ and $σ ∈ \dom(f)$} \\
+      τ' :: \idiom{\stuckend{σ}} & \text{$τ = τ' \cons \goodend{σ}$ and $σ \not∈ \dom(f)$} \\
+      τ & \text{otherwise} \\
+    \end{cases} \\
+  \\[-0.5em]
+   (d_1 \betastep f)(ι_1) & = & \begin{cases}
+     ι_2 \cons \idiom{f(v^\later)(ι_1 \cons ι_2)} & \text{$d_1(ι_1) = ι_2 \cons \goodend{v^\later}$ and $v^\later ∈ \dom(f)$} \\
+     ι_2 \cons \idiom{\stuckend{}} & \text{$d_1(ι_1) = ι_2 \cons \goodend{v^\later}$ and $v^\later \not∈ \dom(f)$} \\
+     d_1(ι_1) & \text{otherwise} \\
+   \end{cases} \\
+  \end{array} &
+  \begin{array}{rcl}
+   \\[-0.5em]
+   (a \fcomp d_2^{\later})(ι)   & = & a \cons \idiom{d_2^{\later}(ι \cons a)} \\
+  \end{array} \\
+ \end{array} \\
+ \\[-0.5em]
+ \begin{array}{rcl}
+  \multicolumn{3}{c}{ \ruleform{
+    \begin{array}{c}
+      β : (\Values{} \pfun \later\MaxD) \to \later\MaxD \quad μ : \Traces^{+} \to \Addresses \pfun \later\MaxD \\
+      \deref : \Addresses \to \MaxD \quad \apply : \MaxD \to \later\MaxD \\
+      \select : ((\MaxD)^{α_K} \pfun \MaxD)^* \to \later\MaxD \\
+    \end{array}
+  }} \\
+  \\[-0.5em]
+  β(f)(ι) & = & \begin{cases}
+      \idiom{f(v)(ι)} & \text{$ι = [..., \ValueA(v), \many{\UpdateA(\wild)}]$ and $v ∈ \dom(f)$} \\
+      \idiom{\stuckend{}} & \text{otherwise} \\
+    \end{cases} \\
+  \\[-0.5em]
+  μ(ι)(\pa) & = & \begin{cases}
+    \tell{\ValueA(v)} & \text{if $ι = [..., \ValueA(v), \many{\UpdateA(\wild),}\, \UpdateA(\pa),...]$} \\
+    d & \text{if $ι = [..., \BindA(\px,\pa↦d), ...]$} \\
+  \end{cases}  \\
+  \\[-0.5em]
+  \deref(\pa)(ι)   & = & (\tell{\LookupA(\pa)} \fcomp μ(ι)(\pa) \fcomp \tell{\UpdateA(\pa)})(ι) \\
+  \apply(d_\px) & = & β(\fn{(\FunV(f))}{\idiom{f(d_\px)}}) \\
+  \select(\many{f}) & = & β(\fn{(\ConV(K_s,\many{d_s}))}{\idiom{f_s(\many{d_s})}}) \\
+ \end{array} \\
+ \\[-0.5em]
+ \begin{array}{rcl}
+  \multicolumn{3}{c}{ \ruleform{ \semless{\wild} \colon \Exp → (\Var \pfun \MaxD) → \MaxD } } \\
+  \\[-0.5em]
+  \semless{\px}_ρ       & = & \begin{cases}
+    ρ(\px) & \px ∈ \dom(ρ) \\
+    \fn{\wild}{\stuckend{}}  & \text{otherwise} \\
+  \end{cases} \\
+  \\[-0.5em]
+  \semless{\Lam{\px}{\pe}}_ρ & = & \tell{\ValueA(\FunV(\fn{d}{\tell{\AppEA(\px↦d)} \fcomp \semless{\pe}_{ρ[\px↦d]}}))} \\
+  \\[-0.5em]
+  \semless{\pe~\px}_ρ   & = & \begin{cases}
+    \tell{\AppIA(ρ(x))} \fcomp \semless{\pe}_ρ \fcomp \apply(ρ(\px)) & \px ∈ \dom(ρ) \\
+    \fn{\wild}{\stuckend{}}  & \text{otherwise} \\
+  \end{cases} \\
+  \\[-0.5em]
+  \semless{\Let{\px}{\pe_1}{\pe_2}}_ρ(ι) & = &
+    \begin{letarray}
+      \text{let} & ρ' = ρ[\px ↦ \deref(\pa)] \quad \text{where $\pa \not∈ \dom(μ(ι))$} \\
+      \text{in}  & (\tell{\BindA(\px,\pa↦\semless{\pe_1}_{ρ'})} \fcomp \semless{\pe_2}_{ρ'})(ι)
     \end{letarray} \\
   \\[-0.5em]
   \semless{K~\many{\px}}_ρ & = & \tell{\ValueA(\ConV(K,\many{\semless{\px}_ρ}))} \\
@@ -139,25 +245,65 @@ rematerialised as needed from the history of previous actions.
 
 \subsection{Going stateless}
 
-\Cref{fig:stateless-syntax} provides the new syntactic building blocks of the
-semantics. A \emph{program point} $\pc$ is either a return point $\return$ or a
-labelled expression; each program point defines one of finitely many
-control-flow nodes of the program. Actions $a$ correspond one-to-one to the
-transition rules of the LK machine, only they are now retained in an AST-like
-fashion in the trace instead of eliminated (via functions $app_1$, $app_2$,
-$bind$, \etc) to produce the successor state. Stateless traces $τ$ carry the
-the transition taken as an action $a$. We re-use the same greek letter as in
-\Cref{sec:stateful} and disambiguate as needed. We consider inductively-defined
-finite traces $τ^+$ a subtype of the potentially infinite and thus
-coinductively-defined traces $τ$.
+\Cref{fig:semless} gives the definition for the stateless trace semantics
+$\semless{\wild}$.
+The domain of stateless maximal traces $\MaxD$ maps a finite
+\emph{initialisation trace} $ι$ to a possibly infinite or stuck program trace
+$τ$ \emph{continuing} the initialisation trace.
+The similarity to $\StateD$ is striking; initialisation traces replace
+materialised heaps $μ$ in the stateful semantics.
+As we shall see, the auxiliary function $\tilde{μ}$ (using tilde as before to disambiguate from the stateful semantics) can rematerialise the heap from $ι$.
 
-Comparing the domain of maximal traces with the one for LK traces from
-\Cref{fig:lk-domain}, we can see that a finite \emph{initialisation trace} takes
-the place of the initial state as a parameter to a domain element $d$.
-Similarly, the use of $\Addresses$ in the definition of semantic values $v$ is
-replaced in favor of a seemingly more complex argument of type $\MaxD$; in
-practice the $d$ passed will be one-to-one to the address passed in the stateful
-semantics.
+The fundamental difference to the stateful semantics manifests in the
+information encoded in a trace $τ$:
+Instead of a sequence of states $σ$ there is a (possibly empty, if stuck)
+sequence of \emph{actions} $a$.
+With the exception of $\ValueA$ actions which we will explain in due course,
+each kind of action corresponds to a transition rule in the LK semantics.
+In fact, each action carries with it part of the ``closure'' of the
+particular transition rule which is readily available for analysis.
+For example, the $\LookupA$ action carries the heap address which is accessed,
+$\BindA$ actions carry the $\mathsf{let}$-bound variable, its fresh address and
+the denotation of the right-hand side.
+
+Initialisation traces $ι$ are finite lists of actions and we often coerce freely
+from and to finite program traces $τ$ that are not stuck (\eg, ending in
+$\goodend{\wild}$).
+For example, the concatenation of two initialisation traces $ι_1 \concat ι_2$ is
+again an initialisation trace.
+This is exploited in the auxiliary definition of the forward composition
+operator $\fcomp$, which encodes sequential composition of two $\MaxD$
+denotations, thus fulfilling a part of the role that $\betastep$ had in
+\Cref{sec:stateful}.
+The expression $d_1(ι) \concat ι$ is only well-defined as an initialisation
+trace when $d_1(ι)$ is finite and not stuck (and thus an initialisation trace
+itself).
+This is indeed the case:
+Note that $τ_1 \concat τ_2^\later$ will only look at $τ_2^\later$ when $τ_1$
+is finite.
+Applied to the definition of $\fcomp$, $d_1(ι) \concat ι$ is only evaluated when
+$d_1(ι)$ is finite, so $\fcomp$ is well-defined.
+
+We re-use the same greek letter as in \Cref{sec:stateful} and disambiguate as
+needed, as before using tilde $\tilde{τ}$.
+
+\begin{figure}
+\[\begin{array}{rcl}
+  α_\Environments(ρ) & = & \deref \circ ρ \\
+  α_\Heaps([\many{\pa ↦ (ρ,\pe)}]) & = & [\many{\pa ↦ \idiom{\semst{\pe}_{α_\Environments(ρ)}}}] \\
+  α_\States(\slbl \Lam{\px}{\pe},ρ,μ,κ) & = & ((\lbl,\FunV(\fn{d}{\idiom{\semst{\pe}_{α_\Environments(ρ)[\px↦d]}}})),α_\Heaps(μ)) \\
+  α_\States(\slbl K~\overline{\px},ρ,μ,κ) & = & ((\lbl,\ConV(K,\overline{\idiom{\semst{\px}_{α_\Environments(ρ)}}})),α_\Heaps(μ)) \\
+  α_\States(\pe,ρ,μ,κ) & = & (\pe,α_\Heaps(μ)) \\
+  α_{\STraces}((σ_i)_{i∈\overline{n}},κ) & = & \begin{cases}
+    α_\States(σ_1) \cons \idiom{α_{\STraces}((σ_{i+1})_{i∈\overline{n-1}},κ)} & n > 1 \\
+    \goodend{α_\Values(σ_1)} & \ctrl(σ_1) \text{ value } \wedge \cont(σ_1) = κ \\
+    \stuckend{} & \text{otherwise} \\
+  \end{cases} \\
+  \mathcal{C}((σ_i)_{i∈\overline{n}}) & = & \maxtrace{(σ_i)_{i∈\overline{n}}} \Longrightarrow ∀((\pe,ρ,μ,κ) = σ_1).\ α_{\STraces}((σ_i)_{i∈\overline{n}},κ) = \semst{\pe}_{α_\Environments(ρ)}(α_\Heaps(μ)) \\
+\end{array}\]
+\caption{Correctness predicate for $\semless{\wild}$, defining the family of functions $α_\Actions$}
+  \label{fig:semst-correctness}
+\end{figure}
 
 % Note [Design of Maximal Trace Semantics]
 % ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -305,8 +451,8 @@ semantics.
   deref^{-1}(d) & = & \pa \text{ such that $d = deref(\pa)$} \\
   tgt_\States^{-1}(σ) & = & τ \text{ such that $\validtrace{τ}$ and $tgt_\States(τ) = σ$} \\
   \\[-0.5em]
-  α_{\STraces}(τ^i, \pc\trend) & = & α_{\States}(τ^i \concat \pc\trend)\trend \\
-  α_{\STraces}(τ^i, τ \act{a} \pc\trend) & = & α_{\STraces}(τ^i,τ); α_{\States}(τ^i \concat τ \act{a} \pc\trend)\trend \\
+  α_{\STraces}(ι, \pc\trend) & = & α_{\States}(ι \concat \pc\trend)\trend \\
+  α_{\STraces}(ι, τ \act{a} \pc\trend) & = & α_{\STraces}(ι,τ); α_{\States}(ι \concat τ \act{a} \pc\trend)\trend \\
   α_{\States}(τ) & = & (α_{\Controls}(τ,tgt(τ)), α_{\Environments}(\varrho(τ)), α_{\Heaps}(τ) \circ μ(τ), α_{\Continuations}(τ)) \\
   α_{\Controls}(τ, \return) & = & (\pv,α_{\StateV}(v)) \text{ where $\getval{τ}{(\pv,v)}$} \\
   α_{\Controls}(τ, \pe) & = & \pe \\
