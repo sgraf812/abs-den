@@ -53,15 +53,15 @@ rematerialised as needed from the history of previous actions.
  \\[-0.5em]
  \arraycolsep=3pt
  \begin{array}{rrclcl@{\quad}rrclcl}
-  \text{Initialisation trace} & ι        & ∈ & \Traces^*                 & ::= & [a_1,...,a_n], n ∈ ℕ_0
+  \text{Initialisation trace} & ι        & ∈ & \ITraces                 & ::= & [a_1,...,a_n], n ∈ ℕ_0
   &
   \text{Delayed action}        & a^{\later} & ∈ & \later \Actions         &     &
   \\
-  \text{Program trace}        & τ          & ∈ & \Traces^{\infty}        & ::= & \goodend{v} \mid \stuckend{} \mid a^{\later} \cons τ^{\later}
+  \text{Program trace}        & τ          & ∈ & \Traces        & ::= & \goodend{v} \mid \stuckend{} \mid a^{\later} \cons τ^{\later}
   &
-  \text{Delayed trace}         & τ^{\later} & ∈ & \later \Traces^{\infty} &     &
+  \text{Delayed trace}         & τ^{\later} & ∈ & \later \Traces &     &
   \\
-  \text{Stateless domain}      & d          & ∈ & \MaxD                   & =   & \Traces^* \to \Traces^{\infty}
+  \text{Stateless domain}      & d          & ∈ & \MaxD                   & =   & \ITraces \to \Traces
   &
   \text{Delayed element}       & d^{\later} & ∈ & \later \MaxD            &     &
  \end{array} \\
@@ -75,7 +75,7 @@ rematerialised as needed from the history of previous actions.
   \multicolumn{3}{c}{ \ruleform{
     \begin{array}{c}
       (\betastep) : \MaxD \to (\MaxV \pfun \later\MaxD) \to \MaxD \quad (\fcons) : \later\Actions \to \later\MaxD \to \MaxD \\
-      μ : \Traces^{+} \to \Addresses \pfun \MaxD \quad \ret : \MaxV \to \MaxD \\
+      μ : \ITraces \to \Addresses \pfun \MaxD \quad \ret : \MaxV \to \MaxD \\
       \deref : \Addresses \to \MaxD \quad \apply : \MaxD \to \MaxD \to \MaxD \\
       \select : \MaxD \to ((\MaxD)^{α_K} \pfun \MaxD)^* \to \MaxD \\
     \end{array}
@@ -184,201 +184,102 @@ needed, as before using tilde $\tilde{τ}$.
   α_\Heaps([\many{\pa ↦ (ρ,\pe)}]) & = & [\many{\UpdateA(\pa ↦ \semst{\pe}_{α_\Environments(ρ)}}] \\
   α_\MaxV(ρ,\Lam{\px}{\pe}) & = & \FunV(\fn{d}{\idiom{\AppEA(\px↦d)} \fcons \idiom{\semless{\pe}_{α_\Environments(ρ)[\px↦d]}}}) \\
   α_\MaxV(ρ,K~\many{\px}) & = & \ConV(K,\idiom{\many{\semless{\px}_{α_\Environments(ρ)}}}) \\
-  α_{\Traces^{\infty}}((σ_i)_{i∈\overline{n}},κ) & = & \begin{cases}
-    \idiom{\BindA(\px,\pa↦\semless{\pe_1}_{α_\Environments(ρ')})} \cons τ^\later & σ_1 \smallstep σ_2 \text{ by rule $\BindT$}\\
-    \idiom{\AppIA(\deref(ρ(\px)))} \cons τ^\later & σ_1 \smallstep σ_2 \text{ by rule $\AppIT$}\\
-    \idiom{\CaseIA(\semless{\pe_s}_{α_\Environments(ρ)})} \cons τ^\later & σ_1 \smallstep σ_2 \text{ by rule $\CaseIT$}\\
-    \idiom{\LookupA(ρ(\px))} \cons τ^\later & σ_1 \smallstep σ_2 \text{ by rule $\LookupT$}\\
-    \idiom{\AppEA(\px↦\deref(\pa))} \cons τ^\later & σ_1 \smallstep σ_2 \text{ by rule $\AppET$}\\
-    \idiom{\CaseEA(K',\many{\px_i ↦ \deref(\pa)})} \cons τ^\later & σ_1 \smallstep σ_2 \text{ by rule $\CaseET$}\\
-    \idiom{\UpdateA(\pa↦\ret(α_\MaxV(ρ,\pv)))} \cons τ^\later & σ_1 \smallstep σ_2 \text{ by rule $\UpdateT$}\\
+  α_\Actions(σ) & = & \begin{cases}
+    \BindA(\px,\pa↦\semless{\pe_1}_{α_\Environments(ρ[\px↦\pa])}) & σ = (\Let{\px}{\pe_1}{\wild},ρ,μ,\wild) \wedge \pa \not∈ \dom(μ) \\
+    \AppIA(\deref(\pa)) & σ = (\wild~\px,ρ,\wild,\ApplyF(\pa) \pushF \wild) \\
+    \CaseIA(\semless{\pe_s}_{α_\Environments(ρ)}) & σ = (\Case{\pe_s}{\wild},ρ,\wild, \wild)\\
+    \LookupA(ρ(\px)) & σ = (\px,ρ,\wild,\UpdateF(\pa) \pushF \wild) \\
+    \AppEA(\px↦\deref(\pa)) & σ = (\Lam{\px}{\wild},\wild,\wild,\ApplyF(\pa) \pushF \wild) \\
+    \CaseEA(K',\many{\px_i ↦ \deref(ρ(\py))}) & σ = (K'~\many{\py}, ρ, \wild, \SelF(\wild,\Sel) \pushF \wild) \wedge K' = K_i \\
+    \UpdateA(\pa↦\ret(α_\MaxV(ρ,\pv))) & σ = (\pv,ρ,\wild,\UpdateF(\pa) \pushF \wild) \\
+  \end{cases} \\
+  α_{\Traces}((σ_i)_{i∈\overline{n}},κ) & = & \begin{cases}
+    \idiom{α_\Actions(σ_1)} \cons \idiom{α_{\Traces}((σ_{i+1})_{i∈\overline{n-1}},κ)} & n > 1 \\
     \goodend{α_\MaxV(ρ,\pv)} & n = 1 \wedge σ_1 = (\pv, ρ, \wild, κ) \\
     \stuckend{} & \text{otherwise} \\
   \end{cases} \\
-  & & \text{where } τ^\later = \idiom{α_{\Traces^{\infty}}((σ_{i+1})_{i∈\overline{n-1}},κ)} \\
-  \mathcal{C}((σ_i)_{i∈\overline{n}}) & = & \maxtrace{(σ_i)_{i∈\overline{n}}} \Longrightarrow ∀((\pe,ρ,μ,κ) = σ_1).\ α_{\Traces^{\infty}}((σ_i)_{i∈\overline{n}},κ) = \semst{\pe}_{α_\Environments(ρ)}(α_\Heaps(μ)) \\
+  \mathcal{C} & = & ∀(σ_i)_{i∈\overline{n}}.\ \maxtrace{(σ_i)_{i∈\overline{n}}} \Longrightarrow ∀((\pe,ρ,μ,κ) = σ_1).\ α_{\Traces}((σ_i)_{i∈\overline{n}},κ) = \semst{\pe}_{α_\Environments(ρ)}(α_\Heaps(μ)) \\
 \end{array}\]
-\caption{Correctness predicate for $\semless{\wild}$, defining the family of functions $α_\Actions$}
-  \label{fig:semst-correctness}
+\caption{Correctness predicate for $\semless{\wild}$}
+  \label{fig:semless-correctness}
 \end{figure}
 
-% Note [Design of Maximal Trace Semantics]
-% ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-% A stateless (prefix) trace semantics' defining feature is the absence of
-% full-blown configurations between actions. However, states can be
-% reconstructed from looking at the history of actions in the initialisation
-% trace. So it is quite vital that the actions carry enough information.
-%
-% The need for a value action
-% ---------------------------
-% Values have after labels, so that when we reach at(v) we make one value
-% transition to announce the value of at(v) in the trace. Without this
-% action, it would be hard to differentiate between stuck and successful
-% maximal traces. Furthermore, it plays a crucial role in the memoisation
-% mechanism, where we reconstruct the memoised value from the trace.
-%
-% A different design would be to have controls `expr | (lbl, sem value)`,
-% but then we still need the value transition: Otherwise, callers of
-% S[λx.e] must supply the semantic value of the lambda at the end of the
-% initialisation trace which defeats the point.
-%
-% The need for an update action
-% -----------------------------
-% Memoisation could well work by looking for a balanced sub-trace in the
-% initialisation trace that started with look(τ_k). In fact, earlier
-% versions did exactly that, and it worked great!
-% Unfortunately, it has the following drawbacks:
-%   * CESK semantics does have update frames and we want to match those
-%     rather simply. It is a matter of producing "complete" states, see
-%     "Which info do we need to attach to an action?"
-%   * We need to define relatively early what a balanced trace is.
-%     The semantics itself should not depend on that...
-%   * It is simpler to define the abstraction to stateful prefix trace semantics
-%     when there are corresponding update actions
-%   * It is better to be explicit to announce exactly when "the heap binding
-%     changes" for the perspective of weak memory models and interleavings of
-%     parallel traces (TODO: Read up on that!), which is one of the prime
-%     reasons to consider stateless trace semantics in the first place.
-%
-% Why is the stateless semantics not simply (V, T+ -> T+∞)?
-% ---------------------------------------------------------
-% ... and in the process could abandon the value action (if we were willing
-% to detect stuckness by looking at V)?
-%
-% Because then we can't see the prefix T+ when we have to extend ρ at let
-% bindings. But this is our primary mechanism for sharing! Similarly for
-% call-by-value.
-%
-% So we are stuck with value actions. Still, we could decide to return the
-% value "out of band", in a pair, T+ -> (V, T+∞). That yields the worse of
-% both worlds; the definition is similar to T+ -> T+∞ but we often need to
-% adjust the second component of the pair; plus, in `memo`, we still have
-% to "execute" the semantics S for its value, because we can't recover it
-% from the trace.
-%
-% Which info do we need to attach to an action?
-% ---------------------------------------------
-% TLDR; that is determined by transition semantics that we want to
-% be to abstract a trace into. The reasoning is as follows:
-%
-%   * "The transition semantics" is really the semantics we get by
-%     applying the transition abstraction α_τ to a *stateful* trace
-%     semantics, where the states capture enough information for
-%     the resulting transition system to become deterministic.
-%     (The transition system we get by abstracting the *stateless* trace
-%     semantics isn't very useful precisely for that reason; taking
-%     labels as state yields too many spurious transitions.)
-%   * So determinism of the abstracted transition system is a quality
-%     of the semantic richness of states (given that the sequence of states
-%     is fixed); let's call state structure that allows for deterministic
-%     abstraction "complete"
-%   * (Are all complete state structures isomorph? Probably not)
-%   * The stateful trace semantics is an abstraction of the stateless trace
-%     semantics by way of α_S. We want to produce (at least one) stateful
-%     semantics where the state space is complete. To produce such states, the
-%     necessary information must be part of the stateless trace, otherwise we
-%     can't write the abstraction function from stateless to stateful.
-%
-% So given the completeness of the states produced by α_S as a goal, we can
-% make the following claims for action kinds in a trace:
-%
-%   * AppI, AppE, Lookup, Bind are all necessary actions because they make
-%     a step from one label to a label of a subexpression.
-%   * Val actions are the trace semantics' means of communicating a successful
-%     (e.g., not stuck) execution as well as playing the role of `Just value`.
-%     They correspond to Val transtitions in CESK or STG's ReturnCon
-%   * We do *not* strictly need Update actions -- we just need update frames
-%     in the stateful trace, but those could be reconstructed from when a
-%     Lookup's balanced trace ended. Update actions make our life simpler in
-%     other ways, though: See "The need for an update action".
-%
-% In fact, given that each action corresponds to a CESK transition, α_S can be
-% defined inductively (by prefixes) on actions and states:
-%
-%   * The data on actions is simply erased and the corresopnding CESK transition
-%     is taken. (Vital to realise that a well-formed stateless trace results in
-%     an ok stateful trace.)
-%   * For the state after prefix τ, we simply call \varrho(τ). It is a function
-%     that Cousot uses throughout his book, and so should we.
-%
-% Now as to what information we need on the actions:
-%
-%   * AppI: We need the Var so that α_S can produce an Apply frame
-%   * AppE: We need both the Var *and* the D so that varrho can produce the
-%           proper environment.
-%   * Lookup: We need the address so that we can push an update frame in α_S.
-%             Also we need it to find the corresponding Bind.
-%   * Bind: We need the address, so α_S can find it when encountering a Lookup
-%           at that address. Then we also need the Var and the D for varrho.
-%   * Update: The address is convenient (as are update actions to begin with),
-%             otherwise we'd have to fiddle with balanced traces in memo to find
-%             the corresponding Lookup.
-%   * Values: It is convenient to attach values to Val actions; this is not strictly
-%     necessary, just convenient. (See page 4 of 61e6f8a, quite ugly.)
+\sg{Justify why we can't abstract $\semst{\wild}$ (where to take the address in the lookup case from?).
+Although, perhaps we could; by zipping up the original heaps and stacks. But a direct proof is simpler.}
 
-\subsection{Abstraction}
+Similarly to before, we can define preservation lemmas:
 
-% 1. Move Lookup into Env; have Env = Name :-> D and let its action look into
-%    the Heap. Requires a bit of tricky setup in let_
-% 2. Move the Env to meta level
-% 3. Realise that we can now get rid of the stack, since everything happens
-%    on the meta call stack
-% 4. Materialise the state as needed during memo
+\begin{lemma}[Preservation of length]
+  \label{thm:abs-length-less}
+  Let us define the length $\mathit{len} : \Traces \to ℕ_ω$ of a trace by
+  guarded recursion
+  \[
+    \mathit{len}(τ) = \begin{cases}
+      1 + \idiom{\mathit{len}(τ^{\later})} & τ = \pa^\later \cons τ^{\later} \\
+      1 & \text{otherwise} \\
+    \end{cases}
+  \]
+  Now let $(σ_i)_{i∈\overline{n}}$ be an arbitrary trace.
+  Then $\mathit{len}(α_\STraces((σ_i)_{i∈\overline{n}},\cont(σ_1))) = n$.
+\end{lemma}
+\begin{proof}
+  Similar to \Cref{thm:abs-length}.
+\end{proof}
 
-\begin{figure}
-\[\begin{array}{rcl}
-  μ_ρ(τ)(\pa) & = & \begin{cases}
-    \varrho(τ_1) & \text{if $τ_1 \act{\UpdateA(\pa)} \return \concat τ_2 = τ$} \\
-    \varrho(τ_1 \act{\BindA(\px,\pa↦\pe,d)} \pc) & \text{if $τ_1 \act{\BindA(\px,\pa↦\pe,d)} \pc \concat τ_2 = τ$} \\
-  \end{cases}  \\
-  \varrho(τ \act{\BindA(\px,\pa↦\pe,d)} \pc\trend)(\px) & = & deref(\pa) \\
-  \varrho(τ \act{\AppEA(\px↦d)} \pc\trend)(\px) & = & d \\
-  \varrho(τ \act{\LookupA(\pa)} \pc\trend)(\px) & = & μ_ρ(τ)(\pa)(\px) \\
-  \varrho(τ \act{a} \pc\trend)(\px) & = & \varrho(τ)(\px) \\
-\end{array}\]
-\caption{Materialising heap and environment from an initialisation trace}
-  \label{fig:materialisation}
-\end{figure}
+\begin{lemma}[Preservation of components]
+  \label{thm:abs-components}
+  Let $(σ_i)_{i∈\overline{n}}$ be a trace and let $τ = α_\Traces((σ_i)_{i∈\overline{n}},\cont(σ_1))$.
+  Then for all $j∈\overline{n-1}$, $τ_j = α_\Actions(σ_j)$
+  (where $τ_j$ denotes the $j$th action in $τ$)
+  and if $τ$ ends in $\goodend{v}$, then $v = α_\MaxV(ρ,\pv)$, where $σ_n = (\pv, ρ, \wild, \wild)$.
+\end{lemma}
+\begin{proof}
+  Similar to \Cref{thm:abs-states}.
+\end{proof}
 
-\begin{figure}
-\[\begin{array}{c}
- \begin{array}{rcl}
-  \multicolumn{3}{c}{ \ruleform{ α^{\States} : ((\Var \pfun \MaxD) \to \MaxD) \to \StateD } } \\
-  \\[-0.5em]
-  deref^{-1}(d) & = & \pa \text{ such that $d = deref(\pa)$} \\
-  tgt_\States^{-1}(σ) & = & τ \text{ such that $\validtrace{τ}$ and $tgt_\States(τ) = σ$} \\
-  \\[-0.5em]
-  α_{\STraces}(ι, \pc\trend) & = & α_{\States}(ι \concat \pc\trend)\trend \\
-  α_{\STraces}(ι, τ \act{a} \pc\trend) & = & α_{\STraces}(ι,τ); α_{\States}(ι \concat τ \act{a} \pc\trend)\trend \\
-  α_{\States}(τ) & = & (α_{\Controls}(τ,tgt(τ)), α_{\Environments}(\varrho(τ)), α_{\Heaps}(τ) \circ μ(τ), α_{\Continuations}(τ)) \\
-  α_{\Controls}(τ, \return) & = & (\pv,α_{\StateV}(v)) \text{ where $\getval{τ}{(\pv,v)}$} \\
-  α_{\Controls}(τ, \pe) & = & \pe \\
-  α_{\Environments}(ρ) & = & deref^{-1} \circ ρ \\
-  α_{\Heaps}(τ)([\many{\pa ↦ (\pe,d)}]) & = & [\many{\pa ↦ (\pe, μ_ρ(τ)(\pa), α_{\StateD}(d))}] \\
-  α_{\Continuations}(\pc\trend) & = & \StopF \\
-  α_{\Continuations}(τ \act{\LookupA(\pa)} \pc\trend) & = & \UpdateF(\pa) \pushF α_{\Continuations}(τ) \\
-  α_{\Continuations}(τ \act{\UpdateA(\pa)} \pc\trend) & = & κ \text{ where $α_{\Continuations}(τ) = \UpdateF(\pa) \pushF κ$} \\
-  α_{\Continuations}(τ \act{\AppIA(d)} \pc\trend) & = & \ApplyF(deref^{-1}(d)) \pushF α_{\Continuations}(τ) \\
-  α_{\Continuations}(τ \act{\AppEA(\px↦d)}   \pc\trend) & = & κ \text{ where $α_{\Continuations}(τ) = \ApplyF(deref^{-1}(d)) \pushF κ$} \\
-  α_{\Continuations}(τ \act{} \pc\trend) & = & α_{\Continuations}(τ) \\
-  α_{\StateD}(d) & = & (\fn{τ}{α_{\STraces}(τ,d(τ))) \circ γ_{\STraces} \circ tgt_\States^{-1}} \\
-  α_{\StateV}(\FunV(f)) & = & \FunV(α_{\StateD} \circ f \circ deref) \\
-  γ_{\StateD}(d) & = & γ_{\STraces} \circ d \circ tgt_\States \circ α_{\STraces} \\
-  γ_{\StateV}(\FunV(f)) & = & \FunV(γ_{\StateD} \circ f \circ deref^{-1}) \\
-  γ_{\STraces}(σ\trend) & = & γ_{\States}(σ)\trend \\
-  γ_{\STraces}(τ; σ\trend) & = & γ_{\STraces}(τ) \act{γ_{\Actions}(tgt_\States(τ) \smallstep σ)} γ_{\States}(τ; σ\trend)\trend \\
-  γ_{\States}(γ,\wild,\wild,\wild) & = & α_{\Controls}(γ) \\
-  γ_{\Controls}((\pv,v)) & = & \return \\
-  γ_{\Controls}(\pe) & = & \pe \\
-  γ_{\Actions}(\BindT(\px,\pa,\pe_1,d)) & = & \BindA(\px,\pa↦\pe_1,γ_{\StateD}(d)) \\
-  γ_{\Actions}(\UpdateT(\pa)) & = & \UpdateA(\pa) \\
-  γ_{\Actions}(\LookupT(\pa)) & = & \LookupA(\pa) \\
-  γ_{\Actions}(\AppIT(\pa)) & = & \AppIA(deref(\pa)) \\
-  γ_{\Actions}(\AppET(\px,\pa)) & = & \AppEA(\px,deref(\pa)) \\
-  γ_{\Actions}(\ValueT(\pv,v)) & = & \ValueA(\pv,γ_{\StateV}(v)) \\
-  \\
- \end{array}
-\end{array}\]
-\caption{Prefix Trace Abstraction}
-  \label{fig:semantics}
-\end{figure}
+\begin{lemma}[Preservation of characteristic]
+  \label{thm:abs-max-trace-less}
+  Let $(σ_i)_{i∈\overline{n}}$ be a maximal trace.
+  Then $α_\Traces((σ_i)_{i∈\overline{n}}, cont(σ_1))$ is ...
+  \begin{itemize}
+    \item ... infinite if and only if $(σ_i)_{i∈\overline{n}})$ is diverging
+    \item ... ending with $\goodend{\wild}$ if and only if $(σ_i)_{i∈\overline{n}}$ is balanced
+    \item ... ending with $\stuckend{\wild}$ if and only if $(σ_i)_{i∈\overline{n}}$ is stuck
+  \end{itemize}
+\end{lemma}
+\begin{proof}
+  Similar to \Cref{thm:abs-max-trace}.
+\end{proof}
+
+\begin{theorem}[Correctness of $\semless{\wild}$]
+  \label{thm:semless-correct}
+  $\mathcal{C}$ from \Cref{fig:semless-correctness} holds.
+  That is, whenever $(σ_i)_{i∈\overline{n}}$ is a maximal LK trace with source
+  state $(\pe,ρ,μ,κ)$, we have
+  $α_{\Traces}((σ_i)_{i∈\overline{n}},κ) = \semst{\pe}_{α_\Environments(ρ)}(α_\Heaps(μ))$.
+\end{theorem}
+\begin{proof}
+  Similar to \Cref{thm:semst-correct}. \sg{We probably want to carry out the proof explicitly.}
+\end{proof}
+
+Again, this allows us to prove a strong version of adequacy:
+
+\begin{lemma}[Adequacy of $\semless{\wild}$]
+  \label{semless-adequate}
+  Let $τ = \semless{\pe}_{[]}([])$.
+  \begin{itemize}
+    \item
+      $τ$ ends with $\goodend{\wild}$ (is balanced) iff there exists a final
+      state $σ$ such that $\inj(\pe) \smallstep^* σ$.
+    \item
+      $τ$ ends with $\stuckend{\wild}$ (is stuck) iff there exists a non-final
+      state $σ$ such that $\inj(\pe) \smallstep^* σ$ and there exists no $σ'$
+      such that $σ \smallstep σ'$.
+    \item
+      $τ$ is infinite (is diverging) iff for all $σ$ with $\inj(\pe)
+      \smallstep^* σ$ there exists $σ'$ with $σ \smallstep σ'$.
+  \end{itemize}
+\end{lemma}
+\begin{proof}
+  Same as for \Cref{semst-adequate}.
+\end{proof}

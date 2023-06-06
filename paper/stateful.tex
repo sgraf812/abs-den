@@ -712,16 +712,14 @@ With increased clarity, we go on to prove the correctness predicate:
 
 \begin{theorem}[Correctness of $\semst{\wild}$]
   \label{thm:semst-correct}
-  $\mathcal{C}$ from \Cref{fig:semst-correctness} holds everywhere.
+  $\mathcal{C}$ from \Cref{fig:semst-correctness} holds.
   That is, whenever $(σ_i)_{i∈\overline{n}}$ is a maximal LK trace with source
   state $(\pe,ρ,μ,κ)$, we have
   $α_{\STraces}((σ_i)_{i∈\overline{n}},κ) = \semst{\pe}_{α_\Environments(ρ)}(α_\Heaps(μ))$.
 \end{theorem}
 \begin{proof}
-By Löb induction, with the following hypothesis:
-\[
-  IH ∈ \later (\forall (σ_i)_{i∈\overline{n}}.\ C((σ_i)_{i∈\overline{n}}))
-\]
+By Löb induction, with $IH ∈ \later C$ as the hypothesis.
+
 We will say that an LK state $σ$ is stuck if there is no applicable rule in the
 transition system (\ie, the singleton LK trace $σ$ is maximal and stuck).
 
@@ -751,10 +749,11 @@ We do so by cases over $\pe$, abbreviating $\tm \triangleq α_\Heaps(μ), \tr
     from the definition of $α_\Environments$.
 
     Let us define $τ \triangleq \idiom{\semst{\pe'}_{\tr'}(\tm)}$ and
-    apply the induction hypothesis to the maximal trace starting at $σ_2$.
+    apply the induction hypothesis $IH$ to the maximal trace starting at $σ_2$.
     This yields an equality
-    $\idiom{α_\STraces((σ_{i+1})_{i∈\overline{m}},\UpdateF(\pa) \pushF κ) = τ^{\later}}$.
-
+    \[
+      IH \aplater (σ_{i+1})_{i∈\overline{m}} ∈ \idiom{α_\STraces((σ_{i+1})_{i∈\overline{m}},\UpdateF(\pa) \pushF κ) = τ^{\later}}
+    \]
     When $τ^{\later}$ is infinite, we are done. Similarly, if $τ^{\later}$ ends
     in $\stuckend{\wild}$ then $\betastep$ will return $τ^{\later}$, indicating
     by \Cref{thm:abs-length} and \Cref{thm:abs-max-trace} that
