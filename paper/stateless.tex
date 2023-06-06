@@ -283,3 +283,13 @@ Again, this allows us to prove a strong version of adequacy:
 \begin{proof}
   Same as for \Cref{semst-adequate}.
 \end{proof}
+
+It should be clear that $α_\Actions$
+could elaborate the returned actions with more information from the machine
+states without a noticable effect on the correctness proof.
+For example it could interleave the list of actions with program labels.
+The only drawback of doing so would be that $\semless{\wild}$ becomes more
+complicated.
+The same applies to $α_\States$ from \Cref{sec:stateful} and $\semst{\wild}$, of
+course, where this increase in complexity can be witnessed by having a look at
+the generalisation in the Appendix \sg{Write that}.
