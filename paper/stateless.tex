@@ -215,7 +215,7 @@ Similarly to before, we can define preservation lemmas:
   guarded recursion
   \[
     \mathit{len}(τ) = \begin{cases}
-      1 + \idiom{\mathit{len}(τ^{\later})} & τ = \pa^\later \cons τ^{\later} \\
+      1 + \idiom{\mathit{len}(τ^{\later})} & τ = a^\later \cons τ^{\later} \\
       1 & \text{otherwise} \\
     \end{cases}
   \]
@@ -265,7 +265,7 @@ Similarly to before, we can define preservation lemmas:
 Again, this allows us to prove a strong version of adequacy:
 
 \begin{lemma}[Adequacy of $\semless{\wild}$]
-  \label{semless-adequate}
+  \label{thm:semless-adequate}
   Let $τ = \semless{\pe}_{[]}([])$.
   \begin{itemize}
     \item
@@ -281,12 +281,12 @@ Again, this allows us to prove a strong version of adequacy:
   \end{itemize}
 \end{lemma}
 \begin{proof}
-  Same as for \Cref{semst-adequate}.
+  Same as for \Cref{thm:semst-adequate}.
 \end{proof}
 
-It should be clear that $α_\Actions$
-could elaborate the returned actions with more information from the machine
-states without a noticable effect on the correctness proof.
+It should be clear that $α_\Actions$ could elaborate the returned actions with
+more information from the machine states without a noticable effect on the
+correctness proof.
 For example it could interleave the list of actions with program labels.
 The only drawback of doing so would be that $\semless{\wild}$ becomes more
 complicated.

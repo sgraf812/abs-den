@@ -19,7 +19,7 @@
  \begin{array}{rcl}
   \multicolumn{3}{c}{ \ruleform{ defn : \Traces \to (\Addresses \pfun \Var) \qquad blub : \Traces \to (\Var \to \UsgD) \to (\Addresses \to \UsgD) } } \\
   \\[-0.5em]
-  defn_{\Traces}(\lbl \act{a} τ) & = & defn(a) \uplus defn(τ) \\
+  defn_{\Traces}(a \cons τ) & = & defn(a) \uplus defn(τ) \\
   defn_{\Actions}(\BindA(\px,\pa↦\pe,d)) & = & [\pa↦\px] \\
   blub(τ)(ι)(\pa) & = & ι(defn_{\Traces}(τ)(\pa)) \text{ or $\bot$} \\
   \\[-0.5em]
