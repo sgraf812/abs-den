@@ -68,13 +68,13 @@ rematerialised as needed from the history of previous actions.
  \\[-0.5em]
  \arraycolsep=3pt
  \begin{array}{rrclcl}
-  \text{Stateless value} & v & ∈ & \MaxV & ::= & \FunV(f ∈ \MaxD \to \later \MaxD) \mid \ConV(K,\many{d^{\later}}^{α_K}) \\
+  \text{Stateless value} & v & ∈ & \MaxV & ::= & \FunV(f ∈ \MaxD \to \MaxD) \mid \ConV(K,\many{d}^{α_K}) \\
  \end{array} \\
  \\[-0.5em]
  \begin{array}{rcl}
   \multicolumn{3}{c}{ \ruleform{
     \begin{array}{c}
-      (\betastep) : \MaxD \to (\MaxV \pfun \later\MaxD) \to \MaxD \quad (\fcons) : \later\Actions \to \later\MaxD \to \MaxD \\
+      (\betastep) : \MaxD \to (\MaxV \pfun \MaxD) \to \MaxD \quad (\fcons) : \later\Actions \to \later\MaxD \to \MaxD \\
       μ : \ITraces \to \Addresses \pfun \MaxD \quad \ret : \MaxV \to \MaxD \\
       \deref : \Addresses \to \MaxD \quad \apply : \MaxD \to \MaxD \to \MaxD \\
       \select : \MaxD \to ((\MaxD)^{α_K} \pfun \MaxD)^* \to \MaxD \\
