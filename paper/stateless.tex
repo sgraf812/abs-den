@@ -68,7 +68,7 @@ rematerialised as needed from the history of previous actions.
  \\[-0.5em]
  \arraycolsep=3pt
  \begin{array}{rrclcl}
-  \text{Stateless value} & v & ∈ & \MaxV & ::= & \FunV(f ∈ \MaxD \to \MaxD) \mid \ConV(K,\many{d}^{α_K}) \\
+  \text{Stateless value} & v & ∈ & \MaxV & ::= & \FunV(f ∈ \later\MaxD \to \MaxD) \mid \ConV(K,\many{d^\later}^{α_K}) \\
  \end{array} \\
  \\[-0.5em]
  \begin{array}{rcl}
@@ -77,7 +77,7 @@ rematerialised as needed from the history of previous actions.
       (\betastep) : \MaxD \to (\MaxV \pfun \MaxD) \to \MaxD \quad (\fcons) : \later\Actions \to \later\MaxD \to \MaxD \\
       μ : \ITraces \to \Addresses \pfun \MaxD \quad \ret : \MaxV \to \MaxD \\
       \deref : \Addresses \to \MaxD \quad \apply : \MaxD \to \MaxD \to \MaxD \\
-      \select : \MaxD \to ((\MaxD)^{α_K} \pfun \MaxD)^* \to \MaxD \\
+      \select : \MaxD \to ((K:\Con) \to (\later\MaxD)^{α_K} \pfun \MaxD) \to \MaxD \\
     \end{array}
   }} \\
   \\[-0.5em]
@@ -96,8 +96,8 @@ rematerialised as needed from the history of previous actions.
   \\[-0.5em]
   \ret(v)(ι) & = & \goodend{v} \\
   \deref(\pa)(ι)   & = & (\idiom{\LookupA(\pa)} \fcons \idiom{μ(ι)(\pa)} \betastep \fn{v}{\idiom{\UpdateA(\pa↦\ret(v))} \fcons \idiom{\ret(v)}})(ι) \\
-  \apply(d_\pe,d_\px) & = & d_\pe \betastep \fn{(\FunV(f))}{\idiom{f(d_\px)}} \\
-  \select(d,\many{f}) & = & d \betastep \fn{(\ConV(K_s,\many{d_s}))}{\idiom{f_s(\many{d_s})}} \\
+  \apply(d_\pe,d_\px) & = & d_\pe \betastep \fn{(\FunV(f))}{f(\idiom{d_\px})} \\
+  \select(d,\mathit{alts}) & = & d \betastep \fn{(\ConV(K_s,\many{d_s^\later}))}{\idiom{\mathit{alts}(K_s, \many{d_s^\later})}} \text{ where } (K_s, \many{d_s^\later}) ∈ \dom(\mathit{alts}) \\
  \end{array} \\
  \\[-0.5em]
  \begin{array}{rcl}
@@ -108,7 +108,7 @@ rematerialised as needed from the history of previous actions.
     \fn{\wild}{\stuckend{}}  & \text{otherwise} \\
   \end{cases} \\
   \\[-0.5em]
-  \semless{\Lam{\px}{\pe}}_ρ & = & \ret(\FunV(\fn{d}{\idiom{\AppEA(\px↦d)} \fcons \idiom{\semless{\pe}_{ρ[\px↦d]}}})) \\
+  \semless{\Lam{\px}{\pe}}_ρ & = & \ret(\FunV(\fn{d^\later}{\idiom{\AppEA(\px↦d^\later)} \fcons \idiom{\semless{\pe}_{ρ[\px↦d^\later]}}})) \\
   \\[-0.5em]
   \semless{\pe~\px}_ρ   & = & \begin{cases}
     \idiom{\AppIA(ρ(x))} \fcons \idiom{\apply(\semless{\pe}_ρ, ρ(\px))} & \px ∈ \dom(ρ) \\
@@ -125,8 +125,8 @@ rematerialised as needed from the history of previous actions.
   \\[-0.5em]
   \semless{\Case{\pe_s}{\Sel[r]}}_ρ & = &
     \begin{letarray}
-      \text{let} & \many{f_K = \fn{\many{d}^{α_K}}{\idiom{\CaseEA(K,\many{\px↦d})} \fcons \idiom{\semless{\pe_r}_{ρ[\many{\px↦d}]}}}} \\
-      \text{in} & \idiom{\CaseIA(\semless{\pe_s}_ρ)} \fcons \idiom{\select(\semless{\pe_s}_ρ, \many{f})}  \\
+      \text{let} & \mathit{alts} = \fn{K}{\fn{\many{d^\later}^{α_K}}{\idiom{\CaseEA(K,\many{\px↦d^\later})} \fcons \idiom{\semless{\pe_r}_{ρ[\many{\px↦d^\later}]}}}} \\
+      \text{in} & \idiom{\CaseIA(\semless{\pe_s}_ρ)} \fcons \idiom{\select(\semless{\pe_s}_ρ, \mathit{alts})}  \\
     \end{letarray}
  \end{array} \\
 \end{array}\]
