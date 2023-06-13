@@ -1,9 +1,8 @@
 {-# OPTIONS --cubical --guarded #-}
-module Semantics where
+module Stateless where
 
-open import Agda.Primitive
-open import Agda.Primitive.Cubical
-open import Agda.Builtin.Cubical.Path
+open import Later
+open import Syntax
 open import Data.Nat
 open import Data.String
 open import Data.List
@@ -13,48 +12,7 @@ open import Data.Sum
 open import Data.Product
 open import Data.Bool
 
-module Prims where
-  primitive
-    primLockUniv : Set₁
-
-open Prims renaming (primLockUniv to LockU) public
-
-module _ where
-
-  private
-    variable
-      l : Level
-      A B : Set l
-
-  postulate
-    Tick : LockU
-
-  ▹_ : ∀ {l} → Set l → Set l
-  ▹ A = (@tick x : Tick) -> A
-
-  next : A → ▹ A
-  next x _ = x
-
-  _⊛_ : ▹ (A → B) → ▹ A → ▹ B
-  _⊛_ f x a = f a (x a)
-  infixl 21 _⊛_ 
-
-  postulate fix : ∀ {l} {A : Set l} → (▹ A → A) → A
-
--- End of Guarded Cubical Agda "Prelude" from https://github.com/agda/agda/blob/master/test/Succeed/LaterPrims.agda
-
-postulate UNDEFINED : ∀ {l} {A : Set l} → A -- just for lookups that should always succeed
-
-Var = String
-Addr = ℕ
-Con = ℕ
-data Exp : Set where
-  ref : Var -> Exp
-  lam : Var -> Exp -> Exp
-  app : Exp -> Var -> Exp
-  let' : Var -> Exp -> Exp -> Exp
-  conapp : Con -> List Var -> Exp
-  case' : Exp -> List (Con × List Var × Exp) -> Exp
+-- The Domain
 
 Dom : Set
 data T∞ : Set
@@ -83,6 +41,8 @@ Dom = T* -> T∞
 data Val where
   fun : (▹ Dom -> Dom) -> Val
   con : Con -> List (▹ Dom) -> Val
+
+-- Domain combinators
 
 _>>β=_ : Dom -> (Val -> Maybe Dom) -> Dom
 (d >>β= f) ι = fix go [] (d ι)
@@ -144,10 +104,6 @@ _[_↦*_] {B} env xs bs y = aux (Data.List.zip xs bs)
     aux [] = env y
     aux ((x , b) ∷ xs) = if x == y then just b else aux xs
 
-findBy : ∀ {A : Set} → (A -> Bool) -> List A -> A
-findBy p [] = UNDEFINED
-findBy p (x ∷ xs) = if p x then x else findBy p xs
-
 sequence : ∀ {A : Set} → List (▹ A) -> ▹ List A
 sequence [] = next []
 sequence (x ∷ xs) = next _∷_ ⊛ x ⊛ sequence xs
@@ -180,8 +136,9 @@ sem = fix sem'
       next case1 ⊛ dₛ▹ ::> next select ⊛ dₛ▹ ⊛ next f
         where
           f : Con -> List (▹ Dom) -> Dom
-          f K d▹s with findBy (λ (K' , _ , _) -> K ≡ᵇ K') alts
-          ... | (_ , xs , rhs) = 
+          f K d▹s with findAlt K alts
+          ... | nothing =  λ _ -> stuck
+          ... | just (xs , rhs) = 
             let ds▹ = sequence d▹s in
             let ρ'▹ = next (_[_↦*_] ρ xs) ⊛ ds▹ in
-            next (case2 K) ⊛ (next (Data.List.zip xs) ⊛ ds▹) ::> recurse▹ ⊛ next rhs ⊛ ρ'▹ 
+            next (case2 K) ⊛ (next (Data.List.zip xs) ⊛ ds▹) ::> recurse▹ ⊛ next rhs ⊛ ρ'▹  
