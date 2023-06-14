@@ -1,13 +1,13 @@
 \section{Problem Statement}
 \label{sec:problem}
 
-By way of the poster child example of a compositional definition of \emph{usage
-analysis}, we showcase how the operational detail available in traditional
-denotational semantics is too coarse to substantiate a correctness criterion,
-although the \emph{proof} of (a weaker notion of) correctness is simple and direct.
-While operational semantics observe sufficient detail to formulate a correctness
-criterion, it is quite complicated to come up with a suitable inductive
-hypothesis for the correctness proof.
+%By way of the poster child example of a compositional definition of \emph{usage
+%analysis}, we showcase how the operational detail available in traditional
+%denotational semantics is too coarse to substantiate a correctness criterion,
+%although the \emph{proof} of (a weaker notion of) correctness is simple and direct.
+%While operational semantics observe sufficient detail to formulate a correctness
+%criterion, it is quite complicated to come up with a suitable inductive
+%hypothesis for the correctness proof.
 
 \subsection{Usage Analysis and Deadness, Intuitively}
 \label{sec:usage-intuition}
@@ -16,13 +16,6 @@ hypothesis for the correctness proof.
 \begin{minipage}{\textwidth}
 \[\begin{array}{c}
  \arraycolsep=3pt
- \begin{array}{rrclcrrclcl}
-  \text{Variables}    & \px, \py & ∈ & \Var        &     & \quad \text{Constructors} &        K & ∈ & \Con        &     & \text{with arity $α_K ∈ ℕ$} \\
-  \text{Labels}       &     \lbl & ∈ & \Labels     &     & \quad \text{Values}       &      \pv & ∈ & \Val        & ::= & \highlight{\Lam{\px}{\pe}} \mid K~\many{\px}^{α_K} \\
-  \text{Expressions}  &      \pe & ∈ & \Exp        & ::= & \multicolumn{6}{l}{\highlight{\slbl \px \mid \slbl \pv \mid \slbl \pe~\px \mid \slbl \Let{\px}{\pe_1}{\pe_2}} \mid \slbl \Case{\pe}{\SelArity}} \\
-  \\[-0.5em]
- \end{array} \\
- \\[-0.5em]
  \begin{array}{rrclcl}
   \text{Scott Domain}      &  d & ∈ & \ScottD & =   & [\ScottD \to_c \ScottD]_\bot \\
   \text{Usage cardinality} &  u & ∈ & \Card & =   & \{ 0 ⊏ 1 ⊏ ω \} ⊂ ℕ_ω \\
@@ -35,8 +28,8 @@ hypothesis for the correctness proof.
  \end{array}
  \\[-0.5em]
 \end{array}\]
-\subcaption{Syntax of expressions and semantic domains}
-  \label{fig:syntax}
+\subcaption{Syntax of semantic domains}
+  \label{fig:dom-syntax}
 \newcommand{\scalefactordenot}{0.92}
 \scalebox{\scalefactordenot}{%
 \begin{minipage}{0.49\textwidth}
@@ -88,36 +81,59 @@ hypothesis for the correctness proof.
 \caption{Connecting usage analysis to denotational semantics}
 \end{figure}
 
-\Cref{fig:syntax} defines the labelled syntax of a lambda calculus with
-recursive let bindings and algebraic data types, reminiscent of
-\citet{Sestoft:97}. The calculus is factored into \emph{A-normal form}, that is,
-the arguments of applications are restricted to be variables, so the difference
-between call-by-name and call-by-value manifests purely in the semantics of
-$\mathbf{let}$.
-In this section, only the highlighted parts are relevant; we will ignore labels
-and data types for brevity.
+Let us begin by defining the object language of this work, a labelled lambda
+calculus with recursive let bindings and algebraic data types:
+\[
+\arraycolsep=3pt
+\begin{array}{rrclcrrclcl}
+  \text{Variables}    & \px, \py & ∈ & \Var        &     & \quad \text{Constructors} &        K & ∈ & \Con        &     & \text{with arity $α_K ∈ ℕ$} \\
+  \text{Labels}       &     \lbl & ∈ & \Labels     &     & \quad \text{Values}       &      \pv & ∈ & \Val        & ::= & \highlight{\Lam{\px}{\pe}} \mid K~\many{\px}^{α_K} \\
+  \text{Expressions}  &      \pe & ∈ & \Exp        & ::= & \multicolumn{6}{l}{\highlight{\slbl \px \mid \slbl \pv \mid \slbl \pe~\px \mid \slbl \Let{\px}{\pe_1}{\pe_2}} \mid \slbl \Case{\pe}{\SelArity}}
+\end{array}
+\]
+The form is reminiscent of \citet{Sestoft:97}, because it is factored into
+\emph{A-normal form}, that is, the arguments of applications are restricted to
+be variables, so the difference between call-by-name and call-by-value manifests
+purely in the semantics of $\mathbf{let}$.
+In this section, only the highlighted parts are relevant for brevity; we will
+discuss semantics of labels and data types in \Cref{sec:stateful}.
+From hereon throughout, we assume that all labels and bound program variables
+are distinct.
 
 We give a standard call-by-name denotational semantics $\semscott{\wild}$ in
 \Cref{fig:denotational} \citep{ScottStrachey:71}, assigning meaning to our
-syntax by means of the infamous Scott domain $\ScottD$.
-Squinting a bit, we find that it looks quite similar to the function
-to its right in \Cref{fig:usage}, depicting a \emph{usage analysis}
-$\semusg{\wild}$, a static analysis for estimating an upper bound on
+syntax by means of the infamous Scott domain $\ScottD$ defined in
+\Cref{fig:dom-syntax}.%
+\footnote{As usual, the notation $[X \to_c X]_\bot$ is meant to indicate the
+topology of Scott-continuous endofunctions on $X$ together with a distinct least
+element $\bot$.
+Then the Scott domain $\ScottD$ is the solution to the emerging domain equation.}
+Squinting a bit, we find that $\semscott{\wild}$ looks quite similar to
+the function to its right in \Cref{fig:usage}, depicting a \emph{usage
+analysis} $\semusg{\wild}$, a static analysis for estimating an upper bound on
 \emph{evaluation cardinality}, \eg, how often a variable is evaluated.
 
-Let us call $\tr_Δ(\px) \triangleq \fn{\py}{\ternary{\px = \py}{1}{0}}$ the
-``diagonal'' usage environment.
-We will occassionally adorn with \textasciitilde{} to explicitly disambiguate
-elements of the analysis domain from the semantic domain.
-Assuming that all program variables are distinct (a silent assumption from
-here on throughout), the result of $\semusg{\wild}_{\tr_Δ}$ is an element
-$d ∈ \UsgD$, an environment that maps to each variable an upper bound on
-evaluation cardinality.
+Such upper bounds on evaluation cardinality are represented by a $u ∈ \Card$,
+and for a given expression $\pe$, an element $d ∈ \UsgD$ will be used to denote
+how many times $\pe$ evaluates its free variables.
+Any number of uses beyond $1$ such as $2$ for $x$ in $(x~x)$ will be collapsed to
+$d(x) = ω$, which denotes the set of any possible number of uses and is thus the
+top element of the total order $\Card$.
+For open expressions, we will need a way to describe the denotations of its
+free variables with a \emph{usage environment} $\tr ∈ \Var \to \UsgD$.
+Note that we will occassionally adorn with \textasciitilde{} to explicitly
+disambiguate elements of the analysis domain from the semantic domain.
+Given a usage environment $\tr$, $\tr(x)(y)$ is supposed to model an upper bound
+on how often the expression bound to $x$ evaluates $y$.
 
-Whenever $\bot = 0 ⊏ d(x)$ (where $\bot$ denotes the least element of a partial
-order that is inferred from context), we say that $x$ is \emph{potentially live}
-in $d$ and extend this meaning to a program $\pe$ whenever $\semusg{\pe}_{\tr_Δ}
-= d$.
+We say that $x$ is \emph{potentially live} in an element $d ∈ \UsgD$ whenever
+$\bot = 0 ⊏ d(x)$ (where $\bot$ denotes the least element of a partial order
+such as $\Card$ that is inferred from context).
+Let us now call $\tr_Δ(\px) \triangleq \fn{\py}{\ternary{\px = \py}{1}{0}}$ the
+``diagonal'' usage environment, assigning each free variable $\px$ a unique
+meaning in terms of a denotation that evaluates $\px$ once and nothing else.
+Then we will say that $x$ is potentially live in $\pe$ whenever it is
+potentially live in $d \triangleq \semusg{\pe}_{\tr_Δ}$.
 Likewise, when $d(x) = 0$ we say that $x$ is \emph{dead} in $d$/$\pe$, \eg,
 \emph{never evaluated}.
 In this way, $\semusg{\wild}$ can be used to infer facts of the form ``$\pe$
@@ -131,9 +147,9 @@ whether $f$ evaluates its argument.
 In turn, the analysis assumes in the lambda case that liveness of the argument
 has been accounted for at the call site, hence the lambda-bound variable $\px$
 is not live in any variable and denoted by $\bot$ in $\tr$ (according to the
-pointwise ordering, $\forall \px.\ \bot(\px) = \bot = 0$).
+pointwise ordering, $\forall \px.\ \bot_{\UsgD}(\px) = \bot_{\Card} = 0$).
 
-\subsection{Denotational Deadness, Continuity and Divergence}
+\subsection{Usage Analysis Infers Denotational Deadness}
 
 The requirement (in the sense of informal specification) on an assertion
 such as ``$x$ is dead'' in a program like $\Let{x}{\pe_1}{\pe_2}$ is that we
@@ -173,7 +189,12 @@ arrive at the following theorem:
   \Cref{prf:semusg-correct-live}.
 \end{proof}
 
-In practice, it is simpler to exploit the following lemma:
+The proof capitalises on the similarities in structure by using induction on
+the program expression, hence it is simple and direct, at just under a page of
+accessible prose.
+
+In practice, it is simpler to exploit the following lemma that instantiates
+$\tr$ to $\tr_Δ$:
 
 \begin{corollary}
   \label{thm:semusg-correct-live-simple}
@@ -191,62 +212,85 @@ In practice, it is simpler to exploit the following lemma:
 This corollary proves that our intuitive notion of potential liveness/deadness
 from \Cref{sec:usage-intuition} lines up with the formal \Cref{defn:deadness}.
 
-It is surprising that the theorem does not need to relate $\tr_Δ$ to
-$ρ$; after all, $ρ(\py)$ (for $\py \not= \px$) might be bound to the
-\emph{meaning} of an expression that is potentially live in $\px$, such as
-$\semscott{\px}_{ρ'}$, and we have no way to observe the dependency on $\px$
-just through $ρ(\py)$.
-The key is to realise that our notion of deadness varies $ρ(\px)$ (the meaning
-of $\px$), but that does not vary $ρ(\py)$, because that only sees $ρ'(\px)$,
-so for all intents and purposes, the proof may assume that $ρ(\py)$ is dead in
-$\px$.
-The analysis, on the other hand, encodes transitive deadness relationships via
-$\tr(\px) ⊑ \tr(\py)$ in case $\px$ occurs in the RHS of a $\mathsf{let}$-bound
-$\py$ to encode that deadness of $\py$ is a necessary condition for deadness of
-$\px$, which requires generalisation of the inductive hypothesis.
+% It is surprising that the theorem does not need to relate $\tr_Δ$ to
+% $ρ$; after all, $ρ(\py)$ (for $\py \not= \px$) might be bound to the
+% \emph{meaning} of an expression that is potentially live in $\px$, such as
+% $\semscott{\px}_{ρ'}$, and we have no way to observe the dependency on $\px$
+% just through $ρ(\py)$.
+% The key is to realise that our notion of deadness varies $ρ(\px)$ (the meaning
+% of $\px$), but that does not vary $ρ(\py)$, because that only sees $ρ'(\px)$,
+% so for all intents and purposes, the proof may assume that $ρ(\py)$ is dead in
+% $\px$.
+% The analysis, on the other hand, encodes transitive deadness relationships via
+% $\tr(\px) ⊑ \tr(\py)$ in case $\px$ occurs in the RHS of a $\mathsf{let}$-bound
+% $\py$ to encode that deadness of $\py$ is a necessary condition for deadness of
+% $\px$, which requires generalisation of the inductive hypothesis.
 
-The proof capitalises on the similarities in structure by using induction on the
-program expression, hence it is simple and direct, at just under a page of
-accessible prose. Often, such a proof needs to strengthen the induction
-hypothesis for the application case, or prove admissability~\citep{Abramsky:94}
-of a predicate to apply fixpoint induction in the let case, but for deadness and
-our very simple analysis we do not need to be so crafty.
+One of our goals is to give a semantics that makes correctness proofs
+similarly simple.
+
+\subsection{Continuity and Divergence}
 
 Nevermind our confidence in the ultimate correctness of $\semusg{\wild}$,
 note that our notion of deadness has a blind spot \wrt diverging computations:
-A looping program is automatically dead in all its free variables, even though
-any of them might influence which particular endless loop is taken.
+$\semscott{\wild}$ denotes any looping program such as
+$\Let{\mathit{loop}}{\Lam{x}{\mathit{loop}~x}}{{\mathit{loop}~\mathit{loop}}}$ by $\bot$, the
+same element that is meant to indicate partiality in the approximation order
+of the domain (\eg, insufficiently specified input).
+Hence any looping program is automatically dead in all its free variables, even
+though any of them might influence which particular endless loop is taken.
 
-This is not a curiosity of $\semusg{\wild}$; it also applies to the original
+This is not only a curiosity of $\semusg{\wild}$; it also applies to the original
 control-flow analysis work~\citep[p. 23]{Shivers:91} where it is remedied
 by the introduction of a \emph{non-standard semantic interpretation} that
 assigns meaning to diverging programs where the denotational semantics only
-says $\bot$. Credibility of this approach solely rests on the structural
-similarity to the standard denotational semantics.
+says $\bot$.
+The latter would actually denote the empty set of reached program labels,
+neglecting that any part of the program before the loop was ever reached.
+The non-standard semantic interpretation is far more reasonable, but credibility
+of this approach solely rests on the structural similarity to the standard
+denotational semantics.
 
-So the issue is not with $\semusg{\wild}$ but with traditional denotational
-semantics because it (necessarily) assigns $\bot$ to any diverging computation.
 Furthermore, as is often done, $\semscott{\wild}$ abuses $\bot$ as a collecting
 pool for error cases.
 This shows in the following example:
 $x$ is dead in $(\Lam{y}{\Lam{z}{z}})~x$, but dropping the $\mathbf{let}$
 binding in $\Let{x}{\pe_1}{(\Lam{y}{\Lam{z}{z}})~x}$
 introduces a scoping error which is not observable under $\semscott{\wild}$.
-
 We could take inspiration in the work of \citet{Milner:78}
 and navigate around the issue by introducing a $\mathbf{wrong}$ denotation for
 errors which is propagated strictly; then we would notice when we optimise a
-looping program into one that has a scoping error (the only kind of stuckness
-that our calculus admits without data types).
+looping program into one that has a scoping error.
 
-However, $\bot$ is still there as the denotation of diverging computations;
-hence a predicate such as ``Denotation $d$ will get stuck and not diverge'' is
-not an admissable one, because an admissable predicate would be true for $\bot$.
+We can try the same trick as \citeauthor{Milner:78} and assign diverging
+programs a total domain element $\mathbf{div}$ distinct from all other elements.
+Then when would we go from $\bot$ to $\mathbf{div}$ in the least fixed-point in
+$\semscott{\Let{\wild}{\wild}{\wild}}$?
+There is no way to introduce $\mathbf{div}$ unless we make it a partial element
+that approximates every total element; but then we could have just chosen $\bot$
+as the denotation to begin with.
+Hence denoting diverging programs by a partial element $\bot$ or $\mathbf{div}$
+is a fundamental phenomenon of traditional denotational semantics and brings
+with it annoying pitfalls.
+To see one, consider the predicate ``Denotation $d$ will get stuck and not
+diverge''.
+This predicate is not \emph{admissable}~\citep{Abramsky:94}, because an
+admissable predicate that is at all satisfiable would need to be true for
+the partial elements $d=\bot$ and $d=\mathbf{div}$.
+A practical consequence is that such a predicate could not be proven about a
+recursive let binding because that would need admissability to apply fixpoint
+induction.
 
-\subsection{Evaluation Cardinality and Call-by-need}
-Blind spots notwithstanding, the notion of deadness above is quite reasonable.
-But our usage analysis infers more detailed cardinality information; for
-example, it can infer whether a binding is evaluated at most once.
+It is one of our goals to give a semantics in which the denotation of diverging
+programs is not a partial element, but rather a total, but infinite element
+described in terms of coinduction.
+
+\subsection{Operational Detail and Structural Mismatch}
+
+Blind spots and annoyances notwithstanding, the denotational notion of deadness
+above is quite reasonable and \Cref{thm:semusg-correct-live} is convincing.
+But our usage analysis infers more detailed cardinality information;
+for example, it can infer whether a binding is evaluated at most once.
 This information can be useful under call-by-need to omit update
 frames~\citep{cardinality-ext}.%
 \footnote{A more useful application of the ``at most once'' cardinality is the
@@ -327,7 +371,7 @@ not need a heap to begin with, but the point is to get a glimpse at the effort
 necessary for call-by-need.}
 
 The configurations $σ$ in this transition system resemble abstract machine
-states, consisting of control expression $\pe$, an environment $ρ$ mapping
+states, consisting of a control expression $\pe$, an environment $ρ$ mapping
 lexically-scoped variables to their current heap address, a heap $μ$ listing a
 closure for each address, and a stack of continuation frames $κ$.
 
@@ -348,7 +392,12 @@ It is easy to see that the transition system maintains this invariant and that
 it is still possible to observe scoping errors which are thus confined to lookup
 in $ρ$.
 
-Now we are able to define a notion of ``strong deadness'':
+This machine allows us to observe variable lookups as $\LookupT$ transitions.
+Unfortunately, we still suffer from immense proof complexity caused by the
+\emph{structural mismatch} between transition semantics and compositional
+analysis, as we shall see in due course.
+Let us first try to define a notion of deadness that is similar to
+\Cref{defn:deadness}:
 
 \begin{definition}[Deadness, Mark II]
   \label{defn:deadness2}
@@ -374,10 +423,10 @@ bisimulation, so a bit of rejigging is in order:
 \end{lemma}
 
 This property is a bit easier to handle in a proof.
-Unfortunately, it is still not compositional in $\pe$: Consider a variable
-occurrence $y$; is $x$ dead in $y$? That depends on which expression $y$ is
-bound to in the heap, but our deadness predicate has no notion of making
-assumptions about free variables.
+However, note that it is not compositional in $\pe$:
+To see that, consider a variable occurrence $y$; is $x$ dead in $y$?
+That depends on which expression $y$ is bound to in the heap, but our deadness
+predicate does not make assumptions about free variables.
 Consequently, it is impossible to prove that $\semusg{\pe}$ satisfies
 \Cref{thm:semusg-correct-live} by direct structural induction on $\pe$ (in a way
 that would be useful to the proof).
@@ -393,11 +442,9 @@ rule taken and is often left implicit.
 This is a daunting task, for multiple reasons:
 First off, $\semusg{\wild}$ might be quite complicated in practice and extending
 it to entire configurations multiplies this complexity.
-Secondly, $\semusg{\wild}$ makes use of fixpoints in the let case and
-undoubtedly needs some more fixpoints in its extension to the heap,
+Secondly, $\semusg{\wild}$ makes use of fixpoints in the let case,
 so $\semusg{σ_2} ⊑ F(\semusg{σ_1})$ relates fixpoints that are ``out of sync'',
-implying a need for fixpoint induction for every transition that touches
-the heap.
+implying a need for fixpoint induction.
 
 In call-by-need, there will be a fixpoint between the heap and stack due to
 update frames acting like heap bindings whose right-hand side is under
@@ -416,11 +463,14 @@ $C$ is chosen such that
   (2) it is weak enough that it is implied by the analysis result for an initial state ($\tr(\px) \not⊑ \semusg{\pe}_{\tr}$).
 Examples of this approach are the
 ``well-annotatedness'' relation in \citep[Lemma 4.3]{cardinality-ext} or
-$\sim_V$ in \citep[Theorem 2.21]{Nielson:99}).
+$\sim_V$ in \citep[Theorem 2.21]{Nielson:99}) and in fact the correctness
+relations we give in \Cref{sec:stateful,sec:stateless}.
 We found it quite hard to come up with a suitable ad-hoc correctness relation
-and postpone futher discussion to \Cref{sec:abstractions}, where the full
-correctness relation in \Cref{thm:semusg-correct-2} and its proof is derived by
-abstract interpretation~\citep{Cousot:21}.
+for usage analysis, though, and postpone futher discussion to
+\Cref{sec:abstractions}, where the full correctness relation in
+\Cref{thm:semusg-correct-2} and its proof is derived by abstract
+interpretation~\citep{Cousot:21}.
+\sg{TODO}
 
 Often, correctness proofs do not need the full operational detail of a
 CESK-style machine, in which case a simpler machine definition leads to simpler
@@ -435,27 +485,32 @@ semantics}.
 Applying both these transformations yields a CS machine~\citep{Felleisen:87}.
 However for call-by-need, the evaluation context corresponding to an update
 frame is neither obvious nor simple~\citep{Ariola:95}.
-For effect-free call-by-value and call-by-name calculi, the heap becomes
+For pure call-by-value and call-by-name calculi, the heap becomes
 immutable and variables can be substituted immediately for their right-hand
 sides/arguments rather than delaying lookup to the variable case, abolishing the
 need for the heap altogether and yielding a contextual semantics where
 states are a simple expression.
 
 These refactorings help in simplifying proofs:
-Instead of defining an coinductive well-formedness predicate on the heap, we
+Instead of defining a coinductive well-formedness predicate on the heap, we
 prove a substitution lemma.
 Instead of a well-formedness predicate for the stack, we appeal to the
 well-formedness of the search transition rule.
 
-\subsection{Abstracting Abstract Machines}
+We have just descended into a mire of complexity to demonstrate that it is
+a rewarding goal to avoid structural mismatch between semantics and
+analysis.
+Hence, we strive for a compositional semantics in
+\Cref{sec:stateful,sec:stateless}.
+An alternative to avoid structural mismatch is to follow Abstracting Abstract
+Machines~\citep{aam}.
+We will compare our approach to theirs in \Cref{sec:related-work}.
 
-Another way to work around the structure gap is to adopt the structure of the
-semantics in the analysis; this is done in the Abstracting Abstract
-Machines work \citep{aam}.
-To our knowledge, its exclusive application is control-flow analysis
-\citep{Shivers:91}, so that the analyses and optimisations that follow can apply
-traditional intraprocedural analysis techniques that are well-explored in the
-imperative world.
-Unfortunately, control-flow information is often invalidated during compiler
-passes and we expect re-running after or interleaving the analysis during each
-pass to be quite costly.
+%\subsection{Abstracting Abstract Machines}
+%
+%Another way to work around the structural mismatch is to adopt the structure of
+%the semantics in the analysis; this is done in the Abstracting Abstract Machines
+%work \citep{aam}.
+%The appeal is to piggy-back traditional and well-explored intraprocedural
+%analysis techniques on the result of an interprocedural flow
+%analysis~\citep{Shivers:91}.

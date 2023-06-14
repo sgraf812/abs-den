@@ -12,7 +12,7 @@ the input term.
 For example, given an application expression $(\pe_1~\pe_2)$,
 the property ``$(\pe_1~\pe_2)$ never evaluates its free variable $x$'' can be
 \emph{conservatively approximated} (here: It's OK to say ``No'' more often) by
-the properties ``$\pe_1$ never evaluates $x$'' and ``$\pe_2$ never evaluates
+the property ``$\pe_1$ never evaluates $x$ and $\pe_2$ never evaluates
 $x$''.
 
 It is quite convenient to formulate such a \emph{deadness analysis}%
@@ -27,7 +27,7 @@ structurally:
     function, as well as allows to abstract away program syntax in the first
     place.
 
-\subsection{Compositional Analyses abstract Denotational Semantics}
+\subsection{Compositional Analyses Abstract Denotational Semantics}
 
 For static analyses, especially more complicated ones, it is good practice to
 provide a proof of correctness.
@@ -77,7 +77,7 @@ equational reasoning.
 %big and complex type systems, building on techniques such as
 %\emph{step-indexing}~\citep{AppelMcAllester:01,DreyerAhmedBirkedal:11}.
 
-\subsection{Operational Semantics Admits Necessary Detail, Systematically}
+\subsection{Operational Semantics is Detailed and Systematically Scalable}
 
 Alas, the existing denotational semantics for lambda calculus are insufficiently
 expressive to model operational detail such as \emph{evaluation cardinality},
@@ -171,7 +171,7 @@ detail and structural mismatch via the following contributions:
     traces.
     This is in line with the standard operational approach in which
     self-contained states are the objects of interest.
-    Borrowing ideas from the \emph{maximal prefix trace semantics} of
+    Borrowing ideas from the \emph{maximal trace semantics} of
     \citet{Cousot:21}, we define an equivalent, but more convenient
     \emph{stateless} semantics in \Cref{sec:stateless} and will see how to
     recover state from program history as needed.
