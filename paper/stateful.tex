@@ -130,7 +130,7 @@ be easy to infer anyway.
   \\
   \text{Controls}      & \pc & ∈ & \Controls      & ::=    & \pe \mid (\lbl, v)
   &
-  \text{Heaps}         & μ   & ∈ & \Heaps         & =      & \Addresses \pfun \StateD
+  \text{Heaps}         & μ   & ∈ & \Heaps         & =      & \Addresses \pfun \later\StateD
   \\
   \\[-0.5em]
  \end{array} \\
@@ -146,7 +146,7 @@ be easy to infer anyway.
   \\[-0.5em]
  \end{array} \\
  \begin{array}{rrclcl}
-  \text{Stateful value} & v & ∈ & \StateV & ::= & \FunV(f ∈ (\StateD \to \later\StateD)) \mid \ConV(K,\many{d^{\later}}^{α_K}) \\
+  \text{Stateful value} & v & ∈ & \StateV & ::= & \FunV(f ∈ (\later\StateD \to \later\StateD)) \mid \ConV(K,\many{d^{\later}}^{α_K}) \\
  \end{array} \\
   \\[-0.5em]
 \end{array}\]
@@ -156,7 +156,7 @@ be easy to infer anyway.
     \begin{array}{c}
       (\betastep) : \STraces \to (\States \pfun \later\STraces) \to \STraces \quad  \ret : (\Val \times \StateV) \to \StateD \\
       \deref : \Addresses \to \StateD \quad \apply : \STraces \to \StateD \to \STraces \\
-      \select : \STraces \to ((\StateD)^{α_K} \pfun \STraces)^* \to \STraces \\
+      \select : \STraces \to ((K:\Con) \to (\later\StateD)^{α_K} \pfun \later\StateD) \to \STraces \\
     \end{array}
   }} \\
   \\[-0.5em]
@@ -167,33 +167,35 @@ be easy to infer anyway.
     \end{cases} \\
   \\[-0.5em]
   \ret(\lbl,v)(μ) & = & \goodend{((\lbl,v),μ)} \\
-  \deref(\pa)(μ) & = & μ(\pa)(μ) \betastep \fn{((\lbl,v),μ)}{\idiom{\goodend{((\lbl,v),μ[\pa ↦ \ret(\lbl,v)])}}} \\
-  \apply(τ,d) & = & τ \betastep \fn{((\wild,\FunV(f)),μ)}{\idiom{f(d)(μ)}} \\
-  \select(τ,\many{f}) & = & τ \betastep \fn{((\wild,\ConV(K_s,\many{d_s})),μ)}{\idiom{f_s(\many{d_s})}} \\
-  \\[-0.5em]
+  \deref(\pa)(μ) & = & μ(\pa)(μ) \betastep \fn{((\lbl,v),μ)}{\goodend{((\lbl,v),μ[\pa ↦ \ret(\lbl,v)])}} \\
+  \apply(τ,d) & = & τ \betastep \fn{((\wild,\FunV(f)),μ)}{f(d)(μ)} \\
+  \select(τ,\alts) & = & τ \betastep \fn{((\wild,\ConV(K_s,\many{d_s})),μ)}{\alts(K_s, \many{d_s})} \quad \text{where } (K_s, \many{d_s^\later}) ∈ \dom(\alts) \\
+ \end{array} \\
+ \\[-0.5em]
+ \begin{array}{rcl}
   \multicolumn{3}{c}{ \ruleform{ \semst{\wild} \colon \Exp → (\Var \pfun \StateD) → \StateD } } \\
   \\[-0.5em]
   \semst{\px}_ρ(μ) & = & \begin{cases}
-    (\px,μ) \cons \idiom{ρ(\px)(μ)} & \px ∈ \dom(ρ) \\
+    (\px,μ) \cons ρ(\px)(μ) & \px ∈ \dom(ρ) \\
     \stuckend{(\px,μ)} & \text{otherwise}
     \end{cases} \\
   \\[-0.5em]
-  \semst{\slbl \Lam{\px}{\pe}}_ρ & = & \ret(\lbl,\FunV(\fn{d}{\idiom{\semst{\pe}_{ρ[\px↦d]}}})) \\
+  \semst{\slbl \Lam{\px}{\pe}}_ρ & = & \ret(\lbl,\FunV(\fn{d^\later}{\semst{\pe}_{ρ[\px↦d^\later]}})) \\
   \\[-0.5em]
   \semst{\pe~\px}_ρ(μ) & = & \begin{cases}
-      (\pe~\px,μ) \cons \idiom{\apply(\semst{\pe}_ρ(μ),ρ(\px))} & \px ∈ \dom(ρ) \\
+      (\pe~\px,μ) \cons \apply(\semst{\pe}_ρ(μ),ρ(\px)) & \px ∈ \dom(ρ) \\
       \stuckend{(\pe~\px,μ)} & \text{otherwise} \\
     \end{cases} \\
   \\[-0.5em]
   \semst{\Let{\px}{\pe_1}{\pe_2}}_ρ(μ) & = & \begin{letarray}
     \text{let} & ρ' = ρ[\px ↦ \deref(\pa)] \quad \text{where $\pa \not∈ \dom(μ)$} \\
-               & μ^\later = \idiom{μ[\pa ↦ \semst{\pe_1}_{ρ'}]} \\
-    \text{in}  & (\Let{\px}{\pe_1}{\pe_2},μ) \cons \idiom{\semst{\pe_2}_{ρ'}(μ^\later)} \\
+               & μ^\later = μ[\pa ↦ \semst{\pe_1}_{ρ'}] \\
+    \text{in}  & (\Let{\px}{\pe_1}{\pe_2},μ) \cons \semst{\pe_2}_{ρ'}(μ^\later) \\
   \end{letarray} \\
   \\[-0.5em]
-  \semst{\slbl K~\many{\px}}_ρ & = & \ret(\lbl,\ConV(K,\many{\idiom{\semst{\px}_ρ}})) \\
+  \semst{\slbl K~\many{\px}}_ρ & = & \ret(\lbl,\ConV(K,\many{\semst{\px}_ρ})) \\
   \\[-0.5em]
-  \semst{\pe@(\Case{\pe_s}{\Sel[r]})}_ρ(μ) & = & (\pe,μ) \cons \idiom{\select(\semst{\pe_s}_ρ(μ),\many{\fn{\many{d}^{α_K}}{\semst{\pe_r}_{ρ[\many{\px↦d}]}}})}  \\
+  \semst{\pe@(\Case{\pe_s}{\Sel[r]})}_ρ(μ) & = & (\pe,μ) \cons \select(\semst{\pe_s}_ρ(μ),\many{\fn{\many{d^\later}^{α_K}}{\semst{\pe_r}_{ρ[\many{\px↦d^\later}]}}})  \\
  \end{array}
   \\[-0.5em]
 \end{array}\]
