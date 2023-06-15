@@ -3,9 +3,9 @@
 
 \subsection{Labelled Syntax}
 
-Recall \Cref{fig:syntax}; it defines the syntax of an untyped lambda
-calculus with recursive let bindings and data types in the style of
-\citet{Launchbury:93} and \citet{Sestoft:97}.
+Recall the syntax definition of our object language in
+\Cref{sec:usage-intuition} in the style of \citet{Launchbury:93} and
+\citet{Sestoft:97}.
 Any (sub-)expression has a unique \emph{label} (think of it as the AST node's
 pointer identity) that we usually omit. For example, a correct labelling of
 $\Let{x}{f~y}{f~x}$ would be
@@ -69,20 +69,21 @@ The key to avoiding algebraic domains for our work is use of a total type theory
 with \emph{guarded recursive types}, such as Guarded Dependent Type Theory
 (GDTT) \citep{gdtt}.%
 \footnote{Of course, in reality we are just using GDTT as a meta
-language~\citep{Moggi:07} with a known domain theoretic interpretation in terms
+language~\citep{Moggi:07} with a known domain-theoretic interpretation in terms
 of the topos of trees~\citep{gdtt}.
 This meta language is sufficiently expressive as a logic to
 express proofs, though, justifying the view that we are extending ``math''
-with the ability to conveniently reason about infinite data without needing to
-think about topology and approximation directly.}
+with the ability to conveniently reason about computable functions on infinite
+data without needing to think about topology and approximation directly.}
 The fundamental construct of this theory is addition of the ``later''
 modality $\later$ which allows to define coinductive data types with negative
-occurrences, as first realised by \citet{Nakano:00}.
+recursive occurrences, as first realised by \citet{Nakano:00}.
 
 Thus, GDTT walks a fine line:
 The theory guarantees that all well-typed functions (naturally) correspond
 to continuous functions, while it also allows for embedding of a sufficiently
-expressive restriction of endofunctions for denotational semantics.
+expressive restriction of endofunctions for denotational semantics that
+manifests in the denotation of function values.
 
 Whereas previous theories of coinduction require syntactic productivity
 checks~\citep{Coquand:94}, requiring tiresome constraints on the form of guarded
@@ -119,7 +120,6 @@ in, \eg, \Cref{fig:semst}, we will often omit the idiom
 brackets~\citep{McBridePaterson:08} $\idiom{\wild}$ that would be necessary in a
 mechanised form to indicate where the $\later$ ``effects'' happen; they should
 be easy to infer anyway.
-\sg{Perhaps we should add the elaborated version in the Appendix.}
 
 \begin{figure}
 \[\begin{array}{c}
@@ -154,7 +154,7 @@ be easy to infer anyway.
  \begin{array}{rcl}
   \multicolumn{3}{c}{ \ruleform{
     \begin{array}{c}
-      (\betastep) : \STraces \to (\States \pfun \later\STraces) \to \STraces \quad  \ret : (\Val \times \StateV) \to \StateD \\
+      (\betastep) : \STraces \to (\States \pfun \later\STraces) \to \STraces \quad  \ret : (\Lab \times \StateV) \to \StateD \\
       \deref : \Addresses \to \StateD \quad \apply : \STraces \to \StateD \to \STraces \\
       \select : \STraces \to ((K:\Con) \to (\later\StateD)^{α_K} \pfun \later\StateD) \to \STraces \\
     \end{array}
@@ -195,7 +195,7 @@ be easy to infer anyway.
   \\[-0.5em]
   \semst{\slbl K~\many{\px}}_ρ & = & \ret(\lbl,\ConV(K,\many{\semst{\px}_ρ})) \\
   \\[-0.5em]
-  \semst{\pe@(\Case{\pe_s}{\Sel[r]})}_ρ(μ) & = & (\pe,μ) \cons \select(\semst{\pe_s}_ρ(μ),\many{\fn{\many{d^\later}^{α_K}}{\semst{\pe_r}_{ρ[\many{\px↦d^\later}]}}})  \\
+  \semst{\pe@(\Case{\pe_s}{\Sel[r]})}_ρ(μ) & = & (\pe,μ) \cons \select(\semst{\pe_s}_ρ(μ),\many{\fn{\many{d^\later}}{\semst{\pe_r}_{ρ[\many{\px↦d^\later}]}}})  \\
  \end{array}
   \\[-0.5em]
 \end{array}\]

@@ -21,21 +21,21 @@
   \\[-0.5em]
   defn_{\Traces}(a \cons τ) & = & defn(a) \uplus defn(τ) \\
   defn_{\Actions}(\BindA(\px,\pa↦\pe,d)) & = & [\pa↦\px] \\
-  blub(τ)(ι)(\pa) & = & ι(defn_{\Traces}(τ)(\pa)) \text{ or $\bot$} \\
+  blub(τ)(\tr)(\pa) & = & \tr(defn_{\Traces}(τ)(\pa)) \text{ or $\bot$} \\
   \\[-0.5em]
   \multicolumn{3}{c}{ \ruleform{ usg : (\Addresses \to \UsgD) \to \Traces \to \UsgD \times \Values{\UsgD} } } \\
   \\[-0.5em]
-  usg_{\Traces}(η)(\goodend{(\lbl, \FunV(f))}) & = & (0, α_{\Values{}}(\FunV(f))) \\
-  usg_{\Traces}(η)(\stuckend{\wild}) & = & (0, \bot_{\Values{\UsgD}}) \\
-  usg_{\Traces}(η)(\pe \act{a} τ) & = & α_{\Actions}(a) +_1 α_{\Traces}(τ) \\
-  usg_{\Actions}(η)(a) & = & \begin{cases}
-      η(\pa) & a = \LookupT(\pa) \\
+  usg_{\Traces}(\tm)(\goodend{\FunV(f)}) & = & (\fn{\wild}{0}, α_{\Values{}}(\FunV(f))) \\
+  usg_{\Traces}(\tm)(\stuckend{}) & = & (\fn{\wild}{0}, \bot_{\Values{\UsgD}}) \\
+  usg_{\Traces}(\tm)(\pe \act{a} τ) & = & usg_{\Actions}(\tm)(a) +_1 usg_{\Traces}(\tm)(τ) \\
+  usg_{\Actions}(\tm)(a) & = & \begin{cases}
+      \tm(\pa) & a = \LookupT(\pa) \\
       0 & \text{otherwise}
     \end{cases} \\
-  usg^{-1}_{\Traces}(η)(\goodend{(\lbl, \FunV(f))}) & = & (0, α_{\Values{}}(\FunV(f))) \\
-  usg_{\MaxD}(η)(d) & = & usg_{\Traces} \circ d \circ usg^{-1}_{\Traces} \\
-  usg^{-1}_{\MaxD}(η)(d) & = & usg^{-1}_{\Traces} \circ d \circ usg_{\Traces} \\
-  usg_{\Values{}}(η)(\FunV(f)) & = & \FunV(usg_{\MaxD} \circ f \circ usg^{-1}_{\MaxD}) \\
+  usg^{-1}_{\Traces}(\tm)(\goodend{(\lbl, \FunV(f))}) & = & (0, α_{\Values{}}(\FunV(f))) \\
+  usg_{\MaxD}(\tm)(d) & = & usg_{\Traces} \circ d \circ usg^{-1}_{\Traces} \\
+  usg^{-1}_{\MaxD}(\tm)(d) & = & usg^{-1}_{\Traces} \circ d \circ usg_{\Traces} \\
+  usg_{\Values{}}(\tm)(\FunV(f)) & = & \FunV(usg_{\MaxD} \circ f \circ usg^{-1}_{\MaxD}) \\
   \\[-0.5em]
   \multicolumn{3}{c}{ \ruleform{ intra : \UsgD \times \Values{\UsgD} \to \UsgD \times \Values{\UsgD} } } \\
   \\[-0.5em]
