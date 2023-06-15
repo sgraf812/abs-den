@@ -503,10 +503,14 @@ prove a substitution lemma.
 Instead of a well-formedness predicate for the stack, we appeal to the
 well-formedness of the search transition rule.
 
-We have just descended into a mire of complexity to demonstrate that it is
-a rewarding goal to avoid structural mismatch between semantics and
-analysis.
-Hence, we strive for a compositional semantics in
+We have just descended into a mire of complexity to appreciate the following
+goal:
+
+\formgoal{4}{Avoid structural mismatch between semantics and analysis.}
+
+Goal 4 can be seen as a necessary condition for Goal 1:
+Structural mismatch makes a simple proof impossible.
+Since our analysis is compositional, we strive for a compositional semantics in
 \Cref{sec:stateful,sec:stateless}.
 An alternative to avoid structural mismatch is to follow Abstracting Abstract
 Machines~\citep{aam}.
