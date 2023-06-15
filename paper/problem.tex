@@ -91,10 +91,10 @@ calculus with recursive let bindings and algebraic data types:
   \text{Expressions}  &      \pe & ∈ & \Exp        & ::= & \multicolumn{6}{l}{\highlight{\slbl \px \mid \slbl \pv \mid \slbl \pe~\px \mid \slbl \Let{\px}{\pe_1}{\pe_2}} \mid \slbl \Case{\pe}{\SelArity}}
 \end{array}
 \]
-The form is reminiscent of \citet{Sestoft:97}, because it is factored into
-\emph{A-normal form}, that is, the arguments of applications are restricted to
-be variables, so the difference between call-by-name and call-by-value manifests
-purely in the semantics of $\mathbf{let}$.
+The form is reminiscent of \citet{Launchbury:93} and \citet{Sestoft:97} because
+it is factored into \emph{A-normal form}, that is, the arguments of applications
+are restricted to be variables, so the difference between call-by-name and
+call-by-value manifests purely in the semantics of $\mathbf{let}$.
 In this section, only the highlighted parts are relevant for brevity; we will
 discuss semantics of labels and data types in \Cref{sec:stateful}.
 From hereon throughout, we assume that all labels and bound program variables
@@ -114,23 +114,26 @@ analysis} $\semusg{\wild}$, a static analysis for estimating an upper bound on
 \emph{evaluation cardinality}, \eg, how often a variable is evaluated.
 
 Such upper bounds on evaluation cardinality are represented by a $u ∈ \Card$,
-and for a given expression $\pe$, an element $d ∈ \UsgD$ will be used to denote
-how many times $\pe$ evaluates its free variables.
-Any number of uses beyond $1$ such as $2$ for $x$ in $(x~x)$ will be collapsed to
+and for a given expression $\pe$, an element $d ∈ \UsgD$ can denote how many
+times $\pe$ evaluates its free variables.
+Any number of uses beyond $1$, such as $2$ for $x$ in $(x+x)$, will be collapsed to
 $d(x) = ω$, which denotes the set of any possible number of uses and is thus the
 top element of the total order $\Card$.
 For open expressions, we will need a way to describe the denotations of its
 free variables with a \emph{usage environment} $\tr ∈ \Var \to \UsgD$.
-Note that we will occassionally adorn with \textasciitilde{} to explicitly
-disambiguate elements of the analysis domain from the semantic domain.
+Note that we will occassionally adorn with \textasciitilde{} to disambiguate
+elements of the analysis domain from the semantic domain.
 Given a usage environment $\tr$, $\tr(x)(y)$ is supposed to model an upper bound
 on how often the expression bound to $x$ evaluates $y$.
 
 We say that $x$ is \emph{potentially live} in an element $d ∈ \UsgD$ whenever
 $\bot = 0 ⊏ d(x)$ (where $\bot$ denotes the least element of a partial order
 such as $\Card$ that is inferred from context).
-Let us now call $\tr_Δ(\px) \triangleq \fn{\py}{\ternary{\px = \py}{1}{0}}$ the
-``diagonal'' usage environment, assigning each free variable $\px$ a unique
+Let us now call
+\[
+  \tr_Δ(\px) \triangleq \fn{\py}{\ternary{\px = \py}{1}{0}}
+\]
+the ``diagonal'' usage environment, assigning each free variable $\px$ a unique
 meaning in terms of a denotation that evaluates $\px$ once and nothing else.
 Then we will say that $x$ is potentially live in $\pe$ whenever it is
 potentially live in $d \triangleq \semusg{\pe}_{\tr_Δ}$.
@@ -226,8 +229,7 @@ from \Cref{sec:usage-intuition} lines up with the formal \Cref{defn:deadness}.
 % $\py$ to encode that deadness of $\py$ is a necessary condition for deadness of
 % $\px$, which requires generalisation of the inductive hypothesis.
 
-One of our goals is to give a semantics that makes correctness proofs
-similarly simple.
+\formgoal{1}{Give a semantics that makes correctness proofs similarly simple.}
 
 \subsection{Continuity and Divergence}
 
@@ -281,9 +283,8 @@ A practical consequence is that such a predicate could not be proven about a
 recursive let binding because that would need admissability to apply fixpoint
 induction.
 
-It is one of our goals to give a semantics in which the denotation of diverging
-programs is not a partial element, but rather a total, but infinite element
-described in terms of coinduction.
+\formgoal{2}{Find a semantic domain in which diverging programs can be denoted
+by a total element.}
 
 \subsection{Operational Detail and Structural Mismatch}
 
@@ -321,6 +322,11 @@ this theorem cannot be proven correct.
 %semantics that postulates observability of cardinality in a suitable
 %\emph{$R$-Quantitative Category with Families} without giving a concrete
 %model.
+
+\formgoal{3}{Find a semantics that can observe operational detail such as
+arbitrary evaluation cardinality.}
+
+\subsection{Structural Mismatch}
 
 \begin{figure}
 \[\begin{array}{c}

@@ -49,6 +49,14 @@
 \newcommand{\lBrace}{{\{\hspace{-0.22em}\mid}}
 \newcommand{\rBrace}{{\mid\hspace{-0.22em}\}}}
 \DeclarePairedDelimiter\idiom{\lBrace}{\rBrace}
+\newcommand{\formgoal}[2]{%
+\vspace{0.5\baselineskip}
+\noindent
+\begin{minipage}{\linewidth}
+\centering\fbox{\textbf{Goal #1}: \begin{varwidth}[t]{\linewidth - 9em}#2\end{varwidth}}
+\end{minipage}%
+\\[-0.5\baselineskip]
+}
 
 % Syntax
 %% LC

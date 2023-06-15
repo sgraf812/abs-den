@@ -91,8 +91,9 @@ call-by-value and call-by-name but none for call-by-need, because memoisation is
 not a concept that is observable in traditional denotational semantics.
 
 Ultimately, traditional denotational semantics fell out of fashion due to
-scaling issues and \citet{WrightFelleisen:94} established operational semantics
-as the Gold Standard semantics for correctness proofs to this day.
+scaling issues we think that are ultimately caused by direct use of domain
+theory and \citet{WrightFelleisen:94} established operational semantics as the
+Gold Standard semantics for correctness proofs to this day.
 The past thirty years have proven that the methodology scales to
 big and complex type systems, building on techniques such as
 \emph{step-indexing}~\citep{AppelMcAllester:01,DreyerAhmedBirkedal:11}.
@@ -110,8 +111,6 @@ compositionality.
 %lookup and beta reduction, an inconvenience that is readily accepted when the
 %alternative would be to tame domain theory.
 
-\subsection{Static Analysis by Abstraction of Operational Semantics}
-
 As a result, we are stuck with a large amount of literature and implementations
 on \emph{compositional} program analyses such as in \citet{cardinality-ext}
 that have to be proven correct \wrt a transition system.
@@ -119,11 +118,14 @@ Compared to when a denotational semantics is available, this \emph{structural
 mismatch} necessitates the invention of ad-hoc, complicated correctness
 relations that must proven to be preserved during transitions.
 
+\subsection{Static Analysis by Abstraction of Operational Semantics}
+
 When there is no semantics that structurally matches our analysis, we could
 try to rearrange our analysis.
 That is the idea of \emph{Abstracting Abstract Machines}~(AAM)~\citep{aam} which
 abandons compositional analysis in favour of a convenient proof by abstract
 interpretation of the transition semantics.
+
 The resulting static analysis is no longer defined as a function that recurses
 over the input expression, but rather as an iterative fixpoint procedure that
 approximates the set of possible states in the transition system that reach a
@@ -151,7 +153,7 @@ It would be preferable to verify these implementations, too.
 
 \subsection{Summary of Contributions}
 
-Our ambitious goal is to resolve the aforementioned tensions around operational
+We aim to resolve the aforementioned tensions around operational
 detail and structural mismatch via the following contributions:
 \begin{itemize}
   \item In \Cref{sec:problem}, we explicate the lack of operational detail in
