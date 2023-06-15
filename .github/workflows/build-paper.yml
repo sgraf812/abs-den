@@ -21,4 +21,4 @@ jobs:
           file: "paper/comp-trace*.pdf"
           branches: main
           tag_name: "Latest"
-          verbose: true
+          overwrite: true
