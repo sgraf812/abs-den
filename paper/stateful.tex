@@ -63,27 +63,59 @@ $\pe \triangleq \Let{i}{\Lam{x}{x}}{i~i}$ to completion:
   \end{array}
 \end{array}\]
 
+\subsection{Domain Theory}
+\label{sec:domain-theory}
+
+The challenge that domain theory sets out to solve is that the ``inductive
+datatype''
+\[
+  D ::= \FunV(f ∈ D \to D) \mid \bot
+\]
+is ill-defined:
+The usual interpretation of such a declaration as the least fixed-point of
+the implied set-valued functional
+$F(X) \triangleq \{ f \mid ∀a∈X.\ ∃b∈X.\ f(a) = b \} ∪ \{ \bot \}$
+does not exist.
+
+To see that, suppose $μF$ was that set.
+Then there exists an injection (``data constructor'') $\FunV$ from $μF \to μF =
+μF^{μF}$ into $μF$.
+We can see that $\{\bot, (\fn{\wild}{\bot}) \} \subseteq μF$, so there are at
+least two elements in $μF$.
+Then to accomodate $μF^{μF}$, $μF$ must be at least as large as $2^{μF}$, the
+set of two-valued functions on $μF$.
+But this latter set is one-to-one with $\poset{μF}$ and it is a known result by
+Cantor that the $\poset{μF}$ has greater cardinality than $μF$, in contradiction
+to the existence of the injection $\FunV$.
+
+Domain theory, on the other hand, interprets the implied recursion equation
+in terms of topology and continuous functions, where the fixed-point exists
+when restricted to \emph{algebraic domains}.
+Algebraic domains are a neat choice, because any computable function can be
+given an encoding as a continuous function in this topology.
+
 \subsection{Guarded Recursive Types}
 
-The key to avoiding algebraic domains for our work is use of a total type theory
-with \emph{guarded recursive types}, such as Guarded Dependent Type Theory
-(GDTT) \citep{gdtt}.%
+The key to denoting infinite computations with total elements is to avoid
+working with algebraic domains altogether and instead work in a total type
+theory with \emph{guarded recursive types}, such as Guarded Dependent Type
+Theory (GDTT)~\citep{gdtt} or Ticked Cubical Type Theory~\citep{tctt}.%
 \footnote{Of course, in reality we are just using GDTT as a meta
-language~\citep{Moggi:07} with a known domain-theoretic interpretation in terms
+language~\citep{Moggi:07} with a known domain-theoretic model in terms
 of the topos of trees~\citep{gdtt}.
 This meta language is sufficiently expressive as a logic to
 express proofs, though, justifying the view that we are extending ``math''
 with the ability to conveniently reason about computable functions on infinite
 data without needing to think about topology and approximation directly.}
-The fundamental construct of this theory is addition of the ``later''
-modality $\later$ which allows to define coinductive data types with negative
-recursive occurrences, as first realised by \citet{Nakano:00}.
+The fundamental innovation of these theories is the integration of the
+``later'' modality $\later$ which allows to define coinductive data types
+with negative recursive occurrences such in our ``data type'' $D$ from
+\Cref{sec:domain-theory}, as first realised by \citet{Nakano:00}.
 
-Thus, GDTT walks a fine line:
+GDTT walks a fine line:
 The theory guarantees that all well-typed functions (naturally) correspond
-to continuous functions, while it also allows for embedding of a sufficiently
-expressive restriction of endofunctions for denotational semantics that
-manifests in the denotation of function values.
+to continuous functions in the underlying model, while it also allows for
+embedding of a sufficiently expressive restriction to give meaning to $D$.
 
 Whereas previous theories of coinduction require syntactic productivity
 checks~\citep{Coquand:94}, requiring tiresome constraints on the form of guarded
@@ -108,6 +140,9 @@ According to \citet{BirkedalMogelbergEjlers:13}, any type expression in simply
 typed lambda calculus defines a locally contractive functor as long as any
 occurrence of $X$ is under a $\later$, so we take that as the well-formedness
 criterion of coinductive types in this work.
+Most notably, this means that
+$D ::= \FunV(f ∈ \later D \to \later D) \mid \bot$ is a sound coinductive
+encoding of the data type in \Cref{sec:domain-theory}.
 
 As a type constructor, $\later$ is an applicative
 functor~\citep{McBridePaterson:08} via functions
@@ -117,9 +152,13 @@ functor~\citep{McBridePaterson:08} via functions
 allowing us to apply a familiar framework of reasoning around $\later$.
 In order not to obscure our work with pointless symbol pushing
 in, \eg, \Cref{fig:semst}, we will often omit the idiom
-brackets~\citep{McBridePaterson:08} $\idiom{\wild}$ that would be necessary in a
-mechanised form to indicate where the $\later$ ``effects'' happen; they should
-be easy to infer anyway.
+brackets~\citep{McBridePaterson:08} $\idiom{\wild}$
+to indicate where the $\later$ ``effects'' happen.
+Rest assured, they are still there in the Guarded Cubical Agda development in
+the Appendix \sg{TODO link}.
+
+\sg{The Guarded Cubical Agda prototype type-checks and is available at
+\url{https://github.com/sgraf812/comp-trace/blob/main/paper/agda}}
 
 \begin{figure}
 \[\begin{array}{c}
