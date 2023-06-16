@@ -1,5 +1,5 @@
 {-# OPTIONS --cubical --guarded #-}
-module Simple where
+module Bare where
 
 open import Later
 open import Syntax
@@ -17,7 +17,7 @@ open import Data.Bool
 Dom : Set
 
 {-# NO_POSITIVITY_CHECK #-}
-data LDom : Set where 
+data LDom : Set where
   ldom : (▹ Dom) -> LDom
 
 Heap = Addr -> LDom
@@ -61,21 +61,21 @@ deref a μ = later (λ α -> look μ a α μ >>β= aux)
     aux v μ = just (ret v (upd μ a (ret v))) -- NB: Stateful and stateless semantics do a step here for the update transition
 
 apply : Trc -> Dom -> Trc
-apply τₑ dₓ = τₑ >>β= aux 
+apply τₑ dₓ = τₑ >>β= aux
   where
     aux : Val -> Heap -> Maybe Trc
     aux (fun f) μ = just (f (next dₓ) μ)
     aux _       _ = nothing
-    
+
 select : Trc -> (Con -> List (▹ Dom) -> Maybe Dom) -> Trc
-select τₑ f = τₑ >>β= aux 
+select τₑ f = τₑ >>β= aux
   where
     aux : Val -> Heap -> Maybe Trc
     aux (con K d▹s) μ with f K d▹s
     ... | just d  = just (d μ)
-    ... | nothing = nothing 
+    ... | nothing = nothing
     aux _ _       = nothing
-    
+
 postulate alloc : Heap -> Addr
 
 -- Helpers I'd rather not need
@@ -95,26 +95,26 @@ _[_↦*_] ρ xs d▹s = aux (Data.List.zip xs d▹s)
 sem : Exp -> (Var -> Maybe Dom) -> Dom
 sem = fix sem'
   where
-    sem' : ▹(Exp -> (Var -> Maybe Dom) -> Dom) -> Exp -> (Var -> Maybe Dom) -> Dom 
+    sem' : ▹(Exp -> (Var -> Maybe Dom) -> Dom) -> Exp -> (Var -> Maybe Dom) -> Dom
     sem' recurse▹ (ref x) ρ with ρ x
     ... | nothing = λ _ -> stuck
     ... | just d  = d
     sem' recurse▹ (lam x e) ρ = ret (fun (λ d▹ μ -> later (λ α -> recurse▹ α e (ρ [ x ↦ d▹ α ]) μ)))
-    sem' recurse▹ (app e x) ρ with ρ x 
-    ... | nothing = λ _ -> stuck 
+    sem' recurse▹ (app e x) ρ with ρ x
+    ... | nothing = λ _ -> stuck
     ... | just dₓ = λ μ -> later (λ α -> apply (recurse▹ α e ρ μ) dₓ)
     sem' recurse▹ (let' x e₁ e₂) ρ μ =
       let a = alloc μ in
       let ρ' = ρ [ x ↦ deref a ] in
       later (λ α -> recurse▹ α e₂ ρ' (upd μ a (recurse▹ α e₁ ρ')))
-    sem' recurse▹ (conapp K xs) ρ = 
+    sem' recurse▹ (conapp K xs) ρ =
       let ds▹ = Data.List.map (λ x α -> recurse▹ α (ref x) ρ) xs in
       ret (con K ds▹)
-    sem' recurse▹ (case' eₛ alts) ρ μ = 
+    sem' recurse▹ (case' eₛ alts) ρ μ =
       later (λ α -> select (recurse▹ α eₛ ρ μ) f)
         where
           f : Con -> List (▹ Dom) -> Maybe Dom
           f K d▹s with findAlt K alts
           ... | nothing         = nothing
-          ... | just (xs , rhs) = 
+          ... | just (xs , rhs) =
             just (λ μ -> later (λ α -> recurse▹ α rhs ((ρ [ xs ↦* d▹s ]) α) μ))
