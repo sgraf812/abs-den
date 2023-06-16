@@ -2,17 +2,60 @@
 \section{Abstraction Interpretation}
 \label{sec:abstractions}
 
+Let us first try to reformulate semantic deadness in terms of $\semless{\wild}$:
+
+\begin{definition}[Deadness]
+  \label{defn:deadness3}
+  A variable $\px$ is \emph{dead} in an expression $\pe$ if and only
+  if, for all $ρ ∈ \Var \to \MaxD, d_1, d_2 ∈ \MaxD, μ ∈ \Heaps$ and $\pa ∈ \Addresses$, we have
+  \[\semless{\pe}_{ρ[\px↦\deref{\pa}]}(μ[\pa ↦ d_1]) = \semless{\pe}_{ρ[\px↦\deref{\pa}]}(μ[\pa ↦ d_1]).\]
+  Otherwise, $\px$ is \emph{live}.
+\end{definition}
+
+Again, if we know that $x$ is dead, then the following equation justifies our
+rewrite above: $\semscott{\Let{x}{\pe_1}{\pe_2}}_ρ = \semscott{\pe_2}_{ρ[x↦d]} =
+\semscott{\pe_2}_ρ$ (for all $ρ$ and the suitable $d$).
+
+We can now prove \Cref{thm:semusg-correct-live} in terms of this new
+characterisation of deadness by induction:
+
+\begin{theorem}[$\semusg{\wild}$ is a correct deadness analysis]
+  \label{thm:semusg-correct-live-3}
+  Let $\pe$ be an expression, $\px$ a variable and $\tr$ a usage environment.
+  If $\tr(\px) \not⊑ \semusg{\pe}_{\tr}$
+  then $\px$ is dead in $\pe$.
+\end{theorem}
+\begin{proof}
+  By induction over $\pe$. The full proof can be found in
+  \Cref{prf:semusg-correct-live}.
+\end{proof}
+
+So that is nice.
+Unfortunately, we have made no progress towards
+
 \begin{figure}
 \[\begin{array}{c}
   \forall \tr.\ \tr(x) ⊑ \semusg{\pe}_{\tr} \\
   \Uparrow \\
   \exists \tr,\td_1,\td_2.\ \semusg{\pe}_{\tr[x ↦ \td_1]} \not= \semusg{\pe}_{\tr[x ↦ \td_2]} \\
   \Uparrow \text{ This one is non-trivial, but we can take any $α(d_1),α(d_2)$ and add $[x_1↦1],[x_2↦1]$ for some "fresh" vars}\\
-  \exists ρ,d_1,d_2.\ \semless{\pe}_{ρ[x ↦ d_1]} \not= \semless{\pe}_{ρ[x ↦ d_2]} \\
+  \exists ρ,d_1,d_2,ι_1,ι_2.\ \semless{\pe}_{ρ[x ↦ d_1]}(ι_1) \not= \semless{\pe}_{ρ[x ↦ d_2]}(ι_2) \\
   \Uparrow \\
   \exists \pe_1,\pe_2.\ \semless{\Let{x}{\pe_1}{\pe}} \not= \semless{\Let{x}{\pe_2}{\pe}} \\
   \Updownarrow \\
   x \text{ live in } \pe \\
+\end{array}\]
+
+\[\begin{array}{c}
+  \exists \tr.\ \tr(x) \not⊑ \semusg{\pe}_{\tr} \\
+  \Downarrow \\
+  \forall \tr,\td_1,\td_2.\ \semusg{\pe}_{\tr[x ↦ \td_1]} = \semusg{\pe}_{\tr[x ↦ \td_2]} \\
+  \Downarrow \text{ This one is non-trivial, but we can take any $α(d_1),α(d_2)$ and add $[x_1↦1],[x_2↦1]$ for some "fresh" vars}\\
+  \forall ρ,d_1,d_2,ι_1,ι_2.\ \semless{\pe}_{ρ[x ↦ d_1]}(ι_1) = \semless{\pe}_{ρ[x ↦ d_2]}(ι_2) \\
+  \Downarrow \\
+  \forall \pe_1,\pe_2.\ \semless{\Let{x}{\pe_1}{\pe}} = \semless{\Let{x}{\pe_2}{\pe}} \\
+  \Updownarrow \\
+  x \text{ dead in } \pe \\
 \end{array}\]
 
 \[\begin{array}{c}
