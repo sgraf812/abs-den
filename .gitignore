@@ -1,4 +1,5 @@
 comp-trace-ext.tex
+.direnv
 
 *.aux
 *.bbl
