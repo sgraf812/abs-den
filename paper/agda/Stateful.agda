@@ -92,7 +92,7 @@ select dₑ f = dₑ >>β= aux
   where
     aux : S -> Maybe (▹ S∞)
     aux (retn (con K d▹s), μ) with f K d▹s
-    ... | just d▹ = just (λ κ -> d▹ κ μ)
+    ... | just d▹ = just (λ α -> d▹ α μ)
     ... | nothing = nothing
     aux _         = nothing
     
@@ -107,8 +107,8 @@ _[_↦*_] : (Var -> Maybe Dom) -> List Var -> List (▹ Dom) -> ▹ (Var -> Mayb
 _[_↦*_] ρ xs d▹s = aux (Data.List.zip xs d▹s)
   where
     aux : List (Var × ▹ Dom) -> ▹ (Var -> Maybe Dom)
-    aux []               κ y = ρ y
-    aux ((x , d▹) ∷ xs) κ y = if x == y then just (d▹ κ) else aux xs κ y
+    aux []               α y = ρ y
+    aux ((x , d▹) ∷ xs) α y = if x == y then just (d▹ α) else aux xs α y
 
 -- And finally the semantics
 
@@ -119,7 +119,7 @@ sem = fix sem'
     sem' recurse▹ e@(ref x) ρ μ with ρ x
     ... | nothing = stuck (eval e , μ)
     ... | just d  = (eval e , μ) :: next (d μ)
-    sem' recurse▹ (lam x e) ρ = ret (fun (λ d▹ κ -> recurse▹ κ e (ρ [ x ↦ d▹ κ ])))
+    sem' recurse▹ (lam x e) ρ = ret (fun (λ d▹ α -> recurse▹ α e (ρ [ x ↦ d▹ α ])))
     sem' recurse▹ (app e x) ρ μ with ρ x 
     ... | nothing = stuck (eval (app e x), μ)
     ... | just dₓ = let dₑ▹ = recurse▹ ⊛ next e ⊛ next ρ ⊛ next μ in
@@ -129,20 +129,20 @@ sem = fix sem'
       let ρ' = ρ [ x ↦ deref a ]  in
       let d₁▹ = recurse▹ ⊛ next e₁ ⊛ next ρ' in
       let d₂▹ = recurse▹ ⊛ next e₂ ⊛ next ρ' in
-      let μ'▹ κ a' = if a ≡ᵇ a' then ldom (next (d₁▹ κ)) else μ a' in
+      let μ'▹ α a' = if a ≡ᵇ a' then ldom (next (d₁▹ α)) else μ a' in
       (eval e , μ) :: d₂▹ ⊛ μ'▹ 
         -- NB: postulated invariant early-heap is satisfied here! 
-        -- > μ' a = ldom (next (d₁▹ κ))
+        -- > μ' a = ldom (next (d₁▹ α))
     sem' recurse▹ e@(conapp K xs) ρ = 
-      let ds▹ = Data.List.map (λ x κ -> recurse▹ κ (ref x) ρ) xs in
+      let ds▹ = Data.List.map (λ x α -> recurse▹ α (ref x) ρ) xs in
       ret (con K ds▹)
     sem' recurse▹ e@(case' eₛ alts) ρ μ = 
       let dₛ▹ = recurse▹ ⊛ next eₛ ⊛ next ρ in
-      (eval e , μ) :: λ κ -> select (dₛ▹ κ μ) f
+      (eval e , μ) :: λ α -> select (dₛ▹ α μ) f
         where
           f : Con -> List (▹ Dom) -> Maybe (▹ Dom)
           f K d▹s with findAlt K alts
           ... | nothing = nothing
           ... | just (xs , rhs) = 
             let ρ' = ρ [ xs ↦* d▹s ] in
-            just (λ κ -> recurse▹ κ rhs (ρ' κ))
+            just (λ α -> recurse▹ α rhs (ρ' α))

@@ -97,7 +97,8 @@ rematerialised as needed from the history of previous actions.
   \ret(v)(ι) & = & \goodend{v} \\
   \deref(\pa)(ι)   & = & (\LookupA(\pa) \fcons μ(ι)(\pa) \betastep \fn{v}{\UpdateA(\pa↦\ret(v)) \fcons \ret(v)})(ι) \\
   \apply(d_\pe,d_\px) & = & d_\pe \betastep \fn{(\FunV(f))}{f(d_\px)} \\
-  \select(d,\alts) & = & d \betastep \fn{(\ConV(K_s,\many{d_s^\later}))}{\alts(K_s, \many{d_s^\later})} \quad \text{where } (K_s, \many{d_s^\later}) ∈ \dom(\alts) \\
+  \select(d,\alts) & = & d \betastep \fn{(\ConV(K_s,\many{d_s^\later}))}{\alts(K_s, \many{d_s^\later})} \\
+                   &   & \hspace{8em} \text{where } (K_s, \many{d_s^\later}) ∈ \dom(\alts) \\
  \end{array} \\
  \\[-0.5em]
  \begin{array}{rcl}

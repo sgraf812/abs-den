@@ -121,6 +121,7 @@
 \newcommand{\stuckend}[1]{\langle #1 \rangle_{\lightning}}
 \newcommand{\makestuck}[1]{\lightning(#1)}
 \newcommand{\cons}{\mathbin{::}}
+\newcommand{\laterC}{\mathop{\mathsf{L}}}
 \newcommand{\trend}{\raisebox{-0.8pt}{\scalebox{0.3}{$\square$}}}
 \newcommand{\betastep}{\mathbin{>\hspace{-0.40em}>\hspace{-0.48em}\text{β}\hspace{-0.40em}=}}
 \newcommand{\cont}{\mathit{cont}}
@@ -174,6 +175,8 @@
 \newcommand{\AbsCD}{\Domain{\raisebox{0.1em}{\scalebox{0.4}{c$\square$}}}}
 \newcommand{\StateD}{\Domain{\States}}
 \newcommand{\StateV}{\Values{\States}}
+\newcommand{\BareD}{\Domain{\bullet}}
+\newcommand{\BareV}{\Values{\bullet}}
 \newcommand{\SSD}{\Domain{Σ}}
 \newcommand{\SSCD}{\Domain{cΣ}}
 \newcommand{\LiveD}{\Domain{\exists l}}
@@ -210,6 +213,7 @@
 \newcommand{\sempref}[1]{\mathcal{S}^*\denot{#1}}
 \newcommand{\semless}[1]{\mathcal{S}^{\Actions}\denot{#1}}
 \newcommand{\semst}[1]{\mathcal{S}^{\States}\denot{#1}}
+\newcommand{\sembare}[1]{\mathcal{S}^{\bullet}\denot{#1}}
 \newcommand{\semss}[1]{\mathcal{S}^{Σ}\denot{#1}}
 \newcommand{\semlive}[1]{\mathcal{S}^{∃l}\denot{#1}}
 \newcommand{\semusg}[1]{\mathcal{S}^{∃u}\denot{#1}}
@@ -221,6 +225,7 @@
 % Stateful
 \newcommand{\States}{\mathbb{S}}
 \newcommand{\STraces}{\mathbb{S}^{\infty}}
+\newcommand{\BTraces}{\mathbb{T}^{\bullet}}
 \newcommand{\tSTraces}{\tilde{\mathbb{S}}^{\infty}}
 \newcommand{\LKStates}{\mathbb{L}}
 \newcommand{\LKTraces}{\mathbb{L}^{\infty}}

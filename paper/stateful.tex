@@ -163,13 +163,13 @@ the Appendix \sg{TODO link}.
 \begin{figure}
 \[\begin{array}{c}
  \begin{array}{rrclclrrclcl}
-  \text{States}        & σ   & ∈ & \States        & =      & \Controls \times \Heaps
+  \text{State}        & σ   & ∈ & \States        & =      & \Controls \times \Heaps
   &
-  \text{Environments}  & ρ   & ∈ & \Environments  & =      & \Var \pfun \StateD
+  \text{Environment}  & ρ   & ∈ & \Environments  & =      & \Var \pfun \StateD
   \\
-  \text{Controls}      & \pc & ∈ & \Controls      & ::=    & \pe \mid (\lbl, v)
+  \text{Control}      & \pc & ∈ & \Controls      & ::=    & \pe \mid (\lbl, v)
   &
-  \text{Heaps}         & μ   & ∈ & \Heaps         & =      & \Addresses \pfun \later\StateD
+  \text{Heap}         & μ   & ∈ & \Heaps         & =      & \Addresses \pfun \later\StateD
   \\
   \\[-0.5em]
  \end{array} \\
@@ -208,7 +208,8 @@ the Appendix \sg{TODO link}.
   \ret(\lbl,v)(μ) & = & \goodend{((\lbl,v),μ)} \\
   \deref(\pa)(μ) & = & μ(\pa)(μ) \betastep \fn{((\lbl,v),μ)}{\goodend{((\lbl,v),μ[\pa ↦ \ret(\lbl,v)])}} \\
   \apply(τ,d) & = & τ \betastep \fn{((\wild,\FunV(f)),μ)}{f(d)(μ)} \\
-  \select(τ,\alts) & = & τ \betastep \fn{((\wild,\ConV(K_s,\many{d_s})),μ)}{\alts(K_s, \many{d_s})} \quad \text{where } (K_s, \many{d_s^\later}) ∈ \dom(\alts) \\
+  \select(τ,\alts) & = & τ \betastep \fn{((\wild,\ConV(K_s,\many{d_s^\later})),μ)}{\alts(K_s, \many{d_s^\later})} \\
+                   &   & \hspace{8em} \text{where } (K_s, \many{d_s^\later}) ∈ \dom(\alts) \\
  \end{array} \\
  \\[-0.5em]
  \begin{array}{rcl}
@@ -234,7 +235,11 @@ the Appendix \sg{TODO link}.
   \\[-0.5em]
   \semst{\slbl K~\many{\px}}_ρ & = & \ret(\lbl,\ConV(K,\many{\semst{\px}_ρ})) \\
   \\[-0.5em]
-  \semst{\pe@(\Case{\pe_s}{\Sel[r]})}_ρ(μ) & = & (\pe,μ) \cons \select(\semst{\pe_s}_ρ(μ),\many{\fn{\many{d^\later}}{\semst{\pe_r}_{ρ[\many{\px↦d^\later}]}}})  \\
+  \semst{\pe@(\Case{\pe_s}{\Sel[r]})}_ρ(μ) & = &
+    \begin{letarray}
+      \text{let} & \alts = \fn{K}{\fn{\many{d^\later}}{\semst{\pe_r}_{ρ[\many{\px↦d^\later}]}}} \\
+      \text{in} & (\pe,μ) \cons \select(\semst{\pe_s}_ρ(μ), \alts)  \\
+    \end{letarray}
  \end{array}
   \\[-0.5em]
 \end{array}\]
@@ -617,8 +622,8 @@ state.
 \begin{figure}
 \[\begin{array}{rcl}
   α_\Environments(ρ) & = & \deref \circ ρ \\
-  α_\Heaps([\many{\pa ↦ (ρ,\pe)}]) & = & [\many{\pa ↦ \semst{\pe}_{α_\Environments(ρ)}}] \\
-  α_\States(\slbl \Lam{\px}{\pe},ρ,μ,κ) & = & ((\lbl,\FunV(\fn{d}{\idiom{\semst{\pe}_{α_\Environments(ρ)[\px↦d]}}})),α_\Heaps(μ)) \\
+  α_\Heaps([\many{\pa ↦ (ρ,\pe)}]) & = & [\many{\pa ↦ \idiom{\semst{\pe}_{α_\Environments(ρ)}}}] \\
+  α_\States(\slbl \Lam{\px}{\pe},ρ,μ,κ) & = & ((\lbl,\FunV(\fn{d^\later}{\idiom{\semst{\pe}_{α_\Environments(ρ)[\px↦d^\later]}}})),α_\Heaps(μ)) \\
   α_\States(\slbl K~\overline{\px},ρ,μ,κ) & = & ((\lbl,\ConV(K,\overline{\idiom{\semst{\px}_{α_\Environments(ρ)}}})),α_\Heaps(μ)) \\
   α_\States(\pe,ρ,μ,κ) & = & (\pe,α_\Heaps(μ)) \\
   α_{\STraces}((σ_i)_{i∈\overline{n}},κ) & = & \begin{cases}
@@ -783,13 +788,13 @@ We do so by cases over $\pe$, abbreviating $\tm \triangleq α_\Heaps(μ), \tr
     To show that the tails equate, it suffices to show that they equate \emph{later}.
 
     Let us abbreviate $\tr' \triangleq α_\Environments(ρ')$.
-    Then we can infer that $\tm(\pa) = \semst{\pe'}_{\tr'}$, as well as
+    Then we can infer that $\tm(\pa) = \idiom{\semst{\pe'}_{\tr'}}$, as well as
     \[
     \tr(\px)(\tm) = \semst{\pe'}_{\tr'}(\tm) \betastep \fn{((\lbl,v),μ)}{\idiom{\goodend{((\lbl,v),μ[\pa ↦ \ret(\lbl,v)])}}}
     \]
     from the definition of $α_\Environments$.
 
-    Let us define $τ \triangleq \idiom{\semst{\pe'}_{\tr'}(\tm)}$ and
+    Let us define $τ^\later \triangleq \idiom{\semst{\pe'}_{\tr'}(\tm)}$ and
     apply the induction hypothesis $IH$ to the maximal trace starting at $σ_2$.
     This yields an equality
     \[
@@ -830,7 +835,7 @@ We do so by cases over $\pe$, abbreviating $\tm \triangleq α_\Heaps(μ), \tr
     That in turn means that the value in $\ctrl(σ_m)$ must be a lambda
     $\Lam{\py}{\pe'}$, hence $τ^{\later}$ ends in $\goodend{\tilde{σ}_m}$,
     where
-    $\tilde{σ}_m \triangleq (\lbl, \FunV(\fn{d}{\idiom{\semst{\pe'}_{\tr_m[\py ↦ d]}}}), \tm_m) = σ_\States(σ_m)$,
+    $\tilde{σ}_m \triangleq (\lbl, \FunV(\fn{d^\later}{\idiom{\semst{\pe'}_{\tr_m[\py ↦ d^\later]}}}), \tm_m) = σ_\States(σ_m)$,
     assuming that $\lbl$ is the label of the lambda and $\tr_m, \tm_m$ correspond
     to $ρ_m,μ_m$ of $σ_m$ as usual.
 
