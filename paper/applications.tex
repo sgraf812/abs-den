@@ -447,44 +447,44 @@
   \\
  \end{array} \\
  \begin{array}{rcl}
-  \multicolumn{3}{c}{ \ruleform{ \semless{\wild} \colon \Exp → (\Var → \poset{\Type}) → \poset{\Type} } } \\
+  \multicolumn{3}{c}{ \ruleform{ \semevt{\wild} \colon \Exp → (\Var → \poset{\Type}) → \poset{\Type} } } \\
   \\[-0.5em]
   cons(a,\lbl,S)(π_i^+)   & = & dst(π_i^+) \act{a} S(π_i^+ \act{a} \lbl) \\
   \\[-0.5em]
-  \semless{\slbl \pe}_ρ    (π_i^+)   & = & \varnothing \qquad \text{if $dst(π_i^+) \not= \lbl$} \\
+  \semevt{\slbl \pe}_ρ    (π_i^+)   & = & \varnothing \qquad \text{if $dst(π_i^+) \not= \lbl$} \\
   \\[-0.9em]
-  \semless{\slbl \px}_ρ    (π_i^+)   & = & ρ(\px)(π_i^+) \\
+  \semevt{\slbl \px}_ρ    (π_i^+)   & = & ρ(\px)(π_i^+) \\
   \\[-0.5em]
-  \semless{\slbln{1}(\Lam{\px}{\pe})\slbln{2}}_ρ(π_i^+) & = &
+  \semevt{\slbln{1}(\Lam{\px}{\pe})\slbln{2}}_ρ(π_i^+) & = &
     \begin{letarray}
-      \text{let} & f = d ↦ cons(\AppEA,\atlbl{\pe},\semless{\pe}_{ρ[\px↦d]}) \\
+      \text{let} & f = d ↦ cons(\AppEA,\atlbl{\pe},\semevt{\pe}_{ρ[\px↦d]}) \\
       \text{in}  & α_v(\FunV(f)) \\
     \end{letarray} \\
   \\[-0.5em]
-  \semless{\slbl(\pe~\px)}_ρ(π_i^+) & = &
+  \semevt{\slbl(\pe~\px)}_ρ(π_i^+) & = &
     \begin{letarray}
-      \text{let} & π_e = \semless{\pe}_ρ(π_i^+ \act{\AppIA} \atlbl{\pe}) \\
+      \text{let} & π_e = \semevt{\pe}_ρ(π_i^+ \act{\AppIA} \atlbl{\pe}) \\
       \text{in}  & \begin{cases}
                      \lbl \act{\AppIA} π_e \concat f(ρ(\px))(π_i^+ \act{\AppIA} π_e) & \text{if $π_e = \wild \act{\ValA(\FunV(f))} \wild$}  \\
                      \lbl \act{\AppIA} π_e & \text{otherwise}  \\
                    \end{cases} \\
     \end{letarray} \\
   \\[-0.5em]
-  \semless{\slbl(\Let{\px}{\pe_1}{\pe_2})}_ρ(π_i^+) & = &
+  \semevt{\slbl(\Let{\px}{\pe_1}{\pe_2})}_ρ(π_i^+) & = &
     \begin{letarray}
-      \text{letrec}~ρ'. & ρ' = ρ ⊔ [\px ↦ \semless{\pe_1}_{ρ'}] \\
-      \text{in}         & cons(\BindA,\atlbl{\pe_2},\semless{\pe_2}_{ρ'})(π_i^+)
+      \text{letrec}~ρ'. & ρ' = ρ ⊔ [\px ↦ \semevt{\pe_1}_{ρ'}] \\
+      \text{in}         & cons(\BindA,\atlbl{\pe_2},\semevt{\pe_2}_{ρ'})(π_i^+)
     \end{letarray} \\
   \\
-  \semless{\slbln{1}(K~\many{\px})\slbln{2}}_ρ(π_i^+) & = & \lbln{1} \act{\ValA(\ConV(K,\many{ρ(\px)}))} \lbln{2} \\
+  \semevt{\slbln{1}(K~\many{\px})\slbln{2}}_ρ(π_i^+) & = & \lbln{1} \act{\ValA(\ConV(K,\many{ρ(\px)}))} \lbln{2} \\
   \\[-0.5em]
-  \semless{\slbl(\Case{\pe_s}{\Sel})}_ρ(π_i^+) & = & \begin{cases}
+  \semevt{\slbl(\Case{\pe_s}{\Sel})}_ρ(π_i^+) & = & \begin{cases}
       π_s \concat Rhs(K,\many{d})(π_i^+ \concat π_s) & \text{if $π_s = \wild \act{\ValA(\ConV(K,\many{d}))} \wild$}  \\
       π_s & \text{otherwise}  \\
     \end{cases} \\
     & & \text{where} \begin{array}{lcl}
-                       π_s & = & cons( \CaseIA, \atlbl{\pe_s},\semless{\pe_s}_ρ)(π_i^+) \\
-                       Rhs(K,\many{d}) & = & cons(\CaseEA,\atlbl{\pe_K},\semless{\pe_K}_{ρ[\many{\px↦d}]}) \\
+                       π_s & = & cons( \CaseIA, \atlbl{\pe_s},\semevt{\pe_s}_ρ)(π_i^+) \\
+                       Rhs(K,\many{d}) & = & cons(\CaseEA,\atlbl{\pe_K},\semevt{\pe_K}_{ρ[\many{\px↦d}]}) \\
                      \end{array} \\
   \\
  \end{array} \\

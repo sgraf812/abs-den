@@ -95,8 +95,8 @@
 \newcommand{\bool}{\mathtt{bool}}
 \newcommand{\ttrue}{\mathtt{tt}}
 \newcommand{\ffalse}{\mathtt{ff}}
-%% Actions
-\newcommand{\Actions}{\mathbb{A}}
+%% Events
+\newcommand{\Events}{\mathbb{Ev}}
 \newcommand{\ValueA}{\mathsf{val}}
 \newcommand{\BindA}{\mathsf{bind}}
 \newcommand{\LookupA}{\mathsf{look}}
@@ -168,12 +168,12 @@
 \newcommand{\ApproxMap}[2]{\mathsf{Map}(#1,#2)}
 \newcommand{\FinStepMap}[2]{#1 \Rightarrow #2}
 \newcommand{\PrefD}{\Domain{*}}
-\newcommand{\MaxD}{\Domain{\Actions}}
-\newcommand{\MaxV}{\Values{\Actions}}
+\newcommand{\EventD}{\Domain{ε}}
+\newcommand{\EventV}{\Values{ε}}
 \newcommand{\ScottD}{\Domain{\bot}}
 \newcommand{\AbsD}{\Domain{\raisebox{0.1em}{\scalebox{0.4}{$\square$}}}}
 \newcommand{\AbsCD}{\Domain{\raisebox{0.1em}{\scalebox{0.4}{c$\square$}}}}
-\newcommand{\StateD}{\Domain{\States}}
+\newcommand{\StateD}{\Domain{σ}}
 \newcommand{\StateV}{\Values{\States}}
 \newcommand{\BareD}{\Domain{\bullet}}
 \newcommand{\BareV}{\Values{\bullet}}
@@ -211,8 +211,8 @@
 \newcommand{\denot}[1]{\llbracket {#1} \rrbracket}
 \newcommand{\semscott}[1]{\mathcal{S}^{\bot}\denot{#1}}
 \newcommand{\sempref}[1]{\mathcal{S}^*\denot{#1}}
-\newcommand{\semless}[1]{\mathcal{S}^{\Actions}\denot{#1}}
-\newcommand{\semst}[1]{\mathcal{S}^{\States}\denot{#1}}
+\newcommand{\semevt}[1]{\mathcal{S}^{ε}\denot{#1}}
+\newcommand{\semst}[1]{\mathcal{S}^{σ}\denot{#1}}
 \newcommand{\sembare}[1]{\mathcal{S}^{\bullet}\denot{#1}}
 \newcommand{\semss}[1]{\mathcal{S}^{Σ}\denot{#1}}
 \newcommand{\semlive}[1]{\mathcal{S}^{∃l}\denot{#1}}

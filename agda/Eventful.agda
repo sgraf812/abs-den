@@ -1,11 +1,11 @@
 {-# OPTIONS --cubical --guarded #-}
-module Stateless where
+module Eventful where
 
 open import Later
 open import Syntax
 open import Data.Nat
 open import Data.String
-open import Data.List
+open import Data.List hiding (lookup)
 open import Data.List.Membership.Propositional
 open import Data.Maybe
 open import Data.Sum
@@ -15,28 +15,32 @@ open import Data.Bool
 -- The Domain
 
 Dom : Set
-data T∞ : Set
+
+{-# NO_POSITIVITY_CHECK #-}
+data LDom : Set where 
+  ldom : (▹ Dom) -> LDom
+
+Heap = Addr -> LDom
+
 data Val : Set
 
 data Act : Set where
   bind : Var -> Addr -> Dom -> Act
   look : Addr -> Act
-  upd : Addr -> Dom -> Act
+  upd : Addr -> Val -> Act
   app1 : Dom -> Act
   app2 : Var -> Dom -> Act
   case1 : Dom -> Act
   case2 : Con -> List (Var × Dom) -> Act
 
-T* = List Act
-
 {-# NO_POSITIVITY_CHECK #-}
-data T∞ where
-  ok : Val -> T∞
+data T∞ : Set where
+  ret : Val -> Heap -> T∞ -- NB: ret : Val -> Dom
   stuck : T∞
   _::_ : ▹ Act -> ▹ T∞ -> T∞
 infixr 20 _::_ 
 
-Dom = T* -> T∞
+Dom = Heap -> T∞
 
 data Val where
   fun : (▹ Dom -> Dom) -> Val
@@ -44,35 +48,32 @@ data Val where
 
 -- Domain combinators
 
+update : Heap -> Addr -> Dom -> Heap
+update μ a d a' = if a ≡ᵇ a' then ldom (next d) else μ a'
+
+lookup : Heap -> Addr -> ▹ Dom
+lookup μ a with μ a
+... | ldom d▹ = d▹
+
 _>>β=_ : Dom -> (Val -> Maybe Dom) -> Dom
-(d >>β= f) ι = fix go [] (d ι)
+(d >>β= f) μ = fix go (d μ)
   where
-    go : ▹ (T* -> T∞ -> T∞) -> T* -> T∞ -> T∞
-    go recurse▹ ι2 (a▹ :: τ▹) = a▹ :: recurse▹ ⊛ (next _∷_ ⊛ a▹ ⊛ next ι2) ⊛ τ▹
-    go recurse▹ ι2 (ok v) with f v
-    ... | just d  = d (ι Data.List.++ reverse ι2)
+    go : ▹ (T∞ -> T∞) -> T∞ -> T∞
+    go recurse▹ (a▹ :: τ▹) = a▹ :: recurse▹ ⊛ τ▹
+    go recurse▹ (ret v μ) with f v
+    ... | just d  = d μ
     ... | nothing = stuck
-    go _ _ _ = stuck
+    go _ _ = stuck
 
 _::>_ : ▹ Act -> ▹ Dom -> Dom
-(a▹ ::> d▹) ι = a▹ :: d▹ ⊛ (next _∷_ ⊛ a▹ ⊛ next ι)
+(a▹ ::> d▹) μ = a▹ :: d▹ ⊛ next μ
 infixr 20 _::>_ 
 
-ret : Val -> Dom
-ret v i = ok v
-
-postulate well-addressed : ∀ (ι : T*) (a : Addr) -> (∃[ d ] upd a d ∈ ι) ⊎ (∃[ x ] ∃[ d ] bind x a d ∈ ι)
-
-μ : T* -> Addr -> Dom
-μ ι a with well-addressed ι a
-...  | inj₁ (d , _prf)       = d
-...  | inj₂ (_x , d , _prf) = d
-    
-deref : (a : Addr) -> Dom
-deref a ι = (next (look a) ::> next (μ ι a >>β= aux)) ι
+deref : Addr -> Dom
+deref a μ = next (look a) :: (λ α -> (lookup μ a α >>β= aux) μ)
   where
     aux : Val -> Maybe Dom
-    aux v = just (next (upd a (ret v)) ::> next (ret v))
+    aux v = just (λ μ -> next (upd a v) :: next (ret v (update μ a (ret v))))
 
 apply : Dom -> Dom -> Dom
 apply dₑ dₓ = dₑ >>β= aux 
@@ -88,21 +89,19 @@ select dₑ f = dₑ >>β= aux
     aux (con K d▹s) = just (f K d▹s)
     aux _           = nothing
     
-postulate alloc : ∀ (μ : Addr -> Dom) -> Addr
+postulate alloc : Heap -> Addr
 
 -- Helpers I'd rather not need
 
-_[_↦_] : ∀ {B : Set} -> (Var -> Maybe B) -> Var -> B -> (Var -> Maybe B)
-_[_↦_] env x b y with x == y
-... | true  = just b 
-... | false = env y
+_[_↦_] : (Var -> Maybe Dom) -> Var -> Dom -> (Var -> Maybe Dom)
+_[_↦_] ρ x d y = if x == y then just d else ρ y
 
-_[_↦*_] : ∀ {B : Set} -> (Var -> Maybe B) -> List Var -> List B -> (Var -> Maybe B)
-_[_↦*_] {B} env xs bs y = aux (Data.List.zip xs bs) 
+_[_↦*_] : (Var -> Maybe Dom) -> List Var -> ▹ List Dom -> ▹ (Var -> Maybe Dom)
+_[_↦*_] ρ xs ds▹ α = aux (Data.List.zip xs (ds▹ α))
   where
-    aux : List (Var × B) -> Maybe B
-    aux [] = env y
-    aux ((x , b) ∷ xs) = if x == y then just b else aux xs
+    aux : List (Var × Dom) -> (Var -> Maybe Dom)
+    aux []             y = ρ y
+    aux ((x , d) ∷ xs) y = if x == y then just d else aux xs y
 
 sequence : ∀ {A : Set} → List (▹ A) -> ▹ List A
 sequence [] = next []
@@ -117,28 +116,29 @@ sem = fix sem'
     sem' recurse▹ (ref x) ρ with ρ x
     ... | nothing = λ _ -> stuck
     ... | just d  = d
-    sem' recurse▹ (lam x e) ρ = ret (fun (λ d▹ -> next (app2 x) ⊛ d▹ ::> recurse▹ ⊛ next e ⊛ (next (λ d -> ρ [ x ↦ d ]) ⊛ d▹)))
+    sem' recurse▹ (lam x e) ρ = 
+      ret (fun (λ d▹ -> (λ α -> app2 x (d▹ α)) ::> (λ α -> recurse▹ α e (ρ [ x ↦ d▹ α ]))))
     sem' recurse▹ (app e x) ρ with ρ x 
     ... | nothing = λ _ -> stuck 
     ... | just dₓ = let dₑ▹ = recurse▹ ⊛ next e ⊛ next ρ in
-                    next (app1 dₓ) ::> next apply ⊛ dₑ▹ ⊛ next dₓ
-    sem' recurse▹ (let' x e₁ e₂) ρ ι =
-      let a = alloc (μ ι) in
+                    next (app1 dₓ) ::> (λ α -> apply (dₑ▹ α) dₓ)
+    sem' recurse▹ (let' x e₁ e₂) ρ μ =
+      let a = alloc μ in
       let ρ' = ρ [ x ↦ deref a ] in
       let d₁▹ = recurse▹ ⊛ next e₁ ⊛ next ρ' in
       let d₂▹ = recurse▹ ⊛ next e₂ ⊛ next ρ' in
-      (next (bind x a) ⊛ d₁▹ ::> d₂▹) ι
+      (λ α -> bind x a (d₁▹ α)) :: (λ α -> d₂▹ α (update μ a (d₁▹ α)))
     sem' recurse▹ (conapp K xs) ρ = 
-      let ds▹ = Data.List.map (λ x -> recurse▹ ⊛ next (ref x) ⊛ next ρ) xs in
+      let ds▹ = Data.List.map (λ x α -> recurse▹ α (ref x) ρ) xs in
       ret (con K ds▹)
     sem' recurse▹ (case' eₛ alts) ρ = 
       let dₛ▹ = recurse▹ ⊛ next eₛ ⊛ next ρ in
-      next case1 ⊛ dₛ▹ ::> next select ⊛ dₛ▹ ⊛ next f
+      (λ α -> case1 (dₛ▹ α)) ::> (λ α -> select (dₛ▹ α) f)
         where
           f : Con -> List (▹ Dom) -> Dom
           f K d▹s with findAlt K alts
           ... | nothing =  λ _ -> stuck
           ... | just (xs , rhs) = 
             let ds▹ = sequence d▹s in
-            let ρ'▹ = next (_[_↦*_] ρ xs) ⊛ ds▹ in
-            next (case2 K) ⊛ (next (Data.List.zip xs) ⊛ ds▹) ::> recurse▹ ⊛ next rhs ⊛ ρ'▹  
+            let ρ'▹ =  ρ [ xs ↦* ds▹ ] in
+            (λ α -> case2 K (Data.List.zip xs (ds▹ α))) ::> (λ α -> recurse▹ α rhs (ρ'▹ α))

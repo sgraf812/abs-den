@@ -2,19 +2,30 @@
 \section{Abstraction Interpretation}
 \label{sec:abstractions}
 
-Let us first try to reformulate semantic deadness in terms of $\semless{\wild}$:
+Let us first try to reformulate semantic deadness in terms of $\semevt{\wild}$:
 
-\begin{definition}[Deadness]
+\begin{definition}[Denotational deadness, lazily]
   \label{defn:deadness3}
   A variable $\px$ is \emph{dead} in an expression $\pe$ if and only
-  if, for all $ρ ∈ \Var \to \MaxD, d_1, d_2 ∈ \MaxD, μ ∈ \Heaps$ and $\pa ∈ \Addresses$, we have
-  \[\semless{\pe}_{ρ[\px↦\deref{\pa}]}(μ[\pa ↦ d_1]) = \semless{\pe}_{ρ[\px↦\deref{\pa}]}(μ[\pa ↦ d_1]).\]
+  if, for all $ρ ∈ \Var \to \EventD, d_1, d_2 ∈ \EventD, μ ∈ \Heaps$ and $\pa ∈ \Addresses$, we have
+  \[\semevt{\pe}_{ρ[\px↦\deref(\pa)]}(μ[\pa ↦ d_1]) = \semevt{\pe}_{ρ[\px↦\deref(\pa)]}(μ[\pa ↦ d_2]).\]
   Otherwise, $\px$ is \emph{live}.
 \end{definition}
 
-Again, if we know that $x$ is dead, then the following equation justifies our
-rewrite above: $\semscott{\Let{x}{\pe_1}{\pe_2}}_ρ = \semscott{\pe_2}_{ρ[x↦d]} =
-\semscott{\pe_2}_ρ$ (for all $ρ$ and the suitable $d$).
+If $x$ is dead in $\pe_2$ according to this definition, then we can justify the
+following rewrite:
+\[\arraycolsep=3pt
+\begin{array}{lclcl}
+\semevt{\Let{x}{\pe_1}{\pe_2}}_ρ(μ)
+& = & \semevt{\pe_2}_{ρ[x↦\deref(\pa)]}(μ[\pa↦d])
+\\
+& = & \semevt{\pe_2}_{ρ[x↦\deref(\pa)]}(μ[\pa↦\fn{\wild}{\stuckend{}}])
+& = & \semevt{\Let{x}{\mathit{crash}}{\pe_2}}_ρ(μ)
+\end{array}
+\]
+(for all $ρ, μ$ and the suitable $d$ and $\pa$).
+A syntactic occurrence analysis could subsequently figure out whether the binding for $x$
+can be dropped without introducing scoping errors.
 
 We can now prove \Cref{thm:semusg-correct-live} in terms of this new
 characterisation of deadness by induction:
@@ -27,7 +38,7 @@ characterisation of deadness by induction:
 \end{theorem}
 \begin{proof}
   By induction over $\pe$. The full proof can be found in
-  \Cref{prf:semusg-correct-live}.
+  \Cref{prf:semusg-correct-live-3}.
 \end{proof}
 
 So that is nice.
@@ -39,9 +50,9 @@ Unfortunately, we have made no progress towards
   \Uparrow \\
   \exists \tr,\td_1,\td_2.\ \semusg{\pe}_{\tr[x ↦ \td_1]} \not= \semusg{\pe}_{\tr[x ↦ \td_2]} \\
   \Uparrow \text{ This one is non-trivial, but we can take any $α(d_1),α(d_2)$ and add $[x_1↦1],[x_2↦1]$ for some "fresh" vars}\\
-  \exists ρ,d_1,d_2,ι_1,ι_2.\ \semless{\pe}_{ρ[x ↦ d_1]}(ι_1) \not= \semless{\pe}_{ρ[x ↦ d_2]}(ι_2) \\
+  \exists ρ,d_1,d_2,ι_1,ι_2.\ \semevt{\pe}_{ρ[x ↦ d_1]}(ι_1) \not= \semevt{\pe}_{ρ[x ↦ d_2]}(ι_2) \\
   \Uparrow \\
-  \exists \pe_1,\pe_2.\ \semless{\Let{x}{\pe_1}{\pe}} \not= \semless{\Let{x}{\pe_2}{\pe}} \\
+  \exists \pe_1,\pe_2.\ \semevt{\Let{x}{\pe_1}{\pe}} \not= \semevt{\Let{x}{\pe_2}{\pe}} \\
   \Updownarrow \\
   x \text{ live in } \pe \\
 \end{array}\]
@@ -51,9 +62,9 @@ Unfortunately, we have made no progress towards
   \Downarrow \\
   \forall \tr,\td_1,\td_2.\ \semusg{\pe}_{\tr[x ↦ \td_1]} = \semusg{\pe}_{\tr[x ↦ \td_2]} \\
   \Downarrow \text{ This one is non-trivial, but we can take any $α(d_1),α(d_2)$ and add $[x_1↦1],[x_2↦1]$ for some "fresh" vars}\\
-  \forall ρ,d_1,d_2,ι_1,ι_2.\ \semless{\pe}_{ρ[x ↦ d_1]}(ι_1) = \semless{\pe}_{ρ[x ↦ d_2]}(ι_2) \\
+  \forall ρ,d_1,d_2,ι_1,ι_2.\ \semevt{\pe}_{ρ[x ↦ d_1]}(ι_1) = \semevt{\pe}_{ρ[x ↦ d_2]}(ι_2) \\
   \Downarrow \\
-  \forall \pe_1,\pe_2.\ \semless{\Let{x}{\pe_1}{\pe}} = \semless{\Let{x}{\pe_2}{\pe}} \\
+  \forall \pe_1,\pe_2.\ \semevt{\Let{x}{\pe_1}{\pe}} = \semevt{\Let{x}{\pe_2}{\pe}} \\
   \Updownarrow \\
   x \text{ dead in } \pe \\
 \end{array}\]
@@ -63,22 +74,22 @@ Unfortunately, we have made no progress towards
   \multicolumn{3}{c}{ \ruleform{ defn : \Traces \to (\Addresses \pfun \Var) \qquad blub : \Traces \to (\Var \to \UsgD) \to (\Addresses \to \UsgD) } } \\
   \\[-0.5em]
   defn_{\Traces}(a \cons τ) & = & defn(a) \uplus defn(τ) \\
-  defn_{\Actions}(\BindA(\px,\pa↦\pe,d)) & = & [\pa↦\px] \\
+  defn_{\Events}(\BindA(\px,\pa↦\pe,d)) & = & [\pa↦\px] \\
   blub(τ)(\tr)(\pa) & = & \tr(defn_{\Traces}(τ)(\pa)) \text{ or $\bot$} \\
   \\[-0.5em]
   \multicolumn{3}{c}{ \ruleform{ usg : (\Addresses \to \UsgD) \to \Traces \to \UsgD \times \Values{\UsgD} } } \\
   \\[-0.5em]
   usg_{\Traces}(\tm)(\goodend{\FunV(f)}) & = & (\fn{\wild}{0}, α_{\Values{}}(\FunV(f))) \\
   usg_{\Traces}(\tm)(\stuckend{}) & = & (\fn{\wild}{0}, \bot_{\Values{\UsgD}}) \\
-  usg_{\Traces}(\tm)(\pe \act{a} τ) & = & usg_{\Actions}(\tm)(a) +_1 usg_{\Traces}(\tm)(τ) \\
-  usg_{\Actions}(\tm)(a) & = & \begin{cases}
+  usg_{\Traces}(\tm)(\pe \act{a} τ) & = & usg_{\Events}(\tm)(a) +_1 usg_{\Traces}(\tm)(τ) \\
+  usg_{\Events}(\tm)(a) & = & \begin{cases}
       \tm(\pa) & a = \LookupT(\pa) \\
       0 & \text{otherwise}
     \end{cases} \\
   usg^{-1}_{\Traces}(\tm)(\goodend{(\lbl, \FunV(f))}) & = & (0, α_{\Values{}}(\FunV(f))) \\
-  usg_{\MaxD}(\tm)(d) & = & usg_{\Traces} \circ d \circ usg^{-1}_{\Traces} \\
-  usg^{-1}_{\MaxD}(\tm)(d) & = & usg^{-1}_{\Traces} \circ d \circ usg_{\Traces} \\
-  usg_{\Values{}}(\tm)(\FunV(f)) & = & \FunV(usg_{\MaxD} \circ f \circ usg^{-1}_{\MaxD}) \\
+  usg_{\EventD}(\tm)(d) & = & usg_{\Traces} \circ d \circ usg^{-1}_{\Traces} \\
+  usg^{-1}_{\EventD}(\tm)(d) & = & usg^{-1}_{\Traces} \circ d \circ usg_{\Traces} \\
+  usg_{\Values{}}(\tm)(\FunV(f)) & = & \FunV(usg_{\EventD} \circ f \circ usg^{-1}_{\EventD}) \\
   \\[-0.5em]
   \multicolumn{3}{c}{ \ruleform{ intra : \UsgD \times \Values{\UsgD} \to \UsgD \times \Values{\UsgD} } } \\
   \\[-0.5em]
