@@ -4,9 +4,7 @@
 
 \subsection{Proofs}
 
-\providecommand{\tr}{\ensuremath{\tilde{ρ}}}
-
-\begin{proof}[Of \Cref{thm:semusg-correct-live}]
+\begin{proof}[Proof of \Cref{thm:semusg-correct-live}]
   \label{prf:semusg-correct-live}
   By induction on $\pe$.
   We fix $\pe$, $\px$ and $\tr$ such that $\tr(\px) \not⊑ \semusg{\pe}_{\tr}$.
@@ -74,6 +72,86 @@
           Both deadness facts together allow us to rewrite
           \[
             \semscott{\pe_2}_{ρ[\px↦d_1][\py↦d'_1]} = \semscott{\pe_2}_{ρ[\px↦d_1][\py↦d'_2]} = \semscott{\pe_2}_{ρ[\px↦d_2][\py↦d'_2]}
+          \]
+          as requested.
+        \item \textbf{Case $\tr'(\px) \not⊑ \semusg{\pe_1}_{\tr'}$}:
+          Then $\px$ is dead in $\pe_1$ and $d'_1 = d'_2$. The goal follows
+          from the fact that $\px$ is dead in $\pe_2$.
+      \end{itemize}
+  \end{itemize}
+\end{proof}
+
+\begin{proof}[Proof of \Cref{thm:semusg-correct-live-3}]
+  \label{prf:semusg-correct-live-3}
+  By induction on $\pe$.
+  We fix $\pe$, $\px$ and $\tr$ such that $\tr(\px) \not⊑ \semusg{\pe}_{\tr}$.
+  The goal is to show that $\px$ is dead in $\pe$,
+  so we are given an arbitrary $ρ, d_1, d_2, μ, \pa$ and have to show that
+  $\semevt{\pe}_{ρ[\px↦\deref(\pa)]}(μ[\pa↦d_1]) = \semevt{\pe}_{ρ[\px↦\deref(\pa)]}(μ[\pa↦d_2])$.
+  By cases on $\pe$:
+  \begin{itemize}
+    \item \textbf{Case $\pe\triangleq\py$}: If $\px=\py$, then
+      $\semusg{\py}_{\tr} = \semusg{\px}_{\tr}$, a contradiction.
+      If $\px \not= \py$, then varying the heap entry for $\pa$ won't matter,
+      because $ρ(\py) \not= \deref(\pa)$ due to the freshness constraint; hence
+      $\px$ is dead in $\py$.
+    \item \textbf{Case $\pe\triangleq\Lam{\py}{\pe'}$}: The equality follows from
+      pointwise equality on functions, so we pick arbitrary $μ, d^\later$ to show
+      % Urgh, the μ that we start with is not the same as that reaches the subexpression.
+      % It might already have evaluated d_1, d_2 which might cause them to eqaute.
+      $\semevt{\pe'}_{ρ[\px↦\deref(\pa)][\py↦d^\later](μ[\pa↦])} = \semevt{\pe'}_{ρ[\px↦\deref(\pa)][\py↦d^\later]}$.
+
+      This is simple to see if $\px=\py$. Otherwise, $\tr[\py↦\bot]$ witnesses the fact that
+      \[
+        \tr[\py↦\bot](\px) = \tr(\px) \not⊑
+        \semusg{\Lam{\px}{\pe'}}_{\tr} = \semusg{\pe'}_{\tr[\py↦\bot]}
+      \]
+      so we can apply the induction hypothesis to see that $\px$ must be dead in
+      $\pe'$, hence the equality on $\semevt{\pe'}$ holds.
+    \item \textbf{Case $\pe\triangleq\pe'~\py$}:
+      From $\tr(\px) \not⊑ \semusg{\pe'}_{\tr} + ω*\tr(\py)$ we can see that
+      $\tr(\px) \not⊑ \semusg{\pe'}_{\tr}$ and $\tr(\px) \not⊑ \tr(\py)$ by
+      monotonicity of $+$ and $*$.
+      If $\px=\py$ then the latter inequality leads to a contradiction.
+      Otherwise, $\px$ must be dead in $\pe'$, hence both cases of
+      $\semevt{\pe'~\py}$ evaluate equally, differing only in
+      the environment. It remains to be shown that
+      $ρ[\px↦d_1](\py) = ρ[\px↦d_2](\py)$, and that is easy to see since
+      $\px \not= \py$.
+    \item \textbf{Case $\pe\triangleq\Let{\py}{\pe_1}{\pe_2}$}:
+      We have to show that
+      \[
+        \semevt{\pe_2}_{ρ[\px↦d_1][\py↦d'_1]} = \semevt{\pe_2}_{ρ[\px↦d_2][\py↦d'_2]}
+      \]
+      where $d'_i$ satisfy $d'_i = \semevt{\pe_1}_{ρ[\px↦d_i][\py↦d'_i]}$.
+      The case $\px = \py$ is simple to see, because $ρ[\px↦d_i](\px)$ is never
+      looked at.
+      So we assume $\px \not= \py$ and see that $\tr(\px) = \tr'(\px)$, where
+      $\tr' = \operatorname{fix}(\fn{\tr'}{\tr ⊔ [\py ↦ \semusg{\pe_1}_{\tr'}]})$.
+
+      We know that
+      \[
+        \tr'(\px) = \tr(\px) \not⊑ \semusg{\pe}_{\tr} = \semusg{\pe_2}_{\tr'}
+      \]
+      So by the induction hypothesis, $\px$ is dead in $\pe_2$.
+
+%      Now consider the predicate $P(\tr) = \tr(\px) ⊑ \semusg{\pe_1}_{\tr}$.
+%      We must prove it admissable to see that it holds (by fixpoint induction)
+%      for $\tr'$. That is clearly the case because it is a composition of
+%      continuous functions ($\tr, \semusg{\pe_1}$) and admissable predicates
+%      ($⊑$).
+%
+%      SG: I think we don't need to prove that P above is admissable because
+%      we never try to prove it through fixpoint induction; we simply apply LEM.
+
+      We proceed by cases over $\tr(\px) = \tr'(\px) ⊑ \semusg{\pe_1}_{\tr'}$.
+      \begin{itemize}
+        \item \textbf{Case $\tr'(\px) ⊑ \semusg{\pe_1}_{\tr'}$}: Then
+          $\tr'(\px) ⊑ \tr'(\py)$ and $\py$ is also dead in $\pe_2$ by the above
+          inequality.
+          Both deadness facts together allow us to rewrite
+          \[
+            \semevt{\pe_2}_{ρ[\px↦d_1][\py↦d'_1]} = \semevt{\pe_2}_{ρ[\px↦d_1][\py↦d'_2]} = \semevt{\pe_2}_{ρ[\px↦d_2][\py↦d'_2]}
           \]
           as requested.
         \item \textbf{Case $\tr'(\px) \not⊑ \semusg{\pe_1}_{\tr'}$}:

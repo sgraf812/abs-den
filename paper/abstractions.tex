@@ -4,13 +4,19 @@
 
 Let us first try to reformulate semantic deadness in terms of $\semevt{\wild}$:
 
-\begin{definition}[Denotational deadness, lazily]
+\begin{definition}[Denotational deadness, lazily and wrong]
   \label{defn:deadness3}
   A variable $\px$ is \emph{dead} in an expression $\pe$ if and only
-  if, for all $ρ ∈ \Var \to \EventD, d_1, d_2 ∈ \EventD, μ ∈ \Heaps$ and $\pa ∈ \Addresses$, we have
-  \[\semevt{\pe}_{ρ[\px↦\deref(\pa)]}(μ[\pa ↦ d_1]) = \semevt{\pe}_{ρ[\px↦\deref(\pa)]}(μ[\pa ↦ d_2]).\]
+  if, for all $ρ ∈ \Var \to \EventD, d_1, d_2 ∈ \EventD, μ ∈ \Heaps$ and $\pa ∈ \Addresses$ such that $ρ(\px) = \deref(\pa)$, we have
+  \[\semevt{\pe}_{ρ}(μ[\pa ↦ d_1]) = \semevt{\pe}_{ρ}(μ[\pa ↦ d_2]).\]
   Otherwise, $\px$ is \emph{live}.
 \end{definition}
+
+Alas, this definition is vacuously true!
+Even when $μ(\pa)$ is never forced, the entry will be listed in the final heap
+of a trace ending in $\goodend{}$.
+
+It is reasonable to define an observation function
 
 If $x$ is dead in $\pe_2$ according to this definition, then we can justify the
 following rewrite:
