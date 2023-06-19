@@ -111,13 +111,21 @@
       $d_1^\later \overset{\pa}{\sim}_{\EventD} d_2^\later$
       and show $f(d_1^\later)(μ_1) \overset{\pa}{\sim}_{\Traces{}} f(d_2^\later)(μ_2)$.
 
-      This is simple to see if $\px=\py$.
+      This follows by applying congruence rules for $\Events$, $\Traces{}$ and
+      $\EventD$ once we can show the crucial property
+      $d_1 \overset{\pa}{\sim}_{\EventD} d_2$
+      for $d_i \triangleq \semevt{\pe'}_{ρ[\px↦\deref(\pa)][\py↦d_i^\later]}$.
 
-      Assuming we can show that $\px$ is dead in $\pe'$,
+      If $\px=\py$ then $d_i = \semevt{\pe'}_{ρ[\py↦d_i^\later]}$ and nothing
+      references $\pa$, so the equivalence follows by induction on $\pe'$.
+
+      Otherwise, we can rearrange the environments to
+      $d_i = \semevt{\pe'}_{ρ[\py↦d_i^\later][\px↦\deref(\pa)]}$.
+      Now, $d_i^\later
+      and hence it suffices to show that $\px$ is dead in assuming we can show that $\px$ is dead in $\pe'$,
       we can see that $\pa$ is dead in
       $d_i \triangleq \semevt{\pe'}_{ρ[\px↦\deref(\pa)][\py↦d_i^\later]}$ by definition of
-      deadness and then easily conclude the proof by applying congruence rules
-      for $\Events$, $\Traces{}$ and $\EventD$.
+      deadness and then easily conclude the proof
 
       Otherwise, $\tr[\py↦\bot]$ witnesses the fact that
       \[
