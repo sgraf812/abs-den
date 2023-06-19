@@ -96,44 +96,43 @@
       $\semevt{\py}_{ρ[\px↦\deref(\pa)]}=ρ(\py)$ because $\pa$ is dead in $ρ(\py)$
       by assumption.
     \item \textbf{Case $\pe\triangleq\Lam{\py}{\pe'}$}:
-      Let $μ_1 \overset{\pa}{\sim}_{\Heaps} μ_2$.
-      Now assume $v \overset{\pa}{\sim}_{\EventV} v$;
-      then $\ret(v) \overset{\pa}{\sim}_{\EventD} \ret(v)$ follows from
-      unfolding $\ret$ and applying that assumption.
+      Let $v$ be any value such that $\dead^{\EventV}_{\pa}(v)$;
+      then $\dead^{\EventD}_{\pa}(\ret(v))$ follows from
+      unfolding $\ret$.
 
-      So it's enough to prove $\FunV(f) \overset{\pa}{\sim}_{\EventV} \FunV(f)$, where
+      So for the lambda case, it's enough to prove
+      $\dead^{\EventV}_{\pa}(\FunV(f))$, where
       \[
-        f \triangleq\fn{d^\later}{\AppEA(\py↦d^\later) \cons \semevt{\pe'}_{ρ[\px↦\deref(\pa)][\py↦d^\later]}}
+        f \triangleq\fn{d^\later}{\AppEA(\py↦d^\later) \cons \semevt{\pe'}_{ρ[\px↦\deref(\pa)][\py↦d^\later]}}.
       \]
-      from the lambda case of $\semevt{\wild}$.
-      Hence let us pick arbitrary $μ_i, d_i^\later$ such that
-      $μ_1 \overset{\pa}{\sim}_{\Heaps} μ_2$ and
-      $d_1^\later \overset{\pa}{\sim}_{\EventD} d_2^\later$
-      and show $f(d_1^\later)(μ_1) \overset{\pa}{\sim}_{\Traces{}} f(d_2^\later)(μ_2)$.
+      Hence let us pick arbitrary $μ_i, d^\later$ such that
+      $μ_1\sim^{\Heaps}_{\pa} μ_2$ and
+      $\dead^{\EventD}_{\pa}(d^\later)$
+      and show
+      \[
+        f(d^\later)(μ_1)\sim^{\Traces{}}_{\pa} f(d^\later)(μ_2).
+      \]
+      This follows by congruence once we show that $\pa$ is dead in
+      $d \triangleq \semevt{\pe'}_{ρ[\px↦\deref(\pa)][\py↦d^\later]}$.
 
-      This follows by applying congruence rules for $\Events$, $\Traces{}$ and
-      $\EventD$ once we can show the crucial property
-      $d_1 \overset{\pa}{\sim}_{\EventD} d_2$
-      for $d_i \triangleq \semevt{\pe'}_{ρ[\px↦\deref(\pa)][\py↦d_i^\later]}$.
+      If $\px=\py$ then $d = \semevt{\pe'}_{ρ[\py↦d^\later]}$
+      and nothing references $\pa$, so the equivalence follows by simple
+      induction on $\pe'$.
 
-      If $\px=\py$ then $d_i = \semevt{\pe'}_{ρ[\py↦d_i^\later]}$ and nothing
-      references $\pa$, so the equivalence follows by induction on $\pe'$.
-
-      Otherwise, we can rearrange the environments to
-      $d_i = \semevt{\pe'}_{ρ[\py↦d_i^\later][\px↦\deref(\pa)]}$.
-      Now, $d_i^\later
-      and hence it suffices to show that $\px$ is dead in assuming we can show that $\px$ is dead in $\pe'$,
-      we can see that $\pa$ is dead in
-      $d_i \triangleq \semevt{\pe'}_{ρ[\px↦\deref(\pa)][\py↦d_i^\later]}$ by definition of
-      deadness and then easily conclude the proof
-
-      Otherwise, $\tr[\py↦\bot]$ witnesses the fact that
+      Otherwise, $\px \not= \py$ and $\tr[\py↦\bot]$ witnesses the fact that
       \[
         \tr[\py↦\bot](\px) = \tr(\px) \not⊑
-        \semusg{\Lam{\py}{\pe'}}_{\tr} = \semusg{\pe'}_{\tr[\py↦\bot]}
+        \semusg{\Lam{\py}{\pe'}}_{\tr} = \semusg{\pe'}_{\tr[\py↦\bot]},
       \]
       so we can apply the induction hypothesis to see that $\px$ must be dead in
-      $\pe'$, hence the equality on $\semevt{\pe'}$ holds.
+      $\pe'$.
+      On the other hand, we can use $\px \not= \py$ to commute the environment
+      updates to
+      $d = \semevt{\pe'}_{ρ[\py↦d^\later][\px↦\deref(\pa)]}$.
+      Now, $\pa$ is dead in $d^\later$, as per assumption, and likewise for
+      $\rng(ρ[\py↦d^\later])$.
+      By \Cref{defn:deadness4}, we can apply that $\px$ is dead in $\pe'$ to
+      this setup to conclude that $\pa$ is dead in $d$.
     \item \textbf{Case $\pe\triangleq\pe'~\py$}:
       From $\tr(\px) \not⊑ \semusg{\pe'}_{\tr} + ω*\tr(\py)$ we can see that
       $\tr(\px) \not⊑ \semusg{\pe'}_{\tr}$ and $\tr(\px) \not⊑ \tr(\py)$ by
