@@ -1,10 +1,11 @@
-\pagebreak
-\section{Abstraction Interpretation}
+\section{Abstract Interpretation}
 \label{sec:abstractions}
+
+\subsection{Lazy Denotational Deadness}
 
 Let us first try to reformulate semantic deadness in terms of $\semevt{\wild}$:
 
-\begin{definition}[Denotational deadness, lazily and wrong]
+\begin{definition}[Denotational deadness, lazily and unusable]
   \label{defn:deadness3}
   A variable $\px$ is \emph{dead} in an expression $\pe$ if and only
   if, for all $ρ ∈ \Var \to \EventD, d_1, d_2 ∈ \EventD, μ ∈ \Heaps$ and $\pa ∈ \Addresses$ such that $ρ(\px) = \deref(\pa)$, we have
@@ -13,23 +14,101 @@ Let us first try to reformulate semantic deadness in terms of $\semevt{\wild}$:
 \end{definition}
 
 Alas, this definition is vacuously true!
-Even when $μ(\pa)$ is never forced, the entry will be listed in the final heap
-of a trace ending in $\goodend{}$.
+We can observe distinct $d_1,d_2$ in the entry $μ(\pa)$ listed in the final heap
+$μ$ of a trace ending in $\goodend{v,μ}$.
+Furthermore, there is no guarantee that some other entry in $ρ$ besides $ρ(\px)$
+might dereference $\pa$.
 
-It is reasonable to define an observation function
+It is reasonable to \emph{restrict} what we can observe then in order to get
+a coarser equivalence relation than definitional equality on traces.
+For example, we could compare traces modulo the kernel of the length function
+such as defined in \Cref{thm:abs-length}.
 
+Alas, the equivalence relation induced in this way would be \emph{too} coarse:
+Consider $(\Lam{x}{y})$; this expression would be dead in $y$ according to that
+definition because all its maximal traces will have length 1.
+But clearly we should not be able to rewrite $\Let{y}{\pe}{\Lam{x}{y}}$ to
+$\Let{y}{\mathit{crash}}{\Lam{x}{y}}$, the latter of which would crash when
+applied to an argument.
+So our equivalence relation must be finer on values, just like observational
+equivalence in operational semantics.
+
+The key is to introduce an equivalence relation on heaps with a ``blind spot''
+concerning the contents of address $\pa$:%
+\footnote{This is nearly the correctness predicate $\sim_V$ of
+\citet[Theorem 2.21]{Nielson:99}.
+The only conceptual difference is that $V$ tracks the set of \emph{live} variables,
+whereas we track a single address assumed to be \emph{dead}.}
+\[
+ \inferrule*
+    {\forall \pa' ∈ \Var \setminus \{ \pa \}.\ \Longrightarrow μ_1(\pa') \overset{\pa}{\sim}_{\EventD} μ_2(\pa') }
+    {μ_1 \overset{\pa}{\sim}_{\Heaps} μ_2}
+\]
+Now we lift $\overset{\pa}{\sim}_{\EventD}$ congruently over $\Traces{}$,
+$\Events$, $\EventD$ and $\EventV$ which is entirely mechanical.
+For $\Events$ we only give the rule concerning the $\AppEA$ event as an example:%
+\footnote{These definitions are to be understood as coinductive, although we omit distracting $\later$.}
+\[\begin{array}{cc}
+ \begin{array}{c}
+ \inferrule*
+    {ε_1 \overset{\pa}{\sim}_{\Events} ε_2 \quad τ_1 \overset{\pa}{\sim}_{\Traces{}} τ_2}
+    {ε \cons τ_1 \overset{\pa}{\sim}_{\Traces{}} ε \cons τ_2}
+ \qquad
+ \inferrule*
+    {\quad}
+    {\stuckend{} \overset{\pa}{\sim}_{\Traces{}} \stuckend{}}
+ \qquad
+ \inferrule*
+    {v_1 \overset{\pa}{\sim}_{\EventV} v_2 \quad μ_1 \overset{\pa}{\sim}_{\Heaps} μ_2}
+    {\goodend{v_1,μ_1} \overset{\pa}{\sim}_{\Traces{}} \goodend{v_2,μ_2}}
+ \\
+ \\[-0.5em]
+ \inferrule*[right=\ldots]
+    {d_1 \overset{\pa}{\sim}_{\EventD} d_2}
+    {\AppEA(\px ↦ d_1) \overset{\pa}{\sim}_{\Events} \AppEA(\px ↦ d_2)}
+ \qquad
+ \inferrule*
+    {\forall μ_1, μ_2.\ μ_1 \overset{\pa}{\sim}_{\Heaps} μ_2 \Longrightarrow d_1(μ_1) \overset{\pa}{\sim}_{\Traces{}} d_2(μ_2) }
+    {d_1 \overset{\pa}{\sim}_{\EventD} d_2}
+ \\
+ \\[-0.5em]
+ \inferrule*
+    {\many{d_1 \overset{\pa}{\sim}_{\EventD} d_2} }
+    {\ConV(K, \many{d_1}) \overset{\pa}{\sim}_{\EventV} \ConV(K, \many{d_2})}
+ \qquad
+ \inferrule*
+    {\forall d_1, d_2.\ d_1 \overset{\pa}{\sim}_{\EventD} d_2 \Longrightarrow f_1(d_1) \overset{\pa}{\sim}_{\EventD} f_2(d_2) }
+    {\FunV(f_1) \overset{\pa}{\sim}_{\EventV} \FunV(f_2)}
+ \end{array}
+\end{array}\]
+The congruence rule for $\overset{\pa}{\sim}_{\EventD}$ is particularly interesting:
+It expresses both an \emph{assumption} about the kind of heaps $μ_i$ passed
+to $d_i$ as well as a \emph{requirement} on the trace resulting from applying
+said heaps to $d_i$.
+We can now formulate a useful notion of deadness in terms of this equivalence
+relation:
+\begin{definition}[Denotational deadness, lazily and useful]
+  \label{defn:deadness4}
+  An address $\pa$ is \emph{dead} in an element $d ∈ \EventD$
+  if and only if $d \overset{\pa}{\sim}_{\EventD} d$.
+  Otherwise, $\pa$ is \emph{live}.
+
+  Furthermore, a variable $\px$ is \emph{dead} in an expression $\pe$
+  if and only if, for all $ρ ∈ \Var \to \EventD$ and addresses $\pa$ such that $\pa$ is dead in $\rng(ρ)$,
+  $\pa$ is dead in $\semevt{\pe}_{ρ[\px ↦ \deref(\pa)]}$.
+  Otherwise, $\px$ is \emph{live}.
+\end{definition}
 If $x$ is dead in $\pe_2$ according to this definition, then we can justify the
-following rewrite:
+following rewrite if we choose not to observe heaps:
 \[\arraycolsep=3pt
 \begin{array}{lclcl}
 \semevt{\Let{x}{\pe_1}{\pe_2}}_ρ(μ)
 & = & \semevt{\pe_2}_{ρ[x↦\deref(\pa)]}(μ[\pa↦d])
 \\
-& = & \semevt{\pe_2}_{ρ[x↦\deref(\pa)]}(μ[\pa↦\fn{\wild}{\stuckend{}}])
+& \overset{\pa}{\sim}_{\Traces{}} & \semevt{\pe_2}_{ρ[x↦\deref(\pa)]}(μ[\pa↦\fn{\wild}{\stuckend{}}])
 & = & \semevt{\Let{x}{\mathit{crash}}{\pe_2}}_ρ(μ)
 \end{array}
 \]
-(for all $ρ, μ$ and the suitable $d$ and $\pa$).
 A syntactic occurrence analysis could subsequently figure out whether the binding for $x$
 can be dropped without introducing scoping errors.
 

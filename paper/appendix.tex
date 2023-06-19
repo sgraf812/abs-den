@@ -24,7 +24,7 @@
       This is simple to see if $\px=\py$. Otherwise, $\tr[\py↦\bot]$ witnesses the fact that
       \[
         \tr[\py↦\bot](\px) = \tr(\px) \not⊑
-        \semusg{\Lam{\px}{\pe'}}_{\tr} = \semusg{\pe'}_{\tr[\py↦\bot]}
+        \semusg{\Lam{\py}{\pe'}}_{\tr} = \semusg{\pe'}_{\tr[\py↦\bot]}
       \]
       so we can apply the induction hypothesis to see that $\px$ must be dead in
       $\pe'$, hence the equality on $\semscott{\pe'}$ holds.
@@ -86,25 +86,43 @@
   By induction on $\pe$.
   We fix $\pe$, $\px$ and $\tr$ such that $\tr(\px) \not⊑ \semusg{\pe}_{\tr}$.
   The goal is to show that $\px$ is dead in $\pe$,
-  so we are given an arbitrary $ρ, d_1, d_2, μ, \pa$ and have to show that
-  $\semevt{\pe}_{ρ[\px↦\deref(\pa)]}(μ[\pa↦d_1]) = \semevt{\pe}_{ρ[\px↦\deref(\pa)]}(μ[\pa↦d_2])$.
+  so we are given an arbitrary $ρ, \pa$ with $\pa$ dead in $\rng(ρ)$ and have to show that
+  $\pa$ is dead in $\semevt{\pe}_{ρ[\px↦\deref(\pa)]}$.
   By cases on $\pe$:
   \begin{itemize}
     \item \textbf{Case $\pe\triangleq\py$}: If $\px=\py$, then
       $\semusg{\py}_{\tr} = \semusg{\px}_{\tr}$, a contradiction.
-      If $\px \not= \py$, then varying the heap entry for $\pa$ won't matter,
-      because $ρ(\py) \not= \deref(\pa)$ due to the freshness constraint; hence
-      $\px$ is dead in $\py$.
-    \item \textbf{Case $\pe\triangleq\Lam{\py}{\pe'}$}: The equality follows from
-      pointwise equality on functions, so we pick arbitrary $μ, d^\later$ to show
-      % Urgh, the μ that we start with is not the same as that reaches the subexpression.
-      % It might already have evaluated d_1, d_2 which might cause them to eqaute.
-      $\semevt{\pe'}_{ρ[\px↦\deref(\pa)][\py↦d^\later](μ[\pa↦])} = \semevt{\pe'}_{ρ[\px↦\deref(\pa)][\py↦d^\later]}$.
+      If $\px \not= \py$, then $\pa$ is dead in
+      $\semevt{\py}_{ρ[\px↦\deref(\pa)]}=ρ(\py)$ because $\pa$ is dead in $ρ(\py)$
+      by assumption.
+    \item \textbf{Case $\pe\triangleq\Lam{\py}{\pe'}$}:
+      Let $μ_1 \overset{\pa}{\sim}_{\Heaps} μ_2$.
+      Now assume $v \overset{\pa}{\sim}_{\EventV} v$;
+      then $\ret(v) \overset{\pa}{\sim}_{\EventD} \ret(v)$ follows from
+      unfolding $\ret$ and applying that assumption.
 
-      This is simple to see if $\px=\py$. Otherwise, $\tr[\py↦\bot]$ witnesses the fact that
+      So it's enough to prove $\FunV(f) \overset{\pa}{\sim}_{\EventV} \FunV(f)$, where
+      \[
+        f \triangleq\fn{d^\later}{\AppEA(\py↦d^\later) \cons \semevt{\pe'}_{ρ[\px↦\deref(\pa)][\py↦d^\later]}}
+      \]
+      from the lambda case of $\semevt{\wild}$.
+      Hence let us pick arbitrary $μ_i, d_i^\later$ such that
+      $μ_1 \overset{\pa}{\sim}_{\Heaps} μ_2$ and
+      $d_1^\later \overset{\pa}{\sim}_{\EventD} d_2^\later$
+      and show $f(d_1^\later)(μ_1) \overset{\pa}{\sim}_{\Traces{}} f(d_2^\later)(μ_2)$.
+
+      This is simple to see if $\px=\py$.
+
+      Assuming we can show that $\px$ is dead in $\pe'$,
+      we can see that $\pa$ is dead in
+      $d_i \triangleq \semevt{\pe'}_{ρ[\px↦\deref(\pa)][\py↦d_i^\later]}$ by definition of
+      deadness and then easily conclude the proof by applying congruence rules
+      for $\Events$, $\Traces{}$ and $\EventD$.
+
+      Otherwise, $\tr[\py↦\bot]$ witnesses the fact that
       \[
         \tr[\py↦\bot](\px) = \tr(\px) \not⊑
-        \semusg{\Lam{\px}{\pe'}}_{\tr} = \semusg{\pe'}_{\tr[\py↦\bot]}
+        \semusg{\Lam{\py}{\pe'}}_{\tr} = \semusg{\pe'}_{\tr[\py↦\bot]}
       \]
       so we can apply the induction hypothesis to see that $\px$ must be dead in
       $\pe'$, hence the equality on $\semevt{\pe'}$ holds.
