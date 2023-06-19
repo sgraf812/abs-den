@@ -42,43 +42,44 @@ whereas we track a single address assumed to be \emph{dead}.}
 \[
  \inferrule*
     {\forall \pa' ∈ \Var \setminus \{ \pa \}.\ \Longrightarrow μ_1(\pa') \overset{\pa}{\sim}_{\EventD} μ_2(\pa') }
-    {μ_1 \overset{\pa}{\sim}_{\Heaps} μ_2}
+    {μ_1 \sim^{\Heaps{}}_{\pa} μ_2}
 \]
-Now we lift $\overset{\pa}{\sim}_{\EventD}$ congruently over $\Traces{}$,
-$\Events$, $\EventD$ and $\EventV$ which is entirely mechanical.
+Now we lift this equivalence relation congruently over $\Traces{}$ and define a
+predicate aptly named $\dead_{\pa}$ over $\Events$, $\EventD$ and $\EventV$ that carves
+out the subsets we will consider dead in $\pa$.
 For $\Events$ we only give the rule concerning the $\AppEA$ event as an example:%
 \footnote{These definitions are to be understood as coinductive, although we omit distracting $\later$.}
 \[\begin{array}{cc}
  \begin{array}{c}
  \inferrule*
-    {ε_1 \overset{\pa}{\sim}_{\Events} ε_2 \quad τ_1 \overset{\pa}{\sim}_{\Traces{}} τ_2}
-    {ε \cons τ_1 \overset{\pa}{\sim}_{\Traces{}} ε \cons τ_2}
+    {\dead^{\Events}_{\pa}(ε) \quad τ_1 \sim^{\Traces{}}_{\pa} τ_2}
+    {ε \cons τ_1 \sim^{\Traces{}}_{\pa} ε \cons τ_2}
  \qquad
  \inferrule*
     {\quad}
-    {\stuckend{} \overset{\pa}{\sim}_{\Traces{}} \stuckend{}}
+    {\stuckend{} \sim^{\Traces{}}_{\pa} \stuckend{}}
  \qquad
  \inferrule*
-    {v_1 \overset{\pa}{\sim}_{\EventV} v_2 \quad μ_1 \overset{\pa}{\sim}_{\Heaps} μ_2}
-    {\goodend{v_1,μ_1} \overset{\pa}{\sim}_{\Traces{}} \goodend{v_2,μ_2}}
+    {\dead^{\EventV}_{\pa}(v) \quad μ_1 \sim^{\Heaps}_{\pa} μ_2}
+    {\goodend{v,μ_1} \sim^{\Traces{}}_{\pa} \goodend{v,μ_2}}
  \\
  \\[-0.5em]
  \inferrule*[right=\ldots]
-    {d_1 \overset{\pa}{\sim}_{\EventD} d_2}
-    {\AppEA(\px ↦ d_1) \overset{\pa}{\sim}_{\Events} \AppEA(\px ↦ d_2)}
+    {\dead^{\EventD}_{\pa}(d)}
+    {\dead^{\Events}(\AppEA(\px ↦ d))}
  \qquad
  \inferrule*
-    {\forall μ_1, μ_2.\ μ_1 \overset{\pa}{\sim}_{\Heaps} μ_2 \Longrightarrow d_1(μ_1) \overset{\pa}{\sim}_{\Traces{}} d_2(μ_2) }
-    {d_1 \overset{\pa}{\sim}_{\EventD} d_2}
+    {\forall μ_1, μ_2.\ μ_1 \sim^{\Heaps}_{\pa} μ_2 \Longrightarrow d(μ_1) \sim^{\Traces{}}_{\pa} d(μ_2) }
+    {\dead^{\EventD}_{\pa}(d)}
  \\
  \\[-0.5em]
  \inferrule*
-    {\many{d_1 \overset{\pa}{\sim}_{\EventD} d_2} }
-    {\ConV(K, \many{d_1}) \overset{\pa}{\sim}_{\EventV} \ConV(K, \many{d_2})}
+    {\many{\dead^{\EventD}_{\pa}(d)}}
+    {\dead^{\EventV}_{\pa}(\ConV(K, \many{d}))}
  \qquad
  \inferrule*
-    {\forall d_1, d_2.\ d_1 \overset{\pa}{\sim}_{\EventD} d_2 \Longrightarrow f_1(d_1) \overset{\pa}{\sim}_{\EventD} f_2(d_2) }
-    {\FunV(f_1) \overset{\pa}{\sim}_{\EventV} \FunV(f_2)}
+    {\forall d.\ \dead^{\EventD}(d) \Longrightarrow \dead^{\EventD}(f(d))}
+    {\dead^{\EventV}_{\pa}(\FunV(f))}
  \end{array}
 \end{array}\]
 The congruence rule for $\overset{\pa}{\sim}_{\EventD}$ is particularly interesting:
