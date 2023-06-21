@@ -1,0 +1,216 @@
+\section{The Imperative Essence of Lazy Evaluation}
+\label{sec:essence}
+
+Before we can talk about abstraction, we have to record a few meta-theoretic
+properties.
+We will prove these properties in terms of the eventful semantics but they apply
+just the same for the stateful one, or even the ``bare-bones'' version from
+the Appendix.
+
+As we have observed in \Cref{sec:problem}, the semantics of call-by-need is more
+complicated than the semantics for call-by-name and call-by-value because it
+relies on a heap to model memoisation.
+This leads to a more complicated domain model that essentially passes around
+heaps as state.
+
+On the other hand, memoisation is a very ``benign'' kind of state and often we
+can reason rather naturally about call-by-need programs without thinking too
+much about heaps, in contrast to a calculus with arbitrary assignments to ref
+cells.
+
+For example, we can observe that heaps in our semantics evolve in a very
+specific way:
+When $\semevt{\pe}_ρ(μ) = ... \cons \goodend{v,μ'}$, we intuit that $μ'$ must be
+``at least as evaluated'' as $μ$, \eg, for all $\pa ∈ \dom(μ)$ either $μ(\pa) =
+μ'(\pa)$ or $μ'(\pa)$ is ``the value of'' $μ(\pa)$.
+We make this observation precise via the following definitions:
+
+\begin{definition}[Big-step]
+  \label{defn:eval-d}
+  For all $d ∈ \EventD$, $v ∈ \EventV$, $μ, μ' ∈ \Heaps$ we say that
+  $d$ \emph{evaluates} in $μ$ to $(v,μ')$ (written $\bigstep{d}{μ}{v}{μ'}$) if
+  and only if $d(μ) = ... \cons \goodend{v,μ'}$.
+\end{definition}
+
+Big-step notation deliberately throws away much information about the trace,
+retaining only whether it was balanced and what the final value and heap is,
+hence the name ``big-step'' is fitting.
+
+\begin{definition}[Heap forcing]
+  \label{defn:force-heap}
+  For all $μ_1, μ_2 ∈ \Heaps$ we say that $μ_1$ \emph{forces} to $μ_2$
+  (written $μ_1 \forcesto μ_2$) if and only if
+  \begin{enumerate}
+    \item $\dom(μ_1) ⊆ \dom(μ_2)$
+    \item For all $\pa$, either
+      \begin{itemize}
+        \item $μ_1(\pa) = μ_2(\pa)$, or
+        \item there exists $v,μ'_1$ such
+          that $\bigstep{μ_1(\pa)}{μ_1}{v}{μ'_1}$ and $μ_2(\pa) = \ret(v)$ as well as
+          $μ'_1 \forcesto μ_2$ if $μ_1 \not= μ'_1$.
+      \end{itemize}
+  \end{enumerate}
+\end{definition}
+
+Our earlier intuition can now be formulated as follows:
+If $\bigstep{\semevt{\pe}_ρ}{μ}{v}{μ'}$, then $μ \forcesto μ'$.
+
+For the remainder of this work, we will identify heaps modulo consistent
+readdressing.
+Of course, a rigorous treatment would have to carry around readdressing
+substitutions and apply them to adjust the domain of a heap, its entries,
+as well as the heaps and values in the returned traces.
+\sg{Perhaps I should give a figure with the definitions I have in mind, maybe
+in the Appendix.}
+
+%We write $μ_1 \forcessym μ_2$ if either $μ_1 \forcesto μ_2$ or
+%$μ_2 \forcesto μ_1$ holds.
+When a heap entry is evaluated, it stays that way during forcing:
+
+\begin{lemma}
+  \label{thm:force-heap-val}
+  For all $μ_1,μ_2,\pa,v$ such that $μ_1 \forcesto μ_2$ and $μ_1(\pa) = \ret(v)$,
+  then $μ_2(\pa) = \ret(v)$.
+\end{lemma}
+\begin{proof}
+  Immediate proof by contraposition and unfolding of $\ret$.
+\end{proof}
+
+So once an entry becomes a value during forcing, it stays that way.
+In the same manner, if $μ_1 \forcesto μ_2$ we can observe the following
+well-founded order:
+\begin{lemma}
+  For all $μ_1,μ_2$ such that $μ_1 \forcesto μ_2$ we get a well-
+\end{lemma}
+In the same manner, we can prove that
+
+The heap forcing relation is reflexive (it is always $μ(\pa) = μ(\pa)$) and
+also antisymmetric:
+
+\begin{lemma}[$(\forcesto)$ is antisymmetric]
+  \label{thm:force-heap-trans}
+  Let $μ_1,μ_2$ be lazy heaps and $μ_1 \forcesto μ_2, μ_2 \forcesto μ_1$.
+  Then $μ_1 = μ_2$.
+\end{lemma}
+\begin{proof}
+  It is easy to see that both $μ_1$ and $μ_2$ must have the same domain.
+
+  Now suppose that there exists $\pa$ such that $μ_1(\pa) \not= μ_2(\pa)$.
+  Then there exists $v_1$ such that $\bigstep{μ_1(\pa)}{μ_1}{v_1}{\wild}$ and
+  $μ_2(\pa) = \ret(v_1)$.
+  By \Cref{thm:force-heap-val} applied to $μ_2 \forcesto μ_1$, we get $μ_1(\pa)
+  = v_1 = μ_2(\pa)$, a contradiction.
+\end{proof}
+
+(It is worth noting that antisymmetry only holds modulo readdressing.)
+However, $(\forcesto)$ is not easily proven transitive without further
+characterisation of the domain elements returned by $\semevt{\wild}$.
+
+\begin{definition}[Lazy elements]
+  \label{defn:lazy-d}
+  An element $d ∈ \EventD$ is \emph{lazy} if and only if
+  \begin{enumerate}
+    \item \textup{(Forces)} For all $μ,μ' ∈ \Heaps$ such that $d(μ) = ... \cons \goodend{\wild,μ'}$, it is the case that $μ \forcesto μ'$.
+    \item \textup{(Postpone)} For all $μ_1,μ_2 ∈ \Heaps$ such that $μ_1 \forcesto μ_2$ and
+     $\bigstep{d}{μ_1}{v_1}{μ'_1}$ (for some $v_1,μ'_1$), we also have
+     $\bigstep{d}{μ_2}{v_2}{μ'_2}$ (for some $v_2,μ'_2$) and
+     $v_1 = v_2$ as well as $μ'_1 \forcesto μ'_2$.
+    \item \textup{(Speculate)} For all $μ_1,μ_2 ∈ \Heaps$ such that $μ_1 \forcesto μ_2$ and
+     $\bigstep{d}{μ_2}{v_2}{μ'_2}$ (for some $v_2,μ'_2$), we also have
+     $\bigstep{d}{μ_1}{v_1}{μ'_1}$ (for some $v_1,μ'_1$) and
+     $v_1 = v_2$ as well as $μ'_1 \forcesto μ'_2$.
+  \end{enumerate}
+\end{definition}
+
+So when an element $d$ is \emph{lazy}, every input heap forces to the output
+heap, it evaluates to the same value whether or not the input heap is more or
+less forced, and it homomorphically transfers the forcedness relation from input
+heaps to output heaps.
+
+When we restrict ourselves to lazy heaps (\eg, heaps where every entry is a lazy
+element), we can prove transitivity.
+
+\begin{lemma}[$(\forcesto)$ is transitive]
+  \label{thm:force-heap-trans}
+  Let $μ_1,μ_2,μ_3$ be lazy heaps and $μ_1 \forcesto μ_2, μ_2 \forcesto μ_3$.
+  Then $μ_1 \forcesto μ_3$.
+\end{lemma}
+\begin{proof}
+  We need a termination measure on $(\forcesto)$ before we can proceed.
+  Note that in successive steps $μ_1 \forcesto ... \forcesto μ_n$ where all
+  $μ_i$ are lazy heaps, heap entries progress from being undefined,
+  then to a non-value denotation, and finally to a value element $\ret(v)$.
+
+  More formally, we can define a measure $m : \Heaps \to \dom(μ_n) \pfun \{0,1,2\}$
+  \[
+    m(μ)(\pa) = \begin{cases}
+        0 & μ(\pa) = \ret(\wild) \\
+        1 & \pa ∈ \dom(μ) \\
+        2 & \text{otherwise} \\
+      \end{cases}
+  \]
+  with the pointwise partial order on $\dom(μ_n) \pfun \{0,1,2\}$.
+  When $\dom(μ_n)$ is finite, this partial order has finite height, which can
+  thus serve as a termination measure.
+
+  We proceed by well-founded induction with the above measure $m$ defined on
+  $\dom(μ_3)$.
+  More precisely, show that the proposition is satisfied for $μ_1,μ_2,μ_3$
+  assuming that the proposition holds for any $μ_1',μ_2',μ_3'$
+  such that $m(μ_1') - m(μ_3') < m(μ_1) - m(μ_3)$.
+
+  We can see that $\dom(μ_1) ⊆ \dom(μ_2) ⊆ \dom(μ_3)$, proving the first property
+  of \Cref{defn-force-heap}.
+  For the second property, fix an arbitrary $\pa$.
+  When $μ_1(\pa) = μ_2(\pa)$ and $μ_2(\pa) = μ_3(\pa)$, we have $μ_1(\pa) = μ_3(\pa)$.
+  Otherwise, either $μ_1(\pa) \not= μ_2(\pa)$ or $μ_2(\pa) \not= μ_3(\pa)$.
+
+  Suppose that $μ_1(\pa) \not= μ_2(\pa)$.
+  Then there exists $v,μ'_1$ such that $\bigstep{μ_1(\pa)}{μ_1}{v}{μ'_1}$ and
+  $μ_2(\pa) = \ret(v)$ as well as $μ'_1 \forcesto μ_2$.
+  By \Cref{thm:force-heap-val} applied to $μ_2 \forcesto μ_3$, we have
+  $μ_2(\pa) = μ_3(\pa) = \ret(v)$.
+  If $μ_1' \not= μ_1$, then $m(μ_1') < m(μ_1)$ and by well-founded induction
+  we can combine $μ'_1 \forcesto μ_2$ and $μ_2 \forcesto μ_3$ to
+  $μ'_1 \forcesto μ_3$.
+  Hence we have shown that $μ_1 \forcesto μ_3$.
+
+  Suppose that $μ_1(\pa) = μ_2(\pa)$, but $μ_2(\pa) \not= μ_3(\pa)$.
+  Then there exists $v,μ'_2$ such that $\bigstep{μ_2(\pa)}{μ_2}{v}{μ'_2}$ and
+  $μ_3(\pa) = \ret(v)$ as well as $μ'_2 \forcesto μ_3$.
+  We know that $μ_1(\pa) = μ_2(\pa)$, so $\bigstep{μ_1(\pa)}{μ_2}{v}{μ'_2}$.
+  Since $μ_1(\pa)$ is lazy and $μ_1 \forcesto μ_2$, we get
+  $\bigstep{μ_1(\pa)}{μ_1}{v}{μ'_1}$ such that $μ_1' \forcesto μ_2'$ by
+  definition of laziness.
+  By well-founded induction, we can combine $μ'_1 \forcesto μ_2'$ and
+  $μ_2' \forcesto μ_3$ to $μ'_1 \forcesto μ_3$.
+  If $μ_1' \not= μ_1$, then $m(μ_1') < m(μ_1)$ and by well-founded induction
+  we can combine $μ'_1 \forcesto μ_2'$ and $μ_2' \forcesto μ_3$ to
+  $μ'_1 \forcesto μ_3$.
+  Hence have shown that $μ_1 \forcesto μ_3$.
+\end{proof}
+
+\begin{corollary}
+  $(\forcesto)$ is a partial order on lazy heaps.
+\end{corollary}
+
+Another neat consequence of lazy elements is the following confluence property:
+
+\begin{corollary}[Evaluating lazy elements is confluent]
+  \label{thm:force-heap-confluent}
+  Let $μ_1,μ_1',μ_2$ be lazy heaps, $d$ a lazy element and $v$ a value.
+  If $\bigstep{d}{μ_1}{v}{μ_1'}$ and $μ_1 \forcesto μ_2$,
+  then there exists a lazy heap $μ_2'$ such that $μ_1' \forcesto μ_2'$
+  and $\bigstep{d}{μ_2}{v}{μ_2'}$. As a commutative diagram:
+  \[
+  \begin{tikzcd}
+    μ_1 \arrow[Rightarrow]{d}[swap]{\langle d, \wild\rangle}{\langle v, \wild\rangle} \arrow[rightsquigarrow]{r}{} & μ_2 \arrow[Rightarrow]{d}{\langle d, \wild\rangle}[swap]{\langle v, \wild\rangle} \\
+    μ_1' \arrow[rightsquigarrow]{r}{} & μ_2' \\
+  \end{tikzcd}
+  \]
+\end{corollary}
+\begin{proof}
+  This is just the Postpone property in \Cref{defn:lazy-d}.
+\end{proof}
+
+And now we finally prove that $\semevt{\wild}$ indeed produces a lazy element:
