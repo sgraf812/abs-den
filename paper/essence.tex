@@ -108,14 +108,15 @@ characterisation of the domain elements returned by $\semevt{\wild}$.
 
 \begin{definition}[Lazy elements]
   \label{defn:lazy-d}
+  A heap $μ$ is \emph{lazy} if and only if its entries are lazy elements.
   An element $d ∈ \EventD$ is \emph{lazy} if and only if
   \begin{enumerate}
-    \item \textup{(Forces)} For all $μ,μ' ∈ \Heaps$ such that $d(μ) = ... \cons \goodend{\wild,μ'}$, it is the case that $μ \forcesto μ'$.
-    \item \textup{(Postpone)} For all $μ_1,μ_2 ∈ \Heaps$ such that $μ_1 \forcesto μ_2$ and
+    \item \textup{(Forces)} For all lazy $μ,μ' ∈ \Heaps$ such that $d(μ) = ... \cons \goodend{\wild,μ'}$, it is the case that $μ \forcesto μ'$.
+    \item \textup{(Postpone)} For all lazy $μ_1,μ_2 ∈ \Heaps$ such that $μ_1 \forcesto μ_2$ and
      $\bigstep{d}{μ_1}{v_1}{μ'_1}$ (for some $v_1,μ'_1$), we also have
      $\bigstep{d}{μ_2}{v_2}{μ'_2}$ (for some $v_2,μ'_2$) and
      $v_1 = v_2$ as well as $μ'_1 \forcesto μ'_2$.
-    \item \textup{(Speculate)} For all $μ_1,μ_2 ∈ \Heaps$ such that $μ_1 \forcesto μ_2$ and
+    \item \textup{(Speculate)} For all lazy $μ_1,μ_2 ∈ \Heaps$ such that $μ_1 \forcesto μ_2$ and
      $\bigstep{d}{μ_2}{v_2}{μ'_2}$ (for some $v_2,μ'_2$), we also have
      $\bigstep{d}{μ_1}{v_1}{μ'_1}$ (for some $v_1,μ'_1$) and
      $v_1 = v_2$ as well as $μ'_1 \forcesto μ'_2$.
@@ -214,3 +215,11 @@ Another neat consequence of lazy elements is the following confluence property:
 \end{proof}
 
 And now we finally prove that $\semevt{\wild}$ indeed produces a lazy element:
+
+\begin{theorem}
+  \label{thm:semevt-lazy}
+  For all lazy environments $ρ$ and expressions $\pe$, $\semevt{\pe}_ρ$ is a lazy element.
+\end{theorem}
+\begin{proof}
+  By induction on $\pe$.
+\end{proof}
