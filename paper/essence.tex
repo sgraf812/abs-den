@@ -77,12 +77,6 @@ When a heap entry is evaluated, it stays that way during forcing:
 \end{proof}
 
 So once an entry becomes a value during forcing, it stays that way.
-In the same manner, if $μ_1 \forcesto μ_2$ we can observe the following
-well-founded order:
-\begin{lemma}
-  For all $μ_1,μ_2$ such that $μ_1 \forcesto μ_2$ we get a well-
-\end{lemma}
-In the same manner, we can prove that
 
 The heap forcing relation is reflexive (it is always $μ(\pa) = μ(\pa)$) and
 also antisymmetric:
@@ -111,7 +105,12 @@ characterisation of the domain elements returned by $\semevt{\wild}$.
   A heap $μ$ is \emph{lazy} if and only if its entries are lazy elements.
   An element $d ∈ \EventD$ is \emph{lazy} if and only if
   \begin{enumerate}
-    \item \textup{(Forces)} For all lazy $μ,μ' ∈ \Heaps$ such that $d(μ) = ... \cons \goodend{\wild,μ'}$, it is the case that $μ \forcesto μ'$.
+    \item \textup{(Forces)} For all lazy $μ,μ' ∈ \Heaps, v ∈ \EventV$ such that $d(μ) = ... \cons \goodend{v,μ'}$, it is the case that $μ \forcesto μ'$.
+     Furthermore,
+     \begin{itemize}
+       \item When $v = \FunV(f)$ (for some $f$), then $f(d')$ is lazy whenever $d'$ is lazy.
+       \item When $v = \ConV(K,\many{d})$ (for some $K,\many{d}$), then all $\many{d}$ are lazy.
+     \end{itemize}
     \item \textup{(Postpone)} For all lazy $μ_1,μ_2 ∈ \Heaps$ such that $μ_1 \forcesto μ_2$ and
      $\bigstep{d}{μ_1}{v_1}{μ'_1}$ (for some $v_1,μ'_1$), we also have
      $\bigstep{d}{μ_2}{v_2}{μ'_2}$ (for some $v_2,μ'_2$) and
@@ -222,4 +221,23 @@ And now we finally prove that $\semevt{\wild}$ indeed produces a lazy element:
 \end{theorem}
 \begin{proof}
   By induction on $\pe$.
+  \begin{itemize}
+    \item \textbf{Case $\px$}: $ρ(\px)$ is lazy, and
+      $\fn{\wild}{\stuckend{}}$ is trivially so as it never produces a balanced
+      trace.
+    \item \textbf{Case $\Lam{px}{\pe'}, K~\many{\px}$}:
+      For any lazy $μ$, we have $\bigstep{\semevt{\pe}_ρ}{μ}{v}{μ}$, where
+      $v$ is a $\FunV$ or $\ConV$ value which is independent of $μ$.
+      Clearly, $μ \forcesto μ$ by reflexivity.
+      The Postpone and Speculate properties follow by assumption.
+    \item \textbf{Case $\pe'~\px$}:
+      First note that $d \betastep f$ is lazy when $d$ is lazy and $f(v)$ is
+      lazy when defined.
+      This result makes use of transitivity in the first case of $(\betastep)$.
+
+      For any lazy $μ$, we have $\bigstep{\semevt{\pe}_ρ}{μ}{v}{μ}$, where
+      $v$ is a $\FunV$ or $\ConV$ value which is independent of $μ$.
+      Clearly, $μ \forcesto μ$ by reflexivity.
+      The Postpone and Speculate properties follow by assumption.
+  \end{itemize}
 \end{proof}
