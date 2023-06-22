@@ -100,17 +100,17 @@ also antisymmetric:
 However, $(\forcesto)$ is not easily proven transitive without further
 characterisation of the domain elements returned by $\semevt{\wild}$.
 
-\begin{definition}[Lazy elements]
+\begin{definition}[Lazy domain]
   \label{defn:lazy-d}
-  A heap $μ$ is \emph{lazy} if and only if its entries are lazy elements.
+  A heap $μ$ or environment $ρ$ is \emph{lazy} if and only if its entries are lazy elements.
+  A value $v$ is \emph{lazy} if and only if
+  \begin{itemize}
+    \item When $v = \FunV(f)$ (for some $f$), then $f(d')$ is lazy whenever $d'$ is lazy.
+    \item When $v = \ConV(K,\many{d})$ (for some $K,\many{d}$), then all $\many{d}$ are lazy.
+  \end{itemize}
   An element $d ∈ \EventD$ is \emph{lazy} if and only if
   \begin{enumerate}
-    \item \textup{(Forces)} For all lazy $μ,μ' ∈ \Heaps, v ∈ \EventV$ such that $d(μ) = ... \cons \goodend{v,μ'}$, it is the case that $μ \forcesto μ'$.
-     Furthermore,
-     \begin{itemize}
-       \item When $v = \FunV(f)$ (for some $f$), then $f(d')$ is lazy whenever $d'$ is lazy.
-       \item When $v = \ConV(K,\many{d})$ (for some $K,\many{d}$), then all $\many{d}$ are lazy.
-     \end{itemize}
+    \item \textup{(Forces)} For all lazy $μ,μ' ∈ \Heaps, v ∈ \EventV$ such that $d(μ) = ... \cons \goodend{v,μ'}$, $v$ is lazy and $μ \forcesto μ'$.
     \item \textup{(Postpone)} For all lazy $μ_1,μ_2 ∈ \Heaps$ such that $μ_1 \forcesto μ_2$ and
      $\bigstep{d}{μ_1}{v_1}{μ'_1}$ (for some $v_1,μ'_1$), we also have
      $\bigstep{d}{μ_2}{v_2}{μ'_2}$ (for some $v_2,μ'_2$) and
@@ -124,11 +124,13 @@ characterisation of the domain elements returned by $\semevt{\wild}$.
 
 So when an element $d$ is \emph{lazy}, every input heap forces to the output
 heap, it evaluates to the same value whether or not the input heap is more or
-less forced, and it homomorphically transfers the forcedness relation from input
-heaps to output heaps.
+less forced, and $\bigstep{d}{\wild}{v}{\wild}$ is natural (in the category
+theoretic sense) in that it transfers the forcedness relation from input heaps
+to output heaps.
+The definitions for lazy heaps, environments are necessary by congruence.
 
-When we restrict ourselves to lazy heaps (\eg, heaps where every entry is a lazy
-element), we can prove transitivity.
+When we restrict ourselves to lazy heaps, we can prove transitivity of the
+forcing relation.
 
 \begin{lemma}[$(\forcesto)$ is transitive]
   \label{thm:force-heap-trans}
@@ -225,19 +227,77 @@ And now we finally prove that $\semevt{\wild}$ indeed produces a lazy element:
     \item \textbf{Case $\px$}: $ρ(\px)$ is lazy, and
       $\fn{\wild}{\stuckend{}}$ is trivially so as it never produces a balanced
       trace.
+
     \item \textbf{Case $\Lam{px}{\pe'}, K~\many{\px}$}:
       For any lazy $μ$, we have $\bigstep{\semevt{\pe}_ρ}{μ}{v}{μ}$, where
       $v$ is a $\FunV$ or $\ConV$ value which is independent of $μ$.
+      The laziness of function bodies and constructor field denotations follows
+      by induction.
       Clearly, $μ \forcesto μ$ by reflexivity.
       The Postpone and Speculate properties follow by assumption.
+
     \item \textbf{Case $\pe'~\px$}:
       First note that $d \betastep f$ is lazy when $d$ is lazy and $f(v)$ is
-      lazy when defined.
+      lazy when defined for a lazy $v$.
       This result makes use of transitivity in the first case of $(\betastep)$.
 
-      For any lazy $μ$, we have $\bigstep{\semevt{\pe}_ρ}{μ}{v}{μ}$, where
-      $v$ is a $\FunV$ or $\ConV$ value which is independent of $μ$.
-      Clearly, $μ \forcesto μ$ by reflexivity.
-      The Postpone and Speculate properties follow by assumption.
+      Both arguments to $\apply$ are lazy:
+      $\semevt{\pe}_ρ$ is lazy by the induction hypothesis and $ρ(\px)$ is lazy
+      by assumption.
+      In the definition of $\apply$, we can see that if the second argument to
+      $(\betastep)$ is given a lazy $\FunV(f)$ value, then $f(d)$ is lazy by
+      definition of laziness of $\FunV$ values and laziness of $d$.
+      Hence the whole $\apply$ form is lazy and prepending the $\AppIA$ event
+      does not change that because it does not affect the heap.
+
+    \item \textbf{Case $\pe'~\px$}:
+      First note that $d \betastep f$ is lazy when $d$ is lazy and for all
+      $μ,μ',v$, such that $\bigstep{d}{μ}{v}{μ'}$, $f(v)$ is lazy on $μ'$ when
+      defined.
+      This result makes use of transitivity in the first case of $(\betastep)$.
+
+      Both arguments to $\apply$ are lazy:
+      $\semevt{\pe}_ρ$ is lazy by the induction hypothesis and $ρ(\px)$ is lazy
+      by assumption.
+      In the definition of $\apply$, we can see that if the second argument to
+      $(\betastep)$ is given a lazy $\FunV(f)$ value, then $f(d)$ is lazy by
+      definition of laziness of $\FunV$ values and laziness of $d$.
+      Hence the whole $\apply$ form is lazy and prepending the $\AppIA$ event
+      does not change that because it does not affect the heap.
+
+    \item \textbf{Case $\Case{\pe_s}{\Sel[r]}$}:
+      Similar to the application case.
+
+    \item \textbf{Case $\Let{\px}{\pe_1}{\pe_2}$}:
+      Let $μ_l$ be lazy and consider $\semevt{\pe}_ρ(μ_l)$.
+      The key is to this theorem is to prove that $\deref(\pa)$ is lazy.
+
+      Well-addressedness means that we can focus on any lazy input heap $μ$ that
+      satisfies $\dom(μ) ⊆ (\{ \pa \} ∪ \dom(μ_l))$ to conduct the proof.
+      Clearly, prepending the $\LookupA$ event in the definition of $\deref$
+      does not affect the heap and thus laziness.
+      The first argument to $(\betastep)$, $μ(\pa)$, is lazy because $μ$ is.
+      Furthermore, assuming $\bigstep{μ(\pa)}{μ}{v}{μ'}$ for suitable lazy $v,μ'$,
+      the trace resulting from calling the second argument is
+      \[
+        \UpdateA(\pa↦\ret(v)) \cons \goodend{v,μ'[\pa↦\ret(v)]}
+      \]
+      And crucially, $μ' \forcesto μ'[\pa↦ret(v)]$ due to
+      $\bigstep{μ(\pa)}{μ}{v}{μ'}$ for the differing $\pa$ entry, proving
+      the Forces property.
+      The Postpone and Speculate property for the second argument follow quite
+      simply, because the updated heap entry is constant in all cases.
+      We can conclude by our earlier observation about $(\betastep)$ that
+      $\deref(\pa)$ is indeed lazy.
+
+      Given that fact, it is easy to see that $ρ'$ is lazy in the definition
+      of $\semevt{\pe}$ (on all heaps extending $μ_l[\pa↦...]$).
+      Then $\semevt{\pe_i}_{ρ'}$ are lazy by induction.
+      Hence is $μ_l[\pa↦\semevt{\pe_1}_{ρ'}]$, which we apply to
+      $\semevt{\pe_2}_{ρ'}$, in which it is lazy.
+      In order to show that the whole clause is lazy in $μ_l$,
+      it suffices to show that $μ_l \forcesto μ_l[\pa↦\semevt{\pe_1}_{ρ'}]$
+      which is simple to see because $\pa \not∈ \dom(μ_l)$.
+      The Postpone and Speculate properties are unaffected.
   \end{itemize}
 \end{proof}
