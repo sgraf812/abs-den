@@ -13,103 +13,62 @@ Let us first try to reformulate semantic deadness in terms of $\semevt{\wild}$:
   Otherwise, $\px$ is \emph{live}.
 \end{definition}
 
-Alas, this definition is vacuously true!
+Alas, according to this definition, there are no dead variables!
 We can observe distinct $d_1,d_2$ in the entry $μ(\pa)$ listed in the final heap
 $μ$ of a trace ending in $\goodend{v,μ}$.
 Furthermore, there is no guarantee that some other entry in $ρ$ besides $ρ(\px)$
 might dereference $\pa$.
 
-It is reasonable to \emph{restrict} what we can observe then in order to get
-a coarser equivalence relation than definitional equality on traces.
+It is reasonable to \emph{restrict} what we can observe then in order to get a
+coarser equivalence relation than definitional equality on the semantic domain.
 For example, we could compare traces modulo the kernel of the length function
 such as defined in \Cref{thm:abs-length}.
+Unfortunately, the equivalence relation induced in this way would be \emph{too}
+coarse, because it does not consider semantic values such as in the denotation
+of $\Lam{\py}{\px}$.
+Values in turn need access to the heap and we are back to discussing how to hide
+internal heap partitions from the observer.
 
-Alas, the equivalence relation induced in this way would be \emph{too} coarse:
-Consider $(\Lam{x}{y})$; this expression would be dead in $y$ according to that
-definition because all its maximal traces will have length 1.
-But clearly we should not be able to rewrite $\Let{y}{\pe}{\Lam{x}{y}}$ to
-$\Let{y}{\mathit{crash}}{\Lam{x}{y}}$, the latter of which would crash when
-applied to an argument.
-So our equivalence relation must be finer on values, just like observational
-equivalence in operational semantics.
+We just rediscovered the problem of full abstraction~\citep{Plotkin:77} which
+first described the problems with definitional equality on semantic domains.
+We do not intend to solve the problem here; suffice it to say that it got worse
+by introducing a heap, because \Cref{defn:deadness} was a useful encoding of
+deadness.
 
-The key is to introduce an equivalence relation on heaps with a ``blind spot''
-concerning the contents of address $\pa$ (we will define $\dead^{\EventD}_\pa$
-momentarily):%
-\footnote{This is nearly the correctness predicate $\sim_V$ of
-\citet[Theorem 2.21]{Nielson:99}.
-The only conceptual difference is that $V$ tracks the set of \emph{live} variables,
-whereas we track a single address assumed to be \emph{dead}.}
-\[
- \inferrule*
-    {\pa ∈ \dom(μ_1) ∩ \dom(μ_2) \quad \forall \pa' ∈ (\dom(μ_1) \setminus \{ \pa \}).\ μ_1(\pa') = μ_2(\pa') \wedge \dead^{\EventD}_\pa(μ_1(\pa')) }
-    {μ_1 \sim^{\Heaps{}}_{\pa} μ_2}
-\]
-Now we lift this equivalence relation congruently over $\Traces$ and define a
-predicate aptly named $\dead_{\pa}$ over $\Events$, $\EventD$ and $\EventV$ that carves
-out the subsets we will consider $\pa$ dead in.
-For $\Events$ we only give the rule concerning the $\AppEA$ event as an example:%
-\footnote{These definitions are to be understood as coinductive, although we omit distracting $\later$.}
-\[\begin{array}{cc}
- \begin{array}{c}
- \inferrule*
-    {\dead^{\Events}_{\pa}(ε) \quad τ_1 \sim^{\Traces}_{\pa} τ_2}
-    {ε \cons τ_1 \sim^{\Traces}_{\pa} ε \cons τ_2}
- \qquad
- \inferrule*
-    {\quad}
-    {\stuckend{} \sim^{\Traces}_{\pa} \stuckend{}}
- \qquad
- \inferrule*
-    {\dead^{\EventV}_{\pa}(v) \quad μ_1 \sim^{\Heaps}_{\pa} μ_2}
-    {\goodend{v,μ_1} \sim^{\Traces}_{\pa} \goodend{v,μ_2}}
- \\
- \\[-0.5em]
- \inferrule*[right=\ldots]
-    {\dead^{\EventD}_{\pa}(d)}
-    {\dead^{\Events}(\AppEA(\px ↦ d))}
- \qquad
- \inferrule*
-    {\forall μ_1, μ_2.\ μ_1 \sim^{\Heaps}_{\pa} μ_2 \Longrightarrow d(μ_1) \sim^{\Traces}_{\pa} d(μ_2) }
-    {\dead^{\EventD}_{\pa}(d)}
- \\
- \\[-0.5em]
- \inferrule*
-    {\many{\dead^{\EventD}_{\pa}(d)}}
-    {\dead^{\EventV}_{\pa}(\ConV(K, \many{d}))}
- \qquad
- \inferrule*
-    {\forall d.\ \dead^{\EventD}(d) \Longrightarrow \dead^{\EventD}(f(d))}
-    {\dead^{\EventV}_{\pa}(\FunV(f))}
- \end{array}
+Instead we define the following contextual equivalence relation in terms of
+evaluation contexts in the style of \citep{MoranSands:99} based on the $\len$
+function in \Cref{thm:abs-length}.
+For that we need syntax for evaluation contexts $E$ with holes $\hole$.
+Then $E[\pe]$ denotes an expression where the hole in $E$ has been replaced with $\pe$.
+\[\begin{array}{rcl}
+  E & ::=  & \hole \mid E~\px \mid \Let{\px}{E}{E[\px]} \mid \Let{\px}{\pe}{E} \mid \Case{E}{\Sel[r]} \\
 \end{array}\]
-The congruence rule for $\sim^{\EventD}_{\pa}$ is particularly interesting:
-It expresses both an \emph{assumption} about the kind of heaps $μ_i$ passed
-to $d$ as well as a \emph{requirement} on the trace resulting from applying
-said heaps to $d$.
-We can now formulate a useful notion of deadness in terms of this equivalence
-relation:
-\begin{definition}[Denotational deadness, lazily and useful]
-  \label{defn:deadness4}
-  An address $\pa$ is \emph{dead} in an element $d ∈ \EventD$
-  if and only if $\dead^{\EventD}_{\pa}(d)$.
-  Otherwise, $\pa$ is \emph{live} in $d$.
-
-  Furthermore, a variable $\px$ is \emph{dead} in an expression $\pe$
-  if and only if, for all $ρ ∈ \Var \to \EventD$ and addresses $\pa$ such that $\pa$ is dead in $\rng(ρ)$,
-  $\pa$ is dead in $\semevt{\pe}_{ρ[\px ↦ \deref(\pa)]}$.
-  Otherwise, $\px$ is \emph{live} in $\pe$.
+\begin{definition}
+  \label{defn:ctx-equiv}
+  For two expressions $\pe_1, \pe_2$ we say that $\pe_1$ is \emph{contextually
+  equivalent} to $\pe_2$ (written $\pe_1 \approx_{\mathrm{C}} \pe_2$), if and only if
+  for all closed contexts $E$, we have
+  \[
+    \len(\semevt{E[\pe_1]}_{[]}([])) = \len(\semevt{E[\pe_2]}_{[]}([]))
+  \]
 \end{definition}
+\noindent
+(This is not a satisfying solution to the full abstraction problem because it
+involves quantification over all contexts $E$.)
+Now we can give a useful definition of deadness:
+
+\begin{definition}[Denotational deadness, contextually]
+  \label{defn:deadness4}
+  A variable $\px$ is \emph{dead} in an expression $\pe$ if and only
+  if, for all expressions $\pe_1,\pe_2$, the expressions
+  $\Let{\px}{\pe_1}{\pe}$ and $\Let{\px}{\pe_2}{\pe}$ are contextually
+  equivalent.
+\end{definition}
+
 If $x$ is dead in $\pe_2$ according to this definition, then we can justify the
-following rewrite if we choose not to observe heaps:
-\[\arraycolsep=3pt
-\begin{array}{lclcl}
-\semevt{\Let{x}{\pe_1}{\pe_2}}_ρ(μ)
-& = & \semevt{\pe_2}_{ρ[x↦\deref(\pa)]}(μ[\pa↦d])
-\\
-& \sim^{\Traces}_{\pa} & \semevt{\pe_2}_{ρ[x↦\deref(\pa)]}(μ[\pa↦\fn{\wild}{\stuckend{}}])
-& = & \semevt{\Let{x}{\mathit{crash}}{\pe_2}}_ρ(μ)
-\end{array}
+following rewrite:
+\[
+  \Let{x}{\pe_1}{\pe_2} \approx_{\mathrm{C}} \Let{x}{\mathit{crash}}{\pe_2}
 \]
 A syntactic \emph{occurrence analysis} could subsequently figure out whether the
 binding for $x$ can be dropped without introducing scoping errors.
@@ -124,12 +83,12 @@ characterisation of deadness by induction:
   then $\px$ is dead in $\pe$.
 \end{theorem}
 \begin{proof}
-  By induction over $\pe$. The full proof can be found in
-  \Cref{prf:semusg-correct-live-3}.
+  By induction over $\pe$ and then on the size of the evaluation context $E$.
+  The full proof can be found in \Cref{prf:semusg-correct-live-3}.
 \end{proof}
 
-So that is nice.
-Unfortunately, we have made no progress towards
+We have to admit that this turned out more complex than
+\Cref{thm:semusg-correct-live}, but at least it was possible.
 
 \begin{figure}
 \[\begin{array}{c}

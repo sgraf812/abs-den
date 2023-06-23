@@ -144,8 +144,10 @@
   By induction on $\pe$.
   We fix $\pe$, $\px$ and $\tr$ such that $\tr(\px) \not⊑ \semusg{\pe}_{\tr}$.
   The goal is to show that $\px$ is dead in $\pe$,
-  so we are given an arbitrary $ρ, \pa$ with $\pa$ dead in $\rng(ρ)$ and have to show that
-  $\pa$ is dead in $\semevt{\pe}_{ρ[\px↦\deref(\pa)]}$.
+  so we are given arbitrary expressions $\pe_1,\pe_2$ and an evaluation context $C$
+  for which we have to show that
+  $\len(\semevt{E[\Let{\px}{\pe_1}{\pe}]}_{[]}([])) = \len(\semevt{E[\Let{\px}{\pe_2}{\pe}]}_{[]}([]))$.
+
   By cases on $\pe$:
   \begin{itemize}
     \item \textbf{Case $\pe = \py$}: If $\px=\py$, then

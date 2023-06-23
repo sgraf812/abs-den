@@ -92,7 +92,7 @@ to the \emph{edges} modelling the transitions.
   \end{cases} \\
   \\[-0.5em]
   \ret(v)(μ) & = & \goodend{v,μ} \\
-  \deref(\pa)(μ)   & = & \LookupA(\pa) \cons (μ(\pa) \betastep \fn{v~μ'}{\UpdateA(\pa↦\ret(v)) \cons \goodend{v,μ'[\pa↦\ret(v)]}})(μ) \\
+  \deref(\pa)(μ)   & = & \LookupA(\pa) \cons (μ(\pa) \betastep \fn{v\,μ'}{\UpdateA(\pa↦\ret(v)) \cons \goodend{v,μ'[\pa↦\ret(v)]}})(μ) \\
   \apply(d_\pe,d_\px) & = & d_\pe \betastep \fn{(\FunV(f))}{f(d_\px)} \\
   \select(d,\alts) & = & d \betastep \fn{(\ConV(K_s,\many{d_s^\later}))}{\alts(K_s, \many{d_s^\later})} \quad \text{where } (K_s, \many{d_s^\later}) ∈ \dom(\alts) \\
  \end{array} \\
