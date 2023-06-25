@@ -7,6 +7,8 @@ We will prove these properties in terms of the eventful semantics but they apply
 just the same for the stateful one, or even the ``bare-bones'' version from
 the Appendix.
 
+\subsection{Heap Forcing and Laziness}
+
 As we have observed in \Cref{sec:problem}, the semantics of call-by-need is more
 complicated than the semantics for call-by-name and call-by-value because it
 relies on a heap to implement thunk memoisation.
@@ -129,7 +131,7 @@ characterisation of the domain elements returned by $\semevt{\wild}$.
   An environment $ρ$ \emph{lazy} if and only if its entries are. \\
   A value $v$ is \emph{lazy} if and only if
   \begin{itemize}
-    \item It has a finite address domain $\adom(v)$ \wrt it is well-addressed.
+    \item It has a finite address domain $\adom(v)$.
     \item When $v = \FunV(f)$ (for some $f$), then $f(d')$ is lazy whenever $d'$ is lazy, and $\adom(f(d')) ⊆ \adom(v) ∪ \adom(d')$.
     \item When $v = \ConV(K,\many{d})$ (for some $K,\many{d}$), then all $\many{d}$ are lazy, and $\adom(v) = \bigcup \many{\adom(d)}$.
   \end{itemize}
@@ -242,15 +244,16 @@ And now we finally prove that $\semevt{\wild}$ indeed produces a lazy element:
     \item \textbf{Case $\pe'~\px$}:
       First note that $d \betastep f$ is lazy when $d$ is lazy and for all
       $μ,μ',v$, such that $\bigstep{d}{μ}{v}{μ'}$, $f(v)$ is lazy with address
-      domain $A$ when defined.
+      domain $\dom(μ')$ when defined, assuming that $\adom(v) ⊆ \dom(μ')$.
       This result makes use of transitivity in the first case of $(\betastep)$.
 
       Both arguments to $\apply$ are lazy:
       $\semevt{\pe}_ρ$ is lazy by the induction hypothesis and $ρ(\px)$ is lazy
       by assumption, both with address domain in $A$.
       In the definition of $\apply$, we can see that if the second argument to
-      $(\betastep)$ is given a lazy $\FunV(f)$ value, then $f(d)$ is lazy by
-      definition of laziness of $\FunV$ values and laziness of $d$.
+      $(\betastep)$ is given a lazy $\FunV(f)$ value with address domain
+      $\dom(μ')$, then $f(ρ(\px))$ is lazy by definition of laziness of $\FunV$
+      values and laziness of $d$ with address domain $\dom(μ')$.
       Hence the whole $\apply$ form is lazy and prepending the $\AppIA$ event
       does not change that because it does not affect the heap.
 
@@ -258,19 +261,17 @@ And now we finally prove that $\semevt{\wild}$ indeed produces a lazy element:
       Similar to the application case.
 
     \item \textbf{Case $\Let{\px}{\pe_1}{\pe_2}$}:
-      Let $μ_l$ be lazy and consider $\semevt{\pe}_ρ(μ_l)$.
-      The key to this theorem is to prove that $\deref(\pa)$ is lazy.
+      Let $μ_l$ be lazy with $A ⊆ \dom(μ_l)$ and consider $\semevt{\pe}_ρ(μ_l)$.
+      The key to this theorem is to prove that $\deref(\pa)$ is lazy with
+      address domain $\{ \pa \}$.
 
-      Well-addressedness means that we can focus on any lazy input heap $μ$ that
-      satisfies $\dom(μ) ⊆ (\{ \pa \} ∪ \dom(μ_l))$ to conduct the proof.
-      (This is a bit fishy because of the Speculate property; essentially, every lazy
-      $d$ must actually be defined on the empty heap.
-      That can easily we worked around by defining
-      $μ(\pa) = \fn{\wild}{\stuckend{}}$ whenever $\pa \not∈ dom(μ)$.)
-
+      So let $μ$ be a lazy input heap that satisfies
+      $\pa ∈ \dom(μ)$.
       Clearly, prepending the $\LookupA$ event in the definition of $\deref$
       does not affect the heap and thus laziness.
-      The first argument to $(\betastep)$, $μ(\pa)$, is lazy because $μ$ is.
+      The first argument to $(\betastep)$, $μ(\pa)$ requires $\pa ∈ \dom(μ)$,
+      and is lazy with address domain $\dom(μ)$ because $μ$ is lazy, so
+      $μ(\pa)(μ)$ is defined.
       Furthermore, assuming $\bigstep{μ(\pa)}{μ}{v}{μ'}$ for suitable lazy $v,μ'$,
       the trace resulting from calling the second argument is
       \[
@@ -282,13 +283,15 @@ And now we finally prove that $\semevt{\wild}$ indeed produces a lazy element:
       The Postpone and Speculate property for the second argument follow quite
       simply, because the updated heap entry is constant in all cases.
       We can conclude by our earlier observation about $(\betastep)$ that
-      $\deref(\pa)$ is indeed lazy.
+      $\deref(\pa)$ is indeed lazy with $\adom(\deref(\pa)) = \{\pa\}$.
 
-      Given that fact, it is easy to see that $ρ'$ is lazy in the definition
-      of $\semevt{\pe}$ (on all heaps extending $μ_l[\pa↦...]$).
-      Then $\semevt{\pe_i}_{ρ'}$ are lazy by induction.
-      Hence is $μ_l[\pa↦\semevt{\pe_1}_{ρ'}]$, which we apply to
-      $\semevt{\pe_2}_{ρ'}$, in which it is lazy.
+      Given that fact, it is easy to see that $ρ'$ in the definition
+      of $\semevt{\pe}$ is lazy with address domain $A ∪ \{\pa\}$.
+      Then $\semevt{\pe_i}_{ρ'}$ are lazy with address domain $A ∪ \{\pa\}$ by
+      induction.
+      Hence $μ_l[\pa↦\semevt{\pe_1}_{ρ'}]$ is lazy, which we apply to
+      $\semevt{\pe_2}_{ρ'}$, noting that the domain of the new heap
+      includes $A ∪ \{\pa\}$.
       In order to show that the whole clause is lazy in $μ_l$,
       it suffices to show that $μ_l \forcesto μ_l[\pa↦\semevt{\pe_1}_{ρ'}]$
       which is simple to see because $\pa \not∈ \dom(μ_l)$.
@@ -299,16 +302,18 @@ And now we finally prove that $\semevt{\wild}$ indeed produces a lazy element:
 This result justifies our tacit assumption from now on that all elements of the
 semantic domain are lazy.
 
+\subsection{A Useful Equivalence Relation}
+
 \begin{figure}
 \[\begin{array}{cc}
  \begin{array}{c}
  \inferrule*
     {\later (A ⊦ τ_1 \sim τ_2)}
-    {A ⊦ \wild \cons τ_1 \sim τ_2}
+    {A ⊦ τ_1 \sim \wild \cons τ_2}
  \qquad
  \inferrule*
     {\later (A ⊦ τ_1 \sim τ_2)}
-    {A ⊦ τ_1 \sim \wild \cons τ_2}
+    {A ⊦ \wild \cons τ_1 \sim τ_2}
  \qquad
  \inferrule*
     {\quad}
@@ -316,7 +321,7 @@ semantic domain are lazy.
  \\
  \\[-0.5em]
  \inferrule*
-    {\forall d.\ \later (A ⊦ d) ⟹  \later (A ⊦ f_1(d)(μ_1) \sim f_2(d)(μ_2))}
+    {\later (\forall d.\ \adom(d) ⊆ A ⟹  A ⊦ f_1(d)(μ_1) \sim f_2(d)(μ_2))}
     {A ⊦ \goodend{\FunV(f_1), μ_1} \sim \goodend{\FunV(f_2), μ_2}}
  \qquad
  \inferrule*
@@ -325,22 +330,85 @@ semantic domain are lazy.
  \\
  \\[-0.5em]
  \inferrule*
-    {\forall μ,μ'.\ A ⊆ \dom(μ) \wedge μ \forcesto μ' ⟹  A ⊦ d(μ) \sim d(μ')}
-    {A ⊦ d}
+    {\dom(μ_1) = \dom(μ_2) \quad \forall \pa.\ \later(μ_1(\pa) \equiv μ_2(\pa))}
+    {μ_1 \approx μ_2}
  \\
  \\[-0.5em]
  \inferrule*
-    {\forall μ_1,μ_2.\ μ_1 \approx μ_2 ⟹  \dom(μ_1) ⊦ d_1(μ_1) \sim d_2(μ_2)}
+    {\forall μ_1,μ_2.\ μ_1 \approx μ_2 \wedge \adom(d_1) ∪ \adom(d_2) ⊆ \dom(μ_1) ⟹  \dom(μ_1) ⊦ d_1(μ_1) \sim d_2(μ_2)}
     {d_1 \equiv d_2}
- \qquad
- \inferrule*
-    {\dom(μ_1) = \dom(μ_2) \quad \forall \pa.\ \later(μ_1(\pa) \equiv μ_2(\pa))}
-    {μ_1 \approx μ_2}
  \end{array}
  \end{array}
 \]
 \caption{Semantic equivalence relation on lazy elements}
+  \label{fig:sem-equiv}
 \end{figure}
+
+Consider the two expressions $\pe_1 \triangleq \Let{x}{\ttrue}{\ttrue}$ and
+$\pe_2 \triangleq \Let{x}{\ffalse}{\ttrue}$.
+For all intents and purposes, these two expressions are equivalent.
+Indeed, they equate under $\semscott{\wild}$, suggesting that $x$ is dead
+according to \Cref{defn:deadness}.
+
+However, the definitional equality on the lazy domain $\EventD$ is \emph{too
+fine}:
+\[\begin{array}{rclcl}
+  \semevt{\pe_1}_{[]}([])
+  & = & \BindA(x,\pa_1↦\semevt{\ttrue}_{...}) \cons \goodend{\ConV(\ttrue),[\pa_1↦\semevt{\ttrue}_{...}]} \\
+  & \not= & \BindA(x,\pa_1↦\semevt{\ffalse}_{...}) \cons \goodend{\ConV(\ttrue),[\pa_1↦\semevt{\ffalse}_{...}]}
+  & = & \semevt{\pe_2}_{[]}([])
+\end{array}\]
+It would be reasonable to abstract away the contents of the trace to get a
+coarser equivalence, thus eliminating the difference in $\BindA$ actions.
+However, that still leaves the difference in heap entries such as $\pa_1$ which
+will never be looked at!
+Since the heap entry for $\pa_1$ was introduced while executing $\pe_1$/$\pe_2$,
+we will call them \emph{local} to the trace $\semevt{\pe_i}_{[]}([])$.
+It is prudent for the observer to ignore local entries.
+
+That is the essence of what the \emph{semantic equivalence relation} $(\equiv)$
+defined on lazy elements in \Cref{fig:sem-equiv} does.
+It is coarse enough to equate the example above, but still finer than contextual
+equivalence, as we shall see.
+
+The key is its observer model for function values, which necessitates the
+address space parameter $A$ in the bisimulation $\sim$ to track non-local
+addresses.
+Consider a successful evaluation $\bigstep{d_i}{μ_i}{\FunV(f_i)}{μ_i'}$, as in
+\[\begin{array}{rclcl}
+  \semevt{\Let{y}{x}{\Lam{z}{y}}}_{[x↦d]}([])
+  & = & ... \cons \goodend{\FunV(\fn{\wild}{\deref(\pa_1)}),[\pa_1↦d]} \\
+  & \equiv & ... \cons \goodend{\FunV(\fn{\wild}{d}),[]} \\
+  & = & \semevt{\Lam{z}{x}}_{[x↦d]}([])
+\end{array}\]
+where
+\[
+  μ_1 = μ_2 = μ_2' = [], μ_1' = [\pa_1↦d], f_1 = \fn{\wild}{\deref(\pa_1)}, f_2 = \fn{\wild}{d}.
+\]
+The denotations of the two expressions are not definitionally equivalent in the final heap,
+yet they are semantically equivalent.
+To see that, we have to relate $\deref(\pa_1)$ to $d$, which only succeeds if
+the former has access to the local entries in $μ_1'$.
+So if $\wild ⊦ \wild \sim \wild$ were to discard final heaps completely and
+compare values on the initial empty heap, that would be impossible.
+
+On the other hand, the observer may probe functions for equality by supplying
+(nearly) any argument denotation they wish.
+The following example illustrates how exactly such argument denotations should be
+restricted:
+\[\begin{array}{rclcl}
+  \semevt{\Let{x}{\ttrue}{\Lam{y}{y}}}_{[]}([])
+  & = & ... \cons \goodend{\FunV(\fn{d}{d}),[\pa_1↦\semevt{\ttrue}_{...}]} \\
+  & \equiv & ... \cons \goodend{\FunV(\fn{d}{d}),[]} \\
+  & = & \semevt{\Lam{y}{y}}_{[]}([]),
+\end{array}\]
+In both cases, the function value $\FunV(\fn{d}{d})$ is to be probed by the
+observer with an argument $d'$.
+If the observer was given free reign, they would certainly be able to tell apart
+$d'([])$ from $d'([\pa_1↦\semevt{\ttrue}_{...}])$, for example by branching
+in $d'(μ)$ based on $\pa_1 ∈ \dom(μ)$.
+Since the parameter $A$ tracks non-local addresses (as can be asserted in
+$\equiv$), we can prohibit such exploits by requiring that $\adom(d') ⊆ A$.
 
 \begin{theorem}
   $(\equiv)$ is an equivalence relation.
@@ -350,36 +418,59 @@ semantic domain are lazy.
   \sg{TODO: Actually prove it}
 \end{proof}
 
-\begin{lemma}[Weakening of address space]
-  \label{thm:weaken-address-space}
-  For all address spaces $A_1 ⊆ A_2$ and denotations $d$, if $A_1 ⊦ d$ then $A_2 ⊦ d$.
-  For all address spaces $A_1 ⊆ A_2$ and traces $τ_1,τ_2$, if $A_2 ⊦ τ_1 \sim τ_2$ then $A_1 ⊦ τ_1 \sim τ_2$.
+\begin{lemma}[Weakening of address domain]
+  \label{thm:weaken-address-domain}
+  For all address domains $A_1 ⊆ A_2$ and traces $τ_1,τ_2$, if $A_2 ⊦ τ_1 \sim τ_2$ then $A_1 ⊦ τ_1 \sim τ_2$.
 \end{lemma}
 \begin{proof}
-  To show $A_2 ⊦ d$, we assume $A_2 ⊆ \dom(μ)$ and $μ \forcesto μ'$ for some $μ, μ'$.
-  Then also $A_1 ⊆ \dom(μ)$ and we can apply $A_1 ⊦ d$.
-
-  For the second property, note that $\wild ⊦ \wild$ only occurs in negative
+  Take note that the check $\adom(d) ⊆ A$ occurs in negative
   position in $\wild ⊦ \wild \sim \wild$ and $A$ is never used anywhere else.
-  Intuitively, the smaller $A$, the fewer $d$'s the caller is allowed to
+  Intuitively, the smaller $A$, the fewer $d$s the caller is allowed to
   ``probe'' $\FunV$ values with and the easier it is to prove bisimilarity.
 \end{proof}
 
+Evaluating lazy elements on heaps that force to each other is semantically equivalent:
+
 \begin{lemma}
   \label{thm:lazy-bisimilar}
-  For any lazy $d$, there exists a sufficiently large address space $A$ such
-  that for all $μ_1,μ_2$ with $A ⊆ \dom(μ_1)$ and $μ_1 \forcesto μ_2$, we have
-  $A ⊦ d(μ_1) \sim d(μ_2)$.
-  We say that $d$ is \emph{well-addressed} \wrt this address space.
+  Let $d$ be lazy. Then for all $μ_1,μ_2$ with $\adom(d) ⊆ \dom(μ_1)$ and
+  $μ_1 \forcesto μ_2$, we have $\dom(μ_1) ⊦ d(μ_1) \sim d(μ_2)$.
 \end{lemma}
 \begin{proof}
+  This lemma makes essential use of the Postpone and Speculate properties.
+  Note that we are free to make use of the latter because $d$ is well-addressed
+  at $μ_1$.
 
+  If either $d(μ_1)$ or $d(μ_2)$ diverges, then so does the other, in which case
+  $\dom(μ_1) ⊦ d(μ_1) \sim d(μ_2)$.
+  If either $\bigstep{d}{μ_1}{v}{μ_1'}$ or $\bigstep{d}{μ_2}{v}{μ_2'}$ then both
+  judgments hold and $μ_1' \forcesto μ_2'$, so it suffices to show
+  ${\dom(μ_1) ⊦ \goodend{v}{μ_1'} \sim \goodend{v}{μ_2'}}$.
+  For the $\ConV$ case, we can show $\later(\many{\dom(μ_1) ⊦ d(μ_1') \sim d(μ_2')})$
+  via Löb induction, because $μ_1' \forcesto μ_2'$ and we may relax the address
+  space from $\dom(μ_1')$ to $\dom(μ_1)$ via \Cref{thm:weaken-address-domain}.
+  For the $\FunV(f)$ case, we assume that $\later(\adom(d) ⊆ \dom(μ_1))$ holds for some
+  $d ∈ \later\EventD$ and have to show that $\later(\dom(μ_1) ⊦ f(d)(μ_1') \sim f(d)(μ_2'))$.
+  Again, that follows via Löb induction, because $μ_1' \forcesto μ_2'$ and we
+  may relax the address space from $\dom(μ_1')$ to $\dom(μ_1)$ via
+  \Cref{thm:weaken-address-domain}.
+
+  If either $d(μ_1)$ or $d(μ_2)$ is ultimately stuck, then so is the other,
+  because it neither diverges nor evaluates.
+  In that case, we see that $\dom(μ_1) ⊦ d(μ_1) \sim d(μ_2)$.
 \end{proof}
 
-Instead we define the following contextual equivalence relation in terms of
-evaluation contexts in the style of \citep{MoranSands:99} based on the $\len$
-function in \Cref{thm:abs-length}.
-For that we need syntax for evaluation contexts $\pE$ with holes $\hole$.
+It is syntactically evident that $\semevt{\wild}$ is compositional \wrt to
+definitional equality on $\EventD$ because of structural recursion.
+More interestingly, it is also compositional \wrt to $(\equiv)$!
+
+As compositionality is a property referring to \emph{contexts}, we need syntax
+for \emph{evaluation contexts} $\pE$%
+\footnote{In \Cref{defn:deadness2} we already used the term ``evaluation
+context'' to denote small-step machine components $(ρ,μ,κ)$ rather than to
+$\pE$. \citet{MoranSands:99} prove that both notions are equivalent, so this
+overload is justified.}
+with holes $\hole$.
 Then $\pE[\pe]$ denotes an expression where the hole in $\pE$ has been replaced with $\pe$.
 \[\begin{array}{rcl}
   \pE & ::=  & \hole \mid \pE~\px \mid \Let{\px}{\pe}{\pE} \mid \Let{\px}{\pE}{\pE[\px]} \mid \Case{\pE}{\Sel[r]} \\
@@ -392,64 +483,52 @@ Then $\pE[\pe]$ denotes an expression where the hole in $\pE$ has been replaced 
   $\semevt{\pE[\pe_1]}_{ρ} \equiv \semevt{\pE[\pe_2]}_{ρ}$.
 \end{theorem}
 \begin{proof}
-  By induction on $\pE$, considering a particular $ρ$.
-  We will often need to stress that the environments such as $ρ$ are well-addressed,
-  which means that $\forall px.\ \dom(μ) ⊦ ρ(\px)$ for a particular $μ$.
-  (We acknowledge that it would be better if we made the address space $\dom(μ)$
-  part of the type of a $d$, but that would overcomplicate the presentation in
-  \Cref{sec:stateful}.)
+  By induction on $\pE$, considering a particular $ρ$ and taking $A = \adom(\rng(ρ))$.
   \begin{itemize}
     \item \textbf{Case $\hole$}: By assumption, $\semevt{\pe_1}_ρ \equiv \semevt{\pe_2}_ρ$.
 
     \item \textbf{Case $\pE~\px$}:
       It is $\fn{\wild}{\stuckend{}} \equiv \fn{\wild}{\stuckend{}}$ in case $\px \not∈ \dom(ρ)$.
 
-      Otherwise, it suffices to show that for $d_1 \equiv d_2$, we have
-      $d_1 \betastep \fn{(\FunV(f))}{f(ρ(\px))} \equiv d_2 \betastep \fn{(\FunV(f))}{f(ρ(\px))}$.
-      Now fix particular $μ_1 \approx μ_2$.
+      Otherwise, by Löb induction it suffices to show that for $d_1 \equiv d_2$, we have
+      \[
+        d_1 \betastep \fn{(\FunV(f))}{f(ρ(\px))} \equiv d_2 \betastep \fn{(\FunV(f))}{f(ρ(\px))}.
+      \]
+      Now fix particular $μ_1 \approx μ_2$ such that $A ⊆ \dom(μ_1)$.
       The interesting case is when $\bigstep{d_1}{μ_1}{\FunV(f_1)}{μ'_1}$.
-      Semantic equivalence similarly forces $\bigstep{d_2}{μ_2}{\FunV(f_2)}{μ'_2}$,
-      and the trace part of $A ⊦ \semevt{\pE[\pe_1]~\px}_ρ(μ_1) \sim \semevt{\pE[\pe_2]~\px}_ρ(μ_2)$
-      (where $A = \dom(μ_1) = \dom(μ_2)$) follows suit.
-      What remains to be shown is that $A ⊦ f_1(ρ(\px))(μ_1) \sim f_2(ρ(\px))(μ_2)$.
-      We know that $A ⊦ f_1(d)(μ_1) \sim f_2(d)(μ_2)$ for any $d$ such that $A ⊦
-      d$.
-      Well-addressedness gives us exactly $A ⊦ ρ(\px)$ and we can show the goal.
+      We have to show that $A ⊦ f_1(ρ(\px))(μ_1) \sim f_2(ρ(\px))(μ_2)$, the
+      rest follows by congruence.
+      From $d_1 \equiv d_2$, we know that $\dom(μ_1) ⊦ f_1(d)(μ_1) \sim f_2(d)(μ_2)$ for any lazy $d$ such that $\adom(d) ⊆ \dom(μ_1)$.
+      By \Cref{thm:weaken-address-domain}, we can weaken $\dom(μ_1)$ to $A$.
+      Since $\adom(ρ(\px)) ⊆ \dom(μ_1)$ we can show the goal.
 
     \item \textbf{Case $\Case{\pE}{\Sel[r]}$}:
       Similar to the application case.
 
     \item \textbf{Case $\Let{\px}{\pe}{\pE}$}:
-      Follows by the inductive hypothesis applied to $\semevt{\pE[\pe_1]}_{ρ'}
-      \equiv \semevt{\pE[\pe_2]}_{ρ'}$ and \Cref{thm:weaken-address-space}.
+      Note that the equivalence $μ_1 \approx μ_2$ can be extended to
+      $μ_1[\pa ↦ d] \approx μ_2[\pa ↦ d]$ for any $d$ by reflexivity of
+      $\equiv$, and for $d \triangleq \semevt{\pe}_ρ'$ in particular.
+      Then the goal follows by the inductive hypothesis applied to
+      $\semevt{\pE[\pe_1]}_{ρ'} \equiv \semevt{\pE[\pe_2]}_{ρ'}$ on address
+      domain $A ∪ \{ \pa \}$ and \Cref{thm:weaken-address-domain}.
 
     \item \textbf{Case $\Let{\px}{\pE_1}{\pE_2[\px]}$}:
-      We first prove that $\{\pa\} ⊦ \deref(\pa)$.
-      So let $μ_1,μ_2$ be arbitrary heaps such that $μ_1 \forcesto μ_2$
-      with $\pa ∈ \dom(μ_1)$ and show $\{\pa\} ⊦ \deref(\pa)(μ_1) \sim \deref(\pa)(μ_2)$.
-      Similar to the application case, the interesting part is when both
-      $\bigstep{μ_1(\pa)}{μ_1}{v_1}{μ'_1}$ and
-      $\bigstep{μ_2(\pa)}{μ_2}{v_2}{μ'_2}$.
-      If $μ_1(\pa) = μ_2(\pa)$, we can conclude $v_1 = v_2$ and $μ'_1 \forcesto
-      μ'_2$ by laziness and hence $μ'_1[\pa ↦ \ret(v_1)] \forcesto μ'_2[\pa ↦ \ret(v_2)]$.
-
-      To prove that $ρ' = ρ[\px↦\deref(\pa)]$ is well-addressed \wrt the
-      extended heap, we have to prove
-
-
       Fix a particular $μ_1 \approx μ_2$.
       The induction hypothesis gives us
       $\semevt{\pE_1[\pe_1]}_{ρ'} \equiv \semevt{\pE_1[\pe_2]}_{ρ'}$,
       so $μ_1[\pa ↦ \semevt{\pE_1[\pe_1]}_{ρ'}] \approx μ_2[\pa ↦ \semevt{\pE_1[\pe_2]}_{ρ'}]$
       and we get
       \[
-        \semevt{\pE_2[\px]}_{ρ'}(μ_1[\pa ↦ \semevt{\pE_1[\pe_1]}_{ρ'}]) \equiv \semevt{\pE_2[\px]}_{ρ'}(μ_2[\pa ↦ \semevt{\pE_1[\pe_2]}_{ρ'}])
+        A ∪ \{ \pa \} ⊦ \semevt{\pE_2[\px]}_{ρ'}(μ_1[\pa ↦ \semevt{\pE_1[\pe_1]}_{ρ'}]) \sim \semevt{\pE_2[\px]}_{ρ'}(μ_2[\pa ↦ \semevt{\pE_1[\pe_2]}_{ρ'}])
       \]
-      by definition of semantic equivalence.
-
+      by Löb induction on $\pE_2[\px]$ and definition of semantic equivalence.
   \end{itemize}
-
 \end{proof}
+
+And finally, we can prove that $(\equiv)$ is indeed coarser than the usual
+syntactic notion of contextual equivalence, which we can define on
+$\semevt{\wild}$ based on the $\len$ function in \Cref{thm:abs-length}.
 
 \begin{corollary}[Semantic equivalence implies contextual equivalence]
   Let $\pe_1, \pe_2$ be expressions such that $\semevt{\pe_1}_ρ \equiv \semevt{\pe_2}_ρ$.
@@ -459,5 +538,20 @@ Then $\pE[\pe]$ denotes an expression where the hole in $\pE$ has been replaced 
   \]
 \end{corollary}
 \begin{proof}
+  It suffices to show that for all $d_1,d_2$ with $\adom(d_1) = \adom(d_2) = \varnothing$,
+  if $d_1 \equiv d_2$ then $\len(d_1([])) = ω \Leftrightarrow \len(d_2([])) = ω$.
 
+  Since $[] \approx []$, we have $\varnothing ⊦ d_1([]) \sim d_2([])$.
+  Then if either trace diverges, so does the other, in which case their length is $ω$.
 \end{proof}
+
+This corollary natural leads to the converse question:
+Does contextual equivalence imply semantic equivalence?
+If that were the case, then $\semevt{\wild}$ would be \emph{fully abstract} via
+$(equiv)$~\citep{Plotkin:77}.
+\citeauthor{Plotkin:77} established that $\semscott{\wild}$ was not fully
+abstract via definitional equality on $\ScottD$.
+Guarded types prevent probing for diverging computations, but it is still
+possible for lazy elements to probe traces for stuckness, so we have reason to
+doubt that $\semevt{\wild}$ is fully abstract.
+We do not intend to find a final answer in this work.
