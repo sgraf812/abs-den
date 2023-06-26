@@ -321,7 +321,7 @@ semantic domain are lazy.
  \\
  \\[-0.5em]
  \inferrule*
-    {\later (\forall d.\ \adom(d) ⊆ A ⟹  A ⊦ f_1(d)(μ_1) \sim f_2(d)(μ_2))}
+    {\forall d.\ \later(\adom(d) ⊆ A) ⟹  A ⊦ f_1(d)(μ_1) \sim f_2(d)(μ_2)}
     {A ⊦ \goodend{\FunV(f_1), μ_1} \sim \goodend{\FunV(f_2), μ_2}}
  \qquad
  \inferrule*

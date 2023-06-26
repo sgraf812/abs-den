@@ -81,62 +81,38 @@
   \end{itemize}
 \end{proof}
 
-\begin{lemma}[Deadness of $(\betastep)$]
-  \label{thm:deadness-beta}
-  Let $\pa$ be dead in $d ∈ \EventD$, and let $f : \EventV \pfun \EventD$ map
-  values that $\pa$ is dead in to elements that $\pa$ is dead in (quite like
-  the deadness requirement on $\FunV(f)$).
-  Then $\pa$ is dead in $d \betastep f$.
+\begin{lemma}[Congruence of $(\betastep)$]
+  \label{thm:equiv-beta}
+  Let $d_1,d_2 ∈ \EventD$, $A ⊆ \adom(d)$, $μ_1,μ_2 ∈ \Heaps$ and $f_1,f_2 ∈ \EventV \pfun \EventD$.
+  If
+  \begin{enumerate}
+    \item $A ⊦ d_1(μ_1) \sim d_2(μ_2)$
+    \item For all $v_i∈ \dom(f_i)$ and $μ_1',μ_2' ∈ \Heaps$ such that $\bigstep{d_i}{μ_i}{v_i}{μ_i'}$
+      and $A ⊦ \goodend{v_1,μ_1'} \sim \goodend{v_2,μ_2'}$,
+      it follows that $A ⊦ f_1(v_1)(μ_1') \sim f_2(v_2)(μ_2')$
+  \end{enumerate}
+  Then $A ⊦ d_1 \betastep f_1 \sim d_2 \betastep f_2$.
 \end{lemma}
 \begin{proof}
-  We use deadness of $d$ to see that $μ'_1 \sim^{\Heaps}_\pa μ'_2$, which in turn
-  means that $f(v)(μ_1) \sim^{\Traces}_\pa f(v)(μ_1)$.
-  The rest is just packing and unpacking the equivalence relation.
+  When $d_i$ do not evaluate on $μ_i$, or if the values $v_i$ are not in the
+  domain of $f_i$, the result is immediate by (1).
+  Otherwise, we can prolong the bisimulation through the beta reduction
+  with (2), which we use to prove that
+  \[
+     A ⊦ f_1(v_1)(μ_1') \sim f_2(v_2)(μ_2')
+  \]
+  in the first case of $\betastep$.
 \end{proof}
 
-\begin{lemma}[Deadness of $\deref$]
-  \label{thm:deadness-deref}
-  Let $\pa, \pa'$ be two distinct addresses.
-  Then $\pa$ is dead in $\deref(\pa')$.
+\begin{lemma}[Heap forcing and bisimilarity]
+  \label{thm:force-heap-bisimlar}
+  Let $d_1,d_2 ∈ \EventD$, $A ⊆ \adom(d)$ and $μ_1,μ_2,μ_1',μ_2' ∈ \Heaps$
+  such that $\adom(d_i) ⊆ \dom(μ_i)$.
+  If $A ⊦ d_1(μ_1) \sim d_2(μ_2)$ and $μ_1 \forcesto μ_1'$, $μ_2 \forcesto μ_2'$,
+  then $A ⊦ d_1(μ_1') \sim d_2(μ_2')$.
 \end{lemma}
 \begin{proof}
-  Assuming $μ_1 \sim^{\Heaps}_\pa μ_2$, it follows that $\pa$ is dead in
-  $μ_i(\pa')$ by the deadness requirement.
-  Likewise, given a value $v$ that $\pa$ is dead in, it is a simple
-  matter of unpacking and repacking equality proofs see that the body
-  of the function argument
-  $\UpdateA(\pa↦\ret(v)) \cons \goodend{v,μ'_i[\pa↦\ret(v)]}$
-  evaluates bisimilarly \wrt $\sim^{\Traces}_\pa$ given that
-  $μ'_1 \sim^{\Heaps}_\pa μ'_2$.
-  \Cref{thm:deadness-beta} concludes the proof.
-\end{proof}
-
-\begin{lemma}[Deadness of $\apply$]
-  \label{thm:deadness-apply}
-  Let $\pa$ be dead in $d_\pe$ and $d_\px$.
-  Then $\pa$ is dead in $\apply(d_\pe, d_\px)$.
-\end{lemma}
-\begin{proof}
-  By simple unpacking and repacking congruences until \Cref{thm:deadness-beta}
-  is applicable, similar to \Cref{thm:deadness-deref}.
-\end{proof}
-
-\begin{lemma}[Deadness without $\deref$]
-  \label{thm:deadness-no-deref}
-  Let $\pe$ be an expression, $\pa$ an address and $ρ$ a usage environment, where
-  $\pa$ is dead in $\rng(ρ)$.
-  Then $\pa$ is dead in $\semevt{\pe}_ρ$.
-\end{lemma}
-\begin{proof}
-  Assume $μ_1 \sim^{\Heaps}_\pa μ_2$, then the goal is to show
-  $\semevt{\pe}_ρ(μ_1) \sim^{\Heaps}_\pa \semevt{\pe}_ρ(μ_1)$.
-
-  By induction on $\pe$. The only interesting case is
-  $\pe = \Let{\px}{\pe_1}{\pe_2}$, where we extend the heap with new
-  $\deref(\pa')$ actions that $\pa$ might potentially be live in.
-  But since $\pa'$ is drawn freshly, and $\pa ∈ \dom(μ_1) ∩ \dom(μ_2)$
-  due to the assumption, we have $\pa' \not= \pa$ and can apply
-  \Cref{thm:deadness-deref} to conclude the proof.
+  By applying \Cref{thm:lazy-bisimilar} twice and transitivity of $\wild ⊦ \wild \sim \wild$.
 \end{proof}
 
 \begin{proof}[Proof of \Cref{thm:semusg-correct-live-3}]
@@ -147,158 +123,68 @@
   for all $ρ$,
   $\semevt{\Let{\px}{\pe_1}{\pe}}_{ρ} \equiv \semevt{\Let{\px}{\pe_2}{\pe}}_{ρ}$.
 
-  So assume that $μ_{l,1} \approx μ_{l,1}$ for arbitrary $μ_{l,1},μ_{l,1}$ (satisying
+  So assume that $μ_{l,1} \approx μ_{l,2}$ for arbitrary $μ_{l,1},μ_{l,2}$ (satisfying
   well-addressedness constraints).
   We have to show that
   \[
-    \dom(μ_{l,1}) ⊦ \semevt{\Let{\px}{\pe_1}{\pe}}_{ρ}(μ_{l,1}) \sim \semevt{\Let{\px}{\pe_2}{\pe}}_{ρ}(μ_{l,1})
+    \dom(μ_{l,1}) ⊦ \semevt{\Let{\px}{\pe_1}{\pe}}_{ρ}(μ_{l,1}) \sim \semevt{\Let{\px}{\pe_2}{\pe}}_{ρ}(μ_{l,2})
   \]
   We first unfold the outer layer of $\semevt{\wild}$ and instead show
   \[
-    \dom(μ_{l,1}) ∪ \{\pa\} ⊦ \semevt{\pe}_{ρ[\px↦\deref(\pa)]}(μ_{l,1}[\pa↦d_1]) \sim \semevt{\pe}_{ρ[\px↦\deref(\pa)]}(μ_{l,1}[\pa↦d_2])
+    \dom(μ_{l,1}) ⊦ \semevt{\pe}_{ρ[\px↦\deref(\pa)]}(μ_{l,1}[\pa↦d_1]) \sim \semevt{\pe}_{ρ[\px↦\deref(\pa)]}(μ_{l,2}[\pa↦d_2])
   \]
-  for all $d_1,d_2 ∈ \EventD$ (where $\adom(d_1) = \adom(d_2) = \dom(μ_{l,1}) ∪
-  \{\pa\}$) and $\pa \not∈ \dom(μ_{l,1}) ∪ \dom(μ_{l,1})$, and thus
-  $\pa \not ∈ \adom(\rng(ρ))$.
-  (The $d_i$ can be instantiated to $\semevt{\pe_i}_{ρ[\px↦\deref(\pa)]}$.)
-  We take $\pa$ as the proxy address for $\px$ and say that $\pa$ is dead
-  in $d$ if $\pa \not∈ \adom(d)$.
-  Then, if $d = \semevt{\pe'}_ρ$ for some $\pe'$, we can say that $\px$ is dead
-  in $\pe'$.
+  for all $ρ,μ_{l,1},μ_{l,2},d_1,d_2$ such that $μ_{l,1} \approx μ_{l,2}$,
+  $\adom(d_1) ⊆ \dom(μ_{l,1}) ∪ \{\pa\}, \adom(d_2) ⊆ \dom(μ_{l,2}) ∪ \{\pa\}$ and
+  $\pa \not∈ \dom(μ_{l,1}) ∪ \dom(μ_{l,2})$.
+  It follows that $\pa \not ∈ \adom(\rng(ρ))$, and that
+  the $d_i$ can be instantiated to $\semevt{\pe_i}_{ρ[\px↦\deref(\pa)]}$.
 
-  Let us write $μ_i \triangleq \triangleq μ_{l,i}[\pa↦d_i]$,
-  $A \triangleq \dom(μ_1)$, and proceed by induction on $\pe$.
+  Let us write $μ_i \triangleq μ_{l,i}[\pa↦d_i]$, $ρ' = ρ[\px↦\deref(\pa)]$,
+  $A \triangleq \dom(μ_{l,1})$, so our inductive hypothesis abbreviates to
+  \[
+    A ⊦ \semevt{\pe}_{ρ'}(μ_1) \sim \semevt{\pe}_{ρ'}(μ_2)
+  \]
+  and proceed by induction on $\pe$.
   \begin{itemize}
-    \item \textbf{Case $\pe = \py$}: If $\px=\py$, then
-      $\semusg{\py}_{\tr} = \semusg{\px}_{\tr}$, contradicting the inequality.
-      If $\px \not= \py$, then $\px$ is dead in $\py$
-      because $\pa$ is dead in $\semevt{\py}_{ρ[\px↦\deref(\pa)]}=ρ(\py)$.
-
-    \item \textbf{Case $\pe = \Lam{\py}{\pe'}$}:
-      We have to show that
-      \[
-        \dom(μ_1) ∪ \{\pa\} ⊦ \goodend{\FunV(\semevt{\pe'}_{ρ[\px↦\deref(\pa)][\py↦d]}), μ_1[\pa↦d_1]} \sim \goodend{\FunV(\semevt{\pe'}_{ρ[\px↦\deref(\pa)][\py↦d]}), μ_2[\pa↦d_2]}
-      \]
-      which requires us to show
-      \[
-        \later (\forall d.\ \adom(d) ⊆ A ⟹  A ⊦ f_1(d)(μ_1) \sim f_2(d)(μ_2))
-      \]
-
-    The equality follows from
-      pointwise equality on functions, so we pick an arbitrary $d$ to show
-      $\semscott{\pe'}_{ρ[\px↦d_1][\py↦d]} = \semscott{\pe'}_{ρ[\px↦d_2][\py↦d]}$.
-
-      This is simple to see if $\px=\py$. Otherwise, $\tr[\py↦\bot]$ witnesses the fact that
-      \[
-        \tr[\py↦\bot](\px) = \tr(\px) \not⊑
-        \semusg{\Lam{\py}{\pe'}}_{\tr} = \semusg{\pe'}_{\tr[\py↦\bot]}
-      \]
-      so we can apply the induction hypothesis to see that $\px$ must be dead in
-      $\pe'$, hence the equality on $\semscott{\pe'}$ holds.
-
-    \item \textbf{Case $\pe = \pe'~\py$}:
-      From $\tr(\px) \not⊑ \semusg{\pe'}_{\tr} + ω*\tr(\py)$ we can see that
-      $\tr(\px) \not⊑ \semusg{\pe'}_{\tr}$ and $\tr(\px) \not⊑ \tr(\py)$ by
-      monotonicity of $+$ and $*$.
-      If $\px=\py$ then the latter inequality leads to a contradiction.
-      Otherwise, $\px$ must be dead in $\pe'$, hence both cases of
-      $\semscott{\pe'~\py}$ evaluate equally, differing only in
-      the environment. It remains to be shown that
-      $ρ[\px↦d_1](\py) = ρ[\px↦d_2](\py)$, and that is easy to see since
-      $\px \not= \py$.
-
-    \item \textbf{Case $\pe = \Lam{\py}{\pe'}$}:
-      Let $v$ be any value such that $\dead^{\EventV}_{\pa}(v)$;
-      then $\dead^{\EventD}_{\pa}(\ret(v))$ follows from
-      unfolding $\ret$.
-
-      So for the lambda case, it's enough to prove
-      $\dead^{\EventV}_{\pa}(\FunV(f))$, where
-      \[
-        f \triangleq\fn{d^\later}{\AppEA(\py↦d^\later) \cons \semevt{\pe'}_{ρ[\px↦\deref(\pa)][\py↦d^\later]}}.
-      \]
-      Hence let us pick arbitrary $μ_i, d^\later$ such that
-      $μ_1\sim^{\Heaps}_{\pa} μ_2$ and
-      $\dead^{\EventD}_{\pa}(d^\later)$
-      and show
-      \[
-        f(d^\later)(μ_1)\sim^{\Traces}_{\pa} f(d^\later)(μ_2).
-      \]
-      This follows by congruence once we show that $\pa$ is dead in
-      $d \triangleq \semevt{\pe'}_{ρ[\px↦\deref(\pa)][\py↦d^\later]}$.
-
-      If $\px=\py$ then $d = \semevt{\pe'}_{ρ[\py↦d^\later]}$
-      where $\pa$ is dead in $\rng(ρ[\py↦d^\later])$, hence $\pa$ is also
-      dead in $d$ by \Cref{thm:deadness-no-deref}.
-
-      Otherwise, $\px \not= \py$ and $\tr[\py↦\bot]$ witnesses the fact that
-      \[
-        \tr[\py↦\bot](\px) = \tr(\px) \not⊑
-        \semusg{\Lam{\py}{\pe'}}_{\tr} = \semusg{\pe'}_{\tr[\py↦\bot]},
-      \]
-      so we can apply the induction hypothesis to see that $\px$ must be dead in
-      $\pe'$.
-      On the other hand, we can use $\px \not= \py$ to commute the environment
-      updates to
-      $d = \semevt{\pe'}_{ρ[\py↦d^\later][\px↦\deref(\pa)]}$.
-      Now, $\pa$ is dead in $d^\later$, as per assumption, and likewise for
-      $\rng(ρ[\py↦d^\later])$.
-      By \Cref{defn:deadness4}, we can apply that $\px$ is dead in $\pe'$ to
-      this setup to conclude that $\pa$ is dead in $d$.
-
     \item \textbf{Case $\pe = \Let{\py}{\pe_1}{\pe_2}$}:
       We have to show that
       \[
-        \semscott{\pe_2}_{ρ[\px↦d_1][\py↦d'_1]} = \semscott{\pe_2}_{ρ[\px↦d_2][\py↦d'_2]}
+        A ⊦ \semevt{\pe_2}_{ρ'[\py↦\deref(\pa')]}(μ_1[\pa'↦d_1]) \sim \semevt{\pe_2}_{ρ'[\py↦\deref(\pa')]}(μ_2[\pa'↦d_1])
       \]
-      where $d'_i$ satisfy $d'_i = \semscott{\pe_1}_{ρ[\px↦d_i][\py↦d'_i]}$.
-      The case $\px = \py$ is simple to see, because $ρ[\px↦d_i](\px)$ is never
-      looked at.
-      So we assume $\px \not= \py$ and see that $\tr(\px) = \tr'(\px)$, where
-      $\tr' = \operatorname{fix}(\fn{\tr'}{\tr ⊔ [\py ↦ \semusg{\pe_1}_{\tr'}]})$.
+      where $d_1 \triangleq \semevt{\pe_1}_{ρ'[\py↦\deref(\pa')]}$
+      and $\pa' \not∈ \dom(μ_1) ∪ \dom(μ_2)$ and thus $\pa' \not= \pa$.
 
+      Since there is no shadowing, it is $\px \not= \py$ and we see that
+      $\tr(\px) = \tr'(\px)$, where
+      $\tr' = {\operatorname{fix}(\fn{\tr'}{\tr ⊔ [\py ↦
+      \semusg{\pe_1}_{\tr'}]})}$.
       We know that
       \[
         \tr'(\px) = \tr(\px) \not⊑ \semusg{\pe}_{\tr} = \semusg{\pe_2}_{\tr'}
       \]
-      So by the induction hypothesis, $\px$ is dead in $\pe_2$.
-
-%      Now consider the predicate $P(\tr) = \tr(\px) ⊑ \semusg{\pe_1}_{\tr}$.
-%      We must prove it admissable to see that it holds (by fixpoint induction)
-%      for $\tr'$. That is clearly the case because it is a composition of
-%      continuous functions ($\tr, \semusg{\pe_1}$) and admissable predicates
-%      ($⊑$).
-%
-%      SG: I think we don't need to prove that P above is admissable because
-%      we never try to prove it through fixpoint induction; we simply apply LEM.
+      but we cannot apply the induction hypothesis yet, because
+      $\pa ∈ \adom(d_1)$.
 
       We proceed by cases over $\tr(\px) = \tr'(\px) ⊑ \semusg{\pe_1}_{\tr'}$.
       \begin{itemize}
         \item \textbf{Case $\tr'(\px) ⊑ \semusg{\pe_1}_{\tr'}$}: Then
           $\tr'(\px) ⊑ \tr'(\py)$ and $\py$ is also dead in $\pe_2$ by the above
           inequality.
-          Both deadness facts together allow us to rewrite
-          \[
-            \semscott{\pe_2}_{ρ[\px↦d_1][\py↦d'_1]} = \semscott{\pe_2}_{ρ[\px↦d_1][\py↦d'_2]} = \semscott{\pe_2}_{ρ[\px↦d_2][\py↦d'_2]}
-          \]
+          Both deadness facts together allow us to rewrite $d_1$ to
+          $d' \triangleq \semevt{\Lam{x}{x}}_{[]}$ which satisfies $\pa \not∈
+          \adom(d_1)$, then apply the induction hypothesis (nothing that
+          $μ_1[\pa'↦d'] \approx μ_2[\pa'↦d']$) and then rewrite back:
+          \[\begin{array}{rcl}
+            A & ⊦    & \semevt{\pe_2}_{ρ'[\py↦\deref(\pa')]}(μ_1[\pa'↦d_1]) \\
+              & \sim & \semevt{\pe_2}_{ρ'[\py↦\deref(\pa')]}(μ_1[\pa'↦d']) \\
+              & \sim & \semevt{\pe_2}_{ρ'[\py↦\deref(\pa')]}(μ_2[\pa'↦d']) \\
+              & \sim & \semevt{\pe_2}_{ρ'[\py↦\deref(\pa')]}(μ_2[\pa'↦d_1]) \\
+          \end{array}\]
           as requested.
         \item \textbf{Case $\tr'(\px) \not⊑ \semusg{\pe_1}_{\tr'}$}:
           Then $\px$ is dead in $\pe_1$ and $d'_1 = d'_2$. The goal follows
           from the fact that $\px$ is dead in $\pe_2$.
       \end{itemize}
-    \item \textbf{Case $\pe = \pe'~\py$}:
-      $\pa$ is trivially dead in the stuck case, so we assume that there exists
-      $d_\py \triangleq ρ(\py)$ that $\pa$ is dead in.
-
-      From $\tr(\px) \not⊑ \semusg{\pe'}_{\tr} + ω*\tr(\py)$ we can see that
-      $\tr(\px) \not⊑ \semusg{\pe'}_{\tr}$ and $\tr(\px) \not⊑ \tr(\py)$ by
-      monotonicity of $+$ and $*$.
-      The former inequality yields that $\px$ must be dead in $\pe'$ via the
-      induction hypothesis, while the latter proves that $\px \not= \py$.
-
-      Since $\px$ is dead in $\pe'$, we know that $\pa$ is dead in
-      $\semevt{\pe'}_ρ$. Likewise, $\pa$ is dead in $d_\py$, so we can
-      apply \Cref{thm:deadness-apply} to conclude the proof.
     \item \textbf{Case $\pe = \Let{\py}{\pe_1}{\pe_2}$}:
       The case $\px = \py$ is easily discharged by \Cref{thm:deadness-no-deref}.
 
@@ -353,6 +239,54 @@
         \semevt{\pe_2}_{ρ'}(μ_1[\pa ↦ d_1^\later]) \sim^{\Traces}_\pa \semevt{\pe_2}_{ρ'}(μ_2[\pa ↦ d_1^\later])
       \]
       The rest is just congruence.
+    \item \textbf{Case $\pe = \py$}: If $\px=\py$, then
+      $\semusg{\py}_{\tr} = \semusg{\px}_{\tr}$, contradicting the inequality.
+      If $\px \not= \py$, then $\px$ is dead in $\py$
+      because $\pa$ is dead in $\semevt{\py}_{ρ'}=ρ(\py)$.
+
+    \item \textbf{Case $\pe = \Lam{\py}{\pe'}$}:
+      We have to show that
+      \[
+        A ⊦ \goodend{\FunV(\fn{d}{\semevt{\pe'}_{ρ'[\py↦d]}}), μ_1} \sim \goodend{\FunV(\fn{d}{\semevt{\pe'}_{ρ'[\py↦d]}}), μ_2}
+      \]
+      which requires us to show
+      \[
+        \later (\forall d.\ \adom(d) ⊆ A ⟹  A ⊦ \semevt{\pe'}_{ρ'[\py↦d]}(μ_1) \sim \semevt{\pe'}_{ρ'[\py↦d]}(μ_2))
+      \]
+      Crucially, the address restriction on $d$ rules out observing the heap
+      entry at $\pa$.
+      The proof is a simple matter of applying the inductive hypothesis.
+
+    \item \textbf{Case $\pe = \pe'~\py$}:
+      $\px$ is trivially dead in the stuck case, so we assume that there exists
+      $d_\py \triangleq ρ(\py)$.
+
+      Unfolding $\apply$, we have to prove
+      \[
+        A ⊦ (\semevt{\pe'}_{ρ'} \betastep \fn{(\FunV(f))}{f(d_\py)})(μ_1) \sim (\semevt{\pe'}_{ρ'} \betastep \fn{(\FunV(f))}{f(d_\py)})(μ_2)
+      \]
+      We will apply \Cref{thm:equiv-beta} here situation and are left with two
+      sub-goals.
+      \begin{enumerate}
+        \setlength{\itemindent}{1.5em}
+        \item $A ⊦ \semevt{\pe'}_{ρ'}(μ_1) \sim \semevt{\pe'}_{ρ'}(μ_2)$
+        \item Assuming $A ⊦ \goodend{v_1,μ_1'} \sim \goodend{v_2,μ_2'}$, show
+          $A ⊦ f_1(d_\py)(μ_1') \sim f_2(d_\py)(μ_2')$
+      \end{enumerate}
+
+      From $\tr(\px) \not⊑ \semusg{\pe'}_{\tr} + ω*\tr(\py)$ we can see that
+      $\tr(\px) \not⊑ \semusg{\pe'}_{\tr}$ and $\tr(\px) \not⊑ \tr(\py)$ by
+      monotonicity of $+$ and $*$.
+      The former inequality allows us invoke the induction hypothesis to prove
+      (1).
+
+      To prove (2), we assume that $A ⊦ \goodend{\FunV(f_1),μ_1'} \sim \goodend{\FunV(f_2),μ_2'}$.
+      In that case, $\adom(d_\py) ⊆ A$ and we can see that
+      \[
+        A ⊦ f_1(d_\py)(μ_1') \sim f_2(d_\py)(μ_2')
+      \]
+      as per the premise attached to the assumption.
+
   \end{itemize}
 \end{proof}
 
