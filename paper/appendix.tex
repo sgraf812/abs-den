@@ -141,20 +141,72 @@
 
 \begin{proof}[Proof of \Cref{thm:semusg-correct-live-3}]
   \label{prf:semusg-correct-live-3}
-  By induction on $\pe$.
   We fix $\pe$, $\px$ and $\tr$ such that $\tr(\px) \not⊑ \semusg{\pe}_{\tr}$.
   The goal is to show that $\px$ is dead in $\pe$,
-  so we are given arbitrary expressions $\pe_1,\pe_2$ and an evaluation context $C$
-  for which we have to show that
-  $\len(\semevt{E[\Let{\px}{\pe_1}{\pe}]}_{[]}([])) = \len(\semevt{E[\Let{\px}{\pe_2}{\pe}]}_{[]}([]))$.
+  so we are given arbitrary expressions $\pe_1,\pe_2$ and have to show that
+  for all $ρ$,
+  $\semevt{\Let{\px}{\pe_1}{\pe}}_{ρ} \equiv \semevt{\Let{\px}{\pe_2}{\pe}}_{ρ}$.
 
-  By cases on $\pe$:
+  So assume that $μ_{l,1} \approx μ_{l,1}$ for arbitrary $μ_{l,1},μ_{l,1}$ (satisying
+  well-addressedness constraints).
+  We have to show that
+  \[
+    \dom(μ_{l,1}) ⊦ \semevt{\Let{\px}{\pe_1}{\pe}}_{ρ}(μ_{l,1}) \sim \semevt{\Let{\px}{\pe_2}{\pe}}_{ρ}(μ_{l,1})
+  \]
+  We first unfold the outer layer of $\semevt{\wild}$ and instead show
+  \[
+    \dom(μ_{l,1}) ∪ \{\pa\} ⊦ \semevt{\pe}_{ρ[\px↦\deref(\pa)]}(μ_{l,1}[\pa↦d_1]) \sim \semevt{\pe}_{ρ[\px↦\deref(\pa)]}(μ_{l,1}[\pa↦d_2])
+  \]
+  for all $d_1,d_2 ∈ \EventD$ (where $\adom(d_1) = \adom(d_2) = \dom(μ_{l,1}) ∪
+  \{\pa\}$) and $\pa \not∈ \dom(μ_{l,1}) ∪ \dom(μ_{l,1})$, and thus
+  $\pa \not ∈ \adom(\rng(ρ))$.
+  (The $d_i$ can be instantiated to $\semevt{\pe_i}_{ρ[\px↦\deref(\pa)]}$.)
+  We take $\pa$ as the proxy address for $\px$ and say that $\pa$ is dead
+  in $d$ if $\pa \not∈ \adom(d)$.
+  Then, if $d = \semevt{\pe'}_ρ$ for some $\pe'$, we can say that $\px$ is dead
+  in $\pe'$.
+
+  Let us write $μ_i \triangleq \triangleq μ_{l,i}[\pa↦d_i]$,
+  $A \triangleq \dom(μ_1)$, and proceed by induction on $\pe$.
   \begin{itemize}
     \item \textbf{Case $\pe = \py$}: If $\px=\py$, then
       $\semusg{\py}_{\tr} = \semusg{\px}_{\tr}$, contradicting the inequality.
-      If $\px \not= \py$, then $\pa$ is dead in
-      $\semevt{\py}_{ρ[\px↦\deref(\pa)]}=ρ(\py)$ because $\pa$ is dead in $ρ(\py)$
-      by assumption.
+      If $\px \not= \py$, then $\px$ is dead in $\py$
+      because $\pa$ is dead in $\semevt{\py}_{ρ[\px↦\deref(\pa)]}=ρ(\py)$.
+
+    \item \textbf{Case $\pe = \Lam{\py}{\pe'}$}:
+      We have to show that
+      \[
+        \dom(μ_1) ∪ \{\pa\} ⊦ \goodend{\FunV(\semevt{\pe'}_{ρ[\px↦\deref(\pa)][\py↦d]}), μ_1[\pa↦d_1]} \sim \goodend{\FunV(\semevt{\pe'}_{ρ[\px↦\deref(\pa)][\py↦d]}), μ_2[\pa↦d_2]}
+      \]
+      which requires us to show
+      \[
+        \later (\forall d.\ \adom(d) ⊆ A ⟹  A ⊦ f_1(d)(μ_1) \sim f_2(d)(μ_2))
+      \]
+
+    The equality follows from
+      pointwise equality on functions, so we pick an arbitrary $d$ to show
+      $\semscott{\pe'}_{ρ[\px↦d_1][\py↦d]} = \semscott{\pe'}_{ρ[\px↦d_2][\py↦d]}$.
+
+      This is simple to see if $\px=\py$. Otherwise, $\tr[\py↦\bot]$ witnesses the fact that
+      \[
+        \tr[\py↦\bot](\px) = \tr(\px) \not⊑
+        \semusg{\Lam{\py}{\pe'}}_{\tr} = \semusg{\pe'}_{\tr[\py↦\bot]}
+      \]
+      so we can apply the induction hypothesis to see that $\px$ must be dead in
+      $\pe'$, hence the equality on $\semscott{\pe'}$ holds.
+
+    \item \textbf{Case $\pe = \pe'~\py$}:
+      From $\tr(\px) \not⊑ \semusg{\pe'}_{\tr} + ω*\tr(\py)$ we can see that
+      $\tr(\px) \not⊑ \semusg{\pe'}_{\tr}$ and $\tr(\px) \not⊑ \tr(\py)$ by
+      monotonicity of $+$ and $*$.
+      If $\px=\py$ then the latter inequality leads to a contradiction.
+      Otherwise, $\px$ must be dead in $\pe'$, hence both cases of
+      $\semscott{\pe'~\py}$ evaluate equally, differing only in
+      the environment. It remains to be shown that
+      $ρ[\px↦d_1](\py) = ρ[\px↦d_2](\py)$, and that is easy to see since
+      $\px \not= \py$.
+
     \item \textbf{Case $\pe = \Lam{\py}{\pe'}$}:
       Let $v$ be any value such that $\dead^{\EventV}_{\pa}(v)$;
       then $\dead^{\EventD}_{\pa}(\ret(v))$ follows from
@@ -193,6 +245,47 @@
       $\rng(ρ[\py↦d^\later])$.
       By \Cref{defn:deadness4}, we can apply that $\px$ is dead in $\pe'$ to
       this setup to conclude that $\pa$ is dead in $d$.
+
+    \item \textbf{Case $\pe = \Let{\py}{\pe_1}{\pe_2}$}:
+      We have to show that
+      \[
+        \semscott{\pe_2}_{ρ[\px↦d_1][\py↦d'_1]} = \semscott{\pe_2}_{ρ[\px↦d_2][\py↦d'_2]}
+      \]
+      where $d'_i$ satisfy $d'_i = \semscott{\pe_1}_{ρ[\px↦d_i][\py↦d'_i]}$.
+      The case $\px = \py$ is simple to see, because $ρ[\px↦d_i](\px)$ is never
+      looked at.
+      So we assume $\px \not= \py$ and see that $\tr(\px) = \tr'(\px)$, where
+      $\tr' = \operatorname{fix}(\fn{\tr'}{\tr ⊔ [\py ↦ \semusg{\pe_1}_{\tr'}]})$.
+
+      We know that
+      \[
+        \tr'(\px) = \tr(\px) \not⊑ \semusg{\pe}_{\tr} = \semusg{\pe_2}_{\tr'}
+      \]
+      So by the induction hypothesis, $\px$ is dead in $\pe_2$.
+
+%      Now consider the predicate $P(\tr) = \tr(\px) ⊑ \semusg{\pe_1}_{\tr}$.
+%      We must prove it admissable to see that it holds (by fixpoint induction)
+%      for $\tr'$. That is clearly the case because it is a composition of
+%      continuous functions ($\tr, \semusg{\pe_1}$) and admissable predicates
+%      ($⊑$).
+%
+%      SG: I think we don't need to prove that P above is admissable because
+%      we never try to prove it through fixpoint induction; we simply apply LEM.
+
+      We proceed by cases over $\tr(\px) = \tr'(\px) ⊑ \semusg{\pe_1}_{\tr'}$.
+      \begin{itemize}
+        \item \textbf{Case $\tr'(\px) ⊑ \semusg{\pe_1}_{\tr'}$}: Then
+          $\tr'(\px) ⊑ \tr'(\py)$ and $\py$ is also dead in $\pe_2$ by the above
+          inequality.
+          Both deadness facts together allow us to rewrite
+          \[
+            \semscott{\pe_2}_{ρ[\px↦d_1][\py↦d'_1]} = \semscott{\pe_2}_{ρ[\px↦d_1][\py↦d'_2]} = \semscott{\pe_2}_{ρ[\px↦d_2][\py↦d'_2]}
+          \]
+          as requested.
+        \item \textbf{Case $\tr'(\px) \not⊑ \semusg{\pe_1}_{\tr'}$}:
+          Then $\px$ is dead in $\pe_1$ and $d'_1 = d'_2$. The goal follows
+          from the fact that $\px$ is dead in $\pe_2$.
+      \end{itemize}
     \item \textbf{Case $\pe = \pe'~\py$}:
       $\pa$ is trivially dead in the stuck case, so we assume that there exists
       $d_\py \triangleq ρ(\py)$ that $\pa$ is dead in.
