@@ -6,8 +6,15 @@
 Let us first try to reformulate semantic deadness in terms of $\semevt{\wild}$
 and $\equiv$:
 
-\begin{definition}[Denotational deadness, lazily and unusable]
+\begin{definition}[Denotational deadness, lazily]
   \label{defn:deadness3}
+  An address $\pa$ is \emph{dead} in a denotation $d$ if and only if,
+  for all $μ_1 \approx μ_2$ such that $\adom(d) ⊆ \dom(μ_i) ∪ \{ \pa \}$
+  and $d_1,d_2$, we have
+  \[
+    \dom(μ_1) ⊦ d(μ_1[\pa↦d_1]) \sim d(μ_2[\pa↦d_2]).
+  \]
+  \\
   A variable $\px$ is \emph{dead} in an expression $\pe$ if and only
   if, for all $ρ ∈ \Var \to \EventD, \pe_1,\pe_2 ∈ \Exp$, we have
   \[\semevt{\Let{\px}{\pe_1}{\pe}}_{ρ} \equiv \semevt{\Let{\px}{\pe_2}{\pe}}_{ρ}.\]
