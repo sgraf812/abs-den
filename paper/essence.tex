@@ -110,9 +110,11 @@ characterisation of the domain elements returned by $\semevt{\wild}$.
   \label{defn:lazy-d}
   An element $d ∈ \EventD$ is \emph{lazy} if and only if
   \begin{itemize}
-    \item \textup{(Well-addressed)} $d$ has a finite address domain $\adom(d) ⊆ \Addresses$
+    \item \textup{(Well-addressed)} $d$ has a finite address domain $\adom(d)$
+     \[
+      \adom(d) \triangleq \bigcap \{ A \mid \forall μ.\ A ⊆ \dom(μ) \Longrightarrow d(μ) \text{ is defined} \}
+     \]
      \wrt which it is \emph{well-addressed}.
-     The expression $d(μ)$ is defined if $\adom(d) ⊆ \dom(μ)$.
     \item \textup{(Forces)} For all lazy $μ,μ' ∈ \Heaps, v ∈ \EventV$ such that
      $\bigstep{d}{μ}{v}{μ'}$, $v$ is lazy with address domain $\adom(v) ⊆ \dom(μ')$ and $μ \forcesto μ'$.
     \item \textup{(Postpone)} For all lazy $μ_1,μ_2 ∈ \Heaps$ such that $μ_1 \forcesto μ_2$ and
@@ -150,6 +152,11 @@ Diagramatically:
 \end{tikzcd}
 \]
 \noindent
+Well-addressedness in conjunction with the Speculate property means that a lazy
+element may branch on the contents on the heap, but not on whether or not an
+entry in the heap is present.
+Instead of $\pa \not∈ \adom(d)$ we will often simply say that $\pa$ is dead in $d$.
+
 The definitions for lazy heaps, environments and values are necessary by congruence.
 When we restrict ourselves to lazy heaps, we can prove transitivity of the
 forcing relation.
@@ -223,10 +230,10 @@ And now we finally prove that $\semevt{\wild}$ indeed produces a lazy element:
 \begin{theorem}
   \label{thm:semevt-lazy}
   For all lazy environments $ρ$ and expressions $\pe$, $\semevt{\pe}_ρ$ is a lazy element
-  with address domain $\bigcup \adom(\rng(ρ))$.
+  with $\adom(\semevt{\pe}_ρ) ⊆ \bigcup \adom(\rng(ρ))$.
 \end{theorem}
 \begin{proof}
-  Let us abbreviate $A \triangleq \adom(\semevt{\pe}_ρ) = \bigcup \adom(\rng(ρ))$.
+  Let us abbreviate $A \triangleq \bigcup \adom(\rng(ρ))$.
   By induction on $\pe$.
   \begin{itemize}
     \item \textbf{Case $\px$}:
@@ -242,18 +249,15 @@ And now we finally prove that $\semevt{\wild}$ indeed produces a lazy element:
       The Well-addressed, Postpone and Speculate properties follow by assumption.
 
     \item \textbf{Case $\pe'~\px$}:
-      First note that $d \betastep f$ is lazy when $d$ is lazy and for all
-      $μ,μ',v$, such that $\bigstep{d}{μ}{v}{μ'}$, $f(v)$ is lazy with address
-      domain $\dom(μ')$ when defined, assuming that $\adom(v) ⊆ \dom(μ')$.
-      This result makes use of transitivity in the first case of $(\betastep)$.
-
       Both arguments to $\apply$ are lazy:
-      $\semevt{\pe}_ρ$ is lazy by the induction hypothesis and $ρ(\px)$ is lazy
-      by assumption, both with address domain in $A$.
-      In the definition of $\apply$, we can see that if the second argument to
-      $(\betastep)$ is given a lazy $\FunV(f)$ value with address domain
-      $\dom(μ')$, then $f(ρ(\px))$ is lazy by definition of laziness of $\FunV$
-      values and laziness of $d$ with address domain $\dom(μ')$.
+      $d \triangleq \semevt{\pe}_ρ$ is lazy by the induction hypothesis and
+      $ρ(\px)$ is lazy by assumption, both with address domain in $A$.
+
+      The interesting case is when $\bigstep{d}{μ}{\FunV(f)}{μ'}$.
+      Then, $\FunV(f)$ is lazy with $\adom(\FunV(f)) ⊆ \dom(μ')$,
+      and so is $f(ρ(\px))$ with $\adom(f(\px)) ⊆ \dom(μ') ∪ A = \dom(μ')$,
+      so the expresson $f(ρ(\px))(μ')$ in $(\betastep)$ is well-defined.
+
       Hence the whole $\apply$ form is lazy and prepending the $\AppIA$ event
       does not change that because it does not affect the heap.
 
@@ -270,25 +274,27 @@ And now we finally prove that $\semevt{\wild}$ indeed produces a lazy element:
       Clearly, prepending the $\LookupA$ event in the definition of $\deref$
       does not affect the heap and thus laziness.
       The first argument to $(\betastep)$, $μ(\pa)$ requires $\pa ∈ \dom(μ)$,
-      and is lazy with address domain $\dom(μ)$ because $μ$ is lazy, so
+      and is lazy with $\adom(μ(\pa)) ⊆ \dom(μ)$ because $μ$ is lazy, so
       $μ(\pa)(μ)$ is defined.
-      Furthermore, assuming $\bigstep{μ(\pa)}{μ}{v}{μ'}$ for suitable lazy $v,μ'$,
-      the trace resulting from calling the second argument is
+      Furthermore, in the interesting case $\bigstep{μ(\pa)}{μ}{v}{μ'}$
+      for suitable lazy $v,μ'$, the trace resulting from calling the second
+      argument to $(\betastep)$ is
       \[
-        \UpdateA(\pa↦\ret(v)) \cons \goodend{v,μ'[\pa↦\ret(v)]}
+        \UpdateA(\pa↦\ret(v)) \cons \goodend{v,μ'[\pa↦\ret(v)]}.
       \]
       And crucially, $μ' \forcesto μ'[\pa↦ret(v)]$ due to
       $\bigstep{μ(\pa)}{μ}{v}{μ'}$ for the differing $\pa$ entry, proving
       the Forces property.
+      The Well-addressed requirement from $v$ is preserved.
       The Postpone and Speculate property for the second argument follow quite
       simply, because the updated heap entry is constant in all cases.
-      We can conclude by our earlier observation about $(\betastep)$ that
-      $\deref(\pa)$ is indeed lazy with $\adom(\deref(\pa)) = \{\pa\}$.
+      We can conclude that $\deref(\pa)$ is indeed lazy with $\adom(\deref(\pa))
+      = \{\pa\}$.
 
       Given that fact, it is easy to see that $ρ'$ in the definition
       of $\semevt{\pe}$ is lazy with address domain $A ∪ \{\pa\}$.
-      Then $\semevt{\pe_i}_{ρ'}$ are lazy with address domain $A ∪ \{\pa\}$ by
-      induction.
+      Then $\semevt{\pe_i}_{ρ'}$ are lazy with address domain contained in
+      $A ∪ \{\pa\}$ by induction.
       Hence $μ_l[\pa↦\semevt{\pe_1}_{ρ'}]$ is lazy, which we apply to
       $\semevt{\pe_2}_{ρ'}$, noting that the domain of the new heap
       includes $A ∪ \{\pa\}$.
@@ -579,8 +585,7 @@ By induction on $\pe$.
       \dom(μ_1) ⊦ \goodend{v,μ_1} \sim \goodend{v,μ_2}
     \]
     where $v \triangleq \FunV(\fn{d^\later}{\AppEA(\px↦d^\later) \cons \semevt{\pe}_{ρ[\px↦d^\later]}})$.
-    So let us fix (extensional!) $d$ such that $\adom(d) ⊆
-    \dom(μ_1)$ and show
+    So let us fix (extensional!) $d$ such that $\adom(d) ⊆ \dom(μ_1)$ and show
     \[
       \dom(μ_1) ⊦ \semevt{\pe}_{ρ[\px↦d]}(μ_1) \sim \semevt{\pe}_{ρ[\px↦d]}(μ_2)
     \]
