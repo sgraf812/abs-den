@@ -43,7 +43,7 @@ hence the name ``big-step'' is fitting.
   For all $μ_1, μ_2 ∈ \Heaps$ we say that $μ_1$ \emph{forces} to $μ_2$
   (written $μ_1 \forcesto μ_2$) if and only if
   \begin{enumerate}
-    \item $\dom(μ_1) ⊆ \dom(μ_2)$
+    \item $\dom(μ_1) ⊆ \dom(μ_2)$, and
     \item For all $\pa$, either
       \begin{itemize}
         \item $μ_1(\pa) = μ_2(\pa)$, or
@@ -89,7 +89,7 @@ also antisymmetric:
 
 \begin{lemma}[$(\forcesto)$ is antisymmetric]
   \label{thm:force-heap-trans}
-  Let $μ_1,μ_2$ be lazy heaps and $μ_1 \forcesto μ_2, μ_2 \forcesto μ_1$.
+  Let $μ_1,μ_2$ be heaps and $μ_1 \forcesto μ_2, μ_2 \forcesto μ_1$.
   Then $μ_1 = μ_2$.
 \end{lemma}
 \begin{proof}
@@ -302,39 +302,48 @@ And now we finally prove that $\semevt{\wild}$ indeed produces a lazy element:
 This result justifies our tacit assumption from now on that all elements of the
 semantic domain are lazy.
 
-\subsection{A Useful Equivalence Relation}
+\subsection{A Useful Program Equivalence}
 
 \begin{figure}
 \[\begin{array}{cc}
  \begin{array}{c}
- \inferrule*
+ \inferrule*[right=\eqlrcons]
     {\later (A ⊦ τ_1 \sim τ_2)}
+    {A ⊦ \wild \cons τ_1 \sim \wild \cons τ_2}
+ \quad
+ \inferrule*[right=\eqrcons]
+    {A ⊦ τ_1 \sim τ_2 \quad \fin(τ_2)}
     {A ⊦ τ_1 \sim \wild \cons τ_2}
- \qquad
- \inferrule*
-    {\later (A ⊦ τ_1 \sim τ_2)}
+ \quad
+ \inferrule*[right=\eqlcons]
+    {A ⊦ τ_1 \sim τ_2 \quad \fin(τ_1)}
     {A ⊦ \wild \cons τ_1 \sim τ_2}
- \qquad
- \inferrule*
-    {\quad}
-    {A ⊦ \stuckend{} \sim \stuckend{}}
  \\
  \\[-0.5em]
- \inferrule*
-    {\forall d.\ \later(\adom(d) ⊆ A) ⟹  A ⊦ f_1(d)(μ_1) \sim f_2(d)(μ_2)}
-    {A ⊦ \goodend{\FunV(f_1), μ_1} \sim \goodend{\FunV(f_2), μ_2}}
- \qquad
- \inferrule*
+ \inferrule*[right=\eqstuck]
+    {\quad}
+    {A ⊦ \stuckend{} \sim \stuckend{}}
+ \quad
+ \inferrule*[right=\eqcon]
     {\later (A ⊦ \many{d_1(μ_1) \sim d_2(μ_2)})}
     {A ⊦ \goodend{\ConV(K, \many{d_1}), μ_1} \sim \goodend{\ConV(K, \many{d_2}), μ_2}}
  \\
  \\[-0.5em]
- \inferrule*
-    {\dom(μ_1) = \dom(μ_2) \quad \forall \pa.\ \later(μ_1(\pa) \equiv μ_2(\pa))}
+ \inferrule*[right=\textsc{Fin}]
+    {τ = \many{...{}\cons {}} τ' \quad τ' \not= \wild \cons \wild}
+    {\fin(τ)}
+ \quad
+ \inferrule*[right=\eqfun]
+    {\forall d.\ \later(\adom(d) ⊆ A) ⟹  A ⊦ f_1(d)(μ_1) \sim f_2(d)(μ_2)}
+    {A ⊦ \goodend{\FunV(f_1), μ_1} \sim \goodend{\FunV(f_2), μ_2}}
+ \\
+ \\[-0.5em]
+ \inferrule*[right=\eqheap]
+    {\dom(μ_1) = \dom(μ_2) \quad \forall \pa.\ \later(\dom(μ_1) ⊦ μ_1(\pa)(μ_1) \sim μ_2(\pa)(μ_2))}
     {μ_1 \approx μ_2}
  \\
  \\[-0.5em]
- \inferrule*
+ \inferrule*[right=\eqdenot]
     {\forall μ_1,μ_2.\ μ_1 \approx μ_2 \wedge \adom(d_1) ∪ \adom(d_2) ⊆ \dom(μ_1) ⟹  \dom(μ_1) ⊦ d_1(μ_1) \sim d_2(μ_2)}
     {d_1 \equiv d_2}
  \end{array}
@@ -410,14 +419,6 @@ in $d'(μ)$ based on $\pa_1 ∈ \dom(μ)$.
 Since the parameter $A$ tracks non-local addresses (as can be asserted in
 $\equiv$), we can prohibit such exploits by requiring that $\adom(d') ⊆ A$.
 
-\begin{theorem}
-  $(\equiv)$ is an equivalence relation.
-\end{theorem}
-\begin{proof}
-  Reflexivity, transitivity and symmetry are easily proven through Löb induction.
-  \sg{TODO: Actually prove it}
-\end{proof}
-
 \begin{lemma}[Weakening of address domain]
   \label{thm:weaken-address-domain}
   For all address domains $A_1 ⊆ A_2$ and traces $τ_1,τ_2$, if $A_2 ⊦ τ_1 \sim τ_2$ then $A_1 ⊦ τ_1 \sim τ_2$.
@@ -432,7 +433,7 @@ $\equiv$), we can prohibit such exploits by requiring that $\adom(d') ⊆ A$.
 Evaluating lazy elements on heaps that force to each other is semantically equivalent:
 
 \begin{lemma}
-  \label{thm:lazy-bisimilar}
+  \label{thm:lazy-force-bisimilar}
   Let $d$ be lazy. Then for all $μ_1,μ_2$ with $\adom(d) ⊆ \dom(μ_1)$ and
   $μ_1 \forcesto μ_2$, we have $\dom(μ_1) ⊦ d(μ_1) \sim d(μ_2)$.
 \end{lemma}
@@ -446,11 +447,13 @@ Evaluating lazy elements on heaps that force to each other is semantically equiv
   If either $\bigstep{d}{μ_1}{v}{μ_1'}$ or $\bigstep{d}{μ_2}{v}{μ_2'}$ then both
   judgments hold and $μ_1' \forcesto μ_2'$, so it suffices to show
   ${\dom(μ_1) ⊦ \goodend{v}{μ_1'} \sim \goodend{v}{μ_2'}}$.
+
   For the $\ConV$ case, we can show $\later(\many{\dom(μ_1) ⊦ d(μ_1') \sim d(μ_2')})$
   via Löb induction, because $μ_1' \forcesto μ_2'$ and we may relax the address
   space from $\dom(μ_1')$ to $\dom(μ_1)$ via \Cref{thm:weaken-address-domain}.
-  For the $\FunV(f)$ case, we assume that $\later(\adom(d) ⊆ \dom(μ_1))$ holds for some
-  $d ∈ \later\EventD$ and have to show that $\later(\dom(μ_1) ⊦ f(d)(μ_1') \sim f(d)(μ_2'))$.
+
+  For the $\FunV(f)$ case, we assume that $\adom(d) ⊆ \dom(μ_1)$ holds for some
+  $d$ and have to show that $\dom(μ_1) ⊦ f(d)(μ_1') \sim f(d)(μ_2')$.
   Again, that follows via Löb induction, because $μ_1' \forcesto μ_2'$ and we
   may relax the address space from $\dom(μ_1')$ to $\dom(μ_1)$ via
   \Cref{thm:weaken-address-domain}.
@@ -460,23 +463,264 @@ Evaluating lazy elements on heaps that force to each other is semantically equiv
   In that case, we see that $\dom(μ_1) ⊦ d(μ_1) \sim d(μ_2)$.
 \end{proof}
 
-It is syntactically evident that $\semevt{\wild}$ is compositional \wrt to
-definitional equality on $\EventD$ because of structural recursion.
-More interestingly, it is also compositional \wrt to $(\equiv)$!
+\begin{theorem}
+  For any $A$, $A ⊦ \wild \sim \wild$ is an equivalence relation on lazy traces.
+\end{theorem}
+\begin{proof}
+Reflexivity follows by straightforwardly by Löb induction.
+Symmetry does so as well, with the twist that the rule applications of
+$\eqlcons$ and $\eqrcons$ need to be swapped.
 
-As compositionality is a property referring to \emph{contexts}, we need syntax
-for \emph{evaluation contexts} $\pE$%
+For transitivity, it is worth reviewing a few cases, so assume
+$A ⊦ τ_1 \sim τ_2$, $A ⊦ τ_2 \sim τ_3$ to show $A ⊦ τ_1 \sim τ_3$ by Löb
+induction, \eg, assuming that
+\[
+  \later(A ⊦ τ_1 \sim τ_2 \wedge A ⊦ τ_2 \sim τ_3 \Longrightarrow A ⊦ τ_1 \sim τ_3)
+\]
+for all $τ_1,τ_2,τ_3$.
+
+By cases on the last rule applied to either $A ⊦ τ_1 \sim τ_2$ or $A ⊦ τ_2 \sim τ_3$.
+\begin{itemize}
+  \item \textbf{Case }$\eqlcons$ to $A ⊦ τ_1 \sim τ_2$:
+    Then $τ_1 = \wild \cons τ_1'$ and $A ⊦ τ_1' \sim τ_2$.
+    We can apply the induction hypothesis to get $A ⊦ τ_1' \sim τ_3$
+    and re-apply $\eqlcons$.
+  \item \textbf{Case }$\eqrcons$ to $A ⊦ τ_2 \sim τ_3$: Similar.
+  \item \textbf{Case }$\eqrcons$ to $A ⊦ τ_1 \sim τ_2$:
+    Then $τ_2 = \wild \cons τ_2'$, $\fin(τ_2')$ and $A ⊦ τ_1 \sim τ_2'$.
+    $\fin(τ_2')$ means that the entire derivation is of finite height.
+    By rule inversion on $A ⊦ τ_2 \sim τ_3$, either $\eqlcons$ or $\eqlrcons$
+    applies.
+    If we unpack $\eqlcons$, then $A ⊦ τ_2' \sim τ_3$ and we can apply the
+    induction hypothesis to get $A ⊦ τ_1 \sim τ_3$.
+    Otherwise we unpack $\eqlrcons$ and get $A ⊦ τ_2' \sim τ_3'$ for
+    some $τ_3'$ to which we apply the induction hypothesis to get
+    $A ⊦ τ_1 \sim τ_3'$ which we wrap up with $\eqrcons$.
+  \item \textbf{Case }$\eqlrcons$ to $A ⊦ τ_1 \sim τ_2$: Similar.
+  \item \textbf{Case }$\eqfun$ to $A ⊦ τ_1 \sim τ_2$:
+    By rule inversion on $A ⊦ τ_2 \sim τ_3$, $\eqfun$ must apply.
+    The rest is a simple matter of applying the inductive hypothesis.
+  \item \textbf{Case }$\eqcon$ to $A ⊦ τ_1 \sim τ_2$: Similar.
+  \item \textbf{Case }$\eqstuck$ to $A ⊦ τ_1 \sim τ_2$: Similar.
+\end{itemize}
+\end{proof}
+
+It follows that $\approx$ is an equivalence relation on lazy heaps.
+
+Unfortunately, the notion of a lazy element we have is too weak to prove
+reflexivity of $(\equiv)$.
+We fix that by introducing the following extensionality requirement on lazy
+elements $d$:
+
+\begin{definition}[Extensionality]
+  A lazy element $d$ is \emph{extensional} if and only if $d \equiv d$.
+\end{definition}
+
+\begin{theorem}
+  $(\equiv)$ is an equivalence relation on lazy and extensional elements in
+  $\EventD$.
+\end{theorem}
+\begin{proof}
+Reflexivity follows by extensionality.
+Symmetry follows straightforwardly by Löb induction, noting that the $\dom(μ_1)$
+requirement in $(\equiv)$ can be replaced with $\dom(μ_2)$ due to the
+$μ_1 \approx μ_2$ premise.
+
+Now we show transitivity.
+First note that for any $μ_1 \approx μ_3$, we can find $μ_2$ such that $μ_1
+\approx μ_2 \approx μ_3$, simply by permuting one entry
+
+Assume that $d_1 \equiv d_2$ and $d_2 \equiv d_3$.
+We have to show that $d_1 \equiv d_3$.
+
+For that we assume $μ_1 \approx μ_3$ for some $μ_1,μ_3$ such that
+$\adom(d_1) ∪ \adom(d_3) ⊆ \dom(μ_1)$ and have to show that
+\[
+  \dom(μ_1) ⊦ d_1(μ_1) \sim d_3(μ_3).
+\]
+We can construct extended heaps $μ_1' \approx μ_3'$ such that
+$μ_1 \forcesto μ_1'$, $μ_3 \forcesto μ_3'$ and $\adom(d_2) ⊆ \dom(μ_i')$.
+
+Clearly, $μ_1' \approx μ_1'$ by reflexivity, so we can invoke $d_1 \equiv d_2$
+to get
+\[
+  \dom(μ_1') ⊦ d_1(μ_1') \sim d_2(μ_1').
+\]
+We invoke $d_2 \equiv d_3$ on $μ_1' \approx μ_3'$ to get
+\[
+  \dom(μ_1') ⊦ d_2(μ_1') \sim d_3(μ_3')
+\]
+and by transitivity we get
+\[
+  \dom(μ_1') ⊦ d_1(μ_1') \sim d_3(μ_3')
+\]
+which can be weakened via \Cref{thm:weaken-address-domain} to $\dom(μ_1)$.
+\end{proof}
+
+Note that we only make use of extensionality to prove reflexivity; in fact,
+$(\equiv)$ is still a partial equivalence relation on lazy elements.
+
+What remains is a proof that $\semevt{\pe}_ρ$ is indeed extensional for
+extensional $ρ$.
+
+\begin{theorem}
+  For all extensional environments $ρ$ and expressions $\pe$,
+  $\semevt{\pe}_ρ$ is extensional.
+\end{theorem}
+\begin{proof}
+By induction on $\pe$.
+\begin{itemize}
+  \item \textbf{Case $\px$}:
+    By assumption, $ρ(\px)$ is extensional.
+
+  \item \textbf{Case $\Lam{\px}{pe'}$}:
+    Fix a particular $μ_1 \approx μ_2$. The goal is to show
+    \[
+      \dom(μ_1) ⊦ \goodend{v,μ_1} \sim \goodend{v,μ_2}
+    \]
+    where $v \triangleq \FunV(\fn{d^\later}{\AppEA(\px↦d^\later) \cons \semevt{\pe}_{ρ[\px↦d^\later]}})$.
+    So let us fix (extensional!) $d$ such that $\adom(d) ⊆
+    \dom(μ_1)$ and show
+    \[
+      \dom(μ_1) ⊦ \semevt{\pe}_{ρ[\px↦d]}(μ_1) \sim \semevt{\pe}_{ρ[\px↦d]}(μ_2)
+    \]
+    which follows by the extensionality of $\semevt{\pe}_{ρ[\px↦d]}$.
+
+  \item \textbf{Case $K~\many{\px}$}:
+    Similar to the lambda case.
+
+  \item \textbf{Case $\pe'~\px$}:
+    $\fn{\wild}{\stuckend{}}$ is extensional in case $\px \not∈ \dom(ρ)$.
+
+    Otherwise, by induction it suffices to show that for extensional
+    $d \triangleq \semevt{\pe'}_ρ$, $d \betastep \fn{(\FunV(f))}{f(ρ(\px))}$
+    is extensional.
+
+    Now fix particular $μ_1 \approx μ_2$ such that $A ⊆ \dom(μ_1)$.
+    The interesting case is when $\bigstep{d}{μ_i}{\FunV(f_i)}{μ'_i}$.
+    We have to show that $\dom(μ_1) ⊦ f_1(ρ(\px))(μ_1') \sim f_2(ρ(\px))(μ_2')$,
+    the rest follows by congruence.
+    From extensionality of $d$, we know by $\eqfun$ that
+    $\dom(μ_1) ⊦ f_1(d')(μ_1') \sim f_2(d')(μ_2')$ for any $d'$ such that
+    $\adom(d') ⊆ \dom(μ_1)$.
+    Since $\adom(ρ(\px)) ⊆ \dom(μ_1)$, we can show the goal.
+
+  \item \textbf{Case $\Case{\pe_s}{\Sel[r]}$}:
+    Similar to the application case.
+
+  \item \textbf{Case $\Let{\px}{\pe_1}{\pe_2}$}:
+    We first show that $\deref(\pa)$ is extensional.
+    Let $μ_1 \approx μ_2$ such that $\pa ∈ \dom(μ_i)$ and abbreviate
+    $d_i \triangleq μ_i(\pa)$.
+    Then the goal is to show that
+    \[
+      \dom(μ_1) ⊦ (d_1 \betastep f)(μ_1) \sim (d_2 \betastep f)(μ_2)
+    \]
+    where $f \triangleq  \fn{v\,μ'}{\UpdateA(\pa↦\ret(v)) \cons \goodend{v,μ'[\pa↦\ret(v)]}}$.
+
+    The interesting case is when $\bigstep{d_i}{μ_i}{v}{μ'_i}$, otherwise
+    $\dom(μ_1) ⊦ d_1(μ_1) \sim d_2(μ_2)$ per assumption of $μ_1 \approx μ_2$.
+    We have to show that
+    \[\begin{array}{l}
+       \dom(μ_1) ⊦ \goodend{v_1,μ_1'} \sim \goodend{v_2,μ_2'} \\
+       \Longrightarrow \\
+       \dom(μ_1) ⊦ \goodend{v_1,μ_1'[\pa↦\ret(v_1)]} \sim \goodend{v_2,μ_2'[\pa↦\ret(v_2)]}
+    \end{array}\]
+    But since $μ_i' \forcesto μ_i'[\pa↦\ret(v_i)]$, we can apply
+    \Cref{thm:lazy-force-bisimilar} twice and transitivity of $\sim$ to show the
+    goal.
+
+    For extensionality of $\semevt{\Let{\px}{\pe_1}{\pe_2}}_ρ$, note
+    that the equivalence $μ_1 \approx μ_2$ can be extended to
+    $μ_1[\pa ↦ d] \approx μ_2[\pa ↦ d]$ for any $d$ by reflexivity of
+    $\sim$.
+    With extensionality of $\deref(\pa)$ for $\pa ∈ \dom(μ_i)$ and abbreviating
+    $ρ' \triangleq ρ[\px↦\deref(\pa)]$ the above holds for
+    $d \triangleq \semevt{\pe_1}_ρ'$ in particular.
+    Then the goal follows by the inductive hypothesis applied to
+    extensionality of $\semevt{\pe_2}_{ρ'}$ and
+    \Cref{thm:weaken-address-domain}.
+\end{itemize}
+\end{proof}
+
+The proof needs to assume that all probing $d$s in $\eqfun$ are extensional, so
+the equivalence relation on lazy and extensional elements is not necessarily a
+subrelation of the partial equivalence relation on lazy elements.
+
+As before, we will assume that all elements $d$ are lazy and extensional from
+now on.
+
+\subsection{Compositionality}
+
+It is simple to prove that $\semevt{\wild}$ is \emph{compositional}
+\wrt definitional equality $=$ on $\EventD$:
+For any $\pe_1,\pe_2$ and $ρ$, if $\semevt{\pe_1}_ρ = \semevt{\pe_2}_ρ$
+then $\semevt{C[\pe_1]}_ρ = \semevt{C[\pe_2]}_ρ$ for any \emph{context} $C$.
+(We will define $C$ precisely in a minute.)
+The proof is immediate because of structural recursion and extensionality of
+functions.
+
+%Since $\semevt{C[\pe_1]}_ρ = \semevt{C[\pe_2]}_ρ$ implies that $C[\pe_i]$ have
+%the same termination behavior via adequacy, compositionality also implies
+%contextual equivalence.
+%Thus, definitional equality and $\semevt{\wild}$ induce an equivalence relation
+%on terms that is \emph{finer} than contextual equivalence.
+
+More interestingly, $\semevt{\wild}$ is also compositional \wrt to $(\equiv)$!
+
+As compositionality is a property referring to contexts (called $C$ above), we
+need syntax for \emph{evaluation contexts} $\pE$%
 \footnote{In \Cref{defn:deadness2} we already used the term ``evaluation
 context'' to denote small-step machine components $(ρ,μ,κ)$ rather than to
 $\pE$. \citet{MoranSands:99} prove that both notions are equivalent, so this
 overload is justified.}
-with holes $\hole$.
-Then $\pE[\pe]$ denotes an expression where the hole in $\pE$ has been replaced with $\pe$.
+with holes $\hole$ in order to formalise compositionality.
+Then $\pE[\pe]$ denotes an expression where the hole in $\pE$ has been replaced
+with $\pe$.
 \[\begin{array}{rcl}
   \pE & ::=  & \hole \mid \pE~\px \mid \Let{\px}{\pe}{\pE} \mid \Let{\px}{\pE}{\pE[\px]} \mid \Case{\pE}{\Sel[r]} \\
 \end{array}\]
 
-\begin{theorem}[$\semevt{\wild}$ is compositional \wrt semantic equivalence]
+\begin{definition}[Compositionality of an equivalence relation]
+  Let $\cong$ be an equivalence relation on expressions.
+  $\cong$ is \emph{compositional} if and only if for all $\pe_1,\pe_2$
+  $\pe_1 \cong \pe_2$ implies $\pE[\pe_1] \cong \pE[\pe_2]$ for all evaluation
+  contexts $\pE$.
+\end{definition}
+
+It is well-known that \emph{contextual equivalence} is compositional:
+
+\begin{definition}[Contextual equivalence, as in \citep{MoranSands:99}]
+  Two expressions $\pe_1,\pe_2$ are \emph{contextually equivalent}, written
+  $\pe_1 \equiv_{\mathit{ctx}} \pe_2$, if their termination behavior conincides
+  in all contexts, \eg, for all closed evaluation contexts $\pE$ it is
+  \[
+    \len(\semevt{\pE[\pe_1]}_{[]}([])) = ω \Longleftrightarrow \len(\semevt{\pE[\pe_2]}_{[]}([])) = ω
+  \]
+  where $\len$ is the length function from \Cref{defn:length}.
+\end{definition}
+
+The definition of \citet{MoranSands:99} is in terms of a transition system like
+$(\smallstep)$, but adequacy (\Cref{thm:semst-adequate}) guarantees that the two
+notions coincide.
+
+\begin{lemma}[Contextual equivalence is compositional]
+  Let $\pe_1, \pe_2$ be expressions such that
+  $\pe_1 \equiv_{\mathit{ctx}} \pe_2$.
+  Then for all evaluation contexts $\pE$, we have
+  $\pE[\pe_1] \equiv_{\mathit{ctx}} \pE[\pe_2]$.
+\end{lemma}
+\begin{proof}
+  Immediate, because $\pE[\pE_2[\hole]]$ is just another context in which
+  contextually equivalent expressions are contextually equivalent.
+\end{proof}
+
+In a slight overloading of terms, we associate with ``semantic equivalence''
+the relation
+$\fn{\pe_1~\pe_2}{\forall ρ.\ \semevt{\pe_1}_ρ \equiv \semevt{\pe_2}_ρ}$ and
+go on to prove compositionality:
+
+\begin{theorem}[Semantic equivalence is compositional]
   Let $\pe_1, \pe_2$ be expressions such that
   for all environments $ρ$, $\semevt{\pe_1}_ρ \equiv \semevt{\pe_2}_ρ$.
   Then for all evaluation contexts $\pE$ and environments $ρ$, we have
@@ -526,9 +770,7 @@ Then $\pE[\pe]$ denotes an expression where the hole in $\pE$ has been replaced 
   \end{itemize}
 \end{proof}
 
-And finally, we can prove that $(\equiv)$ is indeed coarser than the usual
-syntactic notion of contextual equivalence, which we can define on
-$\semevt{\wild}$ based on the $\len$ function in \Cref{thm:abs-length}.
+And finally, we can prove that $(\equiv)$ is indeed coarser than contextual equivalence:
 
 \begin{corollary}[Semantic equivalence implies contextual equivalence]
   Let $\pe_1, \pe_2$ be expressions such that $\semevt{\pe_1}_ρ \equiv \semevt{\pe_2}_ρ$.
@@ -551,7 +793,7 @@ If that were the case, then $\semevt{\wild}$ would be \emph{fully abstract} via
 $(equiv)$~\citep{Plotkin:77}.
 \citeauthor{Plotkin:77} established that $\semscott{\wild}$ was not fully
 abstract via definitional equality on $\ScottD$.
-Guarded types prevent probing for diverging computations, but it is still
-possible for lazy elements to probe traces for stuckness, so we have reason to
-doubt that $\semevt{\wild}$ is fully abstract.
+Guarded types prevent probing for diverging computations without executing them,
+but it is still possible for lazy elements to probe traces for stuckness, so we
+have reason to doubt that $\semevt{\wild}$ is fully abstract.
 We do not intend to find a final answer in this work.

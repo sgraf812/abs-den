@@ -659,18 +659,23 @@ recursion (as it would be if it was a finite, inductive type).
 Our first goal is to establish a few auxiliary lemmas showing what kind of
 properties of LK traces are preserved by $α_\States$ and in which way.
 
-\begin{lemma}[Preservation of length]
-  \label{thm:abs-length}
-  Let us define the length $\mathit{len} : \tSTraces \to ℕ_ω$ of a trace by
+Let us warm up by defining a length function on traces:
+\begin{definition}[Length of a trace]
+  \label{defn:length}
+  The \emph{length} $\len : \tSTraces \to ℕ_ω$ of a trace is defined by
   guarded recursion
   \[
-    \mathit{len}(τ) = \begin{cases}
-      1 + \idiom{\mathit{len}(τ^{\later})} & τ = σ \cons τ^{\later} \\
+    \len(τ) = \begin{cases}
+      1 + \purelater \len \aplater τ^{\later} & τ = σ \cons τ^{\later} \\
       1 & \text{otherwise} \\
     \end{cases}
   \]
-  Now let $(σ_i)_{i∈\overline{n}}$ be an arbitrary trace.
-  Then $\mathit{len}(α_\STraces((σ_i)_{i∈\overline{n}},\cont(σ_1))) = n$.
+\end{definition}
+
+\begin{lemma}[Preservation of length]
+  \label{thm:abs-length}
+  Let $(σ_i)_{i∈\overline{n}}$ be an arbitrary trace.
+  Then $\len(α_\STraces((σ_i)_{i∈\overline{n}},\cont(σ_1))) = n$.
 \end{lemma}
 \begin{proof}
   This is quite simple to see and hence a good opportunity to familiarise
@@ -686,7 +691,7 @@ properties of LK traces are preserved by $α_\States$ and in which way.
     IH ∈ (\later P \triangleq \later (
         \forall n ∈ ℕ_ω.\
         \forall (σ_i)_{i∈\overline{n}}.\
-        \mathit{len}(α_\STraces((σ_i)_{i∈\overline{n}},\cont(σ_1))) = n
+        \len(α_\STraces((σ_i)_{i∈\overline{n}},\cont(σ_1))) = n
       ))
   \]
   and use $IH$ to prove $P$.
@@ -696,7 +701,7 @@ properties of LK traces are preserved by $α_\States$ and in which way.
   \begin{itemize}
     \item \textbf{Case $n=1$}: Then we have $j = 1$ and either $τ = \goodend{α_\States(σ_1)}$
       or $τ = \stuckend{α_\States(σ_1)}$, both of which map to $1$ under
-      $\mathit{len}$.
+      $\len$.
     \item \textbf{Case $n>1$}: Then $n = 1+m$ and $m ∈ \later ℕ_ω$ and the
       first case of $α_\States$ applies, hence $τ = σ \cons τ^{\later}$ for some
       $σ∈\States, τ^{\later}∈\later \tSTraces$.
@@ -704,10 +709,10 @@ properties of LK traces are preserved by $α_\States$ and in which way.
       Let $(σ_{i+1})_{i∈\overline{m}} ∈ \later \STraces$ be the guarded
       tail of the LK trace $(σ_i)_{i∈\overline{n}}$.
       Then we can apply $IH \aplater m \aplater (σ_{i+1})_{i∈\overline{m}}$ and
-      get a proof for $\later (\mathit{len}(τ^{\later}) = m)$.
+      get a proof for $\later (\len(τ^{\later}) = m)$.
       Now we can prove
       \[
-        n = 1 + m = 1 + \mathit{len}(τ^{\later}) = \mathit{len}(τ).
+        n = 1 + m = 1 + \len(τ^{\later}) = \len(τ).
       \]
   \end{itemize}
 \end{proof}
