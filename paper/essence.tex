@@ -114,8 +114,8 @@ First off, we need to characterise the \emph{address domain} of a domain element
   A trace $τ$ is \emph{defined on} a set of addresses $A$ (written $A ⊦ τ$), if and only if
   $τ = ... \cons \goodend{v,μ}$ for some $v,μ$ implies
   \begin{itemize}
-    \item If $v = \FunV(f)$ (for some $f$), then for all $d'$ such that $A ⊦ d'$, $\dom(μ) ⊦ f(d')$.
-    \item If $v = \ConV(K, \many{d})$ (for some $K,\many{d}$), then $\many{A ⊦ d}$.
+    \item If $v = \FunV(f)$ for some $f$, then for all trusting $d'$ such that $A ⊦ d'$, $A ⊦ f(d')(μ)$.
+    \item If $v = \ConV(K, \many{d})$ for some $K,\many{d}$, then $\many{A ⊦ d(μ)}$.
   \end{itemize}
   If a smallest $A$ exists such that $A ⊦ d$, $A$ is called the \emph{address domain} $\adom(d)$ of $d$.
   If a domain element $d$ has an address domain, we call it \emph{trusting}.
@@ -125,10 +125,11 @@ Intuitively, a trusting domain element $d$ assumes that all the heap entries it
 needs are present; it will never branch based on whether or not a heap has an
 entry for a particular address.
 \begin{lemma}
-  For all elements $d$ and address sets $A_1 ⊆ A_2$, $A_2 ⊦ d$ implies $A_1 ⊦ d$
+  For all traces $τ$ and address sets $A_1 ⊆ A_2$, $A_2 ⊦ τ$ implies $A_1 ⊦ τ$
 \end{lemma}
 \begin{proof}
-  $A_2$ is only used in the $\FunV$ case, where a smaller address set $A_1$ enables
+  $A_2$ is only used in the $\FunV$ case, where a smaller address set $A_1$
+  restricts the set of possible $d'$ to consider.
 \end{proof}
 All the domain elements of interest to us are trusting:
 \begin{lemma}
@@ -136,7 +137,84 @@ All the domain elements of interest to us are trusting:
   $\semevt{\pe}_ρ$ is trusting.
 \end{lemma}
 \begin{proof}
+  We have to show that there is a smallest $A$ such that $A ⊦ \semevt{\pe}_ρ$.
   By induction on $\pe$.
+  \begin{itemize}
+    \item \textbf{Case $\px$}:
+      $ρ(\px)$ is trusting by assumption.
+
+    \item \textbf{Case $\Lam{px}{\pe'}$}:
+      It is $\bigstep{\semevt{\pe}_ρ}{μ}{\FunV(f)}{μ}$ for any $A ⊆ \dom(μ)$ where
+      $f \triangleq \fn{d}{\AppEA(\px↦d) \cons \semevt{\pe}_{ρ[\px↦d]}}$, so we
+      assume that there is a trusting $d$ such that $A ⊦ d$.
+      (Clearly, such a $d$ exists, for example, $A ⊦ \fn{\wild}{\stuckend{}}$ for any $A$.)
+      We have to show that $A ⊦ f(d)(μ)$ which follows by the induction hypothesis,
+      because $\semevt{\pe'}_ρ[\px↦d]$ is trusting when $d$ is.
+      At the same time, this means that $A = \adom(\semevt{\pe'}_ρ[\px↦d])$ is the
+      smallest such $A$.
+
+    \item \textbf{Case $K~\many{\px}$}:
+      Simple to see; $\adom(\semevt{\pe}_ρ) = \bigcup(\adom(\semevt{\px}_ρ))$.
+
+    \item \textbf{Case $\pe'~\px$}:
+      Fix $μ$ such that $A ⊆ \dom(μ)$.
+      Unless $\bigstep{\semevt{\pe'}_ρ}{μ}{\FunV(f)}{μ'}$ for some $f$ and $μ'$, we can
+      apply the induction hypothesis and are done (inheriting the $\adom$).
+      Note that $ρ(\px)$ is trusting by assumption.
+      From the induction hypothesis,
+      $d \triangleq \semevt{\pe}_ρ$ is lazy by the induction hypothesis and
+      $ρ(\px)$ is lazy by assumption, both with address domain in $A$.
+
+      The interesting case is when $\bigstep{d}{μ}{\FunV(f)}{μ'}$.
+      Then, $\FunV(f)$ is lazy with $\adom(\FunV(f)) ⊆ \dom(μ')$,
+      and so is $f(ρ(\px))$ with $\adom(f(\px)) ⊆ \dom(μ') ∪ A = \dom(μ')$,
+      so the expresson $f(ρ(\px))(μ')$ in $(\betastep)$ is well-defined.
+
+      Hence the whole $\apply$ form is lazy and prepending the $\AppIA$ event
+      does not change that because it does not affect the heap.
+
+    \item \textbf{Case $\Case{\pe_s}{\Sel[r]}$}:
+      Similar to the application case.
+
+    \item \textbf{Case $\Let{\px}{\pe_1}{\pe_2}$}:
+      Let $μ_l$ be lazy with $A ⊆ \dom(μ_l)$ and consider $\semevt{\pe}_ρ(μ_l)$.
+      The key to this theorem is to prove that $\deref(\pa)$ is lazy with
+      address domain $\{ \pa \}$.
+
+      So let $μ$ be a lazy input heap that satisfies
+      $\pa ∈ \dom(μ)$.
+      Clearly, prepending the $\LookupA$ event in the definition of $\deref$
+      does not affect the heap and thus laziness.
+      The first argument to $(\betastep)$, $μ(\pa)$ requires $\pa ∈ \dom(μ)$,
+      and is lazy with $\adom(μ(\pa)) ⊆ \dom(μ)$ because $μ$ is lazy, so
+      $μ(\pa)(μ)$ is defined.
+      Furthermore, in the interesting case $\bigstep{μ(\pa)}{μ}{v}{μ'}$
+      for suitable lazy $v,μ'$, the trace resulting from calling the second
+      argument to $(\betastep)$ is
+      \[
+        \UpdateA(\pa↦\ret(v)) \cons \goodend{v,μ'[\pa↦\ret(v)]}.
+      \]
+      And crucially, $μ' \forcesto μ'[\pa↦ret(v)]$ due to
+      $\bigstep{μ(\pa)}{μ}{v}{μ'}$ for the differing $\pa$ entry, proving
+      the Forces property.
+      The Well-addressed requirement from $v$ is preserved.
+      The Postpone and Speculate property for the second argument follow quite
+      simply, because the updated heap entry is constant in all cases.
+      We can conclude that $\deref(\pa)$ is indeed lazy with $\adom(\deref(\pa))
+      = \{\pa\}$.
+
+      Given that fact, it is easy to see that $ρ'$ in the definition
+      of $\semevt{\pe}$ is lazy with address domain $A ∪ \{\pa\}$.
+      Then $\semevt{\pe_i}_{ρ'}$ are lazy with address domain contained in
+      $A ∪ \{\pa\}$ by induction.
+      Hence $μ_l[\pa↦\semevt{\pe_1}_{ρ'}]$ is lazy, which we apply to
+      $\semevt{\pe_2}_{ρ'}$, noting that the domain of the new heap
+      includes $A ∪ \{\pa\}$.
+      In order to show that the whole clause is lazy in $μ_l$,
+      it suffices to show that $μ_l \forcesto μ_l[\pa↦\semevt{\pe_1}_{ρ'}]$
+      which is simple to see because $\pa \not∈ \dom(μ_l)$.
+      The Postpone and Speculate properties are unaffected.
+  \end{itemize}
 \end{proof}
 
 \begin{definition}[Lazy domain]
