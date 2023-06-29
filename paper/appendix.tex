@@ -95,8 +95,8 @@
 \begin{lemma}[Deadness approximates address domain]
   \label{thm:addr-dead}
   Let $\pe$ be an expression, $\px$ a variable and $\pa$ an address.
-  If $\pa \not∈ \adom(\semevt{\pe}_{ρ[\px↦\deref(\pa)]})$ for any $ρ$ such that
-  $\pa \not∈ \adom(\rng(ρ))$, then $\px$ is dead in $\pe$.
+  If $\pa$ is dead in $\semevt{\pe}_{ρ[\px↦\deref(\pa)]})$ for any $ρ$ such that
+  $\pa$ is dead in $\rng(ρ)$, then $\px$ is dead in $\pe$.
 \end{lemma}
 \begin{proof}
   To show that $\px$ is dead in $\pe$, we have to show
@@ -117,22 +117,10 @@
   \]
   For arbitrary $d_1,d_2$ (which we may set to
   $d_i \triangleq \semevt{\pe_i}_{ρ[\px↦\deref(\pa)]}$).
-  But $\pa \not∈ \adom(\rng(ρ))$, so $\pa \not∈
-  \adom(\semevt{\pe}_{ρ[\px↦\deref(\pa)]})$ per assumption.
-  Hence $\semevt{\pe}_{ρ[\px↦\deref(\pa)]}(μ_i)$ must be defined, and by
-  extensionality of $\semevt{\pe}_{ρ[\px↦\deref(\pa)]}$ we get
-  \[
-    \dom(μ_1) ⊦ \semevt{\pe}_{ρ[\px↦\deref(\pa)]}(μ_1) \sim \semevt{\pe}_{ρ[\px↦\deref(\pa)]}(μ_2)
-  \]
-  Using $μ_i \forcesto μ_i[\pa↦d_i]$ and by the Postpone property, we get
-  \[
-    \dom(μ_1) ⊦ \semevt{\pe}_{ρ[\px↦\deref(\pa)]}(μ_1[\pa↦d_1]) \sim \semevt{\pe}_{ρ[\px↦\deref(\pa)]}(μ_2[\pa↦d_2])
-  \]
-  showing the goal.
+  But $\pa$ is dead in $\rng(ρ)$ due to \Cref{thm:well-addressedness},
+  so $\pa$ is dead in $\semevt{\pe}_{ρ[\px↦\deref(\pa)]}$ per assumption.
+  Hence we can show the goal, applying to $μ_1 \approx μ_2$.
 \end{proof}
-
-\Cref{thm:addr-dead} justifies saying that $\pa$ is dead in $d$ to mean
-$\pa \not∈ \adom(d)$.
 
 \begin{proof}[Proof of \Cref{thm:semusg-correct-live-3}]
   \label{prf:semusg-correct-live-3}
@@ -142,13 +130,14 @@ $\pa \not∈ \adom(d)$.
   so we instead assume that an address $\pa$ is dead in the range of an
   environment $ρ$ and show that $\pa$ is dead in
   $\semevt{\pe}_{ρ[\px↦\deref(\pa)]}$.
+  We generalise this statement to a whole set of addresses $\{\pa\}$.
 
-  We assume that $μ_1 \approx μ_2$ such that $\adom(d) ⊆ \dom(μ_i)$ and
+  We assume that $μ_1 \approx μ_2$ such that $\dom(μ_1) ∪ \{\many{\pa}\} ⊦ \semevt{\pe}_{ρ[\many{\px↦\deref(\pa)}]}$ and
   abbreviate $A \triangleq \dom(μ_1)$. Then the goal is to show
   \[
-    A ⊦ \semevt{\pe}_{ρ[\px↦\deref(\pa)]}(μ_1[\pa↦d_1]) \sim \semevt{\pe}_{ρ[\px↦\deref(\pa)]}(μ_2[\pa↦d_2])
+    A ⊦ \semevt{\pe}_{ρ[\many{\px↦\deref(\pa)}]}(μ_1[\many{\pa↦d_1}]) \sim \semevt{\pe}_{ρ[\many{\px↦\deref(\pa)}]}(μ_2[\many{\pa↦d_2}])
   \]
-  for any $d_1,d_2$ and $ρ$ such that $\pa$ is dead in $\rng(ρ)$.
+  for any $\many{d_1},\many{d_2}$ and $ρ$ such that $\{\many{\pa}\}$ is dead in $\rng(ρ)$.
   We proceed by induction on $\pe$.
   \begin{itemize}
     \item \textbf{Case $\pe = \py$}: If $\px=\py$, then
@@ -157,17 +146,18 @@ $\pa \not∈ \adom(d)$.
 
     \item \textbf{Case $\pe = \Lam{\py}{\pe'}$}:
       We abbreviate
-      $μ_i' \triangleq μ_i[\pa↦d_i]$, $ρ' = ρ[\px↦\deref(\pa)]$
+      $μ_i' \triangleq μ_i[\many{\pa↦d_i}]$, $ρ' \triangleq ρ[\many{\px↦\deref(\pa)}]$
       and have to show
       \[
         A ⊦ \goodend{\FunV(\fn{d}{\semevt{\pe'}_{ρ'[\py↦d]}}), μ_1'} \sim \goodend{\FunV(\fn{d}{\semevt{\pe'}_{ρ'[\py↦d]}}), μ_2'},
       \]
       which requires us to show
       \[
-        \forall d.\ \later (\adom(d) ⊆ A) ⟹  A ⊦ \semevt{\pe'}_{ρ'[\py↦d]}(μ_1') \sim \semevt{\pe'}_{ρ'[\py↦d]}(μ_2')
+        \forall d.\ \later (A ⊦ d) ⟹  A ⊦ \semevt{\pe'}_{ρ'[\py↦d]}(μ_1') \sim \semevt{\pe'}_{ρ'[\py↦d]}(μ_2')
       \]
-      Crucially, the address restriction on $d$ means that $\pa$ is dead in $d$,
+      Crucially, the address restriction on $d$ means that $\{\pa\}$ is dead in $d$,
       so the proof is a simple matter of applying the inductive hypothesis.
+      \sg{Idea: $d \equiv d$, so $A ⊦ d(μ_1) \sim d(μ_2)$ and both heaps force appropriately.}
 
     \item \textbf{Case $\pe = \pe'~\py$}:
       $\pa$ is trivially dead in the stuck case, so we assume that there exists

@@ -8,11 +8,11 @@ and $\equiv$:
 
 \begin{definition}[Denotational deadness, lazily]
   \label{defn:deadness3}
-  An address $\pa$ is \emph{dead} in a denotation $d$ if and only if,
-  for all $μ_1 \approx μ_2$ such that $\adom(d) ⊆ \dom(μ_i) ∪ \{ \pa \}$
-  and $d_1,d_2$, we have
+  A set of addresses $\{\many{\pa}\}$ is \emph{dead} in a denotation $d$ if and only if,
+  for all $μ_1 \approx μ_2$ such that $\dom(μ_1) ∪ \{\many{\pa}\} ⊦ d$
+  and $\many{d_1},\many{d_2}$, we have
   \[
-    \dom(μ_1) ⊦ d(μ_1[\pa↦d_1]) \sim d(μ_2[\pa↦d_2]).
+    \dom(μ_1) ⊦ d(μ_1[\many{\pa↦d_1}]) \sim d(μ_2[\many{\pa↦d_2}]).
   \]
   \\
   A variable $\px$ is \emph{dead} in an expression $\pe$ if and only

@@ -877,7 +877,7 @@ We do so by cases over $\pe$, abbreviating $\tm \triangleq α_\Heaps(μ), \tr
 strong version of adequacy for $\semst{\wild}$, where $σ$ is defined to be a
 \emph{final} state if $\ctrl(σ)$ is a value and $\cont(σ) = \StopF$.
 
-\begin{lemma}[Adequacy of $\semst{\wild}$]
+\begin{theorem}[Adequacy of $\semst{\wild}$]
   \label{thm:semst-adequate}
   Let $τ = \semst{\pe}_{[]}([])$.
   \begin{itemize}
@@ -892,7 +892,7 @@ strong version of adequacy for $\semst{\wild}$, where $σ$ is defined to be a
       $τ$ is infinite (is diverging) iff for all $σ$ with $\inj(\pe)
       \smallstep^* σ$ there exists $σ'$ with $σ \smallstep σ'$.
   \end{itemize}
-\end{lemma}
+\end{theorem}
 \begin{proof}
   There exists a maximal trace $(σ_i)_{i∈\overline{n}}$ starting
   from $σ_1 = \inj(\pe)$, and by \Cref{thm:semst-correct} we have
