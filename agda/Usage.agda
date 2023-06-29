@@ -12,15 +12,24 @@ open import Data.Maybe
 open import Data.Sum
 open import Data.Product
 open import Data.Bool
+open import Relation.Nullary.Decidable
+open import Relation.Binary.PropositionalEquality
 
-data Card : Set where
-  C0 : Card
-  C1 : Card
-  Cω : Card
+data EnumerableMultiSet : Set -> Set₁ where
+  empty : ∀{A : Set} -> EnumerableMultiSet A
+  yield : ∀{A : Set} -> A -> ▹ EnumerableMultiSet A -> EnumerableMultiSet A
+  skip : ∀{A : Set} -> ▹ EnumerableMultiSet A -> EnumerableMultiSet A
 
+enumLook : T∞ -> EnumerableMultiSet Addr
+enumLook (ok _)    = empty
+enumLook stuck     = empty
+enumLook (a :: τ▹) = skip (λ α -> aux (a α) (enumLook (τ▹ α)))
+  where
+    aux : Act -> EnumerableMultiSet Addr -> EnumerableMultiSet Addr
+    aux (look a) s = yield a (next s) 
+    aux _        s = s
 
-defs : T* -> Addr -> Maybe Var
-defs []                   = Nothing
-defs (bind x a _d ∷ as) y = if x == y then just a else defs as
-defs (_ ∷ as) _           = defs as
+-- remove : ∀{A : Set} {eq? : Dec (A -> A -> EnumerableMultiSet A -> EnumerableMultiSet A
 
+-- subseteq : ∀{A : Set} -> EnumerableMultiSet A -> EnumerableMultiSet A -> Set 
+-- subseteq  
