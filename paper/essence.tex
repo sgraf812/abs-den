@@ -114,7 +114,7 @@ First off, we need to characterise the \emph{address domain} of a domain element
   A trace $τ$ is \emph{defined on} a set of addresses $A$ (written $A ⊦ τ$), if and only if
   $τ = ... \cons \goodend{v,μ}$ for some $v,μ$ implies
   \begin{itemize}
-    \item If $v = \FunV(f)$ for some $f$, then for all trusting $d'$ such that $A ⊦ d'$, $A ⊦ f(d')(μ)$.
+    \item If $v = \FunV(f)$ for some $f$, then for all trusting $d'$, $A ∪ \adom(d') ⊦ f(d')(μ)$.
     \item If $v = \ConV(K, \many{d})$ for some $K,\many{d}$, then $\many{A ⊦ d(μ)}$.
   \end{itemize}
   If a smallest $A$ exists such that $A ⊦ d$, $A$ is called the \emph{address domain} $\adom(d)$ of $d$.
@@ -143,14 +143,15 @@ All the domain elements of interest to us are trusting:
     \item \textbf{Case $\px$}:
       $ρ(\px)$ is trusting by assumption.
 
-    \item \textbf{Case $\Lam{px}{\pe'}$}:
-      It is $\bigstep{\semevt{\pe}_ρ}{μ}{\FunV(f)}{μ}$ for any $A ⊆ \dom(μ)$ where
+    \item \textbf{Case $\Lam{\px}{\pe'}$}:
+      It is $\bigstep{\semevt{\pe}_ρ}{μ}{\FunV(f)}{μ}$ for any $μ$ such
+      that $A ⊆ \dom(μ)$ and
       $f \triangleq \fn{d}{\AppEA(\px↦d) \cons \semevt{\pe}_{ρ[\px↦d]}}$, so we
-      assume that there is a trusting $d$ such that $A ⊦ d$.
+      assume that there is a trusting $d$.
       (Clearly, such a $d$ exists, for example, $A ⊦ \fn{\wild}{\stuckend{}}$ for any $A$.)
-      We have to show that $A ⊦ f(d)(μ)$ which follows by the induction hypothesis,
-      because $\semevt{\pe'}_ρ[\px↦d]$ is trusting when $d$ is.
-      At the same time, this means that $A = \adom(\semevt{\pe'}_ρ[\px↦d])$ is the
+      We have to show that $A ∪ \adom(d) ⊦ f(d)(μ)$ which follows by the induction hypothesis,
+      because $\semevt{\pe'}_{ρ[\px↦d]}$ is trusting when $d$ is.
+      At the same time, this means that $A = \adom(\semevt{\pe'}_{ρ[\px↦\fn{\wild}{\stuckend{}}]})$ is the
       smallest such $A$.
 
     \item \textbf{Case $K~\many{\px}$}:
