@@ -106,6 +106,39 @@ also antisymmetric:
 However, $(\forcesto)$ is not easily proven transitive without further
 characterisation of the domain elements returned by $\semevt{\wild}$.
 
+First off, we need to characterise the \emph{address domain} of a domain element $d$:
+
+\begin{definition}[Address domain, trusting]
+  An element $d$ is \emph{defined on} a set of addresses $A$ (written $A ⊦ d$) if and only if
+  $d(μ)$ is defined on $A$ whenever $A ⊆ \dom(μ)$.\\
+  A trace $τ$ is \emph{defined on} a set of addresses $A$ (written $A ⊦ τ$), if and only if
+  $τ = ... \cons \goodend{v,μ}$ for some $v,μ$ implies
+  \begin{itemize}
+    \item If $v = \FunV(f)$ (for some $f$), then for all $d'$ such that $A ⊦ d'$, $\dom(μ) ⊦ f(d')$.
+    \item If $v = \ConV(K, \many{d})$ (for some $K,\many{d}$), then $\many{A ⊦ d}$.
+  \end{itemize}
+  If a smallest $A$ exists such that $A ⊦ d$, $A$ is called the \emph{address domain} $\adom(d)$ of $d$.
+  If a domain element $d$ has an address domain, we call it \emph{trusting}.
+\end{definition}
+
+Intuitively, a trusting domain element $d$ assumes that all the heap entries it
+needs are present; it will never branch based on whether or not a heap has an
+entry for a particular address.
+\begin{lemma}
+  For all elements $d$ and address sets $A_1 ⊆ A_2$, $A_2 ⊦ d$ implies $A_1 ⊦ d$
+\end{lemma}
+\begin{proof}
+  $A_2$ is only used in the $\FunV$ case, where a smaller address set $A_1$ enables
+\end{proof}
+All the domain elements of interest to us are trusting:
+\begin{lemma}
+  For any expression $\pe$ and environment $ρ$ such that $\rng(ρ)$ is trusting,
+  $\semevt{\pe}_ρ$ is trusting.
+\end{lemma}
+\begin{proof}
+  By induction on $\pe$.
+\end{proof}
+
 \begin{definition}[Lazy domain]
   \label{defn:lazy-d}
   An element $d ∈ \EventD$ is \emph{lazy} if and only if
@@ -133,7 +166,7 @@ characterisation of the domain elements returned by $\semevt{\wild}$.
   An environment $ρ$ \emph{lazy} if and only if its entries are. \\
   A value $v$ is \emph{lazy} if and only if
   \begin{itemize}
-    \item It has a finite address domain $\adom(v)$.
+    \item It has a finite address domain $\adom(v)$ determined by the trace in which it occurs.
     \item When $v = \FunV(f)$ (for some $f$), then $f(d')$ is lazy whenever $d'$ is lazy, and $\adom(f(d')) ⊆ \adom(v) ∪ \adom(d')$.
     \item When $v = \ConV(K,\many{d})$ (for some $K,\many{d}$), then all $\many{d}$ are lazy, and $\adom(v) = \bigcup \many{\adom(d)}$.
   \end{itemize}
@@ -240,13 +273,20 @@ And now we finally prove that $\semevt{\wild}$ indeed produces a lazy element:
       $ρ(\px)$ is lazy with address domain $\adom(ρ(\px)) ⊆ A$, and
       $\fn{\wild}{\stuckend{}}$ is stuck no matter how evaluated the heap is.
 
-    \item \textbf{Case $\Lam{px}{\pe'}, K~\many{\px}$}:
-      For any lazy $μ$, we have $\bigstep{\semevt{\pe}_ρ}{μ}{v}{μ}$, where
-      $v$ is a $\FunV$ or $\ConV$ value which is independent of $μ$.
-      The laziness of function bodies and constructor field denotations follows
-      by induction.
-      Clearly, $μ \forcesto μ$ by reflexivity.
+    \item \textbf{Case $\Lam{px}{\pe'}$}:
+      For the Forces property, we assume a lazy $μ$ such that
+      $\bigstep{\semevt{\pe}_ρ}{μ}{\FunV(f)}{μ}$ holds for
+      $f \triangleq \fn{d}{\AppEA(\px↦d) \cons \semevt{\pe}_{ρ[\px↦d]}}$.
+      We have $μ \forcesto μ$ by reflexivity.
+      To show that $\FunV(f)$ is indeed a lazy value, we assume a lazy $d$ and
+      show that $f(d)$ is lazy by induction with $\adom(f(d)) ⊆ A ∪ \adom(d)$.
+      But also $A ∪ \adom(d) ⊆ \dom(μ_1) ∪ \adom(d) = \adom(\FunV(f)) ∪ \adom(d)$,
+      so $\FunV(f)$ is a lazy value.
       The Well-addressed, Postpone and Speculate properties follow by assumption.
+
+    \item \textbf{Case $K~\many{\px}$}:
+      Similar to the lambda case.
+
 
     \item \textbf{Case $\pe'~\px$}:
       Both arguments to $\apply$ are lazy:
