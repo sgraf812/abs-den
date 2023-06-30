@@ -71,6 +71,75 @@ out to in Goal 4.
 
 \subsection{Evaluation Cardinality}
 
+Since our new semantics is able to express evaluation cardinality and thunk
+update, we can try to add a new $\mathbf{let}_n$ construct to our language that
+opts out of memoisation:
+\[
+ \begin{array}{rcl}
+  \derefn(\pa)(μ)   & = & \LookupA(\pa) \cons μ(\pa)(μ) \\
+  \\[-0.5em]
+  \semevt{\Letn{\px}{\pe_1}{\pe_2}}_ρ(μ) & = &
+    \begin{letarray}
+      \text{let} & ρ' = ρ[\px ↦ \highlight{\derefn(\pa)}] \quad \text{where $\pa \not∈ \dom(μ)$} \\
+                 & d_1^\later = \semevt{\pe_1}_{ρ'} \\
+      \text{in}  & \BindA(\px,\pa↦d_1^\later) \cons \semevt{\pe_2}_{ρ'}(μ[\pa ↦ d_1^\later])
+    \end{letarray} \\
+ \end{array}
+\]
+Any program in which we switch from memoised $\mathbf{let}$ to $\mathbf{let}_n$
+is semantically equivalent.
+This is a simple consequence of the fact that $\deref(\pa) \equiv \derefn(\pa)$
+and compositionality.
+
+However, omitting thunk memoisation has measurable effect on performance
+if the same variable is evaluated repeatedly!
+
+\begin{figure}
+\[\begin{array}{c}
+ \ruleform{ \fin(τ) \qquad A ⊦ d \qquad A ⊦ τ_1 \sim τ_2 \qquad μ_1 \approx μ_2 \qquad d_1 \equiv d_2}
+ \\
+ \\[-0.5em]
+ \inferrule*[right=\eqlrcons]
+    {\later (A ⊦_n τ_1 \sim τ_2)}
+    {A ⊦_n \wild \cons τ_1 \sim \wild \cons τ_2}
+ \quad
+ \inferrule*[right=\eqrcons]
+    {A ⊦_n τ_1 \sim τ_2 \quad n < ω}
+    {A ⊦_{n+1} τ_1 \sim \wild \cons τ_2}
+ \quad
+ \inferrule*[right=\eqlcons]
+    {A ⊦_{n+1} τ_1 \sim τ_2 \quad n < ω}
+    {A ⊦_{n} \wild \cons τ_1 \sim τ_2}
+ \\
+ \\[-0.5em]
+ \inferrule*[right=\eqstuck]
+    {\quad}
+    {A ⊦_{0} \stuckend{} \sim \stuckend{}}
+ \quad
+ \inferrule*[right=\eqcon]
+    {\later (A ⊦_{n} \many{d_1(μ_1) \sim d_2(μ_2)})}
+    {A ⊦_{0} \goodend{\ConV(K, \many{d_1}), μ_1} \sim \goodend{\ConV(K, \many{d_2}), μ_2}}
+ \\
+ \\[-0.5em]
+ \inferrule*[right=\eqfun]
+    {\forall d.\ A ⊦ d ⟹  A ⊦_{n} f_1(d)(μ_1) \sim f_2(d)(μ_2)}
+    {A ⊦_{0} \goodend{\FunV(f_1), μ_1} \sim \goodend{\FunV(f_2), μ_2}}
+ \\
+ \\[-0.5em]
+ \inferrule*[right=\eqheap]
+    {\dom(μ_1) = \dom(μ_2) \quad \forall \pa.\ \later(\dom(μ_1) ⊦ μ_1(\pa)(μ_1) \sim μ_2(\pa)(μ_2))}
+    {μ_1 \approx μ_2}
+ \\
+ \\[-0.5em]
+ \inferrule*[right=\eqdenot]
+    {\forall μ_1,μ_2.\ μ_1 \approx μ_2 \wedge  \dom(μ_1) ⊦ d_1,d_2 ⟹  \dom(μ_1) ⊦_n d_1(μ_1) \sim d_2(μ_2)}
+    {d_1 \equiv d_2}
+\end{array}\]
+\caption{Improvement relation}
+  \label{fig:sem-equiv}
+\end{figure}
+
+
 \begin{figure}
 \[\begin{array}{c}
   \forall \tr.\ \tr(x) ⊑ \semusg{\pe}_{\tr} \\
