@@ -72,7 +72,7 @@ out to in Goal 4.
 \subsection{Evaluation Cardinality}
 
 Since our new semantics is able to express evaluation cardinality and thunk
-update, we can try to add a new $\mathbf{let}_n$ construct to our language that
+update, we can try to add a new $\mathbf{let1}$ construct to our language that
 opts out of memoisation:
 \[
  \begin{array}{rcl}
@@ -86,7 +86,7 @@ opts out of memoisation:
     \end{letarray} \\
  \end{array}
 \]
-Any program in which we switch from memoised $\mathbf{let}$ to $\mathbf{let}_n$
+Any program in which we switch from memoised $\mathbf{let}$ to $\mathbf{let1}$
 is semantically equivalent.
 This is a simple consequence of the fact that $\deref(\pa) \equiv \derefn(\pa)$
 and compositionality.
