@@ -81,6 +81,79 @@
   \end{itemize}
 \end{proof}
 
+\begin{lemma}[Heap hiding]
+  \label{thm:heap-hiding}
+  Let $μ$ be a heap and $\pa ∈ \dom(μ)$ dead in $\rng(μ)$.
+  Then there exists a heap $μ_h$ with domain $\dom(μ) \setminus \{ \pa \}$
+  and $μ \approx μ_h[\pa↦μ(\pa)]$.
+\end{lemma}
+\begin{proof}
+  Define $μ_h \triangleq \mathit{hide}_\pa(μ)$, where
+  \[\begin{array}{rcl}
+    \mathit{hide}_\pa(μ)(\pa')(μ') & = & \begin{cases}
+      μ(\pa')(μ'[\pa↦μ(\pa)]) & \pa' ∈ \dom(μ) \setminus \{ \pa \} \\
+    \end{cases}
+  \end{array}\]
+  We abbreviate $μ_h \triangleq \mathit{hide}_\pa(μ)$.
+  Clearly, $\dom(μ_h) = \dom(μ) \setminus \{ \pa \}$.
+
+  By Löb induction, we prove
+  \[
+    μ_h \text{ is lazy and extensional} \wedge μ \approx μ_h[\pa↦μ(\pa)]
+  \]
+  So we assume that the property holds later.
+
+  Consider $d \triangleq μ_h(\pa') = \fn{μ'}{μ(\pa')(μ'[\pa↦μ(\pa)])}$ for some $\pa' ∈ \dom(μ_h)$.
+  Then $d(μ_h) = μ(\pa')(μ_h[\pa↦μ(\pa)])$ which is defined, because
+  $μ(\pa')(μ)$ is defined and $μ(\pa')$ is extensional, which we can apply to
+  $μ \approx μ_h[\pa↦μ(\pa)]$ later.
+
+  Furthermore, $d$ is lazy for a similar argument that the $\mathbf{let}$ case
+  of \Cref{thm:semevt-lazy}.
+  Extensionality follows because the heap extension $[\pa↦μ(\pa)]$ in $d$ is
+  always with the same (extensional) element.
+
+  For $μ \approx μ_h[\pa↦μ(\pa)]$, we unfold $\mathit{hide}_\pa$, fix
+  $\pa' ∈ \dom(μ)$ and show
+  \[
+    \dom(μ) ⊦ μ(\pa')(μ) \sim μ(\pa')(μ_h[\pa↦μ(\pa)])
+  \]
+  Which can be shown by extensionality of $μ(\pa')$ applied to the induction
+  hypothesis.
+\end{proof}
+
+\begin{lemma}
+  \label{thm:adom-dead}
+  Let $A ⊦ d$. Then any $\pa \not∈ A$ is dead in $d$.
+\end{lemma}
+\begin{proof}
+  Assume $μ_1 \approx μ_2$ such that $\pa$ is dead in $\rng(μ_i)$ and $\dom(μ_1) ∪ \{\pa\} ⊦ d$
+  and fix arbitrary $d_1,d_2$.
+  We have to show that
+  \[
+    \dom(μ_1) ⊦ d(μ_1[\pa↦d_1]) \sim d(μ_2[\pa↦d_2])
+  \]
+
+  We assume that $A ⊆ \dom(μ_i)$.
+  Otherwise, we can extend $μ_i$ to heaps $μ_i'$ (mapping to equal entries, for
+  example $d$) such that $A ⊆ \dom(μ_i')$.
+  Then $μ_i \forcesto μ_i'$ and we can apply \Cref{thm:lazy-force-bisimilar}.
+
+  W.l.o.g., $A ⊆ \dom(μ_i)$.
+  By \Cref{thm:heap-hiding}, there exist $μ_i'$ such that $μ_i[\pa↦d_i] \approx μ_i'[\pa↦d_i]$
+  and $\pa \not∈ \dom(μ_i')$, so $μ_i' \forcesto μ_i'[\pa↦d_i]$.
+  By extensionality of $d$, we know that
+  \[
+    \dom(μ_1') ⊦ d(μ_1') \sim d(μ_2')
+  \]
+  Since $A ⊆ \dom(μ_i')$ and $A ⊦ d$, we can apply \Cref{thm:lazy-force-bisimilar}, getting
+  \[
+    \dom(μ_1') ⊦ d(μ_1'[\pa↦d_i]) \sim d(μ_2'[\pa↦d_i])
+  \]
+  And again by extensionality applied to $μ_i[\pa↦d_i] \approx μ_i'[\pa↦d_i]$
+  and transitivity, we show the goal.
+\end{proof}
+
 \begin{lemma}[Heap forcing and bisimilarity]
   \label{thm:force-heap-bisimlar}
   Let $d_1,d_2 ∈ \EventD$, $A ⊆ \adom(d)$ and $μ_1,μ_2,μ_1',μ_2' ∈ \Heaps$
@@ -130,14 +203,13 @@
   so we instead assume that an address $\pa$ is dead in the range of an
   environment $ρ$ and show that $\pa$ is dead in
   $\semevt{\pe}_{ρ[\px↦\deref(\pa)]}$.
-  We generalise this statement to a whole set of addresses $\{\pa\}$.
 
-  We assume that $μ_1 \approx μ_2$ such that $\dom(μ_1) ∪ \{\many{\pa}\} ⊦ \semevt{\pe}_{ρ[\many{\px↦\deref(\pa)}]}$ and
+  We assume that $μ_1 \approx μ_2$ such that $\pa$ is dead in $\rng(μ_i)$, $\dom(μ_1) ∪ \{\pa\} ⊦ \semevt{\pe}_{ρ[\px↦\deref(\pa)]}$ and
   abbreviate $A \triangleq \dom(μ_1)$. Then the goal is to show
   \[
-    A ⊦ \semevt{\pe}_{ρ[\many{\px↦\deref(\pa)}]}(μ_1[\many{\pa↦d_1}]) \sim \semevt{\pe}_{ρ[\many{\px↦\deref(\pa)}]}(μ_2[\many{\pa↦d_2}])
+    A ⊦ \semevt{\pe}_{ρ[\px↦\deref(\pa)]}(μ_1[\pa↦d_1]) \sim \semevt{\pe}_{ρ[\px↦\deref(\pa)]}(μ_2[\pa↦d_2])
   \]
-  for any $\many{d_1},\many{d_2}$ and $ρ$ such that $\{\many{\pa}\}$ is dead in $\rng(ρ)$.
+  for any $d_1,d_2$ and $ρ$ such that $\pa$ is dead in $\rng(ρ)$.
   We proceed by induction on $\pe$.
   \begin{itemize}
     \item \textbf{Case $\pe = \py$}: If $\px=\py$, then
@@ -146,7 +218,7 @@
 
     \item \textbf{Case $\pe = \Lam{\py}{\pe'}$}:
       We abbreviate
-      $μ_i' \triangleq μ_i[\many{\pa↦d_i}]$, $ρ' \triangleq ρ[\many{\px↦\deref(\pa)}]$
+      $μ_i' \triangleq μ_i[\pa↦d_i]$, $ρ' \triangleq ρ[\px↦\deref(\pa)]$
       and have to show
       \[
         A ⊦ \goodend{\FunV(\fn{d}{\semevt{\pe'}_{ρ'[\py↦d]}}), μ_1'} \sim \goodend{\FunV(\fn{d}{\semevt{\pe'}_{ρ'[\py↦d]}}), μ_2'},
@@ -155,18 +227,18 @@
       \[
         \forall d.\ \later (A ⊦ d) ⟹  A ⊦ \semevt{\pe'}_{ρ'[\py↦d]}(μ_1') \sim \semevt{\pe'}_{ρ'[\py↦d]}(μ_2')
       \]
-      Crucially, the address restriction on $d$ means that $\{\pa\}$ is dead in $d$,
-      so the proof is a simple matter of applying the inductive hypothesis.
-      \sg{Idea: $d \equiv d$, so $A ⊦ d(μ_1) \sim d(μ_2)$ and both heaps force appropriately.}
+      Crucially, the address restriction on $d$ means that $\pa$ is dead in $d$
+      per \Cref{thm:adom-dead}, so the proof is a simple matter of applying the
+      inductive hypothesis.
 
     \item \textbf{Case $\pe = \pe'~\py$}:
       $\pa$ is trivially dead in the stuck case, so we assume that there exists
       $d_\py \triangleq ρ(\py)$ and $\pa$ is dead in $d_\py$ per assumption.
       We unfold $\apply$ and abbreviate
-      $d_{\pe'} = \semevt{\pe'}_{ρ[\px↦\deref(\pa)]}$,
+      $d_{\pe'} \triangleq \semevt{\pe'}_{ρ[\px↦\deref(\pa)]}$,
       $k \triangleq \fn{(\FunV(f))}{f(d_\py)}$, so the goal is to prove
       \[
-        A ⊦ (d_{\pe'} \betastep k)(μ_1[\pa↦d_1]) \sim (d_{\pe'} \betastep k)(μ_1[\pa↦d_2])
+        A ⊦ (d_{\pe'} \betastep k)(μ_1[\pa↦d_1]) \sim (d_{\pe'} \betastep k)(μ_2[\pa↦d_2])
       \]
       Since $d_{\pe'} \equiv d_{\pe'}$, the only interesting case is when
       $\bigstep{d_{\pe'}}{μ_i[\pa↦d_i]}{\FunV(f_i)}{μ_i'}$, in which case we
@@ -174,13 +246,14 @@
       \[
         A ⊦ f_1(d_\py)(μ_1') \sim f_2(d_\py)(μ_2').
       \]
-      But $\adom(ρ(\px)) ⊆ A$, so we can apply the premise of the $\eqfun$
-      judgment at the end of the $d_{\pe'}$ trace.
+      But $A ⊦ d_\py$ by \Cref{thm:well-addressedness}, so we can apply the
+      premise of the $\eqfun$ judgment at the end of the $d_{\pe'}$ trace.
 
     \item \textbf{Case $\pe = \Let{\py}{\pe_1}{\pe_2}$}:
       We abbreviate
-      $d_{\pe_i} \triangleq \semevt{\pe_i}_{ρ[\px↦\deref(\pa)][\py↦\deref(\pa')]}$,
-      $μ_i' \triangleq μ_i[\pa↦d_i]$, ${ρ' = ρ[\px↦\deref(\pa)]}$,
+      ${ρ' \triangleq ρ[\px↦\deref(\pa)]}$,
+      $d_{\pe_i} \triangleq \semevt{\pe_i}_{ρ'[\py↦\deref(\pa')]}$,
+      ${μ_i' \triangleq μ_i[\pa↦d_i]}$,
       so the goal is to prove
       \[
         A ⊦ d_{\pe_2}(μ_1[\pa↦d_1][\pa'↦d_{\pe_1}]) \sim d_{\pe_2}(μ_2[\pa↦d_2][\pa'↦d_{\pe_1}])
@@ -189,14 +262,14 @@
 
       Since there can be no shadowing, it is $\px \not= \py$ and we see that
       $\tr(\px) = \tr'(\px)$, where
-      $\tr' = {\operatorname{fix}(\fn{\tr'}{\tr ⊔ [\py ↦
+      $\tr' \triangleq {\operatorname{fix}(\fn{\tr'}{\tr ⊔ [\py ↦
       \semusg{\pe_1}_{\tr'}]})}$.
       We know that
       \[
         \tr'(\px) = \tr(\px) \not⊑ \semusg{\pe}_{\tr} = \semusg{\pe_2}_{\tr'}
       \]
       but we cannot apply the induction hypothesis yet, because
-      $\pa$ might not be dead in $\adom(d_{\pe_1})$ and thus not in
+      $\pa$ might not be dead in $d_{\pe_1}$ and thus not in
       $μ_i[\pa'↦d_{\pe_1}]$.
 
       We proceed by cases over $\tr(\px) = \tr'(\px) ⊑ \semusg{\pe_1}_{\tr'}$.
@@ -204,77 +277,24 @@
         \item \textbf{Case $\tr'(\px) ⊑ \semusg{\pe_1}_{\tr'}$}: Then
           $\tr'(\px) ⊑ \tr'(\py)$ and $\py$ is also dead in $\pe_2$ by the above
           inequality.
-          Both deadness facts together allow us to rewrite $d$ to
-          $d' \triangleq \semevt{\Lam{x}{x}}_{[]}$ which satisfies $\pa \not∈
-          \adom(d')$.
-          Then we apply the induction hypothesis to the well-formed lazy heaps
-          $μ_i[\pa'↦d']$ (noting that $μ_1[\pa'↦d'] \approx μ_2[\pa'↦d']$) and
-          then rewrite back:
+          Both deadness facts together allow us to rewrite $d_{\pe_1}$ to
+          $d_{\pe_1}' \triangleq \semevt{\Lam{x}{x}}_{[]}$, and $\pa$ is dead in that.
+          Then we apply the induction hypothesis to the heaps
+          $μ_i[\pa'↦d_{\pe_1}']$ (noting that $μ_1[\pa'↦d_{\pe_1}'] \approx
+          μ_2[\pa'↦d_{\pe_1}']$ and that $\pa$ is dead in the range of both) and
+          then rewrite back to $d_{\pe_1}$:
           \[\begin{array}{rcl}
-            A & ⊦    & \semevt{\pe_2}_{ρ'[\py↦\deref(\pa')]}(μ_1[\pa'↦d]) \\
-              & \sim & \semevt{\pe_2}_{ρ'[\py↦\deref(\pa')]}(μ_1[\pa'↦d']) \\
-              & \sim & \semevt{\pe_2}_{ρ'[\py↦\deref(\pa')]}(μ_2[\pa'↦d']) \\
-              & \sim & \semevt{\pe_2}_{ρ'[\py↦\deref(\pa')]}(μ_2[\pa'↦d]) \\
+            A & ⊦    & \semevt{\pe_2}_{ρ'[\py↦\deref(\pa')]}(μ_1[\pa'↦d_{\pe_1}]) \\
+              & \sim & \semevt{\pe_2}_{ρ'[\py↦\deref(\pa')]}(μ_1[\pa'↦d_{\pe_1}']) \\
+              & \sim & \semevt{\pe_2}_{ρ'[\py↦\deref(\pa')]}(μ_2[\pa'↦d_{\pe_1}']) \\
+              & \sim & \semevt{\pe_2}_{ρ'[\py↦\deref(\pa')]}(μ_2[\pa'↦d_{\pe_1}]) \\
           \end{array}\]
           as requested.
         \item \textbf{Case $\tr'(\px) \not⊑ \semusg{\pe_1}_{\tr'}$}:
-          Then $\px$ is dead in $\pe_1$ and $d'_1 = d'_2$. The goal follows
-          from the fact that $\px$ is dead in $\pe_2$.
+          Then $\pa$ is dead in $d_{\pe_1}$ and thus in the range of
+          $μ_i[\pa'↦d_{\pe_i}']$ and we may invoke the induction hypothesis
+          directly to show the goal.
       \end{itemize}
-    \item \textbf{Case $\pe = \Let{\py}{\pe_1}{\pe_2}$}:
-      The case $\px = \py$ is easily discharged by \Cref{thm:deadness-no-deref}.
-
-      We assume $\px \not= \py$ and $μ_1 \sim^{\Heaps}_\pa μ_2$ and allocate
-      $\pa' \not∈ \dom(μ_i)$.
-      The chosen $\pa'$ must be distinct from $\pa$, because $\pa ∈ \dom(μ_i)$.
-      As a consequence, we know that $\pa$ is dead in the range of
-      $ρ' \triangleq ρ[\py ↦ \deref(\pa')]$ by \Cref{thm:deadness-deref}.
-
-      The goal is to show (for $d_1^\later = \semevt{\pe_1}_{ρ'}$)
-      \[
-        \semevt{\pe_2}_{ρ'}(μ_1[\pa' ↦ d_1^\later]) \sim^{\Traces}_\pa \semevt{\pe_2}_{ρ'}(μ_2[\pa' ↦ d_1^\later])
-      \]
-      The challenge here is that $\pa$ might not be dead in $d_1^\later$,
-      which prohibits us from invoking the induction hypothesis on $\pe_2$.
-
-      For the analysis function, we see that $\tr(\px) = \tr'(\px)$, where
-      $\tr' = \operatorname{fix}(\fn{\tr'}{\tr~⊔~[\py~↦~\semusg{\pe_1}_{\tr'}]})$.
-      We know that
-      \[
-        \tr'(\px) = \tr(\px) \not⊑ \semusg{\pe}_{\tr} = \semusg{\pe_2}_{\tr'}
-      \]
-      So by the induction hypothesis, $\px$ is dead in $\pe_2$.
-      We proceed by cases over $\tr(\px) = \tr'(\px) ⊑ \semusg{\pe_1}_{\tr'}$.
-      \begin{itemize}
-        \item \textbf{Case $\tr'(\px) \not⊑ \semusg{\pe_1}_{\tr'}$}:
-          Then $\px$ is dead in $\pe_1$ and hence $\pa$ is dead in $d_1^\later$.
-          Hence we have $μ_1[\pa' ↦ d_1^\later] \sim^{\Heaps}_\pa μ_2[\pa' ↦ d_1^\later]$
-          The goal follows from the fact that $\px$ is dead in $\pe_2$.
-        \item \textbf{Case $\tr'(\px) ⊑ \semusg{\pe_1}_{\tr'}$}: Then
-          $\tr'(\px) ⊑ \tr'(\py)$ and $\py$ is also dead in $\pe_2$ by the above
-          inequality and the induction hypothesis.
-
-          We can use this latter fact to rewrite the heap entry for $d_1^\later$
-          to something that is dead in $\pa$, such as $\fn{\wild}{\stuckend{}}$:
-          \[
-            \semevt{\pe_2}_{ρ'}(μ_1[\pa' ↦ d_1^\later]) \sim^{\Traces}_\pa \semevt{\pe_2}_{ρ'}(μ_2[\pa' ↦ d_1^\later]) \sim^{\Traces}_\pa \semevt{\pe_2}_{ρ'}(μ_2[\pa' ↦ d_2^\later])
-          \]
-          That entails that $\$d_1^\later$ is dead in
-          Since $μ_1[\pa' ↦ d_1^\later] $
-          This allows us to show (for arbitrary $d_i^\later$)
-          By applying deadness results for $\px$/$\pa$ and then $\py$/$\pa'$.
-      \end{itemize}
-      Applying the induction hypothesis, we see that $\px$ is dead in
-      $\semevt{\pe_i}$ and hence that $\pa$ is dead in $\semevt{\pe_i}_{ρ'}$
-      (this needs the deadness result on $ρ'$).
-
-      We can use this to conclude that
-      $μ_1[\pa ↦ d_1^\later] \sim^{\Heaps}_\pa μ_2[\pa ↦ d_1^\later]$
-      and hence that
-      \[
-        \semevt{\pe_2}_{ρ'}(μ_1[\pa ↦ d_1^\later]) \sim^{\Traces}_\pa \semevt{\pe_2}_{ρ'}(μ_2[\pa ↦ d_1^\later])
-      \]
-      The rest is just congruence.
   \end{itemize}
 \end{proof}
 

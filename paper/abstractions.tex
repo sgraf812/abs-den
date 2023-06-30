@@ -8,13 +8,12 @@ and $\equiv$:
 
 \begin{definition}[Denotational deadness, lazily]
   \label{defn:deadness3}
-  A set of addresses $\{\many{\pa}\}$ is \emph{dead} in a denotation $d$ if and only if,
-  for all $μ_1 \approx μ_2$ such that $\dom(μ_1) ∪ \{\many{\pa}\} ⊦ d$
-  and $\many{d_1},\many{d_2}$, we have
+  An address $\pa$ is \emph{dead} in a denotation $d$ if and only if,
+  for all $μ_1 \approx μ_2$ such that $\pa$ is dead in $\rng(μ_i)$,
+  $\dom(μ_1) ∪ \{\pa\} ⊦ d$ and $d_1,d_2$, we have
   \[
-    \dom(μ_1) ⊦ d(μ_1[\many{\pa↦d_1}]) \sim d(μ_2[\many{\pa↦d_2}]).
+    \dom(μ_1) ⊦ d(μ_1[\pa↦d_1]) \sim d(μ_2[\pa↦d_2]).
   \]
-  \\
   A variable $\px$ is \emph{dead} in an expression $\pe$ if and only
   if, for all $ρ ∈ \Var \to \EventD, \pe_1,\pe_2 ∈ \Exp$, we have
   \[\semevt{\Let{\px}{\pe_1}{\pe}}_{ρ} \equiv \semevt{\Let{\px}{\pe_2}{\pe}}_{ρ}.\]
@@ -43,8 +42,34 @@ characterisation of deadness by induction:
   The full proof can be found in \Cref{prf:semusg-correct-live-3}.
 \end{proof}
 
-We have to admit that this turned out more complex than
-\Cref{thm:semusg-correct-live}, but at least it was possible.
+\subsubsection*{Discussion}
+
+The main proof of \Cref{thm:semusg-correct-live-3} is hardly longer than
+\Cref{thm:semusg-correct-live}, but we have to admit that we needed to prove
+quite a few metatheoretic properties to get there, so we declare only partial
+victory on Goal 1 from \Cref{sec:problem}.
+For obvious reasons, it seems preferable to stick to a simpler call-by-name
+semantics without a heap if the property in question (\eg, deadness) can be
+understood there as well.
+
+Still, with \Cref{defn:deadness3} we were at least able to break
+down the proof into manageable intermediate steps.
+That is a huge step forward compares to the operational deadness definition of
+\Cref{defn:deadness2} where we weren't even able to come up with a suitable
+correctness relation.
+
+In hindsight, we could trace back the intermediate steps to come up with at
+least one proof strategy with \Cref{defn:deadness2}:
+The structural induction principle is an important enabling factor and
+the focus on maximal traces in \Cref{fig:semst-correctness} suggests that
+we should likely strive for a correctness relation characterising a property of
+maximal traces.
+This was not obvious to us when we first set out to do the proof; the gap was
+too large to see how to get to the other side due to the structural mismatch.
+A nice consequence of successfully avoiding structural mismatch, which we set
+out to in Goal 4.
+
+\subsection{Evaluation Cardinality}
 
 \begin{figure}
 \[\begin{array}{c}
@@ -103,7 +128,3 @@ We have to admit that this turned out more complex than
  \end{array}
 \end{array}\]
 \end{figure}
-
-\begin{itemize}
-  \item Correctness predicate simpler to come up than for liveness analysis directly. Later
-\end{itemize}
