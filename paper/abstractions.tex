@@ -69,6 +69,118 @@ too large to see how to get to the other side due to the structural mismatch.
 A nice consequence of successfully avoiding structural mismatch, which we set
 out to in Goal 4.
 
+\subsection{Improvement}
+
+Proving that dead bindings can be soundly rewritten is a nice litmus test
+for the semantics.
+But does it really make the program faster, or at least not slower?
+
+We can affirm that indirectly:
+A diverging program $\mathit{loop}$ takes more steps than a stuck program
+$\mathit{crash}$, hence the former runs ``slower'' than the latter.
+The stuck and the diverging program are not semantically equivalent,
+but $\Let{x}{\mathit{crash}}{\pe}$ is semantically equivalent to
+$\Let{x}{\mathit{loop}}{\pe}$ when $x$ is dead in $\pe$.
+Since $(\betastep)$ runs sub-programs to completion, we would observe
+execution of ${\mathit{crash}}$ or ${\mathit{loop}}$, which is the only
+way in which we could have made the program slower or faster.
+Since there is no semantic difference, the performance of the program must be
+unaffected.
+
+This argument is quite vague.
+In order to put it on firm ground, we define an \emph{improvement relation}
+$(\faster)$ in the style of \citet{MoranSands:99} in \Cref{fig:improv}.
+
+\begin{figure}
+\[\begin{array}{c}
+ \ruleform{ A ⊦_n τ_1 \lesssim τ_2 \qquad μ_1 \lessapprox μ_2 \qquad d_1 \faster d_2 }
+ \\
+ \\[-0.5em]
+ \inferrule*[right=\implrcons]
+    {\later (A ⊦_n τ_1 \lesssim τ_2)}
+    {A ⊦_{n} \wild \cons τ_1 \lesssim \wild \cons τ_2}
+ \quad
+ \inferrule*[right=\imprcons]
+    {A ⊦_{n+1} τ_1 \lesssim τ_2}
+    {A ⊦_{n} τ_1 \lesssim \wild \cons τ_2}
+ \quad
+ \inferrule*[right=\implcons]
+    {A ⊦_{n} τ_1 \lesssim τ_2}
+    {A ⊦_{n+1} \wild \cons τ_1 \lesssim τ_2}
+ \\
+ \\[-0.5em]
+ \inferrule*[right=\impstuck]
+    {\quad}
+    {A ⊦_{0} \stuckend{} \lesssim \stuckend{}}
+ \quad
+ \inferrule*[right=\impcon]
+    {\later (A ⊦_{n} \many{d_1(μ_1) \lesssim d_2(μ_2)})}
+    {A ⊦_{\Sigma \{\many{n}\}} \goodend{\ConV(K, \many{d_1}), μ_1} \lesssim \goodend{\ConV(K, \many{d_2}), μ_2}}
+ \\
+ \\[-0.5em]
+ \inferrule*[right=\impfun]
+    {\forall d.\ A ⊦ d ⟹  A ⊦_{n} f_1(d)(μ_1) \lesssim f_2(d)(μ_2)}
+    {A ⊦_{n} \goodend{\FunV(f_1), μ_1} \lesssim \goodend{\FunV(f_2), μ_2}}
+ \\
+ \\[-0.5em]
+ \inferrule*[right=\impheap]
+    {\dom(μ_1) = \dom(μ_2) \quad \forall \pa.\ \later(\dom(μ_1) ⊦_{0} μ_1(\pa)(μ_1) \lesssim μ_2(\pa)(μ_2))}
+    {μ_1 \lessapprox μ_2}
+ \\
+ \\[-0.5em]
+ \inferrule*[right=\impdenot]
+    {\forall μ_1,μ_2.\ μ_1 \lessapprox μ_2 \wedge  \dom(μ_1) ⊦ d_1,d_2 ⟹  \dom(μ_1) ⊦_{0} d_1(μ_1) \lesssim d_2(μ_2)}
+    {d_1 \faster d_2}
+\end{array}\]
+\caption{Improvement relation}
+  \label{fig:improv}
+\end{figure}
+
+Structurally, $(\faster)$ is very similar to $(\equiv)$; the main differences are in
+the rules for $(\cons)$ and the resulting tracking of \emph{skew credits} $n∈ℕ$,
+\eg, we count the applications of $\imprcons$ to spend them on $\implcons$ or
+when a value is further scrutinised.
+Naturally, it is easier to prove $A ⊦_n τ_1 \lesssim τ_2$ the more credits we
+have at our expense and thus the larger $n$ is.
+
+We write $d_1 \lockstep d_2$ when $d_1 \faster d_2$ and $d_2 \faster d_1$, in
+which case both denotations operate in lockstep.
+Already it is the case that $d_1 \faster d_2$ implies $d_1 \equiv d_2$,
+so $(\faster)$ corresponds to the strong notion of improvement in
+\citet{MoranSands:99}.
+The weaker notion can be recovered by defining $\imprcons$ and $\implcons$ by
+coinduction, thus accepting skew credits in $ℕ_ω$ instead of $ℕ$.
+
+We conjecture that $(\faster)$ is a sub-relation of the strong contextual
+improvement relation of \citet{MoranSands:99}, just as $(\equiv)$ is finer than
+contextual equivalence.
+
+We could now once again refine our notion of deadness:
+
+\begin{definition}[Denotational deadness, improving]
+  \label{defn:deadness4}
+  A variable $\px$ is \emph{dead} in an expression $\pe$ if and only
+  if, for all $ρ ∈ \Var \to \EventD, \pe_1,\pe_2 ∈ \Exp$, we have
+  \[\semevt{\Let{\px}{\pe_1}{\pe}}_{ρ} \lockstep \semevt{\Let{\px}{\pe_2}{\pe}}_{ρ}.\]
+  Otherwise, $\px$ is \emph{live}.
+\end{definition}
+
+And we will now assume that we have proven $\semusg{\wild}$ correct \wrt to this
+new notion of deadness:
+\begin{theorem}[$\semusg{\wild}$ is an improving deadness analysis]
+  \label{thm:semusg-correct-live-4}
+  Let $\pe$ be an expression, $\px$ a variable and $\tr$ a usage environment.
+  If $\tr(\px) \not⊑ \semusg{\pe}_{\tr}$
+  then $\px$ is dead in $\pe$.
+\end{theorem}
+
+The proof is much the same as \Cref{thm:semusg-correct-live-3}, because
+intuitively, any derivation of $A ⊦ τ_1 \sim τ_2$ can be rewritten to never use
+$\eqlcons$ and $\eqrcons$.
+Such a derivation can be directly transformed into a proof for
+$A ⊦_0 τ_1 \lesssim τ_2$, as we will never need $\implcons$ and $\imprcons$
+and skew credits remain at $0$.
+
 \subsection{Evaluation Cardinality}
 
 Since our new semantics is able to express evaluation cardinality and thunk
@@ -93,52 +205,31 @@ and compositionality.
 
 However, omitting thunk memoisation has measurable effect on performance
 if the same variable is evaluated repeatedly!
+We should rather show that whenever $x$ is \emph{evaluated at most
+once}, it is an improvement to rewrite $\Let{x}{\pe_1}{\pe_2}$ to
+$\Letn{x}{\pe_1}{\pe_2}$.
 
-\begin{figure}
-\[\begin{array}{c}
- \ruleform{ \fin(τ) \qquad A ⊦ d \qquad A ⊦ τ_1 \sim τ_2 \qquad μ_1 \approx μ_2 \qquad d_1 \equiv d_2}
- \\
- \\[-0.5em]
- \inferrule*[right=\eqlrcons]
-    {\later (A ⊦_n τ_1 \sim τ_2)}
-    {A ⊦_n \wild \cons τ_1 \sim \wild \cons τ_2}
- \quad
- \inferrule*[right=\eqrcons]
-    {A ⊦_n τ_1 \sim τ_2 \quad n < ω}
-    {A ⊦_{n+1} τ_1 \sim \wild \cons τ_2}
- \quad
- \inferrule*[right=\eqlcons]
-    {A ⊦_{n+1} τ_1 \sim τ_2 \quad n < ω}
-    {A ⊦_{n} \wild \cons τ_1 \sim τ_2}
- \\
- \\[-0.5em]
- \inferrule*[right=\eqstuck]
-    {\quad}
-    {A ⊦_{0} \stuckend{} \sim \stuckend{}}
- \quad
- \inferrule*[right=\eqcon]
-    {\later (A ⊦_{n} \many{d_1(μ_1) \sim d_2(μ_2)})}
-    {A ⊦_{0} \goodend{\ConV(K, \many{d_1}), μ_1} \sim \goodend{\ConV(K, \many{d_2}), μ_2}}
- \\
- \\[-0.5em]
- \inferrule*[right=\eqfun]
-    {\forall d.\ A ⊦ d ⟹  A ⊦_{n} f_1(d)(μ_1) \sim f_2(d)(μ_2)}
-    {A ⊦_{0} \goodend{\FunV(f_1), μ_1} \sim \goodend{\FunV(f_2), μ_2}}
- \\
- \\[-0.5em]
- \inferrule*[right=\eqheap]
-    {\dom(μ_1) = \dom(μ_2) \quad \forall \pa.\ \later(\dom(μ_1) ⊦ μ_1(\pa)(μ_1) \sim μ_2(\pa)(μ_2))}
-    {μ_1 \approx μ_2}
- \\
- \\[-0.5em]
- \inferrule*[right=\eqdenot]
-    {\forall μ_1,μ_2.\ μ_1 \approx μ_2 \wedge  \dom(μ_1) ⊦ d_1,d_2 ⟹  \dom(μ_1) ⊦_n d_1(μ_1) \sim d_2(μ_2)}
-    {d_1 \equiv d_2}
-\end{array}\]
-\caption{Improvement relation}
-  \label{fig:sem-equiv}
-\end{figure}
-
+We can be even more precise than that by making use \emph{tick algebra}
+\citep{MoranSands:99}.
+For that, we need to add a notion of ticks to our language, a routine extension:
+\[
+ \begin{array}{rcl}
+  ε ∈ \Events   & ::= & ... \mid \TickA \\
+  \\[-0.5em]
+  \semevt{\tick \pe}_ρ(μ) & = & \TickA \cons \semevt{\pe}_{ρ}(μ) \\
+ \end{array}
+\]
+Now, whenever $x$ is ``evaluated at most once'', we
+have $\semevt{\Let{x}{\pe_1}{\pe_2}}_ρ \lockstep
+      \semevt{\Letn{x}{\tick\pe_1}{\pe_2}}_ρ$.
+What remains before we can formalise this statement is a precise definition of
+evaluation cardinality.
+The following will do:
+\begin{definition}
+  \label{defn:card}
+  Let $d$ be a trace $\pa$ be an address.
+  Then $\card_d(d)$ is the \emph{evaluation cardinality abstraction} of $\pa$ in $d$.
+\end{definition}
 
 \begin{figure}
 \[\begin{array}{c}

@@ -297,8 +297,8 @@ Blind spots and annoyances notwithstanding, the denotational notion of deadness
 above is quite reasonable and \Cref{thm:semusg-correct-live} is convincing.
 But our usage analysis infers more detailed cardinality information;
 for example, it can infer whether a binding is evaluated at most once.
-This information can be useful under call-by-need to omit update
-frames~\citep{cardinality-ext}.%
+This information can be useful to inline a binding that is not a value or
+to omit update frames under call-by-need~\citep{cardinality-ext}.%
 \footnote{A more useful application of the ``at most once'' cardinality is the
 identification of \emph{one-shot} lambdas~\citep{cardinality-ext} --- functions which are
 called at most once for every activation --- because it allows floating of heap

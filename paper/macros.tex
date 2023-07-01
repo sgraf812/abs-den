@@ -43,6 +43,19 @@
     \hfil$\m@th#1#3$\hfil\cr
   }%
 }
+\makeatother
+% Stacked operators like \lesseq, \lesssim, etc.
+% https://tex.stackexchange.com/a/536604/52414
+\makeatletter
+\newcommand{\faster}{\mathrel{\raisebox{-1pt}{$\gl@over[0.25pt]{\vartriangleleft}{\sim}$}}}
+\newcommand{\blah}{\superimpose{\raisebox{1pt}{\clipbox{0pt 3pt 0pt 3pt}{$\mid$}}}{\rotatebox[origin=c]{90}{$\lozenge$}}}
+\newcommand{\lockstep}{\mathrel{\raisebox{-1.25pt}{$\gl@over[0.25pt]{\blah}{\sim}$}}}
+\newcommand{\gl@over}[3][1pt]{%
+  \vcenter{\m@th\offinterlineskip\ialign{%
+    \hfil$##$\hfil\cr #2\cr \noalign{\vskip#1} #3\cr
+  }}%
+}
+\makeatother
 \newenvironment{letarray}{\begin{array}{@{}l@{\hspace{1ex}}l}}{\end{array}}
 \newcommand{\noleftdelimiter}{\left.\kern-\nulldelimiterspace}
 \newcommand{\later}{{\mathop{\vcenter{\hbox{$\scriptstyle\blacktriangleright$}}}}}
@@ -101,6 +114,7 @@
 \newcommand{\bool}{\mathtt{bool}}
 \newcommand{\ttrue}{\mathtt{tt}}
 \newcommand{\ffalse}{\mathtt{ff}}
+\newcommand{\tick}{\checkmark}
 %% Events
 \newcommand{\Events}{\mathbb{Ev}}
 \newcommand{\ValueA}{\mathsf{val}}
@@ -111,6 +125,7 @@
 \newcommand{\AppEA}{\mathsf{app}_2}
 \newcommand{\CaseIA}{\mathsf{case}_1}
 \newcommand{\CaseEA}{\mathsf{case}_2}
+\newcommand{\TickA}{\mathsf{tick}}
 %% Labels
 \newcommand{\Labels}{\mathsf{Lab}}
 \newcommand{\lbl}{\ensuremath{\ell}}
@@ -143,6 +158,7 @@
 \newcommand{\fin}{\mathsf{fin}}
 \newcommand{\replace}{\mathit{replace}}
 \newcommand{\inj}{\mathit{inj}}
+\newcommand{\card}{\mathit{card}}
 % https://latex.org/forum/viewtopic.php?p=62177&sid=26890ac77d076f3338384a47a2ffd4bc#p62177
 \makeatletter
 \newcommand{\concatop}[1]{%
@@ -209,6 +225,14 @@
 \newcommand{\eqcon}{\textsc{Eq-$\ConV$}}
 \newcommand{\eqheap}{\textsc{Eq-$\Heaps$}}
 \newcommand{\eqdenot}{\textsc{Eq-$\EventD$}}
+\newcommand{\implrcons}{\textsc{Imp-LR-$\cons$}}
+\newcommand{\implcons}{\textsc{Imp-L-$\cons$}}
+\newcommand{\imprcons}{\textsc{Imp-R-$\cons$}}
+\newcommand{\impstuck}{\textsc{Imp-$\stuckend{}$}}
+\newcommand{\impfun}{\textsc{Imp-$\FunV$}}
+\newcommand{\impcon}{\textsc{Imp-$\ConV$}}
+\newcommand{\impheap}{\textsc{Imp-$\Heaps$}}
+\newcommand{\impdenot}{\textsc{Imp-$\EventD$}}
 
 % Math
 \newcommand{\poset}[1]{\wp(#1)}
@@ -231,18 +255,18 @@
 
 % Semantics
 \newcommand{\denot}[1]{\llbracket {#1} \rrbracket}
-\newcommand{\semscott}[1]{\mathcal{S}^{\bot}\denot{#1}}
-\newcommand{\sempref}[1]{\mathcal{S}^*\denot{#1}}
-\newcommand{\semevt}[1]{\mathcal{S}^{ε}\denot{#1}}
-\newcommand{\semst}[1]{\mathcal{S}^{σ}\denot{#1}}
-\newcommand{\sembare}[1]{\mathcal{S}^{\bullet}\denot{#1}}
-\newcommand{\semss}[1]{\mathcal{S}^{Σ}\denot{#1}}
-\newcommand{\semlive}[1]{\mathcal{S}^{∃l}\denot{#1}}
-\newcommand{\semusg}[1]{\mathcal{S}^{∃u}\denot{#1}}
-\newcommand{\semclive}[1]{\mathcal{S}^{cl}\denot{#1}}
-\newcommand{\semslive}[1]{\mathcal{S}^{sl}\denot{#1}}
-\newcommand{\semsclive}[1]{\mathcal{S}^{scl}\denot{#1}}
-\newcommand{\semty}[1]{\mathcal{S}^{τ}\denot{#1}}
+\newcommand{\semscott}[1]{\mathcal{S}_{\bot}\denot{#1}}
+\newcommand{\sempref}[1]{\mathcal{S}_*\denot{#1}}
+\newcommand{\semevt}[1]{\mathcal{S}_{ε}\denot{#1}}
+\newcommand{\semst}[1]{\mathcal{S}_{σ}\denot{#1}}
+\newcommand{\sembare}[1]{\mathcal{S}_{\bullet}\denot{#1}}
+\newcommand{\semss}[1]{\mathcal{S}_{Σ}\denot{#1}}
+\newcommand{\semlive}[1]{\mathcal{S}_{∃l}\denot{#1}}
+\newcommand{\semusg}[1]{\mathcal{S}_{∃u}\denot{#1}}
+\newcommand{\semclive}[1]{\mathcal{S}_{cl}\denot{#1}}
+\newcommand{\semslive}[1]{\mathcal{S}_{sl}\denot{#1}}
+\newcommand{\semsclive}[1]{\mathcal{S}_{scl}\denot{#1}}
+\newcommand{\semty}[1]{\mathcal{S}_{τ}\denot{#1}}
 
 % Stateful
 \newcommand{\States}{\mathbb{S}}
