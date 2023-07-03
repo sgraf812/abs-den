@@ -135,13 +135,15 @@
 \newcommand{\atlbl}[1]{at(#1)}
 %% Traces
 \newcommand{\return}{\rotatebox[origin=c]{180}{$\hspace{0.7pt}\Rsh$}}
-\newcommand{\ITraces}{\mathbb{T}^*}
-\newcommand{\Traces}{\mathbb{T}^{\infty}}
+\newcommand{\ITraces}{{\mathbb{T}^*}}
+\newcommand{\Traces}{{\mathbb{T}^{ε}}}
 \newcommand{\act}[1]{\xrightarrow{#1}}
-\newcommand{\goodend}[1]{\langle #1 \rangle_{\checkmark}}
-\newcommand{\stuckend}[1]{\langle #1 \rangle_{\lightning}}
+\newcommand{\someend}[1]{\langle #1 \rangle}
+\newcommand{\goodend}[1]{\someend{#1}_{\checkmark}}
+\newcommand{\stuckend}[1]{\someend{#1}_{\lightning}}
 \newcommand{\makestuck}[1]{\lightning(#1)}
 \newcommand{\cons}{\mathbin{::}}
+\newcommand{\lcons}{\mathbin{:\vartriangleright}}
 \newcommand{\laterC}{\mathop{\mathsf{L}}}
 \newcommand{\trend}{\raisebox{-0.8pt}{\scalebox{0.3}{$\square$}}}
 \newcommand{\betastep}{\mathbin{>\hspace{-0.40em}>\hspace{-0.48em}\text{β}\hspace{-0.40em}=}}
@@ -159,6 +161,9 @@
 \newcommand{\replace}{\mathit{replace}}
 \newcommand{\inj}{\mathit{inj}}
 \newcommand{\card}{\mathit{card}}
+\newcommand{\byname}{\textit{by-name}}
+\newcommand{\intra}{\mathit{intra}}
+\newcommand{\ctx}{\mathit{ctx}}
 % https://latex.org/forum/viewtopic.php?p=62177&sid=26890ac77d076f3338384a47a2ffd4bc#p62177
 \makeatletter
 \newcommand{\concatop}[1]{%
@@ -204,15 +209,14 @@
 \newcommand{\StateV}{\Values{\States}}
 \newcommand{\BareD}{\Domain{\bullet}}
 \newcommand{\BareV}{\Values{\bullet}}
-\newcommand{\SSD}{\Domain{Σ}}
-\newcommand{\SSCD}{\Domain{cΣ}}
-\newcommand{\LiveD}{\Domain{\exists l}}
 \newcommand{\UsgD}{\Domain{\exists u}}
-\newcommand{\LiveSD}{\Domain{sl}}
-\newcommand{\LiveCD}{\Domain{cl}}
-\newcommand{\LiveSCD}{\Domain{scl}}
+\newcommand{\LookD}{\Domain{\nelems{\LookupA}}}
+\newcommand{\LookTraces}{{\mathbb{T}^{\nelems{\LookupA}}}}
+\newcommand{\LookValues}{\Values{\nelems{\LookupA}}}
 \newcommand{\tr}{\ensuremath{\tilde{ρ}}}
 \newcommand{\tm}{\ensuremath{\tilde{μ}}}
+\newcommand{\ttau}{\ensuremath{\tilde{τ}}}
+\newcommand{\tv}{\ensuremath{\tilde{v}}}
 \newcommand{\td}{\ensuremath{\tilde{d}}}
 \newcommand{\bigstep}[4]{\ensuremath{{\langle#1,#2\rangle\!\!\Downarrow\!\!\langle#3,#4\rangle}}}
 \newcommand{\forcesto}{\ensuremath{\rightsquigarrow}}
@@ -270,8 +274,8 @@
 
 % Stateful
 \newcommand{\States}{\mathbb{S}}
-\newcommand{\STraces}{\mathbb{S}^{\infty}}
-\newcommand{\BTraces}{\mathbb{T}^{\bullet}}
+\newcommand{\STraces}{{\mathbb{S}^{\infty}}}
+\newcommand{\BTraces}{{\mathbb{T}^{\bullet}}}
 \newcommand{\tSTraces}{\tilde{\mathbb{S}}^{\infty}}
 \newcommand{\LKStates}{\mathbb{L}}
 \newcommand{\LKTraces}{\mathbb{L}^{\infty}}

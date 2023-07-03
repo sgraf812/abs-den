@@ -209,7 +209,7 @@ We should rather show that whenever $x$ is \emph{evaluated at most
 once}, it is an improvement to rewrite $\Let{x}{\pe_1}{\pe_2}$ to
 $\Letn{x}{\pe_1}{\pe_2}$.
 
-We can be even more precise than that by making use \emph{tick algebra}
+We can sharpen this statement by making use of \emph{tick algebra}
 \citep{MoranSands:99}.
 For that, we need to add a notion of ticks to our language, a routine extension:
 \[
@@ -222,9 +222,32 @@ For that, we need to add a notion of ticks to our language, a routine extension:
 Now, whenever $x$ is ``evaluated at most once'', we
 have $\semevt{\Let{x}{\pe_1}{\pe_2}}_ρ \lockstep
       \semevt{\Letn{x}{\tick\pe_1}{\pe_2}}_ρ$.
-What remains before we can formalise this statement is a precise definition of
-evaluation cardinality.
-The following will do:
+What remains before we can formalise this statement is a precise notion of
+evaluation cardinality, one that works in arbitrary contexts.
+
+Intuitively, we need a function $\card_\pa : \Traces \to ℕ_ω$ that counts
+$\LookupA(\pa)$ actions at a particular address $\pa$ over the course of a
+head-normal form reduction.
+Then, ``$\pa$ is evaluated at most once'' roughly corresponds to
+$\card_\pa(\semevt{\pE[\pe_2]}_{[\px↦\deref(\pa)]}([\pa↦\semevt{\pe_1}_{[\px↦\deref(\pa)]}])) \leq 1$
+in arbitrary contexts such that $\pE$ does not capture $\px$ nor preoccupies $\pa$.
+
+This sketch has two flaws:
+The first is that $\card$ needs to know the address it should count, so
+we were forced to unfold the definition of $\semevt{\Let{\px}{\pe_1}{\pe_2}}_ρ(μ)$
+without knowing $ρ$ or $μ$, leading to complicated side conditions.
+The second flaw is that $\pe_1$ can't have any free variables besides $\px$ this way1 w.
+Worse, well-addressedness demands that
+
+but the
+address is not known until
+, because it needs to intermingles dynamic addresses with
+Note that there is no way to talk about the address of
+We have encountered
+This is an
+
+$\semevt{\pe_1}_{ρ[\px↦\deref(\pa)]}(μ[\pa↦\semevt{\pe_2}_ρ])$
+
 \begin{definition}
   \label{defn:card}
   Let $d$ be a trace $\pa$ be an address.
@@ -232,6 +255,49 @@ The following will do:
 \end{definition}
 
 \begin{figure}
+\[\begin{array}{c}
+ \arraycolsep=3pt
+ \begin{array}{rclcl}
+  μ & ∈ & \Heaps^{\nelems{\LookupA}} & =   & \Addresses \pfun \later\Domain{\nelems{\LookupA}} \\
+  d & ∈ & \Domain{\nelems{\LookupA}} & =   & \Heaps^{\nelems{\LookupA}} \to \LookTraces \\
+  u & ∈ & \Card & =   & \{ 0 ⊏ 1 ⊏ ω \} ⊂ ℕ_ω \\
+  τ & ∈ & \LookTraces & =   & (l ∈ \Addresses \to \Card) \lcons \someend{v,μ} \\
+  v & ∈ & \Values{\nelems{\LookupA}} & =   & \FunV(f ∈ \Domain{\nelems{\LookupA}} \to \Domain{\nelems{\LookupA}}) \\
+ \end{array} \\
+ \\[-0.5em]
+ \begin{array}{lcl}
+  \multicolumn{3}{c}{ \ruleform{ \card_{\Events} : \Events \to (\Addresses \to \Card)} } \\
+  \\[-0.5em]
+  \card_{\Events}(ε) & = & \begin{cases}
+      [\pa↦1] & ε = \LookupT(\pa) \\
+      \constfn{0} & \text{otherwise}
+    \end{cases} \\
+  l_1 +_1 (l_2 \lcons \someend{\tilde{v},\tm}) & = & (l_1+l_2) \lcons \someend{\tilde{v},\tm} \\
+  \card_{\Traces}(ε \cons τ) & = & \card_{\Events}(ε) +_1 \card_{\Traces}(τ) \\
+  \card_{\Traces}(\goodend{\FunV(f),μ}) & = & \constfn{0} \lcons \someend{\card_{\EventV}(\FunV(f)), \card_\Heaps(μ)} \\
+  \card_{\Traces}(\stuckend{}) & = & \constfn{0} \lcons \someend{\bot_{\Values{\UsgD}}, (\constfn{\bot_\EventD}) \circ μ} \\
+  \card_{\Heaps}(μ) & = & \card_\EventD \circ μ \\
+  \card_{\EventD}(d) & = & \card_\Traces \circ d \circ \card^{⊣}_{\Heaps} \\
+  \card_{\EventV}(\FunV(f)) & = & \FunV(\card_{\EventD} \circ f \circ \card^{⊣}_{\EventD}) \\
+  \card^{⊣}_{\Heaps}(\tm) & = & \bigcup \{ μ \mid \card_{\Heaps}(μ) ⊑ \tm \} \\
+  \card^{⊣}_{\EventD}(\td) & = & \bigcup \{ d \mid \card_{\EventD}(d) ⊑ \td \} \\
+  \\[-0.5em]
+  \multicolumn{3}{c}{ \ruleform{ \byname : ((\Var \to \LookD) \to_m \LookD) \to_m ((\Var \to \LookD) \to_m \LookD) } } \\
+  \\[-0.5em]
+  \byname(\mathcal{S})(ρ)(μ) & = & \mathcal{S}(\fn{\px}{\fn{μ'}{ρ(\px)(μ)}})(μ) \\
+  \\[-0.5em]
+  \multicolumn{3}{c}{ \ruleform{ \ctx : \LookTraces \to_m \Addresses \to \Card } } \\
+  \\[-0.5em]
+  \ctx_\LookTraces(A,l \lcons \someend{\tv,\tm}) & = & l + \ctx_\LookValues(A,\tv,\tm) \\
+  \ctx_\LookValues(A,\FunV(\tilde{f}),\tm) & = & \Lub \{ \tilde{f}(\card_\EventD(d))(\tm) \mid A ⊦ d \} \\
+  \ctx_\LookD(\td) & = & \Lub \{ \tilde{f}(\card_\EventD(d))(\tm) \mid A ⊦ d \} \\
+  \\[-0.5em]
+  \multicolumn{3}{c}{ \ruleform{ α : \Traces \to \UsgD } } \\
+  \\[-0.5em]
+  α(τ) & = & fst(intra(usg_\Traces(blub(τ)(\fn{\px}{[\px↦1]}))(τ))) \\
+ \end{array}
+\end{array}\]
+
 \[\begin{array}{c}
   \forall \tr.\ \tr(x) ⊑ \semusg{\pe}_{\tr} \\
   \Uparrow \\
@@ -256,35 +322,4 @@ The following will do:
   x \text{ dead in } \pe \\
 \end{array}\]
 
-\[\begin{array}{c}
- \begin{array}{rcl}
-  \multicolumn{3}{c}{ \ruleform{ defn : \Traces \to (\Addresses \pfun \Var) \qquad blub : \Traces \to (\Var \to \UsgD) \to (\Addresses \to \UsgD) } } \\
-  \\[-0.5em]
-  defn_{\Traces}(a \cons τ) & = & defn(a) \uplus defn(τ) \\
-  defn_{\Events}(\BindA(\px,\pa↦\pe,d)) & = & [\pa↦\px] \\
-  blub(τ)(\tr)(\pa) & = & \tr(defn_{\Traces}(τ)(\pa)) \text{ or $\bot$} \\
-  \\[-0.5em]
-  \multicolumn{3}{c}{ \ruleform{ usg : (\Addresses \to \UsgD) \to \Traces \to \UsgD \times \Values{\UsgD} } } \\
-  \\[-0.5em]
-  usg_{\Traces}(\tm)(\goodend{\FunV(f)}) & = & (\fn{\wild}{0}, α_{\Values{}}(\FunV(f))) \\
-  usg_{\Traces}(\tm)(\stuckend{}) & = & (\fn{\wild}{0}, \bot_{\Values{\UsgD}}) \\
-  usg_{\Traces}(\tm)(\pe \act{a} τ) & = & usg_{\Events}(\tm)(a) +_1 usg_{\Traces}(\tm)(τ) \\
-  usg_{\Events}(\tm)(a) & = & \begin{cases}
-      \tm(\pa) & a = \LookupT(\pa) \\
-      0 & \text{otherwise}
-    \end{cases} \\
-  usg^{-1}_{\Traces}(\tm)(\goodend{(\lbl, \FunV(f))}) & = & (0, α_{\Values{}}(\FunV(f))) \\
-  usg_{\EventD}(\tm)(d) & = & usg_{\Traces} \circ d \circ usg^{-1}_{\Traces} \\
-  usg^{-1}_{\EventD}(\tm)(d) & = & usg^{-1}_{\Traces} \circ d \circ usg_{\Traces} \\
-  usg_{\Values{}}(\tm)(\FunV(f)) & = & \FunV(usg_{\EventD} \circ f \circ usg^{-1}_{\EventD}) \\
-  \\[-0.5em]
-  \multicolumn{3}{c}{ \ruleform{ intra : \UsgD \times \Values{\UsgD} \to \UsgD \times \Values{\UsgD} } } \\
-  \\[-0.5em]
-  intra(d, \FunV(f)) & = & (d + ω*f(\bot), \FunV(\fn{d}{ω*d})) \\
-  \\[-0.5em]
-  \multicolumn{3}{c}{ \ruleform{ α : \Traces \to \UsgD } } \\
-  \\[-0.5em]
-  α(τ) & = & fst(intra(usg_\Traces(blub(τ)(\fn{\px}{[\px↦1]}))(τ))) \\
- \end{array}
-\end{array}\]
 \end{figure}
