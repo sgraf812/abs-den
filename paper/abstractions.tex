@@ -260,8 +260,8 @@ Rather than to let syntactic evaluation contexts dictate how $\pe_2$ might be
 evaluated to produce (essentially first-order) traces that we count addresses
 in, we lift the counting of addresses through the whole domain, including
 function values.
-The resulting \emph{usage abstraction} $\usg_\EventD : \EventD \to \LookD$ is
-the most precise usage analysis possible and is induced componentwise by the
+The resulting \emph{usage abstraction} $\usg_\Traces : \Traces \to \LookTraces$
+is the most precise usage analysis possible and is induced componentwise by the
 event abstraction
 \[
   \usg_{\Events}(ε) = \begin{cases}
@@ -269,7 +269,46 @@ event abstraction
       \constfn{0} & \text{otherwise}
     \end{cases}
 \]
-in \Cref{fig:usg-abs}.
+as defined in \Cref{fig:usg-abs}.
+The resulting $\LookTraces$ trace can then be folded by $\ctx_\LookTraces$ into
+a $\Addresses \to \Card$ mapping.
+Intuitively, $\ctx_\LookTraces$ runs the $\LookD$ in all possible evaluation
+contexts, returning the least upper bound of all resulting traces.
+
+We can now define usage cardinality (\eg, an estimate for upper bound on
+evalution cardinality) as follows
+\begin{definition}
+  \label{defn:usg-card}
+  Let $d$ be a trace and $\pa$ be an address.
+  $d$ evaluates $\pa$ \emph{at most $u$ times} if and only if,
+  for all $μ$ such that $\pa$ is dead in $μ$ and $d_\pa$,
+  $\ctx_\LookTraces(\usg_\EventD(d(μ[\pa↦d_\pa])))(\pa) ⊑ u$.
+
+  An expression $\pe$ evaluates $\px$ \emph{at most $u$ times} if and only if,
+  when $\semevt{\pe}_ρ[\px↦\deref(\pa)]$ evaluates $\pa$ at most $u$ times.
+\end{definition}
+
+Happily, this characterisation is not a congruence, in contrast to
+\Cref{defn:deadness3}.
+
+It is also useful, because it justifies elision of thunk updates:
+\begin{lemma}
+  \label{thm:usg-by-name}
+  Let $\Let{x}{\pe_1}{\pe_2}$ be an expression.
+have $\semevt{\Let{x}{\pe_1}{\pe_2}}_ρ \lockstep
+      \semevt{\Letn{x}{\tick\pe_1}{\pe_2}}_ρ$.
+\end{lemma}
+
+We will now prove that $\semusg{\wild}$ is a correct usage analysis
+in two steps:
+First, we will show that it is in fact an abstract interpretation
+of the usage abstraction.
+Subsequently, we will show that the notion of usage cardinality
+can be used to
+
+
+We will define
+
 The use of the term ``abstraction'' is justifiable by the following lemma:
 
 % Nope, for the following we need preservation of (arbitrary) joins
@@ -306,13 +345,6 @@ $\semcoll{\pe}_ρ \triangleq \{\semevt{\pe}_ρ\}$, but
 $\usg_\EventD^*(\{\semevt{\pe}_ρ\}) = \usg_\EventD(\semevt{\pe}_ρ)$, so
 $\usg_\EventD^*$ is barely worth talking about.
 
-\Cref{fig:usg-abs} gives
-the necessary upper adjoints $\usg^⊣_\EventD,$.
-
-, because $\usg_\EventD$
-gives rise to a monotone function on the powerset lattice
-Leaving the obligation to prove that $\usg_\EventD$ is actually a Galois
-Connection in a suitable sense for later,
 
 we define
 would be to compute one to fuse $\usg$ with
@@ -361,9 +393,9 @@ $\semevt{\pe_1}_{ρ[\px↦\deref(\pa)]}(μ[\pa↦\semevt{\pe_2}_ρ])$
   \\[-0.5em]
   \multicolumn{3}{c}{ \ruleform{ \ctx : \LookTraces \to_m \Addresses \to \Card } } \\
   \\[-0.5em]
+  \ctx_\LookD(\td) & = & \Lub \{ \ctx_\LookTraces(\dom(\tm),\td(\tm)) \mid \td \text{ defined on } \dom(\tm) \} \\
   \ctx_\LookTraces(A,l \lcons \someend{\tv,\tm}) & = & l + \ctx_\LookValues(A,\tv,\tm) \\
   \ctx_\LookValues(A,\FunV(\tilde{f}),\tm) & = & \Lub \{ ω*\tilde{f}(\usg_\EventD(d))(\tm) \mid A ⊦ d \} \\
-  \ctx_\LookD(\td) & = & \Lub \{ \tilde{f}(\usg_\EventD(d))(\tm) \mid A ⊦ d \} \\
   \\[-0.5em]
   \multicolumn{3}{c}{ \ruleform{ α : \Traces \to \UsgD } } \\
   \\[-0.5em]
