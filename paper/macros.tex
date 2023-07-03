@@ -143,7 +143,7 @@
 \newcommand{\stuckend}[1]{\someend{#1}_{\lightning}}
 \newcommand{\makestuck}[1]{\lightning(#1)}
 \newcommand{\cons}{\mathbin{::}}
-\newcommand{\lcons}{\mathbin{:\vartriangleright}}
+\newcommand{\lcons}{\mathbin{:>}}
 \newcommand{\laterC}{\mathop{\mathsf{L}}}
 \newcommand{\trend}{\raisebox{-0.8pt}{\scalebox{0.3}{$\square$}}}
 \newcommand{\betastep}{\mathbin{>\hspace{-0.40em}>\hspace{-0.48em}\text{β}\hspace{-0.40em}=}}
@@ -161,6 +161,7 @@
 \newcommand{\replace}{\mathit{replace}}
 \newcommand{\inj}{\mathit{inj}}
 \newcommand{\card}{\mathit{card}}
+\newcommand{\usg}{\mathit{usg}}
 \newcommand{\byname}{\textit{by-name}}
 \newcommand{\intra}{\mathit{intra}}
 \newcommand{\ctx}{\mathit{ctx}}
@@ -210,9 +211,10 @@
 \newcommand{\BareD}{\Domain{\bullet}}
 \newcommand{\BareV}{\Values{\bullet}}
 \newcommand{\UsgD}{\Domain{\exists u}}
-\newcommand{\LookD}{\Domain{\nelems{\LookupA}}}
-\newcommand{\LookTraces}{{\mathbb{T}^{\nelems{\LookupA}}}}
-\newcommand{\LookValues}{\Values{\nelems{\LookupA}}}
+\newcommand{\Look}{{\lceil \LookupA \rceil}}
+\newcommand{\LookD}{\Domain{\Look}}
+\newcommand{\LookTraces}{{\mathbb{T}^{\Look}}}
+\newcommand{\LookValues}{\Values{\Look}}
 \newcommand{\tr}{\ensuremath{\tilde{ρ}}}
 \newcommand{\tm}{\ensuremath{\tilde{μ}}}
 \newcommand{\ttau}{\ensuremath{\tilde{τ}}}
@@ -267,6 +269,7 @@
 \newcommand{\semss}[1]{\mathcal{S}_{Σ}\denot{#1}}
 \newcommand{\semlive}[1]{\mathcal{S}_{∃l}\denot{#1}}
 \newcommand{\semusg}[1]{\mathcal{S}_{∃u}\denot{#1}}
+\newcommand{\semcoll}[1]{\mathcal{S}_{\mathbb{C}}\denot{#1}}
 \newcommand{\semclive}[1]{\mathcal{S}_{cl}\denot{#1}}
 \newcommand{\semslive}[1]{\mathcal{S}_{sl}\denot{#1}}
 \newcommand{\semsclive}[1]{\mathcal{S}_{scl}\denot{#1}}

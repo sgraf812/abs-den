@@ -225,26 +225,99 @@ have $\semevt{\Let{x}{\pe_1}{\pe_2}}_ρ \lockstep
 What remains before we can formalise this statement is a precise notion of
 evaluation cardinality, one that works in arbitrary contexts.
 
-Intuitively, we need a function $\card_\pa : \Traces \to ℕ_ω$ that counts
+Intuitively, we need a function $\mathit{count}_\pa : \Traces \to ℕ_ω$ that counts
 $\LookupA(\pa)$ actions at a particular address $\pa$ over the course of a
 head-normal form reduction.
 Then, ``$\pa$ is evaluated at most once'' roughly corresponds to
-$\card_\pa(\semevt{\pE[\pe_2]}_{[\px↦\deref(\pa)]}([\pa↦\semevt{\pe_1}_{[\px↦\deref(\pa)]}])) \leq 1$
+$\mathit{count}_\pa(\semevt{\pE[\pe_2]}_{[\px↦\deref(\pa)]}([\pa↦\semevt{\pe_1}_{[\px↦\deref(\pa)]}])) \leq 1$
 in arbitrary contexts such that $\pE$ does not capture $\px$ nor preoccupies $\pa$.
 
 This sketch has two flaws:
-The first is that $\card$ needs to know the address it should count, so
-we were forced to unfold the definition of $\semevt{\Let{\px}{\pe_1}{\pe_2}}_ρ(μ)$
-without knowing $ρ$ or $μ$, leading to complicated side conditions.
-The second flaw is that $\pe_1$ can't have any free variables besides $\px$ this way1 w.
-Worse, well-addressedness demands that
+The first is that the proposition and thus $\mathit{count}$ needs to know the
+address it should count, so we were forced to unfold the definition of
+$\semevt{\Let{\px}{\pe_1}{\pe_2}}_ρ(μ)$ without knowing $μ$, leading to new side
+conditions begging for an intricate definition, such as ``$\pE$ preoccupies
+$\pa$''.
+The second flaw is that $\pe_1$ can't have any free variables besides $\px$ this
+way, so it is not a faithful model of $\mathbf{let}$-binding and perhaps too
+weak to prove lockstep bisimilarity.
 
-but the
-address is not known until
-, because it needs to intermingles dynamic addresses with
-Note that there is no way to talk about the address of
-We have encountered
-This is an
+Both flaws are a result of the need to escape and re-enter the syntactic (or,
+perhaps \emph{static}) realm of $\pE$ and $\pe_2$ to name the semantic (or
+\emph{dynamic}) address which the proposition needs to refer to.
+This could be solved in at least two ways:
+
+Our first option would be to extend the semantics function to evaluation
+contexts, with functionality
+$\semevt{\pE} : ((\Var \to \EventD) \to \EventD) \to ((\Var \to \EventD) \to \EventD)$
+such that $\semevt{\pE[\pe]}_ρ = \semevt{\pE}(\semevt{\pe})_ρ$.
+This equation has a solution because of compositionality
+and would allow for a faithful model of $\mathbf{let}$-binding.
+
+The second option is the one we pursue in this work, because we believe it
+yields interesting perspective:
+Rather than to let syntactic evaluation contexts dictate how $\pe_2$ might be
+evaluated to produce (essentially first-order) traces that we count addresses
+in, we lift the counting of addresses through the whole domain, including
+function values.
+The resulting \emph{usage abstraction} $\usg_\EventD : \EventD \to \LookD$ is
+the most precise usage analysis possible and is induced componentwise by the
+event abstraction
+\[
+  \usg_{\Events}(ε) = \begin{cases}
+      [\pa↦1] & ε = \LookupT(\pa) \\
+      \constfn{0} & \text{otherwise}
+    \end{cases}
+\]
+in \Cref{fig:usg-abs}.
+The use of the term ``abstraction'' is justifiable by the following lemma:
+
+% Nope, for the following we need preservation of (arbitrary) joins
+%\begin{lemma}[Monotone functions have upper adjoints]
+%  Let $α : C \to A$ be a monotone function between partial orders $(C,\leq)$ and $(A,⊑)$.
+%  Then $γ : A \to C, γ(a) = \bigvee \{ c \mid α(c) ⊑ a \}$ is a monotone function as well
+%  and $γ$ is upper adjoint to $α$.
+%\end{lemma}
+%\begin{proof}
+%  For any $a,c$, let $α(c) ⊑ a$.
+%  Then $c ∈ \{ c \mid α(c) ⊑ a \}$ and hence $c \leq γ(a)$.
+%  Conversely, let $c \leq γ(a)$.
+%  Then, by monotonicity, $α(c) ⊑ α(γ(a)) = α(\bigvee \{ c \mid α(c) ⊑ a \})$.
+%\end{proof}
+
+\begin{lemma}[Pointwise abstraction, after \citet{Cousot:21}]
+  Let $f : C \to A$ be a function.
+  Then $f^* : A \to \poset{C}, f^*(C) = \Lub \{ f(c) \mid c ∈ C \}$
+  and $f^⊣ : A \to \poset{C}, f^⊣(a) = \bigcup \{ C \mid f^*(C) ⊑ a \}$
+  form a Galois connection between partial orders
+  $(A,⊑) \galois{f^*}{f^⊣}(\poset{C},⊆)$.
+\end{lemma}
+\begin{proof}
+  For any $a,C$, let $f^*(C) ⊑ a$.
+  Then $C ∈ \{ C \mid f^*(C) ⊑ a \}$ and hence $C ⊆ f^⊣(a)$.
+  Conversely, let $C ⊆ f^⊣(a) = \bigcup \{ C \mid f^*(C) ⊑ a \} = \bigcup \{ C \mid \forall c∈C.\ f(c) ⊑ a \} = \{ c \mid f(c) ⊑ a \}$.
+  Then, by monotonicity of $f^*$, $f^*(C) ⊑ \Lub \{ f(c) \mid f(c) ⊑ a \}$.
+  But $a$ is an upper bound of $\{ f(c) \mid f(c) ⊑ a \}$, so it can't be below the least upper bound.
+\end{proof}
+
+And $\usg_\EventD$ is exactly such a pointwise abstraction.
+We will apply $\usg_\EventD^*$ to the \emph{collecting semantics}
+$\semcoll{\pe}_ρ \triangleq \{\semevt{\pe}_ρ\}$, but
+$\usg_\EventD^*(\{\semevt{\pe}_ρ\}) = \usg_\EventD(\semevt{\pe}_ρ)$, so
+$\usg_\EventD^*$ is barely worth talking about.
+
+\Cref{fig:usg-abs} gives
+the necessary upper adjoints $\usg^⊣_\EventD,$.
+
+, because $\usg_\EventD$
+gives rise to a monotone function on the powerset lattice
+Leaving the obligation to prove that $\usg_\EventD$ is actually a Galois
+Connection in a suitable sense for later,
+
+we define
+would be to compute one to fuse $\usg$ with
+$\semevt{\pE[\pe]}_ρ$ to arrive at definition that is similar to
+
 
 $\semevt{\pe_1}_{ρ[\px↦\deref(\pa)]}(μ[\pa↦\semevt{\pe_2}_ρ])$
 
@@ -258,11 +331,11 @@ $\semevt{\pe_1}_{ρ[\px↦\deref(\pa)]}(μ[\pa↦\semevt{\pe_2}_ρ])$
 \[\begin{array}{c}
  \arraycolsep=3pt
  \begin{array}{rclcl}
-  μ & ∈ & \Heaps^{\nelems{\LookupA}} & =   & \Addresses \pfun \later\Domain{\nelems{\LookupA}} \\
-  d & ∈ & \Domain{\nelems{\LookupA}} & =   & \Heaps^{\nelems{\LookupA}} \to \LookTraces \\
+  μ & ∈ & \Heaps^{\Look} & =   & \Addresses \pfun \later\Domain{\Look} \\
+  d & ∈ & \Domain{\Look} & =   & \Heaps^{\Look} \to \LookTraces \\
   u & ∈ & \Card & =   & \{ 0 ⊏ 1 ⊏ ω \} ⊂ ℕ_ω \\
   τ & ∈ & \LookTraces & =   & (l ∈ \Addresses \to \Card) \lcons \someend{v,μ} \\
-  v & ∈ & \Values{\nelems{\LookupA}} & =   & \FunV(f ∈ \Domain{\nelems{\LookupA}} \to \Domain{\nelems{\LookupA}}) \\
+  v & ∈ & \Values{\Look} & =   & \FunV(f ∈ \later\Domain{\Look} \to \Domain{\Look}) \\
  \end{array} \\
  \\[-0.5em]
  \begin{array}{lcl}
@@ -273,14 +346,14 @@ $\semevt{\pe_1}_{ρ[\px↦\deref(\pa)]}(μ[\pa↦\semevt{\pe_2}_ρ])$
       \constfn{0} & \text{otherwise}
     \end{cases} \\
   l_1 +_1 (l_2 \lcons \someend{\tilde{v},\tm}) & = & (l_1+l_2) \lcons \someend{\tilde{v},\tm} \\
-  \card_{\Traces}(ε \cons τ) & = & \card_{\Events}(ε) +_1 \card_{\Traces}(τ) \\
-  \card_{\Traces}(\goodend{\FunV(f),μ}) & = & \constfn{0} \lcons \someend{\card_{\EventV}(\FunV(f)), \card_\Heaps(μ)} \\
-  \card_{\Traces}(\stuckend{}) & = & \constfn{0} \lcons \someend{\bot_{\Values{\UsgD}}, (\constfn{\bot_\EventD}) \circ μ} \\
-  \card_{\Heaps}(μ) & = & \card_\EventD \circ μ \\
-  \card_{\EventD}(d) & = & \card_\Traces \circ d \circ \card^{⊣}_{\Heaps} \\
-  \card_{\EventV}(\FunV(f)) & = & \FunV(\card_{\EventD} \circ f \circ \card^{⊣}_{\EventD}) \\
-  \card^{⊣}_{\Heaps}(\tm) & = & \bigcup \{ μ \mid \card_{\Heaps}(μ) ⊑ \tm \} \\
-  \card^{⊣}_{\EventD}(\td) & = & \bigcup \{ d \mid \card_{\EventD}(d) ⊑ \td \} \\
+  \usg_{\Traces}(ε \cons τ) & = & \usg_{\Events}(ε) +_1 \usg_{\Traces}(τ) \\
+  \usg_{\Traces}(\goodend{\FunV(f),μ}) & = & \constfn{0} \lcons \someend{\usg_{\EventV}(\FunV(f)), \usg_\Heaps(μ)} \\
+  \usg_{\Traces}(\stuckend{}) & = & \constfn{0} \lcons \someend{\bot_{\Values{\UsgD}}, (\constfn{\bot_\EventD}) \circ μ} \\
+  \usg_{\Heaps}(μ) & = & \usg_\EventD \circ μ \\
+  \usg_{\EventD}(d) & = & \usg_\Traces \circ d \circ \usg^{⊣}_{\Heaps} \\
+  \usg_{\EventV}(\FunV(f)) & = & \FunV(\usg_{\EventD} \circ f \circ \usg^{⊣}_{\EventD}) \\
+  \usg^{⊣}_{\Heaps}(\tm) & = & \bigcup \{ μ \mid \usg_{\Heaps}(μ) ⊑ \tm \} \\
+  \usg^{⊣}_{\EventD}(\td) & = & \bigcup \{ d \mid \usg_{\EventD}(d) ⊑ \td \} \\
   \\[-0.5em]
   \multicolumn{3}{c}{ \ruleform{ \byname : ((\Var \to \LookD) \to_m \LookD) \to_m ((\Var \to \LookD) \to_m \LookD) } } \\
   \\[-0.5em]
@@ -289,15 +362,19 @@ $\semevt{\pe_1}_{ρ[\px↦\deref(\pa)]}(μ[\pa↦\semevt{\pe_2}_ρ])$
   \multicolumn{3}{c}{ \ruleform{ \ctx : \LookTraces \to_m \Addresses \to \Card } } \\
   \\[-0.5em]
   \ctx_\LookTraces(A,l \lcons \someend{\tv,\tm}) & = & l + \ctx_\LookValues(A,\tv,\tm) \\
-  \ctx_\LookValues(A,\FunV(\tilde{f}),\tm) & = & \Lub \{ \tilde{f}(\card_\EventD(d))(\tm) \mid A ⊦ d \} \\
-  \ctx_\LookD(\td) & = & \Lub \{ \tilde{f}(\card_\EventD(d))(\tm) \mid A ⊦ d \} \\
+  \ctx_\LookValues(A,\FunV(\tilde{f}),\tm) & = & \Lub \{ ω*\tilde{f}(\usg_\EventD(d))(\tm) \mid A ⊦ d \} \\
+  \ctx_\LookD(\td) & = & \Lub \{ \tilde{f}(\usg_\EventD(d))(\tm) \mid A ⊦ d \} \\
   \\[-0.5em]
   \multicolumn{3}{c}{ \ruleform{ α : \Traces \to \UsgD } } \\
   \\[-0.5em]
   α(τ) & = & fst(intra(usg_\Traces(blub(τ)(\fn{\px}{[\px↦1]}))(τ))) \\
  \end{array}
 \end{array}\]
+\caption{Usage abstraction}
+\label{fig:usg-abs}
+\end{figure}
 
+\begin{figure}
 \[\begin{array}{c}
   \forall \tr.\ \tr(x) ⊑ \semusg{\pe}_{\tr} \\
   \Uparrow \\

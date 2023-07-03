@@ -1,4 +1,4 @@
-\section{Semantics}
+\section{A Denotational Semantics for Call-by-need}
 \label{sec:stateful}
 
 \subsection{Labelled Syntax}
@@ -91,15 +91,20 @@ to the existence of the injection $\FunV$.
 Domain theory, on the other hand, interprets the implied recursion equation
 in terms of topology and continuous functions, where the fixed-point exists
 when restricted to \emph{algebraic domains}.
-Algebraic domains are a neat choice, because any computable function can be
-given an encoding as a continuous function in this topology.
+At the same time, algebraic domains are expressive enough to encode any
+computable function as a continuous function.
 
-\subsection{Guarded Recursive Types}
+\subsection{Guarded Domain Theory}
 
-The key to denoting infinite computations with total elements is to avoid
-working with algebraic domains altogether and instead work in a total type
-theory with \emph{guarded recursive types}, such as Guarded Dependent Type
-Theory (GDTT)~\citep{gdtt} or Ticked Cubical Type Theory~\citep{tctt}.%
+As we have discussed in \Cref{sec:continuity}, there are a few strings attached
+to working with continuity and partiality in the context of denotational
+semantics.
+
+The key to getting rid of partiality and thus denoting infinite computations
+with total elements is to avoid working with algebraic domains altogether and
+instead work in a total type theory with \emph{guarded recursive types}, such
+as Guarded Dependent Type Theory (GDTT)~\citep{gdtt} or Ticked Cubical Type
+Theory~\citep{tctt}.%
 \footnote{Of course, in reality we are just using GDTT as a meta
 language~\citep{Moggi:07} with a known domain-theoretic model in terms
 of the topos of trees~\citep{gdtt}.
@@ -141,8 +146,10 @@ typed lambda calculus defines a locally contractive functor as long as any
 occurrence of $X$ is under a $\later$, so we take that as the well-formedness
 criterion of coinductive types in this work.
 The most exciting consequence is that
-$D ::= \FunV(f ∈ \later D \to \later D) \mid \bot$ is a sound coinductive
-encoding of the data type in \Cref{sec:domain-theory}.
+$D ::= \FunV(f ∈ \later D \to D) \mid \bot$ (where $\bot$ is interpreted as a
+plain nullary data constructor rather than as the least element of some partial
+order) is a sound coinductive encoding of the data type in
+\Cref{sec:domain-theory}.
 
 As a type constructor, $\later$ is an applicative
 functor~\citep{McBridePaterson:08} via functions

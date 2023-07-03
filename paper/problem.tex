@@ -237,6 +237,7 @@ In support of this principle, we will formulate a few more concrete goals that
 each require more context to make sense.
 
 \subsection{Continuity and Divergence}
+\label{sec:continuity}
 
 Nevermind our confidence in the ultimate correctness of $\semusg{\wild}$,
 note that our notion of deadness has a blind spot \wrt diverging computations:
@@ -270,20 +271,20 @@ errors which is propagated strictly; then we would notice when we optimise a
 looping program into one that has a scoping error.
 
 We can try the same trick as \citeauthor{Milner:78} and assign diverging
-programs a total domain element $\mathbf{div}$ distinct from all other elements.
-Then when would we go from $\bot$ to $\mathbf{div}$ in the least fixed-point in
+programs a total domain element $\mathsf{div}$ distinct from all other elements.
+Then when would we go from $\bot$ to $\mathsf{div}$ in the least fixed-point in
 $\semscott{\Let{\wild}{\wild}{\wild}}$?
-There is no way to introduce $\mathbf{div}$ unless we make it a partial element
+There is no way to introduce $\mathsf{div}$ unless we make it a partial element
 that approximates every total element; but then we could have just chosen $\bot$
 as the denotation to begin with.
-Hence denoting diverging programs by a partial element $\bot$ or $\mathbf{div}$
+Hence denoting diverging programs by a partial element $\bot$ or $\mathsf{div}$
 is a fundamental phenomenon of traditional denotational semantics and brings
 with it annoying pitfalls.
 To see one, consider the predicate ``Denotation $d$ will get stuck and not
 diverge''.
 This predicate is not \emph{admissable}~\citep{Abramsky:94}, because an
 admissable predicate that is at all satisfiable would need to be true for
-the partial elements $d=\bot$ and $d=\mathbf{div}$.
+the partial elements $d=\bot$ and $d=\mathsf{div}$.
 A practical consequence is that such a predicate could not be proven about a
 recursive let binding because that would need admissability to apply fixpoint
 induction.
