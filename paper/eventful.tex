@@ -1,45 +1,27 @@
 \section{Eventful Semantics}
 \label{sec:eventful}
 
-In the previous section, we gave a trace semantics and proved it adequate \wrt
-the LK transition semantics.
+In the previous section, we gave a trace-based call-by-need semantics and proved
+it adequate \wrt the LK transition semantics.
 With compositionality and structural induction we recover strong advantages of
 denotational semantics.
 
-It is striking that although $\semst{\wild}$ is as expressive as the LK
-transition system, the information encoded in the states of the generated traces
-is not enough to recover the LK transition system in the sense of
+It is striking that although $\semvan{\wild}$ is as expressive as the LK
+transition system, the information encoded in the generated traces
+is by far not enough to recover the LK transition system in the sense of
 \citet[Chapter 43]{Cousot:21}.
-For example, every return state $((\lbl,v),\tm)$ admits at least two possible
-transitions:
-Either a heap update or a $β$-reduction.
-In the LK transition system, the particular transition is governed by the
-continuation stack, of which $\semst{\wild}$ maintains no reification in its states.
-It is however easily possible to ``elaborate'' $\semst{\wild}$ to include the
-proper stack manipulations and emit the current lexical environment as part of
-every state.
-We think it is rather uninteresting to give the closed, elaborated definition
-of $\semst{\wild}$ which necessarily gives up simplicity \sg{Give it in the Appendix}.
-It is more interesting to see what other parts of the traces we can \emph{omit}
-before compromising on expressivity and retain just as much information as
-needed by the particular analysis we want to prove correct.
+It is however easily possible to ``elaborate'' $\semvan{\wild}$ to include the
+proper intermediate state.
+We think it is rather uninteresting to give the closed, elaborated definition of
+$\semvan{\wild}$.
+For one, such a definition would necessarily give up on simplicity.
+Furthermore, for our usage analysis in \Cref{sec:problem}, we do not care so
+much about the \emph{state} in which variable lookup happens, but rather about
+at which \emph{address} the $\LookupT$ transition happened.
 
-For example, in Control-Flow Analysis~\citep{Shivers:91}, we are ultimately
-interested in observing the different lambda labels a variable occurrence might
-evaluate to and thus construct a conservative but useful approximation of
-interprocedural control-flow.
-We do not need the lexical environment or the continuation stack, but the
-call-by-need nature of our semantics needs the state in $\betastep$.
-That makes $\semst{\wild}$ a suitable concrete semantics for abstraction.
-
-Yet for our usage analysis in \Cref{sec:problem}, we do not care so much
-about the \emph{state} in which variable lookup happens, but rather about at
-which \emph{address} the $\LookupT$ transition happened, as well as the $\BindT$
-transition that tells us what $\mathbf{let}$ binding that particular address
-refers to.
-
-In this section, we will omit states in favor of tracing the instantiations of
-transition rules, calling those instantiations \emph{events}.
+In this section, we will embellish the bland trace returned by $\semvan{\wild}$
+to track part of the instantiations of the transition rules taken, calling those
+instantiations \emph{events}.
 The resulting \emph{eventful trace semantics} $\semevt{\wild}$ is (closer to)
 the preferred framework of \citet{Cousot:21}.%
 \footnote{Cousot's \emph{stateless} semantics even goes one step further
@@ -53,8 +35,8 @@ to the \emph{edges} modelling the transitions.
 \[\begin{array}{c}
  \arraycolsep=3pt
  \begin{array}{rrclcl}
-  \text{Event} & ε & ∈ & \Events & ::=  & \BindA(\px,\pa↦d) \mid \LookupA(\pa) \mid \UpdateA(\pa↦d) \\
-               &   &   &          & \mid & \AppIA(d) \mid \AppEA(\px↦d) \mid \CaseIA(d) \mid \CaseEA(K,\many{\px↦d}) \\
+  \text{Event} & ε & ∈ & \Events & ::=  & \BindE(\px,\pa↦d) \mid \LookupE(\pa) \mid \UpdateE(\pa↦v) \\
+               &   &   &          & \mid & \AppIE(\pa) \mid \AppEE(\px↦\pa) \mid \CaseIE(d) \mid \CaseEE(K,\many{\px↦\pa}) \\
  \end{array} \\
  \\[-0.5em]
  \arraycolsep=3pt
@@ -74,14 +56,14 @@ to the \emph{edges} modelling the transitions.
  \\[-0.5em]
  \arraycolsep=3pt
  \begin{array}{rrclcl}
-  \text{Eventful value} & v & ∈ & \EventV & ::= & \FunV(f ∈ \later\EventD \to \EventD) \mid \ConV(K,\many{d^\later}^{α_K}) \\
+  \text{Eventful value} & v & ∈ & \EventV & ::= & \FunV(f ∈ \Addresses \to \EventD) \mid \ConV(K,\many{\pa}^{α_K}) \\
  \end{array} \\
  \\[-0.5em]
  \begin{array}{rcl}
   \multicolumn{3}{c}{ \ruleform{
     \begin{array}{c}
-      (\betastep) : \EventD \to (\EventV \pfun \EventD) \to \EventD \quad \ret : \EventV \to \EventD \quad \apply : \EventD \to \EventD \to \EventD \\
-      \deref : \Addresses \to \EventD \quad \select : \EventD \to ((K:\Con) \to (\later\EventD)^{α_K} \pfun \EventD) \to \EventD \\
+      (\betastep) : \EventD \to (\EventV \pfun \EventD) \to \EventD \quad \ret : \EventV \to \EventD \quad \apply : \EventD \times \Addresses \to \EventD \\
+      \memo : \Addresses \times \EventD \to \EventD \quad \select : \EventD \times ((K:\Con) \times \pa^{α_K} \pfun \EventD) \to \EventD \\
     \end{array}
   }} \\
   \\[-0.5em]
@@ -92,39 +74,39 @@ to the \emph{edges} modelling the transitions.
   \end{cases} \\
   \\[-0.5em]
   \ret(v)(μ) & = & \goodend{v,μ} \\
-  \deref(\pa)(μ)   & = & \LookupA(\pa) \cons (μ(\pa) \betastep \fn{v\,μ'}{\UpdateA(\pa↦\ret(v)) \cons \goodend{v,μ'[\pa↦\ret(v)]}})(μ) \\
-  \apply(d_\pe,d_\px) & = & d_\pe \betastep \fn{(\FunV(f))}{f(d_\px)} \\
+  \apply(d,\pa) & = & d \betastep \fn{(\FunV(f))}{f(\pa)} \\
   \select(d,\alts) & = & d \betastep \fn{(\ConV(K_s,\many{d_s^\later}))}{\alts(K_s, \many{d_s^\later})} \quad \text{where } (K_s, \many{d_s^\later}) ∈ \dom(\alts) \\
+  \memo(\pa,d)   & = & d \betastep \fn{v}{(\fn{μ'}{\UpdateE(\pa↦v) \cons \goodend{v,μ'[\pa↦\memo(\pa,\ret(v))]}})} \\
  \end{array} \\
  \\[-0.5em]
  \begin{array}{rcl}
   \multicolumn{3}{c}{ \ruleform{ \semevt{\wild} \colon \Exp → (\Var \pfun \EventD) → \EventD } } \\
   \\[-0.5em]
   \semevt{\px}_ρ       & = & \begin{cases}
-    ρ(\px) & \px ∈ \dom(ρ) \\
+    \LookupE(\pa) \cons μ(ρ(\px))(μ) & \px ∈ \dom(ρ) \\
     \fn{\wild}{\stuckend{}}  & \text{otherwise} \\
   \end{cases} \\
   \\[-0.5em]
-  \semevt{\Lam{\px}{\pe}}_ρ & = & \ret(\FunV(\fn{d^\later}{\AppEA(\px↦d^\later) \cons \semevt{\pe}_{ρ[\px↦d^\later]}})) \\
+  \semevt{\Lam{\px}{\pe}}_ρ & = & \ret(\FunV(\fn{\pa}{\AppEE(\px↦\pa) \cons \semevt{\pe}_{ρ[\px↦\pa]}})) \\
   \\[-0.5em]
   \semevt{\pe~\px}_ρ   & = & \begin{cases}
-    \AppIA(ρ(x)) \cons \apply(\semevt{\pe}_ρ, ρ(\px)) & \px ∈ \dom(ρ) \\
+    \AppIE(ρ(x)) \cons \apply(\semevt{\pe}_ρ, ρ(\px)) & \px ∈ \dom(ρ) \\
     \fn{\wild}{\stuckend{}}  & \text{otherwise} \\
   \end{cases} \\
   \\[-0.5em]
   \semevt{\Let{\px}{\pe_1}{\pe_2}}_ρ(μ) & = &
     \begin{letarray}
-      \text{let} & ρ' = ρ[\px ↦ \deref(\pa)] \quad \text{where $\pa \not∈ \dom(μ)$} \\
+      \text{let} & ρ' = ρ[\px ↦ \pa] \quad \text{where $\pa \not∈ \dom(μ)$} \\
                  & d_1^\later = \semevt{\pe_1}_{ρ'} \\
-      \text{in}  & \BindA(\px,\pa↦d_1^\later) \cons \semevt{\pe_2}_{ρ'}(μ[\pa ↦ d_1^\later])
+      \text{in}  & \BindE(\px,\pa↦d_1^\later) \cons \semevt{\pe_2}_{ρ'}(μ[\pa ↦ \memo(\pa,d_1^\later)])
     \end{letarray} \\
   \\[-0.5em]
-  \semevt{K~\many{\px}}_ρ & = & \ret(\ConV(K,\many{\semevt{\px}_ρ})) \\
+  \semevt{K~\many{\px}}_ρ & = & \ret(\ConV(K,\many{ρ(\pa)})) \\
   \\[-0.5em]
   \semevt{\Case{\pe_s}{\Sel[r]}}_ρ & = &
     \begin{letarray}
-      \text{let} & \alts = \fn{K}{\fn{\many{d^\later}}{\CaseEA(K,\many{\px↦d^\later}) \cons \semevt{\pe_r}_{ρ[\many{\px↦d^\later}]}}} \\
-      \text{in} & \CaseIA(\semevt{\pe_s}_ρ) \cons \select(\semevt{\pe_s}_ρ, \alts)  \\
+      \text{let} & \alts = \fn{(K_i, \many{\pa})}{\CaseEE(K_i,\many{\px_i↦\pa}) \cons \semevt{\pe_{r_i}}_{ρ[\many{\px_i↦\pa}]}} \\
+      \text{in} & \CaseIE(\semevt{\pe_s}_ρ) \cons \select(\semevt{\pe_s}_ρ, \alts)  \\
     \end{letarray}
  \end{array} \\
 \end{array}\]
@@ -137,138 +119,131 @@ to the \emph{edges} modelling the transitions.
 \Cref{fig:semevt} gives the definition for the eventful trace semantics
 $\semevt{\wild}$.
 The domain of eventful maximal traces $\EventD$ maps a heap
-to a possibly infinite or stuck program trace $τ$, just as the stateful
-semantics $\semst{\wild}$.
+to a possibly infinite or stuck program trace $τ$, just as the vanilla
+semantics $\semvan{\wild}$.
 
-The fundamental difference to the stateful semantics manifests in the
-information encoded in a trace $τ$:
-Instead of a sequence of states $σ$ there is a (possibly empty, if stuck)
-sequence of \emph{events} $ε$.
-With the exception of $\ValueA$ events which we will explain in due course,
-each kind of event corresponds to a transition rule in the LK semantics.
+Upon a transition of the internal machine state, our new semantics emits
+an \emph{event} $ε$ with the cons $\cons$ constructor, rather than just
+delaying with an uninformative $\laterC$.
 In fact, each event carries with it part of the ``closure'' of the
-particular transition rule which is readily available for analysis.
-For example, the $\LookupA$ event carries the heap address which is accessed,
-$\BindA$ events carry the $\mathsf{let}$-bound variable, its fresh address and
+corresponding LK transition rule, which is readily available for analysis.
+For example, the $\LookupE$ event carries the heap address which is accessed,
+$\BindE$ events carry the $\mathsf{let}$-bound variable, its fresh address and
 the denotation of the right-hand side.
-
-We will occassionally write $ι$ to denote a finite list of events contained in
-a finite program trace such as in $\betastep$.
-We re-use the same greek letter as in \Cref{sec:stateful} and disambiguate as
-needed, as before using tilde $\tilde{τ}$.
+We thus open up our semantics for instrumentation.
+Certainly, we could have omitted some or added more information than what
+the events carry; in this work we mostly care about $\LookupE$ events.
 
 \begin{figure}
 \[\begin{array}{rcl}
-  α_\Environments(ρ) & = & \deref \circ ρ \\
-  α_\Heaps([\many{\pa ↦ (ρ,\pe)}]) & = & [\many{\UpdateA(\pa ↦ \semst{\pe}_{α_\Environments(ρ)}}] \\
-  α_\EventV(ρ,\Lam{\px}{\pe}) & = & \FunV(\fn{d}{\idiom{\AppEA(\px↦d)} \cons \idiom{\semevt{\pe}_{α_\Environments(ρ)[\px↦d]}}}) \\
-  α_\EventV(ρ,K~\many{\px}) & = & \ConV(K,\idiom{\many{\semevt{\px}_{α_\Environments(ρ)}}}) \\
+  α_\Heaps([\many{\pa ↦ (ρ,\pe)}]) & = & [\many{\pa ↦ \memo(\pa,\semvan{\pe}_{ρ})}] \\
+  α_\EventV(ρ,\Lam{\px}{\pe}) & = & \FunV(\fn{\pa}{\AppEE(\px↦\pa) \cons \semevt{\pe}_{ρ[\px↦\pa]}}) \\
+  α_\EventV(ρ,K~\many{\px}) & = & \ConV(K,\many{ρ(\px)}) \\
   α_\Events(σ) & = & \begin{cases}
-    \BindA(\px,\pa↦\semevt{\pe_1}_{α_\Environments(ρ[\px↦\pa])}) & σ = (\Let{\px}{\pe_1}{\wild},ρ,μ,\wild) \wedge \pa \not∈ \dom(μ) \\
-    \AppIA(\deref(\pa)) & σ = (\wild~\px,ρ,\wild,\ApplyF(\pa) \pushF \wild) \\
-    \CaseIA(\semevt{\pe_s}_{α_\Environments(ρ)}) & σ = (\Case{\pe_s}{\wild},ρ,\wild, \wild)\\
-    \LookupA(ρ(\px)) & σ = (\px,ρ,\wild,\UpdateF(\pa) \pushF \wild) \\
-    \AppEA(\px↦\deref(\pa)) & σ = (\Lam{\px}{\wild},\wild,\wild,\ApplyF(\pa) \pushF \wild) \\
-    \CaseEA(K',\many{\px_i ↦ \deref(ρ(\py))}) & σ = (K'~\many{\py}, ρ, \wild, \SelF(\wild,\Sel) \pushF \wild) \wedge K' = K_i \\
-    \UpdateA(\pa↦\ret(α_\EventV(ρ,\pv))) & σ = (\pv,ρ,\wild,\UpdateF(\pa) \pushF \wild) \\
+    \BindE(\px,\pa↦\semevt{\pe_1}_{ρ[\px↦\pa])}) & σ = (\Let{\px}{\pe_1}{\wild},ρ,μ,\wild) \wedge \pa \not∈ \dom(μ) \\
+    \AppIE(\pa) & σ = (\wild~\px,ρ,\wild,\ApplyF(\pa) \pushF \wild) \\
+    \CaseIE(\semevt{\pe_s}_{ρ}) & σ = (\Case{\pe_s}{\wild},ρ,\wild, \wild)\\
+    \LookupE(ρ(\px)) & σ = (\px,ρ,\wild,\UpdateF(\pa) \pushF \wild) \\
+    \AppEE(\px↦\pa) & σ = (\Lam{\px}{\wild},\wild,\wild,\ApplyF(\pa) \pushF \wild) \\
+    \CaseEE(K',\many{\px_i ↦ ρ(\py)}) & σ = (K'~\many{\py}, ρ, \wild, \SelF(\wild,\Sel) \pushF \wild) \wedge K' = K_i \\
+    \UpdateE(\pa↦α_\EventV(ρ,\pv)) & σ = (\pv,ρ,\wild,\UpdateF(\pa) \pushF \wild) \\
   \end{cases} \\
   α_{\Traces}((σ_i)_{i∈\overline{n}},κ) & = & \begin{cases}
-    \idiom{α_\Events(σ_1)} \cons \idiom{α_{\Traces}((σ_{i+1})_{i∈\overline{n-1}},κ)} & n > 1 \\
+    α_\Events(σ_1) \cons α_{\Traces}((σ_{i+1})_{i∈\overline{n-1}},κ) & n > 1 \\
     \goodend{α_\EventV(ρ,\pv)} & n = 1 \wedge σ_1 = (\pv, ρ, \wild, κ) \\
     \stuckend{} & \text{otherwise} \\
   \end{cases} \\
-  \mathcal{C} & = & ∀(σ_i)_{i∈\overline{n}}.\ \maxtrace{(σ_i)_{i∈\overline{n}}} \Longrightarrow ∀((\pe,ρ,μ,κ) = σ_1).\ α_{\Traces}((σ_i)_{i∈\overline{n}},κ) = \semst{\pe}_{α_\Environments(ρ)}(α_\Heaps(μ)) \\
+  \mathcal{C} & = & ∀(σ_i)_{i∈\overline{n}}.\ \maxtrace{(σ_i)_{i∈\overline{n}}} \Longrightarrow ∀((\pe,ρ,μ,κ) = σ_1).\ α_{\Traces}((σ_i)_{i∈\overline{n}},κ) = \semvan{\pe}_{ρ}(α_\Heaps(μ)) \\
 \end{array}\]
 \caption{Correctness predicate for $\semevt{\wild}$}
   \label{fig:semevt-correctness}
 \end{figure}
 
-\sg{Justify why we can't abstract $\semst{\wild}$ (where to take the address in the lookup case from?).
-Although, perhaps we could; by zipping up the original heaps and stacks. But a direct proof is simpler.}
+All results connecting $\semvan{\wild}$ to the LK transition semantics also
+hold for $\semevt{\wild}$, since $\semvan{\wild}$ can be recovered by throwing
+away all events and replacing $\cons$ with $\laterC$.
 
-Similarly to before, we can define preservation lemmas:
-
-\begin{lemma}[Preservation of length]
-  \label{thm:abs-length-less}
-  Let us define the length $\mathit{len} : \Traces \to ℕ_ω$ of a trace by
-  guarded recursion
-  \[
-    \mathit{len}(τ) = \begin{cases}
-      1 + \idiom{\mathit{len}(τ^{\later})} & τ = a^\later \cons τ^{\later} \\
-      1 & \text{otherwise} \\
-    \end{cases}
-  \]
-  Now let $(σ_i)_{i∈\overline{n}}$ be an arbitrary trace.
-  Then $\mathit{len}(α_\STraces((σ_i)_{i∈\overline{n}},\cont(σ_1))) = n$.
-\end{lemma}
-\begin{proof}
-  Similar to \Cref{thm:abs-length}.
-\end{proof}
-
-\begin{lemma}[Preservation of components]
-  \label{thm:abs-components}
-  Let $(σ_i)_{i∈\overline{n}}$ be a trace and let $τ = α_\Traces((σ_i)_{i∈\overline{n}},\cont(σ_1))$.
-  Then for all $j∈\overline{n-1}$, $τ_j = α_\Events(σ_j)$
-  (where $τ_j$ denotes the $j$th event in $τ$)
-  and if $τ$ ends in $\goodend{v}$, then $v = α_\EventV(ρ,\pv)$, where $σ_n = (\pv, ρ, \wild, \wild)$.
-\end{lemma}
-\begin{proof}
-  Similar to \Cref{thm:abs-states}.
-\end{proof}
-
-\begin{lemma}[Preservation of characteristic]
-  \label{thm:abs-max-trace-less}
-  Let $(σ_i)_{i∈\overline{n}}$ be a maximal trace.
-  Then $α_\Traces((σ_i)_{i∈\overline{n}}, cont(σ_1))$ is ...
-  \begin{itemize}
-    \item ... infinite if and only if $(σ_i)_{i∈\overline{n}})$ is diverging
-    \item ... ending with $\goodend{\wild}$ if and only if $(σ_i)_{i∈\overline{n}}$ is balanced
-    \item ... ending with $\stuckend{\wild}$ if and only if $(σ_i)_{i∈\overline{n}}$ is stuck
-  \end{itemize}
-\end{lemma}
-\begin{proof}
-  Similar to \Cref{thm:abs-max-trace}.
-\end{proof}
+Thus the only thing worth verifying is that the events actually correspond to
+meaningful LK concepts.
+One can read off this correpondence in the abstraction function for the
+extended correctness predicate for $\semevt{\wild}$ in \Cref{fig:semevt-correctness}.
 
 \begin{theorem}[Correctness of $\semevt{\wild}$]
-  \label{thm:semevt-correct}
+  \label{thm:semvan-correct}
   $\mathcal{C}$ from \Cref{fig:semevt-correctness} holds.
   That is, whenever $(σ_i)_{i∈\overline{n}}$ is a maximal LK trace with source
   state $(\pe,ρ,μ,κ)$, we have
-  $α_{\Traces}((σ_i)_{i∈\overline{n}},κ) = \semst{\pe}_{α_\Environments(ρ)}(α_\Heaps(μ))$.
+  $α_{\Traces}((σ_i)_{i∈\overline{n}},κ) = \semevt{\pe}_{ρ}(α_\Heaps(μ))$.
 \end{theorem}
-\begin{proof}
-  Similar to \Cref{thm:semst-correct}. \sg{We probably want to carry out the proof explicitly.}
-\end{proof}
 
-Again, this allows us to prove a strong version of adequacy:
+It is clear that this style of semantics allows to observe arbitrary operational
+detail on an as-needed basis, thus we fulfill our Goal 3.
 
-\begin{lemma}[Adequacy of $\semevt{\wild}$]
-  \label{thm:semevt-adequate}
-  Let $τ = \semevt{\pe}_{[]}([])$.
-  \begin{itemize}
-    \item
-      $τ$ ends with $\goodend{\wild}$ (is balanced) iff there exists a final
-      state $σ$ such that $\inj(\pe) \smallstep^* σ$.
-    \item
-      $τ$ ends with $\stuckend{\wild}$ (is stuck) iff there exists a non-final
-      state $σ$ such that $\inj(\pe) \smallstep^* σ$ and there exists no $σ'$
-      such that $σ \smallstep σ'$.
-    \item
-      $τ$ is infinite (is diverging) iff for all $σ$ with $\inj(\pe)
-      \smallstep^* σ$ there exists $σ'$ with $σ \smallstep σ'$.
-  \end{itemize}
-\end{lemma}
-\begin{proof}
-  Same as for \Cref{thm:semst-adequate}.
-\end{proof}
+Let us conclude this section by giving the uncommented embellished version of
+our earlier examples from \Cref{sec:stateful}, starting with $\Let{i}{\Lam{x}{x}}{i~i}$:
+\[\begin{array}{ll}
+  \newcommand{\myleftbrace}[4]{\draw[mymatrixbrace] (m-#2-#1.west) -- node[right=2pt] {#4} (m-#3-#1.west);}
+  \vcenter{\hbox{$
+    \begin{tikzpicture}[mymatrixenv,anchor=center]
+      \matrix [mymatrix] (m)
+      {
+        1 & \BindE(i,\pa_1↦d) \cons {} & \hspace{3.7em} & \hspace{4.2em} & \hspace{3.5em} \\
+        2 & \AppIE(\pa_1) \cons {} & & & \\
+        3 & \LookupE(\pa_1) \cons {} & & & \\
+        4 & \UpdateE(\pa_1↦\FunV(f)) \cons {} & & & \\
+        5 & \AppEE(x↦\pa_1) \cons {} & & & \\
+        6 & \LookupE(\pa_1) \cons {} & & & \\
+        7 & \UpdateE(\pa_1↦\FunV(f)) \cons {} & & & \\
+        8 & \goodend{\FunV(f), μ} & & & \\
+      };
+      % Braces, using the node name prev as the state for the previous east
+      % anchor. Only the east anchor is relevant
+      \foreach \i in {1,...,\the\pgfmatrixcurrentrow}
+        \draw[dotted] (m.east|-m-\i-\the\pgfmatrixcurrentcolumn.east) -- (m-\i-2);
+      \myleftbrace{3}{1}{8}{$\semevt{\pe}_{[]}$}
+      \myleftbrace{4}{2}{8}{$\semevt{i~i}_{ρ_1}$}
+      \myleftbrace{5}{3}{5}{$\semevt{i}_{ρ_1}$}
+      \myleftbrace{5}{6}{8}{$\semevt{x}_{ρ_2}$}
+  \end{tikzpicture}
+  $}} &
+  \!\!\!\!\text{where}  \begin{array}{ll}
+  ρ_1 = [i ↦ \pa_1] & \\
+  ρ_2 = ρ_1[x ↦ \pa_1] &  \\
+  d = \semevt{\Lam{x}{x}}_{ρ_1} \\
+  μ = [\pa_1 ↦ \memo(\pa_1,d)] & \\
+  f = \pa \mapsto \semevt{\px}_{ρ_1[\px↦\pa]}
+  \end{array}
+\end{array}\]
 
-It should be clear that $α_\Events$ could elaborate the returned events with
-more information from the machine states without a noticable effect on the
-correctness proof.
-For example it could interleave the list of events with program labels.
-The only drawback of doing so would be that $\semevt{\wild}$ becomes more
-complicated.
-The same applies to $α_\States$ from \Cref{sec:stateful} and $\semst{\wild}$, of
-course, where this increase in complexity can be witnessed by having a look at
-the generalisation in the Appendix \sg{Write that}.
+And then also for the heap update in $\Let{i}{(\Lam{y}{\Lam{x}{x}})~i}{i~i}$:
+
+\[\begin{array}{ll}
+  \newcommand{\myleftbrace}[4]{\draw[mymatrixbrace] (m-#2-#1.west) -- node[right=2pt] {#4} (m-#3-#1.west);}
+  \vcenter{\hbox{$
+    \begin{tikzpicture}[baseline={-0.5ex},mymatrixenv]
+      \matrix [mymatrix] (m)
+      {
+        1 & (μ_1)~\UpdateE(\pa_1↦v) \cons {} & \hspace{4em} & \hspace{3.5em} \\
+        2 & (μ_2)~\AppEE(x↦\pa_1) \cons {} & & \\
+        3 & (μ_2)~\LookupE(\pa_1) \cons {} & & \\
+        4 & (μ_2)~\UpdateE(\pa_1↦v) \cons {} & & \\
+        5 & \goodend{v, μ_2} & & \\
+      };
+      % Braces, using the node name prev as the state for the previous east
+      % anchor. Only the east anchor is relevant
+      \foreach \i in {1,...,\the\pgfmatrixcurrentrow}
+        \draw[dotted] (m.east|-m-\i-\the\pgfmatrixcurrentcolumn.east) -- (m-\i-2);
+      \myleftbrace{3}{1}{5}{$\semevt{i~i}_{ρ_1}$}
+      \myleftbrace{4}{1}{2}{$\semevt{i}_{ρ_1}$}
+      \myleftbrace{4}{3}{5}{$\semevt{x}_{ρ_3}$}
+    \end{tikzpicture}
+  $}} &
+  \!\!\!\text{where} \begin{array}{l}
+  ρ_1 = [i ↦ \pa_1] \\
+  ρ_2 = [i ↦ \pa_1, y ↦ \pa_1] \\
+  ρ_3 = [i ↦ \pa_1, y ↦ \pa_1, x ↦ \pa_1] \\
+  v = \FunV(\fn{\pa}{\semevt{\px}_{ρ_2[\px↦\pa]}}) \\
+  μ_1 = [\pa_1 ↦ \memo(\pa_1,\semevt{(\Lam{y}{\Lam{x}{x}})~i}_{ρ_1})] \\
+  μ_2 = [\pa_1 ↦ \memo(\pa_1,\semevt{\Lam{x}{x}}_{ρ_2})] \\
+  \end{array} \\
+\end{array}\]

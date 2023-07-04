@@ -177,7 +177,7 @@ rewrite above: $\semscott{\Let{x}{\pe_1}{\pe_2}}_ρ = \semscott{\pe_2}_{ρ[x↦d
 So our definition of deadness is not only simple to grasp, but also simple to
 exploit.
 
-We can now try to prove our usage analysis correct as a liveness analysis in
+We can now try to prove our usage analysis correct as a deadness analysis in
 terms of this notion of deadness. After a bit of trial and error, we could
 arrive at the following theorem:
 
@@ -212,7 +212,7 @@ $\tr$ to $\tr_Δ$:
   Now we can apply \Cref{thm:semusg-correct-live}.
 \end{proof}
 
-This corollary proves that our intuitive notion of potential liveness/deadness
+This corollary proves that our intuitive notion of deadness
 from \Cref{sec:usage-intuition} lines up with the formal \Cref{defn:deadness}.
 
 % It is surprising that the theorem does not need to relate $\tr_Δ$ to
@@ -477,38 +477,37 @@ $C$ is chosen such that
 Examples of this approach are the
 ``well-annotatedness'' relation in \citep[Lemma 4.3]{cardinality-ext} or
 $\sim_V$ in \citep[Theorem 2.21]{Nielson:99}) and in fact the correctness
-relations we give in \Cref{sec:stateful,sec:stateless}.
+relations we give in \Cref{sec:stateful,sec:eventful}.
 We found it quite hard to come up with a suitable ad-hoc correctness relation
-for usage analysis, though, and postpone futher discussion to
+for usage analysis, though, and postpone further discussion to
 \Cref{sec:abstractions}, where the full correctness relation in
-\Cref{thm:semusg-correct-2} and its proof is derived by abstract
+\Cref{thm:semusg-correct-2} and its proof is implicitly derived by abstract
 interpretation~\citep{Cousot:21}.
-\sg{TODO}
 
-Often, correctness proofs do not need the full operational detail of a
-CESK-style machine, in which case a simpler machine definition leads to simpler
-proof.
-If the correctness statement does not need to keep track about which address
-is an activation of which let-bound program variable, the distinction between
-addresses and variables is unnecessary and the environment component vanishes.
-The stack can often be reflected back into the premises of the judgment
-rules, distinguishing \emph{instruction transitions} from \emph{search
-transitions}, a distinction which is made explicit in a \emph{contextual
-semantics}.
-Applying both these transformations yields a CS machine~\citep{Felleisen:87}.
-However for call-by-need, the evaluation context corresponding to an update
-frame is neither obvious nor simple~\citep{Ariola:95}.
-For pure call-by-value and call-by-name calculi, the heap becomes
-immutable and variables can be substituted immediately for their right-hand
-sides/arguments rather than delaying lookup to the variable case, abolishing the
-need for the heap altogether and yielding a contextual semantics where
-states are a simple expression.
-
-These refactorings help in simplifying proofs:
-Instead of defining a coinductive well-formedness predicate on the heap, we
-prove a substitution lemma.
-Instead of a well-formedness predicate for the stack, we appeal to the
-well-formedness of the search transition rule.
+%Often, correctness proofs do not need the full operational detail of a
+%CESK-style machine, in which case a simpler machine definition leads to simpler
+%proof.
+%If the correctness statement does not need to keep track about which address
+%is an activation of which let-bound program variable, the distinction between
+%addresses and variables is unnecessary and the environment component vanishes.
+%The stack can often be reflected back into the premises of the judgment
+%rules, distinguishing \emph{instruction transitions} from \emph{search
+%transitions}, a distinction which is made explicit in a \emph{contextual
+%semantics}.
+%Applying both these transformations yields a CS machine~\citep{Felleisen:87}.
+%However for call-by-need, the evaluation context corresponding to an update
+%frame is neither obvious nor simple~\citep{Ariola:95}.
+%For pure call-by-value and call-by-name calculi, the heap becomes
+%immutable and variables can be substituted immediately for their right-hand
+%sides/arguments rather than delaying lookup to the variable case, abolishing the
+%need for the heap altogether and yielding a contextual semantics where
+%states are a simple expression.
+%
+%These refactorings help in simplifying proofs:
+%Instead of defining a coinductive well-formedness predicate on the heap, we
+%prove a substitution lemma.
+%Instead of a well-formedness predicate for the stack, we appeal to the
+%well-formedness of the search transition rule.
 
 We have just descended into a mire of complexity to appreciate the following
 goal:

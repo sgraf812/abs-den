@@ -12,6 +12,7 @@
 % Abbrev
 \newcommand\ie{e.g.\xspace}
 \newcommand\eg{e.g.\xspace}
+\newcommand\cf{cf.\xspace}
 \newcommand\etc{etc.\xspace}
 \newcommand\wrt{wrt.\xspace}
 
@@ -118,14 +119,14 @@
 %% Events
 \newcommand{\Events}{\mathbb{Ev}}
 \newcommand{\ValueA}{\mathsf{val}}
-\newcommand{\BindA}{\mathsf{bind}}
-\newcommand{\LookupA}{\mathsf{look}}
-\newcommand{\UpdateA}{\mathsf{upd}}
-\newcommand{\AppIA}{\mathsf{app}_1}
-\newcommand{\AppEA}{\mathsf{app}_2}
-\newcommand{\CaseIA}{\mathsf{case}_1}
-\newcommand{\CaseEA}{\mathsf{case}_2}
-\newcommand{\TickA}{\mathsf{tick}}
+\newcommand{\BindE}{\mathsf{bind}}
+\newcommand{\LookupE}{\mathsf{look}}
+\newcommand{\UpdateE}{\mathsf{upd}}
+\newcommand{\AppIE}{\mathsf{app}_1}
+\newcommand{\AppEE}{\mathsf{app}_2}
+\newcommand{\CaseIE}{\mathsf{case}_1}
+\newcommand{\CaseEE}{\mathsf{case}_2}
+\newcommand{\TickE}{\mathsf{tick}}
 %% Labels
 \newcommand{\Labels}{\mathsf{Lab}}
 \newcommand{\lbl}{\ensuremath{\ell}}
@@ -140,7 +141,7 @@
 \newcommand{\act}[1]{\xrightarrow{#1}}
 \newcommand{\someend}[1]{\langle #1 \rangle}
 \newcommand{\goodend}[1]{\someend{#1}_{\checkmark}}
-\newcommand{\stuckend}[1]{\someend{#1}_{\lightning}}
+\newcommand{\stuckend}{\lightning}
 \newcommand{\makestuck}[1]{\lightning(#1)}
 \newcommand{\cons}{\mathbin{::}}
 \newcommand{\lcons}{\mathbin{:>}}
@@ -150,6 +151,7 @@
 \newcommand{\cont}{\mathit{cont}}
 \newcommand{\ctrl}{\mathit{ctrl}}
 \newcommand{\ret}{\mathit{ret}}
+\newcommand{\memo}{\mathit{memo}}
 \newcommand{\deref}{\mathit{deref}}
 \newcommand{\derefn}{\textit{deref-name}}
 \newcommand{\apply}{\mathit{apply}}
@@ -208,10 +210,10 @@
 \newcommand{\AbsCD}{\Domain{\raisebox{0.1em}{\scalebox{0.4}{c$\square$}}}}
 \newcommand{\StateD}{\Domain{σ}}
 \newcommand{\StateV}{\Values{\States}}
-\newcommand{\BareD}{\Domain{\mathsf{L}}}
-\newcommand{\BareV}{\Values{\mathsf{L}}}
+\newcommand{\VanD}{\Domain{\laterC}}
+\newcommand{\VanV}{\Values{\laterC}}
 \newcommand{\UsgD}{\Domain{\exists u}}
-\newcommand{\Look}{{\lceil \LookupA \rceil}}
+\newcommand{\Look}{{\lceil \LookupE \rceil}}
 \newcommand{\LookD}{\Domain{\Look}}
 \newcommand{\LookTraces}{{\mathbb{T}^{\Look}}}
 \newcommand{\LookValues}{\Values{\Look}}
@@ -265,7 +267,7 @@
 \newcommand{\sempref}[1]{\mathcal{S}_*\denot{#1}}
 \newcommand{\semevt}[1]{\mathcal{S}_{ε}\denot{#1}}
 \newcommand{\semst}[1]{\mathcal{S}_{σ}\denot{#1}}
-\newcommand{\semneed}[1]{\mathcal{S}_{\mathsf{L}}\denot{#1}}
+\newcommand{\semvan}[1]{\mathcal{S}_{\laterC}\denot{#1}}
 \newcommand{\semss}[1]{\mathcal{S}_{Σ}\denot{#1}}
 \newcommand{\semlive}[1]{\mathcal{S}_{∃l}\denot{#1}}
 \newcommand{\semusg}[1]{\mathcal{S}_{∃u}\denot{#1}}
@@ -277,11 +279,8 @@
 
 % Stateful
 \newcommand{\States}{\mathbb{S}}
-\newcommand{\STraces}{{\mathbb{S}^{\infty}}}
-\newcommand{\BTraces}{{\mathbb{T}^{\mathsf{L}}}}
-\newcommand{\tSTraces}{\tilde{\mathbb{S}}^{\infty}}
-\newcommand{\LKStates}{\mathbb{L}}
-\newcommand{\LKTraces}{\mathbb{L}^{\infty}}
+\newcommand{\VTraces}{{\mathbb{T}^{\laterC}}}
+\newcommand{\STraces}{\mathbb{S}^{\infty}}
 \newcommand{\sconcat}{\concatop{\hspace{0.04ex}\scalebox{0.5}{$\States$}}}
 \newcommand{\sfcomp}{\compop{\scalebox{0.25}{\raisebox{0.7em}{$\States$}}}}
 \newcommand{\pushF}{\cdot}
