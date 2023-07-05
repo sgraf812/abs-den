@@ -24,7 +24,7 @@ labels make it so that everything ``works as expected''.
 a small-step transition system closest to the lazy Krivine machine
 \citep{AgerDanvyMidtgaard:04} for Launchbury's language as presented
 in \citet{Sestoft:97}.
-It is worth having a second look at the workings of our Gold Standard.
+It is worth having a second look at the workings of our gold standard.
 
 When the control expression $\ctrl(σ)$ of a state $σ$ is a value $\pv$, we
 call $σ$ a \emph{return} state and say that the continuation $\cont(σ)$ drives
@@ -44,6 +44,13 @@ the argument variable onto the stack, while the rule $\LookupT$ pushes an
 \emph{update frame} with the address of the variable the heap entry of which is
 accessed. When a return state is reached, the original heap entry is overwritten
 with the value in the control.
+Similarly to application, evaluating a $\mathbf{case}$ expression pushes a
+\emph{selector frame} onto the stack via $\CaseIT$.
+When subsequent evaluation reaches a data constructor value, a $\CaseET$
+transition looks up the corresponding case alternative in the selector frame.
+For our examples, we will assume that we have defined the data type
+$\bool ::= \ttrue \mid \ffalse$, where $\ttrue$ and $\ffalse$ are two nullary
+data constructors.
 
 Let us conclude with an example trace in this transition system, evaluating
 $\pe \triangleq \Let{i}{\Lam{x}{x}}{i~i}$ to completion:
@@ -437,9 +444,7 @@ call-by-name or call-by-value.
 It is a useful inclusion because it allows us to observe type errors other than
 scoping errors, as well as enable more interesting examples.
 Let us consider evaluation of the closed expression
-$\pe \triangleq \Let{x}{\ttrue}{\ttrue~x}$
-(where $\ttrue$ is one of two nullary data constructors of the data type $\bool
-::= \ttrue \mid \ffalse$).
+$\pe \triangleq \Let{x}{\ttrue}{\ttrue~x}$.
 $\semvan{\wild}$ makes it is easy to observe that the trace gets stuck:
 \[\begin{array}{ll}
   \newcommand{\myleftbrace}[4]{\draw[mymatrixbrace] (m-#2-#1.west) -- node[right=2pt] {#4} (m-#3-#1.west);}

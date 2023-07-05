@@ -33,9 +33,10 @@ If the correctness statement can be expressed in terms of a \emph{denotational
 semantics}~\citep{ScottStrachey:71}, then the recursion structure of analysis
 function and semantics function line up nicely.
 As a result, the proof of correctness can be conducted by simple induction
-over the expression. Abstract interpretation~\citep{Cousot:21} then provides
-a neat framework to derive static analyses that are proven correct by simple
-equational reasoning.
+over the expression.
+Abstract interpretation~\citep{Cousot:21} provides a neat framework to derive
+structural static analyses that are proven correct by simple equational
+reasoning.
 
 %\subsection{Domain Theory is leaky and too abstract}
 %Alas, there are several shortcomings to traditional denotational semantics:
@@ -90,16 +91,16 @@ not a concept that is observable in traditional denotational semantics.
 
 Ultimately, traditional denotational semantics fell out of fashion due to
 scaling issues we think that are ultimately caused by direct use of algebraic
-domain theory and \citet{WrightFelleisen:94} established operational semantics
-as the Gold Standard semantics for correctness proofs to this day.
-The past thirty years have proven that the methodology scales to
+domain theory. \citet{WrightFelleisen:94} established operational semantics
+as the gold standard semantics for correctness proofs to this day.
+The past thirty years have scaled the methodology to
 big and complex type systems, building on techniques such as
 \emph{step-indexing}~\citep{AppelMcAllester:01,DreyerAhmedBirkedal:11}.
-However, transition systems do not easily admit a compositional definition as a
-function of the input expression.%
-\footnote{While~\citet{Cousot:02} has derived trace-based fixpoint
-semantics from an arbitrary transition system, the resulting function is not
-structurally-recursive in the expression.}
+However, operational semantics are expressed as transition systems which do not
+easily admit a compositional definition as a function of the input expression.
+%\footnote{While~\citet{Cousot:02} has derived trace-based fixpoint
+%semantics from an arbitrary transition system, the resulting function is not
+%structurally-recursive in the expression.}
 In giving in to operational semantics, semanticists have chosen predictable
 step-wise reasoning over elegant equational reasoning backed by
 compositionality.
@@ -121,16 +122,14 @@ relations that must proven to be preserved during transitions.
 When there is no semantics that structurally matches our analysis, we could
 try to rearrange our analysis.
 That is the idea of \emph{Abstracting Abstract Machines}~(AAM)~\citep{aam} which
-abandons compositional analysis in favour of a convenient proof by abstract
-interpretation of the transition semantics.
+applies abstract interpretation to the transition semantics.
 
-The resulting static analysis is no longer defined as a function that recurses
-over the input expression, but rather as an iterative fixpoint procedure that
+The resulting static analysis is defined as an iterative fixpoint procedure that
 approximates the set of possible states in the transition system that reach a
 given sub-expression.
 However, such a definition is hard to reconcile with existing battle-proven and
-compositional static analyses in compilers such as the Glasgow Haskell Compiler
-due to the structural mismatch.
+compositional static analyses in compilers such as the Glasgow Haskell
+Compiler~\citep{MarlowJones:12} due to the structural mismatch.
 It would be preferable to verify these implementations, too.
 
 %It is not so simple in lattice-based compiler analyses, because recursive
@@ -164,11 +163,10 @@ detail and structural mismatch via the following contributions:
     Unlike traditional formulations of denotational semantics, our semantics
     is defined by \emph{guarded recursion}~\citep{gdtt} and thus total as a
     mathematical function.
-
     Our semantics is distinct from similar ones for call-by-name or
     call-by-value and we prove it adequate \wrt a standard operational semantics.
-    We believe that our semantics is the first with the aforementioned two
-    qualities.
+    We believe that our semantics is the first to model operational detail of
+    call-by-need behavior while enjoying a structural definition.
   \item The semantics in \Cref{sec:vanilla} is one that encodes the bare minimum
     of information in traces to be useful.
     This is comparable to the traditional denotational approach, where
