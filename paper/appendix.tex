@@ -47,7 +47,7 @@
       The case $\px = \py$ is simple to see, because $ρ[\px↦d_i](\px)$ is never
       looked at.
       So we assume $\px \not= \py$ and see that $\tr(\px) = \tr'(\px)$, where
-      $\tr' = \operatorname{fix}(\fn{\tr'}{\tr ⊔ [\py ↦ \semusg{\pe_1}_{\tr'}]})$.
+      $\tr' = \operatorname{fix}(\fn{\tr'}{\tr ⊔ [\py ↦ [\py↦1]+\semusg{\pe_1}_{\tr'}]})$.
 
       We know that
       \[
@@ -221,7 +221,7 @@
       Since there can be no shadowing, it is $\px \not= \py$ and we see that
       $\tr(\px) = \tr'(\px)$, where
       $\tr' \triangleq {\operatorname{fix}(\fn{\tr'}{\tr ⊔ [\py ↦
-      \semusg{\pe_1}_{\tr'}]})}$.
+      [\py↦1]+\semusg{\pe_1}_{\tr'}]})}$.
       We know that
       \[
         \tr'(\px) = \tr(\px) \not⊑ \semusg{\pe}_{\tr} = \semusg{\pe_2}_{\tr'}
@@ -255,3 +255,40 @@
       \end{itemize}
   \end{itemize}
 \end{proof}
+
+\begin{figure}
+\[
+ \begin{array}{rcl}
+  \multicolumn{3}{c}{ \ruleform{ \semevt{\wild} \colon \Ctx → ((\Var \pfun \Addresses) → \EventD) → (\Var \pfun \Addresses) → \EventD } } \\
+  \\[-0.5em]
+  \semevt{\hole}_ρ(S) & = & S_ρ \\
+  \\[-0.5em]
+  \semevt{\pE~\px}_ρ(S)   & = & \begin{cases}
+    \AppIE(ρ(x)) \cons \apply(\semevt{\pE}_ρ(S), ρ(\px)) & \px ∈ \dom(ρ) \\
+    \fn{\wild}{\stuckend{}}  & \text{otherwise} \\
+  \end{cases} \\
+  \\[-0.5em]
+  \semevt{\Let{\px}{\pe}{\pE}}_ρ(S)(μ) & = &
+    \begin{letarray}
+      \text{let} & ρ' = ρ[\px ↦ \pa] \quad \text{where $\pa \not∈ \dom(μ)$} \\
+                 & d_1^\later = \semevt{\pe}_{ρ'} \\
+      \text{in}  & \BindE(\px,\pa↦d_1^\later) \cons \semevt{\pE}_{ρ'}(S)(μ[\pa ↦ \memo(\pa,d_1^\later)])
+    \end{letarray} \\
+  \\[-0.5em]
+  \semevt{\Let{\px}{\pE_1}{\pE_2[\px]}}_ρ(S)(μ) & = &
+    \begin{letarray}
+      \text{let} & ρ' = ρ[\px ↦ \pa] \quad \text{where $\pa \not∈ \dom(μ)$} \\
+                 & d_1^\later = \semevt{\pE_1}_{ρ'}(S) \\
+      \text{in}  & \BindE(\px,\pa↦d_1^\later) \cons \semevt{\pE_2[\px]}_{ρ'}(μ[\pa ↦ \memo(\pa,d_1^\later)])
+    \end{letarray} \\
+  \\[-0.5em]
+  \semevt{\Case{\pE}{\Sel[r]}}_ρ(S) & = &
+    \begin{letarray}
+      \text{let} & \alts = \fn{(K_i, \many{\pa})}{\CaseEE(K_i,\many{\px_i↦\pa}) \cons \semevt{\pe_{r_i}}_{ρ[\many{\px_i↦\pa}]}} \\
+      \text{in} & \CaseIE(\semevt{\pE}_ρ(S)) \cons \select(\semevt{\pe_s}_ρ, \alts)  \\
+    \end{letarray}
+ \end{array}
+\]
+\caption{Eventful Semantics of Evaluation Contexts}
+\label{fig:semevt-context}
+\end{figure}
