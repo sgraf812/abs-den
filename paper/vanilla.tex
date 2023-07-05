@@ -1,5 +1,5 @@
 \section{A Denotational Semantics for Call-by-need}
-\label{sec:stateful}
+\label{sec:vanilla}
 
 \subsection{Labelled Syntax}
 
@@ -63,7 +63,7 @@ $\pe \triangleq \Let{i}{\Lam{x}{x}}{i~i}$ to completion:
   \end{array}
 \end{array}\]
 
-\subsection{Domain Theory}
+\subsection{(Algebraic) Domain Theory}
 \label{sec:domain-theory}
 
 The challenge that domain theory sets out to solve is that the ``inductive
@@ -94,7 +94,7 @@ when restricted to \emph{algebraic domains}.
 At the same time, algebraic domains are expressive enough to encode any
 computable function as a continuous function.
 
-\subsection{Guarded Domain Theory}
+\subsection{(Synthetic) Guarded Domain Theory}
 
 As we have discussed in \Cref{sec:continuity}, there are a few strings attached
 to working with continuity and partiality in the context of denotational
@@ -169,8 +169,6 @@ the Supplement.
 
 \begin{figure}
 \[\begin{array}{c}
- \begin{array}{rrclclrrclcl}
- \end{array} \\
  \begin{array}{rrclclrrcrclcl}
   \text{Environment}  & ρ   & ∈ & \Environments  & =      & \Var \pfun \Addresses
   &
@@ -255,19 +253,18 @@ variable environment $ρ$, $\semvan{\pe}_ρ$ assigns $\pe$ a denotation $d$ in
 terms of the semantic domain $\VanD$ of stateful call-by-need trace functions.
 If such a trace function is supplied the heap $μ$ just before $\pe$ takes
 control, then $d(μ)$ is a trace $τ$ starting at $\pe$ in that heap $μ$.
-As with $(\smallstep)$, the job of the environment $ρ$ is to assign meaning to
-free variables of $\pe$ via address tokens $\pa$ bound in the heap.
-If evaluation of $\pe$ terminates, then $τ$ will be a finite list of $\laterC$
-wrappers ending with $\goodend{v,μ'}$ for some return semantic value $v$ and
-heap $μ'$.
+As in the LK transition system $(\smallstep)$, the job of the environment $ρ$ is
+to assign meaning to free variables of $\pe$ via address tokens $\pa$ bound in
+the heap.
+If evaluation of $\pe$ terminates, then $τ$ will be a finite list of $\laterC$s
+ending with $\goodend{v,μ'}$ for some return semantic value $v$ and heap $μ'$.
 Otherwise, it might be finite but stuck ($\stuckend$), or diverge without
 ever leaving $\pe$, in which case $τ$ will be an infinite layering of $\laterC$s.
 
 One can think of $\laterC$ (read as ``later'' or ``delayed'') as introducing
-a finite portion of latency into the trace -- an atomic computation step of a
-trace.
-It makes crucial use of $\later$ to achieve that and naturally encode divergence
-in a infinite sequence of productive steps.
+a finite portion of latency into the trace -- an atomic computation step.
+It makes crucial use of the later modality $\later$ to naturally encode
+divergence as an infinite sequence of productive steps.
 
 Compared to the LK transition semantics, the most striking difference is that
 the returned trace does not contain any intermediate information such as an
@@ -280,10 +277,8 @@ this reflection of machine state into ``math'' bears great potential for program
 analysis, one we will exploit in \Cref{sec:abstractions}.
 We will see that for every LK transition, the trace will have one $\laterC$
 step.
-
 The second difference is that the heap $μ$ does not map to syntactic closures
-but to delayed semantic values $\later \VanD$, offering further abstraction
-possibilities compared to the rigid and indirect syntactic domain.
+but to delayed semantic denotations $\later \VanD$.
 
 The choice to have environments map to addresses naturally leads to function
 values $\FunV(f)$ that take said addresses as parameter rather than a
@@ -300,9 +295,10 @@ application case $\semvan{\pe~\px}$, just as in $\semscott{\wild}$.
 It is worth noting that without guarded recursive types, the definition of
 $\VanD$ would not be well-founded because of the negative cycle arising through
 $\VanD \to \Heaps \to \VanD$ (\cf \Cref{sec:domain-theory}).
-Interpreted as a traditional algebraic domain, we would now have to do a lot of
-complicated justification.
-However, the valiant use of a guarded recursive type $\later \VanD$ in the
+Interpreted as a traditional algebraic domain, we would now have to justify
+that this domain equation has a solution and that $\semvan{\wild}$ is in fact
+continuous.
+However, the simple use of a guarded recursive type $\later \VanD$ in the
 definition of heaps breaks that cycle, thus the definition is well-founded.
 
 All definitions of semantics in this work have been type-checked using Guarded
@@ -355,13 +351,13 @@ The annotations to the right of the trace can be understood as denoting the
 ``call graph'' of $\semvan{\pe}_{[]}$, with the corresponding LK transitions
 as leaves.
 Evaluation begins at timestamp 1 with a $\BindT$ transition to timestamp 2,
-which $\semvan{\pe}_{[]}$ acknowledges by emitting a $\laterC$.
+which $\semvan{\pe}_{[]}$ acknowledges by emitting an $\laterC$.
 A fresh address $\pa_1$ is allocated for variable $i$ and the heap is extended
 with $\memo(\pa,\semvan{\Lam{x}{x}}_{ρ_1})$.
 It is interesting to realise that this process does not involve a fixpoint
 despite the recursive semantics of $\mathbf{let}$.
 Of course, the self-application in $\semvan{\px}$ does the job just as well, as
-we will see in due course.
+we will see in a moment.
 
 Evaluation recurses into the body $\semvan{i~i}_{ρ_1}$, yielding another
 $\AppIT$ transition (corresponding to a bland $\laterC$) into $\semvan{i}_{ρ_1}$.
@@ -369,7 +365,7 @@ Note that the target state $\semvan{i}_{ρ_1}$ will later be fed (via
 $\betastep$) into the anonymous function in $\apply$.
 This scheme is quite common: Continuation items of the transition semantics
 (``data'') are reflected into the call stack of the trace semantics (``code'').
-The reverse process an be recognised as defunctionalisation~\citep{Reynolds:72}.
+The reverse process can be recognised as defunctionalisation~\citep{Reynolds:72}.
 
 $\semvan{i}_{ρ_1}$ guides the trace through a heap lookup:
 After emitting a $\laterC$ corresponding to the $\LookupT$ transition,
@@ -644,7 +640,7 @@ between the semantic objects in $\semvan{\wild}$ and the syntactic objects in
 the transition system.
 
 We will sometimes need to disambiguate the clashing definitions from
-\Cref{sec:stateful} and \Cref{sec:problem}.
+\Cref{sec:vanilla} and \Cref{sec:problem}.
 We do so by adorning semantic objects with a tilde, so $\tm \triangleq
 α_\Heaps(μ)$ denotes a semantic heap which in this instance is
 defined to be the abstraction of a syntactic heap $μ$.

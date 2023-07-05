@@ -11,9 +11,8 @@ analyses are formulated as a function defined by \emph{structural recursion} on
 the input term.
 For example, given an application expression $(\pe_1~\pe_2)$,
 the property ``$(\pe_1~\pe_2)$ never evaluates its free variable $x$'' can be
-\emph{conservatively approximated} (here: It's OK to say ``No'' more often) by
-the property ``$\pe_1$ never evaluates $x$ and $\pe_2$ never evaluates
-$x$''.
+\emph{conservatively approximated} by the property ``$\pe_1$ never evaluates $x$
+and $\pe_2$ never evaluates $x$''.
 
 It is quite convenient to formulate such a \emph{deadness analysis}
 structurally:
@@ -90,9 +89,9 @@ call-by-value and call-by-name but none for call-by-need, because memoisation is
 not a concept that is observable in traditional denotational semantics.
 
 Ultimately, traditional denotational semantics fell out of fashion due to
-scaling issues we think that are ultimately caused by direct use of domain
-theory and \citet{WrightFelleisen:94} established operational semantics as the
-Gold Standard semantics for correctness proofs to this day.
+scaling issues we think that are ultimately caused by direct use of algebraic
+domain theory and \citet{WrightFelleisen:94} established operational semantics
+as the Gold Standard semantics for correctness proofs to this day.
 The past thirty years have proven that the methodology scales to
 big and complex type systems, building on techniques such as
 \emph{step-indexing}~\citep{AppelMcAllester:01,DreyerAhmedBirkedal:11}.
@@ -159,32 +158,31 @@ detail and structural mismatch via the following contributions:
     denotational semantics and the structural mismatch problem \wrt operational
     semantics by the example of \emph{usage analysis}, a generalisation of
     deadness analysis.
-  \item In \Cref{sec:stateful}, we give a compositional semantics
+  \item In \Cref{sec:vanilla}, we give a compositional semantics
     for call-by-need lambda calculus that generates an abstraction of
-    potentially infinite small-step traces. Unlike traditional formulations
-    of denotational semantics, our semantics is defined by \emph{guarded
-    recursion}~\citep{gdtt} and thus total as a mathematical function.
+    potentially infinite small-step traces.
+    Unlike traditional formulations of denotational semantics, our semantics
+    is defined by \emph{guarded recursion}~\citep{gdtt} and thus total as a
+    mathematical function.
+
     Our semantics is distinct from similar ones for call-by-name or
-    call-by-value and allows to observe evaluation cardinality as needed.
+    call-by-value and we prove it adequate \wrt a standard operational semantics.
     We believe that our semantics is the first with the aforementioned two
-    qualities and prove it adequate \wrt a standard operational semantics.
-  \item The semantics in \Cref{sec:stateful} is one generating \emph{stateful}
-    traces.
-    This is in line with the standard operational approach in which
-    self-contained states are the objects of interest.
-    Borrowing ideas from the \emph{maximal trace semantics} of
-    \citet{Cousot:21}, we define an equivalent, but more convenient
-    \emph{stateless} semantics in \Cref{sec:stateless} and will see how to
-    recover state from program history as needed.
-  \item We employ the stateless semantics as a collecting semantics and derive
+    qualities.
+  \item The semantics in \Cref{sec:vanilla} is one that encodes the bare minimum
+    of information in traces to be useful.
+    This is comparable to the traditional denotational approach, where
+    denotations are either $\bot$ or a value.
+    In \Cref{sec:eventful} we will see how simple it is to \emph{instrument} our
+    semantics to provide richer traces, carrying \emph{events} describing
+    small-step transitions.
+    The resulting idea of an \emph{eventful} semantics borrows ideas from the
+    \emph{maximal trace semantics} of \citet{Cousot:21}.
+  \item In \Cref{sec:essence} we record a few meta-theoretic results about our
+    new class of semantics, such as a partially-ordered heap forcing relation,
+    a characterisation of denotations that allows us to recover a useful
+    semantic equivalance relation and associated compositionality statements.
+  \item We employ the eventful semantics as a collecting semantics and derive
     the usage analysis of \Cref{sec:problem} by \emph{calculational design}~\citep{Cousot:21}.
-    Similar derivations will be considered for Control Flow Analysis~\citep{Shivers:91}.
-    \sg{Hopefully :)}
-    % Urgh, not yet:
-    %  Since call-by-need lambda calculus is the simplest language that features
-    %  both function calls and state, it is possible for the first time to prove
-    %  correct the ``functional approach'' by
-  \item Talk about prototype in Haskell? Formalisation in Agda?
-  \item Related Work \Cref{sec:related-work}
 \end{itemize}
 

@@ -51,12 +51,12 @@ $\semevt{\wild}$ and $\equiv$:
 So if $x$ is dead in $\pe_2$, we can justify the following rewrite by
 irrelevance:
 \[
-  \Let{x}{\pe_1}{\pe_2} \equiv \Let{x}{\mathit{crash}}{\pe_2}
+  \Let{x}{\pe_1}{\pe_2} \equiv \Let{x}{\mathit{panic}}{\pe_2}
 \]
 A syntactic \emph{occurrence analysis} could subsequently figure out whether the
 binding for $x$ can be dropped without introducing scoping errors, a feat
 that becomes far simpler once huge expressions $\pe_1$ are turned into small
-$\mathit{crash}$es.
+$\mathit{panic}$es.
 
 We can now prove \Cref{thm:semusg-correct-live} in terms of this new
 characterisation of deadness by induction:
@@ -107,12 +107,12 @@ But does it really make the program faster, or at least not slower?
 
 We can affirm that indirectly:
 A diverging program $\mathit{loop}$ takes more steps than a stuck program
-$\mathit{crash}$, hence the former runs ``slower'' than the latter.
+$\mathit{panic}$, hence the former runs ``slower'' than the latter.
 The stuck and the diverging program are not semantically equivalent,
-but $\Let{x}{\mathit{crash}}{\pe}$ is semantically equivalent to
+but $\Let{x}{\mathit{panic}}{\pe}$ is semantically equivalent to
 $\Let{x}{\mathit{loop}}{\pe}$ when $x$ is dead in $\pe$.
 Since $(\betastep)$ runs sub-programs to completion, we would observe
-execution of ${\mathit{crash}}$ or ${\mathit{loop}}$, which is the only
+execution of ${\mathit{panic}}$ or ${\mathit{loop}}$, which is the only
 way in which we could have made the program slower or faster.
 Since there is no semantic difference, the performance of the program must be
 unaffected.
@@ -310,7 +310,7 @@ event abstraction
 \]
 as defined in \Cref{fig:usg-abs}.
 The resulting $\LookTraces$ trace can then be folded by $\ctx_\LookTraces$ into
-an $\Addresses \to \Card$ mapping.
+an $\Addresses \to \Usg$ mapping.
 Intuitively, $\ctx_\LookTraces$ runs the $\LookD$ in all possible evaluation
 contexts, returning the least upper bound of all resulting traces.
 
@@ -356,7 +356,7 @@ It is also a useful property, because it justifies elision of thunk updates:
   After unfolding the definitions of $\semevt{\wild}$ for $\mathbf{let}$ and
   $\mathbf{let1}$, the goal is to show
   \[
-    \dom(μ_i) ⊦_0 \semevt{\pe_2}_{ρ[\px↦\pa]}(μ_1[\pa↦d_1]) \lesssim\!\gtrsim \semevt{\pe_2}_{ρ[\px\pa]}(μ_2[\pa↦d_2])
+    \dom(μ_i) ⊦_0 \semevt{\pe_2}_{ρ[\px↦\pa]}(μ_1[\pa↦d_1]) \lesssim\!\gtrsim \semevt{\pe_2}_{ρ[\px↦\pa]}(μ_2[\pa↦d_2])
   \]
   where $\pa \not∈\dom(μ_i)$,
   $\dom(μ_i) ∪ \{\pa\} ⊦ \semevt{\pe_2}_{ρ[\px↦\pa]}$,
@@ -419,8 +419,11 @@ It is also a useful property, because it justifies elision of thunk updates:
       \]
       Thus proving the goal.
 
-    \item \textbf{Case $\pe = \Lam{\py}{\pe'}$}:
+    \item \textbf{Case $\pe_2 = \Lam{\py}{\pe}$}:
       It suffices to show that
+      \[
+        \dom(μ_i) ⊦_0 \semevt{\pe}_{ρ[\px↦\pa][\py↦\pa']}(μ_1[\pa↦d_1]) \lesssim\!\gtrsim \semevt{\pe}_{ρ[\px↦\pa][\py↦\pa']}(μ_2[\pa↦d_2])
+      \]
     \item \textbf{Case $\pe = \pe'~\py$}:
       From $\tr(\px) \not⊑ \semusg{\pe'}_{\tr} + ω*\tr(\py)$ we can see that
       $\tr(\px) \not⊑ \semusg{\pe'}_{\tr}$ and $\tr(\px) \not⊑ \tr(\py)$ by
@@ -542,13 +545,13 @@ $\semevt{\pe_1}_{ρ[\px↦\deref(\pa)]}(μ[\pa↦\semevt{\pe_2}_ρ])$
  \begin{array}{rclcl}
   μ & ∈ & \Heaps^{\Look} & =   & \Addresses \pfun \later\Domain{\Look} \\
   d & ∈ & \Domain{\Look} & =   & \Heaps^{\Look} \to \LookTraces \\
-  u & ∈ & \Card & =   & \{ 0 ⊏ 1 ⊏ ω \} ⊂ ℕ_ω \\
-  τ & ∈ & \LookTraces & =   & (l ∈ \Addresses \to \Card) \lcons \someend{v,μ} \\
+  u & ∈ & \Usg & =   & \{ 0 ⊏ 1 ⊏ ω \} ⊂ ℕ_ω \\
+  τ & ∈ & \LookTraces & =   & (l ∈ \Addresses \to \Usg) \lcons \someend{v,μ} \\
   v & ∈ & \Values{\Look} & =   & \FunV(f ∈ \Addresses \to \Domain{\Look}) \\
  \end{array} \\
  \\[-0.5em]
  \begin{array}{lcl}
-  \multicolumn{3}{c}{ \ruleform{ \usg_{\Events} : \Events \to (\Addresses \to \Card)} } \\
+  \multicolumn{3}{c}{ \ruleform{ \usg_{\Events} : \Events \to (\Addresses \to \Usg)} } \\
   \\[-0.5em]
   \usg_{\Events}(ε) & = & \begin{cases}
       [\pa↦1] & ε = \LookupT(\pa) \\
@@ -567,7 +570,7 @@ $\semevt{\pe_1}_{ρ[\px↦\deref(\pa)]}(μ[\pa↦\semevt{\pe_2}_ρ])$
   \\[-0.5em]
   \byname(\mathcal{S})(ρ)(μ) & = & \mathcal{S}(\fn{\px}{\fn{μ'}{ρ(\px)(μ)}})(μ) \\
   \\[-0.5em]
-  \multicolumn{3}{c}{ \ruleform{ \ctx : \LookTraces \to_m \Addresses \to \Card } } \\
+  \multicolumn{3}{c}{ \ruleform{ \ctx : \LookTraces \to_m \Addresses \to \Usg } } \\
   \\[-0.5em]
   \ctx_\LookD(\td) & = & \Lub \{ \ctx_\LookTraces(\dom(\tm),\td(\tm)) \mid \td \text{ defined on } \dom(\tm) \} \\
   \ctx_\LookTraces(A,l \lcons \someend{\tv,\tm}) & = & l + \ctx_\LookValues(A,\tv,\tm) \\

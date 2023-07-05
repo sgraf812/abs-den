@@ -4,7 +4,7 @@
 Before we can talk about abstraction, we have to record a few meta-theoretic
 properties.
 We will prove these properties in terms of the eventful semantics
-$\semevt{\wild}$ but they apply just the same for the vanilla $\semvan{\wild}$.
+$\semevt{\wild}$ but they apply just the same to the vanilla $\semvan{\wild}$.
 
 \subsection{Heap Forcing and Laziness}
 
@@ -123,10 +123,7 @@ characterisation of the domain elements returned by $\semevt{\wild}$.
      \end{itemize}
   \end{itemize}
   A heap $μ$ is \emph{lazy} if and only if it is of the form $[\many{\pa↦\memo(\pa,d)}]$ and all $\many{d}$ are lazy and defined on $μ$.\\
-  A value $v$ is \emph{lazy} if and only if
-  \begin{itemize}
-    \item When $v = \FunV(f)$ (for some $f$), then $f(\pa)$ is lazy.
-  \end{itemize}
+  A value $v$ is \emph{lazy} if and only if $v = \FunV(f)$ (for some $f$) implies that $f(\pa)$ is lazy.
 \end{definition}
 
 So when an element $d$ is \emph{lazy}, every input heap forces to the output
@@ -373,8 +370,8 @@ It is coarse enough to equate the example above, but still finer than contextual
 equivalence, as we shall see.
 
 The key is its observer model for function values, which necessitates the
-address space parameter $A$ in the bisimulation $\sim$ to track non-local
-(and thus observable) addresses.
+address space parameter $A$ in $\sim$ to track non-local (and thus observable)
+addresses.
 Consider a successful evaluation $\bigstep{d_i}{μ_i}{\FunV(f_i)}{μ_i'}$, as in
 \[\begin{array}{rclcl}
   \semevt{\Let{t}{\ttrue}{\Lam{z}{t}}}_{[]}([])
@@ -407,7 +404,8 @@ to observe the different heaps.
 Since the parameter $A$ tracks non-local addresses (as can be asserted in
 $\equiv$), we can prohibit such exploits by requiring $\pa∈A$.
 This is not too grave a restriction on the observer, because they may
-pre-allocate any denotation into the heap they want to due to laziness.
+pre-allocate any denotation into the heap they want (respecting
+well-addressedness, of course) due to laziness.
 
 \begin{lemma}[Weakening of address domain]
   \label{thm:weaken-address-domain}
@@ -668,11 +666,11 @@ with $\pe$.
 \end{array}\]
 
 
-For any $\pe_1,\pe_2$ and $ρ$, if $\semevt{\pe_1}_ρ = \semevt{\pe_2}_ρ$
-then $\semevt{C[\pe_1]}_ρ = \semevt{C[\pe_2]}_ρ$ for any \emph{context} $C$.
-(We will define $C$ precisely in a minute.)
-The proof is immediate because of structural recursion and extensionality of
-functions.
+%For any $\pe_1,\pe_2$ and $ρ$, if $\semevt{\pe_1}_ρ = \semevt{\pe_2}_ρ$
+%then $\semevt{C[\pe_1]}_ρ = \semevt{C[\pe_2]}_ρ$ for any \emph{context} $C$.
+%(We will define $C$ precisely in a minute.)
+%The proof is immediate because of structural recursion and extensionality of
+%functions.
 
 %Since $\semevt{C[\pe_1]}_ρ = \semevt{C[\pe_2]}_ρ$ implies that $C[\pe_i]$ have
 %the same termination behavior via adequacy, compositionality also implies

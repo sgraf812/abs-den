@@ -18,8 +18,8 @@
  \arraycolsep=3pt
  \begin{array}{rrclcl}
   \text{Scott Domain}      &  d & ∈ & \ScottD & =   & [\ScottD \to_c \ScottD]_\bot \\
-  \text{Usage cardinality} &  u & ∈ & \Card & =   & \{ 0 ⊏ 1 ⊏ ω \} ⊂ ℕ_ω \\
-  \text{Usage Domain}      &  d & ∈ & \UsgD & =   & \Var \to \Card \\
+  \text{Usage cardinality} &  u & ∈ & \Usg & =   & \{ 0 ⊏ 1 ⊏ ω \} ⊂ ℕ_ω \\
+  \text{Usage Domain}      &  d & ∈ & \UsgD & =   & \Var \to \Usg \\
  \end{array} \quad
  \begin{array}{rcl}
    (ρ_1 ⊔ ρ_2)(\px) & = & ρ_1(\px) ⊔ ρ_2(\px) \\
@@ -96,7 +96,7 @@ it is factored into \emph{A-normal form}, that is, the arguments of applications
 are restricted to be variables, so the difference between call-by-name and
 call-by-value manifests purely in the semantics of $\mathbf{let}$.
 In this section, only the highlighted parts are relevant for brevity; we will
-discuss semantics of labels and data types in \Cref{sec:stateful}.
+discuss semantics of labels and data types in \Cref{sec:vanilla}.
 From hereon throughout, we assume that all labels and bound program variables
 are distinct.
 
@@ -113,22 +113,22 @@ the function to its right in \Cref{fig:usage}, depicting a \emph{usage
 analysis} $\semusg{\wild}$, a static analysis for estimating an upper bound on
 \emph{evaluation cardinality}, \eg, how often a variable is evaluated.
 
-Such upper bounds on evaluation cardinality are represented by a $u ∈ \Card$,
-and for a given expression $\pe$, an element $d ∈ \UsgD$ can denote how many
-times $\pe$ evaluates its free variables.
+Such upper bounds on evaluation cardinality are represented by a \emph{usage} $u
+∈ \Usg$, and for a given expression $\pe$, an element $d ∈ \UsgD$ can denote
+how many times $\pe$ evaluates its free variables.
 Any number of uses beyond $1$, such as $2$ for $x$ in $(x+x)$, will be collapsed to
 $d(x) = ω$, which denotes the set of any possible number of uses and is thus the
-top element of the total order $\Card$.
+top element of the total order $\Usg$.
 For open expressions, we will need a way to describe the denotations of its
 free variables with a \emph{usage environment} $\tr ∈ \Var \to \UsgD$.
-Note that we will occassionally adorn with \textasciitilde{} to disambiguate
-elements of the analysis domain from the semantic domain.
+(Note that we will occassionally adorn with \textasciitilde{} to disambiguate
+elements of the analysis domain from the semantic domain.)
 Given a usage environment $\tr$, $\tr(x)(y)$ is supposed to model an upper bound
 on how often the expression bound to $x$ evaluates $y$.
 
 We say that $x$ is \emph{potentially live} in an element $d ∈ \UsgD$ whenever
 $\bot = 0 ⊏ d(x)$ (where $\bot$ denotes the least element of a partial order
-such as $\Card$ that is inferred from context).
+such as $\Usg$ that is inferred from context).
 Let us now call
 \[
   \tr_Δ(\px) \triangleq \fn{\py}{\ternary{\px = \py}{1}{0}}
@@ -150,13 +150,13 @@ whether $f$ evaluates its argument.
 In turn, the analysis assumes in the lambda case that liveness of the argument
 has been accounted for at the call site, hence the lambda-bound variable $\px$
 is not live in any variable and denoted by $\bot$ in $\tr$ (according to the
-pointwise ordering, $\forall \px.\ \bot_{\UsgD}(\px) = \bot_{\Card} = 0$).
+pointwise ordering, $\forall \px.\ \bot_{\UsgD}(\px) = \bot_{\Usg} = 0$).
 
 \subsection{Usage Analysis Infers Denotational Deadness}
 
 The requirement (in the sense of informal specification) on an assertion
 such as ``$x$ is dead'' in a program like $\Let{x}{\pe_1}{\pe_2}$ is that we
-may rewrite to $\Let{x}{panic}{\pe_2}$ and perhaps even to $\pe_2$ without
+may rewrite to $\Let{x}{\mathit{panic}}{\pe_2}$ and perhaps even to $\pe_2$ without
 observing any change in semantics. Doing so reduces code size and heap
 allocation.
 
@@ -214,6 +214,8 @@ $\tr$ to $\tr_Δ$:
 
 This corollary proves that our intuitive notion of deadness
 from \Cref{sec:usage-intuition} lines up with the formal \Cref{defn:deadness}.
+Simplicity of proofs is a good property to strive for, so let us formulate an
+explicit goal:
 
 % It is surprising that the theorem does not need to relate $\tr_Δ$ to
 % $ρ$; after all, $ρ(\py)$ (for $\py \not= \px$) might be bound to the
@@ -336,14 +338,18 @@ arbitrary evaluation cardinality.}
 
 \begin{figure}
 \[\begin{array}{c}
- \begin{array}{rrclcl}
-  \text{LK States}     & σ   & ∈ & \States        & =      & \Exp \times \Environments \times \Heaps \times \Continuations \\
-  \text{Environments}  & ρ   & ∈ & \Environments  & =      & \Var \pfun \Addresses \\
-  \text{Addresses}     & \pa & ∈ & \Addresses     & \simeq & ℕ \\
-  \text{Heaps}         & μ   & ∈ & \Heaps         & =      & \Addresses \pfun \Environments \times \Exp \\
-  \text{Continuations} & κ   & ∈ & \Continuations & ::=    & \StopF \mid \ApplyF(\pa) \pushF κ \mid \SelF(ρ,\SelArity) \pushF κ \mid \UpdateF(\pa) \pushF κ \\
+ \begin{array}{rrclcl@{\hspace{1.5em}}rrcrclcl}
+  \text{Addresses}     & \pa & ∈ & \Addresses     & \simeq & ℕ
+  &
+  \text{States}        & σ   & ∈ & \States        & =      & \Exp \times \Environments \times \Heaps \times \Continuations
+  \\
+  \text{Environments}  & ρ   & ∈ & \Environments  & =      & \Var \pfun \Addresses
+  &
+  \text{Heaps}         & μ   & ∈ & \Heaps         & =      & \Addresses \pfun \Environments \times \Exp
+  \\
+  \text{Continuations} & κ   & ∈ & \Continuations & ::=    & \multicolumn{7}{l}{\StopF \mid \ApplyF(\pa) \pushF κ \mid \SelF(ρ,\SelArity) \pushF κ \mid \UpdateF(\pa) \pushF κ} \\
  \end{array} \\
-  \\[-0.5em]
+ \\[-0.5em]
 \end{array}\]
 
 \newcolumntype{L}{>{$}l<{$}} % math-mode version of "l" column type
@@ -477,7 +483,7 @@ $C$ is chosen such that
 Examples of this approach are the
 ``well-annotatedness'' relation in \citep[Lemma 4.3]{cardinality-ext} or
 $\sim_V$ in \citep[Theorem 2.21]{Nielson:99}) and in fact the correctness
-relations we give in \Cref{sec:stateful,sec:eventful}.
+relations we give in \Cref{sec:vanilla,sec:eventful}.
 We found it quite hard to come up with a suitable ad-hoc correctness relation
 for usage analysis, though, and postpone further discussion to
 \Cref{sec:abstractions}, where the full correctness relation in
@@ -517,7 +523,7 @@ goal:
 Goal 4 can be seen as a necessary condition for Goal 1:
 Structural mismatch makes a simple proof impossible.
 Since our analysis is compositional, we strive for a compositional semantics in
-\Cref{sec:stateful,sec:stateless}.
+\Cref{sec:vanilla,sec:eventful}.
 An alternative to avoid structural mismatch is to follow Abstracting Abstract
 Machines~\citep{aam}.
 We will compare our approach to theirs in \Cref{sec:related-work}.
