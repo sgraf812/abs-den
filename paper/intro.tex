@@ -129,8 +129,10 @@ approximates the set of possible states in the transition system that reach a
 given sub-expression.
 However, such a definition is hard to reconcile with existing battle-proven and
 compositional static analyses in compilers such as the Glasgow Haskell
-Compiler~\citep{MarlowJones:12} due to the structural mismatch.
-It would be preferable to verify these implementations, too.
+Compiler (GHC)~\citep{MarlowJones:12} due to the structural mismatch.
+One could rewrite GHC's analyses using AAM, but that is a path that has seldomly
+been taken.
+It would be preferable to verify these existing implementations instead.
 
 %It is not so simple in lattice-based compiler analyses, because recursive
 %$\mathbf{let}$ bindings invite fixpoint iteration. If you think about
@@ -165,8 +167,13 @@ detail and structural mismatch via the following contributions:
     mathematical function.
     Our semantics is distinct from similar ones for call-by-name or
     call-by-value and we prove it adequate \wrt a standard operational semantics.
+  \item
     We believe that our semantics is the first to model operational detail of
     call-by-need behavior while enjoying a structural definition.
+    Our pattern naturally generalises to similar definitions generating
+    call-by-value traces and we believe that its trace-based nature enables
+    unprecedented application of \citeauthor{Cousot:21}'s intraprocedural
+    framework in interprocedural contexts.
   \item The semantics in \Cref{sec:vanilla} is one that encodes the bare minimum
     of information in traces to be useful.
     This is comparable to the traditional denotational approach, where
@@ -182,5 +189,6 @@ detail and structural mismatch via the following contributions:
     semantic equivalance relation and associated compositionality statements.
   \item We employ the eventful semantics as a collecting semantics and derive
     the usage analysis of \Cref{sec:problem} by \emph{calculational design}~\citep{Cousot:21}.
+    \sg{TODO: Currently we only attempt a direct correctness proof}
 \end{itemize}
 
