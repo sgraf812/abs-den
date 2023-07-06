@@ -1,5 +1,5 @@
 {-# OPTIONS --cubical --guarded #-}
-module Bare where
+module Need where
 
 open import Later
 open import Syntax
@@ -30,8 +30,8 @@ data Trc : Set where
   later : ▹ Trc -> Trc
 
 data Val where
-  fun : (▹ Dom -> Dom) -> Val
-  con : Con -> List (▹ Dom) -> Val
+  fun : (Addr -> Dom) -> Val
+  con : Con -> List Addr -> Val
 
 Dom = Heap -> Trc
 
