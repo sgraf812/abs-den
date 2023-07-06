@@ -40,8 +40,8 @@
   \semscott{\px}_ρ & {}={} & ρ(\px) \\
   \semscott{\Lam{\px}{\pe}}_ρ & {}={} & \fn{d}{\semscott{\pe}_{ρ[\px ↦ d]}} \\
   \semscott{\pe~\px}_ρ & {}={} & \begin{cases}
-     f(ρ(x)) & \text{if $\semscott{\pe} = f$}  \\
-     \bot   & \text{otherwise}  \\
+     f(ρ(\px)) & \text{if $\semscott{\pe} = f$}  \\
+     \bot      & \text{otherwise}  \\
    \end{cases} \\
   \semscott{\Letsmall{\px}{\pe_1}{\pe_2}}_ρ & {}={} &
     \begin{letarray}
@@ -63,8 +63,8 @@
   \semusg{\Lam{\px}{\pe}}_ρ & {}={} & ω*\semusg{\pe}_{ρ[\px ↦ \bot]} \\
   \semusg{\pe~\px}_ρ & {}={} & \semusg{\pe} + ω*ρ(\px)
     \phantom{\begin{cases}
-       f(ρ(x)) & \text{if $\semscott{\pe} = f$}  \\
-       \bot   & \text{otherwise}  \\
+       f(ρ(\px)) & \text{if $\semscott{\pe} = f$}  \\
+       \bot      & \text{otherwise}  \\
      \end{cases}} \\
   \semusg{\Letsmall{\px}{\pe_1}{\pe_2}}_ρ& {}={} & \begin{letarray}
       \text{letrec}~ρ'. & ρ' = ρ \mathord{⊔} [\px \mathord{↦} d_1] \\
@@ -97,7 +97,7 @@ are restricted to be variables, so the difference between call-by-name and
 call-by-value manifests purely in the semantics of $\mathbf{let}$.
 Note that $\Lam{x}{x}$ denotes syntax, whereas $\fn{x}{x+1}$ denotes a function
 in math.
-In this section, only the highlighted parts are relevant for brevity; we will
+In this section, only the highlighted parts are relevant; we will
 discuss semantics of labels and data types in \Cref{sec:vanilla}.
 From hereon throughout, we assume that all labels and bound program variables
 are distinct.
@@ -175,7 +175,7 @@ $\semscott{\wild}$:
 
 Indeed, if we know that $x$ is dead, then the following equation justifies our
 rewrite above: $\semscott{\Let{x}{\pe_1}{\pe_2}}_ρ = \semscott{\pe_2}_{ρ[x↦d]} =
-\semscott{\pe_2}_ρ$ (for all $ρ$ and the suitable $d$).
+\semscott{\pe_2}_{ρ[x↦ρ(x)]} =\semscott{\pe_2}_ρ$ (for all $ρ$ and the suitable $d$).
 So our definition of deadness is not only simple to grasp, but also simple to
 exploit.
 
@@ -293,6 +293,9 @@ A practical consequence is that such a predicate could not be proven about a
 recursive let binding because that would need admissability to apply fixpoint
 induction.
 
+We would rather not need to reason about continuity and admissability.
+Hence we formulate the following goal:
+
 \formgoal{2}{Find a semantic domain in which diverging programs can be denoted
 by a total element.}
 
@@ -301,9 +304,11 @@ by a total element.}
 Blind spots and annoyances notwithstanding, the denotational notion of deadness
 above is quite reasonable and \Cref{thm:semusg-correct-live} is convincing.
 But our usage analysis infers more detailed cardinality information;
-for example, it can infer whether a binding is evaluated at most once.
+for example, it can infer whether a binding is evaluated at most once.%
+\footnote{Thus our usage analysis is a combination of deadness analysis
+and \emph{sharing analysis}~\citep{Gustavsson:98}.}
 This information can be useful to inline a binding that is not a value or
-to omit update frames under call-by-need~\citep{cardinality-ext}.%
+to avoid update frames under call-by-need~\citep{cardinality-ext}.%
 \footnote{A more useful application of the ``at most once'' cardinality is the
 identification of \emph{one-shot} lambdas~\citep{cardinality-ext} --- functions which are
 called at most once for every activation --- because it allows floating of heap

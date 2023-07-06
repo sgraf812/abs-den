@@ -617,3 +617,20 @@ series = {PLDI 2021}
   url = {https://www.microsoft.com/en-us/research/publication/the-glasgow-haskell-compiler/},
   edition = {The Architecture of Open Source Applications, Volume 2},
 }
+
+@inproceedings{Gustavsson:98,
+  author = {Gustavsson, J\"{o}rgen},
+  title = {A Type Based Sharing Analysis for Update Avoidance and Optimisation},
+  year = {1998},
+  isbn = {1581130244},
+  publisher = {Association for Computing Machinery},
+  address = {New York, NY, USA},
+  url = {https://doi.org/10.1145/289423.289427},
+  doi = {10.1145/289423.289427},
+  abstract = {Sharing of evaluation is crucial for the efficiency of lazy functional languages, but unfortunately the machinery to implement it carries an inherent overhead. In abstract machines this overhead shows up as the cost of performing updates, many of them actually unnecessary, and also in the cost of the associated bookkeeping, that is keeping track of when and where to update. In spineless abstract machines, such as the STG-machine and the TIM, this bookkeeping consists of pushing, checking for and popping update markers. Checking for update markers is a very frequent operation and indeed the implementation of the STG-machine has been optimised for fast update marker checks at the expense of making the pushing and popping of update markers more costly.In this paper we present a type based sharing analysis that can determine when updates can be safely omitted and marker checks bypassed. The type system is proved sound with respect to the lazy Krivine machine. We have implemented the analysis and the preliminary benchmarks seem very promising. Most notably, virtually all update marker checks can be avoided. This may make the tradeoffs of current implementations obsolete and calls for new abstract machine designs.},
+  booktitle = {Proceedings of the Third ACM SIGPLAN International Conference on Functional Programming},
+  pages = {39–50},
+  numpages = {12},
+  location = {Baltimore, Maryland, USA},
+  series = {ICFP '98}
+}
