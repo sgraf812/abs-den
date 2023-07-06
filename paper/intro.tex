@@ -167,13 +167,6 @@ detail and structural mismatch via the following contributions:
     mathematical function.
     Our semantics is distinct from similar ones for call-by-name or
     call-by-value and we prove it adequate \wrt a standard operational semantics.
-  \item
-    We believe that our semantics is the first to model operational detail of
-    call-by-need behavior while enjoying a structural definition.
-    Our pattern naturally generalises to similar definitions generating
-    call-by-value traces and we believe that its trace-based nature enables
-    unprecedented application of \citeauthor{Cousot:21}'s intraprocedural
-    framework in interprocedural contexts.
   \item The semantics in \Cref{sec:vanilla} is one that encodes the bare minimum
     of information in traces to be useful.
     This is comparable to the traditional denotational approach, where
@@ -183,6 +176,14 @@ detail and structural mismatch via the following contributions:
     small-step transitions.
     The resulting idea of an \emph{eventful} semantics borrows ideas from the
     \emph{maximal trace semantics} of \citet{Cousot:21}.
+  \item
+    We believe that our notion of \emph{trace-based semantics for lambda calculus}
+    is the first to model operational detail of call-by-need behavior while
+    enjoying a structural definition. Our pattern naturally generalises
+    to similar definitions generating call-by-value traces and we believe
+    that its trace-based nature enables unprecedented application of
+    \citeauthor{Cousot:21}'s intraprocedural framework in interprocedural
+    contexts without the need for a control-flow graph abstraction.
   \item In \Cref{sec:essence} we record a few meta-theoretic results about our
     new class of semantics, such as a partially-ordered heap forcing relation,
     a characterisation of denotations that allows us to recover a useful
