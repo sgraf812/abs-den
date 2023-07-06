@@ -546,8 +546,8 @@ It is also a useful property, because it justifies elision of thunk updates:
   $\tr_1 \triangleq \operatorname{fix}(\fn{\tr_1}{\tr ⊔ [\px ↦ [\px↦1]+\semusg{\pe_1}_{\tr_1}]})$.
 
   Consider the case that $\px$ is not dead in $\pe_1$.
-  Then $\tr_1(\px) = ω = ω*\tr_1(\px) \not⊑ \semusg{\pe_2}_{\tr_1}$ and $\px$
-  would be dead in $\pe_2$ and the proof becomes trivial.
+  Then $\tr_1(\px) = ω = ω*\tr_1(\px) \not⊑ \semusg{\pe_2}_{\tr_1}$, so $\px$
+  would be dead in $\pe_2$ and the goal follows from deadness.
   So we assume that $\px$ is dead in $\pe_1$.
 
   We prove $(\lockstep)$ by rule $\impdenot$.
@@ -559,6 +559,23 @@ It is also a useful property, because it justifies elision of thunk updates:
   where $\pa \not∈\dom(μ_i)$,
   $\dom(μ_i) ∪ \{\pa\} ⊦ \semevt{\pe_2}_{ρ[\px↦\pa]}$,
   $μ_1 \lessapprox\!\gtrapprox μ_2$.
+  Clearly,
+  \[
+    \dom(μ_i) ⊦_0 \semevt{\pe_2}_{ρ[\px↦\pa]}(μ_1[\pa↦d_2]) \lesssim\!\gtrsim \semevt{\pe_2}_{ρ[\px↦\pa]}(μ_2[\pa↦d_2])
+  \]
+  holds by reflexivity because $μ_1[\pa↦d_2] \lessapprox\!\gtrapprox μ_2[\pa↦d_2]$, so the goal becomes
+  \[
+    \dom(μ_i) ⊦_0 τ_1 \lesssim\!\gtrsim τ_2,
+  \]
+  abbreviating $τ_i \triangleq \semevt{\pe_2}_{ρ[\px↦\pa]}(μ_1[\pa↦d_i])$.
+
+  It suffices to show that $\len(τ_1) = \len(τ_2)$ and that
+  whenever there is $\pa',μ_i'$ such that $\pa$ is dead in $μ_i'(\pa')$ and
+  $τ_i = ... \cons \goodend{\FunV(f_i),μ_i'}$,
+  $\dom(μ_i) ⊦_0 f_1(\pa')(μ_1') \lesssim\!\gtrsim f_2(\pa')(μ_2')$.
+
+  Since any $\pa$ is dead in $μ_1[\pa↦d_i](\pa')$ for any $\pa' ∈ \dom(μ_i)$,
+  this is enough to apply $\impfun$ and the goal follows.
 
 %  Since $\px$ is dead in $\pe_1$, $\pa$ is dead in both
 %  $d_1 \triangleq \memo(\pa,\semevt{\pe_1}_{ρ[\px↦\pa]})$ and
@@ -566,32 +583,36 @@ It is also a useful property, because it justifies elision of thunk updates:
 
   By induction on $\pe_2$.
   We strengthen the induction hypothesis by requiring that $\pa \not∈ \rng(ρ)$.
+  \sg{Perhaps we can get rid of this? No I don't think so. For usage abstraction
+  we might want ``evaluates $\pa$ at most once'' as the invariant, moving much
+  of the $\px=\py$ case to the let case.}
   \begin{itemize}
     \item \textbf{Case $\pe_2 = \py$}:
       If $\px \not= \py$ then $ρ(\py) \not= \pa$ and the goal follows
       from $μ_1 \lessapprox\!\gtrapprox μ_2$.
 
-      If $\px=\py$, the goal reduces to
-      \[
-        \dom(μ_i) ⊦_0 \memo(\pa,\semevt{\pe_1}_{ρ[\px↦\pa]})(μ_1[\pa↦d_1]) \lesssim\!\gtrsim \semevt{\tick\pe_1}_{ρ[\px↦\pa]}(μ_2[\pa↦d_2])
-      \]
+      If $\px=\py$, we have
+      $τ_1 = \memo(\pa,\semevt{\pe_1}_{ρ[\px↦\pa]})(μ_1[\pa↦d_1])$,
+      $τ_2 = \semevt{\tick\pe_1}_{ρ[\px↦\pa]}(μ_1[\pa↦d_2])$.
       Since the tick makes up for the additional step that heap update incurs
-      later on, it suffices to show that
+      later on it is easy to see that $\len(τ_1) = \len(τ_2)$.
+
+      Hence we assume that there is $\pa',μ_i'$ such that $\pa$ is dead in
+      $μ_i'(\pa')$ and $τ_i = ... \cons \goodend{\FunV(f_i),μ_i'}$ and show
       \[
-        \dom(μ_i) ⊦_0 \semevt{\pe_1}_{ρ[\px↦\pa]}(μ_1[\pa↦d_1]) \lesssim\!\gtrsim \semevt{\pe_1}_{ρ[\px↦\pa]}(μ_2[\pa↦d_2])
+        \dom(μ_i) ⊦_0 f_1(\pa')(μ_1') \lesssim\!\gtrsim f_2(\pa')(μ_2')
       \]
       and that the updated heap does not make a difference.
 
       Since $\pa$ is dead in $d \triangleq \semevt{\pe_1}_{ρ[\px↦\pa]}$ because
       $\px$ is dead in $\pe_1$, we have
       \[
-        \dom(μ_i) ⊦_0 d(μ_1[\pa↦d_1]) \lesssim\!\gtrsim d(μ_1[\pa↦d_2]) \lesssim\!\gtrsim d(μ_2[\pa↦d_2])
+        \dom(μ_i) ⊦_0 d(μ_1[\pa↦d_1]) \lesssim\!\gtrsim d(μ_1[\pa↦d_2])
       \]
-      where the latter equality follows from
-      $μ_1[\pa↦d_2] \lessapprox\!\gtrapprox μ_2[\pa↦d_2]$ and reflexivity.
+      NEED THIS
 
       For the elision of the heap update, consider the situation
-      $\bigstep{d}{μ_i[\pa↦d_i]}{\FunV(f_i)}{μ_i'}$.
+      $\bigstep{d}{μ_1[\pa↦d_i]}{\FunV(f_i)}{μ_i'}$.
       For $μ_1'$, we make another step to $μ_1'[\pa↦\memo(\pa,\ret(\FunV(f_1)))]$,
       so we have to prove that
       \[
