@@ -16,8 +16,8 @@ heaps as state and exposes tiresome operational detail such as heap addresses.
 
 On the other hand, memoisation is a very ``benign'' use of state and often we
 can reason rather naturally about call-by-need programs without thinking too
-much about heaps, in contrast to a calculus with arbitrary assignments to ref
-cells.
+much about heaps, in contrast to a call-by-name calculus with arbitrary
+assignments to ref cells.
 
 For example, we can observe that heaps in our semantics evolve in a very
 specific way:
@@ -82,11 +82,11 @@ Once a heap entry is evaluated, it stays that way during forcing:
 The heap forcing relation is reflexive (it is always $μ(\pa) = μ(\pa)$) and
 also antisymmetric:
 
-\begin{lemma}[$(\forcesto)$ is antisymmetric]
+\begin{lemmarep}[$(\forcesto)$ is antisymmetric]
   \label{thm:force-heap-trans}
   Let $μ_1,μ_2$ be heaps and $μ_1 \forcesto μ_2, μ_2 \forcesto μ_1$.
   Then $μ_1 = μ_2$.
-\end{lemma}
+\end{lemmarep}
 \begin{proof}
   It is easy to see that both $μ_1$ and $μ_2$ must have the same domain.
 
@@ -149,11 +149,11 @@ The definitions for lazy heaps, environments and values are necessary by congrue
 When we restrict ourselves to lazy heaps, we can prove transitivity of the
 forcing relation.
 
-\begin{lemma}[$(\forcesto)$ is transitive]
+\begin{lemmarep}[$(\forcesto)$ is transitive]
   \label{thm:force-heap-trans}
   Let $μ_1,μ_2,μ_3$ be lazy heaps and $μ_1 \forcesto μ_2, μ_2 \forcesto μ_3$.
   Then $μ_1 \forcesto μ_3$.
-\end{lemma}
+\end{lemmarep}
 \begin{proof}
   We need a termination measure on $(\forcesto)$ before we can proceed.
   Note that in successive steps $μ_1 \forcesto ... \forcesto μ_n$ where all
@@ -215,10 +215,10 @@ forcing relation.
 
 And now we finally prove that $\semevt{\wild}$ indeed produces a lazy element:
 
-\begin{theorem}
+\begin{theoremrep}
   \label{thm:semevt-lazy}
   For all environments $ρ$ and expressions $\pe$, $\semevt{\pe}_ρ$ is a lazy element.
-\end{theorem}
+\end{theoremrep}
 \begin{proof}
   By induction on $\pe$.
   \begin{itemize}
@@ -407,12 +407,12 @@ This is not too grave a restriction on the observer, because they may
 pre-allocate any denotation into the heap they want (respecting
 well-addressedness, of course) due to laziness.
 
-\begin{lemma}[Weakening of address domain]
+\begin{lemmarep}[Weakening of address domain]
   \label{thm:weaken-address-domain}
   Let $A_1,A_2$ be address domains such that $A_1 ⊆ A_2$. \\
   For all $d$, if $A_1 ⊦ d$ then $A_2 ⊦ d$.
   For all traces $τ_1,τ_2$, if $A_2 ⊦ τ_1 \sim τ_2$ then $A_1 ⊦ τ_1 \sim τ_2$.
-\end{lemma}
+\end{lemmarep}
 \begin{proof}
   The first property follows by unpacking $\textsc{Dom}$.
 
@@ -427,9 +427,9 @@ well-addressedness, of course) due to laziness.
   For all address spaces $A$, environments $ρ$ and expressions $\pe$,
   if $\rng(ρ) ⊆ A$ then $A ⊦ \semevt{\pe}_ρ$.
 \end{lemma}
-\begin{proof}
+\begin{proofsketch}
   Simple proof by induction.
-\end{proof}
+\end{proofsketch}
 
 Our implicit assumption on well-addressedness can be encoded as an axiom as
 follows:
@@ -445,11 +445,11 @@ it is undefined on an input heap $μ$ when $\rng(ρ) \not⊆ \dom(μ)$.
 
 Evaluating lazy elements on heaps that force to each other is semantically equivalent:
 
-\begin{lemma}
+\begin{lemmarep}
   \label{thm:lazy-force-bisimilar}
   Let $d$ be lazy. Then for all $μ_1,μ_2$ with $\dom(μ_1) ⊦ d$ and
   $μ_1 \forcesto μ_2$, we have $\dom(μ_1) ⊦ d(μ_1) \sim d(μ_2)$.
-\end{lemma}
+\end{lemmarep}
 \begin{proof}
   This lemma makes essential use of the Postpone and Speculate properties.
   Note that we are free to make use of the latter because $d$ is defined
@@ -476,9 +476,9 @@ Evaluating lazy elements on heaps that force to each other is semantically equiv
   \Cref{thm:weaken-address-domain}.
 \end{proof}
 
-\begin{theorem}
+\begin{theoremrep}
   For any $A$, $(\fn{(τ_1,τ_2)}{A ⊦ τ_1 \sim τ_2})$ is an equivalence relation on lazy traces.
-\end{theorem}
+\end{theoremrep}
 \begin{proof}
 Reflexivity follows by straightforwardly by Löb induction.
 Symmetry does so as well, with the twist that the rule applications of
@@ -529,10 +529,10 @@ elements $d$:
   A lazy element $d$ is \emph{extensional} if and only if $d \equiv d$.
 \end{definition}
 
-\begin{theorem}
+\begin{theoremrep}
   $(\equiv)$ is an equivalence relation on lazy and extensional elements in
   $\EventD$.
-\end{theorem}
+\end{theoremrep}
 \begin{proof}
 Reflexivity follows by extensionality.
 Symmetry follows straightforwardly by Löb induction, noting that the $\dom(μ_1)$
@@ -572,10 +572,10 @@ $(\equiv)$ is still a partial equivalence relation on lazy elements.
 
 What remains is a proof that $\semevt{\pe}_ρ$ is indeed extensional.
 
-\begin{theorem}
+\begin{theoremrep}
   For all environments $ρ$ and expressions $\pe$,
   $\semevt{\pe}_ρ$ is extensional.
-\end{theorem}
+\end{theoremrep}
 \begin{proof}
 By induction on $\pe$.
 \begin{itemize}
@@ -721,18 +721,18 @@ We think it would be simple to prove that $\semevt{\wild}$ is
   Then for all evaluation contexts $\pE$ and environments $ρ$, we have
   $\semevt{\pE[\pe_1]}_{ρ} = \semevt{\pE[\pe_2]}_{ρ}$.
 \end{lemma}
-\begin{proof}
+\begin{proofsketch}
   By induction on $\pE$.
-\end{proof}
+\end{proofsketch}
 
 Most interestingly, $\semevt{\wild}$ is also compositional \wrt to $(\equiv)$!
 
-\begin{theorem}[Semantic equivalence is compositional]
+\begin{theoremrep}[Semantic equivalence is compositional]
   Let $\pe_1, \pe_2$ be expressions such that
   for all environments $ρ$, $\semevt{\pe_1}_ρ \equiv \semevt{\pe_2}_ρ$.
   Then for all evaluation contexts $\pE$ and environments $ρ$, we have
   $\semevt{\pE[\pe_1]}_{ρ} \equiv \semevt{\pE[\pe_2]}_{ρ}$.
-\end{theorem}
+\end{theoremrep}
 \begin{proof}
   By induction on $\pE$.
   \begin{itemize}
@@ -781,13 +781,13 @@ Most interestingly, $\semevt{\wild}$ is also compositional \wrt to $(\equiv)$!
 
 And finally, we can prove that $(\equiv)$ is indeed coarser than contextual equivalence:
 
-\begin{corollary}[Semantic equivalence implies contextual equivalence]
+\begin{corollaryrep}[Semantic equivalence implies contextual equivalence]
   Let $\pe_1, \pe_2$ be expressions such that $\semevt{\pe_1}_ρ \equiv \semevt{\pe_2}_ρ$.
   Then for all closed evaluation contexts $\pE$, we have
   \[
     \len(\semevt{\pE[\pe_1]}_{[]}([])) = ω \Leftrightarrow \len(\semevt{\pE[\pe_1]}_{[]}([])) = ω.
   \]
-\end{corollary}
+\end{corollaryrep}
 \begin{proof}
   It suffices to show that for all $d_1,d_2$ with $\varnothing ⊦ d_1,d_2$,
   if $d_1 \equiv d_2$ then $\len(d_1([])) = ω \Leftrightarrow \len(d_2([])) = ω$.

@@ -586,10 +586,10 @@ An example for a diverging trace where $ρ=[x↦\pa_1]$ and $μ=[\pa_1↦(ρ,x)]
 
 A maximal trace that is not balanced either diverges or is stuck:
 
-\begin{lemma}[Characterisation of maximal traces]
+\begin{lemmarep}[Characterisation of maximal traces]
   An LK trace $(σ_i)_{i∈\overline{n}}$ is maximal if and only if it is balanced,
   diverging or stuck.
-\end{lemma}
+\end{lemmarep}
 \begin{proof}
   $\Rightarrow$: Let $(σ_i)_{i∈\overline{n}}$ be maximal.
   If $n=ω$ is infinite, then it is diverging due to interiority, and if
@@ -719,7 +719,7 @@ Let us warm up by defining a length function on traces:
   \end{itemize}
 \end{proof}
 
-\begin{lemma}[Preservation of characteristic]
+\begin{lemmarep}[Preservation of characteristic]
   \label{thm:abs-max-trace}
   Let $(σ_i)_{i∈\overline{n}}$ be a maximal trace.
   Then $α_\STraces((σ_i)_{i∈\overline{n}}, cont(σ_0))$ is ...
@@ -728,7 +728,7 @@ Let us warm up by defining a length function on traces:
     \item ... ending with $\goodend{\wild,\wild}$ if and only if $(σ_i)_{i∈\overline{n}}$ is balanced
     \item ... ending with $\stuckend$ if and only if $(σ_i)_{i∈\overline{n}}$ is stuck
   \end{itemize}
-\end{lemma}
+\end{lemmarep}
 \begin{proof}
   The first point follows by a similar inductive argument as in \Cref{thm:abs-length}.
 
@@ -751,13 +751,13 @@ infinite.
 
 With increased clarity, we go on to prove the correctness predicate:
 
-\begin{theorem}[Correctness of $\semvan{\wild}$]
+\begin{theoremrep}[Correctness of $\semvan{\wild}$]
   \label{thm:semvan-correct}
   $\correct$ from \Cref{fig:semvan-correctness} holds.
   That is, whenever $(σ_i)_{i∈\overline{n}}$ is a maximal LK trace with source
   state $(\pe,ρ,μ,κ)$, we have
   $α_{\STraces}((σ_i)_{i∈\overline{n}},κ) = \semvan{\pe}_{ρ}(α_\Heaps(μ))$.
-\end{theorem}
+\end{theoremrep}
 \begin{proof}
 By Löb induction, with $IH ∈ \later C$ as the hypothesis.
 
@@ -858,7 +858,7 @@ We do so by cases over $\pe$, abbreviating $\tm \triangleq α_\Heaps(μ)$:
 strong version of adequacy for $\semvan{\wild}$, where $σ$ is defined to be a
 \emph{final} state if $\ctrl(σ)$ is a value and $\cont(σ) = \StopF$.
 
-\begin{theorem}[Adequacy of $\semvan{\wild}$]
+\begin{theoremrep}[Adequacy of $\semvan{\wild}$]
   \label{thm:semvan-adequate}
   Let $τ = \semvan{\pe}_{[]}([])$.
   \begin{itemize}
@@ -873,7 +873,7 @@ strong version of adequacy for $\semvan{\wild}$, where $σ$ is defined to be a
       $τ$ is infinite (is diverging) iff for all $σ$ with $\inj(\pe)
       \smallstep^* σ$ there exists $σ'$ with $σ \smallstep σ'$.
   \end{itemize}
-\end{theorem}
+\end{theoremrep}
 \begin{proof}
   There exists a maximal trace $(σ_i)_{i∈\overline{n}}$ starting
   from $σ_0 = \inj(\pe)$, and by \Cref{thm:semvan-correct} we have

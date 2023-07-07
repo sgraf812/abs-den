@@ -20,11 +20,11 @@ $\semevt{\wild}$ and $\equiv$:
   Otherwise, $\px$ is \emph{live}.
 \end{definition}
 
-\begin{lemma}[Deadness implies irrelevance]
+\begin{lemmarep}[Deadness implies irrelevance]
   If $\px$ is dead in $\pe$,
   then for all $ρ, \pe_1,\pe_2$,
   \[\semevt{\Let{\px}{\pe_1}{\pe}}_{ρ} \equiv \semevt{\Let{\px}{\pe_2}{\pe}}_{ρ}.\]
-\end{lemma}
+\end{lemmarep}
 \begin{proof}
   Assume that $\pa$ is dead in $\semevt{\pe}_{ρ[\px↦\pa]}$ for any
   $ρ$ such that $\pa \not∈ \rng(ρ)$.
@@ -61,12 +61,12 @@ $\mathit{panic}$s.
 We can now prove \Cref{thm:semusg-correct-live} in terms of this new
 characterisation of deadness by induction:
 
-\begin{theorem}[$\semusg{\wild}$ is a correct deadness analysis]
+\begin{theoremrep}[$\semusg{\wild}$ is a correct deadness analysis]
   \label{thm:semusg-correct-live-3}
   Let $\pe$ be an expression, $\px$ a variable and $\tr$ a usage environment.
   If $\tr(\px) \not⊑ \semusg{\pe}_{\tr}$
   then $\px$ is dead in $\pe$.
-\end{theorem}
+\end{theoremrep}
 \begin{proof}
   By induction over $\pe$.
   The full proof can be found in \Cref{prf:semusg-correct-live-3}.
@@ -252,8 +252,8 @@ $\Letn{x}{\pe_1}{\pe_2}$.
 
 We can sharpen this statement by making use of \emph{tick algebra}
 \citep{MoranSands:99}.
-For that, we need to add a notion of (postfix, to mirror $\memo$) ticks to
-our language, a routine extension:
+For that, we need to add a notion of ticks to
+our language (postfix, to mirror $\memo$), a routine extension:
 \[
  \begin{array}{rcl}
   ε ∈ \Events   & ::= & ... \mid \TickE \\
@@ -357,14 +357,14 @@ property}~\citep{Cousot:21} (also called
 \emph{hyperproperty} by~\citet{ClarksonSchneider:10}).
 
 It is also a useful property, because it justifies elision of thunk updates:
-\begin{theorem}[Update elision]
+\begin{theoremrep}[Update elision]
   \label{thm:usg-by-name}
   Let $\Let{\px}{\pe_1}{\pe_2}$ be an expression such that $\pe_2$ evaluates $\px$
   at most once and $\px$ is dead in $\pe_1$.
   Then
     $\semevt{\Let{\px}{\pe_1}{\pe_2}}_ρ \lockstep
      \semevt{\Letn{\px}{\pe_1\tick}{\pe_2}}_ρ$.
-\end{theorem}
+\end{theoremrep}
 \begin{proof}
   Unless explicitly stated otherwise, we will always apply the improvement
   judgments in a symmetrical manner.
@@ -521,7 +521,7 @@ It is also a useful property, because it justifies elision of thunk updates:
   If $A ⊦_0 d_1(μ_1) \lesssim d_2(μ_2)$, then $A ⊦_0 d_1(μ_1[\pa↦d_1]) \lesssim d_2(μ_2[\pa↦d_2])$.
 \end{lemma}
 
-\begin{lemma}[Dead update]
+\begin{lemmarep}[Dead update]
   Let $\pa$ be dead in $d$ and $\rng(μ)$, and $\bigstep{d}{μ[\pa↦d]}{\FunV(f)}{μ'}$, \\
   $d' \triangleq \memo(\pa,\ret(\FunV(f)))$.
   Then
@@ -529,7 +529,7 @@ It is also a useful property, because it justifies elision of thunk updates:
     \dom(μ) ⊦_0 f(\pa')(μ'[\pa↦d']) \lesssim\!\gtrsim f(\pa')(μ')
   \]
   for any $\pa' ∈ \dom(μ)$ such that $\pa$ is dead in $μ'(\pa')$.
-\end{lemma}
+\end{lemmarep}
 \begin{proof}
   Since $\pa$ is dead in $d$, we have
   \[
@@ -561,11 +561,11 @@ It is also a useful property, because it justifies elision of thunk updates:
   The goal follows from \Cref{eqn:dead-upd-equal}.
 \end{proof}
 
-\begin{lemma}
+\begin{lemmarep}
   \label{thm:pe1-dead}
   If $ω*\tr(\px) \not⊑ \semusg{\Let{\px}{\pe_1}{\pe_2}}_{\tr}$, then $\px$ is
   dead in either $\pe_1$ or $\pe_2$.
-\end{lemma}
+\end{lemmarep}
 \begin{proof}
   Unfold $\semusg{\wild}$ once and consider the case that $\px$ is not dead in $\pe_1$,
   so we have $\tr(\px) ⊑ \semusg{\pe_1}_{\tr}$.
@@ -603,14 +603,14 @@ It is also a useful property, because it justifies elision of thunk updates:
 \end{figure}
 
 It is also a useful property, because it justifies elision of thunk updates:
-\begin{theorem}[Update elision]
+\begin{theoremrep}[Update elision]
   \label{thm:usg-by-name}
   Let $\Let{\px}{\pe_1}{\pe_2}$ be an expression and $\tr$ a usage environment
   such that $ω*\tr(\px) \not⊑ \semusg{\Let{\px}{\pe_1}{\pe_2}}_{\tr}$.
   Then
     $\semevt{\Let{\px}{\pe_1}{\pe_2}}_ρ \lockstep
      \semevt{\Letn{\px}{\pe_1\tick}{\pe_2}}_ρ$.
-\end{theorem}
+\end{theoremrep}
 \begin{proof}
   Unless explicitly stated otherwise, we will always apply the improvement
   judgments in a symmetrical manner.
@@ -875,13 +875,13 @@ The use of the term ``abstraction'' is justifiable by the following lemma:
 %  Then, by monotonicity, $α(c) ⊑ α(γ(a)) = α(\bigvee \{ c \mid α(c) ⊑ a \})$.
 %\end{proof}
 
-\begin{lemma}[Pointwise abstraction, after \citet{Cousot:21}]
+\begin{lemmarep}[Pointwise abstraction, after \citet{Cousot:21}]
   Let $f : C \to A$ be a function.
   Then $f^* : A \to \poset{C}, f^*(C) = \Lub \{ f(c) \mid c ∈ C \}$
   and $f^⊣ : A \to \poset{C}, f^⊣(a) = \bigcup \{ C \mid f^*(C) ⊑ a \}$
   form a Galois connection between partial orders
   $(A,⊑) \galois{f^*}{f^⊣}(\poset{C},⊆)$.
-\end{lemma}
+\end{lemmarep}
 \begin{proof}
   For any $a,C$, let $f^*(C) ⊑ a$.
   Then $C ∈ \{ C \mid f^*(C) ⊑ a \}$ and hence $C ⊆ f^⊣(a)$.

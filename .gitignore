@@ -2,6 +2,7 @@ comp-trace-ext.tex
 .direnv
 
 *.aux
+*.axp
 *.bbl
 *.blg
 *.dvi
