@@ -525,6 +525,90 @@ It is also a useful property, because it justifies elision of thunk updates:
 
 \end{proof}
 
+\begin{lemma}[Heap extension preserves improvement]
+  If $A ⊦_0 d_1(μ_1) \lesssim d_2(μ_2)$, then $A ⊦_0 d_1(μ_1[\pa↦d_1]) \lesssim d_2(μ_2[\pa↦d_2])$.
+\end{lemma}
+
+\begin{lemma}[Dead update]
+  Let $\pa$ be dead in $d$ and $\rng(μ)$, and $\bigstep{d}{μ[\pa↦d]}{\FunV(f)}{μ'}$, \\
+  $d' \triangleq \memo(\pa,\ret(\FunV(f)))$.
+  Then
+  \[
+    \dom(μ) ⊦_0 f(\pa')(μ'[\pa↦d']) \lesssim\!\gtrsim f(\pa')(μ')
+  \]
+  for any $\pa' ∈ \dom(μ)$ such that $\pa$ is dead in $μ'(\pa')$.
+\end{lemma}
+\begin{proof}
+  Since $\pa$ is dead in $d$, we have
+  \[
+    \dom(μ) ⊦_0 d(μ[\pa↦d']) \lesssim\!\gtrsim d(μ[\pa↦d])
+  \]
+  (If needed, we can add dead entries to $μ$ from $μ'$ such that $d'$
+  is defined on the extended $μ$ and apply the heap partitioning
+  \Cref{thm:heap-partitioning} to get a $d'$ that is defined on $μ$.)
+
+  Whenever $\bigstep{d}{μ[\pa↦d]}{\FunV(f)}{μ'}$,
+  we also have $\bigstep{d}{μ[\pa↦d']}{\FunV(f)}{μ''}$
+  by the Postpone property, because $μ[\pa↦d] \forcesto μ[\pa↦d']$.
+  Thus, we also have $μ' \forcesto μ''$.
+
+  By deadness, we have
+  \begin{equation}
+    \label{eqn:dead-upd-equal}
+    \dom(μ) ⊦_0 f(\pa')(μ') \lesssim\!\gtrsim f(\pa')(μ'')
+  \end{equation}
+
+  On the other hand, $μ''(\pa) = d'$, because $μ[\pa↦d'] \forcesto μ''$.
+  $μ'(\pa)$ can be either $d$ or $d'$ because $μ[\pa↦d] \forcesto μ'$,
+  so $μ' \forcesto μ'[\pa↦d'] \forcesto μ''$.
+  That implies $μ' \lessapprox μ'[\pa↦d'] \lessapprox μ''$ and therefore
+  \[
+    \dom(μ) ⊦_0 f(\pa')(μ') \lesssim f(\pa')(μ'[\pa↦d']) \lesssim f(\pa')(μ'').
+  \]
+  by reflexivity of $\lesssim$ on $f(\pa')$.
+  The goal follows from \Cref{eqn:dead-upd-equal}.
+\end{proof}
+
+\begin{lemma}
+  \label{thm:pe1-dead}
+  If $ω*\tr(\px) \not⊑ \semusg{\Let{\px}{\pe_1}{\pe_2}}_{\tr}$, then $\px$ is
+  dead in either $\pe_1$ or $\pe_2$.
+\end{lemma}
+\begin{proof}
+  Unfold $\semusg{\wild}$ once and consider the case that $\px$ is not dead in $\pe_1$,
+  so we have $\tr(\px) ⊑ \semusg{\pe_1}_{\tr}$.
+
+  We have
+  $ω*\tr_1(\px) \not⊑ \semusg{\pe_2}_{\tr_1}$ where
+  $\tr_1 \triangleq \operatorname{fix}(\fn{\tr_1}{\tr ⊔ [\px ↦ [\px↦1]+\semusg{\pe_1}_{\tr_1}]})$.
+
+  Clearly, $\tr_1(\px) = ω$, so
+  $\tr_1(\px) \not⊑ \semusg{\pe_2}_{\tr_1}$, so $\px$ must be dead in $\pe_2$.
+\end{proof}
+
+\begin{figure}
+\[\begin{array}{c}
+ \ruleform{ \correct_\pa(τ_1,τ_2) }
+ \\
+ \\[-0.5em]
+ \inferrule*[right=\corstuck]
+    {\quad}
+    {\correct_\pa(\stuckend{},\stuckend{})}
+ \quad
+ \inferrule*[right=\corcons]
+    {\later (\correct_\pa(τ_1,τ_2))}
+    {\correct_\pa(\wild :: τ_1,\wild :: τ_2)}
+ \\
+ \\[-0.5em]
+ \inferrule*[right=\corfun]
+    {\dom(μ_1) = \dom(μ_2) \quad \forall \pa' ∈ \dom(μ_i).\ \dead_\pa(μ_i(\pa')) \Longrightarrow \correct_\pa(f_1(\pa')(μ_1), f_1(\pa')(μ_1))}
+    {\correct_\pa(\goodend{\FunV(f_1),μ_1},\goodend{\FunV(f_2),μ_2})}
+ \\
+ \\[-0.5em]
+\end{array}\]
+\caption{Correctness relation for \Cref{thm:usg-by-name}}
+  \label{fig:semusg-correct}
+\end{figure}
 
 It is also a useful property, because it justifies elision of thunk updates:
 \begin{theorem}[Update elision]
@@ -541,14 +625,7 @@ It is also a useful property, because it justifies elision of thunk updates:
   That is, whenever we have to prove $a ⊑ b$, the proof should also hold for
   $b ⊑ a$ (where $(⊑)$ is either of $(\faster),(\lessapprox),(\lesssim)$).
 
-  Assume that $ω*\tr(\px) \not⊑ \semusg{\Let{\px}{\pe_1}{\pe_2}}_{\tr}$ for some $\tr$, so
-  $ω*\tr_1(\px) \not⊑ \semusg{\pe_2}_{\tr_1}$ where
-  $\tr_1 \triangleq \operatorname{fix}(\fn{\tr_1}{\tr ⊔ [\px ↦ [\px↦1]+\semusg{\pe_1}_{\tr_1}]})$.
-
-  Consider the case that $\px$ is not dead in $\pe_1$.
-  Then $\tr_1(\px) = ω = ω*\tr_1(\px) \not⊑ \semusg{\pe_2}_{\tr_1}$, so $\px$
-  would be dead in $\pe_2$ and the goal follows from deadness.
-  So we assume that $\px$ is dead in $\pe_1$.
+  By \Cref{thm:pe1-dead}, we assume that $\px$ is dead in $\pe_1$.
 
   We prove $(\lockstep)$ by rule $\impdenot$.
   After unfolding the definitions of $\semevt{\wild}$ for $\mathbf{let}$ and
@@ -569,47 +646,79 @@ It is also a useful property, because it justifies elision of thunk updates:
   \]
   abbreviating $τ_i \triangleq \semevt{\pe_2}_{ρ[\px↦\pa]}(μ_1[\pa↦d_i])$.
 
-  It suffices to show that $\len(τ_1) = \len(τ_2)$ and that
-  whenever there is $\pa',μ_i'$ such that $\pa$ is dead in $μ_i'(\pa')$ and
-  $τ_i = ... \cons \goodend{\FunV(f_i),μ_i'}$,
-  $\dom(μ_i) ⊦_0 f_1(\pa')(μ_1') \lesssim\!\gtrsim f_2(\pa')(μ_2')$.
+  \noindent
+  We will prove the correctness predicate $\correct(τ_1,τ_2)$ instead, where
+  $\correct$ is defined in \Cref{fig:semusg-correct}.
 
-  Since any $\pa$ is dead in $μ_1[\pa↦d_i](\pa')$ for any $\pa' ∈ \dom(μ_i)$,
-  this is enough to apply $\impfun$ and the goal follows.
+  Since $\pa$ is dead in $μ_1[\pa↦d_i](\pa')$ for any $\pa' ∈ \dom(μ_i)$,
+  and $\corfun$ only sees more forced versions of this heap,
+  $\corfun$ implies $\impfun$ on $\dom(μ_i)$ and the goal follows.
 
 %  Since $\px$ is dead in $\pe_1$, $\pa$ is dead in both
 %  $d_1 \triangleq \memo(\pa,\semevt{\pe_1}_{ρ[\px↦\pa]})$ and
 %  $d_2 \triangleq \semevt{\tick\pe_1}_{ρ[\px↦\pa]}$.
 
+  \begin{definition}
+    $d$ is \emph{$\pa$-once} if an only if, for all $μ$ such that $\rng(μ)$ is
+    $\pa$-once and $\pa$ is dead in $d'$,
+    \[
+      \correct(d(μ[\pa↦\tick d']), d(μ[\pa↦\memo(\pa,d')]))
+    \]
+    (where $(\tick d')(μ) \triangleq \TickE \cons d'(μ)$.)
+  \end{definition}
+
+  We show that $\semevt{\pe_2}_{ρ[\px↦\pa]}$ is $\pa$-once.
   By induction on $\pe_2$.
-  We strengthen the induction hypothesis by requiring that $\pa \not∈ \rng(ρ)$.
-  \sg{Perhaps we can get rid of this? No I don't think so. For usage abstraction
-  we might want ``evaluates $\pa$ at most once'' as the invariant, moving much
-  of the $\px=\py$ case to the let case.}
+%  We strengthen the induction hypothesis by requiring that $\pa \not∈ \rng(ρ)$
+%  and generalise over $μ_i$.
+%  \sg{Perhaps we can get rid of this? No I don't think so. For usage abstraction
+%  we might want ``evaluates $\pa$ at most once'' as the invariant, moving much
+%  of the $\px=\py$ case to the let case.}
   \begin{itemize}
     \item \textbf{Case $\pe_2 = \py$}:
+      $μ(ρ(\px))$ is $\pa$-once by assumption.
       If $\px \not= \py$ then $ρ(\py) \not= \pa$ and the goal follows
       from $μ_1 \lessapprox\!\gtrapprox μ_2$.
 
       If $\px=\py$, we have
       $τ_1 = \memo(\pa,\semevt{\pe_1}_{ρ[\px↦\pa]})(μ_1[\pa↦d_1])$,
-      $τ_2 = \semevt{\tick\pe_1}_{ρ[\px↦\pa]}(μ_1[\pa↦d_2])$.
+      ${τ_2 = \semevt{\tick\pe_1}_{ρ[\px↦\pa]}(μ_1[\pa↦d_2])}$.
       Since the tick makes up for the additional step that heap update incurs
       later on it is easy to see that $\len(τ_1) = \len(τ_2)$.
+
+      We can see that $\pa$ is dead in
+      $d \triangleq \semevt{\pe_1}_{ρ[\px↦\pa]}$ because $\px$ is dead in
+      $\pe_1$, so we have
+      \[
+        \dom(μ_i) ⊦_0 d(μ_1[\pa↦d_1]) \lesssim\!\gtrsim d(μ_1[\pa↦d_2])
+      \]
+
+      In the interesting case we have $\bigstep{d}{μ_1[\pa↦d_i]}{\FunV(f_i)}{μ_i'}$
+      and
+      \[
+        \dom(μ_i) ⊦_0 f_1(\pa')(μ_1') \lesssim\!\gtrsim f_2(\pa')(μ_2')
+      \]
+      for any $\pa' ∈ \dom(μ_i)$.
+
+      However, $τ_2$ does one $\tick$ step before and $τ_1$ does one more heap update after, so the goal is to show
+      \[
+        \dom(μ_i) ⊦_0 f_1(\pa')(μ_1'[\pa↦\memo(\pa,\ret(\FunV(f_1)))]) \lesssim\!\gtrsim f_2(\pa')(μ_2')
+      \]
+      for any $\pa' ∈ \dom(μ_i)$ such that $\pa$ is dead in $μ_i(\pa')$.
+
+      WHAT DO WE NEED?
+
+      We need some statement that $\pa$ is dead in $f_1(\pa')$.
+      Of course, $\pa$ was dead in $d$; it is somewhat clear that $\pa$ is dead in $f_1(\pa')(μ_i + [\pa↦d'])$
+      if $\pa$ is dead in $μ_i(\pa')$.
+      Unfortunately, deadness is a statement over all heaps where a denotaiton is defined.
+      We need a notion where we ask for one particular (class of) heap specifically.
 
       Hence we assume that there is $\pa',μ_i'$ such that $\pa$ is dead in
       $μ_i'(\pa')$ and $τ_i = ... \cons \goodend{\FunV(f_i),μ_i'}$ and show
       \[
         \dom(μ_i) ⊦_0 f_1(\pa')(μ_1') \lesssim\!\gtrsim f_2(\pa')(μ_2')
       \]
-      and that the updated heap does not make a difference.
-
-      Since $\pa$ is dead in $d \triangleq \semevt{\pe_1}_{ρ[\px↦\pa]}$ because
-      $\px$ is dead in $\pe_1$, we have
-      \[
-        \dom(μ_i) ⊦_0 d(μ_1[\pa↦d_1]) \lesssim\!\gtrsim d(μ_1[\pa↦d_2])
-      \]
-      NEED THIS
 
       For the elision of the heap update, consider the situation
       $\bigstep{d}{μ_1[\pa↦d_i]}{\FunV(f_i)}{μ_i'}$.
@@ -634,6 +743,41 @@ It is also a useful property, because it justifies elision of thunk updates:
         \dom(μ_i) ⊦_0 f_1(\pa')(μ_1') \lesssim\!\gtrsim f_2(\pa')(μ_2')
       \]
       Thus proving the goal.
+
+    \item \textbf{Case $\pe_2 = \Lam{\py}{\pe}$}:
+      If $\px = \py$, $\pa$ is dead in
+      $\semevt{\pe}_{ρ[\px↦\pa][\py↦\pa']} = \semevt{\pe}_{ρ[\py↦\pa']}$ and we are done.
+
+      Otherwise, $\px \not= \py$ noting that $\pa \not∈ \rng(ρ[\py↦\pa'])$ and
+      we can apply the induction hypothesis to $\pe$.
+      It is clear that $\len(τ_1) = 0 = \len(τ_2)$.
+      What remains to be shown is that for any $\pa' ∈ \dom(μ_i)$ where $\pa$ is dead in $μ_i(\pa')$,
+      $\pa$ is dead in $\semevt{\pe}_{ρ[\px↦\pa][\py↦\pa']}$.
+
+      From $ω*\tr_1(\px) \not⊑ ω*\semusg{\pe}_{\tr_1[\py↦⊥]}$ we can see that
+      $\tr_1(\px) \not⊑ \semusg{\pe}_{\tr_1[\py↦⊥]}$ by monotonicity,
+      so $\px$ is dead in $\pe$, hence $\pa$ is dead in $\semevt{\pe}_{ρ[\py↦\pa'][\px↦\pa]}$.
+
+
+    \item \textbf{Case $\pe_2 = \pe~\py$}:
+      From $ω*\tr_1(\px) \not⊑ \semusg{\pe}_{\tr_1} + ω*\tr_1(\py)$ we can see that
+      $ω*\tr_1(\px) \not⊑ \semusg{\pe}_{\tr_1}$ and $\tr_1(\px) \not⊑ \tr_1(\py)$ by
+      monotonicity of $+$ and $*$.
+      If $\px=\py$ then the latter inequality leads to a contradiction, so
+      $\px \not= \py$ and furthermore, $\pa$ is dead in $μ_i(ρ(\py))$
+      (as can be seen by considering $\tr_1(\px) \not⊑ \semusg{\py}_{\tr_1}$).
+
+      Since $ω*\tr_1(\px) \not⊑ \semusg{\pe}_{\tr_1}$, we can apply the induction
+      hypothesis to $\pe$, so we have \\
+      (1) $\len(\semevt{\pe}_{ρ[\px↦\pa]}(μ_1[\pa↦d_1])) = \len(\semevt{\pe_2}_{ρ[\px↦\pa]}(μ_1[\pa↦d_2]))$,
+      and \\
+      (2) in the interesting case that $\bigstep{\semevt{\pe}_{ρ[\px↦\pa]}}{μ_1[\pa↦d_i]}{\FunV(f_i)}{μ_i'}$,
+      we have
+      \[
+        \dom(μ_i) ⊦_0 f_1(\pa')(μ_1') \lesssim\!\gtrsim f_2(\pa')(μ_2')
+      \]
+      for any $\pa' ∈ \dom(μ_i)$ such that $\pa$ is dead in $μ_i(\pa')$.
+      But $ρ(\py)$ is just such an address and the two facts together show the goal.
 
     \item \textbf{Case $\pe_2 = \Let{\py}{\pe_1'}{\pe_2'}$}:
       We assume that $\px \not= \py$ (otherwise $\pa$ would be dead) and have to show that
@@ -690,46 +834,6 @@ It is also a useful property, because it justifies elision of thunk updates:
           \]
           as requested.
       \end{itemize}
-
-    \item \textbf{Case $\pe_2 = \Lam{\py}{\pe}$}:
-      By rule $\impfun$ it suffices to show that, for any $\pa' ∈ \dom(μ_i)$,
-      \[
-        \dom(μ_i) ⊦_0 \semevt{\pe}_{ρ[\px↦\pa][\py↦\pa']}(μ_1[\pa↦d_1]) \lesssim\!\gtrsim \semevt{\pe}_{ρ[\px↦\pa][\py↦\pa']}(μ_2[\pa↦d_2]).
-      \]
-      If $\px = \py$, $\pa$ is dead in
-      $\semevt{\pe}_{ρ[\px↦\pa][\py↦\pa']} = \semevt{\pe}_{ρ[\py↦\pa']}$, thus
-      showing the goal.
-
-      Otherwise, $\px \not= \py$ and $\pa \not∈ \rng(ρ[\py↦\pa'])$, so if we can
-      apply the induction hypothesis to $\pe$, we are done.
-      For that, we need to prove that $\pe$ evaluates $\px$ at most once.
-      We know that
-      \[\begin{array}{rcl}
-        1 & ⊒ & \ctx_\LookTraces(\usg_\Traces(\semevt{\pe_2}_{ρ[\px↦\pa]}(μ_i[\pa↦d_i])))(\pa) \\
-          & ⊒ & ω*\ctx_\LookTraces(\usg_\Traces(\semevt{\pe}_{ρ[\px↦\pa][\py↦\pa']}(μ_i[\pa↦d_i])))(\pa) \\
-          & ⊒ & \ctx_\LookTraces(\usg_\Traces(\semevt{\pe}_{ρ[\px↦\pa][\py↦\pa']}(μ_i[\pa↦d_i])))(\pa) \\
-      \end{array}\]
-      where the second inequality follows from $μ ∈ \usg_\Heaps(\usg^{⊣}_\Heaps(μ))$.
-      Thus we can apply the induction hypothesis.
-    \item \textbf{Case $\pe_2 = \pe~\py$}:
-      From $ω*\tr_1(\px) \not⊑ \semusg{\pe}_{\tr_1} + ω*\tr_1(\py)$ we can see that
-      $ω*\tr_1(\px) \not⊑ \semusg{\pe}_{\tr_1}$ and $\tr_1(\px) \not⊑ \tr_1(\py)$ by
-      monotonicity of $+$ and $*$.
-      If $\px=\py$ then the latter inequality leads to a contradiction,
-      so $\px \not= \py$ and $ρ(\py) ∈ \dom(μ_i)$.
-
-      Since $ω*\tr_1(\px) \not⊑ \semusg{\pe}_{\tr_1}$, we can apply the induction
-      hypothesis to $\pe$, so we have
-      \[
-        \dom(μ_i) ⊦_0 \semevt{\pe}_{ρ[\px↦\pa]}(μ_1[\pa↦d_1]) \lesssim\!\gtrsim \semevt{\pe_2}_{ρ[\px↦\pa]}(μ_2[\pa↦d_2])
-      \]
-      The interesting case is again when $\betastep{\semevt{\pe}_{ρ[\px↦\pa]}}{μ_i[\pa↦d_i]}{\FunV(f_i)}{μ_i'}$.
-      In that case, we have
-      \[
-        \dom(μ_i) ⊦_0 f_1(\pa')(μ_1') \lesssim\!\gtrsim f_2(\pa')(μ_2')
-      \]
-      for any $\pa' ∈ \dom(μ_i)$.
-      But $ρ(\py)$ is just such an address and hence we show the goal.
 
     \item \textbf{Case $\pe = \Let{\py}{\pe_1}{\pe_2}$}:
       We have to show that
