@@ -617,7 +617,7 @@ have proven it an adequate replacement for the LK transition system.
 
 \subsection{Adequacy}
 
-\Cref{fig:semvan-correctness} shows the correctness predicate $\mathcal{C}$ in
+\Cref{fig:semvan-correctness} shows the correctness predicate $\correct$ in
 our endeavour to prove $\semvan{\wild}$ adequate.
 It builds on the framework of maximal LK traces established in the last section;
 specifically it encodes that an \emph{abstraction} of every maximal LK trace can be
@@ -634,7 +634,7 @@ state.
     α_\VanV(σ_0) & \ctrl(σ_0) \text{ value } \wedge \cont(σ_0) = κ \\
     \stuckend & \text{otherwise} \\
   \end{cases} \\
-  \mathcal{C}((σ_i)_{i∈\overline{n}}) & = & \maxtrace{(σ_i)_{i∈\overline{n}}} \Longrightarrow ∀((\pe,ρ,μ,κ) = σ_0).\ α_{\STraces}((σ_i)_{i∈\overline{n}},κ) = \semvan{\pe}_{ρ}(α_\Heaps(μ)) \\
+  \correct((σ_i)_{i∈\overline{n}}) & = & \maxtrace{(σ_i)_{i∈\overline{n}}} \Longrightarrow ∀((\pe,ρ,μ,κ) = σ_0).\ α_{\STraces}((σ_i)_{i∈\overline{n}},κ) = \semvan{\pe}_{ρ}(α_\Heaps(μ)) \\
 \end{array}\]
 \caption{Correctness predicate for $\semvan{\wild}$}
   \label{fig:semvan-correctness}
@@ -753,7 +753,7 @@ With increased clarity, we go on to prove the correctness predicate:
 
 \begin{theorem}[Correctness of $\semvan{\wild}$]
   \label{thm:semvan-correct}
-  $\mathcal{C}$ from \Cref{fig:semvan-correctness} holds.
+  $\correct$ from \Cref{fig:semvan-correctness} holds.
   That is, whenever $(σ_i)_{i∈\overline{n}}$ is a maximal LK trace with source
   state $(\pe,ρ,μ,κ)$, we have
   $α_{\STraces}((σ_i)_{i∈\overline{n}},κ) = \semvan{\pe}_{ρ}(α_\Heaps(μ))$.

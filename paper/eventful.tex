@@ -153,7 +153,7 @@ the events carry; in this work we mostly care about $\LookupE$ events.
     \goodend{α_\EventV(ρ,\pv)} & n = 1 \wedge σ_1 = (\pv, ρ, \wild, κ) \\
     \stuckend{} & \text{otherwise} \\
   \end{cases} \\
-  \mathcal{C} & = & ∀(σ_i)_{i∈\overline{n}}.\ \maxtrace{(σ_i)_{i∈\overline{n}}} \Longrightarrow ∀((\pe,ρ,μ,κ) = σ_1).\ α_{\Traces}((σ_i)_{i∈\overline{n}},κ) = \semvan{\pe}_{ρ}(α_\Heaps(μ)) \\
+  \correct & = & ∀(σ_i)_{i∈\overline{n}}.\ \maxtrace{(σ_i)_{i∈\overline{n}}} \Longrightarrow ∀((\pe,ρ,μ,κ) = σ_1).\ α_{\Traces}((σ_i)_{i∈\overline{n}},κ) = \semvan{\pe}_{ρ}(α_\Heaps(μ)) \\
 \end{array}\]
 \caption{Correctness predicate for $\semevt{\wild}$}
   \label{fig:semevt-correctness}
@@ -170,7 +170,7 @@ extended correctness predicate for $\semevt{\wild}$ in \Cref{fig:semevt-correctn
 
 \begin{theorem}[Correctness of $\semevt{\wild}$]
   \label{thm:semvan-correct}
-  $\mathcal{C}$ from \Cref{fig:semevt-correctness} holds.
+  $\correct$ from \Cref{fig:semevt-correctness} holds.
   That is, whenever $(σ_i)_{i∈\overline{n}}$ is a maximal LK trace with source
   state $(\pe,ρ,μ,κ)$, we have
   $α_{\Traces}((σ_i)_{i∈\overline{n}},κ) = \semevt{\pe}_{ρ}(α_\Heaps(μ))$.

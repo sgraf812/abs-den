@@ -81,10 +81,10 @@
   \end{itemize}
 \end{proof}
 
-\begin{lemma}[Heap hiding]
-  \label{thm:heap-hiding}
-  Let $μ$ be a heap and $\pa ∈ \dom(μ)$ dead in $\rng(μ)$.
-  Then there exists a heap $μ_h$ with domain $\dom(μ) \setminus \{ \pa \}$
+\begin{lemma}[Heap partitioning]
+  \label{thm:heap-partitioning}
+  Let $μ$ be a heap and $\pa ∈ \dom(μ)$.
+  Then there exists a heap $μ_h$ with domain $\dom(μ_h) \setminus \{ \pa \}$
   and $μ \approx μ_h[\pa↦μ(\pa)]$.
 \end{lemma}
 \begin{proof}
@@ -92,6 +92,7 @@
   \[\begin{array}{rcl}
     \mathit{hide}_\pa(μ)(\pa')(μ') & = & \begin{cases}
       μ(\pa')(μ'[\pa↦μ(\pa)]) & \pa' ∈ \dom(μ) \setminus \{ \pa \} \\
+      \mathit{undefined} & \text{otherwise} \\
     \end{cases}
   \end{array}\]
   We abbreviate $μ_h \triangleq \mathit{hide}_\pa(μ)$.
@@ -109,7 +110,7 @@
   $μ \approx μ_h[\pa↦μ(\pa)]$ later.
 
   Furthermore, $d$ is lazy for a similar argument that the $\mathbf{let}$ case
-  of \Cref{thm:semevt-lazy}.
+  of \Cref{thm:semevt-lazy} is.
   Extensionality follows because the heap extension $[\pa↦μ(\pa)]$ in $d$ is
   always with the same (extensional) element.
 
@@ -140,7 +141,7 @@
   Then $μ_i \forcesto μ_i'$ and we can apply \Cref{thm:lazy-force-bisimilar}.
 
   W.l.o.g., $A ⊆ \dom(μ_i)$.
-  By \Cref{thm:heap-hiding}, there exist $μ_i'$ such that $μ_i[\pa↦d_i] \approx μ_i'[\pa↦d_i]$
+  By \Cref{thm:heap-partitioning}, there exist $μ_i'$ such that $μ_i[\pa↦d_i] \approx μ_i'[\pa↦d_i]$
   and $\pa \not∈ \dom(μ_i')$, so $μ_i' \forcesto μ_i'[\pa↦d_i]$.
   By extensionality of $d$, we know that
   \[
@@ -160,23 +161,23 @@
   The goal is to show that $\px$ is dead in $\pe$.
   So we assume that an address $\pa$ is dead in the range of an
   environment $ρ$ and show that $\pa$ is dead in
-  $\semevt{\pe}_{ρ[\px↦\deref(\pa)]}$.
+  $\semevt{\pe}_{ρ[\px↦\pa]}$.
 
-  We assume that $μ_1 \approx μ_2$ such that $\pa$ is dead in $\rng(μ_i)$, $\dom(μ_1) ∪ \{\pa\} ⊦ \semevt{\pe}_{ρ[\px↦\deref(\pa)]}$ and
+  We assume that $μ_1 \approx μ_2$ such that $\pa$ is dead in $\rng(μ_i)$, $\dom(μ_1) ∪ \{\pa\} ⊦ \semevt{\pe}_{ρ[\px↦\pa]}$ and
   abbreviate $A \triangleq \dom(μ_1)$. Then the goal is to show
   \[
-    A ⊦ \semevt{\pe}_{ρ[\px↦\deref(\pa)]}(μ_1[\pa↦d_1]) \sim \semevt{\pe}_{ρ[\px↦\deref(\pa)]}(μ_2[\pa↦d_2])
+    A ⊦ \semevt{\pe}_{ρ[\px↦\pa]}(μ_1[\pa↦d_1]) \sim \semevt{\pe}_{ρ[\px↦\pa]}(μ_2[\pa↦d_2])
   \]
   for any $d_1,d_2$ and $ρ$ such that $\pa$ is dead in $\rng(ρ)$.
   We proceed by induction on $\pe$.
   \begin{itemize}
     \item \textbf{Case $\pe = \py$}: If $\px=\py$, then
       $\semusg{\py}_{\tr} = \semusg{\px}_{\tr}$, contradicting the inequality.
-      If $\px \not= \py$, then $\pa$ is dead in $\semevt{\py}_{ρ[\px↦\deref(\pa)]}=ρ(\py)$.
+      If $\px \not= \py$, then $\pa$ is dead in $\semevt{\py}_{ρ[\px↦\pa]}=ρ(\py)$.
 
     \item \textbf{Case $\pe = \Lam{\py}{\pe'}$}:
       We abbreviate
-      $μ_i' \triangleq μ_i[\pa↦d_i]$, $ρ' \triangleq ρ[\px↦\deref(\pa)]$
+      $μ_i' \triangleq μ_i[\pa↦d_i]$, $ρ' \triangleq ρ[\px↦\pa]$
       and have to show
       \[
         A ⊦ \goodend{\FunV(\fn{d}{\semevt{\pe'}_{ρ'[\py↦d]}}), μ_1'} \sim \goodend{\FunV(\fn{d}{\semevt{\pe'}_{ρ'[\py↦d]}}), μ_2'},
@@ -193,7 +194,7 @@
       $\pa$ is trivially dead in the stuck case, so we assume that there exists
       $d_\py \triangleq ρ(\py)$ and $\pa$ is dead in $d_\py$ per assumption.
       We unfold $\apply$ and abbreviate
-      $d_{\pe'} \triangleq \semevt{\pe'}_{ρ[\px↦\deref(\pa)]}$,
+      $d_{\pe'} \triangleq \semevt{\pe'}_{ρ[\px↦\pa]}$,
       $k \triangleq \fn{(\FunV(f))}{f(d_\py)}$, so the goal is to prove
       \[
         A ⊦ (d_{\pe'} \betastep k)(μ_1[\pa↦d_1]) \sim (d_{\pe'} \betastep k)(μ_2[\pa↦d_2])
@@ -209,8 +210,8 @@
 
     \item \textbf{Case $\pe = \Let{\py}{\pe_1}{\pe_2}$}:
       We abbreviate
-      ${ρ' \triangleq ρ[\px↦\deref(\pa)]}$,
-      $d_{\pe_i} \triangleq \semevt{\pe_i}_{ρ'[\py↦\deref(\pa')]}$,
+      ${ρ' \triangleq ρ[\px↦\pa]}$,
+      $d_{\pe_i} \triangleq \semevt{\pe_i}_{ρ'[\py↦\pa']}$,
       ${μ_i' \triangleq μ_i[\pa↦d_i]}$,
       so the goal is to prove
       \[
@@ -242,10 +243,10 @@
           μ_2[\pa'↦d_{\pe_1}']$ and that $\pa$ is dead in the range of both) and
           then rewrite back to $d_{\pe_1}$:
           \[\begin{array}{rcl}
-            A & ⊦    & \semevt{\pe_2}_{ρ'[\py↦\deref(\pa')]}(μ_1[\pa'↦d_{\pe_1}]) \\
-              & \sim & \semevt{\pe_2}_{ρ'[\py↦\deref(\pa')]}(μ_1[\pa'↦d_{\pe_1}']) \\
-              & \sim & \semevt{\pe_2}_{ρ'[\py↦\deref(\pa')]}(μ_2[\pa'↦d_{\pe_1}']) \\
-              & \sim & \semevt{\pe_2}_{ρ'[\py↦\deref(\pa')]}(μ_2[\pa'↦d_{\pe_1}]) \\
+            A & ⊦    & \semevt{\pe_2}_{ρ'[\py↦\pa']}(μ_1[\pa'↦d_{\pe_1}]) \\
+              & \sim & \semevt{\pe_2}_{ρ'[\py↦\pa']}(μ_1[\pa'↦d_{\pe_1}']) \\
+              & \sim & \semevt{\pe_2}_{ρ'[\py↦\pa']}(μ_2[\pa'↦d_{\pe_1}']) \\
+              & \sim & \semevt{\pe_2}_{ρ'[\py↦\pa']}(μ_2[\pa'↦d_{\pe_1}]) \\
           \end{array}\]
           as requested.
         \item \textbf{Case $\tr'(\px) \not⊑ \semusg{\pe_1}_{\tr'}$}:
