@@ -153,9 +153,9 @@ typed lambda calculus defines a locally contractive functor as long as any
 occurrence of $X$ is under a $\later$, so we take that as the well-formedness
 criterion of coinductive types in this work.
 The most exciting consequence is that
-$D ::= \FunV(f ∈ \later D \to D) \mid \bot$ (where $\bot$ is interpreted as a
-plain nullary data constructor rather than as the least element of some partial
-order) is a sound coinductive encoding of the data type in
+$D ::= \FunV(f ∈ \later D \to \later D) \mid \bot$ (where $\bot$ is interpreted
+as a plain nullary data constructor rather than as the least element of
+some partial order) is a sound coinductive encoding of the data type in
 \Cref{sec:domain-theory}.
 
 As a type constructor, $\later$ is an applicative
