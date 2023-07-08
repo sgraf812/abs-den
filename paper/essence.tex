@@ -72,8 +72,8 @@ Once a heap entry is evaluated, it stays that way during forcing:
 
 \begin{lemma}
   \label{thm:force-heap-val}
-  For all $μ_1,μ_2,\pa,v$ such that $μ_1 \forcesto μ_2$ and $μ_1(\pa) = \ret(v)$,
-  then $μ_2(\pa) = \ret(v)$.
+  For all $μ_1,μ_2,\pa,v$ such that $μ_1 \forcesto μ_2$ and $μ_1(\pa) = \memo(\pa,\ret(v))$,
+  then $μ_2(\pa) = \memo(\pa,\ret(v))$.
 \end{lemma}
 \begin{proof}
   Immediate proof by contraposition and unfolding of $\ret$.
@@ -440,8 +440,9 @@ follows:
   if $A ⊦ \semevt{\pe}_ρ$ then $\rng(ρ) ⊆ A$.
 \end{axiom}
 
-In practice, one could tweak the definition of $\semevt{\wild}$ such that
-it is undefined on an input heap $μ$ when $\rng(ρ) \not⊆ \dom(μ)$.
+One could tweak the definition of $\semevt{\wild}$ such that
+it is undefined on an input heap $μ$ when $\rng(ρ) \not⊆ \dom(μ)$,
+thus making this axiom a provable lemma.
 
 Evaluating lazy elements on heaps that force to each other is semantically equivalent:
 
@@ -477,7 +478,7 @@ Evaluating lazy elements on heaps that force to each other is semantically equiv
 \end{proof}
 
 \begin{theoremrep}
-  For any $A$, $(\fn{(τ_1,τ_2)}{A ⊦ τ_1 \sim τ_2})$ is an equivalence relation on lazy traces.
+  For any fixed address space $A$, $A ⊦ \wild \sim \wild$ is an equivalence relation on lazy traces.
 \end{theoremrep}
 \begin{proof}
 Reflexivity follows by straightforwardly by Löb induction.
@@ -518,7 +519,7 @@ By cases on the last rule applied to either $A ⊦ τ_1 \sim τ_2$ or $A ⊦ τ_
 \end{itemize}
 \end{proof}
 
-It follows that $\approx$ is an equivalence relation on lazy heaps.
+It follows that $(\approx)$ is an equivalence relation on lazy heaps as well.
 
 Unfortunately, the notion of a lazy element we have is too weak to prove
 reflexivity of $(\equiv)$.
@@ -568,7 +569,7 @@ which can be weakened via \Cref{thm:weaken-address-domain} to $\dom(μ_1)$.
 \end{proof}
 
 Note that we only make use of extensionality to prove reflexivity; in fact,
-$(\equiv)$ is still a partial equivalence relation on lazy elements.
+$(\equiv)$ is still a (perhaps incomparable) partial equivalence relation on lazy elements.
 
 What remains is a proof that $\semevt{\pe}_ρ$ is indeed extensional.
 
@@ -651,32 +652,25 @@ now on.
 
 \subsection{Compositionality}
 
-Let us briefly summarise a few results \wrt to compositionality.
-As compositionality is a property referring to contexts, we
-need syntax for \emph{evaluation contexts} $\pE$%
+Compositionality is an important property of a semantics (or, rather of a
+congruence relation on the semantics).
+Roughly, when a semantics is compositional, the denotation of an expression
+is a function of the meaning of its subexpressions.
+The ``is a function of'' qualifier is most often understood syntactically
+in terms of a property of \emph{contexts}.
+
+We follow \citet{MoranSands:99} and define \emph{evaluation contexts} $\pE$%
 \footnote{In \Cref{defn:deadness2} we already used the term ``evaluation
 context'' to denote small-step machine components $(ρ,μ,κ)$ rather than to
 $\pE$. \citet{MoranSands:99} prove that both notions are equivalent, so this
 overload is justified.}
 with holes $\hole$ in order to formalise compositionality.
 Then $\pE[\pe]$ denotes an expression where the hole in $\pE$ has been replaced
-with $\pe$.
+with $\pe$, expressing that the bigger expression $\pE[\pe]$ is a function of
+$\pe$.
 \[\begin{array}{rcl}
   \pE & ::=  & \hole \mid \pE~\px \mid \Let{\px}{\pe}{\pE} \mid \Let{\px}{\pE_1}{\pE_2[\px]} \mid \Case{\pE}{\Sel[r]} \\
 \end{array}\]
-
-
-%For any $\pe_1,\pe_2$ and $ρ$, if $\semevt{\pe_1}_ρ = \semevt{\pe_2}_ρ$
-%then $\semevt{C[\pe_1]}_ρ = \semevt{C[\pe_2]}_ρ$ for any \emph{context} $C$.
-%(We will define $C$ precisely in a minute.)
-%The proof is immediate because of structural recursion and extensionality of
-%functions.
-
-%Since $\semevt{C[\pe_1]}_ρ = \semevt{C[\pe_2]}_ρ$ implies that $C[\pe_i]$ have
-%the same termination behavior via adequacy, compositionality also implies
-%contextual equivalence.
-%Thus, definitional equality and $\semevt{\wild}$ induce an equivalence relation
-%on terms that is \emph{finer} than contextual equivalence.
 
 \begin{definition}[Compositionality of an equivalence relation]
   Let $\cong$ be an equivalence relation on expressions.
@@ -712,8 +706,8 @@ notions coincide.
   contextually equivalent expressions are contextually equivalent.
 \end{proof}
 
-We think it would be simple to prove that $\semevt{\wild}$ is
-\emph{compositional} \wrt definitional equality $=$ on $\EventD$:
+$\semevt{\wild}$ is compositional \wrt definitional equality $=$ on
+$\EventD$:
 
 \begin{lemma}[Definitional equivalence is compositional]
   Let $\pe_1, \pe_2$ be expressions such that
@@ -779,7 +773,7 @@ Most interestingly, $\semevt{\wild}$ is also compositional \wrt to $(\equiv)$!
   \end{itemize}
 \end{proof}
 
-And finally, we can prove that $(\equiv)$ is indeed coarser than contextual equivalence:
+And finally, we can use this result to prove that $(\equiv)$ is indeed coarser than contextual equivalence:
 
 \begin{corollaryrep}[Semantic equivalence implies contextual equivalence]
   Let $\pe_1, \pe_2$ be expressions such that $\semevt{\pe_1}_ρ \equiv \semevt{\pe_2}_ρ$.
