@@ -26,13 +26,13 @@ a small-step transition system closest to the lazy Krivine machine
 in \citet{Sestoft:97}.
 It is worth having a second look at the workings of our gold standard.
 
-When the control expression $\ctrl(σ)$ of a state $σ$ is a value $\pv$, we
-call $σ$ a \emph{return} state and say that the continuation $\cont(σ)$ drives
-evaluation.
+When the control expression of a state $σ$ (selected via $\ctrl(σ)$) is a value
+$\pv$, we call $σ$ a \emph{return} state and say that the continuation (selected
+via $\cont(σ)$) drives evaluation.
 Otherwise, $σ$ is an \emph{evaluation} state and $\ctrl(σ)$ drives evaluation.
 The entries in the heap $μ$ are \emph{closures} of the form $(ρ,e)$, where the
 environment $ρ$ closes over the expression $e$.
-Finally, the $\cont(σ)$ lists actions to be taken in a return state, such as
+Finally, $\cont(σ)$ lists actions to be taken in a return state, such as
 applying the result to an argument address or updating a heap entry with its
 value.
 
@@ -92,8 +92,8 @@ least two elements in $μF$.
 Then to accomodate $μF^{μF}$, $μF$ must be at least as large as $2^{μF}$, the
 set of two-valued functions on $μF$.
 But this latter set is one-to-one with $\poset{μF}$ and it is a known result by
-Cantor that the $\poset{μF}$ has greater cardinality than $μF$, in contradiction
-to the existence of the injection $\FunV$.
+Cantor that $\poset{μF}$ has greater cardinality than $μF$, in contradiction to
+the existence of the injection $\FunV$.
 
 Domain theory, on the other hand, interprets the implied recursion equation
 in terms of topology and continuous functions, where the fixed-point exists
@@ -375,7 +375,7 @@ This scheme is quite common: Continuation items of the transition semantics
 The reverse process can be recognised as defunctionalisation~\citep{Reynolds:72}.
 
 $\semvan{i}_{ρ_1}$ guides the trace through a heap lookup:
-After emitting a $\laterC$ corresponding to the $\LookupT$ transition,
+After yielding an $\laterC$ corresponding to the $\LookupT$ transition,
 $μ$ is dereferenced at $ρ(i)$ where we find $\memo(\pa,\semvan{\Lam{x}{x}}_{ρ_1})$.
 This heap entry is ``self-applied'' to $μ$, effectively ``tying the knot''.
 The memoisation action will run $\semvan{\Lam{x}{x}}_{ρ_1}$ to completeness
@@ -445,15 +445,16 @@ It is a useful inclusion because it allows us to observe type errors other than
 scoping errors, as well as enable more interesting examples.
 Let us consider evaluation of the closed expression
 $\pe \triangleq \Let{x}{\ttrue}{\ttrue~x}$.
-$\semvan{\wild}$ makes it is easy to observe that the trace gets stuck:
+$\semvan{\wild}$ makes it is easy to observe that the trace gets stuck
+(indicating the control expression in front of every $\laterC$):
 \[\begin{array}{ll}
   \newcommand{\myleftbrace}[4]{\draw[mymatrixbrace] (m-#2-#1.west) -- node[right=2pt] {#4} (m-#3-#1.west);}
   \vcenter{\hbox{$
     \begin{tikzpicture}[baseline={-0.5ex},mymatrixenv]
       \matrix [mymatrix] (m)
       {
-        1 & (\pe, []) \cons {} & \hspace{4em} & \hspace{5em} & \hspace{2.5em} \\
-        2 & (\ttrue~x, μ) \cons {} & & & \\
+        1 & (\pe)      \laterC & \hspace{4em} & \hspace{5em} & \hspace{2.5em} \\
+        2 & (\ttrue~x) \laterC & & & \\
         3 & \stuckend & & & \\
       };
       % Braces, using the node name prev as the state for the previous east
@@ -486,7 +487,7 @@ It turns out that the traces $\semvan{\pe}$ generates correspond to
 Let us make precise what that means.
 
 A transition system is characterised by the set of \emph{traces} it generates.
-An \emph{LK trace} is a trace in $(\smallstep)$, \eg, a non-empty and
+An \emph{LK trace} is a trace in $(\smallstep)$, \ie, a non-empty and
 potentially infinite sequence of LK states $(σ_i)_{i∈\overline{n}}$
 (where $\overline{n} = \{ m ∈ ℕ_+ \mid m ≤ n \}$ when $n∈ℕ$, $\overline{ω} = ℕ$),
 such that $σ_i \smallstep σ_{i+1}$ for $i,(i+1)∈\overline{n}$.
@@ -520,7 +521,7 @@ its source state:
   $\cont(σ_0)$-deep.
   Furthermore, an interior trace $(σ_i)_{i∈\overline{n}}$ is
   \emph{balanced}~\citep{Sestoft:97} if the target state exists and is a return
-  state with continuation $κ_1$.
+  state with continuation $\cont(σ_0)$.
 
   We notate $κ$-deep, interior and balanced traces as
   $\deep{κ}{(σ_i)_{i∈\overline{n}}}$, $\interior{(σ_i)_{i∈\overline{n}}}$ and
@@ -610,7 +611,7 @@ stack are bisimilar.
 
 One class of maximal traces is of particular interest:
 The maximal trace starting in $\inj(\pe)$!
-Whether it is inifinite, stuck or balanced is the defining operational
+Whether it is infinite, stuck or balanced is the defining operational
 characteristic of $\pe$.
 If we can show that $\semvan{\pe}$ distinguishes these behaviors of $\pe$, we
 have proven it an adequate replacement for the LK transition system.
