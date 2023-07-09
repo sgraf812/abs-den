@@ -193,7 +193,7 @@ the Supplement.
   \\[-0.5em]
  \end{array} \\
  \begin{array}{rrclcl}
-  \text{Value} & v & ∈ & \VanV & ::= & \FunV(f ∈ (\Addresses \to \VanD)) \mid \ConV(K,\many{\pa}^{α_K}) \\
+  \text{Value} & v & ∈ & \VanV & ::= & \FunV(f ∈ (\Addresses \to \later\VanD)) \mid \ConV(K,\many{\pa}^{α_K}) \\
  \end{array} \\
   \\[-0.5em]
 \end{array}\]
@@ -213,7 +213,7 @@ the Supplement.
     \end{cases} \\
   \\[-0.5em]
   \ret(v)(μ) & = & \goodend{v,μ} \\
-  \apply(d,\pa) & = & d \betastep \fn{(\FunV(f))}{f(\pa)} \\
+  \apply(d,\pa) & = & d \betastep \fn{(\FunV(f))}{\laterC~f(\pa)} \\
   \select(d,\alts) & = & d \betastep \fn{(\ConV(K_s,\many{\pa}))}{\alts(K_s, \many{\pa})} \quad \text{where } (K_s, \many{\pa}) ∈ \dom(\alts) \\
   \memo(\pa,d) & = & d \betastep \fn{v}{(\fn{μ}{\laterC~\goodend{v,μ[\pa ↦ \memo(\pa,\ret(v))]}})} \\
  \end{array} \\
@@ -226,7 +226,7 @@ the Supplement.
     \stuckend & \text{otherwise}
     \end{cases} \\
   \\[-0.5em]
-  \semvan{\Lam{\px}{\pe}}_ρ & = & \ret(\FunV(\fn{\pa}{\laterC~\semvan{\pe}_{ρ[\px↦\pa]}})) \\
+  \semvan{\Lam{\px}{\pe}}_ρ & = & \ret(\FunV(\fn{\pa}{\semvan{\pe}_{ρ[\px↦\pa]}})) \\
   \\[-0.5em]
   \semvan{\pe~\px}_ρ(μ) & = & \begin{cases}
       \laterC~\apply(\semvan{\pe}_ρ(μ),\pa) & \px ∈ \dom(ρ) \\
@@ -628,7 +628,7 @@ state.
 \begin{figure}
 \[\begin{array}{rcl}
   α_\Heaps([\many{\pa ↦ (ρ,\pe)}]) & = & [\many{\pa ↦ \memo(\pa,\semvan{\pe}_{ρ})}] \\
-  α_\VanV(\Lam{\px}{\pe},ρ,μ,κ) & = & \goodend{\FunV(\fn{\pa}{\laterC~\semvan{\pe}_{ρ[\px↦\pa]}}),α_\Heaps(μ)} \\
+  α_\VanV(\Lam{\px}{\pe},ρ,μ,κ) & = & \goodend{\FunV(\fn{\pa}{\semvan{\pe}_{ρ[\px↦\pa]}}),α_\Heaps(μ)} \\
   α_\VanV(K~\overline{\px},ρ,μ,κ) & = & \goodend{\ConV(K,\overline{ρ(\pa)}),α_\Heaps(μ)} \\
   α_{\STraces}((σ_i)_{i∈\overline{n}},κ) & = & \begin{cases}
     \laterC~\idiom{α_{\STraces}((σ_{i+1})_{i∈\overline{n-1}},κ)} & n > 0 \\

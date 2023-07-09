@@ -159,6 +159,17 @@ the events carry; in this work we mostly care about $\LookupE$ events.
   \label{fig:semevt-correctness}
 \end{figure}
 
+There is one minor structural difference to $\semvan{\wild}$:
+$\FunV$ values now return an unguarded $\EventD$ so that the $\AppEE$ event
+can carry the lambda-bound variable of the lambda expression from whence it
+came.
+This unguarded occurrence is not prohibited by the type construction rules of
+guarded domain theory, although \citet[Section 9]{Birkedal:12} argue that it
+might be enough to guard negative recursive occurrences for the type to exist.
+Another possibility would be for the $\FunV$ value to carry the lambda-bound
+variable as well so that the $\AppEE$ event can be built in $\apply$.
+We will stick to the present formulation because it is conceptually cleaner.
+
 All results connecting $\semvan{\wild}$ to the LK transition semantics also
 hold for $\semevt{\wild}$, since $\semvan{\wild}$ can be recovered by throwing
 away all events and replacing $\cons$ with $\laterC$.
