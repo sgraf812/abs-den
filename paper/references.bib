@@ -1,29 +1,3 @@
-@inproceedings{Cousot-Cousot:POPL77,
-  author = {Cousot, Patrick and Cousot, Radhia},
-  title = {Abstract Interpretation: A Unified Lattice Model for Static Analysis of Programs by Construction or Approximation of Fixpoints},
-  year = {1977},
-  isbn = {9781450373500},
-  publisher = {Association for Computing Machinery},
-  address = {New York, NY, USA},
-  url = {https://doi.org/10.1145/512950.512973},
-  doi = {10.1145/512950.512973},
-  abstract = {A program denotes computations in some universe of objects. Abstract interpretation of programs consists in using that denotation to describe computations in another universe of abstract objects, so that the results of abstract execution give some information on the actual computations. An intuitive example (which we borrow from Sintzoff [72]) is the rule of signs. The text -1515 * 17 may be understood to denote computations on the abstract universe {(+), (-), (±)} where the semantics of arithmetic operators is defined by the rule of signs. The abstract execution -1515 * 17 → -(+) * (+) → (-) * (+) → (-), proves that -1515 * 17 is a negative number. Abstract interpretation is concerned by a particular underlying structure of the usual universe of computations (the sign, in our example). It gives a summary of some facets of the actual executions of a program. In general this summary is simple to obtain but inaccurate (e.g. -1515 + 17 → -(+) + (+) → (-) + (+) → (±)). Despite its fundamentally incomplete results abstract interpretation allows the programmer or the compiler to answer questions which do not need full knowledge of program executions or which tolerate an imprecise answer, (e.g. partial correctness proofs of programs ignoring the termination problems, type checking, program optimizations which are not carried in the absence of certainty about their feasibility, …).},
-  booktitle = {Proceedings of the 4th ACM SIGACT-SIGPLAN Symposium on Principles of Programming Languages},
-  pages = {238–252},
-  numpages = {15},
-  location = {Los Angeles, California},
-  series = {POPL '77}
-}
-
-@techreport{Scott:81,
-  title = {LECTURES ON A MATHEMATICAL THEORY OF COMPUTATION},
-  author = {Dana S. Scott},
-  year = {1981},
-  institution = {Department of Computer Science, University of Oxford},
-  number = {PRG19},
-  pages = {152},
-}
-
 @inproceedings{imprecise-exceptions,
   author = {Peyton Jones, Simon and Reid, Alastair and Henderson, Fergus and Hoare, Tony and Marlow, Simon},
   title = {A Semantics for Imprecise Exceptions},
@@ -39,16 +13,6 @@
   numpages = {12},
   location = {Atlanta, Georgia, USA},
   series = {PLDI '99}
-}
-
-@book{DaveyPriestley:02,
-  place={Cambridge},
-  edition={2},
-  title={Introduction to Lattices and Order},
-  DOI={10.1017/CBO9780511809088},
-  publisher={Cambridge University Press},
-  author={Davey, B. A. and Priestley, H. A.},
-  year={2002}
 }
 
 @article{Sestoft:97,
@@ -114,24 +78,6 @@
   School = {Carnige-Mellon Univeristy},
   Month = {May},
   Year = {1991}
-}
-
-@inproceedings{cardinality,
-  author = {Sergey, Ilya and Vytiniotis, Dimitrios and Peyton Jones, Simon},
-  title = {Modular, Higher-Order Cardinality Analysis in Theory and Practice},
-  year = {2014},
-  isbn = {9781450325448},
-  publisher = {Association for Computing Machinery},
-  address = {New York, NY, USA},
-  url = {https://doi.org/10.1145/2535838.2535861},
-  doi = {10.1145/2535838.2535861},
-  abstract = {Since the mid '80s, compiler writers for functional languages (especially lazy ones) have been writing papers about identifying and exploiting thunks and lambdas that are used only once. However it has proved difficult to achieve both power and simplicity in practice. We describe a new, modular analysis for a higher-order language, which is both simple and effective, and present measurements of its use in a full-scale, state of the art optimising compiler. The analysis finds many single-entry thunks and one-shot lambdas and enables a number of program optimisations.},
-  booktitle = {Proceedings of the 41st ACM SIGPLAN-SIGACT Symposium on Principles of Programming Languages},
-  pages = {335–347},
-  numpages = {13},
-  keywords = {types and effects, operational semantics, thunks, compilers, functional programming languages, program optimisation, lazy evaluation, haskell, static analysis, cardinality analysis},
-  location = {San Diego, California, USA},
-  series = {POPL '14}
 }
 
 @inproceedings{aam,
@@ -214,77 +160,6 @@
   series = {LICS '18}
 }
 
-@inproceedings{Ullrich:19,
-  author = {Ullrich, Sebastian and de Moura, Leonardo},
-  title = {Counting Immutable Beans: Reference Counting Optimized for Purely Functional Programming},
-  year = {2019},
-  isbn = {9781450375627},
-  publisher = {Association for Computing Machinery},
-  address = {New York, NY, USA},
-  url = {https://doi.org/10.1145/3412932.3412935},
-  doi = {10.1145/3412932.3412935},
-  abstract = {Most functional languages rely on some kind of garbage collection for automatic memory management. They usually eschew reference counting in favor of a tracing garbage collector, which has less bookkeeping overhead at runtime. On the other hand, having an exact reference count of each value can enable optimizations such as destructive updates. We explore these optimization opportunities in the context of an eager, purely functional programming language. We propose a new mechanism for efficiently reclaiming memory used by nonshared values, reducing stress on the global memory allocator. We describe an approach for minimizing the number of reference counts updates using borrowed references and a heuristic for automatically inferring borrow annotations. We implemented all these techniques in a new compiler for an eager and purely functional programming language with support for multi-threading. Our preliminary experimental results demonstrate our approach is competitive and often outperforms state-of-the-art compilers.},
-  booktitle = {Proceedings of the 31st Symposium on Implementation and Application of Functional Languages},
-  articleno = {3},
-  numpages = {12},
-  keywords = {lean, purely functional programming, reference counting},
-  location = {Singapore, Singapore},
-  series = {IFL '19}
-}
-
-@inproceedings{perceus,
-author = {Reinking, Alex and Xie, Ningning and de Moura, Leonardo and Leijen, Daan},
-title = {Perceus: Garbage Free Reference Counting with Reuse},
-year = {2021},
-isbn = {9781450383912},
-publisher = {Association for Computing Machinery},
-address = {New York, NY, USA},
-url = {https://doi.org/10.1145/3453483.3454032},
-doi = {10.1145/3453483.3454032},
-abstract = {We introduce Perceus, an algorithm for precise reference counting with reuse and specialization. Starting from a functional core language with explicit control-flow, Perceus emits precise reference counting instructions such that (cycle-free) programs are _garbage free_, where only live references are retained. This enables further optimizations, like reuse analysis that allows for guaranteed in-place updates at runtime. This in turn enables a novel programming paradigm that we call _functional but in-place_ (FBIP). Much like tail-call optimization enables writing loops with regular function calls, reuse analysis enables writing in-place mutating algorithms in a purely functional way. We give a novel formalization of reference counting in a linear resource calculus, and prove that Perceus is sound and garbage free. We show evidence that Perceus, as implemented in Koka, has good performance and is competitive with other state-of-the-art memory collectors.},
-booktitle = {Proceedings of the 42nd ACM SIGPLAN International Conference on Programming Language Design and Implementation},
-pages = {96–111},
-numpages = {16},
-keywords = {Reference Counting, Handlers, Algebraic Effects},
-location = {Virtual, Canada},
-series = {PLDI 2021}
-}
-
-@article{Lorenzen:22,
-  author = {Lorenzen, Anton and Leijen, Daan},
-  title = {Reference Counting with Frame Limited Reuse},
-  year = {2022},
-  issue_date = {August 2022},
-  publisher = {Association for Computing Machinery},
-  address = {New York, NY, USA},
-  volume = {6},
-  number = {ICFP},
-  url = {https://doi.org/10.1145/3547634},
-  doi = {10.1145/3547634},
-  abstract = {The recently introduced _Perceus_ algorithm can automatically insert reference count instructions such that the resulting (cycle-free) program is _garbage free_: objects are freed at the very moment they can no longer be referenced. An important extension is reuse analysis. This optimization pairs objects of known size with fresh allocations of the same size and tries to reuse the object in-place at runtime if it happens to be unique. Unfortunately, current implementations of reuse analysis are fragile with respect to small program transformations, or can cause an arbitrary increase in the peak heap usage. We present a novel _drop-guided_ reuse algorithm that is simpler and more robust than previous approaches. Moreover, we generalize the linear resource calculus to precisely characterize garbage-free and frame-limited evaluations. On each function call, a frame-limited evaluation may hold on to memory longer if the size is bounded by a constant factor. Using this framework we show that our drop-guided reuse _is_ frame-limited and find that an implementation of our new reuse approach in Koka can provide significant speedups.},
-  journal = {Proc. ACM Program. Lang.},
-  month = {aug},
-  articleno = {103},
-  numpages = {24},
-  keywords = {Koka, Reuse, Frame Limited, Reference Counting}
-}
-
-@article{Cartwright:16,
-  author    = {Robert Cartwright and
-               Rebecca Parsons and
-               Moez A. AbdelGawad},
-  title     = {Domain Theory: An Introduction},
-  journal   = {CoRR},
-  volume    = {abs/1605.05858},
-  year      = {2016},
-  url       = {http://arxiv.org/abs/1605.05858},
-  eprinttype = {arXiv},
-  eprint    = {1605.05858},
-  timestamp = {Mon, 13 Aug 2018 16:46:41 +0200},
-  biburl    = {https://dblp.org/rec/journals/corr/CartwrightPA16.bib},
-  bibsource = {dblp computer science bibliography, https://dblp.org}
-}
-
 @inproceedings{Launchbury:93,
   author = {Launchbury, John},
   title = {A Natural Semantics for Lazy Evaluation},
@@ -329,15 +204,6 @@ series = {PLDI 2021}
   url = {https://www.sciencedirect.com/science/article/pii/0022000078900144},
   author = {Robin Milner},
   abstract = {The aim of this work is largely a practical one. A widely employed style of programming, particularly in structure-processing languages which impose no discipline of types, entails defining procedures which work well on objects of a wide variety. We present a formal type discipline for such polymorphic procedures in the context of a simple programming language, and a compile time type-checking algorithm W which enforces the discipline. A Semantic Soundness Theorem (based on a formal semantics for the language) states that well-type programs cannot “go wrong” and a Syntactic Soundness Theorem states that if W accepts a program then it is well typed. We also discuss extending these results to richer languages; a type-checking algorithm based on W is in fact already implemented and working, for the metalanguage ML in the Edinburgh LCF system.}
-}
-
-@misc{Czajka:2019,
-  title={Coinduction: an elementary approach},
-  author={Łukasz Czajka},
-  year={2019},
-  eprint={1501.04354},
-  archivePrefix={arXiv},
-  primaryClass={cs.LO}
 }
 
 @article{Plotkin:77,
@@ -634,7 +500,6 @@ series = {PLDI 2021}
   location = {Baltimore, Maryland, USA},
   series = {ICFP '98}
 }
-
 
 @article{Birkedal:12,
   TITLE = {{First steps in synthetic guarded domain theory: step-indexing in the

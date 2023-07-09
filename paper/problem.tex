@@ -370,7 +370,7 @@ for example, it can infer whether a binding is evaluated at most once.%
 \footnote{Thus our usage analysis is a combination of deadness analysis
 and \emph{sharing analysis}~\citep{Gustavsson:98}.}
 This information can be useful to inline a binding that is not a value or
-to avoid update frames under call-by-need~\citep{cardinality-ext}.%
+to avoid update frames under call-by-need~\citep{Gustavsson:98,cardinality-ext}.%
 \footnote{A more useful application of the ``at most once'' cardinality is the
 identification of \emph{one-shot} lambdas~\citep{cardinality-ext} --- functions which are
 called at most once for every activation --- because it allows floating of heap
