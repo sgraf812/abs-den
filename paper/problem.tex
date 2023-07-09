@@ -377,17 +377,14 @@ called at most once for every activation --- because it allows floating of heap
 allocations from a hot code path into cold function bodies.
 Simplicity prohibits $\semusg{\wild}$ from inferring such properties.}
 Thus, our usage analysis should satisfy the following generalisation of
-\Cref{thm:semusg-correct-live}:
+\Cref{thm:semusg-correct-live-simple}:
 
 \begin{theorem}[Correctness of $\semusg{\wild}$]
   \label{thm:semusg-correct-2}
-  Let $\pe$ be an expression, $\px$ a variable and $\tr$ a usage environment.
-  If $(u+1)*\tr(\px) \not⊑ \semusg{\pe}_{\tr}$
+  Let $\pe$ be an expression, $\px$ a variable.
+  If $\semusg{\pe}_{\tr_Δ}(\px) ⊑ u$
   then $\pe$ evaluates $\px$ at most $u$ times.
 \end{theorem}
-
-Again, we could simplify the condition to $\semusg{\pe}_{\tr_Δ}(\px) ⊑ u$ for
-practical use and intuition.
 
 Unfortunately, our denotational semantics does not allow us to express the
 operational property ``$\pe$ evaluates $\px$ at most $u$ times'', so
