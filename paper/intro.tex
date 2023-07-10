@@ -1,6 +1,75 @@
 \section{Introduction}
 \label{sec:introduction}
 
+A \emph{static program analysis} infers facts about a program, such
+as ``this program is well-typed'', ``this higher-order function is always called
+with argument $\Lam{x}{x+1}$'' or ``this program never evaluates $x$''.
+In a functional-language setting, such static analyses are
+often defined by \emph{structural recursion} on the input term.
+To prove the analysis correct with respect to the language semantics,
+it is much easier if the semantics is also defined by structural recursion,
+as is the case for a traditional \emph{denotational semantics};
+then the denotational semantics and the static analysis
+``line up'' and the correctness proof is relatively straightforward.
+Indeed, one can often regard the analysis as an abstraction, or \emph{abstract interpretation},
+of the denotational semantics \cite{Cousot:21}.
+
+Alas, traditional denotational semantics does not
+model operational details -- but those details might be the whole point of the analysis.  For example,
+we might want to ask ``How often does $\pe$ evaluate its free variable $x$?'';
+but a standard denotational semantics simply does not express the concept of ``evaluating a variable''.
+So we are typically driven to use an \emph{operational semantics}, which directly
+models operational details like the stack, heap, and sharing, and sees program execution
+a sequence of machine states.  Now we have two un-appealing alternatives:
+\begin{itemize}
+\item Peform a difficult correctness proof, that links an operational semantics for the language
+  with a compositional analysis defined by structural recursion.
+\item Re-imagine and re-implement the analysis as an abstraction of the operational semantics.
+  This is the essence of Astracting Abstract Machines \cite{aam}, a very fruitful approach, but one
+  that drives the entire analysis into lower level detail. \slpj{not a great critique}
+\end{itemize}
+In this paper we explore a new third path: \emph{to enrich a compositional denotational semantics so that
+it expresses enough operational detail to support our static analysis}.
+We make the following contributions:
+\begin{itemize}
+\item We use a concrete example (usage analysis) to explain the problems we sketched
+  above: the lack of operational detail in denotational semantics, and the structural mismatch
+  between the semantics and the analysis (\Cref{sec:problem}).
+\item We describe a new \emph{trace-based denotational semantics for lambda calculus},
+  that is defined compositionally by structural recursion, but still produces an execution
+  trace that we can later elaborate with as much operational detail as we please (\Cref{sec:vanilla}).
+    Unlike traditional formulations of denotational semantics, our semantics
+    is defined by \emph{guarded recursion}~\citep{gdtt} and thus total as a
+    mathematical function. \slpj{Seems out of place here.  Need to say more, or less.}
+    Our semantics is distinct from similar ones for call-by-name or
+    call-by-value \slpj{what does that mean?}.
+    We prove it adequate \wrt a standard operational semantics.  \slpj{This is the ``hard proof''??  We do it once for all.}
+  \item This trace-based semantics encodes the bare minimum of information in traces to be useful.
+    In \Cref{sec:eventful} we will see how simple it is to \emph{instrument} our
+    semantics to provide richer traces, carrying \emph{events} describing
+    small-step transitions.
+    The resulting idea of an \emph{eventful} semantics borrows ideas from the
+    \emph{maximal trace semantics} of \citet{Cousot:21}.
+
+  \item In \Cref{sec:essence} we provide several meta-theoretic results about our
+    new class of semantics, such as a partially-ordered heap forcing relation,
+    a characterisation of denotations that allows us to recover a useful
+    semantic equivalance relation and associated compositionality statements.
+  \item We employ the eventful semantics as a collecting semantics and derive
+    the usage analysis of \Cref{sec:problem} by \emph{calculational design}~\citep{Cousot:21}.
+    \sg{TODO: Currently we only attempt a direct correctness proof}
+    \slpj{contributions seem to peter out...}
+\end{itemize}
+We believe that our notion of trace-based semantics for lambda calculus
+is the first to model operational detail of call-by-need behavior while
+enjoying a structural definition. Our pattern naturally generalises
+to similar definitions generating call-by-value traces, and we believe
+that its trace-based nature enables unprecedented application of
+\citeauthor{Cousot:21}'s intraprocedural framework in interprocedural
+contexts without the need for a control-flow graph abstraction.\slpj{fwd ref to the section that elaborates this claim}
+
+
+\begin{comment}
 To an implementor of a programming language, it is often useful to employ a
 \emph{static program analysis} to automatically infer facts about a program such
 as ``this program is well-typed'', ``this higher-order function is always called
@@ -11,19 +80,20 @@ analyses are formulated as a function defined by \emph{structural recursion} on
 the input term.
 For example, given an application expression $(\pe_1~\pe_2)$,
 the property ``$(\pe_1~\pe_2)$ never evaluates its free variable $x$'' can be
-\emph{conservatively approximated} by the property ``$\pe_1$ never evaluates $x$
+conservatively approximated by the property ``$\pe_1$ never evaluates $x$
 and $\pe_2$ never evaluates $x$''.
 
-It is quite convenient to formulate such a \emph{deadness analysis}
-structurally:
+It is quite convenient to formulate a static analysis structurally:
 (1) Structural recursion gives an immediate proof of termination and can
     further be exploited in other inductive proofs.
 (2)~A structurally-defined function $f$ is often \emph{compositional}, meaning that
-    the result of $f\denot{\pe_1~\pe_2}$ is a function of $f\denot{\pe_1}$ and
-    $f\denot{\pe_2}$, but not of the structure of either $\pe_1$ or $\pe_2$.
+    the result of $f\denot{\pe_1~\pe_2}$ is obtained by combining the independent
+    calls $f\denot{\pe_1}$ and $f\denot{\pe_2}$. % but not of the structure of either $\pe_1$ or $\pe_2$.
     Compositionality makes it easy for humans to understand and reason about the
     function, as well as allows to abstract away program syntax in the first
-    place.
+    place. \slpj{I don't understand the ``as well as''.  I would say ``This independence
+    makes both analysis and proof much simpler.''}
+
 
 \subsection{Compositional Analyses Abstract Denotational Semantics}
 
@@ -193,3 +263,4 @@ detail and structural mismatch via the following contributions:
     \sg{TODO: Currently we only attempt a direct correctness proof}
 \end{itemize}
 
+\end{comment}
