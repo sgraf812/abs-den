@@ -1,28 +1,42 @@
 \section{Related Work}
 \label{sec:related-work}
 
-%\sg{Move to related work.}
-%There have been attempts to discern panices from other kinds of loops, such as
-%\citep{imprecise-exceptions}. Unfortunately, in Section 5.3 they find it
-%impossible give non-terminating programs a denotation other than $\bot$, which
-%still encompasses all possible exception behaviors.
-%
-% eval/apply or push/enter?
-% Given an expr like $f x$, we first push $ρ(x)$ onto the stack and then
-% evaluate $f$, which will look it up (pushing an udpate frame) and evaluate its
-% RHS. Since we will never return to the "eval site" of $f$, IMO this qualifies
-% as push/enter rather than eval/apply. Which is in contrast to what the Krivine
-% paper says, which dubs return states as "apply" transitions
-%
-% Mention how >>β= is similar to the bind operator on interaction trees and probably
-% corresponds to Moggi's monadic semantics.i
-% Traces are somewhat like the simpler monad `M e a = Good a | Bad e | Later |>(M e a)`
-% which combines the delay monad with the error monad
-
-% Compare to coinductive big-step \citep{LeroyGrall:09}
-%
-% Compare to Definitional Interpreter work; we are using GDTT as the defining language
-%
-% Compare to Clairvoyant blah, Garden of Forking Paths
-%
-% Compare to Pitts chapter in TAPL2, "largest congruence relation"
+% Compare to
+% - Operational semantics: CESK Felleisen, Launchbury, Sestoft, Krivine
+%        eval/apply or push/enter?
+%        Given an expr like $f x$, we first push $ρ(x)$ onto the stack and then
+%        evaluate $f$, which will look it up (pushing an udpate frame) and evaluate its
+%        RHS. Since we will never return to the "eval site" of $f$, IMO this qualifies
+%        as push/enter rather than eval/apply. Which is in contrast to what the Krivine
+%        paper says, which dubs return states as "apply" transitions
+% - Clairvoyant blah, Garden of Forking Paths
+% - Imprecise exceptions
+%        There have been attempts to discern panices from other kinds of loops, such as
+%        \citep{imprecise-exceptions}. Unfortunately, in Section 5.3 they find it
+%        impossible give non-terminating programs a denotation other than $\bot$, which
+%        still encompasses all possible exception behaviors.
+% - coinductive big-step \citep{LeroyGrall:09}
+% - Interaction trees
+%        Mention how >>β= is similar to the bind operator on interaction trees and probably
+%        corresponds to Moggi's monadic semantics.
+%        Traces are somewhat like the simpler monad `M e a = Good a | Bad e | L |>(M e a)`
+%        which combines the delay monad with the error monad
+% - Definitional Interpreter work; we are using TCTT as the defining language
+% - Pitts chapter in TAPL2, "largest congruence relation"
+% - Nielson: correctness predicate
+% - SGDT:
+%     * Nakano:00 introduced modality
+%     * DreyerAhmedBirkedal:11 refined and applied to step-indexing
+%     * Birkedal:12 discovered how to hide step indices. Applied to System F like language with store. Later also depedent type theory. Connection to Kripke worlds
+%     * BirkedalMogelbergEjlers:13 first described how to encode guarded recusive types ``syntactically'', e.g., as we use them in meta ::=-notation
+%     * gdtt was all about lifting to dependent product types containing the later modality. For example `f <*> t` has to substitute `t` in `f`'s type, solved via delayed substitutions.
+%       Important for properties! Hence guaded DEPENDENT type theory
+%     * Guarded Cubical Type Theory: Reasoning about equality in GDTT can be undecidable, fix that. But no clock qunatification!
+%     * Clocks are ticking: Clock quantification via tick binders which act similar to intervals in Cubical. (Still uses those delayed substitutions!)
+%     * TCTT not only introduces ticked cubical, it also covers bisimilarity of guarded labelled transition systems. Our traces are just that, plus a bit more.
+%       Also shows how to define a mixed guarded/inductive data type.
+%     * Later credits: May solve the unguarded positive occurrence
+% - AAM
+%     * Our approach at some point simply gets rid of the heap. AAM bounds it to finite size.
+%       That is inelegant, as it would never allow us to treat variables as a non-aliased representative of their address
+%     * AAM
