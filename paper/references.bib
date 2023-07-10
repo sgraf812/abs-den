@@ -220,6 +220,51 @@
   abstract = {The paper studies connections between denotational and operational semantics for a simple programming language based on LCF. It begins with the connection between the behaviour of a program and its denotation. It turns out that a program denotes ⊥ in any of several possible semantics if it does not terminate. From this it follows that if two terms have the same denotation in one of these semantics, they have the same behaviour in all contexts. The converse fails for all the semantics. If, however, the language is extended to allow certain parallel facilities behavioural equivalence does coincide with denotational equivalence in one of the semantics considered, which may therefore be called “fully abstract”. Next a connection is given which actually determines the semantics up to isomorphism from the behaviour alone. Conversely, by allowing further parallel facilities, every r.e. element of the fully abstract semantics becomes definable, thus characterising the programming language, up to interdefinability, from the set of r.e. elements of the domains of the semantics.}
 }
 
+@article{Plotkin:81,
+    title = {A structural approach to operational semantics},
+    volume = {60-61},
+    issn = {15678326},
+    url = {https://linkinghub.elsevier.com/retrieve/pii/S1567832604000402},
+    doi = {10.1016/j.jlap.2004.05.001},
+    journal = {The Journal of Logic and Algebraic Programming},
+    author = {Plotkin, Gordon D.},
+    year = {2004},
+    pages = {17--139}
+}
+
+@inproceedings{Johnsson:84,
+  author = {Johnsson, Thomas},
+  title = {Efficient Compilation of Lazy Evaluation},
+  year = {1984},
+  isbn = {0897911393},
+  publisher = {Association for Computing Machinery},
+  address = {New York, NY, USA},
+  url = {https://doi.org/10.1145/502874.502880},
+  doi = {10.1145/502874.502880},
+  abstract = {This paper describes the principles underlying an efficient implementation of a lazy functional language, compiling to code for ordinary computers. It is based on combinator-like graph reduction: the user defined functions are used as rewrite rules in the graph. Each function is compiled into an instruction sequence for an abstract graph reduction machine, called the G-machine, the code reduces a function application graph to its value. The G-machine instructions are then translated into target code. Speed improvements by almost two orders of magnitude over previous lazy evaluators have been measured; we provide some performance figures.},
+  booktitle = {Proceedings of the 1984 SIGPLAN Symposium on Compiler Construction},
+  pages = {58–69},
+  numpages = {12},
+  location = {Montreal, Canada},
+  series = {SIGPLAN '84}
+}
+
+@article{SPJ:92,
+  author = {Jones, Peyton and L, Simon and Peyton Jones, Simon},
+  title = {Implementing Lazy Functional Languages on Stock Hardware: The Spineless Tagless G-machine},
+  year = {1992},
+  month = {July},
+  abstract = {The Spineless Tagless G-machine is an abstract machine designed to support non- strict higher-order functional languages. This presentation of the machine falls into three parts. Firstly, we give a general discussion of the design issues involved in implementing non-strict functional languages.
+  Next, we present the STG language, an austere but recognisably-functional language, which as well as a denotational meaning has a well-defined operational semantics. The STG language is the \abstract machine code" for the Spineless Tagless G-machine.
+  Lastly, we discuss the mapping of the STG language onto stock hardware. The success of an abstract machine model depends largely on how efficient this mapping can be made, though this topic is often relegated to a short section. Instead, we give a detailed discussion of the design issues and the choices we have made. Our principal target is the C language, treating the C compiler as a portable assembler.},
+  publisher = {Cambridge University Press},
+  url = {https://www.microsoft.com/en-us/research/publication/implementing-lazy-functional-languages-on-stock-hardware-the-spineless-tagless-g-machine/},
+  pages = {127-202},
+  journal = {Journal of Functional Programming},
+  volume = {2},
+  edition = {Journal of Functional Programming},
+}
+
 @article{LeroyGrall:09,
   title = {Coinductive big-step operational semantics},
   journal = {Information and Computation},
@@ -531,4 +576,33 @@
   articleno = {100},
   numpages = {29},
   keywords = {Iris, Separation logic, later modality, step-indexing, transfinite}
+}
+
+@inproceedings{MontaguJensen:21,
+  author = {Montagu, Beno\^{\i}t and Jensen, Thomas},
+  title = {Trace-Based Control-Flow Analysis},
+  year = {2021},
+  isbn = {9781450383912},
+  publisher = {Association for Computing Machinery},
+  address = {New York, NY, USA},
+  url = {https://doi.org/10.1145/3453483.3454057},
+  doi = {10.1145/3453483.3454057},
+  abstract = {We define a small-step semantics for the untyped λ-calculus, that traces the β-reductions that occur during evaluation. By abstracting the computation traces, we reconstruct k-CFA using abstract interpretation, and justify constraint-based k-CFA in a semantic way. The abstract interpretation of the trace semantics also paves the way for introducing widening operators in CFA that go beyond existing analyses, that are all based on exploring a finite state space. We define ∇CFA, a widening-based analysis that limits the cycles in call stacks, and can achieve better precision than k-CFA at a similar cost.},
+  booktitle = {Proceedings of the 42nd ACM SIGPLAN International Conference on Programming Language Design and Implementation},
+  pages = {482–496},
+  numpages = {15},
+  keywords = {lambda-calculus, control flow analysis, widening, program traces, abstract interpretation},
+  location = {Virtual, Canada},
+  series = {PLDI 2021}
+}
+
+@article{Breitner:18,
+  title={The adequacy of Launchbury's natural semantics for lazy evaluation},
+  volume={28},
+  DOI={10.1017/S0956796817000144},
+  journal={Journal of Functional Programming},
+  publisher={Cambridge University Press},
+  author={Breitner, Joachim},
+  year={2018},
+  pages={e1}
 }

@@ -1148,9 +1148,9 @@ and a sharing analysis:
 
 A more elegant proof would continually abstract $\ctx_A \circ \usg_\Traces$
 without relating to the structure of $\semevt{\wild}$ or $\semusg{\wild}$ at
-all, encoding the inductive hypothesis of the proof above in a chain of Galois
-connections. Then the above proof is simply by \emph{cases} on $\pe$ and
-equational reasoning, rather than by induction
+all, encoding the strengthened inductive hypothesis (\ie, the logical relation)
+of the proof above in a chain of Galois connections. Then the above proof
+is simply by direct, structural induction on $\pe$ and equational reasoning
 -- \citet{Cousot:21} calls this process ``calculational design''.
 We want to attempt such a proof in the future and are confident that it will
 yield insightful abstraction functions, for example encoding the transition
