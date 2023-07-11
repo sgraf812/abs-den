@@ -89,10 +89,11 @@
 \usetikzlibrary{decorations.pathmorphing}
 \usepackage{placeins} % flush floats with \FloatBarrier
 \usepackage[T1]{fontenc} % https://tex.stackexchange.com/a/181119
-\usepackage[mark]{gitinfo2}
 
 \usepackage{utf8-symbols}
 \input{macros}
+
+\ifnonanon{\usepackage[mark]{gitinfo2}}
 
 % Tables should have the caption above
 \floatstyle{plaintop}
