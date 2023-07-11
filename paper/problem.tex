@@ -51,7 +51,7 @@ and all other variables to 0.
 Any number of uses beyond $1$, such as $2$ for $x$ in $\semusg{x+x}_{\rho}$, are collapsed to
 $d(x) = ω$, which denotes the set of any possible number of uses and is thus the
 top element of the total order $\Usg$.
-Simlarly $\semusg{\Lam{v}{v+z}}_{\rho}$
+Similarly $\semusg{\Lam{v}{v+z}}_{\rho}$
 maps $z$ to $\omega$, since the lambda might be called many times.
 \slpj{Actually this isn't right. S seems to give usage for the \emph{bound}
   variables of $e$ too (not just the \emph{free} variables),
@@ -152,7 +152,7 @@ such as $\Usg$ that is inferred from context).
 \sg{Well, if you see a $u$ you immediately associate with it the partial order $0 ⊑ 1 ⊑ ω$
 because $(\Usg,(⊑))$ is the only partial order that possibly could apply.
 For $d ∈ \UsgD$ that would be the pointwise order. Simple, standard.}
-Let us now call
+Let us call
 \[
   \tr_Δ(\px) \triangleq \fn{\py}{\ternary{\px = \py}{1}{0}}
 \]
@@ -180,9 +180,9 @@ So its $\bot$ element is of the course the least element $0$.}
 
 Note that the usage analysis is naïve in its treatment of function application:
 It assumes that that every function deeply evaluates its argument.
-Whenever $y$ is live in $x$ (which is encoded as $\tr(x) ⊑
+Whenever $x$ is live in $y$'s bound expression (which is encoded as $\tr(x) ⊑
 \tr(y)$ in the $\mathbf{let}$ case of $\semusg{\wild}$),
-the analysis will report that $(f~y)$ is live in $x$ \slpj{What does it mean to say `` $(f~y)$ is live in $x$''?},
+the analysis will report that $x$ is live in $(f~y)$,
 regardless of whether $f$ evaluates its argument.
 In turn, the analysis assumes in the lambda case that liveness of the argument
 has been accounted for in the application case,
@@ -219,20 +219,32 @@ So our definition of deadness is not only simple to grasp, but also simple to
 exploit.
 
 We can now try to prove our usage analysis correct as a deadness analysis in
-terms of this notion of deadness. After a bit of trial and error, we could
-arrive at the following theorem:
+terms of this notion of deadness:
 
 \begin{theoremrep}[$\semusg{\wild}$ is a correct deadness analysis]
   \label{thm:semusg-correct-live}
-  Let $\pe$ be an expression, $\px$ a variable and $\tr$ a usage environment.
-  If $\tr(\px) \not⊑ \semusg{\pe}_{\tr}$
+  Let $\pe$ be an expression and $\px$ a variable.
+  If $\semusg{\pe}_{\tr_Δ}(\px) = 0$
   then $\px$ is dead in $\pe$.
 \end{theoremrep}
+\begin{proof}
+  By induction on $\pe$, generalising $\tr_Δ$ in the assumption
+  $\semusg{\pe}_{\tr_Δ}(\px) = 0$ to ``there exists a $\tr$
+  such that $\tr(\px) \not⊑ \semusg{\pe}_{\tr}$''.
  \slpj{That is indeed a tricky statement.  What is the intuition?  Do you mean
     that this has to be true for \emph{every} $\tr$?  Or that $\px$ is dead if I can find \emph{some} $\tr$ for which
     the statement holds? It is surely not true in general because $\px$ might have bindings for variables nothing to do with $e$.}
-\begin{proof}
-  By induction on $\pe$.
+ \sg{The ``some'' version is the correct notion. The $\tr$ becomes a witness of
+     deadness. I don't understand your comment \wrt not being true in general. }
+
+  It is $\tr_Δ(\px) \not⊑ \semusg{\pe}_{\tr_Δ}$:
+  Let us assume $\semusg{\pe}_{\tr_Δ}(\px) = 0$.
+  We know, by definition of $\tr_Δ$ that $\tr_Δ(\px)(\px) = 1$.
+  Hence $\tr_Δ(\px)(\px) \not⊑ \semusg{\pe}_{\tr_Δ}(\px)$; and hence $\tr_Δ(\px) \not⊑ \semusg{\pe}_{\tr_Δ}$.
+  \sg{I suppose we can be a little more explicit here, as you suggested.
+  Ultimately I don't think that hand-written proofs will carry us very far
+  and I'll try formalise the more important proofs in Agda.}
+
   We fix $\pe$, $\px$ and $\tr$ such that $\tr(\px) \not⊑ \semusg{\pe}_{\tr}$.
   The goal is to show that $\px$ is dead in $\pe$,
   so we are given an arbitrary $ρ$, $d_1$ and $d_2$ and have to show that
@@ -298,35 +310,15 @@ arrive at the following theorem:
   \end{itemize}
 \end{proof}
 
-The proof capitalises on the similarities in structure by using induction on
-the program expression, hence it is simple and direct, at just under a page of
-accessible prose. \slpj{Need to point to evidence.  E.g. point to Appendix A?}
+(All proofs can be found in the Appendix; in case of the extended version via
+clickable links.)\,
+The proof capitalises on the similarities in structure by using
+induction on the program expression.
+The induction hypothesis needs slight generalisation; that admittedly
+involves a bit of trial and error.
+All in all, it is a simple and direct proof, at just under a page of accessible
+prose.
 
-In practice, it is simpler to exploit the following lemma that instantiates
-$\tr$ to $\tr_Δ$:
-
-\begin{corollary}
-  \label{thm:semusg-correct-live-simple}
-  Let $\pe$ be an expression and $\px$ a variable.
-  If $\semusg{\pe}_{\tr_Δ}(\px) = 0$
-  then $\px$ is dead in $\pe$.
-\end{corollary}
-\slpj{This one is much easier to understand.  Maybe just start with it? Or do you need
-the generalisation for the proof?}
-\begin{proof}
-  From the assumption $0 = \semusg{\pe}_{\tr_Δ}(\px)$ we know that
-  $\tr_Δ(\px)(\px) = 1 \not⊑ 0 = \semusg{\pe}_{\tr_Δ}(\px)$ and hence that
-  $\tr_Δ(\px) \not⊑ \semusg{\pe}_{\tr_Δ}$.
-  Now we can apply \Cref{thm:semusg-correct-live}.
-  \slpj{Again the compressed style makes it hard to read.   I see
-    ``From the assumption $0 = \semusg{\pe}_{\tr_Δ}(\px)$ we know that $\tr_Δ(\px)(\px) = 1$'';
-    but that that equality is nothing to do with the assumption!
-    Better: Let us assume $\semusg{\pe}_{\tr_Δ}(\px) = 0$.  We know, by definition of $\tr_{\Delta}$ that $\tr_Δ(\px)(\px) = 1$.
-    Hence $\tr_Δ(\px)(\px) \not⊑ \semusg{\pe}_{\tr_Δ}(\px)$; and hence $\tr_Δ(\px) \not⊑ \semusg{\pe}_{\tr_Δ}$}
-\end{proof}
-
-This corollary proves that our intuitive notion of deadness
-from \Cref{sec:usage-intuition} lines up with the formal \Cref{defn:deadness}.
 Simplicity of proofs is a good property to strive for, so let us formulate an
 explicit goal:
 
@@ -352,6 +344,7 @@ In support of this principle, we will formulate a few more concrete goals that
 each require more context to make sense.
 
 \slpj{Need to say what $⊑$ is for $\UsgD$.}
+\sg{I stated elsewhere that the obvious pointwise ordering holds.}
 
 \subsection{Continuity and Divergence}
 \label{sec:continuity}
@@ -359,12 +352,16 @@ each require more context to make sense.
 % Nevermind our confidence in the ultimate correctness of $\semusg{\wild}$,
 Our notion of deadness has a blind spot \wrt diverging computations:
 $\semscott{\wild}$ denotes any looping program such as
-$\Let{\mathit{loop}}{\Lam{x}{\mathit{loop}~x}}{{\mathit{loop}~\mathit{loop}}}$ by $\bot$, the
+$\pe_{\mathit{loop}} \triangleq \Let{\mathit{loop}}{\Lam{x}{\mathit{loop}~x}}{{\mathit{loop}~\mathit{loop}}}$ by $\bot$, the
 same element that is meant to indicate partiality in the approximation order
-of the domain (\eg, insufficiently specified input \slpj{What is ``insufficiently specified input''?}).
+of the domain (\eg, insufficiently specified input%
+\slpj{What is ``insufficiently specified input''?}%
+\sg{Partial input data; so something containing $\bot$ somewhere. You might enjoy the Turing machine analogy of Andrej Bauer here: \url{https://cs.stackexchange.com/a/81018/10048}}%
+).
 \slpj{Indeed I note that $\UsgD$ doesn't seem to have a $\bot$ element; at least
   not a visible one.  Perhaps the bottom element is a function that maps
   every variable to $0$?  Need to say things like this.}
+\sg{Grep for ``according''}
 Hence any looping program is automatically dead in all its free variables, even
 though any of them might influence which particular endless loop is taken.
 
@@ -373,9 +370,12 @@ control-flow analysis work~\citep[p. 23]{Shivers:91} where it is remedied
 by the introduction of a \emph{non-standard semantic interpretation} that
 assigns meaning to diverging programs where the denotational semantics only
 says $\bot$.
-The latter would actually denote the empty set of reached program labels,
-neglecting that any part of the program before the loop was ever reached.
+The bottom element of the non-standard domain is the empty set of reached
+program labels. So if the non-standard semantics were to assign the bottom
+element to diverging programs like the denotational semantics does, it would
+neglect that any part of the program before the loop was ever reached.
 \slpj{I could not parse that sentence and I don't know what it means.}
+\sg{I tried to improve.}
 The non-standard semantic interpretation is far more reasonable, but credibility
 of this approach solely rests on the structural similarity to the standard
 denotational semantics.
@@ -388,14 +388,17 @@ binding in $\Let{x}{\pe_1}{(\Lam{y}{\Lam{z}{z}})~x}$
 introduces a scoping error which is not observable under $\semscott{\wild}$.
 \slpj{But who said you could drop the binding?  Previously you just argued you could replace it with
   a panic binding.}
+\sg{Grep for ``justifies''.}
 We could take inspiration in the work of \citet{Milner:78}
 and navigate around the issue by introducing a $\mathbf{wrong}$ denotation for
 errors which is propagated strictly; then we would notice when we optimise a
-looping program into one that has a scoping error.  \slpj{Sorry don't get this, esp as the example is not looping.}
+looping program such as $\pe_{\mathit{loop}}$ into one that has a scoping error.
+\slpj{Sorry don't get this, esp as the example is not looping.}
+\sg{I clarified.}
 
-We can try the same trick as \citeauthor{Milner:78} and assign diverging
-programs a total domain element $\mathsf{div}$ distinct from all other elements.
-Then when would we go from $\bot$ to $\mathsf{div}$ in the least fixed-point in
+We can try to apply that same trick to diverging programs and assign them a
+total domain element $\mathsf{div}$ distinct from all other elements.
+But then when would we go from $\bot$ to $\mathsf{div}$ in the least fixed-point in
 $\semscott{\Let{\wild}{\wild}{\wild}}$?
 There is no way to introduce $\mathsf{div}$ unless we make it a partial element
 that approximates every total element; but then we could have just chosen $\bot$
@@ -411,6 +414,14 @@ the partial elements $d=\bot$ and $d=\mathsf{div}$.
 A practical consequence is that such a predicate could not be proven about a
 recursive let binding because that would need admissability to apply fixpoint
 induction.  \slpj{Is this paragraph important? I did not understand it.}
+\sg{Well, I suppose it isn't important to you, then.
+It would be important to Joachim, I think, who currently grapples with defining a
+traditional denotational semantics for his rec-def work:
+\url{https://discourse.haskell.org/t/icfp-pearl-on-rec-def/6626}
+His \texttt{rseq} primitive lacks continuity; as a result he won't be able to
+use fixpoint induction and I'm skeptical whether his semantics even exists.
+By contrast, I think a guarded domain theoretic approach would be much simpler.
+Will try that after the deadline.}
 
 We would rather not need to reason about continuity and admissability.
 Hence we formulate the following goal:
@@ -434,7 +445,7 @@ called at most once for every activation --- because it allows floating of heap
 allocations from a hot code path into cold function bodies.
 Simplicity prohibits $\semusg{\wild}$ from inferring such properties.}
 Thus, our usage analysis should satisfy the following generalisation of
-\Cref{thm:semusg-correct-live-simple}:
+\Cref{thm:semusg-correct-live}:
 
 \begin{theorem}[Correctness of $\semusg{\wild}$]
   \label{thm:semusg-correct-2}
