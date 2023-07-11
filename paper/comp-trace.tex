@@ -4,7 +4,7 @@
 %% For double-blind review submission, w/ CCS and ACM Reference
 %\documentclass[acmsmall,review,anonymous]{acmart}\settopmatter{printfolios=true}
 %% For single-blind review submission, w/o CCS and ACM Reference (max submission space)
-\documentclass[acmsmall,review]{acmart}\settopmatter{printfolios=true,printccs=false,printacmref=false}
+\documentclass[draft,acmsmall,review]{acmart}\settopmatter{printfolios=true,printccs=false,printacmref=false}
 %% For single-blind review submission, w/ CCS and ACM Reference
 %\documentclass[acmsmall,review]{acmart}\settopmatter{printfolios=true}
 %% For final camera-ready submission, w/ required CCS and ACM Reference
@@ -37,6 +37,7 @@
 \usepackage{apxproof}
 \usepackage{array} % \newcolumntype
 \usepackage{color}
+\usepackage{ifdraft}
 %\usepackage[svgnames]{xcolor}
 \usepackage{cleveref}
 \usepackage{xspace}
@@ -121,6 +122,7 @@
 \ifmain
 
 \begin{abstract}
+  Motivated by observing
 \end{abstract}
 
 %% 2012 ACM Computing Classification System (CSS) concepts

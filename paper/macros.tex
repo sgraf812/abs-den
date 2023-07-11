@@ -17,10 +17,10 @@
 \newcommand\wrt{wrt.\xspace}
 
 % Comments and notes
-\newcommand{\slpj}[1]{\emph{SLPJ: #1}}
+\newcommand{\slpj}[1]{\ifdraft{\emph{SLPJ: #1}}{}}
 \newenvironment{slpjenv}{\em SLPJ:}{}
-\newcommand{\sg}[1]{\emph{SG: #1}}
-\newcommand{\todo}[1]{\textcolor{red}{TODO: #1}}
+\newcommand{\sg}[1]{\ifdraft{\emph{SG: #1}}{}}
+\newcommand{\todo}[1]{\ifdraft{\textcolor{red}{TODO: #1}}{}}
 
 % Auxiliary
 \newcommand{\many}[1]{\overline{#1}}

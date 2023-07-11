@@ -570,7 +570,7 @@ We can now make good on that claim:
       If that was not the case, we could apply \Cref{heap-partitioning}
       to hide all entries in which $L$ is live ``inside $d'$'' and allocate them
       on first execution.
-      \sg{TODO: Turn into lemma. Sounds useful}
+      % Turn into lemma. Sounds useful
 
       When $L$ is dead in $\rng(μ)$, we can rewrite the entry for $\pa'$ freely
       without affecting $\correct$.
@@ -824,14 +824,10 @@ in \Cref{fig:usg-abs}:
 %\emph{hyperproperty} by~\citet{ClarksonSchneider:10}).
 
 The \emph{semantic usage abstraction} $\usg_\Traces : \Traces \to \LookTraces$
-is the most precise usage analysis possible and is induced componentwise on
-$\Traces, \Heaps,\EventD$ and $\EventV$ by the event abstraction
-\[
-  \usg_{\Events}(ε) = \begin{cases}
-      [\pa↦1] & ε = \LookupE(\pa) \\
-      \constfn{0} & \text{otherwise}
-    \end{cases}.
-\]
+is the most precise usage analysis and is induced componentwise on
+$\Traces, \Heaps,\EventD$ and $\EventV$ by the event abstraction $\usg_\Events$
+in \Cref{fig:usg-abs}.
+
 A $\LookTraces$ trace can then be folded by $\ctx_\LookTraces$ into
 an $\Addresses \to \Usg$ mapping.%
 \footnote{It is worth noting that for brevity we play fast and loose with guardedness
@@ -958,7 +954,7 @@ contexts, returning the least upper bound of all continued traces.
       If that was not the case, we could apply \Cref{heap-partitioning}
       to hide all entries in which $L$ is live ``inside $d'$'' and allocate them
       on first execution.
-      \sg{TODO: Turn into lemma. Sounds useful}
+      % Turn into lemma. Sounds useful
 
       When $L$ is dead in $\rng(μ)$, we can rewrite the entry for $\pa'$ freely
       without affecting $\correct$.

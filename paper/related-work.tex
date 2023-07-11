@@ -1,4 +1,3 @@
-\pagebreak
 \section{Related Work}
 \label{sec:related-work}
 
@@ -100,9 +99,9 @@ scope.
 In particular, for multiple simultaneously live activations of $i$ in, \eg,
   ${\Let{f}{\Lam{x}{\Let{i}{\Lam{y}{y}}{i~x~x}}}{f~f}}$,
 $\semusg{\wild}$ is able to correctly deduce that $i$ is evaluated at most once.
-More complex analyses may infer context-sensitive cardinality
-information via \emph{demand transformers}~\citep{cardinality-ext}, likewise
-without reasoning about heaps during analysis.
+More complex analyses may infer interprocedural cardinality information via
+\emph{demand transformers}~\citep{cardinality-ext}, likewise without reasoning
+about heaps during analysis.
 We intend to connect the notion of demand transformers to transformer
 abstraction~\citep{Cousot:21} of $\FunV$ values in the future (\ie, functions
 \emph{in the object language}), a connection that has not been possible with

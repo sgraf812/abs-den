@@ -8,5 +8,6 @@ comp-trace-ext.tex
 *.dvi
 *.log
 *.out
+*.cut
 *.pdf
 *.agdai
