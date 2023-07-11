@@ -53,7 +53,7 @@ $\bool ::= \ttrue \mid \ffalse$, where $\ttrue$ and $\ffalse$ are two nullary
 data constructors.
 
 Let us conclude with an example trace in this transition system, evaluating
-$\pe \triangleq \Let{i}{\Lam{x}{x}}{i~i}$ to completion:
+$\pe \triangleq \Let{i}{\Lam{x}{x}}{i~i}$:
 \[\begin{array}{c}
   \arraycolsep2pt
   \begin{array}{clclclcl}
@@ -97,7 +97,7 @@ the existence of the injection $\FunV$.
 
 Domain theory, on the other hand, interprets the implied recursion equation
 in terms of topology and continuous functions, where the fixed-point exists
-when restricted to \emph{algebraic domains}.
+when restricted to \emph{algebraic domains}~\citep{Scott:70}.
 At the same time, algebraic domains are expressive enough to encode any
 computable function as a continuous function.
 
@@ -124,10 +124,10 @@ The fundamental innovation of these theories is the integration of the
 with negative recursive occurrences such in our ``data type'' $D$ from
 \Cref{sec:domain-theory}, as first realised by \citet{Nakano:00}.
 
-GDTT walks a fine line:
-The theory guarantees that all well-typed functions (naturally) correspond
-to continuous functions in the underlying model, while it also allows for
-embedding of a sufficiently expressive restriction to give meaning to $D$.
+%GDTT walks a fine line:
+%The theory guarantees that all well-typed functions (naturally) correspond
+%to continuous functions in the underlying model, while it also allows for
+%embedding of a sufficiently expressive restriction to give meaning to $D$.
 
 Whereas previous theories of coinduction require syntactic productivity
 checks~\citep{Coquand:94}, requiring tiresome constraints on the form of guarded
@@ -157,6 +157,8 @@ $D ::= \FunV(f ∈ \later D \to \later D) \mid \bot$ (where $\bot$ is interprete
 as a plain nullary data constructor rather than as the least element of
 some partial order) is a sound coinductive encoding of the data type in
 \Cref{sec:domain-theory}.
+Even unguarded positive occurrences as in
+$D ::= \FunV(f ∈ \later D \to D) \mid \bot$ are permissible as
 
 As a type constructor, $\later$ is an applicative
 functor~\citep{McBridePaterson:08} via functions
@@ -168,8 +170,8 @@ In order not to obscure our work with pointless symbol pushing
 in, \eg, \Cref{fig:semvan}, we will often omit the idiom
 brackets~\citep{McBridePaterson:08} $\idiom{\wild}$
 to indicate where the $\later$ ``effects'' happen.
-Rest assured, they are still there in the Guarded Cubical Agda development in
-the Supplement.
+Rest assured, all $\later$ are present in the Guarded Cubical Agda
+development for \Cref{fig:semvan,fig:semevt} in the Supplement.
 
 \begin{figure}
 \[\begin{array}{c}
@@ -178,7 +180,7 @@ the Supplement.
   &
   \text{Heap}         & μ   & ∈ & \Heaps         & =      & \Addresses \pfun \later\VanD
   \\
-  \\[-0.5em]
+  \\[-1em]
   \text{Trace} & τ      & ∈          & \VTraces & ::= & \goodend{v,μ} \mid \stuckend \mid \laterC~τ^{\later}
   &
   \multicolumn{3}{r}{\text{Delayed trace}} & τ^{\later} & ∈ & \later\VTraces &   &
@@ -187,12 +189,11 @@ the Supplement.
   &
   \multicolumn{3}{r}{\text{Delayed element}} & d^{\later} & ∈ & \later\VanD &   &
   \\
-  \\[-0.5em]
+  \\[-1em]
  \end{array} \\
  \begin{array}{rrclcl}
   \text{Value} & v & ∈ & \VanV & ::= & \FunV(f ∈ (\Addresses \to \later\VanD)) \mid \ConV(K,\many{\pa}^{α_K}) \\
  \end{array} \\
-  \\[-0.5em]
 \end{array}\]
 \[\begin{array}{c}
  \begin{array}{rcl}
@@ -214,7 +215,7 @@ the Supplement.
   \select(d,\alts) & = & d \betastep \fn{(\ConV(K_s,\many{\pa}))}{\alts(K_s, \many{\pa})} \quad \text{where } (K_s, \many{\pa}) ∈ \dom(\alts) \\
   \memo(\pa,d) & = & d \betastep \fn{v}{(\fn{μ}{\laterC~\goodend{v,μ[\pa ↦ \memo(\pa,\ret(v))]}})} \\
  \end{array} \\
- \\[-0.5em]
+  \\[-0.5em]
  \begin{array}{rcl}
   \multicolumn{3}{c}{ \ruleform{ \semvan{\wild} \colon \Exp → (\Var \pfun \Addresses) → \VanD } } \\
   \\[-0.5em]
@@ -251,15 +252,14 @@ the Supplement.
 
 \subsection{Definition}
 
-\Cref{fig:semvan} finally gives the definition for $\semvan{\wild}$, a function
-defined by structural recursion on an input expression $\pe$. Given a free
-variable environment $ρ$, $\semvan{\pe}_ρ$ assigns $\pe$ a denotation $d$ in
-terms of the semantic domain $\VanD$ of stateful call-by-need trace functions.
-If such a trace function is supplied the heap $μ$ just before $\pe$ takes
-control, then $d(μ)$ is a trace $τ$ starting at $\pe$ in that heap $μ$.
-As in the LK transition system $(\smallstep)$, the job of the environment $ρ$ is
-to assign meaning to free variables of $\pe$ via address tokens $\pa$ bound in
-the heap.
+\Cref{fig:semvan} defines $\semvan{\wild}$ by structural recursion on an input
+expression $\pe$. Given a free variable environment $ρ$, $\semvan{\pe}_ρ$
+assigns $\pe$ a denotation $d$ in terms of the semantic domain $\VanD$ of
+stateful call-by-need trace functions. If such a trace function is supplied the
+heap $μ$ just before $\pe$ takes control, then $d(μ)$ is a trace $τ$ starting
+at $\pe$ in that heap $μ$. As in the LK transition system $(\smallstep)$, the
+job of the environment $ρ$ is to assign meaning to free variables of $\pe$ via
+address tokens $\pa$ bound in the heap.
 If evaluation of $\pe$ terminates, then $τ$ will be a finite list of $\laterC$s
 ending with $\goodend{v,μ'}$ for some return semantic value $v$ and heap $μ'$.
 Otherwise, it might be finite but stuck ($\stuckend$), or diverge without
@@ -276,39 +276,30 @@ environment or control stack component.
 The entire state is internal to the definition of $\semvan{\wild}$:
 The stack in particular is implicitly encoded in call structure while the
 environment follows lexical structure.
-As we have seen in \Cref{sec:problem} at the example of $\semscott{\wild}$,
-this reflection of machine state into ``math'' bears great potential for program
-analysis, one we will exploit in \Cref{sec:abstractions}.
+%As we have seen in \Cref{sec:problem} at the example of $\semscott{\wild}$,
+%this reflection of machine state into ``math'' bears great potential for program
+%analysis, one we will exploit in \Cref{sec:abstractions}.
 We will see that for every LK transition, the trace will have one $\laterC$
 step.
+
 The second difference is that the heap $μ$ does not map to syntactic closures
 but to delayed semantic denotations $\later \VanD$.
+This is so that the transitive negative occurrence arising through
+$\VanD \to \Heaps \to \VanD$ is broken and the definition ``type-checks''.
+With algebraic domain theory, we would instead have to justify that this
+domain equation has a solution and that $\semvan{\wild}$ is in fact continuous.
 
-The choice to have environments map to addresses naturally leads to function
-values $\FunV(f)$ that take said addresses as parameter rather than a
-(necessarily guarded) $\VanD$ as in $\semscott{\wild}$.%
-\footnote{An earlier version of this paper had
-$\Environments = \Var \pfun \VanD$ instead, where every entry would simply look
-up a particular address in the heap.
-Though it felt more ``semantic'', it was ultimately more taxing than useful,
-because many later proofs will have to pose additional preconditions on $ρ$.}
-Crucially, this allows the embedding of function values $\FunV(f)$ in the
-lambda case $\semvan{\Lam{\px}{\pe}}$, enabling a compositional definition of the
+The choice to have environments map to addresses leads to function values
+$\FunV(f)$ that take said addresses as parameter, rather than a (necessarily
+guarded) $\VanD$ as in $\semscott{\wild}$.%
+%\footnote{An earlier version of this paper had
+%$\Environments = \Var \pfun \VanD$ instead, where every entry would simply look
+%up a particular address in the heap.
+%Though it felt more ``semantic'', it was ultimately more taxing than useful,
+%because many later proofs will have to pose additional preconditions on $ρ$.}
+This allows the embedding of function values $\FunV(f)$ in the lambda case
+$\semvan{\Lam{\px}{\pe}}$, enabling a compositional definition of the
 application case $\semvan{\pe~\px}$, just as in $\semscott{\wild}$.
-
-It is worth noting that without guarded recursive types, the definition of
-$\VanD$ would not be well-founded because of the negative cycle arising through
-$\VanD \to \Heaps \to \VanD$ (\cf \Cref{sec:domain-theory}).
-Interpreted as a traditional algebraic domain, we would now have to justify
-that this domain equation has a solution and that $\semvan{\wild}$ is in fact
-continuous.
-However, the simple use of a guarded recursive type $\later \VanD$ in the
-definition of heaps breaks that cycle, thus the definition is well-founded.
-
-All definitions of semantics in this work have been type-checked using Guarded
-Cubical Agda and are available in the Supplement.
-Hence we leave out the necessary $\purelater$, $\aplater$ and $\idiom{\wild}$
-combinators in the presentation to avoid distraction from the payload.
 
 Let us now understand $\semvan{\wild}$ by way of evaluating the example program
 from earlier, $\pe \triangleq \Let{i}{\Lam{x}{x}}{i~i}$:

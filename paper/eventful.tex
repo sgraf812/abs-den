@@ -134,6 +134,7 @@ We thus open up our semantics for instrumentation.
 Certainly, we could have omitted some or added more information than what
 the events carry; in this work we mostly care about $\LookupE$ events.
 
+\begin{toappendix}
 \begin{figure}
 \[\begin{array}{rcl}
   α_\Heaps([\many{\pa ↦ (ρ,\pe)}]) & = & [\many{\pa ↦ \memo(\pa,\semvan{\pe}_{ρ})}] \\
@@ -158,6 +159,7 @@ the events carry; in this work we mostly care about $\LookupE$ events.
 \caption{Correctness predicate for $\semevt{\wild}$}
   \label{fig:semevt-correctness}
 \end{figure}
+\end{toappendix}
 
 There is one minor structural difference to $\semvan{\wild}$:
 $\FunV$ values now return an unguarded $\EventD$ so that the $\AppEE$ event
@@ -177,7 +179,8 @@ away all events and replacing $\cons$ with $\laterC$.
 Thus the only thing worth verifying is that the events actually correspond to
 meaningful LK concepts.
 One can read off this correpondence in the abstraction function for the
-extended correctness predicate for $\semevt{\wild}$ in \Cref{fig:semevt-correctness}.
+extended correctness predicate for $\semevt{\wild}$ which we give in
+\Cref{fig:semevt-correctness}.
 
 \begin{theorem}[Correctness of $\semevt{\wild}$]
   \label{thm:semvan-correct}
@@ -190,8 +193,8 @@ extended correctness predicate for $\semevt{\wild}$ in \Cref{fig:semevt-correctn
 It is clear that this style of semantics allows to observe arbitrary operational
 detail on an as-needed basis, thus we fulfill our Goal 3.
 
-Let us conclude this section by giving the uncommented embellished version of
-our earlier examples from \Cref{sec:vanilla}, starting with $\Let{i}{\Lam{x}{x}}{i~i}$:
+Let us conclude this section by giving the embellished version of
+the earlier example from \Cref{sec:vanilla}, $\Let{i}{\Lam{x}{x}}{i~i}$:
 \[\begin{array}{ll}
   \newcommand{\myleftbrace}[4]{\draw[mymatrixbrace] (m-#2-#1.west) -- node[right=2pt] {#4} (m-#3-#1.west);}
   \vcenter{\hbox{$
@@ -226,35 +229,35 @@ our earlier examples from \Cref{sec:vanilla}, starting with $\Let{i}{\Lam{x}{x}}
   \end{array}
 \end{array}\]
 
-And then also for the heap update in $\Let{i}{(\Lam{y}{\Lam{x}{x}})~i}{i~i}$:
-
-\[\begin{array}{ll}
-  \newcommand{\myleftbrace}[4]{\draw[mymatrixbrace] (m-#2-#1.west) -- node[right=2pt] {#4} (m-#3-#1.west);}
-  \vcenter{\hbox{$
-    \begin{tikzpicture}[baseline={-0.5ex},mymatrixenv]
-      \matrix [mymatrix] (m)
-      {
-        1 & (μ_1)~\UpdateE(\pa_1↦v) \cons {} & \hspace{4em} & \hspace{3.5em} \\
-        2 & (μ_2)~\AppEE(x↦\pa_1) \cons {} & & \\
-        3 & (μ_2)~\LookupE(\pa_1) \cons {} & & \\
-        4 & (μ_2)~\UpdateE(\pa_1↦v) \cons {} & & \\
-        5 & \goodend{v, μ_2} & & \\
-      };
-      % Braces, using the node name prev as the state for the previous east
-      % anchor. Only the east anchor is relevant
-      \foreach \i in {1,...,\the\pgfmatrixcurrentrow}
-        \draw[dotted] (m.east|-m-\i-\the\pgfmatrixcurrentcolumn.east) -- (m-\i-2);
-      \myleftbrace{3}{1}{5}{$\semevt{i~i}_{ρ_1}$}
-      \myleftbrace{4}{1}{2}{$\semevt{i}_{ρ_1}$}
-      \myleftbrace{4}{3}{5}{$\semevt{x}_{ρ_3}$}
-    \end{tikzpicture}
-  $}} &
-  \!\!\!\text{where} \begin{array}{l}
-  ρ_1 = [i ↦ \pa_1] \\
-  ρ_2 = [i ↦ \pa_1, y ↦ \pa_1] \\
-  ρ_3 = [i ↦ \pa_1, y ↦ \pa_1, x ↦ \pa_1] \\
-  v = \FunV(\fn{\pa}{\semevt{\px}_{ρ_2[\px↦\pa]}}) \\
-  μ_1 = [\pa_1 ↦ \memo(\pa_1,\semevt{(\Lam{y}{\Lam{x}{x}})~i}_{ρ_1})] \\
-  μ_2 = [\pa_1 ↦ \memo(\pa_1,\semevt{\Lam{x}{x}}_{ρ_2})] \\
-  \end{array} \\
-\end{array}\]
+%And then also for the heap update in $\Let{i}{(\Lam{y}{\Lam{x}{x}})~i}{i~i}$:
+%
+%\[\begin{array}{ll}
+%  \newcommand{\myleftbrace}[4]{\draw[mymatrixbrace] (m-#2-#1.west) -- node[right=2pt] {#4} (m-#3-#1.west);}
+%  \vcenter{\hbox{$
+%    \begin{tikzpicture}[baseline={-0.5ex},mymatrixenv]
+%      \matrix [mymatrix] (m)
+%      {
+%        1 & (μ_1)~\UpdateE(\pa_1↦v) \cons {} & \hspace{4em} & \hspace{3.5em} \\
+%        2 & (μ_2)~\AppEE(x↦\pa_1) \cons {} & & \\
+%        3 & (μ_2)~\LookupE(\pa_1) \cons {} & & \\
+%        4 & (μ_2)~\UpdateE(\pa_1↦v) \cons {} & & \\
+%        5 & \goodend{v, μ_2} & & \\
+%      };
+%      % Braces, using the node name prev as the state for the previous east
+%      % anchor. Only the east anchor is relevant
+%      \foreach \i in {1,...,\the\pgfmatrixcurrentrow}
+%        \draw[dotted] (m.east|-m-\i-\the\pgfmatrixcurrentcolumn.east) -- (m-\i-2);
+%      \myleftbrace{3}{1}{5}{$\semevt{i~i}_{ρ_1}$}
+%      \myleftbrace{4}{1}{2}{$\semevt{i}_{ρ_1}$}
+%      \myleftbrace{4}{3}{5}{$\semevt{x}_{ρ_3}$}
+%    \end{tikzpicture}
+%  $}} &
+%  \!\!\!\text{where} \begin{array}{l}
+%  ρ_1 = [i ↦ \pa_1] \\
+%  ρ_2 = [i ↦ \pa_1, y ↦ \pa_1] \\
+%  ρ_3 = [i ↦ \pa_1, y ↦ \pa_1, x ↦ \pa_1] \\
+%  v = \FunV(\fn{\pa}{\semevt{\px}_{ρ_2[\px↦\pa]}}) \\
+%  μ_1 = [\pa_1 ↦ \memo(\pa_1,\semevt{(\Lam{y}{\Lam{x}{x}})~i}_{ρ_1})] \\
+%  μ_2 = [\pa_1 ↦ \memo(\pa_1,\semevt{\Lam{x}{x}}_{ρ_2})] \\
+%  \end{array} \\
+%\end{array}\]

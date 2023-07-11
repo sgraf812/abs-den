@@ -23,14 +23,14 @@ models operational details like the stack, heap, and sharing, and sees program e
 as a sequence of machine states.  Now we have two un-appealing alternatives:
 \begin{itemize}
 \item Peform a difficult correctness proof, that links an operational semantics for the language
-  with a compositional analysis defined by structural recursion.
+  with an analysis defined by structural recursion.
 \item Re-imagine and re-implement the analysis as an abstraction of the
   reachable states of an operational semantics.
   This is the essence of Abstracting Abstract Machines \cite{aam}, a very
   fruitful approach, but one that requires the entire analysis to cleverly
   reason about heaps.
 \end{itemize}
-In this paper we explore a new third path: \emph{to enrich a compositional denotational semantics so that
+In this paper we explore a new third path: \emph{to enrich a structurally-defined semantics so that
 it expresses enough operational detail to support our static analysis}.
 We make the following contributions:
 \begin{itemize}

@@ -12,6 +12,67 @@
 \subsection{Usage Analysis and Deadness, Intuitively}
 \label{sec:usage-intuition}
 
+Let us begin by defining the object language of this work, a lambda
+calculus with recursive let bindings and algebraic data types:
+\[
+\arraycolsep=3pt
+\begin{array}{rrclcrrclcl}
+  \text{Variables}    & \px, \py & ∈ & \Var        &     & \quad \text{Constructors} &        K & ∈ & \Con        &     & \text{with arity $α_K ∈ ℕ$} \\
+  \text{Values}       &      \pv & ∈ & \Val        & ::= & \highlight{\Lam{\px}{\pe}} \mid K~\many{\px}^{α_K} \\
+  \text{Expressions}  &      \pe & ∈ & \Exp        & ::= & \multicolumn{6}{l}{\highlight{\px \mid \pv \mid \pe~\px \mid \Let{\px}{\pe_1}{\pe_2}} \mid \Case{\pe}{\SelArity}}
+\end{array}
+\]
+The form is reminiscent of \citet{Launchbury:93} and \citet{Sestoft:97} because
+it is factored into \emph{A-normal form}, that is, the arguments of applications
+are restricted to be variables, so the difference between call-by-name and
+call-by-value manifests purely in the semantics of $\mathbf{let}$.
+Note that $\Lam{x}{x}$ denotes syntax, whereas $\fn{x}{x+1}$ denotes a function
+in math.
+In this section, only the highlighted parts are relevant; we will
+discuss data types in \Cref{sec:vanilla}.
+From hereon throughout, we assume that all labels and bound program variables
+are distinct.
+
+We give a standard call-by-name denotational semantics $\semscott{\wild}$ in
+\Cref{fig:denotational} \citep{ScottStrachey:71}, assigning meaning to our
+syntax by means of the Scott domain $\ScottD$ defined in
+\Cref{fig:dom-syntax}.%
+\footnote{As usual, the notation $[X \to_c X]_\bot$ is meant to indicate the
+topology of Scott-continuous endofunctions on $X$ together with a distinct least
+element $\bot$.
+Then the Scott domain $\ScottD$ is the least fixed-point of the functional $F(X)
+= [X \to_c X]_\bot$.}
+
+\Cref{fig:usage} defines a static \emph{usage analysis}.
+The idea is that $\semusg{e}_{\rho}$ returns a function whose domain is the free variables of $e$;
+this function maps each free variable $x$ of $e$ to its \emph{evaluation cardinality} $u ∈ \Usg$, an upper bound
+on the number of times that $x$ will be evaluated when $e$ is evaluated
+(regardless of context).  So, for example $\semusg{x+1}_{\rho}$ returns a function mapping $x$ to 1
+and all other variables to 0.
+Any number of uses beyond $1$, such as $2$ for $x$ in $\semusg{x+x}_{\rho}$, are collapsed to
+$d(x) = ω$, which denotes the set of any possible number of uses and is thus the
+top element of the total order $\Usg$.
+Simlarly $\semusg{\Lam{v}{v+z}}_{\rho}$
+maps $z$ to $\omega$, since the lambda might be called many times.
+\slpj{Actually this isn't right. S seems to give usage for the \emph{bound}
+  variables of $e$ too (not just the \emph{free} variables),
+  which is a strange, intensional kind of thing. Needs discussion.}
+\sg{We haven't said anything about how we use the results of this analysis.
+Of course, the info about bound variables is often not useful (it quickly
+deteriorates to $ω$), but it's also unnecessary noise to remove them and in one
+specific scenario
+($\Let{x}{\pe_1}{\pe_2}$) we do want to look at the usage of bound var
+$x$. Just roll with it for now, I'm confident this is all correct since
+I've spent countless hours proving it correct.}
+
+For open expressions, we need a way to describe the denotations of its
+free variables with a \emph{usage environment}\footnote{
+Note that we will occassionally adorn with \textasciitilde{} to disambiguate
+elements of the analysis domain from the semantic domain.}
+$\tr ∈ \Var \to \UsgD$.
+Given a usage environment $\tr$, $\tr(x)(y)$ models an upper bound
+on how often the expression bound to $x$ evaluates $y$.
+
 \begin{figure}
 \begin{minipage}{\textwidth}
 \[\begin{array}{c}
@@ -81,67 +142,6 @@
 \vspace{-0.75em}
 \caption{Connecting usage analysis to denotational semantics}
 \end{figure}
-
-Let us begin by defining the object language of this work, a lambda
-calculus with recursive let bindings and algebraic data types:
-\[
-\arraycolsep=3pt
-\begin{array}{rrclcrrclcl}
-  \text{Variables}    & \px, \py & ∈ & \Var        &     & \quad \text{Constructors} &        K & ∈ & \Con        &     & \text{with arity $α_K ∈ ℕ$} \\
-  \text{Values}       &      \pv & ∈ & \Val        & ::= & \highlight{\Lam{\px}{\pe}} \mid K~\many{\px}^{α_K} \\
-  \text{Expressions}  &      \pe & ∈ & \Exp        & ::= & \multicolumn{6}{l}{\highlight{\px \mid \pv \mid \pe~\px \mid \Let{\px}{\pe_1}{\pe_2}} \mid \Case{\pe}{\SelArity}}
-\end{array}
-\]
-The form is reminiscent of \citet{Launchbury:93} and \citet{Sestoft:97} because
-it is factored into \emph{A-normal form}, that is, the arguments of applications
-are restricted to be variables, so the difference between call-by-name and
-call-by-value manifests purely in the semantics of $\mathbf{let}$.
-Note that $\Lam{x}{x}$ denotes syntax, whereas $\fn{x}{x+1}$ denotes a function
-in math.
-In this section, only the highlighted parts are relevant; we will
-discuss data types in \Cref{sec:vanilla}.
-From hereon throughout, we assume that all labels and bound program variables
-are distinct.
-
-We give a standard call-by-name denotational semantics $\semscott{\wild}$ in
-\Cref{fig:denotational} \citep{ScottStrachey:71}, assigning meaning to our
-syntax by means of the Scott domain $\ScottD$ defined in
-\Cref{fig:dom-syntax}.%
-\footnote{As usual, the notation $[X \to_c X]_\bot$ is meant to indicate the
-topology of Scott-continuous endofunctions on $X$ together with a distinct least
-element $\bot$.
-Then the Scott domain $\ScottD$ is the least fixed-point of the functional $F(X)
-= [X \to_c X]_\bot$.}
-
-\Cref{fig:usage} defines a static \emph{usage analysis}.
-The idea is that $\semusg{e}_{\rho}$ returns a function whose domain is the free variables of $e$;
-this function maps each free variable $x$ of $e$ to its \emph{evaluation cardinality} $u ∈ \Usg$, an upper bound
-on the number of times that $x$ will be evaluated when $e$ is evaluated
-(regardless of context).  So, for example $\semusg{x+1}_{\rho}$ returns a function mapping $x$ to 1
-and all other variables to 0.
-Any number of uses beyond $1$, such as $2$ for $x$ in $\semusg{x+x}_{\rho}$, are collapsed to
-$d(x) = ω$, which denotes the set of any possible number of uses and is thus the
-top element of the total order $\Usg$.
-Simlarly $\semusg{\Lam{v}{v+z}}_{\rho}$
-maps $z$ to $\omega$, since the lambda might be called many times.
-\slpj{Actually this isn't right. S seems to give usage for the \emph{bound}
-  variables of $e$ too (not just the \emph{free} variables),
-  which is a strange, intensional kind of thing. Needs discussion.}
-\sg{We haven't said anything about how we use the results of this analysis.
-Of course, the info about bound variables is often not useful (it quickly
-deteriorates to $ω$), but it's also unnecessary noise to remove them and in one
-specific scenario
-($\Let{x}{\pe_1}{\pe_2}$) we do want to look at the usage of bound var
-$x$. Just roll with it for now, I'm confident this is all correct since
-I've spent countless hours proving it correct.}
-
-For open expressions, we need a way to describe the denotations of its
-free variables with a \emph{usage environment}\footnote{
-Note that we will occassionally adorn with \textasciitilde{} to disambiguate
-elements of the analysis domain from the semantic domain.}
-$\tr ∈ \Var \to \UsgD$.
-Given a usage environment $\tr$, $\tr(x)(y)$ models an upper bound
-on how often the expression bound to $x$ evaluates $y$.
 
 We say that $x$ is \emph{potentially live} in an element $d ∈ \UsgD$ whenever
 $\bot = 0 ⊏ d(x)$ \slpj{I can't even parse this!  Do you mean $d(x) \not= 0$?}
