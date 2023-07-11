@@ -104,33 +104,42 @@ are distinct.
 
 We give a standard call-by-name denotational semantics $\semscott{\wild}$ in
 \Cref{fig:denotational} \citep{ScottStrachey:71}, assigning meaning to our
-syntax by means of the infamous Scott domain $\ScottD$ defined in
+syntax by means of the Scott domain $\ScottD$ defined in
 \Cref{fig:dom-syntax}.%
 \footnote{As usual, the notation $[X \to_c X]_\bot$ is meant to indicate the
 topology of Scott-continuous endofunctions on $X$ together with a distinct least
 element $\bot$.
-Then the Scott domain $\ScottD$ is the solution to the emerging domain equation.}
-Squinting a bit, we find that $\semscott{\wild}$ looks quite similar to
-the function to its right in \Cref{fig:usage}, depicting a \emph{usage
-analysis} $\semusg{\wild}$, a static analysis for estimating an upper bound on
-\emph{evaluation cardinality}, \eg, how often a variable is evaluated.
+Then the Scott domain $\ScottD$ is the solution to the emerging domain equation.
+\slpj{What is an ``emerging'' equation??
+Perhaps: a solution to $\ScottD = [\ScottD \to_c \ScottD]_\bot$?}}
 
-Such upper bounds on evaluation cardinality are represented by a \emph{usage} $u
-∈ \Usg$, and for a given expression $\pe$, an element $d ∈ \UsgD$ can denote
-how many times $\pe$ evaluates its free variables.
-Any number of uses beyond $1$, such as $2$ for $x$ in $(x+x)$, will be collapsed to
+\Cref{fig:usage} defines a static \emph{usage analysis}.
+The idea is that $\semusg{e}_{\rho}$ returns a function whose domain is the free variables of $e$;
+this function maps each free variable $x$ of $e$ to its \emph{evaluation cardinality} $u ∈ \Usg$, an upper bound
+on the number of times that $x$ will be evaluated when $e$ is evaluated
+(regardless of context).  So, for example $\semusg{x+1}_{\rho}$ returns a function mapping $x$ to 1
+and all other variables to 0.
+Any number of uses beyond $1$, such as $2$ for $x$ in $\semusg{x+x}_{\rho}$, are collapsed to
 $d(x) = ω$, which denotes the set of any possible number of uses and is thus the
 top element of the total order $\Usg$.
-For open expressions, we will need a way to describe the denotations of its
-free variables with a \emph{usage environment} $\tr ∈ \Var \to \UsgD$.
-(Note that we will occassionally adorn with \textasciitilde{} to disambiguate
-elements of the analysis domain from the semantic domain.)
-Given a usage environment $\tr$, $\tr(x)(y)$ is supposed to model an upper bound
+Simlarly $\semusg{\Lam{v}{v+z}}_{\rho}$
+maps $z$ to $\omega$, since the lambda might be called many times.
+\slpj{Actually this isn't right. S seems to give usage for the \emph{bound}
+  variables of $e$ too (not just the \emph{free} variables),
+  which is a strange, intensional kind of thing. Needs discussion.}
+
+For open expressions, we need a way to describe the denotations of its
+free variables with a \emph{usage environment}\footnote{
+Note that we will occassionally adorn with \textasciitilde{} to disambiguate
+elements of the analysis domain from the semantic domain.}
+$\tr ∈ \Var \to \UsgD$.
+Given a usage environment $\tr$, $\tr(x)(y)$ models an upper bound
 on how often the expression bound to $x$ evaluates $y$.
 
 We say that $x$ is \emph{potentially live} in an element $d ∈ \UsgD$ whenever
-$\bot = 0 ⊏ d(x)$ (where $\bot$ denotes the least element of a partial order
-such as $\Usg$ that is inferred from context).
+$\bot = 0 ⊏ d(x)$ \slpj{I can't even parse this!  Do you mean $d(x) \not= 0$?}
+(where $\bot$ denotes the least element of a partial order
+such as $\Usg$ that is inferred from context \slpj{What is this ``inferred from context'' bit.  This sound like a definition.}).
 Let us now call
 \[
   \tr_Δ(\px) \triangleq \fn{\py}{\ternary{\px = \py}{1}{0}}
@@ -139,20 +148,31 @@ the ``diagonal'' usage environment, assigning each free variable $\px$ a unique
 meaning in terms of a denotation that evaluates $\px$ once and nothing else.
 Then we will say that $x$ is potentially live in $\pe$ whenever it is
 potentially live in $d \triangleq \semusg{\pe}_{\tr_Δ}$.
+\slpj{Crumbs, this is a bit tricky.}
 Likewise, when $d(x) = 0$ we say that $x$ is \emph{dead} in $d$/$\pe$, \eg,
 \emph{never evaluated}.
 In this way, $\semusg{\wild}$ can be used to infer facts of the form ``$\pe$
 never evaluates $x$'' from the introduction.
+\slpj{This is tricky! We \emph{pass in} an environment mapping free varaibles to something;
+  and we \emph{return} a function mapping variables to something.}
+\slpj{In Fig 1c you have $x \mapsto \bot$, but the Usg domain doesn't have $\bot$.  Or maybe
+  you intend 0 and $\bot$ to be synonymous.  That's confusing -- at the very least you have to spell it out.
+  Why is it right to map $x$ to 0 in the lambda rule?
+  }
 
 Note that the usage analysis is naïve in its treatment of function application:
 It assumes that that every function deeply evaluates its argument.
-Whenever $y$ is assumed to be live in $x$ (which is encoded as $\tr(x) ⊑
-\tr(y)$), the analysis will report that $(f~y)$ is live in $x$, regardless of
-whether $f$ evaluates its argument.
+Whenever $y$ is assumed \slpj{assumed?} to be live in $x$ (which is encoded as $\tr(x) ⊑
+\tr(y)$ \slpj{What do you mean ``encoded''? Where do I see that?)},
+the analysis will report that $(f~y)$ is live in $x$ \slpj{What does it mean to say `` $(f~y)$ is live in $x$''?},
+regardless of whether $f$ evaluates its argument.
 In turn, the analysis assumes in the lambda case that liveness of the argument
-has been accounted for at the call site, hence the lambda-bound variable $\px$
+has been accounted for at the call site \slpj{what do you mean ``accounted for at the call site''?},
+hence the lambda-bound variable $\px$
 is not live in any variable and denoted by $\bot$ in $\tr$ (according to the
 pointwise ordering, $\forall \px.\ \bot_{\UsgD}(\px) = \bot_{\Usg} = 0$).
+
+\slpj{This usage analysis is very baffling, which is a problem since it is our ``quick-start'' example.}
 
 \subsection{Usage Analysis Infers Denotational Deadness}
 
