@@ -45,7 +45,7 @@
 \def\appendixonly{\mainfalse{}\appendixtrue{}}
 
 % .. so that you can comment out the following line to build the Appendix only
-% This is done by the `make appendix` target.
+% This is done by the `make appendix.pdf` target.
 %\appendixonly
 
 % Same thing for an extended version that includes the Appendix
@@ -207,12 +207,5 @@ We would like to thank the anonymous POPL reviewers for their feedback.
 \bibliography{references}
 
 \fi % \ifmain
-
-% Appendix
-\ifappendix
-\appendix
-\section{Appendix}\label{sec:appendix}
-\input{appendix}
-\fi % \ifappendix
 
 \end{document}

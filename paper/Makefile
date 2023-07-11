@@ -10,6 +10,9 @@ comp-trace.pdf : macros.tex intro.tex problem.tex problem.tex vanilla.tex eventf
 comp-trace-ext.tex: *.tex
 	cat comp-trace.tex | sed -e 's/^%\\extended/\\extended/g' > comp-trace-ext.tex
 
+appendix.pdf: comp-trace-ext.pdf
+	pdftk comp-trace-ext.pdf cat 28-end output appendix.pdf
+
 %.pdf: %.tex macros.tex references.bib
 	$(PDFLATEX) $*
 	bibtex $*

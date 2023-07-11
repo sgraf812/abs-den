@@ -757,6 +757,45 @@ in \Cref{fig:usg-abs}:
 %and would allow for a faithful model of $\mathbf{let}$-binding in the hole of
 %the context.
 %A closed definition can be found in \Cref{fig:semevt-context}.
+%
+%\begin{toappendix}
+%\begin{figure}
+%\[
+% \begin{array}{rcl}
+%  \multicolumn{3}{c}{ \ruleform{ \semevt{\wild} \colon \Ctx → ((\Var \pfun \Addresses) → \EventD) → (\Var \pfun \Addresses) → \EventD } } \\
+%  \\[-0.5em]
+%  \semevt{\hole}_ρ(S) & = & S_ρ \\
+%  \\[-0.5em]
+%  \semevt{\pE~\px}_ρ(S)   & = & \begin{cases}
+%    \AppIE(ρ(x)) \cons \apply(\semevt{\pE}_ρ(S), ρ(\px)) & \px ∈ \dom(ρ) \\
+%    \fn{\wild}{\stuckend{}}  & \text{otherwise} \\
+%  \end{cases} \\
+%  \\[-0.5em]
+%  \semevt{\Let{\px}{\pe}{\pE}}_ρ(S)(μ) & = &
+%    \begin{letarray}
+%      \text{let} & ρ' = ρ[\px ↦ \pa] \quad \text{where $\pa \not∈ \dom(μ)$} \\
+%                 & d_1^\later = \semevt{\pe}_{ρ'} \\
+%      \text{in}  & \BindE(\px,\pa↦d_1^\later) \cons \semevt{\pE}_{ρ'}(S)(μ[\pa ↦ \memo(\pa,d_1^\later)])
+%    \end{letarray} \\
+%  \\[-0.5em]
+%  \semevt{\Let{\px}{\pE_1}{\pE_2[\px]}}_ρ(S)(μ) & = &
+%    \begin{letarray}
+%      \text{let} & ρ' = ρ[\px ↦ \pa] \quad \text{where $\pa \not∈ \dom(μ)$} \\
+%                 & d_1^\later = \semevt{\pE_1}_{ρ'}(S) \\
+%      \text{in}  & \BindE(\px,\pa↦d_1^\later) \cons \semevt{\pE_2[\px]}_{ρ'}(μ[\pa ↦ \memo(\pa,d_1^\later)])
+%    \end{letarray} \\
+%  \\[-0.5em]
+%  \semevt{\Case{\pE}{\Sel[r]}}_ρ(S) & = &
+%    \begin{letarray}
+%      \text{let} & \alts = \fn{(K_i, \many{\pa})}{\CaseEE(K_i,\many{\px_i↦\pa}) \cons \semevt{\pe_{r_i}}_{ρ[\many{\px_i↦\pa}]}} \\
+%      \text{in} & \CaseIE(\semevt{\pE}_ρ(S)) \cons \select(\semevt{\pe_s}_ρ, \alts)  \\
+%    \end{letarray}
+% \end{array}
+%\]
+%\caption{Eventful Semantics of Evaluation Contexts}
+%\label{fig:semevt-context}
+%\end{figure}
+%\end{toappendix}
 
 \begin{figure}
 \[\begin{array}{c}
