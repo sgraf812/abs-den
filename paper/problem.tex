@@ -37,11 +37,10 @@ We give a standard call-by-name denotational semantics $\semscott{\wild}$ in
 \Cref{fig:denotational} \citep{ScottStrachey:71}, assigning meaning to our
 syntax by means of the Scott domain $\ScottD$ defined in
 \Cref{fig:dom-syntax}.%
-\footnote{As usual, the notation $[X \to_c X]_\bot$ is meant to indicate the
-topology of Scott-continuous endofunctions on $X$ together with a distinct least
-element $\bot$.
-Then the Scott domain $\ScottD$ is the least fixed-point of the functional $F(X)
-= [X \to_c X]_\bot$.}
+\footnote{The Scott domain $\ScottD$ is the least fixed-point of the functional $F(X)
+= [X \to_c X]_\bot$, where $[X \to_c X]_\bot$ is
+the topology of Scott-continuous endofunctions on $X$ together with a distinct least
+element $\bot$.}
 
 \Cref{fig:usage} defines a static \emph{usage analysis}.
 The idea is that $\semusg{e}_{\rho}$ returns a function whose domain is the free variables of $e$;
@@ -229,6 +228,9 @@ arrive at the following theorem:
   If $\tr(\px) \not⊑ \semusg{\pe}_{\tr}$
   then $\px$ is dead in $\pe$.
 \end{theoremrep}
+ \slpj{That is indeed a tricky statement.  What is the intuition?  Do you mean
+    that this has to be true for \emph{every} $\tr$?  Or that $\px$ is dead if I can find \emph{some} $\tr$ for which
+    the statement holds? It is surely not true in general because $\px$ might have bindings for variables nothing to do with $e$.}
 \begin{proof}
   By induction on $\pe$.
   We fix $\pe$, $\px$ and $\tr$ such that $\tr(\px) \not⊑ \semusg{\pe}_{\tr}$.
@@ -298,7 +300,7 @@ arrive at the following theorem:
 
 The proof capitalises on the similarities in structure by using induction on
 the program expression, hence it is simple and direct, at just under a page of
-accessible prose.
+accessible prose. \slpj{Need to point to evidence.  E.g. point to Appendix A?}
 
 In practice, it is simpler to exploit the following lemma that instantiates
 $\tr$ to $\tr_Δ$:
@@ -309,11 +311,18 @@ $\tr$ to $\tr_Δ$:
   If $\semusg{\pe}_{\tr_Δ}(\px) = 0$
   then $\px$ is dead in $\pe$.
 \end{corollary}
+\slpj{This one is much easier to understand.  Maybe just start with it? Or do you need
+the generalisation for the proof?}
 \begin{proof}
   From the assumption $0 = \semusg{\pe}_{\tr_Δ}(\px)$ we know that
   $\tr_Δ(\px)(\px) = 1 \not⊑ 0 = \semusg{\pe}_{\tr_Δ}(\px)$ and hence that
   $\tr_Δ(\px) \not⊑ \semusg{\pe}_{\tr_Δ}$.
   Now we can apply \Cref{thm:semusg-correct-live}.
+  \slpj{Again the compressed style makes it hard to read.   I see
+    ``From the assumption $0 = \semusg{\pe}_{\tr_Δ}(\px)$ we know that $\tr_Δ(\px)(\px) = 1$'';
+    but that that equality is nothing to do with the assumption!
+    Better: Let us assume $\semusg{\pe}_{\tr_Δ}(\px) = 0$.  We know, by definition of $\tr_{\Delta}$ that $\tr_Δ(\px)(\px) = 1$.
+    Hence $\tr_Δ(\px)(\px) \not⊑ \semusg{\pe}_{\tr_Δ}(\px)$; and hence $\tr_Δ(\px) \not⊑ \semusg{\pe}_{\tr_Δ}$}
 \end{proof}
 
 This corollary proves that our intuitive notion of deadness
@@ -342,15 +351,20 @@ this work.
 In support of this principle, we will formulate a few more concrete goals that
 each require more context to make sense.
 
+\slpj{Need to say what $⊑$ is for $\UsgD$.}
+
 \subsection{Continuity and Divergence}
 \label{sec:continuity}
 
-Nevermind our confidence in the ultimate correctness of $\semusg{\wild}$,
-note that our notion of deadness has a blind spot \wrt diverging computations:
+% Nevermind our confidence in the ultimate correctness of $\semusg{\wild}$,
+Our notion of deadness has a blind spot \wrt diverging computations:
 $\semscott{\wild}$ denotes any looping program such as
 $\Let{\mathit{loop}}{\Lam{x}{\mathit{loop}~x}}{{\mathit{loop}~\mathit{loop}}}$ by $\bot$, the
 same element that is meant to indicate partiality in the approximation order
-of the domain (\eg, insufficiently specified input).
+of the domain (\eg, insufficiently specified input \slpj{What is ``insufficiently specified input''?}).
+\slpj{Indeed I note that $\UsgD$ doesn't seem to have a $\bot$ element; at least
+  not a visible one.  Perhaps the bottom element is a function that maps
+  every variable to $0$?  Need to say things like this.}
 Hence any looping program is automatically dead in all its free variables, even
 though any of them might influence which particular endless loop is taken.
 
@@ -361,6 +375,7 @@ assigns meaning to diverging programs where the denotational semantics only
 says $\bot$.
 The latter would actually denote the empty set of reached program labels,
 neglecting that any part of the program before the loop was ever reached.
+\slpj{I could not parse that sentence and I don't know what it means.}
 The non-standard semantic interpretation is far more reasonable, but credibility
 of this approach solely rests on the structural similarity to the standard
 denotational semantics.
@@ -371,10 +386,12 @@ This shows in the following example:
 $x$ is dead in $(\Lam{y}{\Lam{z}{z}})~x$, but dropping the $\mathbf{let}$
 binding in $\Let{x}{\pe_1}{(\Lam{y}{\Lam{z}{z}})~x}$
 introduces a scoping error which is not observable under $\semscott{\wild}$.
+\slpj{But who said you could drop the binding?  Previously you just argued you could replace it with
+  a panic binding.}
 We could take inspiration in the work of \citet{Milner:78}
 and navigate around the issue by introducing a $\mathbf{wrong}$ denotation for
 errors which is propagated strictly; then we would notice when we optimise a
-looping program into one that has a scoping error.
+looping program into one that has a scoping error.  \slpj{Sorry don't get this, esp as the example is not looping.}
 
 We can try the same trick as \citeauthor{Milner:78} and assign diverging
 programs a total domain element $\mathsf{div}$ distinct from all other elements.
@@ -393,7 +410,7 @@ admissable predicate that is at all satisfiable would need to be true for
 the partial elements $d=\bot$ and $d=\mathsf{div}$.
 A practical consequence is that such a predicate could not be proven about a
 recursive let binding because that would need admissability to apply fixpoint
-induction.
+induction.  \slpj{Is this paragraph important? I did not understand it.}
 
 We would rather not need to reason about continuity and admissability.
 Hence we formulate the following goal:
