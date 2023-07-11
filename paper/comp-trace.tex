@@ -4,7 +4,7 @@
 %% For double-blind review submission, w/ CCS and ACM Reference
 %\documentclass[acmsmall,review,anonymous]{acmart}\settopmatter{printfolios=true}
 %% For single-blind review submission, w/o CCS and ACM Reference (max submission space)
-\documentclass[draft,acmsmall,review]{acmart}\settopmatter{printfolios=true,printccs=false,printacmref=false}
+\documentclass[acmsmall,review]{acmart}\settopmatter{printfolios=true,printccs=false,printacmref=false}
 %% For single-blind review submission, w/ CCS and ACM Reference
 %\documentclass[acmsmall,review]{acmart}\settopmatter{printfolios=true}
 %% For final camera-ready submission, w/ required CCS and ACM Reference
@@ -33,8 +33,31 @@
 %% issue of PACMPL.
 \citestyle{acmauthoryear}   %% For author/year citations
 
+% Some conditional build stuff for handling the Appendix
+
+\newif\ifmain
+\newif\ifappendix
+
+% Builds only the main paper by default.
+\maintrue
+\appendixfalse
+% But we provide a switch to build the Appendix only.
+\def\appendixonly{\mainfalse{}\appendixtrue{}}
+
+% .. so that you can comment out the following line to build the Appendix only
+% This is done by the `make appendix` target.
+%\appendixonly
+
+% Same thing for an extended version that includes the Appendix
+\def\extended{\maintrue{}\appendixtrue{}}
+%\extended
+
 %%%%%%%
-\usepackage{apxproof}
+\ifappendix
+\usepackage[appendix=append]{apxproof}
+\else
+\usepackage[appendix=strip]{apxproof}
+\fi
 \usepackage{array} % \newcolumntype
 \usepackage{color}
 \usepackage{ifdraft}
@@ -99,25 +122,6 @@
   \country{UK}
 }
 \email{simon.peytonjones@gmail.com}
-
-% Some conditional build stuff for handling the Appendix
-
-\newif\ifmain
-\newif\ifappendix
-
-% Builds only the main paper by default.
-\maintrue
-\appendixfalse
-% But we provide a switch to build the Appendix only.
-\def\appendixonly{\mainfalse{}\appendixtrue{}}
-
-% .. so that you can comment out the following line to build the Appendix only
-% This is done by the `make appendix` target.
-%\appendixonly
-
-% Same thing for an extended version that includes the Appendix
-\def\extended{\maintrue{}\appendixtrue{}}
-%\extended
 
 \ifmain
 
