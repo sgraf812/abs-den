@@ -1,22 +1,22 @@
 \section{A Denotational Semantics for Call-by-need}
 \label{sec:vanilla}
 
-\subsection{Labelled Syntax}
-
-Recall the syntax definition of our object language in
-\Cref{sec:usage-intuition} in the style of \citet{Launchbury:93} and
-\citet{Sestoft:97}.
-Any (sub-)expression has a unique \emph{label} (think of it as the AST node's
-pointer identity) that we usually omit. For example, a correct labelling of
-$\Let{x}{f~y}{f~x}$ would be
-\[
-  (\slbln{1} \Let{x}{(\slbln{2} (\slbln{3} f)~y)}{(\slbln{4} (\slbln{5} f)~x)}).
-\]
-Labels are there so that we do not conflate the (otherwise structurally equal)
-sub-terms $(\slbln{3} f)$ and $(\slbln{5} f)$ as equivalent. This is an important
-distinction for, \eg, control-flow analysis. Since labels introduce excessive
-clutter, we will omit them unless they are distinctively important. If anything,
-labels make it so that everything ``works as expected''.
+%\subsection{Labelled Syntax}
+%
+%Recall the syntax definition of our object language in
+%\Cref{sec:usage-intuition} in the style of \citet{Launchbury:93} and
+%\citet{Sestoft:97}.
+%Any (sub-)expression has a unique \emph{label} (think of it as the AST node's
+%pointer identity) that we usually omit. For example, a correct labelling of
+%$\Let{x}{f~y}{f~x}$ would be
+%\[
+%  (\slbln{1} \Let{x}{(\slbln{2} (\slbln{3} f)~y)}{(\slbln{4} (\slbln{5} f)~x)}).
+%\]
+%Labels are there so that we do not conflate the (otherwise structurally equal)
+%sub-terms $(\slbln{3} f)$ and $(\slbln{5} f)$ as equivalent. This is an important
+%distinction for, \eg, control-flow analysis. Since labels introduce excessive
+%clutter, we will omit them unless they are distinctively important. If anything,
+%labels make it so that everything ``works as expected''.
 
 \subsection{Transition System}
 
