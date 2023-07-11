@@ -31,6 +31,15 @@
 %        paper says, which dubs return states as "apply" transitions
 
 % - coinductive big-step \citep{LeroyGrall:09}
+\subsubsection*{Coinduction and Traces}
+\citet{LeroyGrall:09} showed that a coinductive encoding of big-step semantics
+is able to encode diverging traces by proving it equivalent to a small-step
+semantics.
+Their Lemma 10 covers much the same ground as \Cref{thm:semvan-adequate}. \\
+Our use of the $(\betastep)$ operator begs for a Monad instance to be explored.
+That has been done by \citet{interaction-trees} who explore a coinductive trace
+type akin to ours, but with the event and result type abstracted out as type
+parameters.
 
 \subsubsection*{Denotational Semantics}
 Recent work on \emph{Clairvoyant call-by-value}
@@ -64,8 +73,8 @@ although practical applications never go beyond $1$.
 By comparison, our simple, cheap and cheerful deadness analysis $\semusg{\wild}$
 works well without constructing an intermediate control-flow graph.
 The precision-performance trade-off manifests on the spectrum of abstractions
-between the incomputable and precise usage abstraction $\usg_\EventD$ and the
-rapidly computable but naïve deadness analysis $\semusg{\wild}$.\\
+between the incomputable and precise semantic usage abstraction $\usg_\EventD$
+and the rapidly computable but naïve deadness analysis $\semusg{\wild}$.\\
 \citet{MontaguJensen:21} have explored deriving control-flow analysis
 from small-step traces.
 Their chain of abstractions is inspiring and we think that using a variant of
@@ -75,38 +84,37 @@ Specifically, the semantic inclusions of Lemma 2.10 could be replaced by an
 abstraction similar to $\usg_\EventD$, reusing the correctness predicate in
 \Cref{fig:semvan-correctness}.
 
-\subsubsection*{Abstracting Abstract Machines}
+\subsubsection*{Reachable States vs. Lexical Reasoning}
 Abstracting Abstract Machines~\citep{aam} is an ingenious recipe to derive
 a computable \emph{reachable states semantics}~\citep{Cousot:21} from any
 small-step semantics.
-By bounding the size of the store, the precision-performance trade-off
-concentrates in the freely choosably address allocation function, which
-necessarily needs to reuse addresses.
+By bounding the size of the store, the freely choosably
+$\widehat{\mathit{alloc}}$ function embodies the precision-performance trade-off.
 Many analyses such as control-flow analysis (and usage analysis) arise as
-abstractions of reachable states.
+abstractions of reachable states. \\
 It is unclear how $\semusg{\wild}$ fits into this framework, because it does not
 reason about a heap at all.
-A program variable is treated as an alias-free representative of all
-its activations, even though there might be multiple activations of the same
+$\semusg{\wild}$ treats a program variable as an alias-free representative of
+all its activations, even though there might be multiple activations of the same
 variable in the heap already.
-This is fine as long as long as variables do not escape their lexical scope.
+Conservative measures need only be taken when a variable escapes its lexical
+scope.
 In particular, for multiple simultaneously live activations of $i$ in, \eg,
-\[
-  \Let{f}{\Lam{x}{\Let{i}{\Lam{y}{y}}{i~x~x}}}{f~f},
-\]
+  ${\Let{f}{\Lam{x}{\Let{i}{\Lam{y}{y}}{i~x~x}}}{f~f}}$,
 $\semusg{\wild}$ is able to correctly deduce that $i$ is evaluated at most once.
-We are curious about the precision-performance trade-offs of compositional
-analyses such as $\semusg{\wild}$ viz-à-viz abstractions of reachabe states.
-Of course, this work has not provided an abstraction recipe like AAM, so such a
-comparison is not presently possible.
+More complex analyses may infer context-sensitive cardinality
+information via \emph{demand transformers}~\citep{cardinality-ext}, likewise
+without reasoning about heaps during analysis.
+We intend to connect the notion of demand transformers to transformer
+abstraction~\citep{Cousot:21} of $\FunV$ values in the future (\ie, functions
+\emph{in the object language}), a connection that has not been possible with
+prior semantics. \\
+We are curious about the precision-performance trade-offs of lexical analyses
+such as $\semusg{\wild}$ viz-à-viz abstractions of reachabe states. Of course,
+this work has not provided a tunable abstraction recipe like AAM, so such a
+comparison is presently impossible.
 
-\subsubsection*{Interaction trees}
-% - Interaction trees
-%        Mention how >>β= is similar to the bind operator on interaction trees and probably
-%        corresponds to Moggi's monadic semantics.
-%        Traces are somewhat like the simpler monad `M e a = Good a | Bad e | L |>(M e a)`
-%        which combines the delay monad with the error monad
-% Compare to
+% Other topics:
 % - Operational semantics: CESK Felleisen, Launchbury, Sestoft, Krivine
 % - Nielson: correctness predicate
 % - Imprecise exceptions
@@ -125,6 +133,7 @@ comparison is not presently possible.
 %       Important for properties! Hence guaded DEPENDENT type theory
 %     * Guarded Cubical Type Theory: Reasoning about equality in GDTT can be undecidable, fix that. But no clock qunatification!
 %     * Clocks are ticking: Clock quantification via tick binders which act similar to intervals in Cubical. (Still uses those delayed substitutions!)
-%     * TCTT not only introduces ticked cubical, it also covers bisimilarity of guarded labelled transition systems. Our traces are just that, plus a bit more.
+%     * TCTT (Bisimulation as Path Type for Guarded Recursive Types) not only introduces ticked cubical, it also covers bisimilarity of guarded labelled transition systems. Our traces are just that, plus a bit more.
 %       Also shows how to define a mixed guarded/inductive data type.
+%     * "Formalizing π-Calculus in Guarded Cubical Agda" is a great introduction to the TCTT implementation in Guarded Cubical Agda
 %     * Later credits: May solve the unguarded positive occurrence

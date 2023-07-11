@@ -626,7 +626,6 @@
   keywords = {lazy evaluation}
 }
 
-
 @article{Mogelberg:21,
   doi = {10.4204/eptcs.351.13},
   url = {https://doi.org/10.4204%2Feptcs.351.13},
@@ -638,4 +637,23 @@
   author = {Rasmus Ejlers M{\o}gelberg and Andrea Vezzosi},
   title = {Two Guarded Recursive Powerdomains for Applicative Simulation},
   journal = {Electronic Proceedings in Theoretical Computer Science}
+}
+
+@article{interaction-trees,
+  author = {Xia, Li-yao and Zakowski, Yannick and He, Paul and Hur, Chung-Kil and Malecha, Gregory and Pierce, Benjamin C. and Zdancewic, Steve},
+  title = {Interaction Trees: Representing Recursive and Impure Programs in Coq},
+  year = {2019},
+  issue_date = {January 2020},
+  publisher = {Association for Computing Machinery},
+  address = {New York, NY, USA},
+  volume = {4},
+  number = {POPL},
+  url = {https://doi.org/10.1145/3371119},
+  doi = {10.1145/3371119},
+  abstract = {Interaction trees (ITrees) are a general-purpose data structure for representing the behaviors of recursive programs that interact with their environments. A coinductive variant of “free monads,” ITrees are built out of uninterpreted events and their continuations. They support compositional construction of interpreters from event handlers, which give meaning to events by defining their semantics as monadic actions. ITrees are expressive enough to represent impure and potentially nonterminating, mutually recursive computations, while admitting a rich equational theory of equivalence up to weak bisimulation. In contrast to other approaches such as relationally specified operational semantics, ITrees are executable via code extraction, making them suitable for debugging, testing, and implementing software artifacts that are amenable to formal verification. We have implemented ITrees and their associated theory as a Coq library, mechanizing classic domain- and category-theoretic results about program semantics, iteration, monadic structures, and equational reasoning. Although the internals of the library rely heavily on coinductive proofs, the interface hides these details so that clients can use and reason about ITrees without explicit use of Coq’s coinduction tactics. To showcase the utility of our theory, we prove the termination-sensitive correctness of a compiler from a simple imperative source language to an assembly-like target whose meanings are given in an ITree-based denotational semantics. Unlike previous results using operational techniques, our bisimulation proof follows straightforwardly by structural induction and elementary rewriting via an equational theory of combinators for control-flow graphs.},
+  journal = {Proc. ACM Program. Lang.},
+  month = {dec},
+  articleno = {51},
+  numpages = {32},
+  keywords = {Coq, coinduction, monads, compiler correctness}
 }

@@ -823,7 +823,7 @@ in \Cref{fig:usg-abs}:
 %property}~\citep{Cousot:21} (also called
 %\emph{hyperproperty} by~\citet{ClarksonSchneider:10}).
 
-The \emph{usage abstraction} $\usg_\Traces : \Traces \to \LookTraces$
+The \emph{semantic usage abstraction} $\usg_\Traces : \Traces \to \LookTraces$
 is the most precise usage analysis possible and is induced componentwise on
 $\Traces, \Heaps,\EventD$ and $\EventV$ by the event abstraction
 \[
@@ -1111,7 +1111,7 @@ An alternative correctness proof for $\semusg{\wild}$ can then be formulated by
 \emph{abstract interpretation}, proving it correct simultaneously as a deadness
 and a sharing analysis:
 
-\begin{theoremrep}[$\semusg{\wild}$ approximates usage abstraction]
+\begin{theoremrep}[$\semusg{\wild}$ approximates semantic usage]
   \label{thm:semusg-correct-3}
   Let $\pe$ be an expression, $\px$ a variable, $\pa$ an address
   that is dead in a heap $μ$ and $ρ$ an environment such that $\pa \not∈

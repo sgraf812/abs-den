@@ -53,20 +53,22 @@ hence the name ``big-step'' is fitting.
   \end{enumerate}
 \end{definition}
 
-(This is a well-formed inductive definition because $μ_1' \forcesto μ_2$
-is strictly decreasing in the termination measure we give in the proof of
-\Cref{defn:lazy-d}.)
+%(This is a well-formed inductive definition because $μ_1' \forcesto μ_2$
+%is strictly decreasing in the termination measure we give in the proof of
+%\Cref{defn:lazy-d}.)
 
 Our earlier intuition can now be formulated as follows:
 If $\bigstep{\semevt{\pe}_ρ}{μ}{v}{μ'}$, then $μ \forcesto μ'$.
 
-For the remainder of this work, we will identify heaps modulo consistent
-readdressing.
+Just as lambda terms are often identified modulo consistent renaming
+(α-equivalence), we have so far treated LK machine states $σ$ equivalent modulo
+consistent \emph{readdressing}, \ie, consistent substitution of all address
+values.
+Likewise, for the remainder of this work, we will identify trace-based
+\emph{heaps} modulo consistent readdressing.
 Of course, a rigorous treatment would have to carry around readdressing
 substitutions and apply them to adjust the domain of a heap, its entries,
 as well as the heaps, domain elements and values in the returned traces.
-\sg{Perhaps I should give a figure with the definitions I have in mind, maybe
-in the Appendix.}
 
 Once a heap entry is evaluated, it stays that way during forcing:
 
