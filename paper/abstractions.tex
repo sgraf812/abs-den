@@ -297,7 +297,7 @@ $(\faster)$ in the style of \citet{MoranSands:99} in \Cref{fig:improv}.
 \[\begin{array}{c}
  \ruleform{ A ⊦_n τ_1 \lesssim τ_2 \qquad μ_1 \lessapprox μ_2 \qquad d_1 \faster d_2 }
  \\
- \\[-0.5em]
+ \\[-0.75em]
  \inferrule*[right=\implrcons]
     {\later (A ⊦_n τ_1 \lesssim τ_2)}
     {A ⊦_{n} \wild \cons τ_1 \lesssim \wild \cons τ_2}
@@ -310,7 +310,7 @@ $(\faster)$ in the style of \citet{MoranSands:99} in \Cref{fig:improv}.
     {A ⊦_{n} τ_1 \lesssim τ_2}
     {A ⊦_{n+1} \wild \cons τ_1 \lesssim τ_2}
  \\
- \\[-0.5em]
+ \\[-0.75em]
  \inferrule*[right=\impstuck]
     {\quad}
     {A ⊦_{0} \stuckend{} \lesssim \stuckend{}}
@@ -319,21 +319,22 @@ $(\faster)$ in the style of \citet{MoranSands:99} in \Cref{fig:improv}.
     {\many{A ⊦_{n} μ_1(\pa_1) \lesssim μ_2(\pa_2)})}
     {A ⊦_{\Sigma \{\many{n}\}} \goodend{\ConV(K, \many{\pa_1}), μ_1} \lesssim \goodend{\ConV(K, \many{\pa_2}), μ_2}}
  \\
- \\[-0.5em]
+ \\[-0.75em]
  \inferrule*[right=\impfun]
     {\forall \pa.\ \pa ∈ A ⟹  A ⊦_{n} f_1(\pa)(μ_1) \lesssim f_2(\pa)(μ_2)}
     {A ⊦_{n} \goodend{\FunV(f_1), μ_1} \lesssim \goodend{\FunV(f_2), μ_2}}
  \\
- \\[-0.5em]
+ \\[-0.75em]
  \inferrule*[right=\impheap]
     {\dom(μ_1) = \dom(μ_2) \quad \forall \pa.\ \later(\dom(μ_1) ⊦_{0} μ_1(\pa)(μ_1) \lesssim μ_2(\pa)(μ_2))}
     {μ_1 \lessapprox μ_2}
  \\
- \\[-0.5em]
+ \\[-0.75em]
  \inferrule*[right=\impdenot]
     {\forall μ_1,μ_2.\ μ_1 \lessapprox μ_2 \wedge  \dom(μ_1) ⊦ d_1,d_2 ⟹  \dom(μ_1) ⊦_{0} d_1(μ_1) \lesssim d_2(μ_2)}
     {d_1 \faster d_2}
 \end{array}\]
+\vspace{-1em}
 \caption{Improvement relation}
   \label{fig:improv}
 \end{figure}
@@ -347,12 +348,12 @@ have at our expense and thus the larger $n$ is.
 
 We write $d_1 \lockstep d_2$ when $d_1 \faster d_2$ and $d_2 \faster d_1$, in
 which case both denotations operate in lockstep.
-Already it is the case that $d_1 \faster d_2$ implies $d_1 \equiv d_2$,
-so $(\faster)$ corresponds to the strong notion of improvement in
-\citet{MoranSands:99}.
-The weaker notion can be recovered by defining $\imprcons$ and $\implcons$ by
-coinduction, thus accepting skew credits in $ℕ_ω$ instead of $ℕ$.
-
+%Already it is the case that $d_1 \faster d_2$ implies $d_1 \equiv d_2$,
+%so $(\faster)$ corresponds to the strong notion of improvement in
+%\citet{MoranSands:99}.
+%The weaker notion can be recovered by defining $\imprcons$ and $\implcons$ by
+%coinduction, thus accepting skew credits in $ℕ_ω$ instead of $ℕ$.
+%
 We conjecture that $(\faster)$ is a sub-relation of the strong contextual
 improvement relation of \citet{MoranSands:99}, just as $(\equiv)$ is finer than
 contextual equivalence.
@@ -405,8 +406,7 @@ of memoisation:
   \semevt{\Letn{\px}{\pe_1}{\pe_2}}_ρ(μ) & = &
     \begin{letarray}
       \text{let} & ρ' = ρ[\px ↦ \pa] \quad \text{where $\pa \not∈ \dom(μ)$} \\
-                 & d_1^\later = \semevt{\pe_1}_{ρ'} \\
-      \text{in}  & \BindOE(\px,\pa↦d_1^\later) \cons \semevt{\pe_2}_{ρ'}(μ[\pa ↦ \highlight{d_1^\later}])
+      \text{in}  & \BindOE(\px,\pa↦\semevt{\pe_1}_{ρ'}) \cons \semevt{\pe_2}_{ρ'}(μ[\pa ↦ \highlight{\semevt{\pe_1}_{ρ'}}])
     \end{letarray} \\
  \end{array}
 \]
@@ -795,12 +795,12 @@ in \Cref{fig:usg-abs}:
   \\[-0.5em]
   \ctx_A(l \lcons \someend{\FunV(\tilde{f}),\tm}) & = & l +
     \Lub_{\pa∈A} \{ ω*\ctx_A(\tilde{f}(\pa)(\tm)) \}  \\
-  \\[-0.5em]
 %  \multicolumn{3}{c}{ \ruleform{ α : \Traces \to \UsgD } } \\
 %  \\[-0.5em]
 %  α(τ) & = & fst(intra(usg_\Traces(blub(τ)(\fn{\px}{[\px↦1]}))(τ))) \\
  \end{array}
 \end{array}\]
+\vspace{-1em}
 \caption{Usage abstraction}
 \label{fig:usg-abs}
 \end{figure}
@@ -834,7 +834,7 @@ an $\Addresses \to \Usg$ mapping.%
 conditions for $\LookTraces$.
 I.e., $\Let{loop}{\Let{\px}{\ttrue}{loop}}{loop}$ generates a diverging trace
 for which $\usg_\Traces$ would only produce an $\Addresses \to \Usg$ mapping
-after an infinite amount of time. To make that formal each event should
+after an infinite amount of time. A rigorous treatment would have each event
 emit its own $l$ in a guarded fashion.}
 Thus, $\ctx_\LookTraces$ continues a $\LookTraces$ in all possible evaluation
 contexts, returning the least upper bound of all continued traces.

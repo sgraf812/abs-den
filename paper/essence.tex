@@ -4,7 +4,7 @@
 Before we can talk about abstraction, we have to record a few meta-theoretic
 properties.
 We will prove these properties in terms of the eventful semantics
-$\semevt{\wild}$ but they apply just the same to the vanilla $\semvan{\wild}$.
+$\semevt{\wild}$ but they apply to the $\semvan{\wild}$ as well.
 
 \subsection{Heap Forcing and Laziness}
 
@@ -72,11 +72,11 @@ as well as the heaps, domain elements and values in the returned traces.
 
 Once a heap entry is evaluated, it stays that way during forcing:
 
-\begin{lemma}
+\begin{lemmarep}
   \label{thm:force-heap-val}
   For all $μ_1,μ_2,\pa,v$ such that $μ_1 \forcesto μ_2$ and $μ_1(\pa) = \memo(\pa,\ret(v))$,
   then $μ_2(\pa) = \memo(\pa,\ret(v))$.
-\end{lemma}
+\end{lemmarep}
 \begin{proof}
   Immediate proof by contraposition and unfolding of $\ret$.
 \end{proof}
@@ -285,8 +285,7 @@ And now we finally prove that $\semevt{\wild}$ indeed produces a lazy element:
   \end{itemize}
 \end{proof}
 
-This result justifies our tacit assumption from now on that all elements of the
-semantic domain are lazy.
+This result justifies our tacit assumption from now on that all elements $d$ are lazy.
 
 \subsection{A Useful Program Equivalence}
 
@@ -424,14 +423,14 @@ well-addressedness, of course) due to laziness.
   ``probe'' $\FunV$ values with and the easier it is to prove bisimulation.
 \end{proof}
 
-\begin{lemma}[Address domain of $\semevt{\wild}$]
+\begin{lemmarep}[Address domain of $\semevt{\wild}$]
   \label{thm:addr-dom-sem}
   For all address spaces $A$, environments $ρ$ and expressions $\pe$,
   if $\rng(ρ) ⊆ A$ then $A ⊦ \semevt{\pe}_ρ$.
-\end{lemma}
-\begin{proofsketch}
+\end{lemmarep}
+\begin{proof}
   Simple proof by induction.
-\end{proofsketch}
+\end{proof}
 
 Our implicit assumption on well-addressedness can be encoded as an axiom as
 follows:
@@ -697,12 +696,12 @@ The definition of \citet{MoranSands:99} is in terms of a transition system like
 $(\smallstep)$, but adequacy (\Cref{thm:semvan-adequate}) guarantees that the two
 notions coincide.
 
-\begin{lemma}[Contextual equivalence is compositional]
+\begin{lemmarep}[Contextual equivalence is compositional]
   Let $\pe_1, \pe_2$ be expressions such that
   $\pe_1 \equiv_{\mathit{ctx}} \pe_2$.
   Then for all evaluation contexts $\pE$, we have
   $\pE[\pe_1] \equiv_{\mathit{ctx}} \pE[\pe_2]$.
-\end{lemma}
+\end{lemmarep}
 \begin{proof}
   Immediate, because $\pE[\pE_2[\hole]]$ is just another context in which
   contextually equivalent expressions are contextually equivalent.
@@ -711,19 +710,20 @@ notions coincide.
 $\semevt{\wild}$ is compositional \wrt definitional equality $=$ on
 $\EventD$:
 
-\begin{lemma}[Definitional equivalence is compositional]
+\begin{lemmarep}[Definitional equivalence is compositional]
   Let $\pe_1, \pe_2$ be expressions such that
   for all environments $ρ$, $\semevt{\pe_1}_ρ = \semevt{\pe_2}_ρ$.
   Then for all evaluation contexts $\pE$ and environments $ρ$, we have
   $\semevt{\pE[\pe_1]}_{ρ} = \semevt{\pE[\pe_2]}_{ρ}$.
-\end{lemma}
-\begin{proofsketch}
-  By induction on $\pE$.
-\end{proofsketch}
+\end{lemmarep}
+\begin{proof}
+  By induction on $\pE$, similar but simpler than \Cref{thm:sem-equiv-comp}.
+\end{proof}
 
 Most interestingly, $\semevt{\wild}$ is also compositional \wrt to $(\equiv)$!
 
 \begin{theoremrep}[Semantic equivalence is compositional]
+  \label{thm:sem-equiv-comp}
   Let $\pe_1, \pe_2$ be expressions such that
   for all environments $ρ$, $\semevt{\pe_1}_ρ \equiv \semevt{\pe_2}_ρ$.
   Then for all evaluation contexts $\pE$ and environments $ρ$, we have
@@ -803,4 +803,3 @@ Guarded types prevent probing for diverging computations without executing them,
 but it is still possible for lazy elements to probe traces for stuckness without
 propagating it or evaluating multiple traces concurrently, so we have reason to
 doubt that $\semevt{\wild}$ is fully abstract.
-We do not intend to find a final answer in this work.

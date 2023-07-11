@@ -573,8 +573,6 @@ An example for a diverging trace where $ρ=[x↦\pa_1]$ and $μ=[\pa_1↦(ρ,x)]
 \]
 \end{example}
 
-A maximal trace that is not balanced either diverges or is stuck:
-
 \begin{lemmarep}[Characterisation of maximal traces]
   An LK trace $(σ_i)_{i∈\overline{n}}$ is maximal if and only if it is balanced,
   diverging or stuck.
@@ -613,22 +611,6 @@ specifically it encodes that an \emph{abstraction} of every maximal LK trace can
 recovered by running $\semvan{\wild}$ starting from the abstraction of an initial
 state.
 
-\begin{figure}
-\[\begin{array}{rcl}
-  α_\Heaps([\many{\pa ↦ (ρ,\pe)}]) & = & [\many{\pa ↦ \memo(\pa,\semvan{\pe}_{ρ})}] \\
-  α_\VanV(\Lam{\px}{\pe},ρ,μ,κ) & = & \goodend{\FunV(\fn{\pa}{\semvan{\pe}_{ρ[\px↦\pa]}}),α_\Heaps(μ)} \\
-  α_\VanV(K~\overline{\px},ρ,μ,κ) & = & \goodend{\ConV(K,\overline{ρ(\pa)}),α_\Heaps(μ)} \\
-  α_{\STraces}((σ_i)_{i∈\overline{n}},κ) & = & \begin{cases}
-    \laterC~\idiom{α_{\STraces}((σ_{i+1})_{i∈\overline{n-1}},κ)} & n > 0 \\
-    α_\VanV(σ_0) & \ctrl(σ_0) \text{ value } \wedge \cont(σ_0) = κ \\
-    \stuckend & \text{otherwise} \\
-  \end{cases} \\
-  \correct((σ_i)_{i∈\overline{n}}) & = & \maxtrace{(σ_i)_{i∈\overline{n}}} \Longrightarrow ∀((\pe,ρ,μ,κ) = σ_0).\ α_{\STraces}((σ_i)_{i∈\overline{n}},κ) = \semvan{\pe}_{ρ}(α_\Heaps(μ)) \\
-\end{array}\]
-\caption{Correctness predicate for $\semvan{\wild}$}
-  \label{fig:semvan-correctness}
-\end{figure}
-
 The family of abstraction functions makes precise the intuitive connection
 between the semantic objects in $\semvan{\wild}$ and the syntactic objects in
 the transition system.
@@ -649,7 +631,6 @@ recursion (as it would be if it was a finite, inductive type).
 
 Our first goal is to establish a few auxiliary lemmas showing what kind of
 properties of LK traces are preserved by $α_\STraces$ and in which way.
-
 Let us warm up by defining a length function on traces:
 \begin{definition}[Length of a trace]
   \label{defn:length}
@@ -663,11 +644,28 @@ Let us warm up by defining a length function on traces:
   \]
 \end{definition}
 
-\begin{lemma}[Preservation of length]
+\begin{figure}
+\[\begin{array}{rcl}
+  α_\Heaps([\many{\pa ↦ (ρ,\pe)}]) & = & [\many{\pa ↦ \memo(\pa,\semvan{\pe}_{ρ})}] \\
+  α_\VanV(\Lam{\px}{\pe},ρ,μ,κ) & = & \goodend{\FunV(\fn{\pa}{\semvan{\pe}_{ρ[\px↦\pa]}}),α_\Heaps(μ)} \\
+  α_\VanV(K~\overline{\px},ρ,μ,κ) & = & \goodend{\ConV(K,\overline{ρ(\pa)}),α_\Heaps(μ)} \\
+  α_{\STraces}((σ_i)_{i∈\overline{n}},κ) & = & \begin{cases}
+    \laterC~\idiom{α_{\STraces}((σ_{i+1})_{i∈\overline{n-1}},κ)} & n > 0 \\
+    α_\VanV(σ_0) & \ctrl(σ_0) \text{ value } \wedge \cont(σ_0) = κ \\
+    \stuckend & \text{otherwise} \\
+  \end{cases} \\
+  \correct((σ_i)_{i∈\overline{n}}) & = & \maxtrace{(σ_i)_{i∈\overline{n}}} \Longrightarrow ∀((\pe,ρ,μ,κ) = σ_0).\ α_{\STraces}((σ_i)_{i∈\overline{n}},κ) = \semvan{\pe}_{ρ}(α_\Heaps(μ)) \\
+\end{array}\]
+\vspace{-1em}
+\caption{Correctness predicate for $\semvan{\wild}$}
+  \label{fig:semvan-correctness}
+\end{figure}
+
+\begin{lemmarep}[Preservation of length]
   \label{thm:abs-length}
   Let $(σ_i)_{i∈\overline{n}}$ be an arbitrary trace.
   Then $\len(α_\STraces((σ_i)_{i∈\overline{n}},\cont(σ_0))) = n$.
-\end{lemma}
+\end{lemmarep}
 \begin{proof}
   This is quite simple to see and hence a good opportunity to familiarise
   ourselves with the concept of \emph{Löb induction}, the induction principle of
@@ -738,7 +736,7 @@ For such a maximal $τ$ we will say that it is balanced when it ends with
 $\goodend{\wild,\wild}$, stuck if ending in $\stuckend$ and diverging if
 infinite.
 
-With increased clarity, we go on to prove the correctness predicate:
+We are now ready to prove the main correctness predicate:
 
 \begin{theoremrep}[Correctness of $\semvan{\wild}$]
   \label{thm:semvan-correct}
@@ -847,7 +845,7 @@ We do so by cases over $\pe$, abbreviating $\tm \triangleq α_\Heaps(μ)$:
 strong version of adequacy for $\semvan{\wild}$, where $σ$ is defined to be a
 \emph{final} state if $\ctrl(σ)$ is a value and $\cont(σ) = \StopF$.
 
-\begin{theoremrep}[Adequacy of $\semvan{\wild}$]
+\begin{theoremrep}[Total adequacy of $\semvan{\wild}$]
   \label{thm:semvan-adequate}
   Let $τ = \semvan{\pe}_{[]}([])$.
   \begin{itemize}
@@ -912,8 +910,7 @@ strong version of adequacy for $\semvan{\wild}$, where $σ$ is defined to be a
 
 We can already give perspective on two of the goals we set ourselves in
 \Cref{sec:problem}:
-
-As the domain $\VanD$ of our semantics $\semvan{\wild}$ is one defined by
+As the domain $\VanD$ of our semantics $\semvan{\wild}$ is defined by
 guarded recursion, the approximation order between elements of the domain is
 discrete and all elements are total.
 $\semvan{\wild}$ is formulated entirely within this internal language and as
