@@ -81,16 +81,16 @@ remateriales the heap as needed from the history of the trace.}
  \begin{array}{rcl}
   \multicolumn{3}{c}{ \ruleform{ \semevt{\wild} \colon \Exp → (\Var \pfun \Addresses) → \EventD } } \\
   \\[-0.75em]
-  \semevt{\px}_ρ       & = & \begin{cases}
+  \semevt{\px}_ρ(μ)       & = & \begin{cases}
     \LookupE(\pa) \cons μ(ρ(\px))(μ) & \px ∈ \dom(ρ) \\
-    \fn{\wild}{\stuckend{}}  & \text{otherwise} \\
+    \stuckend{}  & \text{otherwise} \\
   \end{cases} \\
   \\[-0.75em]
   \semevt{\Lam{\px}{\pe}}_ρ & = & \ret(\FunV(\fn{\pa}{\AppEE(\px↦\pa) \cons \semevt{\pe}_{ρ[\px↦\pa]}})) \\
   \\[-0.75em]
-  \semevt{\pe~\px}_ρ   & = & \begin{cases}
-    \AppIE(ρ(x)) \cons \apply(\semevt{\pe}_ρ, ρ(\px)) & \px ∈ \dom(ρ) \\
-    \fn{\wild}{\stuckend{}}  & \text{otherwise} \\
+  \semevt{\pe~\px}_ρ(μ)   & = & \begin{cases}
+    \AppIE(ρ(x)) \cons \apply(\semevt{\pe}_ρ, ρ(\px))(μ) & \px ∈ \dom(ρ) \\
+    \stuckend{}  & \text{otherwise} \\
   \end{cases} \\
   \\[-0.75em]
   \semevt{\Let{\px}{\pe_1}{\pe_2}}_ρ(μ) & = &
@@ -100,12 +100,15 @@ remateriales the heap as needed from the history of the trace.}
       \text{in}  & \BindE(\px,\pa↦d_1^\later) \cons \semevt{\pe_2}_{ρ'}(μ[\pa ↦ \memo(\pa,d_1^\later)])
     \end{letarray} \\
   \\[-0.75em]
-  \semevt{K~\many{\px}}_ρ & = & \ret(\ConV(K,\many{ρ(\pa)})) \\
+  \semevt{K~\many{\px}}_ρ(μ) & = & \begin{cases}
+    \ret(\ConV(K,\many{ρ(\px)}))(μ) & \many{\px ∈ \dom(ρ)} \\
+    \stuckend & \text{otherwise} \\
+  \end{cases} \\
   \\[-0.75em]
-  \semevt{\Case{\pe_s}{\Sel[r]}}_ρ & = &
+  \semevt{\Case{\pe_s}{\Sel[r]}}_ρ(μ) & = &
     \begin{letarray}
       \text{let} & \alts = \fn{(K_i, \many{\pa})}{\CaseEE(K_i,\many{\px_i↦\pa}) \cons \semevt{\pe_{r_i}}_{ρ[\many{\px_i↦\pa}]}} \\
-      \text{in} & \CaseIE(\semevt{\pe_s}_ρ) \cons \select(\semevt{\pe_s}_ρ, \alts)  \\
+      \text{in} & \CaseIE(\semevt{\pe_s}_ρ) \cons \select(\semevt{\pe_s}_ρ, \alts)(μ)  \\
     \end{letarray}
  \end{array} \\
 \end{array}\]

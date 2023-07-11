@@ -1,5 +1,5 @@
 {-# OPTIONS --cubical --guarded #-}
-module Eventful where
+module Vanilla where
 
 open import Later
 open import Syntax
@@ -27,26 +27,16 @@ Heap = Addr -> LDom
 
 data Val : Set
 
-data Act : Set where
-  bind : Var -> Addr -> Dom -> Act
-  look : Addr -> Act
-  upd : Addr -> Val -> Act
-  app1 : Addr -> Act
-  app2 : Var -> Addr -> Act
-  case1 : Dom -> Act
-  case2 : Con -> List (Var × Addr) -> Act
-
 data Trc : Set where
   ret : Val -> Heap -> Trc -- NB: ret : Val -> Dom
   stuck : Trc
-  _::_ : ▹ Act -> ▹ Trc -> Trc
-infixr 20 _::_ 
-
-Dom = Heap -> Trc
+  later : ▹ Trc -> Trc
 
 data Val where
-  fun : (Addr -> Dom) -> Val
+  fun : (Addr -> LDom) -> Val
   con : Con -> List Addr -> Val
+
+Dom = Heap -> Trc
 
 -- Domain combinators
 
@@ -57,27 +47,26 @@ _>>β=_ : Dom -> (Val -> Maybe Dom) -> Dom
 (d >>β= f) μ = fix go (d μ)
   where
     go : ▹ (Trc -> Trc) -> Trc -> Trc
-    go recurse▹ (a▹ :: τ▹) = a▹ :: recurse▹ ⊛ τ▹
+    go recurse▹ (later τ▹) = later (recurse▹ ⊛ τ▹)
     go recurse▹ (ret v μ) with f v
     ... | just d  = d μ
     ... | nothing = stuck
     go _ _ = stuck
 
-_::>_ : ▹ Act -> ▹ Dom -> Dom
-(a▹ ::> d▹) μ = a▹ :: d▹ ⊛ next μ
-infixr 20 _::>_ 
+laterD : ▹ Dom -> Dom
+laterD d▹ μ = later (d▹ ⊛ next μ)
 
 memo : Addr -> Dom -> Dom
 memo a d = d >>β= aux
   where
     aux : Val -> Maybe Dom
-    aux v = just (λ μ -> next (upd a v) :: next (ret v (update μ a (ret v))))
+    aux v = just (λ μ -> later (next (ret v (update μ a (ret v)))))
 
 apply : Dom -> Addr -> Dom
 apply dₑ a = dₑ >>β= aux 
   where
     aux : Val -> Maybe Dom
-    aux (fun f) = just (f a)
+    aux (fun f) = just (laterD (LDom.thed (f a)))
     aux _       = nothing
     
 select : Dom -> (Con -> List Addr -> Maybe Dom) -> Dom
@@ -88,8 +77,6 @@ select dₑ f = dₑ >>β= aux
     aux _          = nothing
     
 postulate alloc : Heap -> Addr
-
--- Helpers I'd rather not need
 
 _[_↦_] : (Var -> Maybe Addr) -> Var -> Addr -> (Var -> Maybe Addr)
 _[_↦_] ρ x a y = if x == y then just a else ρ y
@@ -116,31 +103,27 @@ traverseMaybe {_} {B} f (a ∷ as) with f a
 sem : Exp -> (Var -> Maybe Addr) -> Dom
 sem = fix sem'
   where
-    sem' : ▹(Exp -> (Var -> Maybe Addr) -> Dom) -> Exp -> (Var -> Maybe Addr) -> Dom 
+    sem' : ▹(Exp -> (Var -> Maybe Addr) -> Dom) -> Exp -> (Var -> Maybe Addr) -> Dom
     sem' recurse▹ (ref x) ρ μ with ρ x
     ... | nothing = stuck
-    ... | just a  = next (look a) :: (λ α -> LDom.thed (μ a) α μ)
-    sem' recurse▹ (lam x e) ρ = 
-      ret (fun (λ a -> next (app2 x a) ::> (λ α -> recurse▹ α e (ρ [ x ↦ a ]))))
-    sem' recurse▹ (app e x) ρ with ρ x 
-    ... | nothing = λ _ -> stuck 
-    ... | just a  = let dₑ▹ = recurse▹ ⊛ next e ⊛ next ρ in
-                    next (app1 a) ::> (λ α -> apply (dₑ▹ α) a)
+    ... | just a  = later (λ α -> LDom.thed (μ a) α μ)
+    sem' recurse▹ (lam x e) ρ = ret (fun (λ a -> ldom (λ α -> recurse▹ α e (ρ [ x ↦ a ]))))
+    sem' recurse▹ (app e x) ρ μ with ρ x
+    ... | nothing = stuck
+    ... | just a  = later (λ α -> apply (recurse▹ α e ρ) a μ)
     sem' recurse▹ (let' x e₁ e₂) ρ μ =
       let a = alloc μ in
       let ρ' = ρ [ x ↦ a ] in
-      let d₁▹ = recurse▹ ⊛ next e₁ ⊛ next ρ' in
-      let d₂▹ = recurse▹ ⊛ next e₂ ⊛ next ρ' in
-      (λ α -> bind x a (d₁▹ α)) :: (λ α -> d₂▹ α (update μ a (d₁▹ α)))
+      later (λ α -> recurse▹ α e₂ ρ' (update μ a (recurse▹ α e₁ ρ')))
     sem' recurse▹ (conapp K xs) ρ μ with traverseMaybe ρ xs
     ... | nothing = stuck
     ... | just as = ret (con K as) μ
-    sem' recurse▹ (case' eₛ alts) ρ = 
-      let dₛ▹ = recurse▹ ⊛ next eₛ ⊛ next ρ in
-      (λ α -> case1 (dₛ▹ α)) ::> (λ α -> select (dₛ▹ α) f)
+    sem' recurse▹ (case' eₛ alts) ρ μ =
+      later (λ α -> select (recurse▹ α eₛ ρ) f μ)
         where
           f : Con -> List Addr -> Maybe Dom
           f K as with findAlt K alts
-          ... | nothing         =  nothing
-          ... | just (xs , rhs) = 
-            just (next (case2 K (Data.List.zip xs as)) ::> (λ α -> recurse▹ α rhs (ρ [ xs ↦* as ])))
+          ... | nothing         = nothing
+          ... | just (xs , rhs) =
+            just (λ μ -> later (λ α -> recurse▹ α rhs (ρ [ xs ↦* as ]) μ))
+ 

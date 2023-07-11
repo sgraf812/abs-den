@@ -219,7 +219,7 @@ development for \Cref{fig:semvan,fig:semevt} in the Supplement.
  \begin{array}{rcl}
   \multicolumn{3}{c}{ \ruleform{ \semvan{\wild} \colon \Exp → (\Var \pfun \Addresses) → \VanD } } \\
   \\[-0.5em]
-  \semvan{\px}_ρ & = & \begin{cases}
+  \semvan{\px}_ρ(μ) & = & \begin{cases}
     \laterC~μ(ρ(\px))(μ) & \px ∈ \dom(ρ) \\
     \stuckend & \text{otherwise}
     \end{cases} \\
@@ -227,7 +227,7 @@ development for \Cref{fig:semvan,fig:semevt} in the Supplement.
   \semvan{\Lam{\px}{\pe}}_ρ & = & \ret(\FunV(\fn{\pa}{\semvan{\pe}_{ρ[\px↦\pa]}})) \\
   \\[-0.5em]
   \semvan{\pe~\px}_ρ(μ) & = & \begin{cases}
-      \laterC~\apply(\semvan{\pe}_ρ(μ),\pa) & \px ∈ \dom(ρ) \\
+      \laterC~\apply(\semvan{\pe}_ρ,\pa)(μ) & \px ∈ \dom(ρ) \\
       \stuckend & \text{otherwise} \\
     \end{cases} \\
   \\[-0.5em]
@@ -236,12 +236,15 @@ development for \Cref{fig:semvan,fig:semevt} in the Supplement.
     \text{in}  & \laterC~\semvan{\pe_2}_{ρ'}(μ[\pa ↦ \memo(\pa,\semvan{\pe_1}_{ρ'})]) \\
   \end{letarray} \\
   \\[-0.5em]
-  \semvan{K~\many{\px}}_ρ & = & \ret(\ConV(K,\many{ρ(\px)})) \\
+  \semvan{K~\many{\px}}_ρ(μ) & = & \begin{cases}
+    \ret(\ConV(K,\many{ρ(\px)}))(μ) & \many{\px ∈ \dom(ρ)} \\
+    \stuckend & \text{otherwise} \\
+  \end{cases} \\
   \\[-0.5em]
   \semvan{\Case{\pe_s}{\Sel[r]}}_ρ(μ) & = &
     \begin{letarray}
       \text{let} & \alts = \fn{(K_i,\many{\pa})}{\laterC~\semevt{\pe_{r_i}}_{ρ[\many{\px_i↦\pa}]}} \\
-      \text{in} & \laterC~\select(\semevt{\pe_s}_ρ, \alts)  \\
+      \text{in} & \laterC~\select(\semevt{\pe_s}_ρ, \alts)(μ)  \\
     \end{letarray}
  \end{array}
   \\[-0.5em]
