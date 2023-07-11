@@ -17,10 +17,18 @@
 \newcommand\wrt{wrt.\xspace}
 
 % Comments and notes
-\newcommand{\slpj}[1]{\ifdraft{\emph{SLPJ: #1}}{}}
+\makeatletter
+\newcommand\ifnonanon[1]{%
+\if@ACM@anonymous
+\else
+  #1%
+\fi
+}
+\makeatother
+\newcommand{\slpj}[1]{\ifnonanon{\emph{SLPJ: #1}}{}}
 \newenvironment{slpjenv}{\em SLPJ:}{}
-\newcommand{\sg}[1]{\ifdraft{\emph{SG: #1}}{}}
-\newcommand{\todo}[1]{\ifdraft{\textcolor{red}{TODO: #1}}{}}
+\newcommand{\sg}[1]{\ifnonanon{\emph{SG: #1}}{}}
+\newcommand{\todo}[1]{\ifnonanon{\textcolor{red}{TODO: #1}}{}}
 
 % Auxiliary
 \newcommand{\many}[1]{\overline{#1}}

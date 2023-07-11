@@ -110,9 +110,8 @@ syntax by means of the Scott domain $\ScottD$ defined in
 \footnote{As usual, the notation $[X \to_c X]_\bot$ is meant to indicate the
 topology of Scott-continuous endofunctions on $X$ together with a distinct least
 element $\bot$.
-Then the Scott domain $\ScottD$ is the solution to the emerging domain equation.
-\slpj{What is an ``emerging'' equation??
-Perhaps: a solution to $\ScottD = [\ScottD \to_c \ScottD]_\bot$?}}
+Then the Scott domain $\ScottD$ is the least fixed-point of the functional $F(X)
+= [X \to_c X]_\bot$.}
 
 \Cref{fig:usage} defines a static \emph{usage analysis}.
 The idea is that $\semusg{e}_{\rho}$ returns a function whose domain is the free variables of $e$;
@@ -128,6 +127,13 @@ maps $z$ to $\omega$, since the lambda might be called many times.
 \slpj{Actually this isn't right. S seems to give usage for the \emph{bound}
   variables of $e$ too (not just the \emph{free} variables),
   which is a strange, intensional kind of thing. Needs discussion.}
+\sg{We haven't said anything about how we use the results of this analysis.
+Of course, the info about bound variables is often not useful (it quickly
+deteriorates to $ω$), but it's also unnecessary noise to remove them and in one
+specific scenario
+($\Let{x}{\pe_1}{\pe_2}$) we do want to look at the usage of bound var
+$x$. Just roll with it for now, I'm confident this is all correct since
+I've spent countless hours proving it correct.}
 
 For open expressions, we need a way to describe the denotations of its
 free variables with a \emph{usage environment}\footnote{
@@ -139,8 +145,14 @@ on how often the expression bound to $x$ evaluates $y$.
 
 We say that $x$ is \emph{potentially live} in an element $d ∈ \UsgD$ whenever
 $\bot = 0 ⊏ d(x)$ \slpj{I can't even parse this!  Do you mean $d(x) \not= 0$?}
+\sg{Yes, basically. This is a series of (in)equalities, not a definition (for
+which I tend to use $\triangleq$).}
 (where $\bot$ denotes the least element of a partial order
-such as $\Usg$ that is inferred from context \slpj{What is this ``inferred from context'' bit.  This sound like a definition.}).
+such as $\Usg$ that is inferred from context).
+\slpj{What is this ``inferred from context'' bit.  This sound like a definition.}
+\sg{Well, if you see a $u$ you immediately associate with it the partial order $0 ⊑ 1 ⊑ ω$
+because $(\Usg,(⊑))$ is the only partial order that possibly could apply.
+For $d ∈ \UsgD$ that would be the pointwise order. Simple, standard.}
 Let us now call
 \[
   \tr_Δ(\px) \triangleq \fn{\py}{\ternary{\px = \py}{1}{0}}
@@ -150,30 +162,37 @@ meaning in terms of a denotation that evaluates $\px$ once and nothing else.
 Then we will say that $x$ is potentially live in $\pe$ whenever it is
 potentially live in $d \triangleq \semusg{\pe}_{\tr_Δ}$.
 \slpj{Crumbs, this is a bit tricky.}
+\sg{Yep. Necessarily so.}
 Likewise, when $d(x) = 0$ we say that $x$ is \emph{dead} in $d$/$\pe$, \eg,
 \emph{never evaluated}.
 In this way, $\semusg{\wild}$ can be used to infer facts of the form ``$\pe$
 never evaluates $x$'' from the introduction.
 \slpj{This is tricky! We \emph{pass in} an environment mapping free varaibles to something;
   and we \emph{return} a function mapping variables to something.}
+\sg{Yes, just like how the $DmdType$ of free variables such as $x$ determine the
+$DmdType$ of the expression $\pe$.
+This stuff is tricky, and IMO necessarily so.}
 \slpj{In Fig 1c you have $x \mapsto \bot$, but the Usg domain doesn't have $\bot$.  Or maybe
   you intend 0 and $\bot$ to be synonymous.  That's confusing -- at the very least you have to spell it out.
   Why is it right to map $x$ to 0 in the lambda rule?
   }
+\sg{Actually, it has been spelled out already: $\Usg$ is a finite and a partial order, as its definition suggests.
+So its $\bot$ element is of the course the least element $0$.}
 
 Note that the usage analysis is naïve in its treatment of function application:
 It assumes that that every function deeply evaluates its argument.
-Whenever $y$ is assumed \slpj{assumed?} to be live in $x$ (which is encoded as $\tr(x) ⊑
-\tr(y)$ \slpj{What do you mean ``encoded''? Where do I see that?)},
+Whenever $y$ is live in $x$ (which is encoded as $\tr(x) ⊑
+\tr(y)$ in the $\mathbf{let}$ case of $\semusg{\wild}$),
 the analysis will report that $(f~y)$ is live in $x$ \slpj{What does it mean to say `` $(f~y)$ is live in $x$''?},
 regardless of whether $f$ evaluates its argument.
 In turn, the analysis assumes in the lambda case that liveness of the argument
-has been accounted for at the call site \slpj{what do you mean ``accounted for at the call site''?},
+has been accounted for in the application case,
 hence the lambda-bound variable $\px$
 is not live in any variable and denoted by $\bot$ in $\tr$ (according to the
 pointwise ordering, $\forall \px.\ \bot_{\UsgD}(\px) = \bot_{\Usg} = 0$).
 
 \slpj{This usage analysis is very baffling, which is a problem since it is our ``quick-start'' example.}
+\sg{Perhaps. Unfortunately, I see no realistic way to make it less mathematical.}
 
 \subsection{Usage Analysis Infers Denotational Deadness}
 
