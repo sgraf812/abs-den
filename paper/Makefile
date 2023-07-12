@@ -11,7 +11,7 @@ comp-trace-ext.tex: *.tex
 	cat comp-trace.tex | sed -e 's/^%\\extended/\\extended/g' > comp-trace-ext.tex
 
 appendix.pdf: comp-trace-ext.pdf
-	pdftk comp-trace-ext.pdf cat 28-end output appendix.pdf
+	nix run nixpkgs#pdftk -- comp-trace-ext.pdf cat 28-end output appendix.pdf
 
 supplemental.zip: appendix.pdf
 	zip -j supplemental.zip appendix.pdf ../agda/*.agda
