@@ -13,6 +13,9 @@ comp-trace-ext.tex: *.tex
 appendix.pdf: comp-trace-ext.pdf
 	pdftk comp-trace-ext.pdf cat 28-end output appendix.pdf
 
+supplemental.zip: appendix.pdf
+	zip -j supplemental.zip appendix.pdf ../agda/*.agda
+
 %.pdf: %.tex macros.tex references.bib
 	$(PDFLATEX) $*
 	bibtex $*
