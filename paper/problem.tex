@@ -43,14 +43,24 @@ the topology of Scott-continuous endofunctions on $X$ together with a distinct l
 element $\bot$.}
 
 \Cref{fig:usage} defines a static \emph{usage analysis}.
-The idea is that $\semusg{e}_{\rho}$ returns a function whose domain is the free variables of $e$;
-this function maps each free variable $x$ of $e$ to its \emph{evaluation cardinality} $u ∈ \Usg$, an upper bound
-on the number of times that $x$ will be evaluated when $e$ is evaluated
-(regardless of context).  So, for example $\semusg{x+1}_{\rho}$ returns a function mapping $x$ to 1
-and all other variables to 0.
-Any number of uses beyond $1$, such as $2$ for $x$ in $\semusg{x+x}_{\rho}$, are collapsed to
-$d(x) = ω$, which denotes the set of any possible number of uses and is thus the
-top element of the total order $\Usg$.
+The idea is that $\semusg{\pe}_{ρ}$ is a function $d ∈ \UsgD$ whose domain
+is the free variables of $\pe$; this function maps each free variable $\px$ of
+$\pe$ to its \emph{evaluation cardinality} $u ∈ \Usg$, an upper bound on the
+number of times that $\px$ will be evaluated when $\pe$ is evaluated (regardless
+of context).
+Thus, $\Usg$ is equipped with a total order that corresponds to the inclusion
+relation of the denoted interval of cardinalities:
+$\bot = 0 ⊏ 1 ⊏ ω = \top$, where $ω$ denotes \emph{any} number of evaluations.
+This order extends pointwise to a partial ordering on $\UsgD$, so $d_1 ⊑
+d_2$ whenever $d_1(\px) ⊑ d_2(\px)$, for all $\px$ and $\bot_{\UsgD} =
+\constfn{\bot_\Usg}$.
+We will often leave off the subscript of, \eg, $\bot_\UsgD$ when it can be
+inferred from context.
+
+So, for example $\semusg{x+1}_{ρ}$ is a function mapping $x$ to 1
+and all other variables to 0 (for a suitable $ρ$ that we discuss in due course).
+Any number of uses beyond $1$, such as $2$ for $x$ in $\semusg{x+x}_{ρ}$, are
+collapsed to $d(x) = ω$.
 Similarly $\semusg{\Lam{v}{v+z}}_{\rho}$
 maps $z$ to $\omega$, since the lambda might be called many times.
 \slpj{Actually this isn't right. S seems to give usage for the \emph{bound}
@@ -69,8 +79,8 @@ free variables with a \emph{usage environment}\footnote{
 Note that we will occassionally adorn with \textasciitilde{} to disambiguate
 elements of the analysis domain from the semantic domain.}
 $\tr ∈ \Var \to \UsgD$.
-Given a usage environment $\tr$, $\tr(x)(y)$ models an upper bound
-on how often the expression bound to $x$ evaluates $y$.
+Given a usage environment $\tr$, $\tr(\px)(\py)$ models an upper bound
+on how often the expression bound to $\px$ evaluates $\py$.
 
 \begin{figure}
 \begin{minipage}{\textwidth}
@@ -78,7 +88,7 @@ on how often the expression bound to $x$ evaluates $y$.
  \arraycolsep=3pt
  \begin{array}{rrclcl}
   \text{Scott Domain}      &  d & ∈ & \ScottD & =   & [\ScottD \to_c \ScottD]_\bot \\
-  \text{Usage cardinality} &  u & ∈ & \Usg & =   & \{ 0 ⊏ 1 ⊏ ω \} ⊂ ℕ_ω \\
+  \text{Usage cardinality} &  u & ∈ & \Usg & =   & \{ 0, 1, ω \} \\
   \text{Usage Domain}      &  d & ∈ & \UsgD & =   & \Var \to \Usg \\
  \end{array} \quad
  \begin{array}{rcl}
@@ -142,53 +152,38 @@ on how often the expression bound to $x$ evaluates $y$.
 \caption{Connecting usage analysis to denotational semantics}
 \end{figure}
 
-We say that $x$ is \emph{potentially live} in an element $d ∈ \UsgD$ whenever
-$\bot = 0 ⊏ d(x)$ \slpj{I can't even parse this!  Do you mean $d(x) \not= 0$?}
-\sg{Yes, basically. This is a series of (in)equalities, not a definition (for
-which I tend to use $\triangleq$).}
-(where $\bot$ denotes the least element of a partial order
-such as $\Usg$ that is inferred from context).
-\slpj{What is this ``inferred from context'' bit.  This sound like a definition.}
-\sg{Well, if you see a $u$ you immediately associate with it the partial order $0 ⊑ 1 ⊑ ω$
-because $(\Usg,(⊑))$ is the only partial order that possibly could apply.
-For $d ∈ \UsgD$ that would be the pointwise order. Simple, standard.}
+We say that $\px$ is \emph{dead} in an element $d ∈ \UsgD$ whenever
+$d(\px) = 0$, and otherwise that $\px$ is \emph{potentially live} in $d$.
 Let us call
 \[
   \tr_Δ(\px) \triangleq \fn{\py}{\ternary{\px = \py}{1}{0}}
 \]
 the ``diagonal'' usage environment, assigning each free variable $\px$ a unique
 meaning in terms of a denotation that evaluates $\px$ once and nothing else.
-Then we will say that $x$ is potentially live in $\pe$ whenever it is
-potentially live in $d \triangleq \semusg{\pe}_{\tr_Δ}$.
-\slpj{Crumbs, this is a bit tricky.}
-\sg{Yep. Necessarily so.}
-Likewise, when $d(x) = 0$ we say that $x$ is \emph{dead} in $d$/$\pe$, \eg,
-\emph{never evaluated}.
+Then we will say that $\px$ is dead in $\pe$ whenever it is
+dead in $\semusg{\pe}_{\tr_Δ}$, \ie, $\semusg{\pe}_{\tr_Δ}(\px) = 0$.
 In this way, $\semusg{\wild}$ can be used to infer facts of the form ``$\pe$
-never evaluates $x$'' from the introduction.
-\slpj{This is tricky! We \emph{pass in} an environment mapping free varaibles to something;
-  and we \emph{return} a function mapping variables to something.}
-\sg{Yes, just like how the $DmdType$ of free variables such as $x$ determine the
-$DmdType$ of the expression $\pe$.
-This stuff is tricky, and IMO necessarily so.}
-\slpj{In Fig 1c you have $x \mapsto \bot$, but the Usg domain doesn't have $\bot$.  Or maybe
-  you intend 0 and $\bot$ to be synonymous.  That's confusing -- at the very least you have to spell it out.
-  Why is it right to map $x$ to 0 in the lambda rule?
-  }
-\sg{Actually, it has been spelled out already: $\Usg$ is a finite and a partial order, as its definition suggests.
-So its $\bot$ element is of the course the least element $0$.}
+never evaluates $\px$'' from the introduction.
+When $d(\px) ⊐ 0$ we say that $\px$ is \emph{potentially live} in $\pe$.
 
 Note that the usage analysis is naïve in its treatment of function application:
 It assumes that that every function deeply evaluates its argument.
-Whenever $x$ is live in $y$'s bound expression (which is encoded as $\tr(x) ⊑
-\tr(y)$ in the $\mathbf{let}$ case of $\semusg{\wild}$),
-the analysis will report that $x$ is live in $(f~y)$,
-regardless of whether $f$ evaluates its argument.
+Whenever $x$ is potentially live in $\tr(y)$,
+%(which is encoded as $\tr(x) ⊑
+%\tr(y)$ in the $\mathbf{let}$ case of $\semusg{\wild}$),
+the analysis will report that $x$ is potentially live in $(f~y)$,
+regardless of whether $f$ evaluates its argument \emph{at all}.
 In turn, the analysis assumes in the lambda case that liveness of the argument
 has been accounted for in the application case,
-hence the lambda-bound variable $\px$
-is not live in any variable and denoted by $\bot$ in $\tr$ (according to the
-pointwise ordering, $\forall \px.\ \bot_{\UsgD}(\px) = \bot_{\Usg} = 0$).
+hence the lambda-bound variable is dead in any variable and denoted by $\bot$ in
+the extended $\tr$.
+The result is that $\semusg{x + \Lam{y}{y}~z}_{\tr_Δ}(x) = 1$, because $x$ is never
+passed as an argument to the lambda.
+
+You might be convinced now that although the definition of this analysis is
+rather simple and the results it finds are rather imprecise, it is already
+quite tricky in detail.
+A proof of its correctness is in order.
 
 \slpj{This usage analysis is very baffling, which is a problem since it is our ``quick-start'' example.}
 \sg{Perhaps. Unfortunately, I see no realistic way to make it less mathematical.}
@@ -197,7 +192,7 @@ pointwise ordering, $\forall \px.\ \bot_{\UsgD}(\px) = \bot_{\Usg} = 0$).
 
 The requirement (in the sense of informal specification) on an assertion
 such as ``$x$ is dead'' in a program like $\Let{x}{\pe_1}{\pe_2}$ is that we
-may rewrite to $\Let{x}{\mathit{panic}}{\pe_2}$ and perhaps even to $\pe_2$ without
+may rewrite to $\Let{x}{\mathit{panic}}{\pe_2}$ and even to $\pe_2$ without
 observing any change in semantics. Doing so reduces code size and heap
 allocation.
 
@@ -212,14 +207,18 @@ $\semscott{\wild}$:
   Otherwise, $\px$ is \emph{live}.
 \end{definition}
 
-Indeed, if we know that $x$ is dead, then the following equation justifies our
-rewrite above: $\semscott{\Let{x}{\pe_1}{\pe_2}}_ρ = \semscott{\pe_2}_{ρ[x↦d]} =
-\semscott{\pe_2}_{ρ[x↦ρ(x)]} =\semscott{\pe_2}_ρ$ (for all $ρ$ and the suitable $d$).
+Indeed, if we know that $x$ is dead in $\pe_2$, then the following equation
+justifies our rewrite above: $\semscott{\Let{x}{\pe_1}{\pe_2}}_ρ =
+\semscott{\pe_2}_{ρ[x↦d]} = \semscott{\pe_2}_{ρ[x↦ρ(x)]} =\semscott{\pe_2}_ρ$
+(for all $ρ$ and the suitable $d$),
+where we make use of deadness in the second $=$.
 So our definition of deadness is not only simple to grasp, but also simple to
 exploit.
 
-We can now try to prove our usage analysis correct as a deadness analysis in
-terms of this notion of deadness:
+We can now prove our usage analysis correct as a deadness analysis in
+terms of this notion: \\
+(All proofs can be found in the Appendix; in case of the extended version via
+clickable links.)\,
 
 \begin{theoremrep}[$\semusg{\wild}$ is a correct deadness analysis]
   \label{thm:semusg-correct-live}
@@ -239,7 +238,7 @@ terms of this notion of deadness:
 
   It is $\tr_Δ(\px) \not⊑ \semusg{\pe}_{\tr_Δ}$:
   Let us assume $\semusg{\pe}_{\tr_Δ}(\px) = 0$.
-  We know, by definition of $\tr_Δ$ that $\tr_Δ(\px)(\px) = 1$.
+  We know, by definition of $\tr_Δ$ that ${\tr_Δ(\px)(\px) = 1}$.
   Hence $\tr_Δ(\px)(\px) \not⊑ \semusg{\pe}_{\tr_Δ}(\px)$; and hence $\tr_Δ(\px) \not⊑ \semusg{\pe}_{\tr_Δ}$.
   \sg{I suppose we can be a little more explicit here, as you suggested.
   Ultimately I don't think that hand-written proofs will carry us very far
@@ -310,14 +309,12 @@ terms of this notion of deadness:
   \end{itemize}
 \end{proof}
 
-(All proofs can be found in the Appendix; in case of the extended version via
-clickable links.)\,
-The proof capitalises on the similarities in structure by using
-induction on the program expression.
-The induction hypothesis needs slight generalisation; that admittedly
-involves a bit of trial and error.
-All in all, it is a simple and direct proof, at just under a page of accessible
-prose.
+\emph{The main takeaway of this Section is the simplicity of this proof!}
+Since $\semscott{\wild}$ and $\semusg{\wild}$ are so similar in structure,
+a proof by induction on the program expression is possible.
+The induction hypothesis needs slight generalisation and that admittedly
+involves a bit of trial and error, but all in all, it is a simple and direct
+proof, at just under a page of accessible prose.
 
 Simplicity of proofs is a good property to strive for, so let us formulate an
 explicit goal:

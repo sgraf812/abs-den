@@ -20,6 +20,34 @@ $\semevt{\wild}$ and $\equiv$:
   Otherwise, $\px$ is \emph{live}.
 \end{definition}
 
+\begin{lemmarep}[Deadness implies irrelevance]
+  If $\px$ is dead in $\pe$,
+  then for all $ρ, \pe_1,\pe_2$,
+  \[\semevt{\Let{\px}{\pe_1}{\pe}}_{ρ} \equiv \semevt{\Let{\px}{\pe_2}{\pe}}_{ρ}.\]
+\end{lemmarep}
+\begin{proof}
+  Assume that $\pa$ is dead in $\semevt{\pe}_{ρ[\px↦\pa]}$ for any
+  $ρ$ such that $\pa \not∈ \rng(ρ)$.
+  To show that
+  \[
+    \semevt{\Let{\px}{\pe_1}{\pe}}_ρ \equiv \semevt{\Let{\px}{\pe_1}{\pe}}_ρ,
+  \]
+  we assume that $μ_1 \approx μ_2$ for arbitrary $μ_1,μ_2$ (satisfying
+  well-addressedness constraints) and show that
+  \[
+    \dom(μ_1) ⊦ \semevt{\Let{\px}{\pe_1}{\pe}}_{ρ}(μ_1) \sim \semevt{\Let{\px}{\pe_2}{\pe}}_{ρ}(μ_2)
+  \]
+  We unfold the $\mathbf{let}$ case of $\semevt{\wild}$ and show
+  \[
+    \dom(μ_1) ⊦ \semevt{\pe}_{ρ[\px↦\pa]}(μ_1[\pa↦d_1]) \sim \semevt{\pe}_{ρ[\px↦\pa]}(μ_2[\pa↦d_2])
+  \]
+  For arbitrary $d_1,d_2$ (which we may set to
+  $d_i \triangleq \memo(\pa,\semevt{\pe_i}_{ρ[\px↦\pa]})$).
+  But $\pa \not∈ \rng(ρ)$ due to \Cref{thm:well-addressedness},
+  so $\pa$ is dead in $\semevt{\pe}_{ρ[\px↦\pa]}$ per assumption.
+  Hence we can show the goal, applying to $μ_1 \approx μ_2$.
+\end{proof}
+
 So if $x$ is dead in $\pe_2$, we can justify the following rewrite by
 irrelevance:
 \[
@@ -29,6 +57,9 @@ A syntactic \emph{occurrence analysis} could subsequently figure out whether the
 binding for $x$ can be dropped without introducing scoping errors, a feat
 that becomes far simpler once huge expressions $\pe_1$ are turned into small
 $\mathit{panic}$s.
+
+We can now prove \Cref{thm:semusg-correct-live} in terms of this new
+characterisation of deadness by induction:
 
 \begin{toappendix}
 \begin{lemma}[Heap partitioning]
@@ -104,38 +135,7 @@ $\mathit{panic}$s.
   And again by extensionality applied to $μ_i[\pa↦d_i] \approx μ_i'[\pa↦d_i]$
   and transitivity, we show the goal.
 \end{proof}
-
-\begin{lemmarep}[Deadness implies irrelevance]
-  If $\px$ is dead in $\pe$,
-  then for all $ρ, \pe_1,\pe_2$,
-  \[\semevt{\Let{\px}{\pe_1}{\pe}}_{ρ} \equiv \semevt{\Let{\px}{\pe_2}{\pe}}_{ρ}.\]
-\end{lemmarep}
-\begin{proof}
-  Assume that $\pa$ is dead in $\semevt{\pe}_{ρ[\px↦\pa]}$ for any
-  $ρ$ such that $\pa \not∈ \rng(ρ)$.
-  To show that
-  \[
-    \semevt{\Let{\px}{\pe_1}{\pe}}_ρ \equiv \semevt{\Let{\px}{\pe_1}{\pe}}_ρ,
-  \]
-  we assume that $μ_1 \approx μ_2$ for arbitrary $μ_1,μ_2$ (satisfying
-  well-addressedness constraints) and show that
-  \[
-    \dom(μ_1) ⊦ \semevt{\Let{\px}{\pe_1}{\pe}}_{ρ}(μ_1) \sim \semevt{\Let{\px}{\pe_2}{\pe}}_{ρ}(μ_2)
-  \]
-  We unfold the $\mathbf{let}$ case of $\semevt{\wild}$ and show
-  \[
-    \dom(μ_1) ⊦ \semevt{\pe}_{ρ[\px↦\pa]}(μ_1[\pa↦d_1]) \sim \semevt{\pe}_{ρ[\px↦\pa]}(μ_2[\pa↦d_2])
-  \]
-  For arbitrary $d_1,d_2$ (which we may set to
-  $d_i \triangleq \memo(\pa,\semevt{\pe_i}_{ρ[\px↦\pa]})$).
-  But $\pa \not∈ \rng(ρ)$ due to \Cref{thm:well-addressedness},
-  so $\pa$ is dead in $\semevt{\pe}_{ρ[\px↦\pa]}$ per assumption.
-  Hence we can show the goal, applying to $μ_1 \approx μ_2$.
-\end{proof}
 \end{toappendix}
-
-We can now prove \Cref{thm:semusg-correct-live} in terms of this new
-characterisation of deadness by induction:
 
 \begin{theoremrep}[$\semusg{\wild}$ is a correct deadness analysis]
   \label{thm:semusg-correct-live-3}
@@ -482,13 +482,23 @@ We can now make good on that claim:
   Clearly, $\tr_1(\px) = ω$, so
   $\tr_1(\px) \not⊑ \semusg{\pe_2}_{\tr_1}$, so $\px$ must be dead in $\pe_2$.
 \end{proof}
+
+\begin{definition}
+  $d$ is \emph{$L$-once} if and only if, for all $μ$ such that $\rng(μ)$ is
+  $L$-once, $L$ is dead in $μ(\dom(μ) \setminus L)$ and for all $\pa ∈ L$ such
+  that $\pa$ is dead in $d'$,
+  \[
+    \correct_{L}(d(μ[\pa↦ d'\tick]), d(μ[\pa↦\memo(\pa,d')])).
+  \]
+  (Where $(d'\tick )(μ) \triangleq d'(μ) \betastep \fn{v}{\fn{μ}{\TickE \cons \goodend{v,μ}}}$.)
+\end{definition}
 \end{toappendix}
 
 \begin{theoremrep}[Update avoidance for $\semusg{\wild}$]
   \label{thm:semusg-by-name}
   Let $\Let{\px}{\pe_1}{\pe_2}$ be an expression
   such that \\
-  ${\semusg{\Let{\px}{\pe_1}{\pe_2}}_{\tr_Δ}(\px) ⊑ 1}$.
+  ${\semusg{\pe_1}_{\tr_Δ}(\px) + \semusg{\pe_2}_{\tr_Δ}(\px) ⊑ 1}$.
   Then
     $\semevt{\Let{\px}{\pe_1}{\pe_2}}_ρ \lockstep
      \semevt{\Letn{\px}{\pe_1\tick}{\pe_2}}_ρ$.
@@ -499,7 +509,10 @@ We can now make good on that claim:
   That is, whenever we have to prove $a ⊑ b$, the proof should also hold for
   $b ⊑ a$ (where $(⊑)$ is either of $(\faster),(\lessapprox),(\lesssim)$).
 
-  By \Cref{thm:pe1-dead}, we assume that $\px$ is dead in $\pe_1$.
+  Since $u_1 + u_2 ⊑ 1$ implies that either $u_i$ must $0$ and the other $1$,
+  either $\px$ must be dead in $\pe_1$ or $\pe_2$.
+  If $\px$ is dead in $\pe_2$, the rewrite follows by deadness.
+  So we assume that $\px$ is dead in $\pe_1$.
 
   We prove $(\lockstep)$ by rule $\impdenot$.
   After unfolding the definitions of $\semevt{\wild}$ for $\mathbf{let}$ and
@@ -512,13 +525,13 @@ We can now make good on that claim:
   $μ_1 \lessapprox\!\gtrapprox μ_2$.
   Clearly,
   \[
-    \dom(μ_i) ⊦_0 \semevt{\pe_2}_{ρ[\px↦\pa]}(μ_1[\pa↦d_2]) \lesssim\!\gtrsim \semevt{\pe_2}_{ρ[\px↦\pa]}(μ_2[\pa↦d_2])
+    \dom(μ_i) ⊦_0 \semevt{\pe_2}_{ρ[\px↦\pa]}(μ_1[\pa↦\highlight{d_2}]) \lesssim\!\gtrsim \semevt{\pe_2}_{ρ[\px↦\pa]}(μ_2[\pa↦d_2])
   \]
   holds by reflexivity because $μ_1[\pa↦d_2] \lessapprox\!\gtrapprox μ_2[\pa↦d_2]$, so the goal becomes
   \[
     \dom(μ_i) ⊦_0 τ_1 \lesssim\!\gtrsim τ_2,
   \]
-  abbreviating $τ_i \triangleq \semevt{\pe_2}_{ρ[\px↦\pa]}(μ_1[\pa↦d_i])$.
+  abbreviating $τ_i \triangleq \semevt{\pe_2}_{ρ[\px↦\pa]}(μ_{\highlight{\scriptstyle 1}}[\pa↦d_i])$.
 
   \noindent
   We will prove the correctness predicate $\correct_{\{\pa\}}(τ_1,τ_2)$ instead, where
@@ -526,16 +539,6 @@ We can now make good on that claim:
 
   Since $\pa \not ∈ \dom(μ_1)$,
   $\corfun$ implies $\impfun$ on $\dom(μ_i)$ and the goal follows.
-
-  \begin{definition}
-    $d$ is \emph{$L$-once} if and only if, for all $μ$ such that $\rng(μ)$ is
-    $L$-once, $L$ is dead in $μ(\dom(μ) \setminus L)$ and for all $\pa ∈ L$ such
-    that $\pa$ is dead in $d'$,
-    \[
-      \correct_{L}(d(μ[\pa↦ d'\tick]), d(μ[\pa↦\memo(\pa,d')])).
-    \]
-    (Where $(d'\tick )(μ) \triangleq d'(μ) \betastep \fn{v}{\fn{μ}{\TickE \cons \goodend{v,μ}}}$.)
-  \end{definition}
 
   We generalise our assumption about $\semusg{\wild}$ as follows:
   There exists a $\tr$ (\ie, $\tr_Δ$) such that
@@ -879,29 +882,29 @@ Thus, $\ctx_\LookTraces$ continues a $\LookTraces$ in all possible evaluation
 contexts, returning the least upper bound of all continued traces.
 
 \begin{toappendix}
-\begin{figure}
-\[\begin{array}{c}
- \ruleform{ \correct_L(τ_1,τ_2) }
- \\
- \\[-0.5em]
- \inferrule*[right=\corstuck]
-    {\quad}
-    {\correct_L(\stuckend{},\stuckend{})}
- \quad
- \inferrule*[right=\corcons]
-    {\later (\correct_L(τ_1,τ_2))}
-    {\correct_L(\wild :: τ_1,\wild :: τ_2)}
- \\
- \\[-0.5em]
- \inferrule*[right=\corfun]
-    {\dom(μ_1) = \dom(μ_2) \quad \forall \pa ∈ (\dom(μ_i) \setminus L).\ \correct_L(f_1(\pa)(μ_1), f_2(\pa)(μ_2))}
-    {\correct_L(\goodend{\FunV(f_1),μ_1},\goodend{\FunV(f_2),μ_2})}
- \\
- \\[-0.5em]
-\end{array}\]
-\caption{Correctness relation for \Cref{thm:usg-by-name}}
-  \label{fig:semusg-correct2}
-\end{figure}
+%\begin{figure}
+%\[\begin{array}{c}
+% \ruleform{ \correct_{\pa,u}(τ_1,τ_2) }
+% \\
+% \\[-0.5em]
+% \inferrule*[right=\corstuck]
+%    {\quad}
+%    {\correct_{\pa,u}(\stuckend{},\stuckend{})}
+% \quad
+% \inferrule*[right=\corcons]
+%    {\later (\correct_{\pa,u}(τ_1,τ_2))}
+%    {\correct_{\pa,u}(\wild :: τ_1,\wild :: τ_2)}
+% \\
+% \\[-0.5em]
+% \inferrule*[right=\corfun]
+%    {\dom(μ_1) = \dom(μ_2) \quad \forall \pa' ∈ \dom(μ_i).\ \usg_\Traces(\correct_{\pa,u}(f_1(\pa)(μ_1), f_2(\pa)(μ_2))}
+%    {\correct_{\pa,u}(\goodend{\FunV(f_1),μ_1},\goodend{\FunV(f_2),μ_2})}
+% \\
+% \\[-0.5em]
+%\end{array}\]
+%\caption{Correctness relation for \Cref{thm:usg-by-name}}
+%  \label{fig:semusg-correct2}
+%\end{figure}
 \end{toappendix}
 
 %Rather than to let syntactic evaluation contexts dictate how $\pe_2$ might be
@@ -922,222 +925,213 @@ contexts, returning the least upper bound of all continued traces.
      \semevt{\Letn{\px}{\pe_1\tick}{\pe_2}}_ρ$.
 \end{theoremrep}
 \begin{proof}
-  Unless explicitly stated otherwise, we will always apply the improvement
-  judgments in a symmetrical manner.
-  That is, whenever we have to prove $a ⊑ b$, the proof should also hold for
-  $b ⊑ a$ (where $(⊑)$ is either of $(\faster),(\lessapprox),(\lesssim)$).
+  Not done yet. It should be similar to \Cref{thm:semusg-by-name},
+  with a suitably adjusted correctness predicate.
+  We hope to provide a complete the proof by October.
+%  The setup is quite similar to \Cref{thm:semusg-by-name}:
+%
+%  We prove $(\lockstep)$ by rule $\impdenot$.
+%  After unfolding the definitions of $\semevt{\wild}$ for $\mathbf{let}$ and
+%  $\mathbf{let1}$, the goal is to show
+%  \[
+%    \dom(μ_i) ⊦_0 \semevt{\pe_2}_{ρ[\px↦\pa]}(μ_1[\pa↦d_1]) \lesssim\!\gtrsim \semevt{\pe_2}_{ρ[\px↦\pa]}(μ_2[\pa↦d_2])
+%  \]
+%  where $\pa \not∈\dom(μ_i)$,
+%  $\dom(μ_i) ∪ \{\pa\} ⊦ \semevt{\pe_2}_{ρ[\px↦\pa]}$,
+%  $μ_1 \lessapprox\!\gtrapprox μ_2$.
+%  Clearly,
+%  \[
+%    \dom(μ_i) ⊦_0 \semevt{\pe_2}_{ρ[\px↦\pa]}(μ_1[\pa↦\highlight{d_2}]) \lesssim\!\gtrsim \semevt{\pe_2}_{ρ[\px↦\pa]}(μ_2[\pa↦d_2])
+%  \]
+%  holds by reflexivity because $μ_1[\pa↦d_2] \lessapprox\!\gtrapprox μ_2[\pa↦d_2]$, so the goal becomes
+%  \[
+%    \dom(μ_i) ⊦_0 τ_1 \lesssim\!\gtrsim τ_2,
+%  \]
+%  abbreviating $τ_i \triangleq \semevt{\pe_2}_{ρ[\px↦\pa]}(μ_{\highlight{\scriptstyle 1}}[\pa↦d_i])$.
+%
+%  \noindent
+%  We will prove the correctness predicate $\correct_{\{\pa\}}(τ_1,τ_2)$ instead, where
+%  $\correct$ is defined in \Cref{fig:semusg-correct2}.
+%
+%  Since $\pa \not ∈ \dom(μ_1)$,
+%  $\corfun$ implies $\impfun$ on $\dom(μ_i)$ and the goal follows.
+%
+%  (Same setup until here.)
+%
+%  Since $\pe_2$ evaluates $\px$ at most once and $\pa$ is dead in
+%  $μ_1[\pa↦d_i]$ by assumption that $x$ is dead in $\pe_1$, we have
+%  $\ctx_\LookTraces(\usg_\Traces(τ_i))(\pa) ⊑ 1$.
+%  Let us also abbreviate $ρ_1 \triangleq ρ[\px↦\pa]$.
 
-  By \Cref{thm:pe1-dead}, we assume that $\px$ is dead in $\pe_1$.
-
-  We prove $(\lockstep)$ by rule $\impdenot$.
-  After unfolding the definitions of $\semevt{\wild}$ for $\mathbf{let}$ and
-  $\mathbf{let1}$, the goal is to show
-  \[
-    \dom(μ_i) ⊦_0 \semevt{\pe_2}_{ρ[\px↦\pa]}(μ_1[\pa↦d_1]) \lesssim\!\gtrsim \semevt{\pe_2}_{ρ[\px↦\pa]}(μ_2[\pa↦d_2])
-  \]
-  where $\pa \not∈\dom(μ_i)$,
-  $\dom(μ_i) ∪ \{\pa\} ⊦ \semevt{\pe_2}_{ρ[\px↦\pa]}$,
-  $μ_1 \lessapprox\!\gtrapprox μ_2$.
-  Clearly,
-  \[
-    \dom(μ_i) ⊦_0 \semevt{\pe_2}_{ρ[\px↦\pa]}(μ_1[\pa↦d_2]) \lesssim\!\gtrsim \semevt{\pe_2}_{ρ[\px↦\pa]}(μ_2[\pa↦d_2])
-  \]
-  holds by reflexivity because $μ_1[\pa↦d_2] \lessapprox\!\gtrapprox μ_2[\pa↦d_2]$, so the goal becomes
-  \[
-    \dom(μ_i) ⊦_0 τ_1 \lesssim\!\gtrsim τ_2,
-  \]
-  abbreviating $τ_i \triangleq \semevt{\pe_2}_{ρ[\px↦\pa]}(μ_1[\pa↦d_i])$.
-
-  \noindent
-  We will prove the correctness predicate $\correct_{\{\pa\}}(τ_1,τ_2)$ instead, where
-  $\correct$ is defined in \Cref{fig:semusg-correct2}.
-
-  Since $\pa \not ∈ \dom(μ_1)$,
-  $\corfun$ implies $\impfun$ on $\dom(μ_i)$ and the goal follows.
-
-  \begin{definition}
-    $d$ is \emph{$L$-once} if and only if, for all $μ$ such that $\rng(μ)$ is
-    $L$-once, $L$ is dead in $μ(\dom(μ) \setminus L)$ and for all $\pa ∈ L$ such
-    that $\pa$ is dead in $d'$,
-    \[
-      \correct_{L}(d(μ[\pa↦ d'\tick]), d(μ[\pa↦\memo(\pa,d')])).
-    \]
-    (Where $(d'\tick )(μ) \triangleq d'(μ) \betastep \fn{v}{\fn{μ}{\TickE \cons \goodend{v,μ}}}$.)
-  \end{definition}
-
-  Since $\pe_2$ evaluates $\px$ at most once, we have
-  $\ctx_\LookTraces(\usg_\Traces(τ_i))(\pa) ⊑ 1$.
-  Let us also abbreviate $ρ_1 \triangleq ρ[\px↦\pa]$.
-
-  We show that $\semevt{\pe_2}_{ρ[\px↦\pa]}$ is $\{\pa\}$-once
-  assuming that $ω*\tr_1(\px) \not⊑ \semusg{\pe_2}_{\tr_1}$.
-  By induction on $\pe_2$, generalising to $L$-onceness and
-  maintaining that $\tr_1(\px) \not⊑ \tr_1(\py) \Longleftrightarrow ρ(\py) \not∈ L$
-  for all $\py∈ \dom(ρ)$.
-  \begin{itemize}
-    \item \textbf{Case $\pe_2 = \py$}:
-      Fix $μ$ such that $\rng(μ)$ is $L$-once and for all $\pa' ∈ L$ such that $\pa'$ is dead in $d'$,
-      we need to show that
-      \[
-        \correct_{L}(μ_1(ρ(\py))(μ_1), μ_2(ρ(\py))(μ_2)).
-      \]
-      where $μ_1 \triangleq μ[\pa'↦d'\tick ], μ_2 = μ[\pa'↦\memo(\pa',d')]$.
-      This is easy to see when $ρ(\py) \not= \pa'$, so assume $ρ(\py) = \pa'$:
-      \[
-        \correct_{L}(d'(μ_1) \cons \TickE, d'(μ_2) \betastep \fn{v}{(\fn{μ'}{\UpdateE(...) \cons \goodend{v,μ'[\pa'↦\memo(\pa',\ret(v))]}})}).
-      \]
-      We can strip away the trailing transition, leaving behind just the heap update.
-
-      Now, without loss of generality, we will assume that $L$ is dead in
-      $\rng(μ)$.
-      If that was not the case, we could apply \Cref{heap-partitioning}
-      to hide all entries in which $L$ is live ``inside $d'$'' and allocate them
-      on first execution.
-      % Turn into lemma. Sounds useful
-
-      When $L$ is dead in $\rng(μ)$, we can rewrite the entry for $\pa'$ freely
-      without affecting $\correct$.
-      In the interesting case we have $\bigstep{d'}{μ_i}{\FunV(f_i)}{μ_i'}$.
-      Because of deadness, we must have
-      \[
-        \correct_{L}(d'(μ_1), d'(μ_2)).
-      \]
-      That implies
-      \[
-        \correct_{L}(f_1(\pa_a)(μ_1'), f_2(\pa_a)(μ_2')).
-      \]
-      for all $\pa_a ∈ \dom(μ_i') \setminus L$.
-      Now it suffices to show the situation after heap update
-      \begin{equation}
-        \label{eqn:usg-var-goal}
-        \correct_{L}(f_2(\pa_a)(μ_2'), f_2(\pa_a)(μ_2'[\pa'↦\memo(\pa',\ret(\FunV(f_2)))])).
-      \end{equation}
-      In particular, note that
-      $μ_2 \forcesto μ_3 \triangleq μ[\pa'↦\memo(\pa',\ret(\FunV(f_2)))]$
-      (again, we can properly hide any free address that $f_2$ needs in
-      $μ_3(\pa')$), so $\bigstep{d'}{μ_3}{\FunV(f_2)}{μ_3'}$ with
-      $μ_2' \forcesto μ_3'$ by the Postpone property.
-      By deadness we can follow
-      \[
-        \correct_{L}(d'(μ_2), d'(μ_3)).
-      \]
-      and since $\bigstep{d'}{μ_3}{\FunV(f_2)}{μ_3'}$ (NB: $f_2$ due to the
-      forcing relationship), that implies
-      \[
-        \correct_{L}(f_2(\pa_a)(μ_2'), f_2(\pa_a)(μ_3')).
-      \]
-      for all $\pa_a ∈ \dom(μ_i') \setminus L$.
-
-      Due to forcing, it must be that $μ_3'(\pa) = μ_3(\pa)$.
-      Again by forcing, $μ_2'(\pa)$ must be either
-      $μ_2(\pa)$ or $μ_3'(\pa)$.
-
-      Since the number of steps taken for $f_2(\pa_a)(μ_2'[\pa↦μ_3'(\pa)])$ must be between $f_2(\pa_a)(μ_2')$
-      and $f_2(\pa_a)(μ_3')$ (due to forcing), this shows the goal \Cref{eqn:usg-var-goal}.
-
-    \item \textbf{Case $\pe_2 = \pe~\py$}:
-      Fix $μ$ such that $\rng(μ)$ is $L$-once and for all $\pa' ∈ L$ such that $\pa'$ is dead in $d'$,
-      we need to show that
-      \[
-        \correct_{L}(\semevt{\pe~\py}_{ρ_1}(μ[\pa'↦ d'\tick]), \semevt{\pe~\py}_{ρ_1}(μ[\pa'↦\memo(\pa',d')])).
-      \]
-
-      From $ω*\tr_1(\px) \not⊑ \semusg{\pe}_{\tr_1} + ω*\tr_1(\py)$ we can see that
-      $ω*\tr_1(\px) \not⊑ \semusg{\pe}_{\tr_1}$ and $\tr_1(\px) \not⊑ \tr_1(\py)$ by
-      monotonicity of $+$ and $*$.
-      By induction, we know that the correctness statement holds for
-      $\semevt{\pe}_{ρ_1}$.
-      We also know that $ρ(\py) \not∈ L$ because $\tr_1(\px) \not⊑ \tr_1(\py)$.
-
-      In the interesting case that $\bigstep{\semevt{\pe}_{ρ_1}}{μ[\pa'↦...]}{\FunV(f_i)}{μ_i'}$,
-      we have
-      \[
-        \correct_{L}(f_1(ρ(\py))(μ_1), f_2(ρ(\py))(μ_2))
-      \]
-      for all $\pa' ∈ L$, because $ρ(\py) \not∈ L$.
-      This shows the goal.
-
-    \item \textbf{Case $\pe_2 = \Lam{\py}{\pe}$}:
-      Fix $μ$ such that $\rng(μ)$ is $L$-once and for all $\pa' ∈ L$ such that $\pa'$ is dead in $d'$.
-      To apply $\corfun$, we need to show that
-      \[
-        \correct_{L}(\semevt{\pe}_{ρ_1[\py↦\pa_a]}(μ[\pa'↦ d'\tick]), \semevt{\pe}_{ρ_1[\py↦\pa_a]}(μ[\pa'↦\memo(\pa,d')]))
-      \]
-      for all $\pa_a ∈ (\dom(μ) \setminus L)$.
-
-      Since $\pa_a \not∈ L$ we maintain the invariant on $ρ_1[\py↦\pa_a]$ and
-      $\tr_1(\px) \not⊑ \bot = \tr_1[\py↦\bot](\py)$ and may apply the induction hypothesis
-      to the above situation since $ω*\tr_1[\py↦\bot](\px) \not⊑ \semusg{\pe}_{\tr_1[\py↦⊥]}$.
-      This shows the goal.
-
-    \item \textbf{Case $\pe_2 = \Let{\py}{\pe_1'}{\pe_2'}$}:
-      Fix $μ$ such that $\rng(μ)$ is $L$-once and for all $\pa' ∈ L$ such that $\pa'$ is dead in $d'$.
-      We need to show that
-      \[
-        \correct_{L}(\semevt{\Let{\py}{\pe_1'}{\pe_2'}}_{ρ_1}(μ[\pa'↦ d'\tick]), \semevt{\Let{\py}{\pe_1'}{\pe_2'}}_{ρ_1}(μ[\pa'↦\memo(\pa,d')])).
-      \]
-      We unfold the definition of $\semevt{\wild}$ and see that we need to prove
-      \[
-        \correct_{L}(\semevt{\pe_2'}_{ρ_2}(μ[\pa'↦ d'\tick][\pa_l↦d_1]), \semevt{\pe_2'}_{ρ_2}(μ[\pa'↦\memo(\pa,d')][\pa_l↦d_1])),
-      \]
-      where $ρ_2 \triangleq ρ_1[\py↦\pa_l]$,
-      $d_1 \triangleq \memo(\pa_l,\semevt{\pe_1'}_{ρ_1[\py↦\pa_l]})$.
-
-      From $\px \not= \py$ (otherwise shadowing) we see that
-      $\tr_1(\px) = \tr_2(\px)$, \\
-      where
-      ${\tr_2 \triangleq \fix(\fn{\tr_2}{\tr_1 ⊔ [\py ↦
-      [\py↦1]+\semusg{\pe_1'}_{\tr_2}]})}$.
-      It is clear that $ω*\tr_2(\px) = ω*\tr_1(\px) \not⊑ \semusg{\pe_2}_{\tr_1} = \semusg{\pe_2'}_{\tr_2}$,
-      so we want try to apply the induction hypothesis to this situation,
-      but that requires us to show that the invariant on $L$ is satisfied
-      as well as that $d_1$ is $L$-once.
-
-      We proceed by cases over $\tr_1(\px) = \tr_2(\px) ⊑ \semusg{\pe_1'}_{\tr_2}$.
-      \begin{itemize}
-        \item \textbf{Case $ω*\tr_2(\px) ⊑ \semusg{\pe_1'}_{\tr_2}$}:
-          Then $ω*\tr_2(\px) ⊑ \tr_2(\py) \not⊑ \semusg{\pe_2'}_{\tr_2}$ and
-          hence $\py$ is dead in $\pe_2'$, which allows us to rewrite its bindings
-          in $μ$ with something that is dead in $L$.
-          (It is easy to see that deadness is compatible with $\correct$ in this
-          way.)
-          That again makes it possible to apply the induction hypothesis
-          (noting that now $\tr(\px) \not⊑ \tr_2(\py)$ and hence $\pa_l \not∈ L$),
-          showing the goal.
-        \item \textbf{Case $\tr_2(\px) \not⊑ \semusg{\pe_1'}_{\tr_2}$}:
-          Then $\px$ is dead in $\pe_1$, $\tr_2(\px) \not⊑  \tr_2(\py)$.
-          This implies that $L$ is dead in $\semevt{\pe_1'}_{ρ_2}$:
-          For any $\pa'$, either there exists $\py$ such that $\pa' = ρ(\py)$
-          in which case $\tr_2(\px) ⊑  \tr_2(\py)$ leads to a contradiction.
-          Otherwise, there is no variable in scope that refers to $\pa'$ and hence
-          $\pa'$ is dead in $\semevt{\pe_1'}_{ρ_2}$ by \Cref{thm:addr-dom-sem}.
-
-          From $\tr_2(\px) \not⊑ \tr_2(\py)$ we conclude $ρ_2(\py) = \pa_l
-          \not∈L$ and $L$ is compatible with the latter inequality.
-          $L$-deadness implies that $d_1$ is $L$-once as well.
-          Hence we may apply the induction hypothesis to show the goal.
-        \item \textbf{Case $\tr_2(\px) ⊑ \semusg{\pe_1'}_{\tr_2}$}:
-          Then $\tr_2(\px) ⊑ \tr_2(\py)$ and hence
-          $ω*\tr_2(\py) \not⊑ \semusg{\pe_2}_{\tr_2}$.
-
-          To apply the induction hypothesis, we need to show that $μ$ is also
-          $L'$-once, where $L' \triangleq L ∪ \{\pa_l\}$.
-          Since $\pa_l$ is dead in $\rng(\pa_l)$, that is the case.
-          Furthermore, we need to show that $\semevt{\pe_1'}_{ρ_2}$ is
-          $L'$-once, but that follows by the induction hypothesis applied
-          to $L'$ and $ω*\tr_2(\px) ⊑ \semusg{\pe_1}_{\tr_2}$.
-
-          So it is the case that $\rng(μ[\pa_l↦\semevt{\pe_1'}_{ρ_2}])$ is
-          $L'$-once.
-          (Concerns about definedness can be overcome with
-          \Cref{thm:heap-partitioning}.)
-          Hence apply the induction hypothesis.
-
-          We still need to show that we can weaken $L'$ back to $L$.
-          Since $L'$ was extended for $\pa_l$ which is free in $\dom(μ_i)$,
-          all rule applications can be rewritten without conflict.
-      \end{itemize}
-  \end{itemize}
+%  We show that $\semevt{\pe_2}_{ρ[\px↦\pa]}$ is $\{\pa\}$-once
+%  assuming that $ω*\tr_1(\px) \not⊑ \semusg{\pe_2}_{\tr_1}$.
+%  By induction on $\pe_2$, generalising to $L$-onceness and
+%  maintaining that $\tr_1(\px) \not⊑ \tr_1(\py) \Longleftrightarrow ρ(\py) \not∈ L$
+%  for all $\py∈ \dom(ρ)$.
+%  \begin{itemize}
+%    \item \textbf{Case $\pe_2 = \py$}:
+%      Fix $μ$ such that $\rng(μ)$ is $L$-once and for all $\pa' ∈ L$ such that $\pa'$ is dead in $d'$,
+%      we need to show that
+%      \[
+%        \correct_{L}(μ_1(ρ(\py))(μ_1), μ_2(ρ(\py))(μ_2)).
+%      \]
+%      where $μ_1 \triangleq μ[\pa'↦d'\tick ], μ_2 = μ[\pa'↦\memo(\pa',d')]$.
+%      This is easy to see when $ρ(\py) \not= \pa'$, so assume $ρ(\py) = \pa'$:
+%      \[
+%        \correct_{L}(d'(μ_1) \cons \TickE, d'(μ_2) \betastep \fn{v}{(\fn{μ'}{\UpdateE(...) \cons \goodend{v,μ'[\pa'↦\memo(\pa',\ret(v))]}})}).
+%      \]
+%      We can strip away the trailing transition, leaving behind just the heap update.
+%
+%      Now, without loss of generality, we will assume that $L$ is dead in
+%      $\rng(μ)$.
+%      If that was not the case, we could apply \Cref{heap-partitioning}
+%      to hide all entries in which $L$ is live ``inside $d'$'' and allocate them
+%      on first execution.
+%      % Turn into lemma. Sounds useful
+%
+%      When $L$ is dead in $\rng(μ)$, we can rewrite the entry for $\pa'$ freely
+%      without affecting $\correct$.
+%      In the interesting case we have $\bigstep{d'}{μ_i}{\FunV(f_i)}{μ_i'}$.
+%      Because of deadness, we must have
+%      \[
+%        \correct_{L}(d'(μ_1), d'(μ_2)).
+%      \]
+%      That implies
+%      \[
+%        \correct_{L}(f_1(\pa_a)(μ_1'), f_2(\pa_a)(μ_2')).
+%      \]
+%      for all $\pa_a ∈ \dom(μ_i') \setminus L$.
+%      Now it suffices to show the situation after heap update
+%      \begin{equation}
+%        \label{eqn:usg-var-goal}
+%        \correct_{L}(f_2(\pa_a)(μ_2'), f_2(\pa_a)(μ_2'[\pa'↦\memo(\pa',\ret(\FunV(f_2)))])).
+%      \end{equation}
+%      In particular, note that
+%      $μ_2 \forcesto μ_3 \triangleq μ[\pa'↦\memo(\pa',\ret(\FunV(f_2)))]$
+%      (again, we can properly hide any free address that $f_2$ needs in
+%      $μ_3(\pa')$), so $\bigstep{d'}{μ_3}{\FunV(f_2)}{μ_3'}$ with
+%      $μ_2' \forcesto μ_3'$ by the Postpone property.
+%      By deadness we can follow
+%      \[
+%        \correct_{L}(d'(μ_2), d'(μ_3)).
+%      \]
+%      and since $\bigstep{d'}{μ_3}{\FunV(f_2)}{μ_3'}$ (NB: $f_2$ due to the
+%      forcing relationship), that implies
+%      \[
+%        \correct_{L}(f_2(\pa_a)(μ_2'), f_2(\pa_a)(μ_3')).
+%      \]
+%      for all $\pa_a ∈ \dom(μ_i') \setminus L$.
+%
+%      Due to forcing, it must be that $μ_3'(\pa) = μ_3(\pa)$.
+%      Again by forcing, $μ_2'(\pa)$ must be either
+%      $μ_2(\pa)$ or $μ_3'(\pa)$.
+%
+%      Since the number of steps taken for $f_2(\pa_a)(μ_2'[\pa↦μ_3'(\pa)])$ must be between $f_2(\pa_a)(μ_2')$
+%      and $f_2(\pa_a)(μ_3')$ (due to forcing), this shows the goal \Cref{eqn:usg-var-goal}.
+%
+%    \item \textbf{Case $\pe_2 = \pe~\py$}:
+%      Fix $μ$ such that $\rng(μ)$ is $L$-once and for all $\pa' ∈ L$ such that $\pa'$ is dead in $d'$,
+%      we need to show that
+%      \[
+%        \correct_{L}(\semevt{\pe~\py}_{ρ_1}(μ[\pa'↦ d'\tick]), \semevt{\pe~\py}_{ρ_1}(μ[\pa'↦\memo(\pa',d')])).
+%      \]
+%
+%      From $ω*\tr_1(\px) \not⊑ \semusg{\pe}_{\tr_1} + ω*\tr_1(\py)$ we can see that
+%      $ω*\tr_1(\px) \not⊑ \semusg{\pe}_{\tr_1}$ and $\tr_1(\px) \not⊑ \tr_1(\py)$ by
+%      monotonicity of $+$ and $*$.
+%      By induction, we know that the correctness statement holds for
+%      $\semevt{\pe}_{ρ_1}$.
+%      We also know that $ρ(\py) \not∈ L$ because $\tr_1(\px) \not⊑ \tr_1(\py)$.
+%
+%      In the interesting case that $\bigstep{\semevt{\pe}_{ρ_1}}{μ[\pa'↦...]}{\FunV(f_i)}{μ_i'}$,
+%      we have
+%      \[
+%        \correct_{L}(f_1(ρ(\py))(μ_1), f_2(ρ(\py))(μ_2))
+%      \]
+%      for all $\pa' ∈ L$, because $ρ(\py) \not∈ L$.
+%      This shows the goal.
+%
+%    \item \textbf{Case $\pe_2 = \Lam{\py}{\pe}$}:
+%      Fix $μ$ such that $\rng(μ)$ is $L$-once and for all $\pa' ∈ L$ such that $\pa'$ is dead in $d'$.
+%      To apply $\corfun$, we need to show that
+%      \[
+%        \correct_{L}(\semevt{\pe}_{ρ_1[\py↦\pa_a]}(μ[\pa'↦ d'\tick]), \semevt{\pe}_{ρ_1[\py↦\pa_a]}(μ[\pa'↦\memo(\pa,d')]))
+%      \]
+%      for all $\pa_a ∈ (\dom(μ) \setminus L)$.
+%
+%      Since $\pa_a \not∈ L$ we maintain the invariant on $ρ_1[\py↦\pa_a]$ and
+%      $\tr_1(\px) \not⊑ \bot = \tr_1[\py↦\bot](\py)$ and may apply the induction hypothesis
+%      to the above situation since $ω*\tr_1[\py↦\bot](\px) \not⊑ \semusg{\pe}_{\tr_1[\py↦⊥]}$.
+%      This shows the goal.
+%
+%    \item \textbf{Case $\pe_2 = \Let{\py}{\pe_1'}{\pe_2'}$}:
+%      Fix $μ$ such that $\rng(μ)$ is $L$-once and for all $\pa' ∈ L$ such that $\pa'$ is dead in $d'$.
+%      We need to show that
+%      \[
+%        \correct_{L}(\semevt{\Let{\py}{\pe_1'}{\pe_2'}}_{ρ_1}(μ[\pa'↦ d'\tick]), \semevt{\Let{\py}{\pe_1'}{\pe_2'}}_{ρ_1}(μ[\pa'↦\memo(\pa,d')])).
+%      \]
+%      We unfold the definition of $\semevt{\wild}$ and see that we need to prove
+%      \[
+%        \correct_{L}(\semevt{\pe_2'}_{ρ_2}(μ[\pa'↦ d'\tick][\pa_l↦d_1]), \semevt{\pe_2'}_{ρ_2}(μ[\pa'↦\memo(\pa,d')][\pa_l↦d_1])),
+%      \]
+%      where $ρ_2 \triangleq ρ_1[\py↦\pa_l]$,
+%      $d_1 \triangleq \memo(\pa_l,\semevt{\pe_1'}_{ρ_1[\py↦\pa_l]})$.
+%
+%      From $\px \not= \py$ (otherwise shadowing) we see that
+%      $\tr_1(\px) = \tr_2(\px)$, \\
+%      where
+%      ${\tr_2 \triangleq \fix(\fn{\tr_2}{\tr_1 ⊔ [\py ↦
+%      [\py↦1]+\semusg{\pe_1'}_{\tr_2}]})}$.
+%      It is clear that $ω*\tr_2(\px) = ω*\tr_1(\px) \not⊑ \semusg{\pe_2}_{\tr_1} = \semusg{\pe_2'}_{\tr_2}$,
+%      so we want try to apply the induction hypothesis to this situation,
+%      but that requires us to show that the invariant on $L$ is satisfied
+%      as well as that $d_1$ is $L$-once.
+%
+%      We proceed by cases over $\tr_1(\px) = \tr_2(\px) ⊑ \semusg{\pe_1'}_{\tr_2}$.
+%      \begin{itemize}
+%        \item \textbf{Case $ω*\tr_2(\px) ⊑ \semusg{\pe_1'}_{\tr_2}$}:
+%          Then $ω*\tr_2(\px) ⊑ \tr_2(\py) \not⊑ \semusg{\pe_2'}_{\tr_2}$ and
+%          hence $\py$ is dead in $\pe_2'$, which allows us to rewrite its bindings
+%          in $μ$ with something that is dead in $L$.
+%          (It is easy to see that deadness is compatible with $\correct$ in this
+%          way.)
+%          That again makes it possible to apply the induction hypothesis
+%          (noting that now $\tr(\px) \not⊑ \tr_2(\py)$ and hence $\pa_l \not∈ L$),
+%          showing the goal.
+%        \item \textbf{Case $\tr_2(\px) \not⊑ \semusg{\pe_1'}_{\tr_2}$}:
+%          Then $\px$ is dead in $\pe_1$, $\tr_2(\px) \not⊑  \tr_2(\py)$.
+%          This implies that $L$ is dead in $\semevt{\pe_1'}_{ρ_2}$:
+%          For any $\pa'$, either there exists $\py$ such that $\pa' = ρ(\py)$
+%          in which case $\tr_2(\px) ⊑  \tr_2(\py)$ leads to a contradiction.
+%          Otherwise, there is no variable in scope that refers to $\pa'$ and hence
+%          $\pa'$ is dead in $\semevt{\pe_1'}_{ρ_2}$ by \Cref{thm:addr-dom-sem}.
+%
+%          From $\tr_2(\px) \not⊑ \tr_2(\py)$ we conclude $ρ_2(\py) = \pa_l
+%          \not∈L$ and $L$ is compatible with the latter inequality.
+%          $L$-deadness implies that $d_1$ is $L$-once as well.
+%          Hence we may apply the induction hypothesis to show the goal.
+%        \item \textbf{Case $\tr_2(\px) ⊑ \semusg{\pe_1'}_{\tr_2}$}:
+%          Then $\tr_2(\px) ⊑ \tr_2(\py)$ and hence
+%          $ω*\tr_2(\py) \not⊑ \semusg{\pe_2}_{\tr_2}$.
+%
+%          To apply the induction hypothesis, we need to show that $μ$ is also
+%          $L'$-once, where $L' \triangleq L ∪ \{\pa_l\}$.
+%          Since $\pa_l$ is dead in $\rng(\pa_l)$, that is the case.
+%          Furthermore, we need to show that $\semevt{\pe_1'}_{ρ_2}$ is
+%          $L'$-once, but that follows by the induction hypothesis applied
+%          to $L'$ and $ω*\tr_2(\px) ⊑ \semusg{\pe_1}_{\tr_2}$.
+%
+%          So it is the case that $\rng(μ[\pa_l↦\semevt{\pe_1'}_{ρ_2}])$ is
+%          $L'$-once.
+%          (Concerns about definedness can be overcome with
+%          \Cref{thm:heap-partitioning}.)
+%          Hence apply the induction hypothesis.
+%
+%          We still need to show that we can weaken $L'$ back to $L$.
+%          Since $L'$ was extended for $\pa_l$ which is free in $\dom(μ_i)$,
+%          all rule applications can be rewritten without conflict.
+%      \end{itemize}
+%  \end{itemize}
 \end{proof}
 
 Similarly, one could prove that a binding is dead when it is evaluated at most 0
@@ -1153,31 +1147,62 @@ and a sharing analysis:
   \rng(ρ)$.
   Then
   \[
-    \ctx_{\dom(μ)}(\usg_\Traces(\semevt{\pe}_ρ[\px↦\pa](μ)))(\pa) ⊑ \semusg{\pe}_{\tr_Δ}(\px)
+    \ctx_{\dom(μ)}(\usg_\Traces(\semevt{\pe}_{ρ[\px↦\pa]}(μ)))(\pa) ⊑ \semusg{\pe}_{\tr_Δ}(\px)
   \]
 \end{theoremrep}
 \begin{proof}
   We first get rid of the concrete heap by the following estimate:
   \[
-    \ctx_{\dom(μ)}(\usg_\Traces(\semevt{\pe}_ρ[\px↦\pa](μ)))(\pa) ⊑ \ctx_{\dom(μ)}(\usg_\EventD(\semevt{\pe}_ρ[\px↦\pa])(\usg_\Heaps(μ)))(\pa)
+    \ctx_{D}(\usg_\Traces(\semevt{\pe}_{ρ[\px↦\pa]}(μ)))(\pa) ⊑ \ctx_{D}(\usg_\EventD(\semevt{\pe}_{ρ[\px↦\pa]})(\usg_\Heaps(μ)))(\pa)
   \]
-  for $A \triangleq $.
+  for $D \triangleq \dom(μ)$.
   This holds because $μ ∈ \usg^⊣_\Heaps(\usg_\Heaps(μ))$, exploiting that
   $\usg_\Heaps$ is left adjoint to $\usg^⊣_\Heaps$.
 
   By induction on $\pe$, we show that
   \[
-    \ctx_{A}(\usg_\EventD(\semevt{\pe}_ρ)(\tm))(ρ(\px)) ⊑ \semusg{\pe}_{\tr}(\px)
+    \ctx_{D}(\usg_\EventD(\semevt{\pe}_{ρ[\px↦\pa]})(\tm))(\pa) ⊑ \semusg{\pe}_{\tr}(\px)
   \]
-  for all $\px$, maintaining the invariant that $ρ(\px)$ is dead in $\tm(A)$ and
-  for all $\py$, $\tr_Δ(\py) + \ctx_A(\tm(ρ(\py)))(ρ(\py)) ⊑ \tr(\py)$.
-
-  Initially, $A = \dom(μ), \tr = \tr_Δ$.
-  We abbreviate $u_l \triangleq \ctx_{A}(\usg_\EventD(\semevt{\pe}_ρ)(\tm))(ρ(\px))$
-  and $u_r = \semusg{\pe}_{\tr}(\px)$.
+  for all $\px$, maintaining the invariant that $\pa \not∈ \rng(ρ)$ and $\pa$ is
+  dead in $\tm(D)$
+  (so for all $\pa' ∈ D.\ \ctx_{D}(\tm(\pa')(\tm))(\pa) = 0$),
+  as well as
+  \begin{equation}
+    \label{eqn:semusg-rho}
+    ∀\py.\ \tr_Δ(\py)(\px) + \ctx_D(\tm(ρ[\px↦\pa](\py))(\tm))(\pa) ⊑ \tr(\py)(\px)
+  \end{equation}
+  Initially, $D = \dom(μ), \tr = \tr_Δ$.
+  We abbreviate
+  $u_l \triangleq \ctx_{D}(\usg_\EventD(\semevt{\pe}_ρ)(\tm))(ρ(\px))$,
+  ${u_r \triangleq \semusg{\pe}_{\tr}(\px)}$ and
+  ${ρ_1 \triangleq ρ[\px↦\pa]}$.
   \begin{itemize}
-    \item \textbf{Case $\pe = \py$}: If $\px=\py$, then $1 ⊑ u$
+    \item \textbf{Case $\pe = \py$}:
+      The stuck case is clear, because then $u_l = 0$.
 
+      Otherwise, when $\px = \py$, we have $u_l = 1 + \ctx_{D}(\tm(ρ_1(\px))(\tm))(\pa)$
+      and $u_r = \tr(\px)(\px) ⊒ \tr_Δ(\px)(\px) + \ctx_D(\tm(ρ_1(\px))(\tm))(\pa)$
+      by \Cref{eqn:semusg-rho}.
+      Clearly, $\tr_Δ(\px)(\px) = 1$, so we combine to get $u_r ⊒ u_l$, the
+      goal.
+
+      When $\px \not= \py$, then $ρ(\px) \not= ρ(\py)$ and we have $u_l =
+      0 + \ctx_{D}(\tm(ρ_1(\py))(\tm))(\pa)$ and $u_r = \tr(\py)(\px) ⊒
+      \tr_Δ(\py)(\px) + \ctx_D(\tm(ρ_1(\py))(\tm))(\pa)$ by the induction
+      hypothesis. Clearly, $\tr_Δ(\py)(\px) = 0$, so we combine to get $u_r ⊒
+      u_l$, the goal.
+
+    \item \textbf{Case $\pe = \Lam{\py}{\pe'}$}:
+      We have
+      \[\begin{array}{l}
+        u_l = \ctx_{D}(\usg_\EventD(\semevt{\pe'}_{ρ_1[\py↦\text{some address from $D$}]})(\tm))(\pa) \\
+        u_r = \semusg{\pe'}_{\tr[\py↦\bot]}(\px) \\
+      \end{array}\]
+
+    \item \textbf{Case $\pe = \pe'~\py$}:
+      If $\tr(\py)(\px) \not= 0$, then $u_r = ω$, the top element, and the goal follows.
+
+      Otherwise, $\tr(\py)(\px) = 0$ and
   \end{itemize}
 \end{proof}
 
