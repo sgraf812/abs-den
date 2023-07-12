@@ -1151,6 +1151,8 @@ and a sharing analysis:
   \]
 \end{theoremrep}
 \begin{proof}
+  Not done yet (deadline is in 30 minutes). Here's what we've got so far:
+
   We first get rid of the concrete heap by the following estimate:
   \[
     \ctx_{D}(\usg_\Traces(\semevt{\pe}_{ρ[\px↦\pa]}(μ)))(\pa) ⊑ \ctx_{D}(\usg_\EventD(\semevt{\pe}_{ρ[\px↦\pa]})(\usg_\Heaps(μ)))(\pa)
@@ -1173,24 +1175,56 @@ and a sharing analysis:
   \end{equation}
   Initially, $D = \dom(μ), \tr = \tr_Δ$.
   We abbreviate
-  $u_l \triangleq \ctx_{D}(\usg_\EventD(\semevt{\pe}_ρ)(\tm))(ρ(\px))$,
+  $u_l \triangleq \ctx_{D}(\usg_\EventD(\semevt{\pe}_ρ)(\tm))(\pa)$,
   ${u_r \triangleq \semusg{\pe}_{\tr}(\px)}$ and
   ${ρ_1 \triangleq ρ[\px↦\pa]}$.
   \begin{itemize}
     \item \textbf{Case $\pe = \py$}:
       The stuck case is clear, because then $u_l = 0$.
 
-      Otherwise, when $\px = \py$, we have $u_l = 1 + \ctx_{D}(\tm(ρ_1(\px))(\tm))(\pa)$
-      and $u_r = \tr(\px)(\px) ⊒ \tr_Δ(\px)(\px) + \ctx_D(\tm(ρ_1(\px))(\tm))(\pa)$
-      by \Cref{eqn:semusg-rho}.
-      Clearly, $\tr_Δ(\px)(\px) = 1$, so we combine to get $u_r ⊒ u_l$, the
-      goal.
+      When $\px = \py$:
+      \[\begin{WithArrows}
+              & u_l \Arrow{definition of $\semevt{\px}$} \\
+        {}={} & 1 + \ctx_{D}(\tm(ρ_1(\px))(\tm))(\pa) \Arrow{definition of $\tr_Δ(\px)$} \\
+        {}={} & \tr_Δ(\px)(\px) + \ctx_{D}(\tm(ρ_1(\px))(\tm))(\pa) \Arrow{\Cref{eqn:semusg-rho}} \\
+        {}⊑{} & \tr(\px)(\px) \Arrow{definition of $\semusg{\px}_{\tr}$} \\
+        {}={} & u_r
+      \end{WithArrows}\]
 
-      When $\px \not= \py$, then $ρ(\px) \not= ρ(\py)$ and we have $u_l =
-      0 + \ctx_{D}(\tm(ρ_1(\py))(\tm))(\pa)$ and $u_r = \tr(\py)(\px) ⊒
-      \tr_Δ(\py)(\px) + \ctx_D(\tm(ρ_1(\py))(\tm))(\pa)$ by the induction
-      hypothesis. Clearly, $\tr_Δ(\py)(\px) = 0$, so we combine to get $u_r ⊒
-      u_l$, the goal.
+      When $\px \not= \py$:
+      \[\begin{WithArrows}
+              & u_l \Arrow{definition of $\semevt{\px}, ρ(\px) \not=ρ(\py)$} \\
+        {}={} & 0 + \ctx_{D}(\tm(ρ_1(\px))(\tm))(\pa) \Arrow{definition of $\tr_Δ(\px)$} \\
+        {}={} & \tr_Δ(\py)(\px) + \ctx_{D}(\tm(ρ_1(\py))(\tm))(\pa) \Arrow{\Cref{eqn:semusg-rho}} \\
+        {}⊑{} & \tr(\px)(\px) \Arrow{definition of $\semusg{\py}_{\tr}$} \\
+        {}={} & u_r
+      \end{WithArrows}\]
+      %$\begin{WithArrows}
+      %        & u_l & \\
+      %  {}={} & \ctx_{D}(\tm(ρ_1(\px))(\tm))(\pa) & \hspace{5em} \Lbag\text{definition of $\semevt{\py}, ρ(\px) \not=ρ(\py)$}\Rbag \\
+      %  {}={} & \tr_Δ(\px)(\px) + \ctx_{D}(\tm(ρ_1(\px))(\tm))(\pa) & \hspace{5em} \Lbag\text{definition of $\tr_Δ(\px)$}\Rbag \\
+      %  {}⊑{} & \tr(\px)(\px) & \hspace{5em} \Lbag\text{\Cref{eqn:semusg-rho}}\Rbag \\
+      %  {}={} & u_r & \hspace{5em} \Lbag\text{definition of $\semusg{\px}_{\tr}$}\Rbag
+      %\end{WithArrows}$
+
+    \item \textbf{Case $\pe = \pe'~\py$}:
+      If $\tr(\py)(\px) \not= 0$, then $u_r = ω$, the top element, and the goal follows.
+
+      Otherwise, $\tr(\py)(\px) = 0$ and hence
+      $\ctx_D(\tm(ρ_1(\py))(\tm))(\pa) = 0$ by \Cref{eqn:semusg-rho}.
+      We apply the induction hypothesis to $D ∪ \{ ρ_1(\py) \}$ to see that
+      \[
+        \ctx_{D ∪ \{ ρ_1(\py) \}}(\usg_\EventD(\semevt{\pe'}_{ρ_1})(\tm))(\pa) ⊑ \semusg{\pe'}_{\tr}(\px).
+      \]
+      Then we have $\usg_\EventD(\semevt{\pe'}_{ρ_1})(\tm) = l \lcons \someend{\FunV(\tilde{f}),\tm'}$ and
+      $ρ(\py) ∈ D ∪ \{ ρ_1(\py) \}$, so
+      \[
+        l + ω*\tilde(f)(ρ(\py)) ⊑ \ctx_{D ∪ \{ ρ_1(\py) \}}(\usg_\EventD(\semevt{\pe'}_{ρ_1})(\tm))(\pa) ⊏ \semusg{\pe'}_{\tr}(\px).
+      \]
+      But then also
+      \[
+        u_l = l + \tilde(f)(ρ(\py)) ⊑ \semusg{\pe'}_{\tr}(\px) + \tr(\py)(\px) = u_r
+      \]
 
     \item \textbf{Case $\pe = \Lam{\py}{\pe'}$}:
       We have
@@ -1199,10 +1233,6 @@ and a sharing analysis:
         u_r = \semusg{\pe'}_{\tr[\py↦\bot]}(\px) \\
       \end{array}\]
 
-    \item \textbf{Case $\pe = \pe'~\py$}:
-      If $\tr(\py)(\px) \not= 0$, then $u_r = ω$, the top element, and the goal follows.
-
-      Otherwise, $\tr(\py)(\px) = 0$ and
   \end{itemize}
 \end{proof}
 
