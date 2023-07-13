@@ -1210,29 +1210,75 @@ and a sharing analysis:
     \item \textbf{Case $\pe = \pe'~\py$}:
       If $\tr(\py)(\px) \not= 0$, then $u_r = ω$, the top element, and the goal follows.
 
-      Otherwise, $\tr(\py)(\px) = 0$ and hence
+      Otherwise, $\tr(\py)(\px) = 0$
+      and hence
       $\ctx_D(\tm(ρ_1(\py))(\tm))(\pa) = 0$ by \Cref{eqn:semusg-rho}.
-      We apply the induction hypothesis to $D ∪ \{ ρ_1(\py) \}$ to see that
-      \[
-        \ctx_{D ∪ \{ ρ_1(\py) \}}(\usg_\EventD(\semevt{\pe'}_{ρ_1})(\tm))(\pa) ⊑ \semusg{\pe'}_{\tr}(\px).
-      \]
-      Then we have $\usg_\EventD(\semevt{\pe'}_{ρ_1})(\tm) = l \lcons \someend{\FunV(\tilde{f}),\tm'}$ and
-      $ρ(\py) ∈ D ∪ \{ ρ_1(\py) \}$, so
-      \[
-        l + ω*\tilde(f)(ρ(\py)) ⊑ \ctx_{D ∪ \{ ρ_1(\py) \}}(\usg_\EventD(\semevt{\pe'}_{ρ_1})(\tm))(\pa) ⊏ \semusg{\pe'}_{\tr}(\px).
-      \]
-      But then also
-      \[
-        u_l = l + \tilde(f)(ρ(\py)) ⊑ \semusg{\pe'}_{\tr}(\px) + \tr(\py)(\px) = u_r
-      \]
+
+      Let us define $l \lcons \someend{\FunV(\tilde{f}),\tm'} \triangleq \usg_\EventD(\semevt{\pe'}_{ρ_1})(\tm)$
+      and $D' \triangleq D ∪ \{ ρ_1(\py) \}$.
+      We get
+      \begin{DispWithArrows*}
+            & u_l \Arrow{definition of $\semevt{\pe'~\py}$, drop $\AppIE$} \\
+        ={} & \ctx_{D}(\usg_\EventD(\apply(\semevt{\pe'}_{ρ_1},ρ_1(\py)))(\tm)) \Arrow{definition of $\apply,\betastep,l,\tilde{f},\tm$} \\
+        ={} & l + \ctx_{D}(\tilde{f}(ρ_1(\py))(\tm')) \Arrow{$D ⊆ D'$ and monotonicity of $\ctx$} \\
+        ⊑{} & l + \ctx_{D'}(\tilde{f}(ρ_1(\py))(\tm')) \Arrow{$ω*$ is increasing} \\
+        ⊑{} & l + ω*\ctx_{D'}(\tilde{f}(ρ_1(\py))(\tm')) \Arrow{$ρ_1(\py) ∈ D'$} \\
+        ⊑{} & \ctx_{D'}(l \lcons \someend{\tilde{f},\tm'}) \Arrow{definition of $\usg_\EventD(\semevt{\pe'}_{ρ_1})$} \\
+        ={} & \ctx_{D'}(\usg_\EventD(\semevt{\pe'}_{ρ_1})(\tm)) \Arrow{induction hypothesis for $D'$} \\
+        ⊑{} & 0 + \semusg{\pe'}_{\tr}(\px) \Arrow{$\tr(\py)(\px) = 0$} \\
+        ={} & u_r
+      \end{DispWithArrows*}
 
     \item \textbf{Case $\pe = \Lam{\py}{\pe'}$}:
-      We have
+      Unfolding $\ctx_D$ and $\semusg{\Lam{\py}{\pe'}}_{\tr}$ once, we have
       \[\begin{array}{l}
-        u_l = \ctx_{D}(\usg_\EventD(\semevt{\pe'}_{ρ_1[\py↦\text{some address from $D$}]})(\tm))(\pa) \\
-        u_r = \semusg{\pe'}_{\tr[\py↦\bot]}(\px) \\
+        u_l = \Lub_{\pa'∈D} \{ ω*\ctx_{D}(\usg_\EventD(\semevt{\pe'}_{ρ_1[\py↦\pa']})(\tm))(\pa) \} \\
+        u_r = ω*\semusg{\pe'}_{\tr[\py↦\bot]}(\px) \\
       \end{array}\]
+      So we show
+      \[
+        \ctx_{D}(\usg_\EventD(\semevt{\pe'}_{ρ_1[\py↦\pa']})(\tm))(\pa) ⊑
+        \semusg{\pe'}_{\tr[\py↦\bot]}(\px)
+      \]
+      for all $\pa' ∈ D$, the rest follows by definition of the upper bound and
+      monotonicity of $ω*$.
 
+      We want to invoke the induction hypothesis for $D$ in this situation.
+      In order to do that, we have to show \Cref{eqn:semusg-rho} for $\py$:
+      \begin{DispWithArrows*}
+            & \tr_Δ(\py)(\px) + \ctx_D(\tm(ρ_1[\py↦\pa'](\py))(\tm))(\pa) \Arrow{definition of $\tr_Δ$, $\px\not=\py$} \\
+        ={} & 0 + \ctx_D(\tm(\pa')(\tm))(\pa) \Arrow{$\pa'∈D$} \\
+        ={} & 0 + 0 \Arrow{simplify} \\
+        ={} & 0  \Arrow{simplify} \\
+        ={} & \tr[\py↦\bot]
+      \end{DispWithArrows*}
+      The induction hypothesis shows the goal.
+
+    \item \textbf{Case $\pe = \Let{\py}{\pe_1'}{\pe_2'}$}:
+      Unfolding $\ctx_D$ and $\semusg{\Lam{\py}{\pe'}}_{\tr}$ once, we have
+      \[\begin{array}{l}
+        u_l = \ctx_{D}(\usg_\EventD(\semevt{\pe_2'}_{ρ_1[\py↦\pa']})(\tm[\pa'↦\usg_\EventD(\semevt{\pe_1'}_{ρ_1[\py↦\pa']}))(\pa) \} \\
+        u_r = \semusg{\pe_2'}_{\tr'}(\px) \\
+      \end{array}\]
+      where $\tr' \triangleq \fix(\fn{\tr'}{\tr ⊔ [\px ↦ [\px↦1]+\semusg{\pe_1'}_{\tr'}]})$.
+
+      When $\semusg{\pe_1'}_{\tr'}(\px) = 0$, we need to add $\pa'$ to $D$.
+      Before we can apply the induction hypothesis, we must verify that
+      \Cref{eqn:semusg-rho} holds for $\py$:
+      \begin{DispWithArrows*}
+            & \tr_Δ(\py)(\px) + \ctx_D(\tm[\pa'↦...](ρ_1[\py↦\pa'](\py))(\tm))(\pa) \Arrow{definition of $\tr_Δ$, $\px\not=\py$} \\
+        ={} & 0 + \ctx_D(\tm(\pa')(\tm))(\pa) \Arrow{$\pa'∈D$} \\
+        ={} & 0 + 0 \Arrow{simplify} \\
+        ={} & 0  \Arrow{simplify} \\
+        ={} & \tr[\py↦\bot]
+      \end{DispWithArrows*}
+
+      We proceed by cases over $\tr(\px) ⊑ \semusg{\pe_1'}_{\tr'}$.
+      \begin{itemize}
+        \item \textbf{Case $ω*\tr_2(\px) ⊑ \semusg{\pe_1'}_{\tr_2}$}:
+        \item \textbf{Case $\tr_2(\px) \not⊑ \semusg{\pe_1'}_{\tr_2}$}:
+        \item \textbf{Case $\tr_2(\px) ⊑ \semusg{\pe_1'}_{\tr_2}$}:
+      \end{itemize}
   \end{itemize}
 \end{proof}
 
