@@ -1,7 +1,7 @@
 {-# OPTIONS --cubical --guarded #-}
-module Vanilla where
+module Semantics.Vanilla where
 
-open import Later
+open import Utils.Later
 open import Syntax
 open import Data.Nat
 open import Data.String

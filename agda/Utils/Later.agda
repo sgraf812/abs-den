@@ -1,5 +1,5 @@
 {-# OPTIONS --cubical --guarded #-}
-module Later where
+module Utils.Later where
 
 open import Agda.Primitive
 open import Agda.Primitive.Cubical

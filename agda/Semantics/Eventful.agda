@@ -1,7 +1,7 @@
 {-# OPTIONS --cubical --guarded #-}
-module Eventful where
+module Semantics.Eventful where
 
-open import Later
+open import Utils.Later
 open import Syntax
 open import Data.Nat
 open import Data.String
