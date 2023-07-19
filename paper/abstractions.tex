@@ -1267,7 +1267,24 @@ and a sharing analysis:
       \sg{Do we really? It's not necessary I think, in contrast to the lambda case.} \\
       Before we can apply the induction hypothesis, we must verify that
       \Cref{eqn:semusg-rho} holds for the new entry $\py$ (the others hold by an
-      address domain argument):
+      address domain argument).
+      Since we need to apply the induction hypothesis at $\pe_1$ for that, we need
+      to show that $\ctx_D(\td_1)$ is a lower bound to the least fixed-point
+      $\tr'(\py)(\px) = (\Glb \{ d \mid \semusg{\pe_1}_{\tr[\py ↦ d]} ⊑ d \})(\px)$.\\
+      For that it suffices to show $\ctx_D(\td_1) ⊑ d$ whenever $\semusg{\pe_1}_{\tr[\py ↦ d]} ⊑ d$.
+      We note that in this case, the condition on $\py$ holds so we can apply
+      the induction hypothesis to get $\ctx_D(\td_1) ⊑ $show the .
+      \begin{DispWithArrows*}
+            & \tr_Δ(\py)(\px) + \ctx_D(\tm[\pa'↦d_1](ρ_1[\py↦\pa'](\py))(\tm[\pa'↦d_1]))(\pa) \Arrow{definition of $\tr_Δ$, $\px\not=\py$} \\
+        ={} & 0 + \ctx_D(d_1(\tm[\pa'↦d_1]))(\pa) \Arrow{} \\
+        % Want to apply induction hypothesis, but can't without this proof.
+        % Perhaps we can by fixpoint induction!
+        % E.g., for initial \tr'(\py) = \bot, it is clear.
+        % Now imagine we have proven for \tr'_1 and want to show for iteration \tr'_2.
+        % Case 0 is clear. Case 1: try with \tr' =
+        ={} & \tr'(\py)
+      \end{DispWithArrows*}
+
       \begin{DispWithArrows*}
             & \tr_Δ(\py)(\px) + \ctx_D(\tm[\pa'↦d_1](ρ_1[\py↦\pa'](\py))(\tm[\pa'↦d_1]))(\pa) \Arrow{definition of $\tr_Δ$, $\px\not=\py$} \\
         ={} & 0 + \ctx_D(d_1(\tm[\pa'↦d_1]))(\pa) \Arrow{} \\
