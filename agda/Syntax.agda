@@ -1,26 +1,50 @@
 {-# OPTIONS --cubical #-}
 module Syntax where
 
-open import Data.Nat
-open import Data.String
+open import Cubical.Core.Everything hiding (_[_↦_])
+open import Cubical.Foundations.Prelude hiding (_[_↦_])
+open import Cubical.Data.Nat
+open import Cubical.Relation.Nullary.Base
 open import Data.List
 open import Data.Maybe
 open import Data.Product
 open import Data.Bool
 
-Var = String
+Var = ℕ
 Addr = ℕ
 Con = ℕ
-data Exp : Set where
-  ref : Var -> Exp
-  lam : Var -> Exp -> Exp
-  app : Exp -> Var -> Exp
-  let' : Var -> Exp -> Exp -> Exp
-  conapp : Con -> List Var -> Exp
-  case' : Exp -> List (Con × List Var × Exp) -> Exp
 
-findAlt : Con -> List (Con × List Var × Exp) -> Maybe (List Var × Exp)
-findAlt _ [] = nothing
-findAlt K ((K' , vs , rhs) ∷ xs) = if K ≡ᵇ K' then just (vs , rhs) else findAlt K xs
+decEq-ℕ : (x y : ℕ) → Dec (x ≡ y)
+decEq-ℕ zero zero = yes refl
+decEq-ℕ zero (suc y) = no znots
+decEq-ℕ (suc y) zero = no snotz
+decEq-ℕ (suc x) (suc y) with decEq-ℕ x y 
+... | yes p = yes (cong suc p)
+... | no np = no (λ p → np (injSuc p))
 
+instance 
+  decEq-ℕ-imp : {x y : ℕ} → Dec (x ≡ y)
+  decEq-ℕ-imp {x} {y} = decEq-ℕ x y
   
+Alt : Set
+
+data Exp : Set where
+  ref : Var → Exp
+  lam : Var → Exp → Exp
+  app : Exp → Var → Exp
+  let' : Var → Exp → Exp → Exp
+  conapp : Con → List Var → Exp
+  case' : Exp → List Alt → Exp
+
+Alt = Con × List Var × Exp
+
+data Val : Exp → Set where
+  V-lam : ∀{x e} → Val (lam x e)
+  V-conapp : ∀{K addrs} → Val (conapp K addrs)
+
+findAlt : Con → List (Con × List Var × Exp) → Maybe (List Var × Exp)
+findAlt _ [] = nothing
+findAlt K ((K' , vs , rhs) ∷ xs) with decEq-ℕ K K' 
+... | yes _ = just (vs , rhs) 
+... | no  _ = findAlt K xs
+

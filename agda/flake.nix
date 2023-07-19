@@ -10,7 +10,7 @@
       in {
         devShell = pkgs.mkShell {
           buildInputs = [
-            (pkgs.agda.withPackages (p: [ p.standard-library ]))
+            (pkgs.agda.withPackages (p: [ p.standard-library p.cubical ]))
           ];
         };
       });
