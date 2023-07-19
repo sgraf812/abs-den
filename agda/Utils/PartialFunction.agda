@@ -3,6 +3,7 @@ module Utils.PartialFunction where
 
 open import Cubical.Relation.Nullary.Base
 open import Cubical.Foundations.Prelude hiding (_[_↦_])
+open import Cubical.Data.Empty.Base
 open import Data.Maybe
 open import Data.List 
 open import Data.Product
@@ -20,18 +21,21 @@ _[_↦_] {{dec}} ρ x b y with dec {x} {y}
 ... | yes _ = just b
 ... | no  _ = ρ y
 
-idem-↦ : ∀{A B : Set} {f : A ⇀ B} {a : A} {b : B} {{dec : {x y : A} → Dec (x ≡ y)}} → f a ≡ just b → f [ a ↦ b ] ≡ f
-idem-↦ {A} {_} {f} {a} {b} {{dec}} fa≡justb = funExt aux
+apply-↦ : ∀{A B : Set} {{dec : {x y : A} → Dec (x ≡ y)}} {b : B} (f : A ⇀ B) (a : A) →(f [ a ↦ b ]) a ≡ just b
+apply-↦ {A} {_} {{dec}} {b} f a with dec {a} {a}
+... | yes _ = refl
+... | no np = rec (np refl)
+
+idem-↦ : ∀{A B : Set} {{dec : {x y : A} → Dec (x ≡ y)}} {b : B} (f : A ⇀ B) (a : A) → f a ≡ just b → f [ a ↦ b ] ≡ f
+idem-↦ {A} {_} {{dec}} {b} f a fa≡justb = funExt aux
   where
     aux : (x : A) → (f [ a ↦ b ]) x ≡ f x
     aux x with dec {a} {x}
     ... | no  np  = refl
     ... | yes a≡x = just b ≡⟨ sym fa≡justb ⟩ f a ≡⟨ cong f a≡x ⟩ f x ∎
 
--- idem-↦ : ∀{A B : Set} {f : A ⇀ B} {a : A} {b : B} {{dec : {x y : A} → Dec (x ≡ y)}} → f a ≡ just b → f [ a ↦ b ] ≡ f
--- idem-↦ {_} {_} {f} {a} {b} {{dec}} fa≡justb i x with dec {a} {x}
--- ... | yes a≡x  = (just b ≡⟨ sym fa≡justb ⟩ f a ≡⟨ cong f a≡x ⟩ f x ∎) i
--- ... | no  np = f x
+idem-↦₂ : ∀{A B : Set} {{dec : {x y : A} → Dec (x ≡ y)}} {b : B} (f : A ⇀ B) (a : A) → (f [ a ↦ b ]) [ a ↦ b ] ≡ f [ a ↦ b ]
+idem-↦₂ {A} {_} {{dec}} {b} f a = idem-↦ (f [ a ↦ b ]) a (apply-↦ f a)
 
 _[_↦*_] : ∀{A B : Set} {{dec : {x y : A} → Dec (x ≡ y)}} → (A ⇀ B) → List A → List B → (A ⇀ B)
 _[_↦*_] {A} {B} {{dec}} ρ xs as = aux (Data.List.zip xs as)
@@ -52,4 +56,4 @@ pmap {_} {B} f (a ∷ as) with f a
     aux b nothing = nothing
     aux b (just bs) = just (b ∷ bs)
 
- 
+  

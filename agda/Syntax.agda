@@ -26,10 +26,10 @@ vg = 5
 module Addr where
   postulate alloc : ∀ {A : Set} → (μ : Addr ⇀ A) → Σ[ a ∈ Addr ] (μ a ≡ nothing)
 
-a0 a1 a2 : Addr
-a0 = 0
-a1 = 1
-a2 = 2
+-- a0 a1 a2 : Addr
+-- a0 = 0
+-- a1 = 1
+-- a2 = 2
 
 decEq-ℕ : (x y : ℕ) → Dec (x ≡ y)
 decEq-ℕ zero zero = yes refl

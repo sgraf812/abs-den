@@ -63,6 +63,7 @@ data _↪_ : State → State → Set where
 infix  2 _↪*_
 infix  1 begin_
 infixr 2 _↪⟨_⟩_
+infixr 2 _↪0≡⟨_⟩_
 infix  3 _∎
 
 data _↪*_ : State → State → Set where
@@ -83,35 +84,48 @@ begin_ : ∀ {M N}
 begin M↪*N = M↪*N
 
 
--- _↪≡⟨_⟩_ : ∀ L {M N}
-    -- → L ≡ M
-    -- → M ↪* N
-      -- ---------
-    -- → L ↪* N
--- L ↪≡⟨ p ⟩ M↪*N = cong (λ x → x ↪* N) p M↪*N    
+_↪0≡⟨_⟩_ : ∀ L {M N}
+    → L ≡ M
+    → M ↪* N
+      ---------
+    → L ↪* N
+_↪0≡⟨_⟩_ L {_} {N} L≡M M↪*N = transport (cong (λ x → x ↪* N) (sym L≡M)) M↪*N    
 
-example : (let' vi (lam vx (ref vx)) (app (ref vi) vi), empty-pfun , empty-pfun , []) 
-      ↪* (lam vx (ref vx) , empty-pfun [ vi ↦ a0 ] , empty-pfun [ a0 ↦ (empty-pfun [ vi ↦ a0 ] , lam vx (ref vx)) ] , [])
-example = 
-  let a = fst (Addr.alloc empty-pfun) in
-  let p = snd (Addr.alloc empty-pfun) in
-  let ρ = empty-pfun [ vi ↦ a ] in
-  let ρ₂ = ρ [ vx ↦ a ] in
-  let μ = empty-pfun [ a ↦ (ρ , lam vx (ref vx)) ] in
-  begin 
-    (let' vi (lam vx (ref vx)) (app (ref vi) vi) , empty-pfun , empty-pfun , [])
-  ↪⟨ bind refl ⟩
-    (app (ref vi) vi , ρ , μ , [])
-  ↪⟨ app1 refl ⟩
-    (ref vi , ρ , μ , apply a ∷ [])
-  ↪⟨ look refl ? ⟩
-    (lam vx (ref vx) , ρ , μ , update a ∷ apply a ∷ [])
-  ↪⟨ upd V-lam ⟩
-    (lam vx (ref vx) , ρ , μ [ a ↦ (ρ , lam vx (ref vx)) ] , apply a ∷ [])
-  ↪⟨ app2 ⟩
-    (ref vx , ρ₂ , μ [ a ↦ (ρ , lam vx (ref vx)) ] , [])
-  ↪⟨ look refl ? ⟩
-    (lam vx (ref vx) , ρ , μ [ a ↦ (ρ , lam vx (ref vx)) ], update a ∷ [])
-  ↪⟨ upd V-lam ⟩
-    (lam vx (ref vx) , ρ , μ [ a ↦ (ρ , lam vx (ref vx)) ] , [])
-  ∎
+module Ex where
+  a : Addr
+  a = fst (Addr.alloc (empty-pfun {_} {Env × Exp}))
+  ρ ρ₂ : Env
+  ρ = empty-pfun [ vi ↦ a ]
+  ρ₂ = ρ [ vx ↦ a ]
+  μ : Heap
+  μ = empty-pfun [ a ↦ (ρ , lam vx (ref vx)) ]
+
+  noop : μ [ a ↦ (ρ , lam vx (ref vx)) ] ≡ μ  
+  noop = idem-↦₂ empty-pfun a
+
+  example :  
+    (let' vi (lam vx (ref vx)) (app (ref vi) vi), empty-pfun , empty-pfun , []) 
+    ↪* 
+    (lam vx (ref vx) , empty-pfun [ vi ↦ a ] , empty-pfun [ a ↦ (empty-pfun [ vi ↦ a ] , lam vx (ref vx)) ] , [])
+  example = 
+    begin 
+      (let' vi (lam vx (ref vx)) (app (ref vi) vi) , empty-pfun , empty-pfun , [])
+    ↪⟨ bind refl ⟩
+      (app (ref vi) vi , ρ , μ , [])
+    ↪⟨ app1 refl ⟩
+      (ref vi , ρ , μ , apply a ∷ [])
+    ↪⟨ look refl (apply-↦ empty-pfun a) ⟩
+      (lam vx (ref vx) , ρ , μ , update a ∷ apply a ∷ [])
+    ↪⟨ upd V-lam ⟩
+      (lam vx (ref vx) , ρ , μ [ a ↦ (ρ , lam vx (ref vx)) ] , apply a ∷ [])
+    ↪0≡⟨ cong (λ x → (lam vx (ref vx) , ρ , x , apply a ∷ [])) noop ⟩
+      (lam vx (ref vx) , ρ , μ , apply a ∷ [])
+    ↪⟨ app2 ⟩
+      (ref vx , ρ₂ , μ , [])
+    ↪⟨ look refl (apply-↦ empty-pfun a) ⟩
+      (lam vx (ref vx) , ρ , μ , update a ∷ [])
+    ↪⟨ upd V-lam ⟩
+      (lam vx (ref vx) , ρ , μ [ a ↦ (ρ , lam vx (ref vx)) ] , [])
+    ↪0≡⟨ {!   !} ⟩
+      (lam vx (ref vx) , ρ , μ , [])
+    ∎
