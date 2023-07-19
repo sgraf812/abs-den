@@ -14,6 +14,19 @@ Var = ℕ
 Addr = ℕ
 Con = ℕ
 
+vx vy vz vi vf vg : Var
+vx = 0
+vy = 1
+vz = 2
+vi = 3
+vf = 4
+vg = 5
+
+a0 a1 a2 : Addr
+a0 = 0
+a1 = 1
+a2 = 2
+
 decEq-ℕ : (x y : ℕ) → Dec (x ≡ y)
 decEq-ℕ zero zero = yes refl
 decEq-ℕ zero (suc y) = no znots
