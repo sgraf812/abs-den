@@ -5,14 +5,14 @@ open import Utils.Later
 open import Utils.PartialFunction
 open import Syntax
 open import Data.List
+open import Data.List.Literals
 open import Data.List.Membership.Propositional
 open import Data.Maybe
-open import Data.Sum
-open import Data.Product
 open import Data.Bool
 open import Cubical.Core.Everything hiding (_[_↦_])
 open import Cubical.Foundations.Prelude hiding (_[_↦_]; _∎)
 open import Cubical.Data.Nat
+open import Cubical.Data.Prod
 open import Cubical.Relation.Nullary.Base
 
 Env = Var ⇀ Addr
@@ -30,8 +30,8 @@ State = Exp × Env × Heap × Cont
 infix 4 _↪_
 
 data _↪_ : State → State → Set where
-  bind : ∀{x e₁ e₂ ρ μ κ a} 
-    → (μ a ≡ nothing)
+  bind : ∀{x e₁ e₂ ρ μ κ a p} 
+    → ((a , p) ≡ Addr.alloc μ)
     -------------------
     → (let' x e₁ e₂ , ρ , μ , κ) ↪ (e₂ , ρ [ x ↦ a ] , μ [ a ↦ (ρ [ x ↦ a ] , e₁) ] , κ)
   
@@ -82,19 +82,36 @@ begin_ : ∀ {M N}
   → M ↪* N
 begin M↪*N = M↪*N
 
-example : (let' vi (lam vx (ref vx)) (ref vi), empty-pfun , empty-pfun , []) 
+
+-- _↪≡⟨_⟩_ : ∀ L {M N}
+    -- → L ≡ M
+    -- → M ↪* N
+      -- ---------
+    -- → L ↪* N
+-- L ↪≡⟨ p ⟩ M↪*N = cong (λ x → x ↪* N) p M↪*N    
+
+example : (let' vi (lam vx (ref vx)) (app (ref vi) vi), empty-pfun , empty-pfun , []) 
       ↪* (lam vx (ref vx) , empty-pfun [ vi ↦ a0 ] , empty-pfun [ a0 ↦ (empty-pfun [ vi ↦ a0 ] , lam vx (ref vx)) ] , [])
 example = 
-  let ρ = empty-pfun [ vi ↦ a0 ] in
-  let μ = empty-pfun [ a0 ↦ (ρ , lam vx (ref vx)) ] in
+  let a = fst (Addr.alloc empty-pfun) in
+  let p = snd (Addr.alloc empty-pfun) in
+  let ρ = empty-pfun [ vi ↦ a ] in
+  let ρ₂ = ρ [ vx ↦ a ] in
+  let μ = empty-pfun [ a ↦ (ρ , lam vx (ref vx)) ] in
   begin 
-    (let' vi (lam vx (ref vx)) (ref vi), empty-pfun , empty-pfun , [])
+    (let' vi (lam vx (ref vx)) (app (ref vi) vi) , empty-pfun , empty-pfun , [])
   ↪⟨ bind refl ⟩
-    (ref vi , ρ , μ , [])
-  ↪⟨ look refl refl ⟩
-    (lam vx (ref vx) , ρ , μ , [ update a0 ])
+    (app (ref vi) vi , ρ , μ , [])
+  ↪⟨ app1 refl ⟩
+    (ref vi , ρ , μ , apply a ∷ [])
+  ↪⟨ look refl ? ⟩
+    (lam vx (ref vx) , ρ , μ , update a ∷ apply a ∷ [])
   ↪⟨ upd V-lam ⟩
-    (lam vx (ref vx) , ρ , μ , [])
-  ↪⟨ {!   !} ⟩
-    (lam vx (ref vx) , ρ , μ , [])
+    (lam vx (ref vx) , ρ , μ [ a ↦ (ρ , lam vx (ref vx)) ] , apply a ∷ [])
+  ↪⟨ app2 ⟩
+    (ref vx , ρ₂ , μ [ a ↦ (ρ , lam vx (ref vx)) ] , [])
+  ↪⟨ look refl ? ⟩
+    (lam vx (ref vx) , ρ , μ [ a ↦ (ρ , lam vx (ref vx)) ], update a ∷ [])
+  ↪⟨ upd V-lam ⟩
+    (lam vx (ref vx) , ρ , μ [ a ↦ (ρ , lam vx (ref vx)) ] , [])
   ∎

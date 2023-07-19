@@ -1,4 +1,4 @@
-{-# OPTIONS --cubical --guarded #-}
+{-# OPTIONS --cubical #-}
 module Utils.PartialFunction where
 
 open import Cubical.Relation.Nullary.Base
@@ -6,6 +6,7 @@ open import Cubical.Foundations.Prelude hiding (_[_↦_])
 open import Data.Maybe
 open import Data.List 
 open import Data.Product
+open import Function.Base
 
 _⇀_ : ∀ {ℓ} → Set ℓ → Set ℓ → Set ℓ
 A ⇀ B = A → Maybe B
@@ -20,9 +21,17 @@ _[_↦_] {{dec}} ρ x b y with dec {x} {y}
 ... | no  _ = ρ y
 
 idem-↦ : ∀{A B : Set} {f : A ⇀ B} {a : A} {b : B} {{dec : {x y : A} → Dec (x ≡ y)}} → f a ≡ just b → f [ a ↦ b ] ≡ f
-idem-↦ {_} {_} {f} {a} {b} {{dec}} p i x with dec {a} {x}
-... | yes p1 = ?
-... | no  np = f x
+idem-↦ {A} {_} {f} {a} {b} {{dec}} fa≡justb = funExt aux
+  where
+    aux : (x : A) → (f [ a ↦ b ]) x ≡ f x
+    aux x with dec {a} {x}
+    ... | no  np  = refl
+    ... | yes a≡x = just b ≡⟨ sym fa≡justb ⟩ f a ≡⟨ cong f a≡x ⟩ f x ∎
+
+-- idem-↦ : ∀{A B : Set} {f : A ⇀ B} {a : A} {b : B} {{dec : {x y : A} → Dec (x ≡ y)}} → f a ≡ just b → f [ a ↦ b ] ≡ f
+-- idem-↦ {_} {_} {f} {a} {b} {{dec}} fa≡justb i x with dec {a} {x}
+-- ... | yes a≡x  = (just b ≡⟨ sym fa≡justb ⟩ f a ≡⟨ cong f a≡x ⟩ f x ∎) i
+-- ... | no  np = f x
 
 _[_↦*_] : ∀{A B : Set} {{dec : {x y : A} → Dec (x ≡ y)}} → (A ⇀ B) → List A → List B → (A ⇀ B)
 _[_↦*_] {A} {B} {{dec}} ρ xs as = aux (Data.List.zip xs as)
@@ -43,3 +52,4 @@ pmap {_} {B} f (a ∷ as) with f a
     aux b nothing = nothing
     aux b (just bs) = just (b ∷ bs)
 
+ 
