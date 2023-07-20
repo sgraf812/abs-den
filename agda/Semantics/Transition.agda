@@ -118,7 +118,7 @@ module Ex where
       (lam vx (ref vx) , ρ , μ , update a ∷ apply a ∷ [])
     ↪⟨ upd V-lam ⟩
       (lam vx (ref vx) , ρ , μ [ a ↦ (ρ , lam vx (ref vx)) ] , apply a ∷ [])
-    ↪0≡⟨ cong (λ x → (lam vx (ref vx) , ρ , x , apply a ∷ [])) noop ⟩
+    ↪0≡⟨ cong {B = λ _ → State} (λ x → (lam vx (ref vx) , ρ , x , apply a ∷ [])) noop ⟩
       (lam vx (ref vx) , ρ , μ , apply a ∷ [])
     ↪⟨ app2 ⟩
       (ref vx , ρ₂ , μ , [])
@@ -126,6 +126,6 @@ module Ex where
       (lam vx (ref vx) , ρ , μ , update a ∷ [])
     ↪⟨ upd V-lam ⟩
       (lam vx (ref vx) , ρ , μ [ a ↦ (ρ , lam vx (ref vx)) ] , [])
-    ↪0≡⟨ {!   !} ⟩
+    ↪0≡⟨ cong {B = λ _ → State} (λ x → (lam vx (ref vx) , ρ , x , [])) noop ⟩
       (lam vx (ref vx) , ρ , μ , [])
     ∎
