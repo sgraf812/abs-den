@@ -1,11 +1,11 @@
-{-# OPTIONS --cubical --guarded #-}
+{-# OPTIONS --cubical --rewriting --guarded #-}
 module Semantics.Transition where
 
 open import Utils.Later
 open import Utils.PartialFunction
 open import Syntax
 open import Data.List
-open import Data.List.Literals
+open import Data.List.Relation.Binary.Suffix.Heterogeneous
 open import Data.List.Membership.Propositional
 open import Data.Maybe
 open import Data.Bool
@@ -25,7 +25,14 @@ data Frame : Set where
 
 Cont = List Frame
 
-State = Exp × Env × Heap × Cont
+record State : Set where
+  inductive
+  constructor <_,_,_,_>
+  field
+    ctrl : Exp
+    env  : Env
+    heap : Heap
+    cont : Cont
 
 infix 4 _↪_
 
@@ -33,32 +40,32 @@ data _↪_ : State → State → Set where
   bind : ∀{x e₁ e₂ ρ μ κ a p} 
     → ((a , p) ≡ Addr.alloc μ)
     -------------------
-    → (let' x e₁ e₂ , ρ , μ , κ) ↪ (e₂ , ρ [ x ↦ a ] , μ [ a ↦ (ρ [ x ↦ a ] , e₁) ] , κ)
+    → < let' x e₁ e₂ , ρ , μ , κ > ↪ < e₂ , ρ [ x ↦ a ] , μ [ a ↦ (ρ [ x ↦ a ] , e₁) ] , κ >
   
   app1 : ∀{x e ρ μ κ a}     
     → (ρ x ≡ just a)
-    → (app e x , ρ , μ , κ) ↪ (e , ρ , μ , apply a ∷ κ)
+    → < app e x , ρ , μ , κ > ↪ < e , ρ , μ , apply a ∷ κ >
   
   case1 : ∀{e alts ρ μ κ}     
-    → (case' e alts , ρ , μ , κ) ↪ (e , ρ , μ , select ρ alts ∷ κ)
+    → < case' e alts , ρ , μ , κ > ↪ < e , ρ , μ , select ρ alts ∷ κ >
 
   look : ∀{x a e ρ ρ' μ κ}     
     → (ρ x ≡ just a)
     → (μ a ≡ just (ρ' , e))
-    → (ref x , ρ , μ , κ) ↪ (e , ρ' , μ , update a ∷ κ)
+    → < ref x , ρ , μ , κ > ↪ < e , ρ' , μ , update a ∷ κ >
   
   app2 : ∀{x e ρ μ κ a}     
-    → (lam x e , ρ , μ , apply a ∷ κ) ↪ (e , ρ [ x ↦ a ] , μ , κ)
+    → < lam x e , ρ , μ , apply a ∷ κ > ↪ < e , ρ [ x ↦ a ] , μ , κ >
 
   case2 : ∀{K xs addrs alts ys rhs ρ ρ' μ κ}     
     → (pmap ρ xs ≡ just addrs)
     → (findAlt K alts ≡ just (ys , rhs))
     → length xs ≡ length ys
-    → (conapp K xs , ρ , μ , select ρ' alts ∷ κ) ↪ (rhs , ρ' [ ys ↦* addrs ] , μ , κ)
+    → < conapp K xs , ρ , μ , select ρ' alts ∷ κ > ↪ < rhs , ρ' [ ys ↦* addrs ] , μ , κ >
     
   upd : ∀{v ρ μ κ a}     
     → Val v
-    → (v , ρ , μ , update a ∷ κ) ↪ (v , ρ , μ [ a ↦ (ρ , v) ] , κ)
+    → < v , ρ , μ , update a ∷ κ > ↪ < v , ρ , μ [ a ↦ (ρ , v) ] , κ >
 
 infix  2 _↪*_
 infix  1 begin_
@@ -71,9 +78,9 @@ data _↪*_ : State → State → Set where
       ---------
     → M ↪* M
 
-  _↪⟨_⟩_ : ∀ L {M N}
+  _↪▹⟨_⟩_ : ∀ L {M N}
     → L ↪ M
-    → M ↪* N
+    → ▹ (M ↪* N)
       ---------
     → L ↪* N
     
@@ -83,6 +90,12 @@ begin_ : ∀ {M N}
   → M ↪* N
 begin M↪*N = M↪*N
 
+_↪⟨_⟩_ : ∀ L {M N}
+  → L ↪ M
+  → (M ↪* N)
+    ---------
+  → L ↪* N
+L ↪⟨ L↪M ⟩ M↪*N = L ↪▹⟨ L↪M ⟩ (next M↪*N)
 
 _↪0≡⟨_⟩_ : ∀ L {M N}
     → L ≡ M
@@ -90,6 +103,13 @@ _↪0≡⟨_⟩_ : ∀ L {M N}
       ---------
     → L ↪* N
 _↪0≡⟨_⟩_ L {_} {N} L≡M M↪*N = transport (cong (λ x → x ↪* N) (sym L≡M)) M↪*N    
+
+_extends_ : Cont → Cont → Set
+κ₁ extends κ₂ = Suffix _≡_ κ₂ κ₁
+
+data _deep-↪*_ : ∀ {σ₁ σ₂} → Cont → (σ₁ ↪* σ₂) → Set where
+  deep-end : ∀ {κ σ} → ∀{ext : (State.cont σ) extends κ} → κ deep-↪* (σ ∎)
+  deep-step : ∀ {κ σ₁ σ₂ σ₃} → ∀ {σ₁↪σ₂ : σ₁ ↪ σ₂} → ∀ {▹σ₂↪*σ₃ : ▹ (σ₂ ↪* σ₃)} → ∀{ext : (State.cont σ₁) extends κ} → ((x : Tick) -> κ deep-↪* (▹σ₂↪*σ₃ x)) → κ deep-↪* (σ₁ ↪▹⟨ σ₁↪σ₂ ⟩ ▹σ₂↪*σ₃ )
 
 module Ex where
   a : Addr
@@ -104,28 +124,28 @@ module Ex where
   noop = idem-↦₂ empty-pfun a
 
   example :  
-    (let' vi (lam vx (ref vx)) (app (ref vi) vi), empty-pfun , empty-pfun , []) 
+    < let' vi (lam vx (ref vx)) (app (ref vi) vi), empty-pfun , empty-pfun , [] >
     ↪* 
-    (lam vx (ref vx) , empty-pfun [ vi ↦ a ] , empty-pfun [ a ↦ (empty-pfun [ vi ↦ a ] , lam vx (ref vx)) ] , [])
+    < lam vx (ref vx) , ρ , μ , [] >
   example = 
     begin 
-      (let' vi (lam vx (ref vx)) (app (ref vi) vi) , empty-pfun , empty-pfun , [])
+      < let' vi (lam vx (ref vx)) (app (ref vi) vi) , empty-pfun , empty-pfun , [] >
     ↪⟨ bind refl ⟩
-      (app (ref vi) vi , ρ , μ , [])
+      < app (ref vi) vi , ρ , μ , [] >
     ↪⟨ app1 refl ⟩
-      (ref vi , ρ , μ , apply a ∷ [])
+      < ref vi , ρ , μ , apply a ∷ [] >
     ↪⟨ look refl (apply-↦ empty-pfun a) ⟩
-      (lam vx (ref vx) , ρ , μ , update a ∷ apply a ∷ [])
+      < lam vx (ref vx) , ρ , μ , update a ∷ apply a ∷ [] >
     ↪⟨ upd V-lam ⟩
-      (lam vx (ref vx) , ρ , μ [ a ↦ (ρ , lam vx (ref vx)) ] , apply a ∷ [])
-    ↪0≡⟨ cong {B = λ _ → State} (λ x → (lam vx (ref vx) , ρ , x , apply a ∷ [])) noop ⟩
-      (lam vx (ref vx) , ρ , μ , apply a ∷ [])
+      < lam vx (ref vx) , ρ , μ [ a ↦ (ρ , lam vx (ref vx)) ] , apply a ∷ [] >
+    ↪0≡⟨ cong (λ x → < lam vx (ref vx) , ρ , x , apply a ∷ [] >) noop ⟩
+      < lam vx (ref vx) , ρ , μ , apply a ∷ [] >
     ↪⟨ app2 ⟩
-      (ref vx , ρ₂ , μ , [])
+      < ref vx , ρ₂ , μ , [] >
     ↪⟨ look refl (apply-↦ empty-pfun a) ⟩
-      (lam vx (ref vx) , ρ , μ , update a ∷ [])
+      < lam vx (ref vx) , ρ , μ , update a ∷ [] >
     ↪⟨ upd V-lam ⟩
-      (lam vx (ref vx) , ρ , μ [ a ↦ (ρ , lam vx (ref vx)) ] , [])
-    ↪0≡⟨ cong {B = λ _ → State} (λ x → (lam vx (ref vx) , ρ , x , [])) noop ⟩
-      (lam vx (ref vx) , ρ , μ , [])
+      < lam vx (ref vx) , ρ , μ [ a ↦ (ρ , lam vx (ref vx)) ] , [] >
+    ↪0≡⟨ cong (λ x → < lam vx (ref vx) , ρ , x , [] >) noop ⟩
+      < lam vx (ref vx) , ρ , μ , [] >
     ∎
