@@ -151,19 +151,21 @@ data Finω : ℕω → Set where
   zero : ∀ {n} → Finω (suc n) 
   suc  : ∀ {n} → (i : Finω (n unsafe⋄)) → Finω (suc n) -- This use of unsafe⋄ is safe, because the Finω still is ultimately finite
 
-data Seq  : Set where
-  blah : (n : ℕω) → (idx : Finω n → State) → (∀ {i j : Finω n} {j ≡ suc i} → idx i ↪ idx j) → Seq
+Seq : Set → Set
+Seq A = Σ[ n ∈ ℕω ] (Finω n → A)
+
+-- LKTrace = Σ (λ (seq : Seq State) → fst seq ≢ zero × (∀ {i : Finω (fst seq)} {j : Finω (fst seq)} {p : j ≡ suc i} → snd seq i ↪ snd seq j))
 
 _extends_ : Cont → Cont → Set
 κ₁ extends κ₂ = Suffix _≡_ κ₂ κ₁
 
 data _deep-↪*_ : ∀ {σ₁ σ₂} → Cont → (σ₁ ↪* σ₂) → Set where
   deep-end : ∀ {κ σ} → ∀{ext : (State.cont σ) extends κ} → κ deep-↪* (σ ∎)
-  deep-step : ∀ {κ σ₁ σ₂ σ₃} → ∀ {σ₁↪σ₂ : σ₁ ↪ σ₂} → ∀ {▹σ₂↪*σ₃ : ▹ (σ₂ ↪* σ₃)} → ∀{ext : (State.cont σ₁) extends κ} → ((x : Tick) -> κ deep-↪* (▹σ₂↪*σ₃ x)) → κ deep-↪* (σ₁ ↪▹⟨ σ₁↪σ₂ ⟩ ▹σ₂↪*σ₃ )
+  deep-step : ∀ {κ σ₁ σ₂ σ₃} → ∀ {σ₁↪σ₂ : σ₁ ↪ σ₂} → ∀ {▹σ₂↪*σ₃ : ▹ (σ₂ ↪* σ₃)} → ∀{ext : (State.cont σ₁) extends κ} → ((@tick x : Tick) -> κ deep-↪* (▹σ₂↪*σ₃ x)) → κ deep-↪* (σ₁ ↪▹⟨ σ₁↪σ₂ ⟩ ▹σ₂↪*σ₃ )
 
 interior : ∀ {σ₁ σ₂} → (σ₁ ↪* σ₂) → Set
 interior {σ₁} τ = State.cont σ₁ deep-↪* τ  
 
-balanced : ∀ {σ₁ σ₂} → (σ₁ ↪* σ₂) → Set
-balanced 
+-- balanced : ∀ {σ₁ σ₂} → (σ₁ ↪* σ₂) → Set
+-- balanced = ? 
 
