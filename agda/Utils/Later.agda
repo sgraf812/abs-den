@@ -29,6 +29,11 @@ postulate
 ▸_ : ∀ {l} → ▹ Set l → Set l
 ▸ A = (@tick x : Tick) → A x
 
+-- This is Barr's tick constant, to force a finite nesting of ▹s.
+-- Unfortunatley, the type checker doesn't know how to use it safely,
+-- hence we mark it as unsafe.
+postulate unsafe⋄ : Tick
+
 next : A → ▹ A
 next x _ = x
 
