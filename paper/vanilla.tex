@@ -480,7 +480,7 @@ Let us make precise what that means.
 A transition system is characterised by the set of \emph{traces} it generates.
 An \emph{LK trace} is a trace in $(\smallstep)$, \ie, a non-empty and
 potentially infinite sequence of LK states $(σ_i)_{i∈\overline{n}}$
-(where $\overline{n} = \{ m ∈ ℕ_+ \mid m ≤ n \}$ when $n∈ℕ$, $\overline{ω} = ℕ$),
+(where $\overline{n} = \{ m ∈ ℕ \mid m < n \}$ when $n∈ℕ$, $\overline{ω} = ℕ$),
 such that $σ_i \smallstep σ_{i+1}$ for $i,(i+1)∈\overline{n}$.
 
 The \emph{source} state $σ_0$ exists for finite and infinite traces, while the
@@ -495,7 +495,7 @@ $(\mathit{succ})^{n}(\mathit{Z})$) and the transfinite limit ordinal
 $ω = \mathit{succ}(\mathit{succ}(...))$.
 We will write $1+m$ to denote $\mathit{succ}(m)$ (a different kind of $+$ than
 in the recursive equation for $ℕ_ω$), just as we are used to from $ℕ$.
-Hence, when $(σ_i)_{i∈\overline{n}} ∈ \STraces$ is an LK trace and $n > 0$, then
+Hence, when $(σ_i)_{i∈\overline{n}} ∈ \STraces$ is an LK trace and $n > 1$, then
 $(σ_{i+1})_{i∈\overline{n-1}} ∈ \later \STraces$ is the guarded tail of the
 trace with an associated induction principle.
 
