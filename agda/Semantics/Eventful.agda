@@ -30,7 +30,7 @@ record LDom (n : ℕ) : Set where
     thed : ▹ (Dom n)
 
 Heap : ℕ → Set
-Heap n = ∀ {m} → {n ℕ.≤ m} → Addr m → LDom m
+Heap n = Addr n → LDom n
 
 data Val (n : ℕ) : Set
 
@@ -49,7 +49,7 @@ data Trc (n : ℕ) : Set where
   _::_ : ∀ {m} → ▹ (Act n m) → ▹ Trc m → Trc n
 infixr 20 _::_ 
 
-Dom n = Heap n → Trc n
+Dom n = ∀ {m} → {n ℕ.≤ m} → Heap m → Trc m
 
 data Val n where
   fun : (∀ {m} → {n ℕ.≤ m} → Addr m → Dom m) → Val n
@@ -68,14 +68,11 @@ data Val n where
 ι-Val n≤m (fun f) = fun (λ {k} {m≤k} a → f {k} {ℕ.≤-trans n≤m m≤k} a)
 ι-Val n≤m (con K xas) = con K (L.map (ι-≤ n≤m) xas)
 
-ι-Heap : ∀ {n m} → n ℕ.≤ m → Heap m → Heap n
-ι-Heap n≤m μ {k} {n≤k} = μ {k} {_}
-
 ι-Dom : ∀ {n m} → n ℕ.≤ m → Dom n → Dom m
-ι-Dom n≤m d μ = d (ι-Heap n≤m μ)
+ι-Dom {_} {m} n≤m d {k} {m≤k} μ = d {k} {ℕ.≤-trans n≤m m≤k} μ
 
 ι-LDom : ∀ {n m} → n ℕ.≤ m → LDom n → LDom m
-ι-LDom x = {!   !}
+ι-LDom n≤m ld = ldom (λ α {k} {m≤k} → ι-Dom n≤m (LDom.thed ld α) {k} {m≤k})
 
 ι-Env : ∀ {n m} → n ℕ.≤ m → (Var ⇀ Addr n) → (Var ⇀ Addr m)
 ι-Env x = {!   !}
@@ -88,7 +85,7 @@ data Val n where
 
 update : ∀ {n} → Heap n → Addr n → Dom n → Heap n
 update μ a d a' with decAddr a a' 
-... | yes _ = ldom (next d) 
+... | yes _ = ldom (next (λ {m} → d {m})) 
 ... | no _  = μ a'
 
 extend : ∀ {n} → Heap n → Dom (suc n) → Heap (suc n)
@@ -164,4 +161,4 @@ sem {n} = fix sem' n
           f {k} {p} K as with findAlt K alts
           ... | nothing         =  nothing
           ... | just (xs , rhs) = 
-            just (next (case2 K (L.zip xs as)) ::> (λ α → recurse▹ α k rhs (ι-Env p ρ [ xs ↦* as ])))
+            just (next (case2 K (L.zip xs as)) ::> (λ α → recurse▹ α k rhs (ι-Env p ρ [ xs ↦* as ]))) 
