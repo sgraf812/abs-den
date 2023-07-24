@@ -1,18 +1,15 @@
 {-# OPTIONS --cubical #-}
-module Syntax where
-
 open import Cubical.Core.Everything hiding (_[_↦_])
 open import Cubical.Foundations.Prelude hiding (_[_↦_])
 open import Cubical.Data.Nat
-open import Cubical.Data.Prod
 open import Cubical.Relation.Nullary.Base
 open import Data.List
+open import Data.Product
 open import Data.Maybe
 open import Data.Bool
 open import Utils.PartialFunction
 
 Var = ℕ
-Addr = ℕ
 Con = ℕ
 
 vx vy vz vi vf vg : Var
@@ -22,14 +19,6 @@ vz = 2
 vi = 3
 vf = 4
 vg = 5
-
-module Addr where
-  postulate alloc : ∀ {A : Set} → (μ : Addr ⇀ A) → Σ[ a ∈ Addr ] (μ a ≡ nothing)
-
--- a0 a1 a2 : Addr
--- a0 = 0
--- a1 = 1
--- a2 = 2
 
 decEq-ℕ : (x y : ℕ) → Dec (x ≡ y)
 decEq-ℕ zero zero = yes refl

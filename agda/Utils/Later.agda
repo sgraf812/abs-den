@@ -39,6 +39,7 @@ next x _ = x
 
 _⊛_ : ▹ (A → B) → ▹ A → ▹ B
 _⊛_ f x a = f a (x a)
+infixr 21 _⊛_ 
 
 map▹ : (f : A → B) → ▹ A → ▹ B
 map▹ f x α = f (x α)
