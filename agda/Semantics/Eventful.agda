@@ -6,15 +6,12 @@ open import Utils.Addrs
 open import Syntax hiding (Val)
 open import Data.Nat as ℕ using (ℕ; zero; suc; z≤n; s≤s)
 import Data.Nat.Properties as ℕ
-open import Data.String
-open import Data.List as L
-open import Data.List.Membership.Propositional
+open import Data.List as L using (List; _∷_; [])
 open import Data.Maybe
-open import Data.Sum
 open import Data.Product
-open import Data.Bool
 open import Function
 open import Cubical.Relation.Nullary
+open import Cubical.Foundations.Prelude using (_≡_)
 
 module Semantics.Eventful (as : Addrs) where
 open Addrs as
@@ -146,7 +143,7 @@ generalise : (∀ {n} → (Var ⇀ Addr n) → Dom n)
             → ∀ {n} → (Var ⇀ Addr n) → GDom n
 generalise sem ρ _ n≤m = sem (ι-Env n≤m ρ)
 
-Sₑ⟦_⟧_ : ∀ {n} → Exp → (Var ⇀ Addr n) → GDom n
+Sₑ⟦_⟧ : ∀ {n} → Exp → (Var ⇀ Addr n) → GDom n
 Sₑ⟦ e ⟧ ρ = generalise (fix sem' e) ρ 
   where
     sem' : ▹(∀ {n} → Exp → (Var ⇀ Addr n) → Dom n) 
@@ -181,3 +178,21 @@ Sₑ⟦ e ⟧ ρ = generalise (fix sem' e) ρ
           ... | just (xs , rhs) = 
             let ρ' = ι-Env n≤m ρ [ xs ↦* as ] in
             just (λ μ → next (case2 K (L.zip xs as)) :: (λ α → recurse▹ α rhs ρ' μ))
+
+drop : ∀ {n} → ℕ → Trc n → Σ[ m ∈ ℕ ] (n ℕ.≤ m × Trc m)
+drop {n} zero    τ         = n , ℕ.≤-refl , τ
+drop {n} _       (ret v μ) = n , ℕ.≤-refl , ret v μ
+drop {n} _       stuck     = n , ℕ.≤-refl , stuck
+drop {n} (suc l) (a :: τ) with ≤-Act (a  unsafe⋄) | drop l (τ unsafe⋄)
+... | n≤k | m , k≤m , τ' = m , ℕ.≤-trans n≤k k≤m , τ' 
+
+_,_⇓_,_ : ∀ {n m} → GDom n → Heap n → Val m → Heap m → Set
+_,_⇓_,_ {n} {m} d μ v μ' = Σ[ l ∈ ℕ ] Σ[ n≤m ∈ n ℕ.≤ m ] (drop l (d n ℕ.≤-refl μ) ≡ (m , n≤m , ret v μ'))
+
+≤-Bigstep : ∀ {n m} → {d : GDom n} → {μ : Heap n} → {v : Val m} → {μ' : Heap m} → d , μ ⇓ v , μ' → n ℕ.≤ m 
+≤-Bigstep (_ , n≤m , _) = n≤m 
+
+-- module Bigstep ({n m}, {d : GDom n}, {μ : Heap n}, {v : Val m}) where
+--   ≤-Bigstep : d , μ ⇓ v , μ' → n ℕ.≤ m 
+--   ≤-Bigstep (_ , n≤m , _) = n≤m 
+

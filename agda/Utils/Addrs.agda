@@ -4,8 +4,9 @@ module Utils.Addrs where
 open import Cubical.Core.Everything
 open import Cubical.Foundations.Prelude
 open import Cubical.Relation.Nullary
-open import Cubical.Data.Empty.Base
-open import Data.Nat
+open import Cubical.Data.Nat
+open import Cubical.Data.Nat.Order
+open import Cubical.Data.Empty
 
 record Addrs : Set₁ where
   field
@@ -13,13 +14,40 @@ record Addrs : Set₁ where
     decAddr : ∀ {n} (x y : Addr n) → Dec (x ≡ y)
     fresh : (n : ℕ) → Addr (suc n)
     down : ∀ {n} (k : Addr (suc n)) → (k ≡ fresh n → ⊥) → Addr n
-    down-inj : ∀ {n} (k k' : Addr (suc n)) → (p : k ≡ fresh n → ⊥) (p' : (k' ≡ fresh n → ⊥)) → down k p ≡ down k' p' → k ≡ k'
+--    down-inj : ∀ {n} (k k' : Addr (suc n)) → (p : k ≡ fresh n → ⊥) (p' : (k' ≡ fresh n → ⊥)) → down k p ≡ down k' p' → k ≡ k'
     ι : ∀ {n} → Addr n → Addr (suc n)
     ι-inj : ∀ {n} x y → ι {n} x ≡ ι y → x ≡ y
 --    enum : ∀ {n} → P∞ (Addr n)
-    fresh-ι : ∀ {n} {v : Addr n} → ι v ≡ fresh n → ⊥
-    down-ι : ∀ {n} {v : Addr n} (¬p : ι v ≡ fresh n → ⊥) → down (ι v) ¬p ≡ v
-    ι-down : ∀ {n} {v : Addr (suc n)} (¬p : v ≡ fresh _ → ⊥) → ι (down v ¬p) ≡ v
+--    fresh-ι : ∀ {n} {v : Addr n} → ι v ≡ fresh n → ⊥
+--    down-ι : ∀ {n} {v : Addr n} (¬p : ι v ≡ fresh n → ⊥) → down (ι v) ¬p ≡ v
+--    ι-down : ∀ {n} {v : Addr (suc n)} (¬p : v ≡ fresh _ → ⊥) → ι (down v ¬p) ≡ v
 --    enum-eq : ∀ {n} (x : P∞ (Addr n)) → enum {n} ≡ x ∪ enum {n}
 --    enum-fin : ∀ {n} → FinitelyPresented (enum {n})
 
+module _ where
+  open import Cubical.Data.Sum
+  open import Cubical.Data.Fin
+  open import Function
+
+  -- vendored from more recent verison of cubical:
+
+  ≤-split : ∀{m n} → m ≤ n → (m < n) ⊎ (m ≡ n)
+  ≤-split p = <-split (suc-≤-suc p)
+
+  ≤→< : ∀{m n} → m ≤ n → ¬ m ≡ n → m < n
+  ≤→< p q with ≤-split p
+  ... | inl r = r
+  ... | inr r = Cubical.Data.Empty.rec (q r)
+      
+  ≤-suc-≢ : ∀{m n} → m ≤ suc n → (m ≡ suc n → ⊥ ) → m ≤ n
+  ≤-suc-≢ p ¬q = pred-≤-pred (≤→< p ¬q)
+
+  finAddrs : Addrs
+  finAddrs = record  {
+    Addr = Fin ;
+    decAddr = discreteFin ;
+    fresh = λ n → n , suc-≤-suc ≤-refl ;
+    down = λ { (k , p) ¬fresh → (k , ≤-suc-≢  p (λ sk≡sn → ¬fresh (Fin-fst-≡ (injSuc sk≡sn)))) } ;
+    ι = inject< ≤-refl ;
+    ι-inj = λ x y → toℕ-injective ∘ cong toℕ
+   }
