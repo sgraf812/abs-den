@@ -13,6 +13,7 @@ open import Data.Maybe
 open import Data.Sum
 open import Data.Product
 open import Data.Bool
+open import Function
 open import Cubical.Relation.Nullary
 
 module Semantics.Eventful (as : Addrs) where
@@ -21,13 +22,14 @@ open Addrs as
 -- The Domain
 
 Dom : ℕ → Set
+GDom : ℕ → Set
 
 {-# NO_POSITIVITY_CHECK #-}
 record LDom (n : ℕ) : Set where
   inductive
   constructor ldom
   field 
-    thed : ▹ (Dom n)
+    thed : ▹ (GDom n)
 
 Heap : ℕ → Set
 Heap n = Addr n → LDom n
@@ -35,12 +37,12 @@ Heap n = Addr n → LDom n
 data Val (n : ℕ) : Set
 
 data Act (n : ℕ) : ℕ → Set where
-  bind : Var → Addr (suc n) → Dom (suc n) → Act n (suc n)
+  bind : Var → Addr (suc n) → GDom (suc n) → Act n (suc n)
   look : Addr n → Act n n
   upd : Addr n → Val n → Act n n
   app1 : Addr n → Act n n
   app2 : Var → Addr n → Act n n
-  case1 : Dom n → Act n n
+  case1 : GDom n → Act n n
   case2 : Con → List (Var × Addr n) → Act n n
 
 data Trc (n : ℕ) : Set where
@@ -49,10 +51,11 @@ data Trc (n : ℕ) : Set where
   _::_ : ∀ {m} → ▹ (Act n m) → ▹ Trc m → Trc n
 infixr 20 _::_ 
 
-Dom n = ∀ {m} → n ℕ.≤ m → Heap m → Trc m
+Dom n = Heap n → Trc n
+GDom n = ∀ m → n ℕ.≤ m → Dom m
 
 data Val n where
-  fun : (∀ {m} → n ℕ.≤ m → Addr m → Dom m) → Val n
+  fun : (∀ m → n ℕ.≤ m → Addr m → Dom m) → Val n
   con : Con → List (Addr n) → Val n
 
 -- Domain combinators
@@ -65,106 +68,116 @@ data Val n where
 ι-≤ p a = ι-≤′ (ℕ.≤⇒≤′ p) a
 
 ι-Val : ∀ {n m} → n ℕ.≤ m → Val n → Val m
-ι-Val n≤m (fun f) = fun (λ {k} m≤k a → f {k} (ℕ.≤-trans n≤m m≤k) a)
+ι-Val n≤m (fun f) = fun (λ k m≤k a → f k (ℕ.≤-trans n≤m m≤k) a)
 ι-Val n≤m (con K xas) = con K (L.map (ι-≤ n≤m) xas)
 
-ι-Dom : ∀ {n m} → n ℕ.≤ m → Dom n → Dom m
-ι-Dom n≤m d m≤k μ = d (ℕ.≤-trans n≤m m≤k) μ
+ι-GDom : ∀ {n m} → n ℕ.≤ m → GDom n → GDom m
+ι-GDom n≤m d k m≤k μ = d k (ℕ.≤-trans n≤m m≤k) μ
 
 ι-LDom : ∀ {n m} → n ℕ.≤ m → LDom n → LDom m
-ι-LDom n≤m ld = ldom (λ α → ι-Dom n≤m (LDom.thed ld α))
+ι-LDom n≤m ld = ldom (λ α → ι-GDom n≤m (LDom.thed ld α))
 
 ι-Env : ∀ {n m} → n ℕ.≤ m → (Var ⇀ Addr n) → (Var ⇀ Addr m)
-ι-Env x = {!   !}
+ι-Env n≤m ρ = Data.Maybe.map (ι-≤ n≤m) ∘ ρ
 
-ι-Trc : ∀ {n m} → n ℕ.≤ m → Trc n → Trc m
-ι-Trc x = {!   !}
+≤-Act : ∀ {n m} → Act n m → n ℕ.≤ m
+≤-Act {n} (bind x x₁ x₂) = ℕ.n≤1+n n
+≤-Act {n} {n} (look x) = ℕ.≤-refl
+≤-Act {n} (upd x x₁) = ℕ.≤-refl
+≤-Act {n} (app1 x) = ℕ.≤-refl
+≤-Act {n} (app2 x x₁) = ℕ.≤-refl
+≤-Act {n} (case1 x) = ℕ.≤-refl
+≤-Act {n} (case2 x x₁) = ℕ.≤-refl
 
-ι-Act : ∀ {n m} → n ℕ.≤ m → Act n n → Act n m
-ι-Act x = {!   !}
-
-update : ∀ {n} → Heap n → Addr n → Dom n → Heap n
+update : ∀ {n} → Heap n → Addr n → GDom n → Heap n
 update μ a d a' with decAddr a a' 
-... | yes _ = ldom (next (λ {m} → d {m})) 
+... | yes _ = ldom (next d) 
 ... | no _  = μ a'
 
-extend : ∀ {n} → Heap n → Dom (suc n) → Heap (suc n)
+extend : ∀ {n} → Heap n → GDom (suc n) → Heap (suc n)
 extend {n} μ d a' with decAddr a' (fresh n) 
 ... | yes _ = ldom (next (λ n≤m → d n≤m)) 
 ... | no np = ι-LDom (ℕ.n≤1+n n) (μ (down a' np))
 
-_>>β=_ : ∀ {n} → Dom n → (∀ {m} → n ℕ.≤ m → Val m ⇀ Dom m) → Dom n
-_>>β=_ {n} d f {m} n≤m μ = fix go {m} n≤m (d n≤m μ)
+_>>β=_ : ∀ {n} → Dom n → (∀ m → n ℕ.≤ m → Val m ⇀ Dom m) → Dom n
+_>>β=_ {n} d f μ = fix go ℕ.≤-refl (d μ)
   where
     go : ▹ (∀ {m} → n ℕ.≤ m → Trc m → Trc m) → ∀ {m} → n ℕ.≤ m → Trc m → Trc m
-    go recurse▹ n≤m (a▹ :: τ▹) = a▹ :: (λ α → recurse▹ α _ (τ▹ α))
-    go recurse▹ n≤m (ret v μ) with f n≤m v
-    ... | just d  = d (ℕ.≤-reflexive _) μ
+    go recurse▹ n≤m (a▹ :: τ▹) = a▹ :: (λ α → recurse▹ α (ℕ.≤-trans n≤m (≤-Act (a▹ α))) (τ▹ α))
+    go recurse▹ n≤m (ret v μ) with f _ n≤m v
+    ... | just d  = d μ
     ... | nothing = stuck
     go _ _ _ = stuck
 
-_::>_ : ∀ {n} → ▹ (Act n n) → ▹ (Dom n) → Dom n
-(a▹ ::> d▹) n≤m μ = (λ α → ? ι-Act n≤m (a▹ α)) :: (λ α → d▹ α n≤m μ)
-infixr 20 _::>_ 
+ret' : ∀ {n} → Val n → GDom n
+ret' v m n≤m μ = ret (ι-Val n≤m v) μ  
 
-ret' : ∀ {n} → Val n → Dom n
-ret' v n≤m μ = ret (ι-Val n≤m v) μ  
-
-memo : ∀ {n} → Addr n → Dom n → Dom n
-memo {n} a d = d >>β= aux
+memo : ∀ {n} → Addr n → GDom n → GDom n
+memo {n} a d m n≤m = d m n≤m >>β= aux
   where
-    aux : ∀ {m} → n ℕ.≤ m → Val m ⇀ Dom m
-    aux {_} n≤m v = 
-      just (λ {k} m≤k μ → 
-        let n≤k = ℕ.≤-trans n≤m m≤k in
-        let a' = ι-≤ n≤k a in
-        let v' = ι-Val m≤k v in
-        next (upd a' v') :: next (ret v' (update μ a' (ret' v'))))
+    aux : ∀ k → m ℕ.≤ k → Val k ⇀ Dom k
+    aux _ m≤k v = 
+      just (λ μ → 
+        let m≤l = ℕ.≤-trans n≤m m≤k in
+        let a' = ι-≤ m≤l a in
+        next (upd a' v) :: next (ret v (update μ a' (ret' v))))
 
 apply : ∀ {n} → Dom n → Addr n → Dom n
 apply {n} dₑ a = dₑ >>β= aux 
   where
-    aux : ∀ {m} → n ℕ.≤ m → Val m ⇀ Dom m 
-    aux {_} n≤m (fun f) = just (f (ℕ.≤-reflexive _) (ι-≤ n≤m a))
-    aux     _   _       = nothing
+    aux : ∀ m → n ℕ.≤ m → Val m ⇀ Dom m 
+    aux _ n≤m (fun f) = just (f _ ℕ.≤-refl (ι-≤ n≤m a))
+    aux _ _   _       = nothing
     
-select : ∀ {n} → Dom n → (∀ {m} → {n ℕ.≤ m} → Con → List (Addr m) ⇀ Dom m) → Dom n
+select : ∀ {n} → Dom n → (∀ m → n ℕ.≤ m → Con → List (Addr m) ⇀ Dom m) → Dom n
 select {n} dₑ f = dₑ >>β= aux 
   where
-    aux : ∀ {m} → n ℕ.≤ m → Val m ⇀ Dom m
-    aux _ (con K as) = f K as
-    aux _ _          = nothing
+    aux : ∀ m → n ℕ.≤ m → Val m ⇀ Dom m
+    aux m n≤m (con K as) = f m n≤m K as
+    aux _ _   _          = nothing
     
 -- And finally the semantics
 
-sem : ∀ {n} → Exp → (Var ⇀ Addr n) → Dom n
-sem {n} = fix sem' n
+-- | This function captures that any semantics function
+-- taking an Env and returning a Dom can be generalised 
+-- to return a GDom, thus asserting that it can cope with
+-- arbitrary enlarged heaps.
+generalise : (∀ {n} → (Var ⇀ Addr n) → Dom n)
+            → ∀ {n} → (Var ⇀ Addr n) → GDom n
+generalise sem ρ _ n≤m = sem (ι-Env n≤m ρ)
+
+Sₑ⟦_⟧_ : ∀ {n} → Exp → (Var ⇀ Addr n) → GDom n
+Sₑ⟦ e ⟧ ρ = generalise (fix sem' e) ρ 
   where
-    sem' : ▹(∀ {n} → Exp → (Var ⇀ Addr n) → Dom n) → ∀ {n} → Exp → (Var ⇀ Addr n) → Dom n
-    sem' recurse▹ (ref x) ρ n≤m μ with ρ x
+    sem' : ▹(∀ {n} → Exp → (Var ⇀ Addr n) → Dom n) 
+           → ∀ {n} → Exp → (Var ⇀ Addr n) → Dom n
+    sem' recurse▹ (ref x) ρ μ with ρ x
     ... | nothing = stuck
-    ... | just a  = next (look (ι-≤ n≤m a)) :: (λ α → LDom.thed (μ (ι-≤ n≤m a)) α (ℕ.≤-reflexive _) μ)
+    ... | just a  = next (look a) :: (λ α → LDom.thed (μ a) α _ ℕ.≤-refl μ)
     sem' recurse▹ (lam x e) ρ = 
-      ret' (fun (λ {k} n≤m a → next (app2 x a) ::> (λ α → recurse▹ α n≤m e n≤m (ι-Env n≤m ρ [ x ↦ a ]))))
-    sem' recurse▹ (app e x) ρ n≤m μ with ρ x 
+      ret (fun (λ m n≤m a μ → 
+                   let ρ' = ι-Env n≤m ρ [ x ↦ a ] in
+                   next (app2 x a) :: (λ α → recurse▹ α e ρ' μ)))
+    sem' recurse▹ (app e x) ρ μ with ρ x 
     ... | nothing = stuck 
-    ... | just a  = let dₑ▹ = λ α → recurse▹ α n e ρ in
-                    next (app1 a) ::> (λ α → apply (dₑ▹ α) a)
-    sem' recurse▹ {m} n≤m {p} (let' x e₁ e₂) ρ μ =
-      let a = fresh m in
-      let ρ' = ι-Env {m} {suc m} _ ρ [ x ↦ a ] in
-      let d₁▹ = λ α → recurse▹ α (suc m) e₁ ρ' in
-      let d₂▹ = λ α → recurse▹ α (suc m) e₂ ρ' in
-      (λ α → bind x a (d₁▹ α)) :: (λ α → d₂▹ α (extend μ (d₁▹ α)))
-    sem' recurse▹ n≤m (conapp K xs) ρ μ with pmap ρ xs
-    ... | nothing = stuck
-    ... | just as = ret (con K as) μ
-    sem' recurse▹ {m} n≤m (case' eₛ alts) ρ = 
-      let dₛ▹ = λ α → recurse▹ α m eₛ ρ in
-      (λ α → case1 (dₛ▹ α)) ::> (λ α → select (dₛ▹ α) f)
+    ... | just a  = let dₑ▹ = λ (α : Tick) → recurse▹ α e ρ in
+                    next (app1 a) :: (λ α → apply (dₑ▹ α) a μ)
+    sem' recurse▹ {n} (let' x e₁ e₂) ρ μ =
+      let a = fresh n in
+      let ρ' = ι-Env (ℕ.n≤1+n n) ρ [ x ↦ a ] in
+      let d₁▹ = λ (α : Tick) → generalise (recurse▹ α e₁) ρ' in
+      let μ'▹ = λ (α : Tick) → extend μ (memo a (d₁▹ α)) in
+      (λ α → bind x a (d₁▹ α)) :: (λ α → recurse▹ α e₂ ρ' (μ'▹ α))
+    sem' recurse▹ (conapp K xs) ρ with pmap ρ xs
+    ... | nothing = λ _ → stuck
+    ... | just as = ret (con K as)
+    sem' recurse▹ {n} (case' eₛ alts) ρ μ = 
+      let dₛ▹ = λ (α : Tick) → generalise (recurse▹ α eₛ) ρ in
+      (λ α → case1 (dₛ▹ α)) :: (λ α → select {n} (dₛ▹ α _ ℕ.≤-refl) f μ)
         where
-          f : ∀ {k} → m ℕ.≤ k → Con → List (Addr k) ⇀ Dom k
-          f {k} n≤m K as with findAlt K alts
+          f : ∀ m → n ℕ.≤ m → Con → List (Addr m) ⇀ Dom m
+          f _ n≤m K as with findAlt K alts
           ... | nothing         =  nothing
           ... | just (xs , rhs) = 
-            just (next (case2 K (L.zip xs as)) ::> (λ α → recurse▹ α k rhs (ι-Env n≤m ρ [ xs ↦* as ]))) 
+            let ρ' = ι-Env n≤m ρ [ xs ↦* as ] in
+            just (λ μ → next (case2 K (L.zip xs as)) :: (λ α → recurse▹ α rhs ρ' μ))
