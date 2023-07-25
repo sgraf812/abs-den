@@ -1,8 +1,8 @@
-{-# OPTIONS --cubical --guarded #-}
+{-# OPTIONS --cubical --guarded --rewriting #-}
 module Semantics.Vanilla where
 
 open import Utils.Later
-open import Syntax
+open import Syntax hiding (Val)
 open import Data.Nat
 open import Data.String
 open import Data.List
@@ -22,6 +22,8 @@ record LDom : Set where
   constructor ldom
   field 
     thed : ▹ Dom
+
+Addr = ℕ -- NB: No smart tracking of domains, to keep the vanilla presentation simple
 
 Heap = Addr -> LDom
 
@@ -79,14 +81,14 @@ select dₑ f = dₑ >>β= aux
 postulate alloc : Heap -> Addr
 
 _[_↦_] : (Var -> Maybe Addr) -> Var -> Addr -> (Var -> Maybe Addr)
-_[_↦_] ρ x a y = if x == y then just a else ρ y
+_[_↦_] ρ x a y = if x ≡ᵇ y then just a else ρ y
 
 _[_↦*_] : (Var -> Maybe Addr) -> List Var -> List Addr -> (Var -> Maybe Addr)
 _[_↦*_] ρ xs as = aux (Data.List.zip xs as)
   where
     aux : List (Var × Addr) -> (Var -> Maybe Addr)
     aux []             y = ρ y
-    aux ((x , a) ∷ xs) y = if x == y then just a else aux xs y
+    aux ((x , a) ∷ xs) y = if x ≡ᵇ y then just a else aux xs y
 
 traverseMaybe : ∀ {A B : Set} -> (A -> Maybe B) -> List A -> Maybe (List B)
 traverseMaybe f [] = just []
@@ -100,8 +102,8 @@ traverseMaybe {_} {B} f (a ∷ as) with f a
 
 -- And finally the semantics
 
-sem : Exp -> (Var -> Maybe Addr) -> Dom
-sem = fix sem'
+Sₗ⟦_⟧_ : Exp -> (Var -> Maybe Addr) -> Dom
+Sₗ⟦ e ⟧ ρ = fix sem' e ρ
   where
     sem' : ▹(Exp -> (Var -> Maybe Addr) -> Dom) -> Exp -> (Var -> Maybe Addr) -> Dom
     sem' recurse▹ (ref x) ρ μ with ρ x
@@ -114,7 +116,7 @@ sem = fix sem'
     sem' recurse▹ (let' x e₁ e₂) ρ μ =
       let a = alloc μ in
       let ρ' = ρ [ x ↦ a ] in
-      later (λ α -> recurse▹ α e₂ ρ' (update μ a (recurse▹ α e₁ ρ')))
+      later (λ α -> recurse▹ α e₂ ρ' (update μ a (memo a (recurse▹ α e₁ ρ'))))
     sem' recurse▹ (conapp K xs) ρ μ with traverseMaybe ρ xs
     ... | nothing = stuck
     ... | just as = ret (con K as) μ
