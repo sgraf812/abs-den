@@ -106,8 +106,8 @@ _>>β=_ {n} d f μ = fix go ℕ.≤-refl (d μ)
     ... | nothing = stuck
     go _ _ _ = stuck
 
-ret' : ∀ {n} → Val n → GDom n
-ret' v m n≤m μ = ret (ι-Val n≤m v) μ  
+gret : ∀ {n} → Val n → GDom n
+gret v m n≤m μ = ret (ι-Val n≤m v) μ 
 
 memo : ∀ {n} → Addr n → GDom n → GDom n
 memo {n} a d m n≤m = d m n≤m >>β= aux
@@ -117,7 +117,7 @@ memo {n} a d m n≤m = d m n≤m >>β= aux
       just (λ μ → 
         let m≤l = ℕ.≤-trans n≤m m≤k in
         let a' = ι-≤ m≤l a in
-        next (upd a' v) :: next (ret v (update μ a' (ret' v))))
+        next (upd a' v) :: next (ret v (update μ a' (gret v))))
 
 apply : ∀ {n} → Dom n → Addr n → Dom n
 apply {n} dₑ a = dₑ >>β= aux 
@@ -192,7 +192,14 @@ _,_⇓_,_ {n} {m} d μ v μ' = Σ[ l ∈ ℕ ] Σ[ n≤m ∈ n ℕ.≤ m ] (drop
 ≤-Bigstep : ∀ {n m} → {d : GDom n} → {μ : Heap n} → {v : Val m} → {μ' : Heap m} → d , μ ⇓ v , μ' → n ℕ.≤ m 
 ≤-Bigstep (_ , n≤m , _) = n≤m 
 
--- module Bigstep ({n m}, {d : GDom n}, {μ : Heap n}, {v : Val m}) where
+-- module Bigstep where
+--   variable
+--     n m : ℕ
+--   variable
+--     d : GDom n
+--     μ : Heap n
+--     v : Val m
+--     μ' : Heap m
 --   ≤-Bigstep : d , μ ⇓ v , μ' → n ℕ.≤ m 
 --   ≤-Bigstep (_ , n≤m , _) = n≤m 
 
