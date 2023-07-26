@@ -4,50 +4,58 @@ open import Utils.Later
 open import Utils.PartialFunction
 open import Utils.Addrs
 open import Syntax hiding (Val)
-open import Data.Nat as ℕ using (ℕ; zero; suc; z≤n; s≤s)
-import Data.Nat.Properties as ℕ
+open import Cubical.Data.Nat as ℕ using (ℕ; zero; suc)
+import Cubical.Data.Nat.Properties as ℕ
+import Cubical.Data.Nat.Order as ℕ
+import Cubical.Data.Empty as ⊥
 open import Data.List as L
 open import Data.Maybe
-open import Data.Product
+open import Cubical.Data.Prod
 open import Data.Sum
 open import Function
 open import Cubical.Relation.Nullary
-open import Cubical.Foundations.Prelude using (_≡_; refl)
+open import Cubical.Foundations.Prelude hiding (_[_↦_])
 
 module Theory.Forcing (as : Addrs) where
 open Addrs as
 import Semantics.Eventful
 open module Sem = Semantics.Eventful as
 
-record Finn (n : ℕ) : Set where
-  constructor _,,_
-  field
-    fst : ℕ
-    snd : fst ℕ.< n
-
 ≤∧≢⇒< : ∀ {m n} → m ℕ.≤ n → ¬ m ≡ n → m ℕ.< n
-≤∧≢⇒< {_} {zero}  z≤n       m≢n     = m≢n refl
-≤∧≢⇒< {_} {suc n} z≤n       m≢n     = ℕ.z<s
-≤∧≢⇒< {_} {suc n} (s≤s m≤n) 1+m≢1+n =
-  s<s (≤∧≢⇒< m≤n (1+m≢1+n ∘ cong suc))
-  
-forces-to : ∀ {n m} → n ℕ.≤‴ m → Heap n → Heap m → Set
-forces-entry-strict : ∀ {n m} → n ℕ.≤‴ m → Heap n → Addr n → Heap m → Set
-forces-entry-strict {n} {m} n≤m μ₁ a μ₂ = 
-  let aₘ = ι-≤ (ℕ.≤‴⇒≤ n≤m) a in
-  let unwrap! = λ {n} (ld : LDom n) → LDom.thed ld unsafe⋄ in
-  Σ[ n' ∈ ℕ ] 
-  Σ[ n'≤m ∈ n' ℕ.≤ m ] 
-  Σ[ v ∈ Val n' ]
-  Σ[ μ₁' ∈ Heap n' ] 
-  Σ[ step ∈ (unwrap! (μ₁ a) , μ₁ ⇓ v , μ₁') ] 
-    (unwrap! (μ₂ aₘ) ≡ memo aₘ (gret (ι-Val n'≤m v)))
-  × (λ (n≢n' : ¬ n ≡ n') → 
-      let n<n' = ℕ.≤∧≢⇒< (≤-Bigstep step) n≢n' in
-      forces-to {n'} {m} _ μ₁' μ₂ )
+≤∧≢⇒< {m} {n} (zero , m≡n) m≢n = ⊥.elim (m≢n m≡n)
+≤∧≢⇒< {m} {n} (suc k , 1+k+m≡n) m≢n = {!   !}
+-- ≤∧≢⇒< {_} {zero}  m       m≢n     = m≢n refl
+-- ≤∧≢⇒< {_} {suc n} z≤n       m≢n     = ℕ.zero-≤
+-- ≤∧≢⇒< {_} {suc n} (s≤s m≤n) 1+m≢1+n =
+--   ℕ.suc-≤ (≤∧≢⇒< m≤n (1+m≢1+n ∘ cong suc))
 
-forces-to {n} {m} μ₁ μ₂ = ((a : Addr n) → 
-  let n≤m = ? n (m ℕ.+ n) in
+unwrap! : ∀ {n} → LDom n → GDom n
+unwrap! {n} ld = LDom.thed ld unsafe⋄
+  
+forces-to : ∀ {k n} → Heap n → Heap (k ℕ.+ n) → Set
+forces-entry-strict : ∀ {k n} → Heap n → Addr n → Heap (k ℕ.+ n) → Set
+forces-entry-strict {zero} {n} μ₁ a μ₂ =  
+  Σ[ v ∈ Val n ] 
+  Σ[ μ₁' ∈ Heap n ] 
+  Σ[ step ∈ (unwrap! (μ₁ a) , μ₁ ⇓ v , μ₁') ] 
+  unwrap! (μ₂ a) ≡ memo a (gret (ι-Val (zero , refl) v))
+forces-entry-strict {suc k} {n} μ₁ a μ₂ = 
+  let n≤m = (suc k , refl) in
+  let aₘ = ι-≤ n≤m a in
+  Σ[ k' ∈ ℕ ] 
+  Σ[ k'≤k ∈ k' ℕ.≤ k ] 
+  Σ[ v ∈ Val (k' ℕ.+ n) ]
+  Σ[ μ₁' ∈ Heap (k' ℕ.+ n) ] 
+  Σ[ step ∈ (unwrap! (μ₁ a) , μ₁ ⇓ v , μ₁') ] 
+    (unwrap! (μ₂ aₘ) ≡ memo aₘ (gret (ι-Val (ℕ.≤-+k k'≤k) v)))
+  × (∀ (k'≢0 : ¬ k' ≡ 0) → 
+      let k'<k = ≤∧≢⇒< {!   !} k'≢0 in
+      let k-k' = fst k'≤k in
+      let k-k'+k'+n≡k+n = {!   !} in
+      forces-to {k-k'} {k' ℕ.+ n} μ₁' (transport (cong Heap k-k'+k'+n≡k+n) μ₂) )
+
+forces-to {k} {n} μ₁ μ₂ = ((a : Addr n) → 
+  let n≤m = (k , refl) in
   (ι-LDom n≤m (μ₁ a)) ≡ μ₂ (ι-≤ n≤m a) ⊎ forces-entry-strict μ₁ a μ₂)
 
 _↝_ : ∀ {n m} → Heap n → Heap m → Set
