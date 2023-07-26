@@ -4,14 +4,15 @@ open import Utils.Later
 open import Utils.PartialFunction
 open import Utils.Addrs
 open import Syntax hiding (Val)
-open import Data.Nat as ℕ using (ℕ; zero; suc; z≤n; s≤s)
-import Data.Nat.Properties as ℕ
+open import Cubical.Data.Nat as ℕ using (ℕ; zero; suc)
+import Cubical.Data.Nat.Properties as ℕ
+import Cubical.Data.Nat.Order as ℕ
 open import Data.List as L using (List; _∷_; [])
 open import Data.Maybe
-open import Data.Product
+open import Cubical.Data.Prod
 open import Function
 open import Cubical.Relation.Nullary
-open import Cubical.Foundations.Prelude using (_≡_)
+open import Cubical.Foundations.Prelude hiding (_[_↦_])
 
 module Semantics.Eventful (as : Addrs) where
 open Addrs as
@@ -56,13 +57,15 @@ data Val n where
   con : Con → List (Addr n) → Val n
 
 -- Domain combinators
-
-ι-≤′ : ∀ {n m} → n ℕ.≤′ m → Addr n → Addr m
-ι-≤′ ℕ.≤′-refl     a = a
-ι-≤′ (ℕ.≤′-step x) a = ι (ι-≤′ x a)
-
+suc-≤ : ∀ {n m} → suc m ℕ.≤ n → m ℕ.≤ n
+suc-≤ p = ℕ.pred-≤-pred (ℕ.≤-suc p)
+ 
 ι-≤ : ∀ {n m} → n ℕ.≤ m → Addr n → Addr m
-ι-≤ p a = ι-≤′ (ℕ.≤⇒≤′ p) a
+ι-≤ {m = m} (k , k+n≡m) a = ind k k+n≡m a
+  where
+    ind : ∀ {n} → (k : ℕ) → k ℕ.+ n ≡ m → Addr n → Addr m
+    ind zero    n≡m     a = transport (cong Addr n≡m) a
+    ind {n} (suc k) 1+k+n≡m a = ind k (ℕ.+-suc k n ∙ 1+k+n≡m) (ι a)
 
 ι-Val : ∀ {n m} → n ℕ.≤ m → Val n → Val m
 ι-Val n≤m (fun f) = fun (λ k m≤k a → f k (ℕ.≤-trans n≤m m≤k) a)
@@ -78,7 +81,7 @@ data Val n where
 ι-Env n≤m ρ = Data.Maybe.map (ι-≤ n≤m) ∘ ρ
 
 ≤-Act : ∀ {n m} → Act n m → n ℕ.≤ m
-≤-Act {n} (bind x x₁ x₂) = ℕ.n≤1+n n
+≤-Act {n} (bind x x₁ x₂) = ℕ.≤-+k ℕ.zero-≤
 ≤-Act {n} {n} (look x) = ℕ.≤-refl
 ≤-Act {n} (upd x x₁) = ℕ.≤-refl
 ≤-Act {n} (app1 x) = ℕ.≤-refl
@@ -94,7 +97,7 @@ update μ a d a' with decAddr a a'
 extend : ∀ {n} → Heap n → GDom (suc n) → Heap (suc n)
 extend {n} μ d a' with decAddr a' (fresh n) 
 ... | yes _ = ldom (next (λ n≤m → d n≤m)) 
-... | no np = ι-LDom (ℕ.n≤1+n n) (μ (down a' np))
+... | no np = ι-LDom (ℕ.≤-+k ℕ.zero-≤) (μ (down a' np))
 
 _>>β=_ : ∀ {n} → Dom n → (∀ m → n ℕ.≤ m → Val m ⇀ Dom m) → Dom n
 _>>β=_ {n} d f μ = fix go ℕ.≤-refl (d μ)
@@ -161,7 +164,7 @@ Sₑ⟦ e ⟧ ρ = generalise (fix sem' e) ρ
                     next (app1 a) :: (λ α → apply (dₑ▹ α) a μ)
     sem' recurse▹ {n} (let' x e₁ e₂) ρ μ =
       let a = fresh n in
-      let ρ' = ι-Env (ℕ.n≤1+n n) ρ [ x ↦ a ] in
+      let ρ' = ι-Env (ℕ.≤-+k ℕ.zero-≤) ρ [ x ↦ a ] in
       let d₁▹ = λ (α : Tick) → generalise (recurse▹ α e₁) ρ' in
       let μ'▹ = λ (α : Tick) → extend μ (memo a (d₁▹ α)) in
       (λ α → bind x a (d₁▹ α)) :: (λ α → recurse▹ α e₂ ρ' (μ'▹ α))
@@ -177,9 +180,9 @@ Sₑ⟦ e ⟧ ρ = generalise (fix sem' e) ρ
           ... | nothing         =  nothing
           ... | just (xs , rhs) = 
             let ρ' = ι-Env n≤m ρ [ xs ↦* as ] in
-            just (λ μ → next (case2 K (L.zip xs as)) :: (λ α → recurse▹ α rhs ρ' μ))
+            just (λ μ → next (case2 K (L.zipWith (_,_) xs as)) :: (λ α → recurse▹ α rhs ρ' μ))
 
-drop : ∀ {n} → ℕ → Trc n → Σ[ m ∈ ℕ ] (n ℕ.≤ m × Trc m)
+drop : ∀ {n} → ℕ → Trc n → Σ[ m ∈ ℕ ] ((n ℕ.≤ m) × Trc m)
 drop {n} zero    τ         = n , ℕ.≤-refl , τ
 drop {n} _       (ret v μ) = n , ℕ.≤-refl , ret v μ
 drop {n} _       stuck     = n , ℕ.≤-refl , stuck
