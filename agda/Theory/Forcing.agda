@@ -47,7 +47,7 @@ forces-entry-strict {suc k} {n} μ₁ a μ₂ =
   Σ[ v ∈ Val (k' ℕ.+ n) ]
   Σ[ μ₁' ∈ Heap (k' ℕ.+ n) ] 
   Σ[ step ∈ (unwrap! (μ₁ a) , μ₁ ⇓ v , μ₁') ] 
-    (unwrap! (μ₂ aₘ) ≡ memo aₘ (gret (ι-Val (ℕ.≤-+k k'≤k) v)))
+    (unwrap! (μ₂ aₘ) ≡ memo aₘ (gret (ι-Val (ℕ.≤-suc (ℕ.≤-+k k'≤k)) v)))
   × (∀ (k'≢0 : ¬ k' ≡ 0) → 
       let k'<k = ≤∧≢⇒< {!   !} k'≢0 in
       let k-k' = fst k'≤k in
