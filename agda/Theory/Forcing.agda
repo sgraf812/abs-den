@@ -35,6 +35,10 @@ module ℕ-WellFounded = WFI (ℕ.<-wellfounded)
 unwrap! : ∀ {n} → LDom n → GDom n
 unwrap! {n} ld = LDom.thed ld unsafe⋄
 
+blub : ∀ {n m} → m ℕ.≤ n → ¬ m ≡ 0 → n ℕ.∸ m ℕ.< n
+blub     {m = zero}  m≤n m≢0 = ⊥.elim (m≢0 refl)
+blub {n} {m = suc m} m≤n _   = ℕ.≤-∸-suc m≤n (ℕ.∸-≤ n m)
+
 forces-to : ∀ k n → Heap n → Heap (k ℕ.+ n) → Set
 forces-entry-strict : ∀ k n → Heap n → Addr n → Heap (k ℕ.+ n) → Set
 forces-entry-strict zero n μ₁ a μ₂ =  
@@ -42,20 +46,21 @@ forces-entry-strict zero n μ₁ a μ₂ =
   Σ[ μ₁' ∈ Heap n ] 
   Σ[ step ∈ (unwrap! (μ₁ a) , μ₁ ⇓ v , μ₁') ] 
   unwrap! (μ₂ a) ≡ memo a (gret (ι-Val (zero , refl) v))
-forces-entry-strict = ℕ-WellFounded.induction λ k ind-≤ n μ₁ a μ₂ → {!   !}
---   let n≤m = (suc k , refl) in
---  let aₘ = ι-≤ n≤m a in
---  Σ[ k' ∈ ℕ ] 
---  Σ[ k'≤k ∈ k' ℕ.≤ k ] 
---  Σ[ v ∈ Val (k' ℕ.+ n) ]
---  Σ[ μ₁' ∈ Heap (k' ℕ.+ n) ] 
---  Σ[ step ∈ (unwrap! (μ₁ a) , μ₁ ⇓ v , μ₁') ] 
---    (unwrap! (μ₂ aₘ) ≡ memo aₘ (gret (ι-Val (ℕ.≤-suc (ℕ.≤-+k k'≤k)) v)))
---  × (∀ (k'≢0 : ¬ k' ≡ 0) → 
---      let k'<k = ≤∧≢⇒< {!   !} k'≢0 in
---      let k-k' = fst k'≤k in
---      let k-k'+k'+n≡k+n = {!   !} in
---      forces-to {k-k'} {k' ℕ.+ n} μ₁' (transport (cong Heap k-k'+k'+n≡k+n) μ₂) )
+forces-entry-strict = ℕ-WellFounded.induction λ k ind-< n μ₁ a μ₂ → 
+  let n≤m = (k , refl) in
+  let aₘ = ι-≤ n≤m a in
+  Σ[ k' ∈ ℕ ] 
+  Σ[ k'≤k ∈ k' ℕ.≤ k ] 
+  Σ[ v ∈ Val (k' ℕ.+ n) ]
+  Σ[ μ₁' ∈ Heap (k' ℕ.+ n) ] 
+  Σ[ step ∈ (unwrap! (μ₁ a) , μ₁ ⇓ v , μ₁') ] 
+    (unwrap! (μ₂ aₘ) ≡ memo aₘ (gret (ι-Val (ℕ.≤-+k k'≤k) v)))
+  × (∀ (k'≢0 : ¬ k' ≡ 0) → 
+      let k-k' = k ℕ.∸ k' in
+      let k-k'<k = {!   !} in -- ≤∧≢⇒< k'≤k k'≢k in
+      let k-k' = fst k'≤k in
+      let k-k'+k'+n≡k+n = {!   !} in
+      ind-< k-k' k-k'<k (k' ℕ.+ n) μ₁' (ι-≤ (k' , refl) a) (transport (cong Heap k-k'+k'+n≡k+n) μ₂) )
 
 forces-to k n μ₁ μ₂ = ((a : Addr n) → 
   let n≤m = (k , refl) in
@@ -64,7 +69,5 @@ forces-to k n μ₁ μ₂ = ((a : Addr n) →
 _↝_ : ∀ {n m} → Heap n → Heap m → Set
 _↝_ {n} {m} μ₁ μ₂ = 
   Σ[ n≤m ∈ n ℕ.≤ m ] 
-  let m-n≡k = ℕ.≤-∸-+-cancel {n} {m} n≤m ∋ (m ℕ.∸ n) ℕ.+ n ≡ m in
-  let k = transport m-n≡k (m ℕ.∸ n) in
-  forces-to k n  μ₁ μ₂ 
+  forces-to (m ℕ.∸ n) n  μ₁ (transport (cong Heap (sym (ℕ.≤-∸-+-cancel n≤m))) μ₂)
 
