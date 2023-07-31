@@ -39,23 +39,19 @@ hence the name ``big-step'' is fitting.
 
 \begin{definition}[Heap forcing]
   \label{defn:force-heap}
-  For all $μ_1, μ_2 ∈ \Heaps$ we say that $μ_1$ \emph{forces} to $μ_2$
-  (written $μ_1 \forcesto μ_2$) if and only if
+  For all $μ_1, μ_2 ∈ \Heaps$, $μ_1$ \emph{forces} to $μ_2$
+  (written $μ_1 \forcesto μ_2$) if and only if, inductively,
   \begin{enumerate}
     \item $\dom(μ_1) ⊆ \dom(μ_2)$, and
     \item For all $\pa ∈ \dom(μ_1)$, either
       \begin{itemize}
         \item $μ_1(\pa) = μ_2(\pa)$, or
         \item there exists $v,μ'_1$ such that
-          $μ_2(\pa) = \memo(\pa,\ret(v))$ and $\bigstep{μ_1(\pa)}{μ_1}{v}{μ'_1}$.
-          Additionally, if $μ_1 \not= μ'_1$ then  $μ'_1 \forcesto μ_2$.
+          $\bigstep{μ_1(\pa)}{μ_1}{v}{μ'_1}$, $μ_2(\pa) = \memo(\pa,\ret(v))$
+          and $μ'_1 \forcesto μ_2$.
       \end{itemize}
   \end{enumerate}
 \end{definition}
-
-%(This is a well-formed inductive definition because $μ_1' \forcesto μ_2$
-%is strictly decreasing in the termination measure we give in the proof of
-%\Cref{defn:lazy-d}.)
 
 Our earlier intuition can now be formulated as follows:
 If $\bigstep{\semevt{\pe}_ρ}{μ}{v}{μ'}$, then $μ \forcesto μ'$.
@@ -94,9 +90,9 @@ also antisymmetric:
 
   Now suppose that there exists $\pa$ such that $μ_1(\pa) \not= μ_2(\pa)$.
   Then there exists $v_1$ such that $\bigstep{μ_1(\pa)}{μ_1}{v_1}{\wild}$ and
-  $μ_2(\pa) = \ret(v_1)$.
+  $μ_2(\pa) = \memo(\pa, \ret(v_1))$.
   By \Cref{thm:force-heap-val} applied to $μ_2 \forcesto μ_1$, we get $μ_1(\pa)
-  = v_1 = μ_2(\pa)$, a contradiction.
+  = \memo(\pa, \ret(v_1)) = μ_2(\pa)$, a contradiction.
 \end{proof}
 
 (It is worth stressing that antisymmetry only holds on equivalence classes modulo readdressing.)
@@ -160,12 +156,12 @@ forcing relation.
   We need a termination measure on $(\forcesto)$ before we can proceed.
   Note that in successive steps $μ_1 \forcesto ... \forcesto μ_n$ where all
   $μ_i$ are lazy heaps, heap entries progress from being undefined,
-  then to a non-value denotation, and finally to a value element $\ret(v)$.
+  then to a non-value denotation, and finally to a value element $\memo(\pa, \ret(v))$.
 
-  More formally, we can define a measure $m : \Heaps \to \dom(μ_n) \pfun \{0,1,2\}$
+  More formally, we can define a measure $m : \Heaps \to \dom(μ_n) \to \{0,1,2\}$
   \[
     m(μ)(\pa) = \begin{cases}
-        0 & μ(\pa) = \ret(\wild) \\
+        0 & μ(\pa) = \memo(\pa, \ret(\wild)) \\
         1 & \pa ∈ \dom(μ) \\
         2 & \text{otherwise} \\
       \end{cases}
@@ -173,10 +169,12 @@ forcing relation.
   with the pointwise partial order on $\dom(μ_n) \to \{0,1,2\}$.
   When $\dom(μ_n)$ is finite, this partial order has finite height, which can
   thus serve as a termination measure.
+  Note that $μ \forcesto μ'$ and $μ \not= μ'$  implies $m(μ') < m(μ)$; this
+  is simple to see by induction on the derivation of $μ \forcesto μ'$.
 
   We proceed by well-founded induction with the above measure $m$ defined on
   $\dom(μ_3)$.
-  More precisely, show that the proposition is satisfied for $μ_1,μ_2,μ_3$
+  More precisely, we show that the proposition is true for $μ_1,μ_2,μ_3$
   assuming that the proposition holds for any $μ_1',μ_2',μ_3'$
   such that $m(μ_1') - m(μ_3') < m(μ_1) - m(μ_3)$.
 
@@ -188,26 +186,28 @@ forcing relation.
 
   Suppose that $μ_1(\pa) \not= μ_2(\pa)$.
   Then there exists $v,μ'_1$ such that $\bigstep{μ_1(\pa)}{μ_1}{v}{μ'_1}$ and
-  $μ_2(\pa) = \ret(v)$ as well as $μ'_1 \forcesto μ_2$.
+  $μ_2(\pa) = \memo(\pa,\ret(v))$ as well as $μ'_1 \forcesto μ_2$.
+  By induction on $μ_1 \forcesto μ_2$, we must ultimately make a step such
+  that $μ_1 \not= μ'_1$ and the case $μ_1 = μ'_1$ follows by the inductive
+  hypothesis.
+  When $μ_1 \not= μ'_1$, then $m(μ_1') < m(μ_1)$ because $μ_1 \forcesto μ_1'$ by
+  laziness and by well-founded induction we can combine $μ'_1 \forcesto μ_2$ and
+  $μ_2 \forcesto μ_3$ to $μ'_1 \forcesto μ_3$.
   By \Cref{thm:force-heap-val} applied to $μ_2 \forcesto μ_3$, we have
-  $μ_2(\pa) = μ_3(\pa) = \ret(v)$.
-  If $μ_1' \not= μ_1$, then $m(μ_1') < m(μ_1)$ and by well-founded induction
-  we can combine $μ'_1 \forcesto μ_2$ and $μ_2 \forcesto μ_3$ to
-  $μ'_1 \forcesto μ_3$.
+  $μ_2(\pa) = μ_3(\pa) = \memo(\pa,\ret(v))$.
   Hence we have shown that $μ_1 \forcesto μ_3$.
 
   Suppose that $μ_1(\pa) = μ_2(\pa)$, but $μ_2(\pa) \not= μ_3(\pa)$.
   Then there exists $v,μ'_2$ such that $\bigstep{μ_2(\pa)}{μ_2}{v}{μ'_2}$ and
-  $μ_3(\pa) = \ret(v)$ as well as $μ'_2 \forcesto μ_3$.
+  $μ_3(\pa) = \memo(\pa, \ret(v))$ as well as $μ'_2 \forcesto μ_3$.
   We know that $μ_1(\pa) = μ_2(\pa)$, so $\bigstep{μ_1(\pa)}{μ_2}{v}{μ'_2}$.
   Since $μ_1(\pa)$ is lazy and well-addressed \wrt $μ_1$ and $μ_1 \forcesto
   μ_2$, we get $\bigstep{μ_1(\pa)}{μ_1}{v}{μ'_1}$ such that $μ_1' \forcesto
   μ_2'$ by definition of laziness.
+  Again, by induction on the derivation on $μ'_1 \forcesto μ'_2$ we may assume
+  that $μ_1 \not= μ_1'$ and hence that $m(μ'_1)<m(μ_1)$.
   By well-founded induction, we can combine $μ'_1 \forcesto μ_2'$ and
   $μ_2' \forcesto μ_3$ to $μ'_1 \forcesto μ_3$.
-  If $μ_1' \not= μ_1$, then $m(μ_1') < m(μ_1)$ and by well-founded induction
-  we can combine $μ'_1 \forcesto μ_2'$ and $μ_2' \forcesto μ_3$ to
-  $μ'_1 \forcesto μ_3$.
   Hence have shown that $μ_1 \forcesto μ_3$.
 \end{proof}
 
@@ -235,26 +235,20 @@ And now we finally prove that $\semevt{\wild}$ indeed produces a lazy element:
       (The undefined case is boring, because the Forces property holds trivially.)
       By laziness, we know that $μ(\pa) = \memo(\pa,d)$ for some lazy $d$
       and that $d$ is defined on $μ$.
-      Furthermore, in the interesting case $\bigstep{μ(\pa)}{μ}{v}{μ'}$
-      for suitable lazy $v,μ'$, the trace resulting from calling the second
-      argument to $(\betastep)$ is
-      \[
-        \UpdateE(\pa↦\ret(v)) \cons \goodend{v,μ'[\pa↦\memo(\pa,\ret(v))]}.
-      \]
-      And crucially, $μ' \forcesto μ'[\pa↦\memo(\pa,\ret(v))]$ due to
-      $\bigstep{μ(\pa)}{μ}{v}{μ'}$ for the differing $\pa$ entry, proving
-      the Forces property.
-      The Postpone and Speculate property for the second argument follow quite
-      simply, because the updated heap entry is constant in all cases.
+      Furthermore, $\bigstep{d}{μ}{v}{μ'}$ for suitable lazy $v,μ'$,
+      and thus $\bigstep{μ(\pa)}{μ}{v}{μ'[\pa↦\memo(\pa,\ret(v))]}$.
+      Thus it is easy to see that $μ \forcesto μ'[\pa↦\memo(\pa,\ret(v))]$.
+
+      The Postpone and Speculate property follow quite simply, because the
+      updated heap entry is constant in all cases.
 
     \item \textbf{Case $\Lam{px}{\pe'}$}:
       For the Forces property, we assume a lazy $μ$ such that
       $\bigstep{\semevt{\pe}_ρ}{μ}{\FunV(f)}{μ}$ holds for
-      $f \triangleq \fn{d}{\AppEE(\px↦d) \cons \semevt{\pe}_{ρ[\px↦d]}}$.
+      $f \triangleq \fn{\pa}{\AppEE(\px↦\pa) \cons \semevt{\pe'}_{ρ[\px↦\pa]}}$.
       We have $μ \forcesto μ$ by reflexivity.
-      To show that $\FunV(f)$ is indeed a lazy value, we assume a lazy $d$ and
-      show that $f(d)$ is lazy by induction,
-      so $\FunV(f)$ is a lazy value.
+      To show that $\FunV(f)$ is indeed a lazy value, we fix some address $\pa$ and
+      show that $f(\pa)$ is lazy by induction, so $\FunV(f)$ is a lazy value.
       The Postpone and Speculate properties follow by assumption.
 
     \item \textbf{Case $K~\many{\px}$}:
@@ -262,7 +256,7 @@ And now we finally prove that $\semevt{\wild}$ indeed produces a lazy element:
 
     \item \textbf{Case $\pe'~\px$}:
       The first argument to $\apply$,
-      $d \triangleq \semevt{\pe}_ρ$, is lazy by the induction hypothesis.
+      $d \triangleq \semevt{\pe'}_ρ$, is lazy by the induction hypothesis.
 
       The interesting case is when $\bigstep{d}{μ}{\FunV(f)}{μ'}$.
       $\FunV(f)$ is lazy by the Forces property of $d$ and then
