@@ -208,6 +208,8 @@ forcing relation.
   that $μ_1 \not= μ_1'$ and hence that $m(μ'_1)<m(μ_1)$.
   By well-founded induction, we can combine $μ'_1 \forcesto μ_2'$ and
   $μ_2' \forcesto μ_3$ to $μ'_1 \forcesto μ_3$.
+  (This step is the reason why we need the termination measure:
+  The recursion into $μ'_1 \forcesto μ'_2$ is not structural.)
   Hence have shown that $μ_1 \forcesto μ_3$.
 \end{proof}
 
