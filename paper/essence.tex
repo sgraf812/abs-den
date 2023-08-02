@@ -317,7 +317,7 @@ This result justifies our tacit assumption from now on that all elements $d$ are
     {A ⊦ \stuckend{} \sim \stuckend{}}
  \quad
  \inferrule*[right=\eqcon]
-    {\many{A ⊦ μ_1(\pa_1) \sim μ_2(\pa_2)}}
+    {\later (\many{A ⊦ μ_1(\pa_1)(μ_1) \sim μ_2(\pa_2)(μ_2)})}
     {A ⊦ \goodend{\ConV(K, \many{\pa_1}), μ_1} \sim \goodend{\ConV(K, \many{\pa_2}), μ_2}}
  \\
  \\[-0.5em]
@@ -367,8 +367,10 @@ It is coarse enough to equate the example above, but still finer than contextual
 equivalence, as we shall see.
 
 The key is its observer model for function values, which necessitates the
-address space parameter $A$ in $\sim$ to track non-local (and thus observable)
-addresses.
+\emph{address space} parameter $A ⊆ \Addresses$ in $\wild ⊦ \wild \sim \wild$ to
+track non-local (and thus observable) addresses.
+The judgment $A ⊦ d$ asserts that $d$ is defined on all heaps where the domain
+contains $A$.
 Consider a successful evaluation $\bigstep{d_i}{μ_i}{\FunV(f_i)}{μ_i'}$, as in
 \[\begin{array}{rclcl}
   \semevt{\Let{t}{\ttrue}{\Lam{z}{t}}}_{[]}([])
@@ -404,9 +406,9 @@ This is not too grave a restriction on the observer, because they may
 pre-allocate any denotation into the heap they want (respecting
 well-addressedness, of course) due to laziness.
 
-\begin{lemmarep}[Weakening of address domain]
-  \label{thm:weaken-address-domain}
-  Let $A_1,A_2$ be address domains such that $A_1 ⊆ A_2$. \\
+\begin{lemmarep}[Weakening of address spaces]
+  \label{thm:weaken-address-space}
+  Let $A_1,A_2$ be address spaces such that $A_1 ⊆ A_2$. \\
   For all $d$, if $A_1 ⊦ d$ then $A_2 ⊦ d$.
   For all traces $τ_1,τ_2$, if $A_2 ⊦ τ_1 \sim τ_2$ then $A_1 ⊦ τ_1 \sim τ_2$.
 \end{lemmarep}
@@ -419,7 +421,7 @@ well-addressedness, of course) due to laziness.
   ``probe'' $\FunV$ values with and the easier it is to prove bisimulation.
 \end{proof}
 
-\begin{lemmarep}[Address domain of $\semevt{\wild}$]
+\begin{lemmarep}[Address space of $\semevt{\wild}$]
   \label{thm:addr-dom-sem}
   For all address spaces $A$, environments $ρ$ and expressions $\pe$,
   if $\rng(ρ) ⊆ A$ then $A ⊦ \semevt{\pe}_ρ$.
@@ -439,9 +441,12 @@ follows:
 
 One could tweak the definition of $\semevt{\wild}$ such that
 it is undefined on an input heap $μ$ when $\rng(ρ) \not⊆ \dom(μ)$,
-thus making this axiom a provable lemma.
+thus making this axiom a provable lemma.%
+\footnote{In our Agda formalisation, the address space is a parameter of
+all domain elements, and heaps are total functions from $A$ to $\EventD(A)$,
+so well-addressedness and the $\wild ⊦ \wild$ are embedded in the types.}
 
-Evaluating lazy elements on heaps that force to each other is semantically equivalent:
+Evaluating lazy elements on heaps that force to each other are semantically equivalent:
 
 \begin{lemmarep}
   \label{thm:lazy-force-bisimilar}
@@ -463,15 +468,15 @@ Evaluating lazy elements on heaps that force to each other is semantically equiv
   judgments hold and $μ_1' \forcesto μ_2'$, so it suffices to show
   ${\dom(μ_1) ⊦ \goodend{v,μ_1'} \sim \goodend{v,μ_2'}}$.
 
-  For the $\ConV$ case, we can show $\many{\dom(μ_1) ⊦ μ_1'(\pa_1) \sim μ_2'(\pa_2)})$
+  For the $\ConV$ case, we can show $\later (\many{\dom(μ_1) ⊦ μ_1'(\pa_1)(μ_1') \sim μ_2'(\pa_2)(μ_2')})$
   via Löb induction, because $μ_1' \forcesto μ_2'$ and we may relax the address
-  space from $\dom(μ_1')$ to $\dom(μ_1)$ via \Cref{thm:weaken-address-domain}.
+  space from $\dom(μ_1')$ to $\dom(μ_1)$ via \Cref{thm:weaken-address-space}.
 
   For the $\FunV(f)$ case, we assume that $\dom(μ_1) ⊦ d$ holds for some
   $d$ and have to show that $\dom(μ_1) ⊦ f(d)(μ_1') \sim f(d)(μ_2')$.
   Again, that follows via Löb induction, because $μ_1' \forcesto μ_2'$ and we
   may relax the address space from $\dom(μ_1')$ to $\dom(μ_1)$ via
-  \Cref{thm:weaken-address-domain}.
+  \Cref{thm:weaken-address-space}.
 \end{proof}
 
 \begin{theoremrep}
@@ -562,7 +567,7 @@ and by transitivity we get
 \[
   \dom(μ_1') ⊦ d_1(μ_1') \sim d_3(μ_3')
 \]
-which can be weakened via \Cref{thm:weaken-address-domain} to $\dom(μ_1)$.
+which can be weakened via \Cref{thm:weaken-address-space} to $\dom(μ_1)$.
 \end{proof}
 
 Note that we only make use of extensionality to prove reflexivity; in fact,
@@ -640,7 +645,7 @@ By induction on $\pe$.
     $d \triangleq \semevt{\pe_1}_{ρ'}$ in particular.
     Then the goal follows by the inductive hypothesis applied to
     extensionality of $\semevt{\pe_2}_{ρ'}$ and
-    \Cref{thm:weaken-address-domain}.
+    \Cref{thm:weaken-address-space}.
 \end{itemize}
 \end{proof}
 
@@ -755,7 +760,7 @@ Most interestingly, $\semevt{\wild}$ is also compositional \wrt to $(\equiv)$!
       $\equiv$, and for $d \triangleq \semevt{\pe}_{ρ'}$ in particular.
       Then the goal follows by the inductive hypothesis applied to
       $\semevt{\pE[\pe_1]}_{ρ'} \equiv \semevt{\pE[\pe_2]}_{ρ'}$
-      and \Cref{thm:weaken-address-domain}.
+      and \Cref{thm:weaken-address-space}.
 
     \item \textbf{Case $\Let{\px}{\pE_1}{\pE_2[\px]}$}:
       Fix a particular $μ_1 \approx μ_2$.
