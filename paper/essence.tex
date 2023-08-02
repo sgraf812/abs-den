@@ -448,6 +448,37 @@ so well-addressedness and the $\wild ⊦ \wild$ are embedded in the types.}
 
 Evaluating lazy elements on heaps that force to each other are semantically equivalent:
 
+\begin{toappendix}
+\begin{lemma}
+  \label{thm:force-bisimilar}
+  Let $μ_1,μ_2$ be lazy heaps with $μ_1 \forcesto μ_2$.
+  Then for all $\pa ∈ \dom(μ_1)$, we have $\dom(μ_1) ⊦ μ_1(\pa)(μ_1) \sim μ_2(\pa)(μ_2)$.
+\end{lemma}
+\begin{proof}
+  If either $μ_1(\pa)(μ_1)$ or $μ_2(\pa)(μ_2)$ is ultimately stuck,
+  then so is the other, because it neither diverges nor evaluates due to
+  laziness.
+  In that case, we see that $\dom(μ_1) ⊦ μ_1(\pa)(μ_1) \sim μ_2(\pa)(μ_2)$.
+
+  If either $μ_1(\pa)(μ_1)$ or $μ_2(\pa)(μ_2)$ diverges, then so does the other,
+  in which case $\dom(μ_1) ⊦ μ_1(\pa)(μ_1) \sim μ_2(\pa)(μ_2)$.
+
+  If either $\bigstep{μ_1(\pa)}{μ_1}{v}{μ_1'}$ or $\bigstep{μ_2(\pa)}{μ_2}{v}{μ_2'}$
+  then both judgments hold by the Forces property and $μ_1' \forcesto μ_2'$, so it
+  suffices to show ${\dom(μ_1) ⊦ \goodend{v,μ_1'} \sim \goodend{v,μ_2'}}$.
+
+  For the $\ConV$ case, we can show $\later (\many{\dom(μ_1') ⊦ μ_1'(\pa_1)(μ_1') \sim μ_2'(\pa_2)(μ_2')})$
+  via Löb induction and relax the address space from $\dom(μ_1')$ to $\dom(μ_1)$
+  via \Cref{thm:weaken-address-space} to show the goal.
+
+  For the $\FunV(f)$ case, we fix an arbitrary $\pa ∈ \dom(μ_1)$ and have to
+  show that $\dom(μ_1) ⊦ f(\pa)(μ_1') \sim f(\pa)(μ_2')$.
+  Again, that follows via Löb induction, because $μ_1' \forcesto μ_2'$ and we
+  may relax the address space from $\dom(μ_1')$ to $\dom(μ_1)$ via
+  \Cref{thm:weaken-address-space}.
+\end{proof}
+\end{toappendix}
+
 \begin{lemmarep}
   \label{thm:lazy-force-bisimilar}
   Let $d$ be lazy. Then for all $μ_1,μ_2$ with $\dom(μ_1) ⊦ d$ and
@@ -464,6 +495,7 @@ Evaluating lazy elements on heaps that force to each other are semantically equi
 
   If either $d(μ_1)$ or $d(μ_2)$ diverges, then so does the other, in which case
   $\dom(μ_1) ⊦ d(μ_1) \sim d(μ_2)$.
+
   If either $\bigstep{d}{μ_1}{v}{μ_1'}$ or $\bigstep{d}{μ_2}{v}{μ_2'}$ then both
   judgments hold and $μ_1' \forcesto μ_2'$, so it suffices to show
   ${\dom(μ_1) ⊦ \goodend{v,μ_1'} \sim \goodend{v,μ_2'}}$.
