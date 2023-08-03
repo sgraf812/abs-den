@@ -59,13 +59,14 @@ data Val n where
 -- Domain combinators
 suc-≤ : ∀ {n m} → suc m ℕ.≤ n → m ℕ.≤ n
 suc-≤ p = ℕ.pred-≤-pred (ℕ.≤-suc p)
+
+private
+  ι-≤-loop : ∀ {n m} → (k : ℕ) → k ℕ.+ n ≡ m → Addr n → Addr m
+  ι-≤-loop         zero    n≡m     a = transport (cong Addr n≡m) a
+  ι-≤-loop {n} {m} (suc k) 1+k+n≡m a = ι-≤-loop k (ℕ.+-suc k n ∙ 1+k+n≡m) (ι a)
  
 ι-≤ : ∀ {n m} → n ℕ.≤ m → Addr n → Addr m
-ι-≤ {m = m} (k , k+n≡m) a = ind k k+n≡m a
-  where
-    ind : ∀ {n} → (k : ℕ) → k ℕ.+ n ≡ m → Addr n → Addr m
-    ind zero    n≡m     a = transport (cong Addr n≡m) a
-    ind {n} (suc k) 1+k+n≡m a = ind k (ℕ.+-suc k n ∙ 1+k+n≡m) (ι a)
+ι-≤ {m = m} (k , k+n≡m) a = ι-≤-loop k k+n≡m a
 
 ι-Val : ∀ {n m} → n ℕ.≤ m → Val n → Val m
 ι-Val n≤m (fun f) = fun (λ k m≤k a → f k (ℕ.≤-trans n≤m m≤k) a)
@@ -101,16 +102,16 @@ extend {n} μ d a' with decAddr a' (fresh n)
 
 private
   >>β=-loop : ∀ {n} → (∀ m → n ℕ.≤ m → Val m ⇀ Dom m) 
-            → ▹ (∀ {m} → n ℕ.≤ m → Trc m → Trc m) 
-            → ∀ {m} → n ℕ.≤ m → Trc m → Trc m
-  >>β=-loop f recurse▹ n≤m (a▹ :: τ▹) = a▹ :: (λ α → recurse▹ α (ℕ.≤-trans n≤m (≤-Act (a▹ α))) (τ▹ α))
-  >>β=-loop f recurse▹ n≤m (ret v μ) with f _ n≤m v
+            → ▹ (∀ m → n ℕ.≤ m → Trc m → Trc m) 
+            → ∀ m → n ℕ.≤ m → Trc m → Trc m
+  >>β=-loop f recurse▹ m n≤m (a▹ :: τ▹) = a▹ :: (λ α → recurse▹ α _ (ℕ.≤-trans n≤m (≤-Act (a▹ α))) (τ▹ α))
+  >>β=-loop f recurse▹ m n≤m (ret v μ) with f _ n≤m v
   ... | just d  = d μ
   ... | nothing = stuck
-  >>β=-loop _ _ _ _ = stuck
+  >>β=-loop _ _ _ _ _ = stuck
 
 _>>β=_ : ∀ {n} → Dom n → (∀ m → n ℕ.≤ m → Val m ⇀ Dom m) → Dom n
-_>>β=_ d f μ = fix (>>β=-loop f) ℕ.≤-refl (d μ)
+_>>β=_ d f μ = fix (>>β=-loop f) _ ℕ.≤-refl (d μ)
 
 gret : ∀ {n} → Val n → GDom n
 gret v m n≤m μ = ret (ι-Val n≤m v) μ 
@@ -209,6 +210,16 @@ _,_⇓_,_ {n} {m} d μ v μ' = Σ[ l ∈ ℕ ] Σ[ n≤m ∈ n ℕ.≤ m ] (drop
 --   ≤-Bigstep : d , μ ⇓ v , μ' → n ℕ.≤ m 
 --   ≤-Bigstep (_ , n≤m , _) = n≤m 
 
+ι-≤-trans : ∀ {n m k} {n≤m : n ℕ.≤ m} {m≤k : m ℕ.≤ k} {a} → ι-≤ (ℕ.≤-trans n≤m m≤k) a ≡ ι-≤ m≤k (ι-≤ n≤m a)
+ι-≤-trans {n≤m = n≤m} {m≤k = m≤k} {a = a} with m≤k 
+... | zero  , p = {!   !}
+... | suc d , p = {!   !}
+-- ι-≤-trans {n≤m = n≤m} {m≤k = m≤k} {a = a} = 
+--     ι-≤ (ℕ.≤-trans n≤m m≤k) a
+--   ≡⟨ {!   !} ⟩
+--     ι-≤ m≤k (ι-≤ n≤m a)
+--   ∎ 
+
 ≤-memo : ∀ {n m} {n≤m : n ℕ.≤ m} {a v} → ι-GDom n≤m (memo a (gret v)) ≡ memo (ι-≤ n≤m a) (gret (ι-Val n≤m v)) 
 ≤-memo {n} {m} {n≤m} {a} {v} = 
     ι-GDom n≤m (memo a (gret v))
@@ -219,10 +230,15 @@ _,_⇓_,_ {n} {m} d μ v μ' = Σ[ l ∈ ℕ ] Σ[ n≤m ∈ n ℕ.≤ m ] (drop
   ≡⟨ refl ⟩
     (λ k m≤k μ → ((λ μ' → (ret (ι-Val (ℕ.≤-trans n≤m m≤k) v) μ')) >>β= memo-cont (ι-≤ (ℕ.≤-trans n≤m m≤k) a)) μ)
   ≡⟨ refl ⟩
-    (λ k m≤k μ → subst (fix-eq (>>β=-loop (memo-cont (ι-≤ (ℕ.≤-trans n≤m m≤k) a)))) ℕ.≤-refl (ret (ι-Val (ℕ.≤-trans n≤m m≤k) v) μ))
-  ≡⟨ cong (λ expr → (λ k m≤k μ → fix (>>β=-loop (memo-cont (ι-≤ (ℕ.≤-trans n≤m m≤k) a))) ℕ.≤-refl (ret (ι-Val (ℕ.≤-trans n≤m m≤k) v) μ))) (fix-eq (>>β=-loop (memo-cont (ι-≤ (ℕ.≤-trans n≤m m≤k) a)))) ⟩
-    {!   !}
---    (λ k m≤k μ → >>β=-loop (memo-cont (ι-≤ (ℕ.≤-trans n≤m m≤k) a)) (next (fix (>>β=-loop (memo-cont (ι-≤ (ℕ.≤-trans n≤m m≤k) a))))) ℕ.≤-refl (ret (ι-Val (ℕ.≤-trans n≤m m≤k) v) μ))
+    (λ k m≤k μ → fix (>>β=-loop (memo-cont (ι-≤ (ℕ.≤-trans n≤m m≤k) a))) _ ℕ.≤-refl (ret (ι-Val (ℕ.≤-trans n≤m m≤k) v) μ))
   ≡⟨ {!   !} ⟩
+    (λ k m≤k μ → fix (>>β=-loop (memo-cont (ι-≤ m≤k (ι-≤ n≤m a)))) _ ℕ.≤-refl (ret (ι-Val m≤k (ι-Val n≤m v)) μ))
+--  ≡⟨ refl ⟩
+--    (λ k m≤k μ → subst (fix-eq (>>β=-loop (memo-cont (ι-≤ (ℕ.≤-trans n≤m m≤k) a)))) ℕ.≤-refl (ret (ι-Val (ℕ.≤-trans n≤m m≤k) v) μ))
+--  ≡⟨ refl ⟩
+--    (λ k m≤k μ → subst (fix-eq (>>β=-loop (memo-cont (ι-≤ (ℕ.≤-trans n≤m m≤k) a)))) ℕ.≤-refl (ret (ι-Val (ℕ.≤-trans n≤m m≤k) v) μ))
+--  ≡⟨ cong (λ expr → (λ k m≤k μ → fix (>>β=-loop (memo-cont (ι-≤ (ℕ.≤-trans n≤m m≤k) a))) ℕ.≤-refl (ret (ι-Val (ℕ.≤-trans n≤m m≤k) v) μ))) (fix-eq (>>β=-loop (memo-cont (ι-≤ (ℕ.≤-trans n≤m m≤k) a)))) ⟩
+--    (λ k m≤k μ → >>β=-loop (memo-cont (ι-≤ (ℕ.≤-trans n≤m m≤k) a)) (next (fix (>>β=-loop (memo-cont (ι-≤ (ℕ.≤-trans n≤m m≤k) a))))) ℕ.≤-refl (ret (ι-Val (ℕ.≤-trans n≤m m≤k) v) μ))
+  ≡⟨ refl ⟩
     memo (ι-≤ n≤m a) (gret (ι-Val n≤m v))  
-  ∎
+  ∎ 
