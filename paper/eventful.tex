@@ -82,7 +82,7 @@ remateriales the heap as needed from the history of the trace.}
   \multicolumn{3}{c}{ \ruleform{ \semevt{\wild} \colon \Exp → (\Var \pfun \Addresses) → \EventD } } \\
   \\[-0.75em]
   \semevt{\px}_ρ(μ)       & = & \begin{cases}
-    \LookupE(\pa) \cons μ(ρ(\px))(μ) & \px ∈ \dom(ρ) \\
+    \LookupE(ρ(\px)) \cons μ(ρ(\px))(μ) & \px ∈ \dom(ρ) \\
     \stuckend{}  & \text{otherwise} \\
   \end{cases} \\
   \\[-0.75em]
