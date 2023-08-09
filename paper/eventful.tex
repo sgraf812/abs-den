@@ -24,9 +24,8 @@ to track the instantiations of the transition rules taken, calling those
 instantiations \emph{events}.
 The resulting \emph{eventful trace semantics} $\semevt{\wild}$ is (closer to)
 the preferred framework of \citet{Cousot:21}.%
-\footnote{Cousot's \emph{stateless} semantics even goes one step further
-and
-remateriales the heap as needed from the history of the trace.}
+\footnote{Cousot's \emph{stateless} semantics goes one step further
+and rematerialises the heap as needed from the history of the trace.}
 %In essence, we shift attention from the \emph{nodes} of the control-flow graph
 %to the \emph{edges} modelling the transitions.
 
@@ -133,7 +132,7 @@ For example, the $\LookupE$ event carries the heap address which is accessed,
 $\BindE$ events carry the $\mathsf{let}$-bound variable, its fresh address and
 the denotation of the right-hand side.
 We thus open up our semantics for instrumentation.
-Certainly, we could have omitted some or added more information than what
+Certainly we could have omitted some or added more information than what
 the events carry; in this work we mostly care about $\LookupE$ events.
 
 \begin{toappendix}
