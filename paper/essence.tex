@@ -40,7 +40,7 @@ hence the name ``big-step'' is fitting.
 \begin{definition}[Heap forcing]
   \label{defn:force-heap}
   For all $μ_1, μ_2 ∈ \Heaps$, $μ_1$ \emph{forces} to $μ_2$
-  (written $μ_1 \forcesto μ_2$) if and only if, inductively,
+  (written $μ_1 \forcesto μ_2$) if and only if,
   \begin{enumerate}
     \item $\dom(μ_1) ⊆ \dom(μ_2)$, and
     \item For all $\pa ∈ \dom(μ_1)$, either
@@ -52,6 +52,9 @@ hence the name ``big-step'' is fitting.
       \end{itemize}
   \end{enumerate}
 \end{definition}
+
+(We understand \Cref{defn:force-heap} inductively, so $(\forcesto)$ is the least
+fixpoint of the implied functional.)
 
 Our earlier intuition can now be formulated as follows:
 If $\bigstep{\semevt{\pe}_ρ}{μ}{v}{μ'}$, then $μ \forcesto μ'$.
@@ -198,13 +201,22 @@ forcing relation.
   Hence we have shown that $μ_1 \forcesto μ_3$.
 
   Suppose that $μ_1(\pa) = μ_2(\pa)$, but $μ_2(\pa) \not= μ_3(\pa)$.
+  % Assume μ1(a)=μ2(a), μ1→μ2, μ2(a) /= μ3(a), μ2→μ3
+  % Have <μ2(a),μ2>⇓<v,μ2'>, μ2'→μ3, μ3(a) = ...(ret(v)) From μ2(a) /= μ3(a), μ2→μ3
+  % Have m(μ2) < m(μ3) From μ2(a) /= μ3(a), μ2→μ3
+  % Have μ2→μ2' From μ2(a) Forces
+  % Have m(μ2) <= m(μ2') <= m(μ3) From μ2→μ2', μ2'→μ3
+  % Have <μ1(a),μ2>⇓<v,μ2'> From μ1(a)=μ2(a) and <μ2(a),μ2>⇓<v,μ2'>
+  % Have <μ1(a),μ1>⇓<v,μ1'>, μ1'→μ2' From μ1(a) Speculate, <μ1(a),μ2>⇓<v,μ2'>
+  % Have μ1→μ1' From μ1(a) Forces
+  % Have m(μ1) <= m(μ1') <= m(μ2') From μ1→μ1', μ1'→μ2'
   Then there exists $v,μ'_2$ such that $\bigstep{μ_2(\pa)}{μ_2}{v}{μ'_2}$ and
   $μ_3(\pa) = \memo(\pa, \ret(v))$ as well as $μ'_2 \forcesto μ_3$.
   We know that $μ_1(\pa) = μ_2(\pa)$, so $\bigstep{μ_1(\pa)}{μ_2}{v}{μ'_2}$.
   Since $μ_1(\pa)$ is lazy and well-addressed \wrt $μ_1$ and $μ_1 \forcesto
   μ_2$, we get $\bigstep{μ_1(\pa)}{μ_1}{v}{μ'_1}$ such that $μ_1' \forcesto
   μ_2'$ by definition of laziness.
-  Again, by induction on the derivation on $μ'_1 \forcesto μ'_2$ we may assume
+  Again, by induction on the derivation on $μ_1 \forcesto μ_2$ we may assume
   that $μ_1 \not= μ_1'$ and hence that $m(μ'_1)<m(μ_1)$.
   By well-founded induction, we can combine $μ'_1 \forcesto μ_2'$ and
   $μ_2' \forcesto μ_3$ to $μ'_1 \forcesto μ_3$.
