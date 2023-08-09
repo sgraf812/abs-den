@@ -172,8 +172,9 @@ forcing relation.
   with the pointwise partial order on $\dom(μ_n) \to \{0,1,2\}$.
   When $\dom(μ_n)$ is finite, this partial order has finite height, which can
   thus serve as a termination measure.
-  Note that $μ \forcesto μ'$ and $μ \not= μ'$  implies $m(μ') < m(μ)$; this
-  is simple to see by induction on the derivation of $μ \forcesto μ'$.
+  Note that $μ_1 \forcesto μ_2$ and $μ_1 \not= μ_2$  implies (1) $m(μ') < m(μ)$     % Obs1
+  as well as that (2) there exists $μ_1' \not= μ_1$ such that $μ_1' \forcesto μ_2$. % Obs2
+  Both facts follow by induction on $μ_1 \forcesto μ_2$.
 
   We proceed by well-founded induction with the above measure $m$ defined on
   $\dom(μ_3)$.
@@ -184,45 +185,58 @@ forcing relation.
   We can see that $\dom(μ_1) ⊆ \dom(μ_2) ⊆ \dom(μ_3)$, proving the first property
   of \Cref{defn:force-heap}.
   For the second property, fix an arbitrary $\pa$.
-  When $μ_1(\pa) = μ_2(\pa)$ and $μ_2(\pa) = μ_3(\pa)$, we have $μ_1(\pa) = μ_3(\pa)$.
-  Otherwise, either $μ_1(\pa) \not= μ_2(\pa)$ or $μ_2(\pa) \not= μ_3(\pa)$.
 
-  Suppose that $μ_1(\pa) \not= μ_2(\pa)$.
-  Then there exists $v,μ'_1$ such that $\bigstep{μ_1(\pa)}{μ_1}{v}{μ'_1}$ and
-  $μ_2(\pa) = \memo(\pa,\ret(v))$ as well as $μ'_1 \forcesto μ_2$.
-  By induction on $μ_1 \forcesto μ_2$, we must ultimately make a step such
-  that $μ_1 \not= μ'_1$ and the case $μ_1 = μ'_1$ follows by the inductive
-  hypothesis.
-  When $μ_1 \not= μ'_1$, then $m(μ_1') < m(μ_1)$ because $μ_1 \forcesto μ_1'$ by
-  laziness and by well-founded induction we can combine $μ'_1 \forcesto μ_2$ and
-  $μ_2 \forcesto μ_3$ to $μ'_1 \forcesto μ_3$.
-  By \Cref{thm:force-heap-val} applied to $μ_2 \forcesto μ_3$, we have
-  $μ_2(\pa) = μ_3(\pa) = \memo(\pa,\ret(v))$.
-  Hence we have shown that $μ_1 \forcesto μ_3$.
+  \begin{itemize}
+    \item \textbf{Case $μ_1(\pa) = μ_2(\pa) = μ_3(\pa)$}:
+      Then we have $μ_1(\pa) = μ_3(\pa)$, so we apply (1) of \Cref{defn:force-heap}.
+    \item \textbf{Case $μ_1(\pa) \not= μ_2(\pa)$}:
+      Then there exists $v,μ'_1$ such that $\bigstep{μ_1(\pa)}{μ_1}{v}{μ'_1}$ and
+      $μ_2(\pa) = \memo(\pa,\ret(v))$ as well as $μ'_1 \forcesto μ_2$.
 
-  Suppose that $μ_1(\pa) = μ_2(\pa)$, but $μ_2(\pa) \not= μ_3(\pa)$.
-  % Assume μ1(a)=μ2(a), μ1→μ2, μ2(a) /= μ3(a), μ2→μ3
-  % Have <μ2(a),μ2>⇓<v,μ2'>, μ2'→μ3, μ3(a) = ...(ret(v)) From μ2(a) /= μ3(a), μ2→μ3
-  % Have m(μ2) < m(μ3) From μ2(a) /= μ3(a), μ2→μ3
-  % Have μ2→μ2' From μ2(a) Forces
-  % Have m(μ2) <= m(μ2') <= m(μ3) From μ2→μ2', μ2'→μ3
-  % Have <μ1(a),μ2>⇓<v,μ2'> From μ1(a)=μ2(a) and <μ2(a),μ2>⇓<v,μ2'>
-  % Have <μ1(a),μ1>⇓<v,μ1'>, μ1'→μ2' From μ1(a) Speculate, <μ1(a),μ2>⇓<v,μ2'>
-  % Have μ1→μ1' From μ1(a) Forces
-  % Have m(μ1) <= m(μ1') <= m(μ2') From μ1→μ1', μ1'→μ2'
-  Then there exists $v,μ'_2$ such that $\bigstep{μ_2(\pa)}{μ_2}{v}{μ'_2}$ and
-  $μ_3(\pa) = \memo(\pa, \ret(v))$ as well as $μ'_2 \forcesto μ_3$.
-  We know that $μ_1(\pa) = μ_2(\pa)$, so $\bigstep{μ_1(\pa)}{μ_2}{v}{μ'_2}$.
-  Since $μ_1(\pa)$ is lazy and well-addressed \wrt $μ_1$ and $μ_1 \forcesto
-  μ_2$, we get $\bigstep{μ_1(\pa)}{μ_1}{v}{μ'_1}$ such that $μ_1' \forcesto
-  μ_2'$ by definition of laziness.
-  Again, by induction on the derivation on $μ_1 \forcesto μ_2$ we may assume
-  that $μ_1 \not= μ_1'$ and hence that $m(μ'_1)<m(μ_1)$.
-  By well-founded induction, we can combine $μ'_1 \forcesto μ_2'$ and
-  $μ_2' \forcesto μ_3$ to $μ'_1 \forcesto μ_3$.
-  (This step is the reason why we need the termination measure:
-  The recursion into $μ'_1 \forcesto μ'_2$ is not structural.)
-  Hence have shown that $μ_1 \forcesto μ_3$.
+      Since $μ_1 \not= μ_2$, some step in the chain
+      $μ_1 \forcesto μ_1' \forcesto μ_2$ must be proper.
+      Without loss of generality, we assume $μ_1 \not= μ_1'$;
+      otherwise $μ_1' \forcesto μ_2$ must be proper and we apply observation (2).
+
+      It follows that $m(μ_1') < m(μ_1)$ because $μ_1 \forcesto μ_1'$ by
+      the Forces property of laziness, and by well-founded induction we can combine
+      $μ'_1 \forcesto μ_2$ and $μ_2 \forcesto μ_3$ to $μ'_1 \forcesto μ_3$.
+      By \Cref{thm:force-heap-val} applied to $μ_2 \forcesto μ_3$, we have
+      $μ_2(\pa) = μ_3(\pa) = \memo(\pa,\ret(v))$.
+      Hence we have shown that $μ_1 \forcesto μ_3$.
+    \item \textbf{Case $μ_1(\pa) = μ_2(\pa) \not= μ_3(\pa)$}:
+      % Assume μ1(a)=μ2(a), μ1→μ2, μ2(a) /= μ3(a), μ2→μ3
+      % Have <μ2(a),μ2>⇓<v,μ2'>, μ2'→μ3, μ3(a) = ...(ret(v)) From μ2(a) /= μ3(a), μ2→μ3
+      % Have <μ1(a),μ2>⇓<v,μ2'> From μ1(a)=μ2(a) and <μ2(a),μ2>⇓<v,μ2'>
+      % Have <μ1(a),μ1>⇓<v,μ1'>, μ1'→μ2' From μ1→μ2, μ1(a) Speculate, <μ1(a),μ2>⇓<v,μ2'>
+      % Have μ1 /= μ1' From W.l.o.g. Obs2, μ1'→μ2'→μ3 (and the fact that μ1/=μ3, so any of the three steps must be a proper one)
+      % Have m(μ1') < m(μ1) From μ1 /= μ1'
+      % Have m(μ1')-m(μ3) < m(μ1)-m(μ3) From m(μ1') < m(μ1)
+      % Have μ1'→μ3 From μ1'→μ2',μ2'→μ3 and WFI(m(μ1')-m(μ3) < m(μ1)-m(μ3))
+      % Have μ1→μ3 From <μ1(a),μ1>⇓<v,μ1'>, μ3(a)=...(ret(v))..., μ1'→μ3
+      Then there exists $v,μ'_2$ such that $\bigstep{μ_2(\pa)}{μ_2}{v}{μ'_2}$ and
+      $μ_3(\pa) = \memo(\pa, \ret(v))$ as well as $μ'_2 \forcesto μ_3$.
+      We know that $μ_1(\pa) = μ_2(\pa)$, so $\bigstep{μ_1(\pa)}{μ_2}{v}{μ'_2}$.
+      Since $μ_1(\pa)$ is lazy and well-addressed \wrt $μ_1$ and $μ_1 \forcesto
+      μ_2$, we get $\bigstep{μ_1(\pa)}{μ_1}{v}{μ'_1}$ such that $μ_1' \forcesto
+      μ_2'$ by the Speculate property.
+
+      Since $μ_1 \not= μ_3$, some step in the chain
+      $μ_1 \forcesto μ_1' \forcesto μ_2' \forcesto μ_3$ must be proper.
+      The case $μ_1 = μ_2'$ follows directly from $μ_1 = μ_2' \forcesto μ_3$.
+      Otherwise, when $μ_1 = μ_1'$ we have $μ_1' \not= μ_2'$ and by observation (2)
+      we find $μ_1''$ such that $μ_1' \not= μ_1''$ and $μ_1'' \forcesto μ_2$,
+      leading to a similar situation as when $μ_1 \not= μ_1'$.
+
+      So without loss of generality, we assume $μ_1 \not= μ_1'$.
+      From that we have $m(μ'_1)<m(μ_1)$, so by well-founded induction, we can
+      combine $μ'_1 \forcesto μ_2'$ and $μ_2' \forcesto μ_3$ to
+      $μ'_1 \forcesto μ_3$.
+      (This step is the reason why we need the termination measure:
+      The recursion into $μ'_1 \forcesto μ'_2$ is not structural.)
+      Since we also have $μ_3(\pa) = \memo(\pa, \ret(v))$ and
+      $\bigstep{μ_1(\pa)}{μ_1}{v}{μ'_1}$, we can show that $μ_1 \forcesto μ_3$.
+  \end{itemize}
 \end{proof}
 
 \begin{corollary}
