@@ -418,8 +418,8 @@ The following example illustrates how exactly such argument denotations should b
 restricted:
 \[\begin{array}{rclcl}
   \semevt{\Let{x}{\ttrue}{\Lam{y}{y}}}_{[]}([])
-  & = & ... \cons \goodend{\FunV(\fn{\pa}{\fn{μ}{...μ(\pa)...}}),[\pa_1↦\semevt{\ttrue}_{...}]} \\
-  & \equiv & ... \cons \goodend{\FunV(\fn{\pa}{\fn{μ}{...μ(\pa)...}}),[\pa_1↦\semevt{\ffalse}_{...}]} \\
+  & = & ... \cons \goodend{\FunV(\fn{\pa}{\fn{μ}{...μ(\pa)...}}),[\pa_1↦d_t]} \\
+  & \equiv & ... \cons \goodend{\FunV(\fn{\pa}{\fn{μ}{...μ(\pa)...}}),[\pa_1↦d_f]} \\
   & = & \semevt{\Let{x}{\ffalse}{\Lam{y}{y}}}_{[]}([]),
 \end{array}\]
 In both cases, the function value $\FunV(\fn{\pa}{\fn{μ}{...μ(\pa)...}})$ is to
@@ -470,17 +470,70 @@ it is undefined on an input heap $μ$ when $\rng(ρ) \not⊆ \dom(μ)$,
 thus making this axiom a provable lemma.%
 \footnote{In our Agda formalisation, the address space is a parameter of
 all domain elements, and heaps are total functions from $A$ to $\EventD(A)$,
-so well-addressedness and the $\wild ⊦ \wild$ are embedded in the types.}
+so well-addressedness and the $\wild ⊦ \wild$ judgment are embedded in the types.}
 
 Evaluating lazy elements on heaps that force to each other are semantically equivalent:
 
 \begin{toappendix}
 \begin{lemma}
   \label{thm:force-bisimilar}
-  Let $μ_1,μ_2$ be lazy heaps with $μ_1 \forcesto μ_2$.
-  Then for all $\pa ∈ \dom(μ_1)$, we have $\dom(μ_1) ⊦ μ_1(\pa)(μ_1) \sim μ_2(\pa)(μ_2)$.
+  Let $μ_1,μ_2$ be lazy heaps with $μ_1 \forcesto μ_2$. Then
+  \begin{enumerate}
+    \item For all lazy $d$, we have $\dom(μ_1) ⊦ d(μ_1) \sim d(μ_2)$.
+    \item For all $\pa ∈ \dom(μ_1)$, we have $\dom(μ_1) ⊦ μ_1(\pa)(μ_1) \sim μ_2(\pa)(μ_2)$.
+  \end{enumerate}
 \end{lemma}
 \begin{proof}
+%  This lemma makes essential use of the Postpone and Speculate properties.
+  By mixed induction/Löb induction.
+  That is, we assume both that the predicate holds \emph{later} as well as
+  \emph{now} for any sub-occurrence. %WTF
+  \begin{enumerate}
+    \item
+%      Note that we are free to make use of the latter because $d$ is defined
+%      at $μ_1$.
+      If either $d(μ_1)$ or $d(μ_2)$ is ultimately stuck, then so is the other,
+      because it neither diverges nor evaluates.
+      In that case, we see that $\dom(μ_1) ⊦ d(μ_1) \sim d(μ_2)$.
+
+      If either $d(μ_1)$ or $d(μ_2)$ diverges, then so does the other, in which case
+      $\dom(μ_1) ⊦ d(μ_1) \sim d(μ_2)$.
+
+      If either $\bigstep{d}{μ_1}{v}{μ_1'}$ or $\bigstep{d}{μ_2}{v}{μ_2'}$ then both
+      judgments hold by the Speculate and Postpone properties and we have
+      $μ_1' \forcesto μ_2'$.
+      Hence it suffices to show
+      ${\dom(μ_1) ⊦ \goodend{v,μ_1'} \sim \goodend{v,μ_2'}}$.
+
+      We have $\later (\many{\dom(μ_1') ⊦ μ_1'(\pa_1)(μ_1') \sim μ_2'(\pa_2)(μ_2')})$
+      by the induction hypothesis applied to $μ_1' \forcesto μ_2'$.
+
+      For the $\ConV$ case, we can relax the address space from
+      $\dom(μ_1')$ to $\dom(μ_1)$ via \Cref{thm:weaken-address-space} to show
+      the goal.
+
+      For the $\FunV(f)$ case, we fix $\pa ∈ \dom(μ_1)$ and have to show that
+      $\dom(μ_1) ⊦ f(\pa)(μ_1') \sim f(\pa)(μ_2')$.
+      % Can't do Löb induction without later!!!
+      % And we really do need regular induction here, I think, because otherwise
+      % the predicate is not strong enough.
+      % Hmm. Perhaps we *can* afford a later, because the App case makes an
+      % app_1 step before recursion.
+      % It's also not possible to show it inductively, because we have nothing
+      % to work with regarding f(\pa)
+      Again, that follows via Löb induction, because $μ_1' \forcesto μ_2'$ and we
+      may relax the address space from $\dom(μ_1')$ to $\dom(μ_1)$ via
+      \Cref{thm:weaken-address-space}.
+    \item
+      If $μ_1(\pa) = μ_2(\pa)$ then (2) follows from (1),
+      so let $μ_1(\pa) \not= μ_2(\pa)$.
+      From $μ_1 \forcesto μ_2$ it follows that $\bigstep{μ_1(\pa)}{μ_1}{v}{μ_1'}$
+      for some $v,μ_1'$, $μ_2(\pa) = \memo(\pa,\ret(v))$ and $μ_1' \forcesto μ_2$.
+      This implies that $\bigstep{μ_2(\pa)}{μ_2}{v}{μ_2}$.
+  \end{enumerate}
+
+  hence it suffices to show
+  $\dom(μ_1) ⊦ μ_1(\pa)(μ_1) \sim μ_2(\pa)(μ_2)$.
   If either $μ_1(\pa)(μ_1)$ or $μ_2(\pa)(μ_2)$ is ultimately stuck,
   then so is the other, because it neither diverges nor evaluates due to
   laziness.
@@ -490,8 +543,9 @@ Evaluating lazy elements on heaps that force to each other are semantically equi
   in which case $\dom(μ_1) ⊦ μ_1(\pa)(μ_1) \sim μ_2(\pa)(μ_2)$.
 
   If either $\bigstep{μ_1(\pa)}{μ_1}{v}{μ_1'}$ or $\bigstep{μ_2(\pa)}{μ_2}{v}{μ_2'}$
-  then both judgments hold by the Forces property and $μ_1' \forcesto μ_2'$, so it
-  suffices to show ${\dom(μ_1) ⊦ \goodend{v,μ_1'} \sim \goodend{v,μ_2'}}$.
+  then both judgments hold by the Speculate and Postpone properties and $μ_1'
+  \forcesto μ_2'$, so it suffices to show ${\dom(μ_1) ⊦ \goodend{v,μ_1'} \sim
+  \goodend{v,μ_2'}}$.
 
   For the $\ConV$ case, we can show $\later (\many{\dom(μ_1') ⊦ μ_1'(\pa_1)(μ_1') \sim μ_2'(\pa_2)(μ_2')})$
   via Löb induction and relax the address space from $\dom(μ_1')$ to $\dom(μ_1)$
