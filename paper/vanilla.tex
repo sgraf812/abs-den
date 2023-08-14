@@ -205,8 +205,8 @@ development for \Cref{fig:semvan,fig:semevt} in the Supplement.
   }} \\
   \\[-0.5em]
   (d \betastep f)(μ) & = & \begin{cases}
-      \laterC^n~f(v,μ')  & \text{$d(μ) = \laterC^n~\goodend{v,μ'}$ and $(v,μ') ∈ \dom(f)$} \\
-      \laterC^n~\stuckend  & \text{$d(μ) = \laterC^n~\goodend{v,μ'}$ and $(v,μ') \not∈ \dom(f)$} \\
+      \laterC^n~f(v)(μ')  & \text{$d(μ) = \laterC^n~\goodend{v,μ'}$ and $v ∈ \dom(f)$} \\
+      \laterC^n~\stuckend  & \text{$d(μ) = \laterC^n~\goodend{v,μ'}$ and $v \not∈ \dom(f)$} \\
       d(μ) & \text{otherwise} \\
     \end{cases} \\
   \\[-0.5em]
@@ -227,7 +227,7 @@ development for \Cref{fig:semvan,fig:semevt} in the Supplement.
   \semvan{\Lam{\px}{\pe}}_ρ & = & \ret(\FunV(\fn{\pa}{\semvan{\pe}_{ρ[\px↦\pa]}})) \\
   \\[-0.5em]
   \semvan{\pe~\px}_ρ(μ) & = & \begin{cases}
-      \laterC~\apply(\semvan{\pe}_ρ,\pa)(μ) & \px ∈ \dom(ρ) \\
+      \laterC~\apply(\semvan{\pe}_ρ,ρ(\px))(μ) & \px ∈ \dom(ρ) \\
       \stuckend & \text{otherwise} \\
     \end{cases} \\
   \\[-0.5em]

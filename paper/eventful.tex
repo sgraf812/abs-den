@@ -73,8 +73,8 @@ and rematerialises the heap as needed from the history of the trace.}
   \\[-0.75em]
   \ret(v)(μ) & = & \goodend{v,μ} \\
   \apply(d,\pa) & = & d \betastep \fn{(\FunV(f))}{f(\pa)} \\
-  \select(d,\alts) & = & d \betastep \fn{(\ConV(K_s,\many{d_s^\later}))}{\alts(K_s, \many{d_s^\later})} \quad \text{where } (K_s, \many{d_s^\later}) ∈ \dom(\alts) \\
-  \memo(\pa,d)   & = & d \betastep \fn{v}{(\fn{μ'}{\UpdateE(\pa↦v) \cons \goodend{v,μ'[\pa↦\memo(\pa,\ret(v))]}})} \\
+  \select(d,\alts) & = & d \betastep \fn{(\ConV(K_s,\many{\pa}))}{\alts(K_s, \many{\pa})} \quad \text{where } (K_s, \many{\pa}) ∈ \dom(\alts) \\
+  \memo(\pa,d)   & = & d \betastep \fn{v}{(\fn{μ}{\UpdateE(\pa↦v) \cons \goodend{v,μ[\pa↦\memo(\pa,\ret(v))]}})} \\
  \end{array} \\
  \\[-0.75em]
  \begin{array}{rcl}
