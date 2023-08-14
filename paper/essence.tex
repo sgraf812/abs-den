@@ -316,9 +316,17 @@ This result justifies our tacit assumption from now on that all elements $d$ are
  \ruleform{ \fin(τ) \qquad A ⊦ d \qquad A ⊦ τ_1 \sim τ_2 \qquad μ_1 \approx μ_2 \qquad d_1 \equiv d_2}
  \\
  \\[-0.5em]
- \inferrule*[right=\textsc{Fin}]
-    {τ = \many{...{}\cons {}} τ' \quad τ' \not= \wild \cons \wild}
+ \inferrule*[right=\finstuck]
+    {\quad}
+    {\fin(\stuckend)}
+ \quad
+ \inferrule*[right=\fingood]
+    {\quad}
+    {\fin(\goodend{v,μ})}
+ \quad
+ \inferrule*[right=\fincons]
     {\fin(τ)}
+    {\fin(a \cons τ)}
  \quad
  \inferrule*[right=\textsc{Dom}]
     {∀μ.\ A ⊆ \dom(μ) \Longrightarrow d(μ) \text{ is defined}}
@@ -330,11 +338,11 @@ This result justifies our tacit assumption from now on that all elements $d$ are
     {A ⊦ \wild \cons τ_1 \sim \wild \cons τ_2}
  \quad
  \inferrule*[right=\eqrcons]
-    {A ⊦ τ_1 \sim τ_2 \quad \fin(τ_2)}
+    {\later (A ⊦ τ_1 \sim τ_2) \quad \fin(τ_2)}
     {A ⊦ τ_1 \sim \wild \cons τ_2}
  \quad
  \inferrule*[right=\eqlcons]
-    {A ⊦ τ_1 \sim τ_2 \quad \fin(τ_1)}
+    {\later (A ⊦ τ_1 \sim τ_2) \quad \fin(τ_1)}
     {A ⊦ \wild \cons τ_1 \sim τ_2}
  \\
  \\[-0.5em]
@@ -347,8 +355,11 @@ This result justifies our tacit assumption from now on that all elements $d$ are
     {A ⊦ \goodend{\ConV(K, \many{\pa_1}), μ_1} \sim \goodend{\ConV(K, \many{\pa_2}), μ_2}}
  \\
  \\[-0.5em]
+ % We need later (coinduction) here rather than induction, because otherwise we
+ % have no induction hypothesis to prove the Fun case of
+ % "d lazy, μ1~>μ2 => d(μ1)===d(μ2)" with
  \inferrule*[right=\eqfun]
-    {\forall \pa.\ \pa ∈ A ⟹  A ⊦ f_1(\pa)(μ_1) \sim f_2(\pa)(μ_2)}
+    {\forall \pa.\ \pa ∈ A ⟹  \later (A ⊦ f_1(\pa)(μ_1) \sim f_2(\pa)(μ_2))}
     {A ⊦ \goodend{\FunV(f_1), μ_1} \sim \goodend{\FunV(f_2), μ_2}}
  \\
  \\[-0.5em]
@@ -474,20 +485,17 @@ so well-addressedness and the $\wild ⊦ \wild$ judgment are embedded in the typ
 
 Evaluating lazy elements on heaps that force to each other are semantically equivalent:
 
-\begin{toappendix}
-\begin{lemma}
-  \label{thm:force-bisimilar}
+\begin{lemmarep}
+  \label{thm:lazy-force-bisimilar}
   Let $μ_1,μ_2$ be lazy heaps with $μ_1 \forcesto μ_2$. Then
   \begin{enumerate}
     \item For all lazy $d$, we have $\dom(μ_1) ⊦ d(μ_1) \sim d(μ_2)$.
     \item For all $\pa ∈ \dom(μ_1)$, we have $\dom(μ_1) ⊦ μ_1(\pa)(μ_1) \sim μ_2(\pa)(μ_2)$.
   \end{enumerate}
-\end{lemma}
+\end{lemmarep}
 \begin{proof}
 %  This lemma makes essential use of the Postpone and Speculate properties.
-  By mixed induction/Löb induction.
-  That is, we assume both that the predicate holds \emph{later} as well as
-  \emph{now} for any sub-occurrence. %WTF
+  By Löb induction.
   \begin{enumerate}
     \item
 %      Note that we are free to make use of the latter because $d$ is defined
@@ -496,103 +504,41 @@ Evaluating lazy elements on heaps that force to each other are semantically equi
       because it neither diverges nor evaluates.
       In that case, we see that $\dom(μ_1) ⊦ d(μ_1) \sim d(μ_2)$.
 
-      If either $d(μ_1)$ or $d(μ_2)$ diverges, then so does the other, in which case
-      $\dom(μ_1) ⊦ d(μ_1) \sim d(μ_2)$.
+      Similarly, if either $d(μ_1)$ or $d(μ_2)$ diverges, then so does the
+      other, in which case $\dom(μ_1) ⊦ d(μ_1) \sim d(μ_2)$.
 
       If either $\bigstep{d}{μ_1}{v}{μ_1'}$ or $\bigstep{d}{μ_2}{v}{μ_2'}$ then both
-      judgments hold by the Speculate and Postpone properties and we have
-      $μ_1' \forcesto μ_2'$.
+      judgments hold by the Speculate and Postpone properties (note that $d$ is
+      defined on $μ_1$ because $\dom(μ_1) ⊦ d$) and we have $μ_1' \forcesto μ_2'$.
       Hence it suffices to show
       ${\dom(μ_1) ⊦ \goodend{v,μ_1'} \sim \goodend{v,μ_2'}}$.
 
-      We have $\later (\many{\dom(μ_1') ⊦ μ_1'(\pa_1)(μ_1') \sim μ_2'(\pa_2)(μ_2')})$
-      by the induction hypothesis applied to $μ_1' \forcesto μ_2'$.
+      For the $v=\ConV(K,\many{\pa})$ case,
+      we have $\later (\many{\dom(μ_1') ⊦ μ_1'(\pa')(μ_1') \sim μ_2'(\pa')(μ_2')})$
+      for all $\pa' ∈ \dom(μ_1')$ by (2) of the induction hypothesis applied to $μ_1' \forcesto μ_2'$.
+      We can relax the address space from $\dom(μ_1')$ to $\dom(μ_1)$ via
+      \Cref{thm:weaken-address-space} to show the goal.
 
-      For the $\ConV$ case, we can relax the address space from
-      $\dom(μ_1')$ to $\dom(μ_1)$ via \Cref{thm:weaken-address-space} to show
-      the goal.
-
-      For the $\FunV(f)$ case, we fix $\pa ∈ \dom(μ_1)$ and have to show that
-      $\dom(μ_1) ⊦ f(\pa)(μ_1') \sim f(\pa)(μ_2')$.
-      % Can't do Löb induction without later!!!
-      % And we really do need regular induction here, I think, because otherwise
-      % the predicate is not strong enough.
-      % Hmm. Perhaps we *can* afford a later, because the App case makes an
-      % app_1 step before recursion.
-      % It's also not possible to show it inductively, because we have nothing
-      % to work with regarding f(\pa)
-      Again, that follows via Löb induction, because $μ_1' \forcesto μ_2'$ and we
-      may relax the address space from $\dom(μ_1')$ to $\dom(μ_1)$ via
+      For the $v=\FunV(f)$ case, we fix an arbitrary $\pa ∈ \dom(μ_1)$ and have
+      to show that $\later (\dom(μ_1) ⊦ f(\pa)(μ_1') \sim f(\pa)(μ_2'))$.
+      But $f(\pa)$ is lazy, and
+      we have $\later (\many{\dom(μ_1') ⊦ f(\pa)(μ_1') \sim f(\pa)(μ_2')})$
+      by (1) of the induction hypothesis applied to $μ_1' \forcesto μ_2'$.
+      Again, we may relax the address space from $\dom(μ_1')$ to $\dom(μ_1)$ via
       \Cref{thm:weaken-address-space}.
     \item
-      If $μ_1(\pa) = μ_2(\pa)$ then (2) follows from (1),
+      If $μ_1(\pa) = μ_2(\pa)$ then (2) follows by a similar argument as (1),
       so let $μ_1(\pa) \not= μ_2(\pa)$.
-      From $μ_1 \forcesto μ_2$ it follows that $\bigstep{μ_1(\pa)}{μ_1}{v}{μ_1'}$
+      From $μ_1 \forcesto μ_2$ we have $\bigstep{μ_1(\pa)}{μ_1}{v}{μ_1'}$
       for some $v,μ_1'$, $μ_2(\pa) = \memo(\pa,\ret(v))$ and $μ_1' \forcesto μ_2$.
       This implies that $\bigstep{μ_2(\pa)}{μ_2}{v}{μ_2}$.
+      By a similar argument as in (1), we can show that
+      ${\dom(μ_1) ⊦ \goodend{v,μ_1'} \sim \goodend{v,μ_2}}$.
   \end{enumerate}
-
-  hence it suffices to show
-  $\dom(μ_1) ⊦ μ_1(\pa)(μ_1) \sim μ_2(\pa)(μ_2)$.
-  If either $μ_1(\pa)(μ_1)$ or $μ_2(\pa)(μ_2)$ is ultimately stuck,
-  then so is the other, because it neither diverges nor evaluates due to
-  laziness.
-  In that case, we see that $\dom(μ_1) ⊦ μ_1(\pa)(μ_1) \sim μ_2(\pa)(μ_2)$.
-
-  If either $μ_1(\pa)(μ_1)$ or $μ_2(\pa)(μ_2)$ diverges, then so does the other,
-  in which case $\dom(μ_1) ⊦ μ_1(\pa)(μ_1) \sim μ_2(\pa)(μ_2)$.
-
-  If either $\bigstep{μ_1(\pa)}{μ_1}{v}{μ_1'}$ or $\bigstep{μ_2(\pa)}{μ_2}{v}{μ_2'}$
-  then both judgments hold by the Speculate and Postpone properties and $μ_1'
-  \forcesto μ_2'$, so it suffices to show ${\dom(μ_1) ⊦ \goodend{v,μ_1'} \sim
-  \goodend{v,μ_2'}}$.
-
-  For the $\ConV$ case, we can show $\later (\many{\dom(μ_1') ⊦ μ_1'(\pa_1)(μ_1') \sim μ_2'(\pa_2)(μ_2')})$
-  via Löb induction and relax the address space from $\dom(μ_1')$ to $\dom(μ_1)$
-  via \Cref{thm:weaken-address-space} to show the goal.
-
-  For the $\FunV(f)$ case, we fix an arbitrary $\pa ∈ \dom(μ_1)$ and have to
-  show that $\dom(μ_1) ⊦ f(\pa)(μ_1') \sim f(\pa)(μ_2')$.
-  Again, that follows via Löb induction, because $μ_1' \forcesto μ_2'$ and we
-  may relax the address space from $\dom(μ_1')$ to $\dom(μ_1)$ via
-  \Cref{thm:weaken-address-space}.
-\end{proof}
-\end{toappendix}
-
-\begin{lemmarep}
-  \label{thm:lazy-force-bisimilar}
-  Let $d$ be lazy. Then for all $μ_1,μ_2$ with $\dom(μ_1) ⊦ d$ and
-  $μ_1 \forcesto μ_2$, we have $\dom(μ_1) ⊦ d(μ_1) \sim d(μ_2)$.
-\end{lemmarep}
-\begin{proof}
-  This lemma makes essential use of the Postpone and Speculate properties.
-  Note that we are free to make use of the latter because $d$ is defined
-  at $μ_1$.
-
-  If either $d(μ_1)$ or $d(μ_2)$ is ultimately stuck, then so is the other,
-  because it neither diverges nor evaluates.
-  In that case, we see that $\dom(μ_1) ⊦ d(μ_1) \sim d(μ_2)$.
-
-  If either $d(μ_1)$ or $d(μ_2)$ diverges, then so does the other, in which case
-  $\dom(μ_1) ⊦ d(μ_1) \sim d(μ_2)$.
-
-  If either $\bigstep{d}{μ_1}{v}{μ_1'}$ or $\bigstep{d}{μ_2}{v}{μ_2'}$ then both
-  judgments hold and $μ_1' \forcesto μ_2'$, so it suffices to show
-  ${\dom(μ_1) ⊦ \goodend{v,μ_1'} \sim \goodend{v,μ_2'}}$.
-
-  For the $\ConV$ case, we can show $\later (\many{\dom(μ_1) ⊦ μ_1'(\pa_1)(μ_1') \sim μ_2'(\pa_2)(μ_2')})$
-  via Löb induction, because $μ_1' \forcesto μ_2'$ and we may relax the address
-  space from $\dom(μ_1')$ to $\dom(μ_1)$ via \Cref{thm:weaken-address-space}.
-
-  For the $\FunV(f)$ case, we assume that $\dom(μ_1) ⊦ d$ holds for some
-  $d$ and have to show that $\dom(μ_1) ⊦ f(d)(μ_1') \sim f(d)(μ_2')$.
-  Again, that follows via Löb induction, because $μ_1' \forcesto μ_2'$ and we
-  may relax the address space from $\dom(μ_1')$ to $\dom(μ_1)$ via
-  \Cref{thm:weaken-address-space}.
 \end{proof}
 
 \begin{theoremrep}
-  For any fixed address space $A$, $A ⊦ \wild \sim \wild$ is an equivalence relation on lazy traces.
+  For any address space $A$, $A ⊦ \wild \sim \wild$ is an equivalence relation on lazy traces.
 \end{theoremrep}
 \begin{proof}
 Reflexivity follows by straightforwardly by Löb induction.
@@ -606,30 +552,60 @@ induction, \eg, assuming that
   \later(A ⊦ τ_1 \sim τ_2 \wedge A ⊦ τ_2 \sim τ_3 \Longrightarrow A ⊦ τ_1 \sim τ_3)
 \]
 for all $τ_1,τ_2,τ_3$.
-
-By cases on the last rule applied to either $A ⊦ τ_1 \sim τ_2$ or $A ⊦ τ_2 \sim τ_3$.
+By cases on the last rule applied to $A ⊦ τ_1 \sim τ_2$.
 \begin{itemize}
-  \item \textbf{Case }$\eqlcons$ to $A ⊦ τ_1 \sim τ_2$:
-    Then $τ_1 = \wild \cons τ_1'$ and $A ⊦ τ_1' \sim τ_2$.
-    We can apply the induction hypothesis to get $A ⊦ τ_1' \sim τ_3$
+  \item \textbf{Case }$\eqlcons$:
+    Then $τ_1 = \wild \cons τ_1'$ and $\later (A ⊦ τ_1' \sim τ_2)$.
+    We can apply the induction hypothesis to get $\later (A ⊦ τ_1' \sim τ_3)$
     and re-apply $\eqlcons$.
-  \item \textbf{Case }$\eqrcons$ to $A ⊦ τ_2 \sim τ_3$: Similar.
-  \item \textbf{Case }$\eqrcons$ to $A ⊦ τ_1 \sim τ_2$:
-    Then $τ_2 = \wild \cons τ_2'$, $\fin(τ_2')$ and $A ⊦ τ_1 \sim τ_2'$.
-    $\fin(τ_2')$ means that the entire derivation is of finite height.
-    By rule inversion on $A ⊦ τ_2 \sim τ_3$, either $\eqlcons$ or $\eqlrcons$
-    applies.
-    If we unpack $\eqlcons$, then $A ⊦ τ_2' \sim τ_3$ and we can apply the
-    induction hypothesis to get $A ⊦ τ_1 \sim τ_3$.
-    Otherwise we unpack $\eqlrcons$ and get $A ⊦ τ_2' \sim τ_3'$ for
+  \item \textbf{Case }$\eqrcons$:
+    Then $τ_2 = \wild \cons τ_2'$, $\fin(τ_2')$ and $\later (A ⊦ τ_1 \sim τ_2')$.
+    By rule inversion on $A ⊦ τ_2 \sim τ_3$, either $\eqlcons$, $\eqrcons$ or
+    $\eqlrcons$ applies.
+
+    If we unpack $\eqlrcons$, we get $\later (A ⊦ τ_2' \sim τ_3')$ for
     some $τ_3'$ to which we apply the induction hypothesis to get
-    $A ⊦ τ_1 \sim τ_3'$ which we wrap up with $\eqrcons$.
-  \item \textbf{Case }$\eqlrcons$ to $A ⊦ τ_1 \sim τ_2$: Similar.
-  \item \textbf{Case }$\eqfun$ to $A ⊦ τ_1 \sim τ_2$:
+    $\later (A ⊦ τ_1 \sim τ_3')$, which we wrap up with $\eqrcons$ to show the goal.
+
+    If we unpack $\eqrcons$, we get $\later (A ⊦ τ_2 \sim τ_3')$ for
+    some $τ_3'$ to which we apply the induction hypothesis to get
+    $\later (A ⊦ τ_1 \sim τ_3')$, which we wrap up with $\eqrcons$ to show the goal.
+    (NB: We use $A ⊦ τ_1 \sim τ_2$ in that case, not the unpacked
+    $\later (A ⊦ τ_1 \sim τ_2')$.)
+
+    Otherwise, we unpack $\eqlcons$ and get $\later (A ⊦ τ_2' \sim τ_3)$.
+    We proceed by induction on $\fin(τ_2')$ with the hypothesis
+    \[
+      P(τ) = A ⊦ τ_1 \sim τ \wedge A ⊦ τ \sim τ_3 \Longrightarrow A ⊦ τ_1 \sim τ_3
+    \]
+    \begin{itemize}
+      \item \textbf{Case }$τ_2' = \finstuck$:
+        Then $τ_1$ and $τ_3$ must be ultimately stuck as well. The derivation
+        for $A ⊦ τ_1 \sim τ_3$ can be constructed by first doing all $\eqlcons$
+        steps in $A ⊦ τ_1 \sim \stuckend$ and then all $\eqrcons$ steps in $A ⊦
+        \stuckend \sim τ_3$.
+      \item \textbf{Case }$τ_2' = \goodend{v,μ'}$:
+        Then $τ_1$ and $τ_3$ evaluate to the same value as $τ_2'$. The goal
+        follows by applying the (Löb) induction hypothesis to the ultimate
+        applications of $\eqfun$ and $\eqcon$ cases, and re-applying $\eqlcons$
+        and $\eqrcons$ steps as in the diverging case.
+      \item \textbf{Case }$τ_2' = \wild \cons τ_2''$:
+        As before, the cases where $τ_1$ or $τ_3$ make a step at ``the front or back''
+        (by $\eqlcons$ on $A ⊦ τ_1 \sim τ_2'$ or $\eqrcons$ on $A ⊦ τ_2' \sim
+        τ_3$, or $\eqlrcons$ on either side) follow by Löb induction.
+
+        Otherwise, we recurse along the $\fin(τ_2')$ predicate and invoke the induction
+        hypothesis $P(τ_2'')$, re-applying the $\eqrcons$ on the left and the $\eqlcons$
+        rule on the right.
+    \end{itemize}
+  \item \textbf{Case }$\eqlrcons$:
+    Apply the induction hypothesis to $\later (A ⊦ τ_1' \sim τ_2')$.
+  \item \textbf{Case }$\eqfun$:
     By rule inversion on $A ⊦ τ_2 \sim τ_3$, $\eqfun$ must apply.
-    The rest is a simple matter of applying the inductive hypothesis.
-  \item \textbf{Case }$\eqcon$ to $A ⊦ τ_1 \sim τ_2$: Similar.
-  \item \textbf{Case }$\eqstuck$ to $A ⊦ τ_1 \sim τ_2$: Similar.
+    (Note that $\eqrcons$ has been handled in a previous case.)
+    The rest is a matter of applying the inductive hypothesis.
+  \item \textbf{Case }$\eqcon$: Similar.
+  \item \textbf{Case }$\eqstuck$: Similar.
 \end{itemize}
 \end{proof}
 
@@ -637,6 +613,12 @@ It follows that $(\approx)$ is an equivalence relation on lazy heaps as well.
 
 Unfortunately, the notion of a lazy element we have is too weak to prove
 reflexivity of $(\equiv)$.
+Lazy elements only provide guarantees on heaps that force to each other,
+but $μ_1 \approx μ_2$ does not imply a forcing relation between $μ_1$ and $μ_2$.%
+\footnote{This could perhaps be fixed by modifying the forcing relation,
+parameterising it over any equivalence relation such as semantic equivalence
+rather than hardcoding it for definitional equality. We abstain from such
+complication in favor of the present fix.}
 We fix that by introducing the following extensionality requirement on lazy
 elements $d$:
 
@@ -683,9 +665,37 @@ which can be weakened via \Cref{thm:weaken-address-space} to $\dom(μ_1)$.
 \end{proof}
 
 Note that we only make use of extensionality to prove reflexivity; in fact,
-$(\equiv)$ is still a (perhaps incomparable) partial equivalence relation on lazy elements.
+$(\equiv)$ is still a partial equivalence relation on lazy elements.
 
 What remains is a proof that $\semevt{\pe}_ρ$ is indeed extensional.
+
+\begin{toappendix}
+\begin{lemma}
+  \label{thm:memo-approx}
+  Let $μ_1 \approx μ_2$, $\pa \not∈ \dom(μ_i)$ and $d_1 \equiv d_2$.
+  Then $μ_1[\pa↦\memo(\pa,d_1)] \approx μ_2[\pa↦\memo(\pa,d_2)]$.
+\end{lemma}
+\begin{proof}
+  Let us abbreviate $μ_i' \triangleq μ_i[\pa↦\memo(\pa,d_i)]$.
+  For addresses other than $\pa$, the equivalence follows from $μ_1 \approx μ_2$.
+  For $\pa$, we have to show
+  \[
+     \dom(μ_1') ⊦ \memo(\pa,d)(μ_1') \sim \memo(\pa,d)(μ_2').
+  \]
+  Since $d_1 \equiv d_2$, we have $\dom(μ_1') ⊦ d_1(μ_1') \sim d_2(μ_2')$.
+  When the trace diverges or is ultimately stuck, the application of $\memo$
+  never matters and we are done.
+  Otherwise we have $\bigstep{d_i}{μ_i'}{v_i}{μ''_i}$ and by
+  $d_1 \equiv d_2$ we have $\dom(μ_1') ⊦ \goodend{v_1,μ_1''} \sim \goodend{v_2,μ_2''}$.
+  Unfolding the definition of $\memo$ and $(\betastep)$, the goal is to show
+  \[
+     \dom(μ_1') ⊦ \goodend{v_1,μ_1''[\pa↦\memo(\pa,\ret(v_1))]} \sim \goodend{v_2,μ_2''[\pa↦\memo(\pa,\ret(v_2))]}
+  \]
+  But since $μ_i'' \forcesto μ_i''[\pa↦\memo(\pa,\ret(v_i))]$, we can apply
+  \Cref{thm:lazy-force-bisimilar} twice and transitivity of $\sim$ to show the
+  goal.
+\end{proof}
+\end{toappendix}
 
 \begin{theoremrep}
   For all environments $ρ$ and expressions $\pe$,
@@ -695,38 +705,30 @@ What remains is a proof that $\semevt{\pe}_ρ$ is indeed extensional.
 By induction on $\pe$.
 \begin{itemize}
   \item \textbf{Case $\px$}:
-    Let $μ_1 \approx μ_2$ such that $\pa ∈ \dom(μ_i)$ and abbreviate
-    $d_i \triangleq μ_i(\pa)$.
+    $\fn{\wild}{\stuckend{}}$ is extensional in case $\px \not∈ \dom(ρ)$.
+
+    Let $μ_1 \approx μ_2$ and $ρ(\px) = \pa ∈ \dom(μ_i)$.
+    (The latter inclusion follows by \Cref{thm:well-addressedness}.)
     Then the goal is to show that
     \[
-      \dom(μ_1) ⊦ (d_1 \betastep f)(μ_1) \sim (d_2 \betastep f)(μ_2)
+      \later (\dom(μ_1) ⊦ μ_1(\pa)(μ_1) \sim μ_2(\pa)(μ_2))
     \]
-    where $f \triangleq  \fn{v\,μ'}{\UpdateE(\pa↦v) \cons \goodend{v,μ'[\pa↦\memo(\pa,\ret(v))]}}$.
-
-    The interesting case is when $\bigstep{d_i}{μ_i}{v}{μ'_i}$, otherwise
-    $\dom(μ_1) ⊦ d_1(μ_1) \sim d_2(μ_2)$ as per $μ_1 \approx μ_2$.
-    So we assume $\dom(μ_1) ⊦ \goodend{v_1,μ_1'} \sim \goodend{v_2,μ_2'}$ and have to show that
-    \[
-       \dom(μ_1) ⊦ \goodend{v_1,μ_1'[\pa↦\memo(\pa,\ret(v_1))]} \sim \goodend{v_2,μ_2'[\pa↦\memo(\pa,\ret(v_2))]}
-    \]
-    But since $μ_i' \forcesto μ_i'[\pa↦\memo(\pa,\ret(v_i))]$, we can apply
-    \Cref{thm:lazy-force-bisimilar} twice and transitivity of $\sim$ to show the
-    goal.
+    in order to apply $\eqlrcons$ and that follows simply by $μ_1 \approx μ_2$.
 
   \item \textbf{Case $\Lam{\px}{\pe'}$}:
-    Fix a particular $μ_1 \approx μ_2$. The goal is to show
+    Let $μ_1 \approx μ_2$. The goal is to show
     \[
       \dom(μ_1) ⊦ \goodend{v,μ_1} \sim \goodend{v,μ_2}
     \]
-    where $v \triangleq \FunV(\fn{d}{\AppEE(\px↦d) \cons \semevt{\pe'}_{ρ[\px↦d]}})$.
-    So let us fix (extensional!) $d$ such that $\dom(μ_1) ⊦ d$ and show
+    where $v \triangleq \FunV(\fn{\pa}{\AppEE(\px↦\pa) \cons \semevt{\pe'}_{ρ[\px↦\pa]}})$.
+    So let us fix $\pa ∈ \dom(μ_1)$ and show
     \[
-      \dom(μ_1) ⊦ \semevt{\pe'}_{ρ[\px↦d]}(μ_1) \sim \semevt{\pe'}_{ρ[\px↦d]}(μ_2)
+      \dom(μ_1) ⊦ \semevt{\pe'}_{ρ[\px↦\pa]}(μ_1) \sim \semevt{\pe'}_{ρ[\px↦\pa]}(μ_2),
     \]
-    which follows by the extensionality of $\semevt{\pe'}_{ρ[\px↦d]}$.
+    which follows inductively by extensionality of $\semevt{\pe'}_{ρ[\px↦\pa]}$.
 
   \item \textbf{Case $K~\many{\px}$}:
-    Similar to the lambda case.
+    Similar to the lambda case, exploiting $μ_1 \approx μ_2$ for the field addresses.
 
   \item \textbf{Case $\pe'~\px$}:
     $\fn{\wild}{\stuckend{}}$ is extensional in case $\px \not∈ \dom(ρ)$.
@@ -735,29 +737,40 @@ By induction on $\pe$.
     $d \triangleq \semevt{\pe'}_ρ$, the $\apply$ expression
     $d \betastep \fn{(\FunV(f))}{f(ρ(\px))}$ is extensional.
 
-    Now fix particular $μ_1 \approx μ_2$ such that $\dom(μ_1) ⊦ \semevt{\pe}_ρ$.
+    Let $μ_1 \approx μ_2$ such that $\dom(μ_1) ⊦ \semevt{\pe}_ρ$.
     The interesting case is when $\bigstep{d}{μ_i}{\FunV(f_i)}{μ'_i}$.
     We have to show that $\dom(μ_1) ⊦ f_1(ρ(\px))(μ_1') \sim f_2(ρ(\px))(μ_2')$,
     the rest follows by congruence.
-    From extensionality of $d$, we know by $\eqfun$ that
-    $\dom(μ_1) ⊦ f_1(\pa)(μ_1') \sim f_2(\pa)(μ_2')$ for any $\pa$ such that
-    $\pa ∈ \dom(μ_1)$.
+    From extensionality of $d$ (which is the result of applying the inductive hypothesis),
+    we know by $\eqfun$ that $\dom(μ_1) ⊦ f_1(\pa)(μ_1') \sim f_2(\pa)(μ_2')$
+    for any $\pa$ such that $\pa ∈ \dom(μ_1)$.
     Since $ρ(\px) ∈ \dom(μ_1)$ by \Cref{thm:well-addressedness}, we can show the goal.
 
   \item \textbf{Case $\Case{\pe_s}{\Sel[r]}$}:
     Similar to the application case.
 
   \item \textbf{Case $\Let{\px}{\pe_1}{\pe_2}$}:
-    For extensionality of $\semevt{\Let{\px}{\pe_1}{\pe_2}}_ρ$, note
-    that the equivalence $μ_1 \approx μ_2$ can be extended to
-    $μ_1[\pa ↦ \memo(\pa,d)] \approx μ_2[\pa ↦ \memo(\pa,d)]$ for any $d$ by
-    reflexivity of $\sim$.
-    Abbreviating
-    $ρ' \triangleq ρ[\px↦\pa]$, the above holds for
-    $d \triangleq \semevt{\pe_1}_{ρ'}$ in particular.
-    Then the goal follows by the inductive hypothesis applied to
-    extensionality of $\semevt{\pe_2}_{ρ'}$ and
-    \Cref{thm:weaken-address-space}.
+    Let $μ_1 \equiv μ_2$, $\pa \not∈ \dom(μ_1)$ and
+    abbreviate
+    $ρ' \triangleq ρ[\px↦\pa]$,
+    $d \triangleq \semevt{\pe_1}_{ρ'}$,
+    $μ_i' \triangleq μ_i[\pa ↦ \memo(\pa,d)]$.
+
+    For extensionality of $\semevt{\Let{\px}{\pe_1}{\pe_2}}_ρ$, we have to show
+    \[
+       \dom(μ_1) ⊦ \semevt{\pe_2}_{ρ'}(μ_1') \sim \semevt{\pe_2}_{ρ'}(μ_2')
+    \]
+
+    Since $d$ is extensional by the inductive hypothesis (so $d \equiv d$),
+    we have $μ_1' \approx μ_2'$ by \Cref{thm:memo-approx}.
+    We apply the inductive hypothesis once more to have
+    extensionality of $\semevt{\pe_2}_{ρ'}$.
+    Applying that to $μ_1' \approx μ_2'$, we have
+    \[
+       \dom(μ_1') ⊦ \semevt{\pe_2}_{ρ'}(μ_1') \sim \semevt{\pe_2}_{ρ'}(μ_2')
+    \]
+    and we can weaken the address space to $\dom(μ_1)$ by
+    \Cref{thm:weaken-address-space} to show the goal.
 \end{itemize}
 \end{proof}
 
@@ -780,8 +793,8 @@ $\pE$. \citet{MoranSands:99} prove that both notions are equivalent, so this
 overload is justified.}
 with holes $\hole$ in order to formalise compositionality.
 Then $\pE[\pe]$ denotes an expression where the hole in $\pE$ has been replaced
-with $\pe$, expressing that the bigger expression $\pE[\pe]$ is a function of
-$\pe$.
+with $\pe$, expressing that the bigger expression $\pE[\pe]$ is a (linear)
+function of $\pe$.
 \[\begin{array}{rcl}
   \pE & ::=  & \hole \mid \pE~\px \mid \Let{\px}{\pe}{\pE} \mid \Let{\px}{\pE_1}{\pE_2[\px]} \mid \Case{\pE}{\Sel[r]} \\
 \end{array}\]
@@ -855,31 +868,32 @@ Most interestingly, $\semevt{\wild}$ is also compositional \wrt to $(\equiv)$!
       \[
         d_1 \betastep \fn{(\FunV(f))}{f(ρ(\px))} \equiv d_2 \betastep \fn{(\FunV(f))}{f(ρ(\px))}.
       \]
-      Now fix particular $μ_1 \approx μ_2$ such that $\dom(μ_1) ⊦ \semevt{\pE[\pe_i]~\px}_ρ$.
+      Now fix particular $μ_1 \approx μ_2$ such that $\dom(μ_1) ⊦ d_i$.
       The interesting case is when
       $\bigstep{d_i}{μ_i}{\FunV(f_i)}{μ'_i}$.
       We have to show that $\dom(μ_1) ⊦ f_1(ρ(\px))(μ_1') \sim f_2(ρ(\px))(μ_2')$, the
       rest follows by congruence.
-      From $d_1 \equiv d_2$, we know that $\dom(μ_1) ⊦ f_1(d)(μ_1') \sim f_2(d)(μ_2')$ for any lazy $d$ such that $\dom(μ_1) ⊦ d$.
-      Since $\dom(μ_1) ⊦ ρ(\px)$ by \Cref{thm:well-addressedness} we can show the goal.
+      From $d_1 \equiv d_2$, we know that $\dom(μ_1) ⊦ f_1(\pa)(μ_1') \sim f_2(\pa)(μ_2')$ for any $\pa ∈ \dom(μ_1)$.
+      Since $ρ(\px) ∈ \dom(μ_1)$ by \Cref{thm:well-addressedness} we can show the goal.
 
     \item \textbf{Case $\Case{\pE}{\Sel[r]}$}:
       Similar to the application case.
 
     \item \textbf{Case $\Let{\px}{\pe}{\pE}$}:
       Note that the equivalence $μ_1 \approx μ_2$ can be extended to
-      $μ_1[\pa ↦ d] \approx μ_2[\pa ↦ d]$ for any $d$ by reflexivity of
-      $\equiv$, and for $d \triangleq \semevt{\pe}_{ρ'}$ in particular.
+      $μ_1[\pa ↦ \memo(\pa,d)] \approx μ_2[\pa ↦ \memo(\pa,d)]$ for any
+      extensional $d$ by \Cref{thm:memo-approx}, and for $d \triangleq
+      \semevt{\pe}_{ρ'}$ in particular.
       Then the goal follows by the inductive hypothesis applied to
       $\semevt{\pE[\pe_1]}_{ρ'} \equiv \semevt{\pE[\pe_2]}_{ρ'}$
       and \Cref{thm:weaken-address-space}.
 
     \item \textbf{Case $\Let{\px}{\pE_1}{\pE_2[\px]}$}:
       Fix a particular $μ_1 \approx μ_2$.
-      Abbreviating $d_{\pe_i} \triangleq \semevt{\pE_1[\pe_1]}_{ρ'}$, the induction hypothesis gives us
-      $d_{\pe_1} \equiv d_{\pe_2}$,
-      so $μ_1[\pa ↦ d_{\pe_1}] \approx μ_2[\pa ↦ d_{\pe_2}]$
-      and we get
+      Abbreviating $d_{\pe_i} \triangleq \semevt{\pE_1[\pe_1]}_{ρ'}$, the
+      induction hypothesis gives us $d_{\pe_1} \equiv d_{\pe_2}$,
+      so $μ_1[\pa ↦ \memo(\pa,d_{\pe_1})] \approx μ_2[\pa ↦ \memo(\pa, d_{\pe_2})]$
+      by \Cref{thm:memo-approx}, and we have
       \[
         \dom(μ_1) ∪ \{ \pa \} ⊦ \semevt{\pE_2[\px]}_{ρ'}(μ_1[\pa ↦ d_{\pe_1}]) \sim \semevt{\pE_2[\px]}_{ρ'}(μ_2[\pa ↦ d_{\pe_2}])
       \]
@@ -894,12 +908,12 @@ And finally, we can use this result to prove that $(\equiv)$ is indeed coarser t
   Let $\pe_1, \pe_2$ be expressions such that $\semevt{\pe_1}_ρ \equiv \semevt{\pe_2}_ρ$.
   Then for all closed evaluation contexts $\pE$, we have
   \[
-    \len(\semevt{\pE[\pe_1]}_{[]}([])) = ω \Leftrightarrow \len(\semevt{\pE[\pe_1]}_{[]}([])) = ω.
+    \len(\semevt{\pE[\pe_1]}_{[]}([])) = ω \Longleftrightarrow \len(\semevt{\pE[\pe_1]}_{[]}([])) = ω.
   \]
 \end{corollaryrep}
 \begin{proof}
   It suffices to show that for all $d_1,d_2$ with $\varnothing ⊦ d_1,d_2$,
-  if $d_1 \equiv d_2$ then $\len(d_1([])) = ω \Leftrightarrow \len(d_2([])) = ω$.
+  if $d_1 \equiv d_2$ then $\len(d_1([])) = ω \Longleftrightarrow \len(d_2([])) = ω$.
 
   Since $[] \approx []$, we have $\varnothing ⊦ d_1([]) \sim d_2([])$.
   Then either trace diverges if and only if the other does, if and only if the
