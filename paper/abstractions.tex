@@ -312,19 +312,19 @@ $(\lessequiv)$ in the style of \citet{MoranSands:99} in \Cref{fig:improv}.
 
 \begin{figure}
 \[\begin{array}{c}
- \ruleform{ A ⊦_n τ_1 \lesssim τ_2 \qquad μ_1 \lessapprox μ_2 \qquad d_1 \lessequiv d_2 }
+ \ruleform{ A ⊦_n τ_1 \lesssim τ_2 \qquad A ⊦_n (v_{1}, μ_{1}) \lessdot (v_2, μ_{2}) \qquad A ⊦_n μ_1 \lessapprox μ_2 \qquad d_1 \lessequiv d_2 }
  \\
  \\[-0.75em]
  \inferrule*[right=\implrcons]
     {\later (A ⊦_n τ_1 \lesssim τ_2)}
     {A ⊦_{n} \wild \cons τ_1 \lesssim \wild \cons τ_2}
- \quad
+ \hspace{0.75em}
  \inferrule*[right=\imprcons]
-    {\later (A ⊦_{n+1} τ_1 \lesssim τ_2) \quad \fin(τ_2)}
+    {\later (A ⊦_{n+1} τ_1 \lesssim τ_2) \hspace{1ex} \fin(τ_2)}
     {A ⊦_{n} τ_1 \lesssim \wild \cons τ_2}
- \quad
+ \hspace{0.75em}
  \inferrule*[right=\implcons]
-    {\later (A ⊦_{n} τ_1 \lesssim τ_2) \quad \fin(τ_1)}
+    {\later (A ⊦_{n} τ_1 \lesssim τ_2) \hspace{1ex} \fin(τ_1)}
     {A ⊦_{n+1} \wild \cons τ_1 \lesssim τ_2}
  \\
  \\[-0.75em]
@@ -332,23 +332,28 @@ $(\lessequiv)$ in the style of \citet{MoranSands:99} in \Cref{fig:improv}.
     {\quad}
     {A ⊦_{0} \stuckend{} \lesssim \stuckend{}}
  \quad
- \inferrule*[right=\impcon]
-    {\later (\many{A ⊦_{n} μ_1(\pa_1) \lesssim μ_2(\pa_2)})}
-    {A ⊦_{\Sigma \{\many{n}\}} \goodend{\ConV(K, \many{\pa_1}), μ_1} \lesssim \goodend{\ConV(K, \many{\pa_2}), μ_2}}
+ \inferrule*[right=\impval]
+    {\pa \not\in \dom(μ_{i}) \quad A ⊦_{n} (v_{1},μ_{1}) \lessdot (v_{2}, μ_{2})
+     \\\\ A ∪ \{\pa\} ⊦_{n} μ_{1}[\pa\mapsto\memo(\pa,\ret(v_{1}))] \lessapprox μ_{2}[\pa\mapsto\memo(\pa,\ret(v_{2}))]}
+    {A ⊦_{n} \goodend{v_{1}, μ_1} \lesssim \goodend{v_{2}, μ_2}}
  \\
  \\[-0.75em]
+ \inferrule*[right=\impcon]
+    {\later (\many{A ⊦_{n} μ_1(\pa_1)(μ_{1}) \lesssim μ_2(\pa_2)(μ_{2})})}
+    {A ⊦_n (\ConV(K, \many{\pa_1}), μ_1)\mathrm{\lessdot} (\ConV(K, \many{\pa_2}), μ_2)}
+ \hspace{0.75em}
  \inferrule*[right=\impfun]
-    {\forall \pa.\ \pa ∈ A ⟹  \later (A ⊦_{n} f_1(\pa)(μ_1) \lesssim f_2(\pa)(μ_2))}
-    {A ⊦_{n} \goodend{\FunV(f_1), μ_1} \lesssim \goodend{\FunV(f_2), μ_2}}
+    {\forall \pa ∈ A.\  \later (A ⊦_{n} f_1(\pa)(μ_1) \mathrm{\lesssim} f_2(\pa)(μ_2))}
+    {A ⊦_{n} (\FunV(f_1), μ_1) \lessdot (\FunV(f_2), μ_2)}
  \\
  \\[-0.75em]
  \inferrule*[right=\impheap]
-    {\dom(μ_1) = \dom(μ_2) \quad \forall \pa.\ \later(\dom(μ_1) ⊦_{0} μ_1(\pa)(μ_1) \lesssim μ_2(\pa)(μ_2))}
-    {μ_1 \lessapprox μ_2}
+    {\forall \pa \in A.\ \later(A ⊦_{n} μ_1(\pa)(μ_1) \lesssim μ_2(\pa)(μ_2))}
+    {A ⊦_n μ_1 \lessapprox μ_2}
  \\
  \\[-0.75em]
  \inferrule*[right=\impdenot]
-    {\forall μ_1,μ_2.\ μ_1 \lessapprox μ_2 \wedge  \dom(μ_1) ⊦ d_1,d_2 ⟹  \dom(μ_1) ⊦_{0} d_1(μ_1) \lesssim d_2(μ_2)}
+    {\forall μ_1,μ_2.\ \dom(μ_{1}) \vdash_{0} μ_1 \lessapprox μ_2 \wedge  \dom(μ_1) ⊦ d_1,d_2 ⟹  \dom(μ_1) ⊦_{0} d_1(μ_1) \lesssim d_2(μ_2)}
     {d_1 \lessequiv d_2}
 \end{array}\]
 \vspace{-1em}
@@ -356,33 +361,42 @@ $(\lessequiv)$ in the style of \citet{MoranSands:99} in \Cref{fig:improv}.
 \label{fig:improv}
 \end{figure}
 
-Structurally, $(\lessequiv)$ is very similar to $(\equiv)$; the main differences are in
-the rules for $(\cons)$ and the resulting tracking of \emph{skew credits} $n∈ℕ$,
-\eg, we count the applications of $\imprcons$ to spend them on $\implcons$ or
-when a value is further scrutinised.
+Structurally, $(\lessequiv)$ is similar to $(\equiv)$, with a few differences necessitated
+by the precise counting of steps.
+In the rules $(\cons)$, we accumulate \emph{skew credits} $n∈ℕ$ in applications
+of $\imprcons$ to spend them on $\implcons$ or when a value is further
+scrutinised.
 Naturally, it is easier to prove $A ⊦_n τ_1 \lesssim τ_2$ the more credits we
 have at our expense and thus the larger $n$ is.
+The intricacies of sharing are embodied in rule $\impval$
+where we add the value returned by the trace to the heap under a fresh address.
+In the $\impheap$ antecedent, this address is added to $A$ and hence available
+to the observer for repeated scrutinisation or application to a function.
 
 We write $d_1 \impequiv d_2$ when $d_1 \lessequiv d_2$ and $d_2 \lessequiv d_1$, in
 which case both denotations operate in lockstep.
+
 %Already it is the case that $d_1 \lessequiv d_2$ implies $d_1 \equiv d_2$,
 %so $(\lessequiv)$ corresponds to the strong notion of improvement in
 %\citet{MoranSands:99}.
 %The weaker notion can be recovered by defining $\imprcons$ and $\implcons$ by
 %coinduction, thus accepting skew credits in $ℕ_ω$ instead of $ℕ$.
 %
-We conjecture that $(\lessequiv)$ is a sub-relation of the strong contextual
-improvement relation of \citet{MoranSands:99}, just as $(\equiv)$ is finer than
-contextual equivalence.
+It is quite a bit harder to agree that this improvement relation is a sub-relation
+of the strong contextual improvement relation of \citet{MoranSands:99} and we
+leave the equivalent of \Cref{thm:sem-equiv-cont-equiv} to the Appendix.
 
-We could now once again refine our notion of deadness, using lockstep
+We can now once again refine our notion of deadness using lockstep
 simulation.
 It is then easy to see that $\semusg{\wild}$ is correct \wrt to this stronger
 notion of deadness, because we can in large parts reuse the proof for
 \Cref{thm:semusg-correct-live-3}.
+\ifappendix
+\else
+We give an account of that in the Appendix.
+\fi
 
 \begin{toappendix}
-
 As our first action, we have to refine our notion of lazy domain elements.
 Specifically, in the Postpone and Speculate properties, we additionally require
 that the bigstep traces $\bigstep{d}{μ_2}{v_2}{μ_2'}$ take at most as many
@@ -426,7 +440,7 @@ With this updated definition, we go on to revise a number of auxiliary lemmas.
   \label{thm:lazy-force-lockstep}
   Let $μ_1,μ_2$ be lazy heaps with $μ_1 \forcesto μ_2$. Then
   \begin{enumerate}
-    \item For all lazy $d$, we have $\dom(μ_1) ⊦_0 d(μ_1) \lesssim d(μ_2)$.
+    \item For all lazy $d$ such that $\dom(μ_{1}) ⊦ d$, we have $\dom(μ_1) ⊦_0 d(μ_1) \lesssim d(μ_2)$.
     \item For all $\pa ∈ \dom(μ_1)$, we have $\dom(μ_1) ⊦_0 μ_1(\pa)(μ_1) \lesssim μ_2(\pa)(μ_2)$.
   \end{enumerate}
 \end{lemmarep}
@@ -450,6 +464,15 @@ With this updated definition, we go on to revise a number of auxiliary lemmas.
       \forcesto μ_2'$ as well as $n_2 \leq n_1$.
       By \Cref{thm:weaken-skew-credits} it suffices to show
       ${\dom(μ_1) ⊦_0 \goodend{v,μ_1'} \lesssim \goodend{v,μ_2'}}$.
+      We do so by applying rule $\impval$, postponing the $\lessdot$ goal and focusing
+      on the $\impheap$ goal first.
+
+      Clearly, $μ_{1}'[\pa ↦ \memo(\pa, \ret(v))] \forcesto μ_{2}'[\pa ↦ \memo(\pa, \ret(v))]$.
+      Writing $μ_{i}'' \triangleq μ_{1}'[\pa ↦ \memo(\pa, \ret(v))]$,
+      by (2) of the inductive hypothesis we get that
+      $\dom(μ_{1}'') ⊦_{0} μ_1''(\pa)(μ_1'') \lesssim μ_2''(\pa)(μ_2'')$.
+      We can relax the address space to $\dom(μ_1) ∪ \{ \pa \}$ by \Cref{thm:weaken-address-space-imp},
+      so $\dom(μ_1) ∪ \{ \pa \} ⊦_{0} μ_{1}'' \lessapprox μ_{2}''$ follows.
 
       For the $v=\ConV(K,\many{\pa})$ case,
       we have $\later (\many{\dom(μ_1') ⊦_0 μ_1'(\pa')(μ_1') \lesssim μ_2'(\pa')(μ_2')})$

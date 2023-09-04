@@ -359,12 +359,12 @@ This result justifies our tacit assumption from now on that all elements $d$ are
  % have no induction hypothesis to prove the Fun case of
  % "d lazy, μ1~>μ2 => d(μ1)===d(μ2)" with
  \inferrule*[right=\eqfun]
-    {\forall \pa.\ \pa ∈ A ⟹  \later (A ⊦ f_1(\pa)(μ_1) \sim f_2(\pa)(μ_2))}
+    {\forall \pa ∈ A.\  \later (A ⊦ f_1(\pa)(μ_1) \sim f_2(\pa)(μ_2))}
     {A ⊦ \goodend{\FunV(f_1), μ_1} \sim \goodend{\FunV(f_2), μ_2}}
  \\
  \\[-0.5em]
  \inferrule*[right=\eqheap]
-    {\dom(μ_1) = \dom(μ_2) \quad \forall \pa.\ \later(\dom(μ_1) ⊦ μ_1(\pa)(μ_1) \sim μ_2(\pa)(μ_2))}
+    {\dom(μ_1) = \dom(μ_2) \quad \forall \pa \in \dom(μ_{1}).\ \later(\dom(μ_1) ⊦ μ_1(\pa)(μ_1) \sim μ_2(\pa)(μ_2))}
     {μ_1 \approx μ_2}
  \\
  \\[-0.5em]
@@ -489,8 +489,19 @@ Evaluating lazy elements on heaps that force to each other are semantically equi
   \label{thm:lazy-force-bisimilar}
   Let $μ_1,μ_2$ be lazy heaps with $μ_1 \forcesto μ_2$. Then
   \begin{enumerate}
-    \item For all lazy $d$, we have $\dom(μ_1) ⊦ d(μ_1) \sim d(μ_2)$.
+    \item For all lazy $d$ such that $\dom(μ_{1}) ⊦ d$, we have $\dom(μ_1) ⊦ d(μ_1) \sim d(μ_2)$.
     \item For all $\pa ∈ \dom(μ_1)$, we have $\dom(μ_1) ⊦ μ_1(\pa)(μ_1) \sim μ_2(\pa)(μ_2)$.
+    % SG always comes back wondering why this is the correct predicate.
+    % After all, μ_i(\pa) is a delayed D itself and would end up doubly delayed
+    % in the inductive hypothesis!
+    % The answer is that we should really think about an undelayed heap here.
+    % E.g., one for which we already have performed a step; sort of carrying
+    % along a later credit 1£ (or tick variable α) to apply to the entries of μ_i.
+    % In fact, I think we could tweak the definition of the semantics such that each
+    % heap entry is actually a pair of a delayed D and a later credit/tick variable
+    % to be applied to the delayed D.
+    % The delay is merely there to guard the type-level; at the term level we will
+    % always put `pure d = λ(α:κ).d` into the heap.
   \end{enumerate}
 \end{lemmarep}
 \begin{proof}
@@ -516,6 +527,7 @@ Evaluating lazy elements on heaps that force to each other are semantically equi
       For the $v=\ConV(K,\many{\pa})$ case,
       we have $\later (\many{\dom(μ_1') ⊦ μ_1'(\pa')(μ_1') \sim μ_2'(\pa')(μ_2')})$
       for all $\pa' ∈ \dom(μ_1')$ by (2) of the induction hypothesis applied to $μ_1' \forcesto μ_2'$.
+      % TODO: Say a word about later credits here
       We can relax the address space from $\dom(μ_1')$ to $\dom(μ_1)$ via
       \Cref{thm:weaken-address-space} to show the goal.
 
@@ -905,6 +917,7 @@ Most interestingly, $\semevt{\wild}$ is also compositional \wrt to $(\equiv)$!
 And finally, we can use this result to prove that $(\equiv)$ is indeed coarser than contextual equivalence:
 
 \begin{corollaryrep}[Semantic equivalence implies contextual equivalence]
+  \label{thm:sem-equiv-cont-equiv}
   Let $\pe_1, \pe_2$ be expressions such that $\semevt{\pe_1}_ρ \equiv \semevt{\pe_2}_ρ$.
   Then for all closed evaluation contexts $\pE$, we have
   \[
