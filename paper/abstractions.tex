@@ -24,7 +24,7 @@ $\semevt{\wild}$ and $\equiv$:
 \begin{lemma}[Heap partitioning]
   \label{thm:heap-partitioning}
   Let $μ$ be a heap and $\pa ∈ \dom(μ)$.
-  Then there exists a heap $μ_h$ with domain $\dom(μ_h) \setminus \{ \pa \}$
+  Then there exists a heap $μ_h$ with domain $\dom(μ) \setminus \{ \pa \}$
   and $μ \approx μ_h[\pa↦μ(\pa)]$.
 \end{lemma}
 \begin{proof}
@@ -320,11 +320,11 @@ $(\faster)$ in the style of \citet{MoranSands:99} in \Cref{fig:improv}.
     {A ⊦_{n} \wild \cons τ_1 \lesssim \wild \cons τ_2}
  \quad
  \inferrule*[right=\imprcons]
-    {A ⊦_{n+1} τ_1 \lesssim τ_2}
+    {\later (A ⊦_{n+1} τ_1 \lesssim τ_2) \quad \fin(τ_2)}
     {A ⊦_{n} τ_1 \lesssim \wild \cons τ_2}
  \quad
  \inferrule*[right=\implcons]
-    {A ⊦_{n} τ_1 \lesssim τ_2}
+    {\later (A ⊦_{n} τ_1 \lesssim τ_2) \quad \fin(τ_1)}
     {A ⊦_{n+1} \wild \cons τ_1 \lesssim τ_2}
  \\
  \\[-0.75em]
@@ -333,12 +333,12 @@ $(\faster)$ in the style of \citet{MoranSands:99} in \Cref{fig:improv}.
     {A ⊦_{0} \stuckend{} \lesssim \stuckend{}}
  \quad
  \inferrule*[right=\impcon]
-    {\many{A ⊦_{n} μ_1(\pa_1) \lesssim μ_2(\pa_2)})}
+    {\later (\many{A ⊦_{n} μ_1(\pa_1) \lesssim μ_2(\pa_2)})}
     {A ⊦_{\Sigma \{\many{n}\}} \goodend{\ConV(K, \many{\pa_1}), μ_1} \lesssim \goodend{\ConV(K, \many{\pa_2}), μ_2}}
  \\
  \\[-0.75em]
  \inferrule*[right=\impfun]
-    {\forall \pa.\ \pa ∈ A ⟹  A ⊦_{n} f_1(\pa)(μ_1) \lesssim f_2(\pa)(μ_2)}
+    {\forall \pa.\ \pa ∈ A ⟹  \later (A ⊦_{n} f_1(\pa)(μ_1) \lesssim f_2(\pa)(μ_2))}
     {A ⊦_{n} \goodend{\FunV(f_1), μ_1} \lesssim \goodend{\FunV(f_2), μ_2}}
  \\
  \\[-0.75em]
@@ -363,7 +363,7 @@ when a value is further scrutinised.
 Naturally, it is easier to prove $A ⊦_n τ_1 \lesssim τ_2$ the more credits we
 have at our expense and thus the larger $n$ is.
 
-We write $d_1 \lockstep d_2$ when $d_1 \faster d_2$ and $d_2 \faster d_1$, in
+We write $d_1 \impequiv d_2$ when $d_1 \faster d_2$ and $d_2 \faster d_1$, in
 which case both denotations operate in lockstep.
 %Already it is the case that $d_1 \faster d_2$ implies $d_1 \equiv d_2$,
 %so $(\faster)$ corresponds to the strong notion of improvement in
@@ -381,35 +381,159 @@ It is then easy to see that $\semusg{\wild}$ is correct \wrt to this stronger
 notion of deadness, because we can in large parts reuse the proof for
 \Cref{thm:semusg-correct-live-3}.
 
-%\begin{definition}[Denotational deadness, improving]
-%  \label{defn:deadness4}
-%  An address $\pa$ is \emph{dead} in a denotation $d$ if and only if,
-%  for all $μ_1 \lessapprox\!\gtrapprox μ_2$ such that $\pa$ is dead in $\rng(μ_i)$,
-%  $\dom(μ_1) ∪ \{\pa\} ⊦ d$ and $d_1,d_2$, we have
-%  \[
-%    \dom(μ_1) ⊦_0 d(μ_1[\pa↦d_1]) \lesssim\!\gtrsim d(μ_2[\pa↦d_2]).
-%  \]
-%  A variable $\px$ is \emph{dead} in an expression $\pe$ if and only if
-%  any $\pa$ is dead in $\semevt{\pe}_{ρ[\px↦\pa]}$ for any $ρ$ such
-%  that $\pa \not∈ \rng(ρ)$.
-%  Otherwise, $\px$ is \emph{live}.
-%\end{definition}
-%
-%And we will now assume that we have proven $\semusg{\wild}$ correct \wrt to this
-%new notion of deadness:
-%\begin{theorem}[$\semusg{\wild}$ is an improving deadness analysis]
-%  \label{thm:semusg-correct-live-4}
-%  Let $\pe$ be an expression, $\px$ a variable and $\tr$ a usage environment.
-%  If $\tr(\px) \not⊑ \semusg{\pe}_{\tr}$
-%  then $\px$ is dead in $\pe$.
-%\end{theorem}
-%
-%The proof is much the same as \Cref{thm:semusg-correct-live-3}, because
-%intuitively, any derivation of $A ⊦ τ_1 \sim τ_2$ can be rewritten to never use
-%$\eqlcons$ and $\eqrcons$.
-%Such a derivation can be directly transformed into a proof for
-%$A ⊦_0 τ_1 \lesssim τ_2$, as we will never need $\implcons$ and $\imprcons$
-%and skew credits remain at $0$.
+\begin{toappendix}
+
+As our first action, we have to refine our notion of lazy domain elements.
+Specifically, in the Postpone and Speculate properties, we additionally require
+that the bigstep traces $\bigstep{d}{μ_2}{v_2}{μ_2'}$ take at most as many
+steps as $\bigstep{d}{μ_1}{v_1}{μ_1'}$.
+
+With this updated definition, we go on to revise a number of auxiliary lemmas.
+
+\begin{lemmarep}[Weakening of address spaces]
+  \label{thm:weaken-address-space-imp}
+  Let $A_1,A_2$ be address spaces such that $A_1 ⊆ A_2$. \\
+  For all $d$, if $A_1 ⊦ d$ then $A_2 ⊦ d$.
+  For all traces $τ_1,τ_2$, if $A_2 ⊦_0 τ_1 \impsim τ_2$ then $A_1 ⊦_0 τ_1 \impsim τ_2$.
+\end{lemmarep}
+\begin{proof}
+  Same as \Cref{thm:weaken-address-space}.
+\end{proof}
+
+\begin{lemmarep}[Weakening of skew credits]
+  \label{thm:weaken-skew-credits}
+  Let $A$ be an address space, $n_1 \leq n_2$.
+  For all traces $τ_1,τ_2$, if $A ⊦_{n_1} τ_1 \impsim τ_2$ then $A ⊦_{n_2} τ_1 \impsim τ_2$.
+\end{lemmarep}
+\begin{proof}
+  Any judgment rule in $A ⊦_{n_1} τ_1 \impsim τ_2$ can be re-applied relative to
+  $n_2$.
+  That is particularly true for applications of $\implcons$, for which the
+  converse proposition ($n_1 > n_2$) would \emph{not} hold.
+\end{proof}
+
+\begin{lemmarep}
+  \label{thm:lazy-force-lockstep}
+  Let $μ_1,μ_2$ be lazy heaps with $μ_1 \forcesto μ_2$. Then
+  \begin{enumerate}
+    \item For all lazy $d$, we have $\dom(μ_1) ⊦_0 d(μ_1) \lesssim d(μ_2)$.
+    \item For all $\pa ∈ \dom(μ_1)$, we have $\dom(μ_1) ⊦_0 μ_1(\pa)(μ_1) \lesssim μ_2(\pa)(μ_2)$.
+  \end{enumerate}
+\end{lemmarep}
+\begin{proof}
+%  This lemma makes essential use of the Postpone and Speculate properties.
+  By Löb induction.
+  \begin{enumerate}
+    \item
+%      Note that we are free to make use of the latter because $d$ is defined
+%      at $μ_1$.
+      If either $d(μ_1)$ or $d(μ_2)$ is ultimately stuck, then so is the other,
+      because it neither diverges nor evaluates.
+      In that case, we see that $\dom(μ_1) ⊦_0 d(μ_1) \lesssim d(μ_2)$.
+
+      Similarly, if either $d(μ_1)$ or $d(μ_2)$ diverges, then so does the
+      other, in which case $\dom(μ_1) ⊦_0 d(μ_1) \lesssim d(μ_2)$.
+
+      If either $\bigstep{d}{μ_1}{v}{μ_1'}$ or $\bigstep{d}{μ_2}{v}{μ_2'}$
+      then both judgments hold by the Speculate and Postpone properties (note
+      that $d$ is defined on $μ_1$ because $\dom(μ_1) ⊦ d$) and we have $μ_1'
+      \forcesto μ_2'$. Hence it suffices to show
+      ${\dom(μ_1) ⊦_0 \goodend{v,μ_1'} \lesssim \goodend{v,μ_2'}}$.
+
+      For the $v=\ConV(K,\many{\pa})$ case,
+      we have $\later (\many{\dom(μ_1') ⊦ μ_1'(\pa')(μ_1') \sim μ_2'(\pa')(μ_2')})$
+      for all $\pa' ∈ \dom(μ_1')$ by (2) of the induction hypothesis applied to $μ_1' \forcesto μ_2'$.
+      We can relax the address space from $\dom(μ_1')$ to $\dom(μ_1)$ via
+      \Cref{thm:weaken-address-space} to show the goal.
+
+      For the $v=\FunV(f)$ case, we fix an arbitrary $\pa ∈ \dom(μ_1)$ and have
+      to show that $\later (\dom(μ_1) ⊦ f(\pa)(μ_1') \sim f(\pa)(μ_2'))$.
+      But $f(\pa)$ is lazy, and
+      we have $\later (\many{\dom(μ_1') ⊦ f(\pa)(μ_1') \sim f(\pa)(μ_2')})$
+      by (1) of the induction hypothesis applied to $μ_1' \forcesto μ_2'$.
+      Again, we may relax the address space from $\dom(μ_1')$ to $\dom(μ_1)$ via
+      \Cref{thm:weaken-address-space}.
+    \item
+      If $μ_1(\pa) = μ_2(\pa)$ then (2) follows by a similar argument as (1),
+      so let $μ_1(\pa) \not= μ_2(\pa)$.
+      From $μ_1 \forcesto μ_2$ we have $\bigstep{μ_1(\pa)}{μ_1}{v}{μ_1'}$
+      for some $v,μ_1'$, $μ_2(\pa) = \memo(\pa,\ret(v))$ and $μ_1' \forcesto μ_2$.
+      This implies that $\bigstep{μ_2(\pa)}{μ_2}{v}{μ_2}$.
+      By a similar argument as in (1), we can show that
+      ${\dom(μ_1) ⊦ \goodend{v,μ_1'} \sim \goodend{v,μ_2}}$.
+  \end{enumerate}
+\end{proof}
+
+\begin{definition}[Denotational deadness, improving]
+  \label{defn:deadness-imp}
+  An address $\pa$ is \emph{dead} in a denotation $d$ if and only if,
+  for all $μ_1 \impapprox μ_2$ such that $\pa$ is dead in $\rng(μ_i)$ later,
+  $\dom(μ_1) ∪ \{\pa\} ⊦ d$ and $d_1,d_2$, we have
+  \[
+    \dom(μ_1) ⊦_0 d(μ_1[\pa↦d_1]) \impsim d(μ_2[\pa↦d_2]).
+  \]
+  A variable $\px$ is \emph{dead} in an expression $\pe$ if and only if
+  any $\pa$ is dead in $\semevt{\pe}_{ρ[\px↦\pa]}$ for any $ρ$ such
+  that $\pa \not∈ \rng(ρ)$.
+  Otherwise, $\px$ is \emph{live}.
+\end{definition}
+
+\begin{lemma}[Heap partitioning, improving]
+  \label{thm:heap-partitioning-imp}
+  Let $μ$ be a heap and $\pa ∈ \dom(μ)$.
+  Then there exists a heap $μ_h$ with domain $\dom(μ) \setminus \{ \pa \}$
+  and $μ \impapprox μ_h[\pa↦μ(\pa)]$.
+\end{lemma}
+\begin{proof}
+  We use the same $\mathit{hide}_\pa$ function as in
+  \Cref{thm:heap-partitioning} and define $μ_h \triangleq \mathit{hide}_\pa(μ)$.
+  By Löb induction, we prove
+  \[
+    μ \impapprox μ_h[\pa↦μ(\pa)]
+  \]
+  (We have already proven that $μ_h$ is defined, lazy and extensional.)
+  So we assume that the property holds later.
+
+  For $μ \impapprox μ_h[\pa↦μ(\pa)]$, we additionally have to consider $\pa' = \pa$.
+  In that case, $\dom(μ) ⊦ μ(\pa)(μ) \impsim μ(\pa)(μ_h[\pa↦μ(\pa)])$ (later)
+  follows by extensionality of $μ(\pa)$ applied to the induction hypothesis.
+\end{proof}
+
+\begin{lemma}
+  \label{thm:adom-dead}
+  Let $A ⊦ d$. Then any $\pa \not∈ A$ is dead in $d$.
+\end{lemma}
+\begin{proof}
+  Assume that $A$, $\pa$ and $d$ are chosen as in the proposition.
+  To show that $\pa$ is dead in $d$, assume $μ_1 \approx μ_2$ such
+  that $\pa$ is dead in $\rng(μ_i)$ and $\dom(μ_1) ∪ \{\pa\} ⊦ d$
+  and fix arbitrary $d_1,d_2$.
+  We have to show that
+  \[
+    \dom(μ_1) ⊦ d(μ_1[\pa↦d_1]) \sim d(μ_2[\pa↦d_2])
+  \]
+
+  W.l.o.g., we assume that $A ⊆ \dom(μ_i)$.
+  Otherwise, we can extend $μ_i$ to heaps $μ_i'$ (mapping to equal entries, for
+  example $d$) such that $A ⊆ \dom(μ_i')$.
+  Then $μ_i \forcesto μ_i'$ and we can apply \Cref{thm:lazy-force-bisimilar}.
+
+  By \Cref{thm:heap-partitioning}, there exist $μ_i'$ such that $μ_i[\pa↦d_i] \approx μ_i'[\pa↦d_i]$
+  and $\pa \not∈ \dom(μ_i')$, so $μ_i' \forcesto μ_i'[\pa↦d_i]$.
+  By extensionality of $d$, we know that
+  \[
+    \dom(μ_1') ⊦ d(μ_1') \sim d(μ_2')
+  \]
+  Since $A ⊆ \dom(μ_i')$ and $A ⊦ d$, we can apply \Cref{thm:lazy-force-bisimilar}
+  to $μ_i' \forcesto μ_i'[\pa↦d_i]$ to have
+  \[
+    \dom(μ_1') ⊦ d(μ_1'[\pa↦d_i]) \sim d(μ_2'[\pa↦d_i])
+  \]
+  And again by extensionality applied to $μ_i[\pa↦d_i] \approx μ_i'[\pa↦d_i]$
+  and transitivity, we show the goal.
+\end{proof}
+
+\end{toappendix}
 
 \subsection{Evaluation Cardinality}
 
@@ -430,8 +554,8 @@ of memoisation:
 Any program in which we switch from memoised $\mathbf{let}$ to $\mathbf{let1}$
 is semantically equivalent after we adjust the definition of lazy heaps
 accordingly.
-This is a simple consequence of the fact that $\memo(\pa,d) \equiv d$
-and compositionality.
+This is a simple consequence of the fact that
+$μ[\pa↦\memo(\pa,d)] \approx μ[\pa↦d]$ and compositionality.
 
 However, omitting thunk memoisation has measurable effect on performance
 if the same variable is evaluated repeatedly!
@@ -450,12 +574,13 @@ our language (postfix, to mirror $\memo$), a routine extension:
   \semevt{\pe \tick}_ρ(μ) & = & \semevt{\pe}_{ρ}(μ) \betastep \fn{v}{\fn{μ}{\TickE \cons \goodend{v,μ}}} \\
  \end{array}
 \]
+% TODO: Fishy
 Whenever $x$ is ``evaluated at most once'', we
-have $\semevt{\Let{x}{\pe_1}{\pe_2}}_ρ \lockstep
+have $\semevt{\Let{x}{\pe_1}{\pe_2}}_ρ \impequiv
       \semevt{\Letn{x}{\pe_1\tick}{\pe_2}}_ρ$.
 In \Cref{sec:problem}, specifically \Cref{thm:semusg-correct-2}, we have
-proclaimed that $x$ is evaluated at most once whenever
-$\semusg{\pe_2}_{\tr_Δ}(x) ⊑ 1$.
+proclaimed that $\pe$ evaluates $x$ at most once whenever
+$\semusg{\pe}_{\tr_Δ}(x) ⊑ 1$.
 We can now make good on that claim:
 
 \begin{toappendix}
@@ -485,7 +610,8 @@ We can now make good on that claim:
 
 \begin{lemma}
   \label{thm:pe1-dead}
-  If $ω*\tr(\px) \not⊑ \semusg{\Let{\px}{\pe_1}{\pe_2}}_{\tr}$, then $\px$ is
+  %If $ω*\tr(\px) \not⊑ \semusg{\Let{\px}{\pe_1}{\pe_2}}_{\tr}$, then $\px$ is
+  If $\semusg{\Let{\px}{\pe_1}{\pe_2}}_{\tr_Δ}(\px) ⊑ 1$, then $\px$ is
   dead in either $\pe_1$ or $\pe_2$.
 \end{lemma}
 \begin{proof}
@@ -517,7 +643,7 @@ We can now make good on that claim:
   such that \\
   ${\semusg{\pe_1}_{\tr_Δ}(\px) + \semusg{\pe_2}_{\tr_Δ}(\px) ⊑ 1}$.
   Then
-    $\semevt{\Let{\px}{\pe_1}{\pe_2}}_ρ \lockstep
+    $\semevt{\Let{\px}{\pe_1}{\pe_2}}_ρ \impequiv
      \semevt{\Letn{\px}{\pe_1\tick}{\pe_2}}_ρ$.
 \end{theoremrep}
 \begin{proof}
@@ -531,22 +657,22 @@ We can now make good on that claim:
   If $\px$ is dead in $\pe_2$, the rewrite follows by deadness.
   So we assume that $\px$ is dead in $\pe_1$.
 
-  We prove $(\lockstep)$ by rule $\impdenot$.
+  We prove $(\impequiv)$ by rule $\impdenot$.
   After unfolding the definitions of $\semevt{\wild}$ for $\mathbf{let}$ and
   $\mathbf{let1}$, the goal is to show
   \[
-    \dom(μ_i) ⊦_0 \semevt{\pe_2}_{ρ[\px↦\pa]}(μ_1[\pa↦d_1]) \lesssim\!\gtrsim \semevt{\pe_2}_{ρ[\px↦\pa]}(μ_2[\pa↦d_2])
+    \dom(μ_i) ⊦_0 \semevt{\pe_2}_{ρ[\px↦\pa]}(μ_1[\pa↦d_1]) \impsim \semevt{\pe_2}_{ρ[\px↦\pa]}(μ_2[\pa↦d_2])
   \]
   where $\pa \not∈\dom(μ_i)$,
   $\dom(μ_i) ∪ \{\pa\} ⊦ \semevt{\pe_2}_{ρ[\px↦\pa]}$,
-  $μ_1 \lessapprox\!\gtrapprox μ_2$.
+  $μ_1 \impapprox μ_2$.
   Clearly,
   \[
-    \dom(μ_i) ⊦_0 \semevt{\pe_2}_{ρ[\px↦\pa]}(μ_1[\pa↦\highlight{d_2}]) \lesssim\!\gtrsim \semevt{\pe_2}_{ρ[\px↦\pa]}(μ_2[\pa↦d_2])
+    \dom(μ_i) ⊦_0 \semevt{\pe_2}_{ρ[\px↦\pa]}(μ_1[\pa↦\highlight{d_2}]) \impsim \semevt{\pe_2}_{ρ[\px↦\pa]}(μ_2[\pa↦d_2])
   \]
-  holds by reflexivity because $μ_1[\pa↦d_2] \lessapprox\!\gtrapprox μ_2[\pa↦d_2]$, so the goal becomes
+  holds by reflexivity because $μ_1[\pa↦d_2] \impapprox μ_2[\pa↦d_2]$, so the goal becomes
   \[
-    \dom(μ_i) ⊦_0 τ_1 \lesssim\!\gtrsim τ_2,
+    \dom(μ_i) ⊦_0 τ_1 \impsim τ_2,
   \]
   abbreviating $τ_i \triangleq \semevt{\pe_2}_{ρ[\px↦\pa]}(μ_{\highlight{\scriptstyle 1}}[\pa↦d_i])$.
 
@@ -938,7 +1064,7 @@ contexts, returning the least upper bound of all continued traces.
   Let $\Let{\px}{\pe_1}{\pe_2}$ be an expression such that $\pe_2$ evaluates $\px$
   at most once and $\px$ is dead in $\pe_1$.
   Then
-    $\semevt{\Let{\px}{\pe_1}{\pe_2}}_ρ \lockstep
+    $\semevt{\Let{\px}{\pe_1}{\pe_2}}_ρ \impequiv
      \semevt{\Letn{\px}{\pe_1\tick}{\pe_2}}_ρ$.
 \end{theoremrep}
 \begin{proof}
@@ -947,22 +1073,22 @@ contexts, returning the least upper bound of all continued traces.
   We hope to provide a complete the proof by October.
 %  The setup is quite similar to \Cref{thm:semusg-by-name}:
 %
-%  We prove $(\lockstep)$ by rule $\impdenot$.
+%  We prove $(\impequiv)$ by rule $\impdenot$.
 %  After unfolding the definitions of $\semevt{\wild}$ for $\mathbf{let}$ and
 %  $\mathbf{let1}$, the goal is to show
 %  \[
-%    \dom(μ_i) ⊦_0 \semevt{\pe_2}_{ρ[\px↦\pa]}(μ_1[\pa↦d_1]) \lesssim\!\gtrsim \semevt{\pe_2}_{ρ[\px↦\pa]}(μ_2[\pa↦d_2])
+%    \dom(μ_i) ⊦_0 \semevt{\pe_2}_{ρ[\px↦\pa]}(μ_1[\pa↦d_1]) \impsim \semevt{\pe_2}_{ρ[\px↦\pa]}(μ_2[\pa↦d_2])
 %  \]
 %  where $\pa \not∈\dom(μ_i)$,
 %  $\dom(μ_i) ∪ \{\pa\} ⊦ \semevt{\pe_2}_{ρ[\px↦\pa]}$,
-%  $μ_1 \lessapprox\!\gtrapprox μ_2$.
+%  $μ_1 \impapprox μ_2$.
 %  Clearly,
 %  \[
-%    \dom(μ_i) ⊦_0 \semevt{\pe_2}_{ρ[\px↦\pa]}(μ_1[\pa↦\highlight{d_2}]) \lesssim\!\gtrsim \semevt{\pe_2}_{ρ[\px↦\pa]}(μ_2[\pa↦d_2])
+%    \dom(μ_i) ⊦_0 \semevt{\pe_2}_{ρ[\px↦\pa]}(μ_1[\pa↦\highlight{d_2}]) \impsim \semevt{\pe_2}_{ρ[\px↦\pa]}(μ_2[\pa↦d_2])
 %  \]
-%  holds by reflexivity because $μ_1[\pa↦d_2] \lessapprox\!\gtrapprox μ_2[\pa↦d_2]$, so the goal becomes
+%  holds by reflexivity because $μ_1[\pa↦d_2] \impapprox μ_2[\pa↦d_2]$, so the goal becomes
 %  \[
-%    \dom(μ_i) ⊦_0 τ_1 \lesssim\!\gtrsim τ_2,
+%    \dom(μ_i) ⊦_0 τ_1 \impsim τ_2,
 %  \]
 %  abbreviating $τ_i \triangleq \semevt{\pe_2}_{ρ[\px↦\pa]}(μ_{\highlight{\scriptstyle 1}}[\pa↦d_i])$.
 %

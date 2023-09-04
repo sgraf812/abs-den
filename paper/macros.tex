@@ -56,9 +56,10 @@
 % Stacked operators like \lesseq, \lesssim, etc.
 % https://tex.stackexchange.com/a/536604/52414
 \makeatletter
+\newcommand{\impsim}{\lesssim\!\gtrsim}
 \newcommand{\faster}{\mathrel{\raisebox{-1pt}{$\gl@over[0.25pt]{\vartriangleleft}{\sim}$}}}
-\newcommand{\blah}{\superimpose{\raisebox{1pt}{\clipbox{0pt 3pt 0pt 3pt}{$\mid$}}}{\rotatebox[origin=c]{90}{$\lozenge$}}}
-\newcommand{\lockstep}{\mathrel{\raisebox{-1.25pt}{$\gl@over[0.25pt]{\blah}{\sim}$}}}
+\newcommand{\impequiv}{\mathrel{\raisebox{-1.25pt}{$\gl@over[0.25pt]{\superimpose{\raisebox{1pt}{\clipbox{0pt 3pt 0pt 3pt}{$\mid$}}}{\rotatebox[origin=c]{90}{$\lozenge$}}}{\sim}$}}}
+\newcommand{\impapprox}{\lessapprox\!\gtrapprox}
 \newcommand{\gl@over}[3][1pt]{%
   \vcenter{\m@th\offinterlineskip\ialign{%
     \hfil$##$\hfil\cr #2\cr \noalign{\vskip#1} #3\cr
