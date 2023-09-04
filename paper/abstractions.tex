@@ -308,11 +308,11 @@ unaffected.
 
 This argument is quite vague.
 In order to put it on firm ground, we define an \emph{improvement relation}
-$(\faster)$ in the style of \citet{MoranSands:99} in \Cref{fig:improv}.
+$(\lessequiv)$ in the style of \citet{MoranSands:99} in \Cref{fig:improv}.
 
 \begin{figure}
 \[\begin{array}{c}
- \ruleform{ A ⊦_n τ_1 \lesssim τ_2 \qquad μ_1 \lessapprox μ_2 \qquad d_1 \faster d_2 }
+ \ruleform{ A ⊦_n τ_1 \lesssim τ_2 \qquad μ_1 \lessapprox μ_2 \qquad d_1 \lessequiv d_2 }
  \\
  \\[-0.75em]
  \inferrule*[right=\implrcons]
@@ -349,29 +349,29 @@ $(\faster)$ in the style of \citet{MoranSands:99} in \Cref{fig:improv}.
  \\[-0.75em]
  \inferrule*[right=\impdenot]
     {\forall μ_1,μ_2.\ μ_1 \lessapprox μ_2 \wedge  \dom(μ_1) ⊦ d_1,d_2 ⟹  \dom(μ_1) ⊦_{0} d_1(μ_1) \lesssim d_2(μ_2)}
-    {d_1 \faster d_2}
+    {d_1 \lessequiv d_2}
 \end{array}\]
 \vspace{-1em}
 \caption{Improvement relation}
 \label{fig:improv}
 \end{figure}
 
-Structurally, $(\faster)$ is very similar to $(\equiv)$; the main differences are in
+Structurally, $(\lessequiv)$ is very similar to $(\equiv)$; the main differences are in
 the rules for $(\cons)$ and the resulting tracking of \emph{skew credits} $n∈ℕ$,
 \eg, we count the applications of $\imprcons$ to spend them on $\implcons$ or
 when a value is further scrutinised.
 Naturally, it is easier to prove $A ⊦_n τ_1 \lesssim τ_2$ the more credits we
 have at our expense and thus the larger $n$ is.
 
-We write $d_1 \impequiv d_2$ when $d_1 \faster d_2$ and $d_2 \faster d_1$, in
+We write $d_1 \impequiv d_2$ when $d_1 \lessequiv d_2$ and $d_2 \lessequiv d_1$, in
 which case both denotations operate in lockstep.
-%Already it is the case that $d_1 \faster d_2$ implies $d_1 \equiv d_2$,
-%so $(\faster)$ corresponds to the strong notion of improvement in
+%Already it is the case that $d_1 \lessequiv d_2$ implies $d_1 \equiv d_2$,
+%so $(\lessequiv)$ corresponds to the strong notion of improvement in
 %\citet{MoranSands:99}.
 %The weaker notion can be recovered by defining $\imprcons$ and $\implcons$ by
 %coinduction, thus accepting skew credits in $ℕ_ω$ instead of $ℕ$.
 %
-We conjecture that $(\faster)$ is a sub-relation of the strong contextual
+We conjecture that $(\lessequiv)$ is a sub-relation of the strong contextual
 improvement relation of \citet{MoranSands:99}, just as $(\equiv)$ is finer than
 contextual equivalence.
 
@@ -389,6 +389,14 @@ that the bigstep traces $\bigstep{d}{μ_2}{v_2}{μ_2'}$ take at most as many
 steps as $\bigstep{d}{μ_1}{v_1}{μ_1'}$.
 More formally, we write $\bigstepn{n_{i}}{d}{μ_i}{v_i}{μ_i'}$ to indicate that
 the derivations take $n_{i}$ steps; then $n_{2} \leq n_{1}$.
+
+Likewise, we have to change the definition of extensionality to encompass
+$\impsim$ rather than $\sim$ and prove that $\semevt{\pe}_ρ$ is extensional;
+a routine change.
+From this it follows that $\lessequiv$ is a preorder and $\impequiv$ is an
+equivalence relation.
+As in \citet[Section 3.4]{MoranSands:99}, this equivalence relation is contained
+in $\equiv$.
 
 With this updated definition, we go on to revise a number of auxiliary lemmas.
 
@@ -439,30 +447,35 @@ With this updated definition, we go on to revise a number of auxiliary lemmas.
       If either $\bigstepn{n_{1}}{d}{μ_1}{v}{μ_1'}$ or $\bigstepn{n_{2}}{d}{μ_2}{v}{μ_2'}$
       then both judgments hold by the Speculate and Postpone properties (note
       that $d$ is defined on $μ_1$ because $\dom(μ_1) ⊦ d$) and we have $μ_1'
-      \forcesto μ_2'$. Hence it suffices to show
+      \forcesto μ_2'$ as well as $n_2 \leq n_1$.
+      By \Cref{thm:weaken-skew-credits} it suffices to show
       ${\dom(μ_1) ⊦_0 \goodend{v,μ_1'} \lesssim \goodend{v,μ_2'}}$.
 
       For the $v=\ConV(K,\many{\pa})$ case,
-      we have $\later (\many{\dom(μ_1') ⊦ μ_1'(\pa')(μ_1') \sim μ_2'(\pa')(μ_2')})$
+      we have $\later (\many{\dom(μ_1') ⊦_0 μ_1'(\pa')(μ_1') \lesssim μ_2'(\pa')(μ_2')})$
       for all $\pa' ∈ \dom(μ_1')$ by (2) of the induction hypothesis applied to $μ_1' \forcesto μ_2'$.
       We can relax the address space from $\dom(μ_1')$ to $\dom(μ_1)$ via
-      \Cref{thm:weaken-address-space} to show the goal.
+      \Cref{thm:weaken-address-space-imp} to show the goal.
 
       For the $v=\FunV(f)$ case, we fix an arbitrary $\pa ∈ \dom(μ_1)$ and have
-      to show that $\later (\dom(μ_1) ⊦ f(\pa)(μ_1') \sim f(\pa)(μ_2'))$.
+      to show that $\later (\dom(μ_1) ⊦_0 f(\pa)(μ_1') \lesssim f(\pa)(μ_2'))$.
       But $f(\pa)$ is lazy, and
-      we have $\later (\many{\dom(μ_1') ⊦ f(\pa)(μ_1') \sim f(\pa)(μ_2')})$
+      we have $\later (\many{\dom(μ_1') ⊦_0 f(\pa)(μ_1') \lesssim f(\pa)(μ_2')})$
       by (1) of the induction hypothesis applied to $μ_1' \forcesto μ_2'$.
       Again, we may relax the address space from $\dom(μ_1')$ to $\dom(μ_1)$ via
       \Cref{thm:weaken-address-space}.
     \item
       If $μ_1(\pa) = μ_2(\pa)$ then (2) follows by a similar argument as (1),
       so let $μ_1(\pa) \not= μ_2(\pa)$.
-      From $μ_1 \forcesto μ_2$ we have $\bigstep{μ_1(\pa)}{μ_1}{v}{μ_1'}$
+      From $μ_1 \forcesto μ_2$ we have $\bigstepn{n_1}{μ_1(\pa)}{μ_1}{v}{μ_1'}$
       for some $v,μ_1'$, $μ_2(\pa) = \memo(\pa,\ret(v))$ and $μ_1' \forcesto μ_2$.
-      This implies that $\bigstep{μ_2(\pa)}{μ_2}{v}{μ_2}$.
-      By a similar argument as in (1), we can show that
-      ${\dom(μ_1) ⊦ \goodend{v,μ_1'} \sim \goodend{v,μ_2}}$.
+      This implies that $\bigstep{1}{μ_2(\pa)}{μ_2}{v}{μ_2}$.
+      Since $μ_1(\pa)$ is of the form $\memo(\pa,d_1)$, it will perform at least
+      one step to memoise; hence $n_1 \geq 1 = n_2$, and with
+      \Cref{thm:weaken-skew-credits} it suffices to show
+      ${\dom(μ_1) ⊦_0 \goodend{v,μ_1'} \lesssim \goodend{v,μ_2}}$.
+      This follows by a similar argument as in (1), knowing that
+      $μ_1' \forcesto μ_2$.
   \end{enumerate}
 \end{proof}
 
@@ -652,7 +665,7 @@ We can now make good on that claim:
   Unless explicitly stated otherwise, we will always apply the improvement
   judgments in a symmetrical manner.
   That is, whenever we have to prove $a ⊑ b$, the proof should also hold for
-  $b ⊑ a$ (where $(⊑)$ is either of $(\faster),(\lessapprox),(\lesssim)$).
+  $b ⊑ a$ (where $(⊑)$ is either of $(\lessequiv),(\lessapprox),(\lesssim)$).
 
   Since $u_1 + u_2 ⊑ 1$ implies that either $u_i$ must $0$ and the other $1$,
   either $\px$ must be dead in $\pe_1$ or $\pe_2$.
