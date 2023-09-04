@@ -353,7 +353,7 @@ $(\faster)$ in the style of \citet{MoranSands:99} in \Cref{fig:improv}.
 \end{array}\]
 \vspace{-1em}
 \caption{Improvement relation}
-  \label{fig:improv}
+\label{fig:improv}
 \end{figure}
 
 Structurally, $(\faster)$ is very similar to $(\equiv)$; the main differences are in
@@ -387,6 +387,8 @@ As our first action, we have to refine our notion of lazy domain elements.
 Specifically, in the Postpone and Speculate properties, we additionally require
 that the bigstep traces $\bigstep{d}{μ_2}{v_2}{μ_2'}$ take at most as many
 steps as $\bigstep{d}{μ_1}{v_1}{μ_1'}$.
+More formally, we write $\bigstepn{n_{i}}{d}{μ_i}{v_i}{μ_i'}$ to indicate that
+the derivations take $n_{i}$ steps; then $n_{2} \leq n_{1}$.
 
 With this updated definition, we go on to revise a number of auxiliary lemmas.
 
@@ -434,7 +436,7 @@ With this updated definition, we go on to revise a number of auxiliary lemmas.
       Similarly, if either $d(μ_1)$ or $d(μ_2)$ diverges, then so does the
       other, in which case $\dom(μ_1) ⊦_0 d(μ_1) \lesssim d(μ_2)$.
 
-      If either $\bigstep{d}{μ_1}{v}{μ_1'}$ or $\bigstep{d}{μ_2}{v}{μ_2'}$
+      If either $\bigstepn{n_{1}}{d}{μ_1}{v}{μ_1'}$ or $\bigstepn{n_{2}}{d}{μ_2}{v}{μ_2'}$
       then both judgments hold by the Speculate and Postpone properties (note
       that $d$ is defined on $μ_1$ because $\dom(μ_1) ⊦ d$) and we have $μ_1'
       \forcesto μ_2'$. Hence it suffices to show
