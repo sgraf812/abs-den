@@ -31,10 +31,10 @@ quick-ext: comp-trace-ext.tex macros.tex
 	$(PDFLATEX) comp-trace-ext
 
 watch:
-	ls *.tex | entr make quick
+	ls *.tex | entr -n make quick
 
 watch-ext:
-	ls *.tex | entr make quick-ext
+	ls *.tex | entr -n make quick-ext
 
 clean:
 	git clean -fxd

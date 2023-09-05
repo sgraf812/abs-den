@@ -504,7 +504,7 @@ With this updated definition, we go on to revise a number of auxiliary lemmas.
 \end{proof}
 
 \begin{theorem}
-  For any address space $A$, $A ⊦ \wild \lesssim \wild$ is a preorder on lazy traces.
+  For any address space $A$, $A ⊦_{0} \wild \lesssim \wild$ is a preorder on lazy traces.
 \end{theorem}
 \begin{proof}
   Reflexivity is easy to see.
@@ -523,7 +523,7 @@ With the assumed adjustment to extensionality discussed above, we conclude
   Similar to \Cref{thm:equiv-equiv}.
   Note that the extension of $μ_1$ and $μ_3$ to $\dom(μ_2)$ (where $\dom(μ_1)
   ⊦_0 μ_1 \lessapprox μ_3$) can happen such that
-  $\dom(μ_1') ⊦ μ_1' \lessapprox μ_3'$, by extending both $μ_1$ and $μ_3$ with
+  $\dom(μ_1') ⊦_{0} μ_1' \lessapprox μ_3'$, by extending both $μ_1$ and $μ_3$ with
   the same entries.
 \end{proof}
 
@@ -534,6 +534,93 @@ With the assumed adjustment to extensionality discussed above, we conclude
 \end{lemma}
 \begin{proof}
   Similar to \Cref{thm:memo-approx}.
+\end{proof}
+
+\begin{theorem}
+  For all environments $ρ$ and expressions $\pe$,
+  $\semevt{\pe}_ρ$ is extensional.
+\end{theorem}
+\begin{proof}
+Mostly the same as \Cref{thm:semevt-ext}. By induction on $\pe$.
+\begin{itemize}
+  \item \textbf{Case $\px$}:
+    $\fn{\wild}{\stuckend{}}$ is extensional in case $\px \not∈ \dom(ρ)$.
+
+    Let $\dom(μ_{1})  ⊦_{0} μ_1 \lessapprox μ_2$ and $ρ(\px) = \pa ∈ \dom(μ_i)$.
+    (The latter inclusion follows by \Cref{thm:well-addressedness}.)
+    Then the goal is to show that
+    \[
+      \later (\dom(μ_1) ⊦ μ_1(\pa)(μ_1) \lesssim μ_2(\pa)(μ_2))
+    \]
+    in order to apply $\eqlrcons$ and that follows simply by $\dom(μ_{1}) ⊦ μ_1 \approx μ_2$.
+
+  \item \textbf{Case $\Lam{\px}{\pe'}$}:
+    Let $\dom(μ_{1})  ⊦_{0} μ_1 \lessapprox μ_2$. The goal is to show
+    \[
+      \dom(μ_1) ⊦_{0} \goodend{v,μ_1} \lesssim \goodend{v,μ_2}
+    \]
+    where $v \triangleq \FunV(\fn{\pa}{\AppEE(\px↦\pa) \cons \semevt{\pe'}_{ρ[\px↦\pa]}})$.
+
+    In order to apply rule $\impval$, we have two proof obligations:
+    The first is, given a fresh $\pa \not\in \dom(μ_{1})$, we have to show that
+    \[
+      \dom(μ_1) \cup \{\pa\} ⊦ μ_{1}[\pa ↦ \memo(\pa, \ret(v))] \lessapprox μ_{2}[\pa ↦ \memo(\pa, \ret(v))]
+    \]
+    % Continue here
+    So let us fix $\pa ∈ \dom(μ_1)$ and show
+    \[
+      \dom(μ_1) \cup \{\pa\} ⊦ (v, μ_{1}) \lessdot (v, μ_{2})
+    \]
+    \[
+      \dom(μ_1) ⊦ \semevt{\pe'}_{ρ[\px↦\pa]}(μ_1) \sim \semevt{\pe'}_{ρ[\px↦\pa]}(μ_2),
+    \]
+    which follows inductively by extensionality of $\semevt{\pe'}_{ρ[\px↦\pa]}$.
+
+  \item \textbf{Case $K~\many{\px}$}:
+    Similar to the lambda case, exploiting $μ_1 \approx μ_2$ for the field addresses.
+
+  \item \textbf{Case $\pe'~\px$}:
+    $\fn{\wild}{\stuckend{}}$ is extensional in case $\px \not∈ \dom(ρ)$.
+
+    Otherwise, by induction it suffices to show that for extensional
+    $d \triangleq \semevt{\pe'}_ρ$, the $\apply$ expression
+    $d \betastep \fn{(\FunV(f))}{f(ρ(\px))}$ is extensional.
+
+    Let $μ_1 \approx μ_2$ such that $\dom(μ_1) ⊦ \semevt{\pe}_ρ$.
+    The interesting case is when $\bigstep{d}{μ_i}{\FunV(f_i)}{μ'_i}$.
+    We have to show that $\dom(μ_1) ⊦ f_1(ρ(\px))(μ_1') \sim f_2(ρ(\px))(μ_2')$,
+    the rest follows by congruence.
+    From extensionality of $d$ (which is the result of applying the inductive hypothesis),
+    we know by $\eqfun$ that $\dom(μ_1) ⊦ f_1(\pa)(μ_1') \sim f_2(\pa)(μ_2')$
+    for any $\pa$ such that $\pa ∈ \dom(μ_1)$.
+    Since $ρ(\px) ∈ \dom(μ_1)$ by \Cref{thm:well-addressedness}, we can show the goal.
+
+  \item \textbf{Case $\Case{\pe_s}{\Sel[r]}$}:
+    Similar to the application case.
+
+  \item \textbf{Case $\Let{\px}{\pe_1}{\pe_2}$}:
+    Let $μ_1 \equiv μ_2$, $\pa \not∈ \dom(μ_1)$ and
+    abbreviate
+    $ρ' \triangleq ρ[\px↦\pa]$,
+    $d \triangleq \semevt{\pe_1}_{ρ'}$,
+    $μ_i' \triangleq μ_i[\pa ↦ \memo(\pa,d)]$.
+
+    For extensionality of $\semevt{\Let{\px}{\pe_1}{\pe_2}}_ρ$, we have to show
+    \[
+       \dom(μ_1) ⊦ \semevt{\pe_2}_{ρ'}(μ_1') \sim \semevt{\pe_2}_{ρ'}(μ_2')
+    \]
+
+    Since $d$ is extensional by the inductive hypothesis (so $d \equiv d$),
+    we have $μ_1' \approx μ_2'$ by \Cref{thm:memo-approx}.
+    We apply the inductive hypothesis once more to have
+    extensionality of $\semevt{\pe_2}_{ρ'}$.
+    Applying that to $μ_1' \approx μ_2'$, we have
+    \[
+       \dom(μ_1') ⊦ \semevt{\pe_2}_{ρ'}(μ_1') \sim \semevt{\pe_2}_{ρ'}(μ_2')
+    \]
+    and we can weaken the address space to $\dom(μ_1)$ by
+    \Cref{thm:weaken-address-space} to show the goal.
+\end{itemize}
 \end{proof}
 
 \begin{definition}[Strong contextual improvement, as in \citep{MoranSands:99}]
@@ -549,7 +636,7 @@ With the assumed adjustment to extensionality discussed above, we conclude
 \begin{definition}[Denotational deadness, improving]
   \label{defn:deadness-imp}
   An address $\pa$ is \emph{dead} in a denotation $d$ if and only if,
-  for all $μ_1 \impapprox μ_2$ such that $\pa$ is dead in $\rng(μ_i)$ later,
+  for all $\dom(μ_{1}) ⊦_{0} μ_1 \impapprox μ_2$ such that $\pa$ is dead in $\rng(μ_i)$ later,
   $\dom(μ_1) ∪ \{\pa\} ⊦ d$ and $d_1,d_2$, we have
   \[
     \dom(μ_1) ⊦_0 d(μ_1[\pa↦d_1]) \impsim d(μ_2[\pa↦d_2]).
@@ -564,19 +651,19 @@ With the assumed adjustment to extensionality discussed above, we conclude
   \label{thm:heap-partitioning-imp}
   Let $μ$ be a heap and $\pa ∈ \dom(μ)$.
   Then there exists a heap $μ_h$ with domain $\dom(μ) \setminus \{ \pa \}$
-  and $μ \impapprox μ_h[\pa↦μ(\pa)]$.
+  and $\dom(μ) ⊦_{0} μ \impapprox μ_h[\pa↦μ(\pa)]$.
 \end{lemma}
 \begin{proof}
   We use the same $\mathit{hide}_\pa$ function as in
   \Cref{thm:heap-partitioning} and define $μ_h \triangleq \mathit{hide}_\pa(μ)$.
   By Löb induction, we prove
   \[
-    μ \impapprox μ_h[\pa↦μ(\pa)]
+    \dom(μ) ⊦_{0} μ \impapprox μ_h[\pa↦μ(\pa)]
   \]
   (We have already proven that $μ_h$ is defined, lazy and extensional.)
   So we assume that the property holds later.
 
-  For $μ \impapprox μ_h[\pa↦μ(\pa)]$, we additionally have to consider $\pa' = \pa$.
+  For $\dom(μ) ⊦_{0} μ \impapprox μ_h[\pa↦μ(\pa)]$, we additionally have to consider $\pa' = \pa$.
   In that case, $\dom(μ) ⊦ μ(\pa)(μ) \impsim μ(\pa)(μ_h[\pa↦μ(\pa)])$ (later)
   follows by extensionality of $μ(\pa)$ applied to the induction hypothesis.
 \end{proof}
@@ -747,12 +834,12 @@ We can now make good on that claim:
   \]
   where $\pa \not∈\dom(μ_i)$,
   $\dom(μ_i) ∪ \{\pa\} ⊦ \semevt{\pe_2}_{ρ[\px↦\pa]}$,
-  $μ_1 \impapprox μ_2$.
+  $\dom(μ_{1}) ⊦_{0} μ_1 \impapprox μ_2$.
   Clearly,
   \[
     \dom(μ_i) ⊦_0 \semevt{\pe_2}_{ρ[\px↦\pa]}(μ_1[\pa↦\highlight{d_2}]) \impsim \semevt{\pe_2}_{ρ[\px↦\pa]}(μ_2[\pa↦d_2])
   \]
-  holds by reflexivity because $μ_1[\pa↦d_2] \impapprox μ_2[\pa↦d_2]$, so the goal becomes
+  holds by reflexivity because $\dom(μ_{1}) ∪ \{\pa\} ⊦_{0} μ_1[\pa↦d_2] \impapprox μ_2[\pa↦d_2]$, so the goal becomes
   \[
     \dom(μ_i) ⊦_0 τ_1 \impsim τ_2,
   \]
