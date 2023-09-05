@@ -184,7 +184,7 @@ characterisation of deadness by induction:
       \]
       which requires us to show
       \[
-        \forall \pa' ∈ A ⟹  A ⊦ \later (\semevt{\pe'}_{ρ'[\py↦\pa']}(μ_1') \sim \semevt{\pe'}_{ρ'[\py↦\pa']}(μ_2')).
+        \forall \pa' ∈ A.\ A ⊦ \later (\semevt{\pe'}_{ρ'[\py↦\pa']}(μ_1') \sim \semevt{\pe'}_{ρ'[\py↦\pa']}(μ_2')).
       \]
       Crucially, the address restriction means that $\pa \not= \pa'$ and
       thus $\pa \not∈ \rng(ρ[\py↦\pa'])$, so the goal follows by the deadness of
@@ -464,21 +464,22 @@ With this updated definition, we go on to revise a number of auxiliary lemmas.
       \forcesto μ_2'$ as well as $n_2 \leq n_1$.
       By \Cref{thm:weaken-skew-credits} it suffices to show
       ${\dom(μ_1) ⊦_0 \goodend{v,μ_1'} \lesssim \goodend{v,μ_2'}}$.
-      We do so by applying rule $\impval$, postponing the $\lessdot$ goal and focusing
-      on the $\impheap$ goal first.
+      We do so by applying rule $\impval$ and fix some $\pa \not\in \dom(μ_i)$,
+      postponing the $\lessdot$ goal and focusing on the $\impheap$ goal first.
 
       Clearly, $μ_{1}'[\pa ↦ \memo(\pa, \ret(v))] \forcesto μ_{2}'[\pa ↦ \memo(\pa, \ret(v))]$.
       Writing $μ_{i}'' \triangleq μ_{1}'[\pa ↦ \memo(\pa, \ret(v))]$,
       by (2) of the inductive hypothesis we get that
       $\dom(μ_{1}'') ⊦_{0} μ_1''(\pa)(μ_1'') \lesssim μ_2''(\pa)(μ_2'')$.
-      We can relax the address space to $\dom(μ_1) ∪ \{ \pa \}$ by \Cref{thm:weaken-address-space-imp},
+      We can relax the address space to $\dom(μ_1) ∪ \{ \pa \}$ by
+      \Cref{thm:weaken-address-space-imp},
       so $\dom(μ_1) ∪ \{ \pa \} ⊦_{0} μ_{1}'' \lessapprox μ_{2}''$ follows.
 
       For the $v=\ConV(K,\many{\pa})$ case,
       we have $\later (\many{\dom(μ_1') ⊦_0 μ_1'(\pa')(μ_1') \lesssim μ_2'(\pa')(μ_2')})$
       for all $\pa' ∈ \dom(μ_1')$ by (2) of the induction hypothesis applied to $μ_1' \forcesto μ_2'$.
       We can relax the address space from $\dom(μ_1')$ to $\dom(μ_1)$ via
-      \Cref{thm:weaken-address-space-imp} to show the goal.
+      \Cref{thm:weaken-address-space-imp} and apply $\impcon$ to show the goal.
 
       For the $v=\FunV(f)$ case, we fix an arbitrary $\pa ∈ \dom(μ_1)$ and have
       to show that $\later (\dom(μ_1) ⊦_0 f(\pa)(μ_1') \lesssim f(\pa)(μ_2'))$.
@@ -486,13 +487,13 @@ With this updated definition, we go on to revise a number of auxiliary lemmas.
       we have $\later (\many{\dom(μ_1') ⊦_0 f(\pa)(μ_1') \lesssim f(\pa)(μ_2')})$
       by (1) of the induction hypothesis applied to $μ_1' \forcesto μ_2'$.
       Again, we may relax the address space from $\dom(μ_1')$ to $\dom(μ_1)$ via
-      \Cref{thm:weaken-address-space}.
+      \Cref{thm:weaken-address-space} and apply $\impfun$ to show the goal.
     \item
       If $μ_1(\pa) = μ_2(\pa)$ then (2) follows by a similar argument as (1),
       so let $μ_1(\pa) \not= μ_2(\pa)$.
       From $μ_1 \forcesto μ_2$ we have $\bigstepn{n_1}{μ_1(\pa)}{μ_1}{v}{μ_1'}$
       for some $v,μ_1'$, $μ_2(\pa) = \memo(\pa,\ret(v))$ and $μ_1' \forcesto μ_2$.
-      This implies that $\bigstep{1}{μ_2(\pa)}{μ_2}{v}{μ_2}$.
+      This implies that $\bigstepn{1}{μ_2(\pa)}{μ_2}{v}{μ_2}$.
       Since $μ_1(\pa)$ is of the form $\memo(\pa,d_1)$, it will perform at least
       one step to memoise; hence $n_1 \geq 1 = n_2$, and with
       \Cref{thm:weaken-skew-credits} it suffices to show
@@ -501,6 +502,49 @@ With this updated definition, we go on to revise a number of auxiliary lemmas.
       $μ_1' \forcesto μ_2$.
   \end{enumerate}
 \end{proof}
+
+\begin{theorem}
+  For any address space $A$, $A ⊦ \wild \lesssim \wild$ is a preorder on lazy traces.
+\end{theorem}
+\begin{proof}
+  Reflexivity is easy to see.
+  The proof for transitivity is similar to the proof for \Cref{thm:sim-equiv}.
+  Skew credits are simple to incorporate.
+  The new antecedent in $\impval$ is a bit harder, but ultimately follows from
+  applying the induction hypothesis.
+\end{proof}
+
+With the assumed adjustment to extensionality discussed above, we conclude
+
+\begin{theorem}
+  $(\lessequiv)$ is a preorder on lazy and extensional elements in $\EventD$.
+\end{theorem}
+\begin{proof}
+  Similar to \Cref{thm:equiv-equiv}.
+  Note that the extension of $μ_1$ and $μ_3$ to $\dom(μ_2)$ (where $\dom(μ_1)
+  ⊦_0 μ_1 \lessapprox μ_3$) can happen such that
+  $\dom(μ_1') ⊦ μ_1' \lessapprox μ_3'$, by extending both $μ_1$ and $μ_3$ with
+  the same entries.
+\end{proof}
+
+\begin{lemma}
+  \label{thm:memo-lessapprox}
+  Let $A ⊦_n μ_1 \lessapprox μ_2$, $\pa \not∈ \dom(μ_i)$ and $d_1 \lessequiv d_2$.
+  Then $A ⊦_n μ_1[\pa↦\memo(\pa,d_1)] \lessapprox μ_2[\pa↦\memo(\pa,d_2)]$.
+\end{lemma}
+\begin{proof}
+  Similar to \Cref{thm:memo-approx}.
+\end{proof}
+
+\begin{definition}[Strong contextual improvement, as in \citep{MoranSands:99}]
+  We say that $\pe_2$ contextually improves $\pe_1$ (written $\pe_2
+  \lessequiv_{\mathit{ctx}} \pe_1$) if for all evaluation contexts $\pE$ such
+  that $\pE[\pe_i]$ are closed,
+  \[
+     \len(\semevt{\pE[\pe_2]}_{[]}([])) \leq \len(\semevt{\pE[\pe_1]}_{[]}([]))
+  \]
+  and $\pe_1 \equiv_{\mathit{ctx}} \pe_2$.
+\end{definition}
 
 \begin{definition}[Denotational deadness, improving]
   \label{defn:deadness-imp}
