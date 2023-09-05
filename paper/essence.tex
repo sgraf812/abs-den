@@ -313,7 +313,7 @@ This result justifies our tacit assumption from now on that all elements $d$ are
 
 \begin{figure}
 \[\begin{array}{c}
- \ruleform{ \fin(τ) \qquad A ⊦ d \qquad A ⊦ τ_1 \sim τ_2 \qquad μ_1 \approx μ_2 \qquad d_1 \equiv d_2}
+ \ruleform{ \fin(τ) \qquad A ⊦ d \qquad A ⊦ τ_1 \sim τ_2 \qquad A ⊦ μ_1 \approx μ_2 \qquad d_1 \equiv d_2}
  \\
  \\[-0.5em]
  \inferrule*[right=\finstuck]
@@ -363,13 +363,27 @@ This result justifies our tacit assumption from now on that all elements $d$ are
     {A ⊦ \goodend{\FunV(f_1), μ_1} \sim \goodend{\FunV(f_2), μ_2}}
  \\
  \\[-0.5em]
+ % We need the frame rule like ∪ \dom(μ') because otherwise the predicate is too
+ % weak. Consider
+ %   [a1 ↦ ... Fun(λa. if μ(a) then tt else ff) ..., a2 ↦ ret(tt)]
+ %   =
+ %   [a1 ↦ ... Fun(λa. if μ(a) then tt else tt) ..., a2 ↦ ret(tt)]
+ % If we don't allow arbitrary extension, we will equate these two heaps.
+ % Booo! This means we can't extend with [a3 ↦ ret(ff)], because we may suddenly
+ % probe the entry at a1 by calling it with a3, exposing the previously dead
+ % code path.
+ % VERY TRICKY
+ % TODO: Explain \oplus
  \inferrule*[right=\eqheap]
-    {\dom(μ_1) = \dom(μ_2) \quad \forall \pa \in \dom(μ_{1}).\ \later(\dom(μ_1) ⊦ μ_1(\pa)(μ_1) \sim μ_2(\pa)(μ_2))}
-    {μ_1 \approx μ_2}
+    {\forall μ'.\ \forall \pa \in A.\ \later(A ∪ \dom(μ') ⊦ μ_1(\pa)(μ_1 \oplus μ') \sim μ_2(\pa)(μ_2 \oplus μ'))}
+    {A ⊦ μ_1 \approx μ_2}
  \\
  \\[-0.5em]
  \inferrule*[right=\eqdenot]
-    {\forall μ_1,μ_2.\ μ_1 \approx μ_2 \wedge  \dom(μ_1) ⊦ d_1,d_2 ⟹  \dom(μ_1) ⊦ d_1(μ_1) \sim d_2(μ_2)}
+    % Why not A ⊦ d_1,d_2 outside the forall?
+    % Because then we must pick the smallest such A!
+    % Otherwise this predicate is too weak. Nasty.
+    {\forall A,μ_1,μ_2.\ A ⊦ d_1,d_2 \wedge A ⊦ μ_1 \approx μ_2  ⟹  A ⊦ d_1(μ_1) \sim d_2(μ_2)}
     {d_1 \equiv d_2}
 \end{array}\]
 \caption{Semantic equivalence relation on lazy elements}
@@ -437,11 +451,13 @@ In both cases, the function value $\FunV(\fn{\pa}{\fn{μ}{...μ(\pa)...}})$ is t
 be probed by the observer with an address of their choosing.
 If the observer was given free reign, they could choose $\pa_1$ and thus be able
 to observe the different heaps.
-Since the parameter $A$ tracks non-local addresses (as can be asserted in
-$\equiv$), we can prohibit such exploits by requiring $\pa∈A$.
+Fortunately, such exploits can be prohibited by requiring $\pa∈A$ in $\eqfun$,
+ruling out the local address $\pa_1 \not∈ A$.
 This is not too grave a restriction on the observer, because they may
-pre-allocate any denotation into the heap they want (respecting
-well-addressedness, of course) due to laziness.
+pre-allocate any denotation into the heap and invoke $(\equiv)$ at an $A$ that
+contains the newly allocated address.
+The $A \vdash μ_1 \approx μ_2$ judgment (which is reminiscent of the frame rule
+in separation logic) ensures that the heaps are extended compatibly.
 
 \begin{lemmarep}[Weakening of address spaces]
   \label{thm:weaken-address-space}
@@ -482,72 +498,6 @@ thus making this axiom a provable lemma.%
 \footnote{In our Agda formalisation, the address space is a parameter of
 all domain elements, and heaps are total functions from $A$ to $\EventD(A)$,
 so well-addressedness and the $\wild ⊦ \wild$ judgment are embedded in the types.}
-
-Evaluating lazy elements on heaps that force to each other are semantically equivalent:
-
-\begin{lemmarep}
-  \label{thm:lazy-force-bisimilar}
-  Let $μ_1,μ_2$ be lazy heaps with $μ_1 \forcesto μ_2$. Then
-  \begin{enumerate}
-    \item For all lazy $d$ such that $\dom(μ_{1}) ⊦ d$, we have $\dom(μ_1) ⊦ d(μ_1) \sim d(μ_2)$.
-    \item For all $\pa ∈ \dom(μ_1)$, we have $\dom(μ_1) ⊦ μ_1(\pa)(μ_1) \sim μ_2(\pa)(μ_2)$.
-    % SG always comes back wondering why this is the correct predicate.
-    % After all, μ_i(\pa) is a delayed D itself and would end up doubly delayed
-    % in the inductive hypothesis!
-    % The answer is that we should really think about an undelayed heap here.
-    % E.g., one for which we already have performed a step; sort of carrying
-    % along a later credit 1£ (or tick variable α) to apply to the entries of μ_i.
-    % In fact, I think we could tweak the definition of the semantics such that each
-    % heap entry is actually a pair of a delayed D and a later credit/tick variable
-    % to be applied to the delayed D.
-    % The delay is merely there to guard the type-level; at the term level we will
-    % always put `pure d = λ(α:κ).d` into the heap.
-  \end{enumerate}
-\end{lemmarep}
-\begin{proof}
-%  This lemma makes essential use of the Postpone and Speculate properties.
-  By Löb induction.
-  \begin{enumerate}
-    \item
-%      Note that we are free to make use of the latter because $d$ is defined
-%      at $μ_1$.
-      If either $d(μ_1)$ or $d(μ_2)$ is ultimately stuck, then so is the other,
-      because it neither diverges nor evaluates.
-      In that case, we see that $\dom(μ_1) ⊦ d(μ_1) \sim d(μ_2)$.
-
-      Similarly, if either $d(μ_1)$ or $d(μ_2)$ diverges, then so does the
-      other, in which case $\dom(μ_1) ⊦ d(μ_1) \sim d(μ_2)$.
-
-      If either $\bigstep{d}{μ_1}{v}{μ_1'}$ or $\bigstep{d}{μ_2}{v}{μ_2'}$ then both
-      judgments hold by the Speculate and Postpone properties (note that $d$ is
-      defined on $μ_1$ because $\dom(μ_1) ⊦ d$) and we have $μ_1' \forcesto μ_2'$.
-      Hence it suffices to show
-      ${\dom(μ_1) ⊦ \goodend{v,μ_1'} \sim \goodend{v,μ_2'}}$.
-
-      For the $v=\ConV(K,\many{\pa})$ case,
-      we have $\later (\many{\dom(μ_1') ⊦ μ_1'(\pa')(μ_1') \sim μ_2'(\pa')(μ_2')})$
-      for all $\pa' ∈ \dom(μ_1')$ by (2) of the induction hypothesis applied to $μ_1' \forcesto μ_2'$.
-      % TODO: Say a word about later credits here
-      We can relax the address space from $\dom(μ_1')$ to $\dom(μ_1)$ via
-      \Cref{thm:weaken-address-space} to show the goal.
-
-      For the $v=\FunV(f)$ case, we fix an arbitrary $\pa ∈ \dom(μ_1)$ and have
-      to show that $\later (\dom(μ_1) ⊦ f(\pa)(μ_1') \sim f(\pa)(μ_2'))$.
-      But $f(\pa)$ is lazy, and
-      we have $\later (\many{\dom(μ_1') ⊦ f(\pa)(μ_1') \sim f(\pa)(μ_2')})$
-      by (1) of the induction hypothesis applied to $μ_1' \forcesto μ_2'$.
-      Again, we may relax the address space from $\dom(μ_1')$ to $\dom(μ_1)$ via
-      \Cref{thm:weaken-address-space}.
-    \item
-      If $μ_1(\pa) = μ_2(\pa)$ then (2) follows by a similar argument as (1),
-      so let $μ_1(\pa) \not= μ_2(\pa)$.
-      From $μ_1 \forcesto μ_2$ we have $\bigstep{μ_1(\pa)}{μ_1}{v}{μ_1'}$
-      for some $v,μ_1'$, $μ_2(\pa) = \memo(\pa,\ret(v))$ and $μ_1' \forcesto μ_2$.
-      This implies that $\bigstep{μ_2(\pa)}{μ_2}{v}{μ_2}$.
-      By a similar argument as in (1), we can show that
-      ${\dom(μ_1) ⊦ \goodend{v,μ_1'} \sim \goodend{v,μ_2}}$.
-  \end{enumerate}
-\end{proof}
 
 \begin{theoremrep}
   \label{thm:sim-equiv}
@@ -624,14 +574,109 @@ By cases on the last rule applied to $A ⊦ τ_1 \sim τ_2$.
 
 It follows that $(\approx)$ is an equivalence relation on lazy heaps as well.
 
+Evaluating lazy elements on heaps that force to each other yields semantically equivalent traces:
+
+\begin{lemmarep}
+  \label{thm:lazy-force-bisimilar}
+  Let $μ_1,μ_2$ be lazy heaps with $μ_1 \forcesto μ_2$ and $d$ a lazy element such that $\dom(μ_{1}) ⊦ d$.
+  Then $\dom(μ_1) ⊦ d(μ_1) \sim d(μ_2)$.
+\end{lemmarep}
+\begin{proof}
+By Löb induction.
+
+If either $d(μ_1)$ or $d(μ_2)$ is ultimately stuck or diverges, then so
+is the other by the Speculate and Postpone property.
+In that case, we see that $\dom(μ_1) ⊦ d(μ_1) \sim d(μ_2)$.
+
+Likewise, if either $\bigstep{d}{μ_1}{v}{μ_1'}$ or $\bigstep{d}{μ_2}{v}{μ_2'}$
+then both judgments hold by the Speculate and Postpone properties (note
+that $d$ is defined on $μ_1$ because $\dom(μ_1) ⊦ d$) and we have
+$μ_1' \forcesto μ_2'$.
+Hence it suffices to show
+${\dom(μ_1) ⊦ \goodend{v,μ_1'} \sim \goodend{v,μ_2'}}$.
+
+For the $v=\FunV(f)$ case, we fix an arbitrary $\pa ∈ \dom(μ_1)$ and have
+to show that $\later (\dom(μ_1) ⊦ f(\pa)(μ_1') \sim f(\pa)(μ_2'))$.
+But $f(\pa)$ is lazy, and
+we have $\later (\many{\dom(μ_1') ⊦ f(\pa)(μ_1') \sim f(\pa)(μ_2')})$
+by the induction hypothesis applied to $μ_1' \forcesto μ_2'$.
+Again, we may relax the address space from $\dom(μ_1')$ to $\dom(μ_1)$ via
+\Cref{thm:weaken-address-space}.
+
+For the $v=\ConV(K,\many{\pa})$ case, we have to show
+$\later (\many{\dom(μ_1) ⊦ μ_1'(\pa)(μ_1') \sim μ_2'(\pa)(μ_2')})$.
+By cases over $μ_1' \forcesto μ_2'$:
+\begin{itemize}
+  \item \textbf{Case $μ_1'(\pa) = μ_2'(\pa)$}:
+    Then we get
+    $\later (\dom(μ_1') ⊦ μ_1'(\pa)(μ_1') \sim μ_1'(\pa)(μ_2'))$ by the
+    induction hypothesis.
+    We can relax the address space from $\dom(μ_1')$ to $\dom(μ_1)$ via
+    \Cref{thm:weaken-address-space} to show the goal.
+  \item \textbf{Case $μ_1'(\pa) \not= μ_2'(\pa)$}:
+    Then we have $\bigstep{μ_1'(\pa)}{μ_1'}{v'}{μ_1''}$
+    for some $μ_1'',v'$, $μ_2'(\pa) = \memo(\pa,\ret(v'))$
+    and $μ_1'' \forcesto μ_2'$.
+    Clearly, since $μ_1'' \forcesto μ_2'$, we have
+    \[
+      \later (\dom(μ_1'') ⊦ \ret(v')(μ_1'') \sim \ret(v')(μ_2')).
+    \]
+    by the induction hypothesis.
+    But since $\bigstep{μ_1'(\pa)}{μ_1'}{v'}{μ_1''}$, we can just apply
+    rule $\eqlcons$ a finite number of times and $\eqrcons$ once to show
+    \[
+      \later (\dom(μ_1) ⊦ μ_1'(\pa)(μ_1'') \sim μ_2'(\pa)(μ_2')).
+    \]
+    (Relaxing the address space parameter to $\dom(μ_1')$.)
+    Noting that $μ_1' \forcesto μ_1''$ due to the Forces property, we get,
+    by the induction hypothesis,
+    \[
+      \later (\dom(μ_1) ⊦ μ_1'(\pa)(μ_1') \sim μ_1'(\pa)(μ_1'')).
+    \]
+    Now we apply transitivity to show the goal.
+    % This is nice, because we didn't need the heap forcing lemma to show
+    % this.
+\end{itemize}
+\end{proof}
+
+% Perhaps we don't even need this one:
+%\begin{lemmarep}
+%  \label{thm:lazy-force-approx}
+%  Let $μ_1,μ_2$ be lazy heaps with $μ_1 \forcesto μ_2$.
+%  Then $\dom(μ_1) ⊦ μ_1 \approx μ_2$.
+%\end{lemmarep}
+%\begin{proof}
+%By Löb induction.
+%By rule $\eqheap$, we fix $μ'$ such that $μ_i \disjoint μ'$ and
+%$\pa ∈ \dom(μ_1)$ to show
+%\[
+%  \later(\dom(μ_1) ∪ \dom(μ') ⊦ μ_1(\pa)(μ_1 \oplus μ') \sim μ_2(\pa)(μ_2 \oplus μ'))
+%\]
+%Clearly, $μ_1 \oplus μ' \forcesto μ_2 \oplus μ'$ because the entries added
+%by $μ'$ are identical.
+%
+%We proceed by cases on $μ_1 \oplus μ' \forcesto μ_2 \oplus μ'$.
+%When $μ_1(\pa) = μ_2(\pa)$, we can apply \Cref{thm:lazy-force-bisimilar}
+%to show the goal.
+%Otherwise we have
+%$\bigstep{μ_1(\pa)}{μ_1 \oplus μ'}{v}{μ_1'}$
+%for some $v,μ_1'$, $μ_2(\pa) = \memo(\pa,\ret(v))$ and $μ_1' \forcesto μ_2 \oplus μ'$.
+%(Note that $\pa \not∈ \dom(μ')$.)
+%$μ_1' \forcesto μ_2 \oplus μ'$ and \Cref{thm:lazy-force-bisimilar} implies
+%\[
+%  \later (\dom(μ_1') ⊦ \ret(v)(μ_1') \sim \ret(v)(μ_2 \oplus μ'))
+%\]
+%and the rest is similar to the $\ConV$ case of \Cref{thm:lazy-force-bisimilar}.
+%\end{proof}
+
 Unfortunately, the notion of a lazy element we have is too weak to prove
 reflexivity of $(\equiv)$.
 Lazy elements only provide guarantees on heaps that force to each other,
-but $μ_1 \approx μ_2$ does not imply a forcing relation between $μ_1$ and $μ_2$.%
-\footnote{This could perhaps be fixed by modifying the forcing relation,
-parameterising it over any equivalence relation such as semantic equivalence
-rather than hardcoding it for definitional equality. We abstain from such
-complication in favor of the present fix.}
+but $A ⊦ μ_1 \approx μ_2$ does not imply a forcing relation between $μ_1$ and $μ_2$.%
+\footnote{This could perhaps be fixed by parameterising the forcing relation
+over any equivalence relation such as semantic equivalence rather than
+hardcoding it for definitional equality. We abstain from such complication in
+favor of the present fix.}
 We fix that by introducing the following extensionality requirement on lazy
 elements $d$:
 
