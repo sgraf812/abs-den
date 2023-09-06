@@ -120,7 +120,7 @@ $\semevt{\wild}$ and $\equiv$:
   \]
   For arbitrary $d_1,d_2$ (which we may set to
   $d_i \triangleq \memo(\pa,\semevt{\pe_i}_{ρ[\px↦\pa]})$).
-  But $\pa \not∈ \rng(ρ)$ due to \Cref{thm:well-addressedness},
+  But $\pa \not∈ \rng(ρ)$ due to the Address Domain property,
   so $\pa$ is dead in $\semevt{\pe}_{ρ[\px↦\pa]}$ per assumption.
   We apply this fact to $μ_1 \approx μ_2$, noting that $\pa$ is
   dead in $\rng(μ_i)$ by \Cref{thm:adom-dead} to show the goal.
@@ -208,7 +208,7 @@ characterisation of deadness by induction:
       \[
         A ⊦ f_1(\pa')(μ_1') \sim f_2(\pa')(μ_2').
       \]
-      But $\pa' ∈ \rng(ρ)$ and thus $\pa' ∈ A$ by \Cref{thm:well-addressedness},
+      But $\pa' ∈ \rng(ρ)$ and thus $\pa' ∈ A$ by the Address Domain property,
       so we can apply the premise of the $\eqfun$ judgment at the end of the
       $d_{\pe'}$ trace.
 
@@ -547,7 +547,7 @@ Mostly the same as \Cref{thm:semevt-ext}. By induction on $\pe$.
     $\fn{\wild}{\stuckend{}}$ is extensional in case $\px \not∈ \dom(ρ)$.
 
     Let $\dom(μ_{1})  ⊦_{0} μ_1 \lessapprox μ_2$ and $ρ(\px) = \pa ∈ \dom(μ_i)$.
-    (The latter inclusion follows by \Cref{thm:well-addressedness}.)
+    (The latter inclusion follows by the Address Domain property.)
     Then the goal is to show that
     \[
       \later (\dom(μ_1) ⊦ μ_1(\pa)(μ_1) \lesssim μ_2(\pa)(μ_2))
@@ -593,7 +593,7 @@ Mostly the same as \Cref{thm:semevt-ext}. By induction on $\pe$.
     From extensionality of $d$ (which is the result of applying the inductive hypothesis),
     we know by $\eqfun$ that $\dom(μ_1) ⊦ f_1(\pa)(μ_1') \sim f_2(\pa)(μ_2')$
     for any $\pa$ such that $\pa ∈ \dom(μ_1)$.
-    Since $ρ(\px) ∈ \dom(μ_1)$ by \Cref{thm:well-addressedness}, we can show the goal.
+    Since $ρ(\px) ∈ \dom(μ_1)$ by the Address Domain property, we can show the goal.
 
   \item \textbf{Case $\Case{\pe_s}{\Sel[r]}$}:
     Similar to the application case.

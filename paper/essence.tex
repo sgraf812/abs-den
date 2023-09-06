@@ -106,6 +106,11 @@ characterisation of the domain elements returned by $\semevt{\wild}$.
   \label{defn:lazy-d}
   An element $d ∈ \EventD$ is \emph{lazy} if and only if
   \begin{itemize}
+    \item \textup{(Address Domain)} There is a smallest set $A ⊆ \Addresses$ for
+      which $d(μ)$ is defined whenever $A ⊆ \dom(μ)$; otherwise $d(μ)$ is
+      undefined. We write $\adom(d)$ when referring to this set.%
+      \footnote{In our Agda formalisation, the address domain is a parameter of
+      $\EventD$, and heaps are total functions from $A$ to $\EventD(A)$.}
     \item \textup{(Forces)} For all lazy $μ,μ' ∈ \Heaps, v ∈ \EventV$ such that
      $\bigstep{d}{μ}{v}{μ'}$, $v$ is lazy and $μ \forcesto μ'$.
     \item \textup{(Postpone)} For all lazy $μ_1,μ_2 ∈ \Heaps$ such that $μ_1 \forcesto μ_2$,
@@ -141,10 +146,9 @@ Diagramatically:
 \end{tikzcd}
 \]
 \noindent
-Well-addressedness (the so far implicit assumption that $d(μ)$ is defined)
-in conjunction with the Speculate property means that a lazy element may branch
-on the contents of the heap, but not on whether or not an entry in the heap is
-present.
+The Address Domain property in conjunction with the Speculate property means
+that a lazy element may branch on the contents of the heap, but not on whether
+or not an entry in the heap is present.
 
 The definitions for lazy heaps, environments and values are necessary by congruence.
 When we restrict ourselves to lazy heaps, we can prove transitivity of the
@@ -247,10 +251,25 @@ And now we finally prove that $\semevt{\wild}$ indeed produces a lazy element:
 
 \begin{theoremrep}
   \label{thm:semevt-lazy}
-  For all environments $ρ$ and expressions $\pe$, $\semevt{\pe}_ρ$ is a lazy element.
+  For all environments $ρ$ and expressions $\pe$, $\semevt{\pe}_ρ$ is a lazy
+  element with address domain $\rng(ρ)$.
 \end{theoremrep}
 \begin{proof}
-  By induction on $\pe$.
+  It is not hard to see that $\semevt{\pe}_ρ(μ)$ is indeed defined whenever
+  $\rng(ρ) ⊆ \dom(μ)$ by induction on $\pe$.
+  Conversely, $\semevt{\pe}_ρ(μ)$ might even be defined for some $μ$
+  with $\dom(μ) ⊂ \rng(ρ)$.
+  That might happen when $\pe$ is dead in one of its free
+  variables, for example.
+  Of course it is simple to stricten the definition of $\semevt{\wild}$ such
+  that it is indeed undefined in these cases (or prohibited by the type system
+  as in our formalisation), obscuring its presentation.
+  From now on we assume that is actually the case, thus proving that
+  $\semevt{\pe}_ρ(μ)$ is defined if and only if $\rng(ρ) ⊆ \dom(μ)$
+  and showing the Address Domain property that encodes our previous hand-wavy
+  assumption about well-addressedness.
+
+  We show the other properties by induction on $\pe$.
   \begin{itemize}
     \item \textbf{Case $\px$}:
       Then $\fn{\wild}{\stuckend{}}$ case is easy to see, so let $\pa = ρ(\px)$.
@@ -313,7 +332,7 @@ This result justifies our tacit assumption from now on that all elements $d$ are
 
 \begin{figure}
 \[\begin{array}{c}
- \ruleform{ \fin(τ) \qquad A ⊦ d \qquad A ⊦ τ_1 \sim τ_2 \qquad A ⊦ μ_1 \approx μ_2 \qquad d_1 \equiv d_2}
+ \ruleform{ \fin(τ) \qquad A ⊦ τ_1 \sim τ_2 \qquad A ⊦ μ_1 \approx μ_2 \qquad d_1 \equiv d_2}
  \\
  \\[-0.5em]
  \inferrule*[right=\finstuck]
@@ -327,10 +346,6 @@ This result justifies our tacit assumption from now on that all elements $d$ are
  \inferrule*[right=\fincons]
     {\fin(τ)}
     {\fin(a \cons τ)}
- \quad
- \inferrule*[right=\textsc{Dom}]
-    {∀μ.\ A ⊆ \dom(μ) \Longrightarrow d(μ) \text{ is defined}}
-    {A ⊦ d}
  \\
  \\[-0.5em]
  \inferrule*[right=\eqlrcons]
@@ -380,10 +395,7 @@ This result justifies our tacit assumption from now on that all elements $d$ are
  \\
  \\[-0.5em]
  \inferrule*[right=\eqdenot]
-    % Why not A ⊦ d_1,d_2 outside the forall?
-    % Because then we must pick the smallest such A!
-    % Otherwise this predicate is too weak. Nasty.
-    {\forall A,μ_1,μ_2.\ A ⊦ d_1,d_2 \wedge A ⊦ μ_1 \approx μ_2  ⟹  A ⊦ d_1(μ_1) \sim d_2(μ_2)}
+    {\forall A,μ_1,μ_2.\ \adom(d_i) ⊆ A \wedge A ⊦ μ_1 \approx μ_2  ⟹  A ⊦ d_1(μ_1) \sim d_2(μ_2)}
     {d_1 \equiv d_2}
 \end{array}\]
 \caption{Semantic equivalence relation on lazy elements}
@@ -409,8 +421,9 @@ coarser equivalence, thus eliminating the difference in $\BindE$ actions.
 However, that still leaves the difference in heap entries such as $\pa_1$ which
 will never be looked at!
 Since the heap entry for $\pa_1$ was introduced while executing $\pe_1$/$\pe_2$,
-we will call them \emph{local} to the trace $\semevt{\pe_i}_{[]}([])$.
-It is prudent for the observer to ignore local entries.
+we will call them \emph{internal} to the trace $\semevt{\pe_i}_{[]}([])$;
+any other heap entries are \emph{public}.
+It is prudent for the observer to ignore internal entries.
 
 That is the essence of what the \emph{semantic equivalence relation} $(\equiv)$
 defined on lazy elements in \Cref{fig:sem-equiv} does.
@@ -419,9 +432,7 @@ equivalence, as we shall see.
 
 The key is its observer model for function values, which necessitates the
 \emph{address space} parameter $A ⊆ \Addresses$ in $\wild ⊦ \wild \sim \wild$ to
-track non-local (and thus observable) addresses.
-The judgment $A ⊦ d$ asserts that $d$ is defined on all heaps where the domain
-contains $A$.
+track public addresses.
 Consider a successful evaluation $\bigstep{d_i}{μ_i}{\FunV(f_i)}{μ_i'}$, as in
 \[\begin{array}{rclcl}
   \semevt{\Let{t}{\ttrue}{\Lam{z}{t}}}_{[]}([])
@@ -432,11 +443,11 @@ Consider a successful evaluation $\bigstep{d_i}{μ_i}{\FunV(f_i)}{μ_i'}$, as in
 The denotations of the two expressions are not definitionally equivalent in the final heap,
 yet they are semantically equivalent.
 To see that, we have to relate the heap entries in $\pa_1$ and $\pa_2$, which
-only succeeds when the local entries in $μ_i'$ are retained.
-So $\wild ⊦ \wild \sim \wild$ may not simply discard final heaps and carry
+only succeeds when the internal entries in $μ_i'$ are retained.
+So $(\sim)$ may not simply discard final heaps and carry
 on with the initial one.
 
-On the other hand, some detail must be hidden from the observer who may probe
+Furthermore, some detail must be hidden from the observer who may probe
 functions for equality by supplying (nearly) any argument denotation they wish
 via the heap.
 The following example illustrates how exactly such argument denotations should be
@@ -452,52 +463,31 @@ be probed by the observer with an address of their choosing.
 If the observer was given free reign, they could choose $\pa_1$ and thus be able
 to observe the different heaps.
 Fortunately, such exploits can be prohibited by requiring $\pa∈A$ in $\eqfun$,
-ruling out the local address $\pa_1 \not∈ A$.
+ruling out the internal address $\pa_1 \not∈ A$.
 This is not too grave a restriction on the observer, because they may
 pre-allocate any denotation into the heap and invoke $(\equiv)$ at an $A$ that
 contains the newly allocated address.
-The $A \vdash μ_1 \approx μ_2$ judgment (which is reminiscent of the frame rule
-in separation logic) ensures that the heaps are extended compatibly.
+The $A \vdash μ_1 \approx μ_2$ judgment ensures that heaps have
+compatible entries at addresses in $A$.
+Equivalent heaps guarantee that their public entries are equivalent up to
+arbitrary extension $μ'$ of heaps, expressed with a disjoint extension operator
+$(\oplus)$ reminiscent of the frame rule in separation logic~\citep{Reynolds:02}.%
+\footnote{Technically, the $μ'$ is not a lazy heap and should rather be
+thought of as a list of lazy bindings $[\many{\pa↦d}]$, each of which may
+reference addresses in $A$.}
+%Framing is crucial to show that heap extension preserves equivalence of heaps.
 
 \begin{lemmarep}[Weakening of address spaces]
   \label{thm:weaken-address-space}
   Let $A_1,A_2$ be address spaces such that $A_1 ⊆ A_2$. \\
-  For all $d$, if $A_1 ⊦ d$ then $A_2 ⊦ d$.
   For all traces $τ_1,τ_2$, if $A_2 ⊦ τ_1 \sim τ_2$ then $A_1 ⊦ τ_1 \sim τ_2$.
 \end{lemmarep}
 \begin{proof}
-  The first property follows by unpacking $\textsc{Dom}$.
-
-  For the second property, take note that the check $\pa ∈ A$ occurs in negative
+  Take note that the check $\pa ∈ A$ occurs in negative
   position in $\wild ⊦ \wild \sim \wild$ and $A$ is never used anywhere else.
-  Intuitively, the smaller $A$, the fewer $d$s the caller is allowed to
+  Intuitively, the smaller $A$, the fewer $\pa$s the caller is allowed to
   ``probe'' $\FunV$ values with and the easier it is to prove bisimulation.
 \end{proof}
-
-\begin{lemmarep}[Address space of $\semevt{\wild}$]
-  \label{thm:addr-dom-sem}
-  For all address spaces $A$, environments $ρ$ and expressions $\pe$,
-  if $\rng(ρ) ⊆ A$ then $A ⊦ \semevt{\pe}_ρ$.
-\end{lemmarep}
-\begin{proof}
-  Simple proof by induction.
-\end{proof}
-
-Our implicit assumption on well-addressedness can be encoded as an axiom as
-follows:
-
-\begin{axiom}[Well-addressedness]
-  \label{thm:well-addressedness}
-  For all address spaces $A$, environments $ρ$ and expressions $\pe$,
-  if $A ⊦ \semevt{\pe}_ρ$ then $\rng(ρ) ⊆ A$.
-\end{axiom}
-
-One could tweak the definition of $\semevt{\wild}$ such that
-it is undefined on an input heap $μ$ when $\rng(ρ) \not⊆ \dom(μ)$,
-thus making this axiom a provable lemma.%
-\footnote{In our Agda formalisation, the address space is a parameter of
-all domain elements, and heaps are total functions from $A$ to $\EventD(A)$,
-so well-addressedness and the $\wild ⊦ \wild$ judgment are embedded in the types.}
 
 \begin{theoremrep}
   \label{thm:sim-equiv}
@@ -634,7 +624,7 @@ By cases over $μ_1' \forcesto μ_2'$:
       \later (\dom(μ_1) ⊦ μ_1'(\pa)(μ_1') \sim μ_1'(\pa)(μ_1'')).
     \]
     Now we apply transitivity to show the goal.
-    % This is nice, because we didn't need the heap forcing lemma to show
+    % This is nice, because we didn't need thm:lazy-force-approx below to show
     % this.
 \end{itemize}
 \end{proof}
@@ -691,20 +681,19 @@ elements $d$:
 \end{theoremrep}
 \begin{proof}
 Reflexivity follows by extensionality.
-Symmetry follows straightforwardly by Löb induction, noting that the $\dom(μ_1)$
-requirement in $(\equiv)$ can be replaced with $\dom(μ_2)$ due to the
-$μ_1 \approx μ_2$ premise.
+Symmetry follows straightforwardly from symmetry of $(\sim)$ and $(\approx)$.
 
 Now we show transitivity.
 Assume that $d_1 \equiv d_2$ and $d_2 \equiv d_3$.
 We have to show that $d_1 \equiv d_3$.
 
-For that we assume $μ_1 \approx μ_3$ for some $μ_1,μ_3$ such that
-$\dom(μ_1) ⊦ d_1, d_3$ and have to show that
+For that we assume $A ⊦ μ_1 \approx μ_3$ for some $A,μ_1,μ_3$ such that
+$A ⊦ d_1, d_3$ and have to show that
 \[
-  \dom(μ_1) ⊦ d_1(μ_1) \sim d_3(μ_3).
+  A ⊦ d_1(μ_1) \sim d_3(μ_3).
 \]
-We can construct extended heaps $μ_1' \approx μ_3'$ such that
+W.l.o.g., we assume that $A ⊦ d_2$; otherwise, we can just
+We can construct extended heaps $A ⊦ μ_1' \approx μ_3'$ such that
 $μ_1 \forcesto μ_1'$, $μ_3 \forcesto μ_3'$ and $\dom(μ_i') ⊦ d_2$.
 
 Clearly, $μ_1' \approx μ_1'$ by reflexivity, so we can invoke $d_1 \equiv d_2$
@@ -768,7 +757,7 @@ By induction on $\pe$.
     $\fn{\wild}{\stuckend{}}$ is extensional in case $\px \not∈ \dom(ρ)$.
 
     Let $μ_1 \approx μ_2$ and $ρ(\px) = \pa ∈ \dom(μ_i)$.
-    (The latter inclusion follows by \Cref{thm:well-addressedness}.)
+    (The latter inclusion follows by the Address Domain property.)
     Then the goal is to show that
     \[
       \later (\dom(μ_1) ⊦ μ_1(\pa)(μ_1) \sim μ_2(\pa)(μ_2))
@@ -804,7 +793,7 @@ By induction on $\pe$.
     From extensionality of $d$ (which is the result of applying the inductive hypothesis),
     we know by $\eqfun$ that $\dom(μ_1) ⊦ f_1(\pa)(μ_1') \sim f_2(\pa)(μ_2')$
     for any $\pa$ such that $\pa ∈ \dom(μ_1)$.
-    Since $ρ(\px) ∈ \dom(μ_1)$ by \Cref{thm:well-addressedness}, we can show the goal.
+    Since $ρ(\px) ∈ \dom(μ_1)$ by Address Domain property, we can show the goal.
 
   \item \textbf{Case $\Case{\pe_s}{\Sel[r]}$}:
     Similar to the application case.
@@ -934,7 +923,7 @@ Most interestingly, $\semevt{\wild}$ is also compositional \wrt to $(\equiv)$!
       We have to show that $\dom(μ_1) ⊦ f_1(ρ(\px))(μ_1') \sim f_2(ρ(\px))(μ_2')$, the
       rest follows by congruence.
       From $d_1 \equiv d_2$, we know that $\dom(μ_1) ⊦ f_1(\pa)(μ_1') \sim f_2(\pa)(μ_2')$ for any $\pa ∈ \dom(μ_1)$.
-      Since $ρ(\px) ∈ \dom(μ_1)$ by \Cref{thm:well-addressedness} we can show the goal.
+      Since $ρ(\px) ∈ \dom(μ_1)$ by Address Domain property we can show the goal.
 
     \item \textbf{Case $\Case{\pE}{\Sel[r]}$}:
       Similar to the application case.
