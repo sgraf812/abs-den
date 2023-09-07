@@ -328,6 +328,149 @@ And now we finally prove that $\semevt{\wild}$ indeed produces a lazy element:
 
 This result justifies our tacit assumption from now on that all elements $d$ are lazy.
 
+\subsection{Compositionality and Contextual Equivalence}
+
+Compositionality is an important property of a semantics, enabling local
+reasoning about terms.
+Roughly, when a semantics is compositional, the denotation of an expression
+is a function of the meaning of its subexpressions.
+The ``is a function of'' qualifier is most often understood syntactically
+in terms of a property of \emph{contexts}.
+
+We follow \citet{MoranSands:99} and define \emph{evaluation contexts} $\pE$%
+\footnote{In \Cref{defn:deadness2} we already used the term ``evaluation
+context'' to denote small-step machine components $(ρ,μ,κ)$ rather than
+$\pE$. \citet{MoranSands:99} prove that both notions are equivalent, so this
+overload is justified.}
+with holes $\hole$ in order to formalise compositionality.
+Then $\pE[\pe]$ denotes an expression where the hole in $\pE$ has been replaced
+with $\pe$, expressing that the bigger expression $\pE[\pe]$ is a (linear)
+function of $\pe$.
+\[\begin{array}{rcl}
+  \pE & ::=  & \hole \mid \pE~\px \mid \Let{\px}{\pe}{\pE} \mid \Let{\px}{\pE_1}{\pE_2[\px]} \mid \Case{\pE}{\Sel[r]} \\
+\end{array}\]
+
+\begin{lemmarep}[$\semevt{\wild}$ is compositional]
+  \label{thm:semevt-comp}
+  Let $\pe_1, \pe_2$ be expressions such that
+  for all environments $ρ$, $\semevt{\pe_1}_ρ = \semevt{\pe_2}_ρ$.
+  Then for all evaluation contexts $\pE$ and environments $ρ$, we have
+  $\semevt{\pE[\pe_1]}_{ρ} = \semevt{\pE[\pe_2]}_{ρ}$.
+\end{lemmarep}
+\begin{proof}
+  By induction on $\pE$. The interesting case is the $\hole$ case where we
+  apply the assumption $\semevt{\pe_1}_ρ = \semevt{\pe_2}_ρ$.
+\end{proof}
+
+Compositionality means we can factor $\semevt{\pE[\pe]}$ into two functions
+such that $\semevt{\pE[\pe]} = \semevt{\pE}(\semevt{\pe})$, thus
+recovering a semantic function for contexts
+\[
+  \semevt{\pE} \colon ((\Var \pfun \Addresses) → \EventD) → ((\Var \pfun \Addresses) → \EventD)
+\]
+This function can easily be derived from $\semevt{\pe}$; we give the full
+definition of this function in the Appendix.
+
+\begin{toappendix}
+\begin{figure}
+\[\begin{array}{rcl}
+  \multicolumn{3}{c}{ \ruleform{ \semevt{\pE} \colon ((\Var \pfun \Addresses) → \EventD) → ((\Var \pfun \Addresses) → \EventD) } } \\
+  \\[-0.75em]
+  \semevt{\hole}(S)_ρ(μ)       & = & S_ρ(μ) \\
+  \\[-0.75em]
+  \semevt{\pE~\px}(S)_ρ(μ)   & = & \begin{cases}
+    \AppIE(ρ(x)) \cons \apply(\semevt{\pE}(S)_ρ, ρ(\px))(μ) & \px ∈ \dom(ρ) \\
+    \stuckend{}  & \text{otherwise} \\
+  \end{cases} \\
+  \\[-0.75em]
+  \semevt{\Let{\px}{\pe}{\pE}}(S)_ρ(μ) & = &
+    \begin{letarray}
+      \text{let} & ρ' = ρ[\px ↦ \pa] \quad \text{where $\pa \not∈ \dom(μ)$} \\
+                 & d_1^\later = \semevt{\pe}_{ρ'} \\
+      \text{in}  & \BindE(\px,\pa↦d_1^\later) \cons \semevt{\pE}(S)_{ρ'}(μ[\pa ↦ \memo(\pa,d_1^\later)])
+    \end{letarray} \\
+  \\[-0.75em]
+  \semevt{\Let{\px}{\pE_1}{\pE_2[x]}}(S)_ρ(μ) & = &
+    \begin{letarray}
+      \text{let} & ρ' = ρ[\px ↦ \pa] \quad \text{where $\pa \not∈ \dom(μ)$} \\
+                 & d_1^\later = \semevt{\pE_1}(S)_{ρ'} \\
+      \text{in}  & \BindE(\px,\pa↦d_1^\later) \cons \semevt{\pE_2[x]}_{ρ'}(μ[\pa ↦ \memo(\pa,d_1^\later)])
+    \end{letarray} \\
+  \\[-0.75em]
+  \semevt{\Case{\pE}{\Sel[r]}}(S)_ρ(μ) & = &
+    \begin{letarray}
+      \text{let} & \alts = \fn{(K_i, \many{\pa})}{\CaseEE(K_i,\many{\px_i↦\pa}) \cons \semevt{\pe_{r_i}}_{ρ[\many{\px_i↦\pa}]}} \\
+      \text{in} & \CaseIE(\semevt{\pE}(S)_ρ) \cons \select(\semevt{\pE}(S)_ρ, \alts)(μ)  \\
+    \end{letarray}
+\end{array}\]
+\caption{Eventful Trace Semantics for Evaluation Contexts}
+\label{fig:semevt-ctx}
+\end{figure}
+\end{toappendix}
+
+We can extend the meaning of compositionality to equivalence relations
+on expressions:
+
+\begin{definition}[Compositionality of $\semevt{\wild}$]
+  Let $\cong$ be an equivalence relation on expressions.
+  $\cong$ is \emph{compositional} if and only if for all $\pe_1,\pe_2$,
+  $\pe_1 \cong \pe_2$ implies $\pE[\pe_1] \cong \pE[\pe_2]$ for all evaluation
+  contexts $\pE$.
+\end{definition}
+
+In this sense, definitional equality $\fn{\pe_1\,\pe_2}{\semevt{\pe_1}_ρ = \semevt{\pe_2}_ρ}$
+is compositional by \Cref{thm:semevt-comp}.
+It is also well-known that \emph{contextual equivalence} is compositional:
+
+\begin{definition}[Contextual equivalence, as in \citep{MoranSands:99}]
+  Two expressions $\pe_1,\pe_2$ are \emph{contextually equivalent}, written
+  $\pe_1 \equiv \pe_2$, if their termination behavior coincides
+  in all contexts, \eg, for all closed evaluation contexts $\pE$ it is
+  \[
+    \len(\semevt{\pE[\pe_1]}_{[]}([])) = ω \Longleftrightarrow \len(\semevt{\pE[\pe_2]}_{[]}([])) = ω
+  \]
+  where $\len$ is the length function from \Cref{defn:length}.
+\end{definition}
+
+The definition of \citet{MoranSands:99} is in terms of a transition system like
+$(\smallstep)$, but adequacy (\Cref{thm:semvan-adequate}) guarantees that the two
+notions coincide.
+
+\begin{lemmarep}[Contextual equivalence is compositional]
+  Let $\pe_1, \pe_2$ be expressions such that
+  $\pe_1 \equiv \pe_2$.
+  Then for all evaluation contexts $\pE$, we have
+  $\pE[\pe_1] \equiv \pE[\pe_2]$.
+\end{lemmarep}
+\begin{proof}
+  Immediate, because $\pE[\pE_2[\hole]]$ is just another context in which
+  contextually equivalent expressions are contextually equivalent.
+\end{proof}
+
+\subsubsection{A Semantic Equivalence Relation?}
+
+Interestingly, we could now capitalise on our new $\semevt{\pE}$ function and
+try to derive a ``semantic'' equivalence relation on domain elements $\EventD$
+from the ``syntactic'' equivalence $\equiv$ on expressions $\Exp$, by
+considering
+\[
+  \fn{d_1\,d_2}. \forall \pE.\
+    \len(\semevt{\pE}(\constfn{d_1})_{[]}([]) = ω
+    \Longleftrightarrow
+    \len(\semevt{\pE}(\constfn{d_2})_{[]}([]) = ω
+\]
+It would be interesting to see whether this is actually an equivalence relation
+and whether it contains coincides with $\equiv$ on the range of $\semevt{\pe}$.
+
+In an earlier version of this work, we attempted to give a semantic equivalence
+relation on $\EventD$ directly; a bold endeavour that we ultimately abandoned
+due to complexity reasons, diminishing confidence in its correctness.
+The reader may find the alternative version of this Section in the Appendix.
+
+Since we stick to the syntactic contextual equivalence, we elegantly work around
+questions of \emph{Full abstraction}~\citep{Plotkin:77}.
+
+\begin{toappendix}
 \subsection{A Useful Program Equivalence}
 
 \begin{figure}
@@ -480,11 +623,11 @@ thought of as a list of lazy bindings $[\many{\pa↦d}]$, each of which may
 reference addresses in $A$.}
 %Framing is crucial to show that heap extension preserves equivalence of heaps.
 
-\begin{lemmarep}[Weakening of address spaces]
+\begin{lemma}[Weakening of address spaces]
   \label{thm:weaken-address-space}
   Let $A_1,A_2$ be address spaces such that $A_1 ⊆ A_2$. \\
   For all traces $τ_1,τ_2$, if $A_2 ⊦ τ_1 \sim τ_2$ then $A_1 ⊦ τ_1 \sim τ_2$.
-\end{lemmarep}
+\end{lemma}
 \begin{proof}
   Take note that the check $\pa ∈ A$ occurs in negative
   position in $\wild ⊦ \wild \sim \wild$ and $A$ is never used anywhere else.
@@ -492,10 +635,10 @@ reference addresses in $A$.}
   ``probe'' $\FunV$ values with and the easier it is to prove bisimulation.
 \end{proof}
 
-\begin{theoremrep}
+\begin{theorem}
   \label{thm:sim-equiv}
   For any address space $A$, $A ⊦ \wild \sim \wild$ is an equivalence relation on lazy traces.
-\end{theoremrep}
+\end{theorem}
 \begin{proof}
 Reflexivity follows by straightforwardly by Löb induction.
 Symmetry does so as well, with the twist that the rule applications of
@@ -569,11 +712,11 @@ It follows that $(\approx)$ is an equivalence relation on lazy heaps as well.
 
 Evaluating lazy elements on heaps that force to each other yields semantically equivalent traces:
 
-\begin{lemmarep}
+\begin{lemma}
   \label{thm:lazy-force-bisimilar}
   Let $μ_1,μ_2$ be lazy heaps with $μ_1 \forcesto μ_2$ and $d$ a lazy element such that $\dom(μ_{1}) ⊆ \adom(d)$.
   Then $\dom(μ_1) ⊦ d(μ_1) \sim d(μ_2)$.
-\end{lemmarep}
+\end{lemma}
 \begin{proof}
 By Löb induction.
 
@@ -633,11 +776,11 @@ By cases over $μ_1' \forcesto μ_2'$:
 \end{proof}
 
 % Perhaps we don't even need this one:
-%\begin{lemmarep}
+%\begin{lemma}
 %  \label{thm:lazy-force-approx}
 %  Let $μ_1,μ_2$ be lazy heaps with $μ_1 \forcesto μ_2$.
 %  Then $\dom(μ_1) ⊦ μ_1 \approx μ_2$.
-%\end{lemmarep}
+%\end{lemma}
 %\begin{proof}
 %By Löb induction.
 %By rule $\eqheap$, we fix $μ'$ such that $μ_i \disjoint μ'$ and
@@ -677,7 +820,6 @@ elements $d$:
   A lazy element $d$ is \emph{extensional} if and only if $d \equiv d$.
 \end{definition}
 
-\begin{toappendix}
 \begin{lemma}
   \label{thm:memo-approx-extend}
   Let $A ⊦ μ_1 \approx μ_2$, $\pa \not∈ \dom(μ_i)$ and $d$ lazy and extensional
@@ -751,13 +893,12 @@ elements $d$:
   since $\memo(\pa,d_1) \equiv \memo(\pa,d_2)$.
   We can combine both facts transitively to show the goal.
 \end{proof}
-\end{toappendix}
 
-\begin{theoremrep}
+\begin{theorem}
   \label{thm:equiv-equiv}
   $(\equiv)$ is an equivalence relation on lazy and extensional elements in
   $\EventD$.
-\end{theoremrep}
+\end{theorem}
 \begin{proof}
 Reflexivity follows by extensionality.
 Symmetry follows straightforwardly from symmetry of $(\sim)$ and $(\approx)$.
@@ -795,11 +936,11 @@ and by transitivity we show the goal.
 
 What remains is a proof that $\semevt{\pe}_ρ$ is indeed extensional.
 
-\begin{theoremrep}
+\begin{theorem}
   \label{thm:semevt-ext}
   For all environments $ρ$ and expressions $\pe$,
   $\semevt{\pe}_ρ$ is extensional.
-\end{theoremrep}
+\end{theorem}
 \begin{proof}
 By induction on $\pe$.
 In each case, we assume a fixed $A,μ_1,μ_2$ such that $\adom(\semevt{\pe}_ρ) ⊆ A$, $A ⊦ μ_1 \approx μ_2$ and fix $μ'$ to show
@@ -926,12 +1067,12 @@ The definition of \citet{MoranSands:99} is in terms of a transition system like
 $(\smallstep)$, but adequacy (\Cref{thm:semvan-adequate}) guarantees that the two
 notions coincide.
 
-\begin{lemmarep}[Contextual equivalence is compositional]
+\begin{lemma}[Contextual equivalence is compositional]
   Let $\pe_1, \pe_2$ be expressions such that
   $\pe_1 \equiv_{\mathit{ctx}} \pe_2$.
   Then for all evaluation contexts $\pE$, we have
   $\pE[\pe_1] \equiv_{\mathit{ctx}} \pE[\pe_2]$.
-\end{lemmarep}
+\end{lemma}
 \begin{proof}
   Immediate, because $\pE[\pE_2[\hole]]$ is just another context in which
   contextually equivalent expressions are contextually equivalent.
@@ -940,25 +1081,25 @@ notions coincide.
 $\semevt{\wild}$ is compositional \wrt definitional equality $=$ on
 $\EventD$:
 
-\begin{lemmarep}[Definitional equivalence is compositional]
+\begin{lemma}[Definitional equivalence is compositional]
   Let $\pe_1, \pe_2$ be expressions such that
   for all environments $ρ$, $\semevt{\pe_1}_ρ = \semevt{\pe_2}_ρ$.
   Then for all evaluation contexts $\pE$ and environments $ρ$, we have
   $\semevt{\pE[\pe_1]}_{ρ} = \semevt{\pE[\pe_2]}_{ρ}$.
-\end{lemmarep}
+\end{lemma}
 \begin{proof}
   By induction on $\pE$, similar but simpler than \Cref{thm:sem-equiv-comp}.
 \end{proof}
 
 Most interestingly, $\semevt{\wild}$ is also compositional \wrt to $(\equiv)$!
 
-\begin{theoremrep}[Semantic equivalence is compositional]
+\begin{theorem}[Semantic equivalence is compositional]
   \label{thm:sem-equiv-comp}
   Let $\pe_1, \pe_2$ be expressions such that
   for all environments $ρ$, $\semevt{\pe_1}_ρ \equiv \semevt{\pe_2}_ρ$.
   Then for all evaluation contexts $\pE$ and environments $ρ$, we have
   $\semevt{\pE[\pe_1]}_{ρ} \equiv \semevt{\pE[\pe_2]}_{ρ}$.
-\end{theoremrep}
+\end{theorem}
 \begin{proof}
   By induction on $\pE$.
   In each case, we assume a fixed $A,μ_1,μ_2$ such that $\adom(\semevt{\pe}_ρ) ⊆ A$, $A ⊦ μ_1 \approx μ_2$ and fix $μ'$ to show
@@ -1012,14 +1153,14 @@ Most interestingly, $\semevt{\wild}$ is also compositional \wrt to $(\equiv)$!
 
 And finally, we can use this result to prove that $(\equiv)$ is indeed coarser than contextual equivalence:
 
-\begin{corollaryrep}[Semantic equivalence implies contextual equivalence]
+\begin{corollary}[Semantic equivalence implies contextual equivalence]
   \label{thm:sem-equiv-cont-equiv}
   Let $\pe_1, \pe_2$ be expressions such that $\semevt{\pe_1}_ρ \equiv \semevt{\pe_2}_ρ$.
   Then for all closed evaluation contexts $\pE$, we have
   \[
     \len(\semevt{\pE[\pe_1]}_{[]}([])) = ω \Longleftrightarrow \len(\semevt{\pE[\pe_1]}_{[]}([])) = ω.
   \]
-\end{corollaryrep}
+\end{corollary}
 \begin{proof}
   It suffices to show that for all $d_1,d_2$ with $\varnothing ⊦ d_1,d_2$,
   if $d_1 \equiv d_2$ then $\len(d_1([])) = ω \Longleftrightarrow \len(d_2([])) = ω$.
@@ -1039,3 +1180,4 @@ Guarded types prevent probing for diverging computations without executing them,
 but it is still possible for lazy elements to probe traces for stuckness without
 propagating it or evaluating multiple traces concurrently, so we have reason to
 doubt that $\semevt{\wild}$ is fully abstract.
+\end{toappendix}
