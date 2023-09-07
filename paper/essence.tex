@@ -376,6 +376,10 @@ This result justifies our tacit assumption from now on that all elements $d$ are
  \inferrule*[right=\eqfun]
     {\forall \pa ∈ A.\  \later (A ⊦ f_1(\pa)(μ_1) \sim f_2(\pa)(μ_2))}
     {A ⊦ \goodend{\FunV(f_1), μ_1} \sim \goodend{\FunV(f_2), μ_2}}
+ \quad
+ \inferrule*[right=\eqfun]
+    {\forall \pa ∈ A.\  \later (A ⊦ f_1(\pa)(μ_1) \sim f_2(\pa)(μ_2))}
+    {A ⊦ \goodend{\FunV(f_1), μ_1} \sim \goodend{\FunV(f_2), μ_2}}
  \\
  \\[-0.5em]
  % We need the frame rule like ∪ \dom(μ') because otherwise the predicate is too
@@ -388,14 +392,13 @@ This result justifies our tacit assumption from now on that all elements $d$ are
  % probe the entry at a1 by calling it with a3, exposing the previously dead
  % code path.
  % VERY TRICKY
- % TODO: Explain \oplus
  \inferrule*[right=\eqheap]
-    {\forall μ'.\ \forall \pa \in A.\ \later(A ∪ \dom(μ') ⊦ μ_1(\pa)(μ_1 \oplus μ') \sim μ_2(\pa)(μ_2 \oplus μ'))}
+    {\forall \pa \in A.\ \later(\forall μ'.\ A ∪ \dom(μ') ⊦ μ_1(\pa)(μ_1 \oplus μ') \sim μ_2(\pa)(μ_2 \oplus μ'))}
     {A ⊦ μ_1 \approx μ_2}
  \\
  \\[-0.5em]
  \inferrule*[right=\eqdenot]
-    {\forall A,μ_1,μ_2.\ \adom(d_i) ⊆ A \wedge A ⊦ μ_1 \approx μ_2  ⟹  A ⊦ d_1(μ_1) \sim d_2(μ_2)}
+    {\forall A,μ_1,μ_2.\ \adom(d_i) ⊆ A \wedge A ⊦ μ_1 \approx μ_2  ⟹  \forall μ'.\ A ∪ \dom(μ') ⊦ d_1(μ_1 \oplus μ') \sim d_2(μ_2 \oplus μ')}
     {d_1 \equiv d_2}
 \end{array}\]
 \caption{Semantic equivalence relation on lazy elements}
@@ -568,7 +571,7 @@ Evaluating lazy elements on heaps that force to each other yields semantically e
 
 \begin{lemmarep}
   \label{thm:lazy-force-bisimilar}
-  Let $μ_1,μ_2$ be lazy heaps with $μ_1 \forcesto μ_2$ and $d$ a lazy element such that $\dom(μ_{1}) ⊦ d$.
+  Let $μ_1,μ_2$ be lazy heaps with $μ_1 \forcesto μ_2$ and $d$ a lazy element such that $\dom(μ_{1}) ⊆ \adom(d)$.
   Then $\dom(μ_1) ⊦ d(μ_1) \sim d(μ_2)$.
 \end{lemmarep}
 \begin{proof}
@@ -580,7 +583,7 @@ In that case, we see that $\dom(μ_1) ⊦ d(μ_1) \sim d(μ_2)$.
 
 Likewise, if either $\bigstep{d}{μ_1}{v}{μ_1'}$ or $\bigstep{d}{μ_2}{v}{μ_2'}$
 then both judgments hold by the Speculate and Postpone properties (note
-that $d$ is defined on $μ_1$ because $\dom(μ_1) ⊦ d$) and we have
+that $d$ is defined on $μ_1$ because $\dom(μ_1) ⊆ \adom(d)$) and we have
 $μ_1' \forcesto μ_2'$.
 Hence it suffices to show
 ${\dom(μ_1) ⊦ \goodend{v,μ_1'} \sim \goodend{v,μ_2'}}$.
@@ -609,7 +612,7 @@ By cases over $μ_1' \forcesto μ_2'$:
     and $μ_1'' \forcesto μ_2'$.
     Clearly, since $μ_1'' \forcesto μ_2'$, we have
     \[
-      \later (\dom(μ_1'') ⊦ \ret(v')(μ_1'') \sim \ret(v')(μ_2')).
+      \later (\dom(μ_1'') ⊦ \ret(v')(μ_1'') \sim \ret(v')(μ_2'))
     \]
     by the induction hypothesis.
     But since $\bigstep{μ_1'(\pa)}{μ_1'}{v'}{μ_1''}$, we can just apply
@@ -674,6 +677,82 @@ elements $d$:
   A lazy element $d$ is \emph{extensional} if and only if $d \equiv d$.
 \end{definition}
 
+\begin{toappendix}
+\begin{lemma}
+  \label{thm:memo-approx-extend}
+  Let $A ⊦ μ_1 \approx μ_2$, $\pa \not∈ \dom(μ_i)$ and $d$ lazy and extensional
+  with $\adom(d) ⊆ A ∪ \{\pa\}$.
+  Then $A ∪ \{\pa\} ⊦ μ_1[\pa↦\memo(\pa,d)] \approx μ_2[\pa↦\memo(\pa,d)]$.
+\end{lemma}
+\begin{proof}
+  Let us abbreviate $μ_i' \triangleq μ_i[\pa↦\memo(\pa,d)]$.
+  We have to show
+  \[
+    \forall μ'.\ \forall \pa' \in A ∪ \{\pa\}.\ \later(A ∪ \{\pa\} ∪ \dom(μ') ⊦ μ_1'(\pa')(μ_1' \oplus μ') \sim μ_2'(\pa')(μ_2' \oplus μ')).
+  \]
+  So fix arbitrary $μ'$ and $\pa' \in A ∪ \{\pa\}$.
+  When $\pa' ∈ A$, the equivalence follows from $A ⊦ μ_1 \approx μ_2$; we simply
+  add the $\pa$ entry to $μ'$.
+  NB: This is the reason why we need the capability to frame around arbitrary
+  heap extension!
+
+  Otherwise, $\pa'=\pa$ and the goal is to show
+  \[
+     \later(A ∪ \{\pa\} ∪ \dom(μ') ⊦ \memo(\pa,d)(μ_1' \oplus μ') \sim \memo(\pa,d)(μ_2' \oplus μ')).
+  \]
+  By Löb induction, we may assume $A ∪ \{\pa\} ⊦ μ_1' \approx μ_2'$ under the
+  later modality.
+  We can apply this fact to $\memo(\pa, d) \equiv \memo(\pa, d)$ since
+  $\memo(\pa, d)$ is extensional.
+  Further instantiation at $μ'$ shows the goal.
+\end{proof}
+
+\begin{lemma}
+  \label{thm:memo-approx-equiv-one}
+  Let $μ$ be a heap and $d$ an element, both lazy and extensional.
+  For $\pa ∈ \dom(μ)$ such that $μ(\pa) \equiv \memo(\pa, d)$, we have
+  $A ⊦ μ \approx μ[\pa ↦ \memo(\pa, d)]$.
+\end{lemma}
+\begin{proof}
+  Let us abbreviate $μ_1 \triangleq μ[\pa↦\memo(\pa,d)]$.
+  We have to show
+  \[
+    \forall μ'.\ \forall \pa' \in A.\ \later(A ∪ \dom(μ') ⊦ μ(\pa')(μ \oplus μ') \sim μ_1'(\pa')(μ_1' \oplus μ')).
+  \]
+  So fix arbitrary $μ'$ and $\pa' \in A$.
+  By Löb induction, we may assume $\later(A ⊦ μ \approx μ_1)$.
+
+  When $\pa' \not= \pa$, we have $μ(\pa') = μ_1(\pa')$ and we can apply the
+  induction hypothesis to extensionality of $μ(\pa')$.
+
+  Otherwise, we have $\pa' = \pa$ and the goal is to show
+  \[
+    \later(A ∪ \dom(μ') ⊦ μ(\pa)(μ \oplus μ') \sim \memo(\pa,d)(μ_1' \oplus μ')).
+  \]
+  But we know that $μ(\pa) \equiv \memo(\pa,d)$ and can apply this fact to the
+  induction hypothesis to show the goal.
+\end{proof}
+
+\begin{corollary}
+  \label{thm:memo-approx-equiv}
+  Let $A ⊦ μ_1 \approx μ_2$, $\pa \not∈ \dom(μ_i)$ and $d_1 \equiv d_2$,
+  all heaps and elements lazy and extensional with $\adom(d_i) ⊆ A ∪ \{\pa\}$.
+  Then $A ∪ \{\pa\} ⊦ μ_1[\pa↦\memo(\pa,d_1)] \approx μ_2[\pa↦\memo(\pa,d_2)]$.
+\end{corollary}
+\begin{proof}
+  We apply \Cref{thm:memo-approx-extend} to $d_1$ and have
+  \[
+    A ∪ \{\pa\} ⊦ μ_1[\pa↦\memo(\pa,d_1)] \approx μ_2[\pa↦\memo(\pa,d_1)]
+  \]
+  By \Cref{thm:memo-approx-equiv-one}, we also have
+  \[
+    A ∪ \{\pa\} ⊦ μ_2[\pa↦\memo(\pa,d_1)] \approx μ_2[\pa↦\memo(\pa,d_2)]
+  \]
+  since $\memo(\pa,d_1) \equiv \memo(\pa,d_2)$.
+  We can combine both facts transitively to show the goal.
+\end{proof}
+\end{toappendix}
+
 \begin{theoremrep}
   \label{thm:equiv-equiv}
   $(\equiv)$ is an equivalence relation on lazy and extensional elements in
@@ -688,62 +767,33 @@ Assume that $d_1 \equiv d_2$ and $d_2 \equiv d_3$.
 We have to show that $d_1 \equiv d_3$.
 
 For that we assume $A ⊦ μ_1 \approx μ_3$ for some $A,μ_1,μ_3$ such that
-$A ⊦ d_1, d_3$ and have to show that
+$\adom(d_1) ⊆ A, \adom(d_3) ⊆ A$, fix some $μ'$ and have to show that
 \[
-  A ⊦ d_1(μ_1) \sim d_3(μ_3).
+  A ∪ \dom(μ') ⊦ d_1(μ_1 \oplus μ') \sim d_3(μ_3 \oplus μ').
 \]
-W.l.o.g., we assume that $A ⊦ d_2$; otherwise, we can just
-We can construct extended heaps $A ⊦ μ_1' \approx μ_3'$ such that
-$μ_1 \forcesto μ_1'$, $μ_3 \forcesto μ_3'$ and $\dom(μ_i') ⊦ d_2$.
+% TODO
+W.l.o.g., we assume that $\adom(d_2) ⊆ A$.
+Otherwise, we construct extended heaps $μ_1' \triangleq μ_1 \oplus μ'',μ_3' \triangleq μ_3 \oplus μ''$
+such that $\adom(d_2) ⊆ A ∪ \dom(μ')$,
+for which we have $μ_1 \forcesto μ_1'$, $μ_3 \forcesto μ_3'$ and
+$A ∪ \dom(μ') ⊦ μ_1' \approx μ_3'$ (by \Cref{thm:memo-approx-extend} applied
+to $A ⊦ μ_1 \approx μ_3$).
+The goal follows by \Cref{thm:lazy-force-bisimilar} applied to the two forcing
+relationships, transitivity of $(\sim)$ and \Cref{thm:weaken-address-space}.
 
-Clearly, $μ_1' \approx μ_1'$ by reflexivity, so we can invoke $d_1 \equiv d_2$
-to get
+Clearly, $A ⊦ μ_1 \approx μ_1$ by reflexivity, so we can invoke
+$d_1 \equiv d_2$ (recalling that $\adom(d_2) ⊆ A$) to have
 \[
-  \dom(μ_1') ⊦ d_1(μ_1') \sim d_2(μ_1').
+  A ⊦ d_1(μ_1) \sim d_2(μ_1).
 \]
-We invoke $d_2 \equiv d_3$ on $μ_1' \approx μ_3'$ to get
+We invoke $d_2 \equiv d_3$ on $A ⊦ μ_1 \approx μ_3$ to get
 \[
-  \dom(μ_1') ⊦ d_2(μ_1') \sim d_3(μ_3')
+  A ⊦ d_2(μ_1) \sim d_3(μ_3)
 \]
-and by transitivity we get
-\[
-  \dom(μ_1') ⊦ d_1(μ_1') \sim d_3(μ_3')
-\]
-which can be weakened via \Cref{thm:weaken-address-space} to $\dom(μ_1)$.
+and by transitivity we show the goal.
 \end{proof}
-
-Note that we only make use of extensionality to prove reflexivity; in fact,
-$(\equiv)$ is still a partial equivalence relation on lazy elements.
 
 What remains is a proof that $\semevt{\pe}_ρ$ is indeed extensional.
-
-\begin{toappendix}
-\begin{lemma}
-  \label{thm:memo-approx}
-  Let $μ_1 \approx μ_2$, $\pa \not∈ \dom(μ_i)$ and $d_1 \equiv d_2$.
-  Then $μ_1[\pa↦\memo(\pa,d_1)] \approx μ_2[\pa↦\memo(\pa,d_2)]$.
-\end{lemma}
-\begin{proof}
-  Let us abbreviate $μ_i' \triangleq μ_i[\pa↦\memo(\pa,d_i)]$.
-  For addresses other than $\pa$, the equivalence follows from $μ_1 \approx μ_2$.
-  For $\pa$, we have to show
-  \[
-     \dom(μ_1') ⊦ \memo(\pa,d)(μ_1') \sim \memo(\pa,d)(μ_2').
-  \]
-  Since $d_1 \equiv d_2$, we have $\dom(μ_1') ⊦ d_1(μ_1') \sim d_2(μ_2')$.
-  When the trace diverges or is ultimately stuck, the application of $\memo$
-  never matters and we are done.
-  Otherwise we have $\bigstep{d_i}{μ_i'}{v_i}{μ''_i}$ and by
-  $d_1 \equiv d_2$ we have $\dom(μ_1') ⊦ \goodend{v_1,μ_1''} \sim \goodend{v_2,μ_2''}$.
-  Unfolding the definition of $\memo$ and $(\betastep)$, the goal is to show
-  \[
-     \dom(μ_1') ⊦ \goodend{v_1,μ_1''[\pa↦\memo(\pa,\ret(v_1))]} \sim \goodend{v_2,μ_2''[\pa↦\memo(\pa,\ret(v_2))]}
-  \]
-  But since $μ_i'' \forcesto μ_i''[\pa↦\memo(\pa,\ret(v_i))]$, we can apply
-  \Cref{thm:lazy-force-bisimilar} twice and transitivity of $\sim$ to show the
-  goal.
-\end{proof}
-\end{toappendix}
 
 \begin{theoremrep}
   \label{thm:semevt-ext}
@@ -752,32 +802,38 @@ What remains is a proof that $\semevt{\pe}_ρ$ is indeed extensional.
 \end{theoremrep}
 \begin{proof}
 By induction on $\pe$.
+In each case, we assume a fixed $A,μ_1,μ_2$ such that $\adom(\semevt{\pe}_ρ) ⊆ A$, $A ⊦ μ_1 \approx μ_2$ and fix $μ'$ to show
+\[
+  A ∪ \dom(μ') ⊦ \semevt{\pe}_ρ(μ_1 \oplus μ') \sim \semevt{\pe}_ρ(μ_2 \oplus μ')
+\]
+We also have $A ∪ \dom(μ') ⊦ μ_1 \oplus μ' \approx μ_2 \oplus μ'$ by applying
+\Cref{thm:memo-approx-extend} to $A ⊦ μ_1 \approx μ_2$.
 \begin{itemize}
   \item \textbf{Case $\px$}:
     $\fn{\wild}{\stuckend{}}$ is extensional in case $\px \not∈ \dom(ρ)$.
 
-    Let $μ_1 \approx μ_2$ and $ρ(\px) = \pa ∈ \dom(μ_i)$.
-    (The latter inclusion follows by the Address Domain property.)
+    Otherwise, $ρ(\px) = \pa ∈ A$.
     Then the goal is to show that
     \[
-      \later (\dom(μ_1) ⊦ μ_1(\pa)(μ_1) \sim μ_2(\pa)(μ_2))
+      \later (A ∪ \dom(μ') ⊦ μ_1(\pa)(μ_1 \oplus μ') \sim μ_2(\pa)(μ_2 \oplus μ'))
     \]
-    in order to apply $\eqlrcons$ and that follows simply by $μ_1 \approx μ_2$.
+    in order to apply $\eqlrcons$ and that follows simply by $A ⊦ μ_1 \approx μ_2$.
 
   \item \textbf{Case $\Lam{\px}{\pe'}$}:
-    Let $μ_1 \approx μ_2$. The goal is to show
+    The goal is to show
     \[
-      \dom(μ_1) ⊦ \goodend{v,μ_1} \sim \goodend{v,μ_2}
+      A ∪ \dom(μ') ⊦ \goodend{v,μ_1 \oplus μ'} \sim \goodend{v,μ_2 \oplus μ'}
     \]
     where $v \triangleq \FunV(\fn{\pa}{\AppEE(\px↦\pa) \cons \semevt{\pe'}_{ρ[\px↦\pa]}})$.
-    So let us fix $\pa ∈ \dom(μ_1)$ and show
+    So let us fix $\pa ∈ A ∪ \dom(μ')$ and show
     \[
-      \dom(μ_1) ⊦ \semevt{\pe'}_{ρ[\px↦\pa]}(μ_1) \sim \semevt{\pe'}_{ρ[\px↦\pa]}(μ_2),
+      A ∪ \dom(μ') ⊦ \semevt{\pe'}_{ρ[\px↦\pa]}(μ_1 \oplus μ') \sim \semevt{\pe'}_{ρ[\px↦\pa]}(μ_2 \oplus μ').
     \]
-    which follows inductively by extensionality of $\semevt{\pe'}_{ρ[\px↦\pa]}$.
+    We can apply $A ∪ \dom(μ') ⊦ μ_1 \oplus μ' \approx μ_2 \oplus μ'$ to the
+    induction hypothesis for $\semevt{\pe'}_{ρ[\px↦\pa]}$ to show the goal.
 
   \item \textbf{Case $K~\many{\px}$}:
-    Similar to the lambda case, exploiting $μ_1 \approx μ_2$ for the field addresses.
+    Similar to the lambda case, exploiting $A ∪ \dom(μ') ⊦ μ_1 \oplus μ' \approx μ_2 \oplus μ'$ for the field addresses.
 
   \item \textbf{Case $\pe'~\px$}:
     $\fn{\wild}{\stuckend{}}$ is extensional in case $\px \not∈ \dom(ρ)$.
@@ -786,20 +842,19 @@ By induction on $\pe$.
     $d \triangleq \semevt{\pe'}_ρ$, the $\apply$ expression
     $d \betastep \fn{(\FunV(f))}{f(ρ(\px))}$ is extensional.
 
-    Let $μ_1 \approx μ_2$ such that $\dom(μ_1) ⊦ \semevt{\pe}_ρ$.
-    The interesting case is when $\bigstep{d}{μ_i}{\FunV(f_i)}{μ'_i}$.
-    We have to show that $\dom(μ_1) ⊦ f_1(ρ(\px))(μ_1') \sim f_2(ρ(\px))(μ_2')$,
+    The interesting case is when $\bigstep{d}{μ_i \oplus μ'}{\FunV(f_i)}{μ'_i}$.
+    We have to show that $A ∪ \dom(μ') ⊦ f_1(ρ(\px))(μ_1') \sim f_2(ρ(\px))(μ_2')$,
     the rest follows by congruence.
     From extensionality of $d$ (which is the result of applying the inductive hypothesis),
-    we know by $\eqfun$ that $\dom(μ_1) ⊦ f_1(\pa)(μ_1') \sim f_2(\pa)(μ_2')$
-    for any $\pa$ such that $\pa ∈ \dom(μ_1)$.
-    Since $ρ(\px) ∈ \dom(μ_1)$ by Address Domain property, we can show the goal.
+    we know by $\eqfun$ that $A ∪ \dom(μ') ⊦ f_1(\pa)(μ_1') \sim f_2(\pa)(μ_2')$
+    for any $\pa$ such that $\pa ∈ A ∪ \dom(μ')$.
+    Since $ρ(\px) ∈ A$ by the Address Domain property, we can show the goal.
 
   \item \textbf{Case $\Case{\pe_s}{\Sel[r]}$}:
     Similar to the application case.
 
   \item \textbf{Case $\Let{\px}{\pe_1}{\pe_2}$}:
-    Let $μ_1 \equiv μ_2$, $\pa \not∈ \dom(μ_1)$ and
+    Let $\pa \not∈ \dom(μ_i)$ and
     abbreviate
     $ρ' \triangleq ρ[\px↦\pa]$,
     $d \triangleq \semevt{\pe_1}_{ρ'}$,
@@ -807,18 +862,18 @@ By induction on $\pe$.
 
     For extensionality of $\semevt{\Let{\px}{\pe_1}{\pe_2}}_ρ$, we have to show
     \[
-       \dom(μ_1) ⊦ \semevt{\pe_2}_{ρ'}(μ_1') \sim \semevt{\pe_2}_{ρ'}(μ_2')
+       A ∪ \dom(μ') ⊦ \semevt{\pe_2}_{ρ'}(μ_1' \oplus μ') \sim \semevt{\pe_2}_{ρ'}(μ_2' \oplus μ')
     \]
 
-    Since $d$ is extensional by the inductive hypothesis (so $d \equiv d$),
-    we have $μ_1' \approx μ_2'$ by \Cref{thm:memo-approx}.
+    Since $d$ is extensional by the inductive hypothesis,
+    we have $A ∪ \{\pa\} ⊦ μ_1' \approx μ_2'$ by \Cref{thm:memo-approx-extend}.
     We apply the inductive hypothesis once more to have
     extensionality of $\semevt{\pe_2}_{ρ'}$.
-    Applying that to $μ_1' \approx μ_2'$, we have
+    Applying that to $A ∪ \{\pa\} ⊦ μ_1' \approx μ_2'$, we have
     \[
-       \dom(μ_1') ⊦ \semevt{\pe_2}_{ρ'}(μ_1') \sim \semevt{\pe_2}_{ρ'}(μ_2')
+       A ∪ \{\pa\} ∪ \dom(μ') ⊦ \semevt{\pe_2}_{ρ'}(μ_1' \oplus μ') \sim \semevt{\pe_2}_{ρ'}(μ_2' \oplus μ')
     \]
-    and we can weaken the address space to $\dom(μ_1)$ by
+    and we can weaken the address space to $A ∪ \dom(μ')$ by
     \Cref{thm:weaken-address-space} to show the goal.
 \end{itemize}
 \end{proof}
@@ -906,6 +961,12 @@ Most interestingly, $\semevt{\wild}$ is also compositional \wrt to $(\equiv)$!
 \end{theoremrep}
 \begin{proof}
   By induction on $\pE$.
+  In each case, we assume a fixed $A,μ_1,μ_2$ such that $\adom(\semevt{\pe}_ρ) ⊆ A$, $A ⊦ μ_1 \approx μ_2$ and fix $μ'$ to show
+  \[
+    A ∪ \dom(μ') ⊦ \semevt{\pE[\pe_1]}_ρ(μ_1 \oplus μ') \sim \semevt{\pE[\pe_2]}_ρ(μ_2 \oplus μ')
+  \]
+  We also have $A ∪ \dom(μ') ⊦ μ_1 \oplus μ' \approx μ_2 \oplus μ'$ by applying
+  \Cref{thm:memo-approx-extend} to $A ⊦ μ_1 \approx μ_2$.
   \begin{itemize}
     \item \textbf{Case $\hole$}: By assumption, $\semevt{\pe_1}_ρ \equiv \semevt{\pe_2}_ρ$.
 
@@ -917,34 +978,32 @@ Most interestingly, $\semevt{\wild}$ is also compositional \wrt to $(\equiv)$!
       \[
         d_1 \betastep \fn{(\FunV(f))}{f(ρ(\px))} \equiv d_2 \betastep \fn{(\FunV(f))}{f(ρ(\px))}.
       \]
-      Now fix particular $μ_1 \approx μ_2$ such that $\dom(μ_1) ⊦ d_i$.
       The interesting case is when
-      $\bigstep{d_i}{μ_i}{\FunV(f_i)}{μ'_i}$.
-      We have to show that $\dom(μ_1) ⊦ f_1(ρ(\px))(μ_1') \sim f_2(ρ(\px))(μ_2')$, the
+      $\bigstep{d_i}{μ_i \oplus μ'}{\FunV(f_i)}{μ'_i}$.
+      We have to show that $A ∪ \dom(μ') ⊦ f_1(ρ(\px))(μ_1') \sim f_2(ρ(\px))(μ_2')$, the
       rest follows by congruence.
-      From $d_1 \equiv d_2$, we know that $\dom(μ_1) ⊦ f_1(\pa)(μ_1') \sim f_2(\pa)(μ_2')$ for any $\pa ∈ \dom(μ_1)$.
-      Since $ρ(\px) ∈ \dom(μ_1)$ by Address Domain property we can show the goal.
+      From $d_1 \equiv d_2$, we know that $A ∪ \dom(μ') ⊦ f_1(\pa)(μ_1') \sim f_2(\pa)(μ_2')$ for any $\pa ∈ \dom(μ_1)$.
+      Since $ρ(\px) ∈ A$ by the Address Domain property we can show the goal.
 
     \item \textbf{Case $\Case{\pE}{\Sel[r]}$}:
       Similar to the application case.
 
     \item \textbf{Case $\Let{\px}{\pe}{\pE}$}:
-      Note that the equivalence $μ_1 \approx μ_2$ can be extended to
-      $μ_1[\pa ↦ \memo(\pa,d)] \approx μ_2[\pa ↦ \memo(\pa,d)]$ for any
-      extensional $d$ by \Cref{thm:memo-approx}, and for $d \triangleq
+      Note that the equivalence $A ⊦ μ_1 \approx μ_2$ can be extended to
+      $A ∪ \{\pa\} ⊦ μ_1[\pa ↦ \memo(\pa,d)] \approx μ_2[\pa ↦ \memo(\pa,d)]$ for any
+      extensional $d$ by \Cref{thm:memo-approx-equiv}, and for $d \triangleq
       \semevt{\pe}_{ρ'}$ in particular.
       Then the goal follows by the inductive hypothesis applied to
       $\semevt{\pE[\pe_1]}_{ρ'} \equiv \semevt{\pE[\pe_2]}_{ρ'}$
       and \Cref{thm:weaken-address-space}.
 
     \item \textbf{Case $\Let{\px}{\pE_1}{\pE_2[\px]}$}:
-      Fix a particular $μ_1 \approx μ_2$.
-      Abbreviating $d_{\pe_i} \triangleq \semevt{\pE_1[\pe_1]}_{ρ'}$, the
+      Abbreviating $d_{\pe_i} \triangleq \semevt{\pE_1[\pe_i]}_{ρ'}$, the
       induction hypothesis gives us $d_{\pe_1} \equiv d_{\pe_2}$,
-      so $μ_1[\pa ↦ \memo(\pa,d_{\pe_1})] \approx μ_2[\pa ↦ \memo(\pa, d_{\pe_2})]$
-      by \Cref{thm:memo-approx}, and we have
+      so $A ∪ \{\pa\} ⊦ μ_1[\pa ↦ \memo(\pa,d_{\pe_1})] \approx μ_2[\pa ↦ \memo(\pa, d_{\pe_2})]$
+      by \Cref{thm:memo-approx-equiv}, and we have
       \[
-        \dom(μ_1) ∪ \{ \pa \} ⊦ \semevt{\pE_2[\px]}_{ρ'}(μ_1[\pa ↦ d_{\pe_1}]) \sim \semevt{\pE_2[\px]}_{ρ'}(μ_2[\pa ↦ d_{\pe_2}])
+        A ∪ \{\pa\} ∪ \dom(μ') ⊦ \semevt{\pE_2[\px]}_{ρ'}((μ_1 \oplus μ')[\pa ↦ d_{\pe_1}]) \sim \semevt{\pE_2[\px]}_{ρ'}((μ_2 \oplus μ')[\pa ↦ d_{\pe_2}])
       \]
       by extensionality of $\semevt{\pE_2[\px]}_{ρ'}$, which we can weaken to
       show the goal.
