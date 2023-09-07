@@ -82,12 +82,12 @@ $\semevt{\wild}$ and $\equiv$:
           inequality.
           Both deadness facts together allow us to rewrite
           \[\begin{array}{ll}
-                   & \Let{\px}{\pe_1}{\Let{\py}{\pe_1'}{\pe_2'} \\
-            \equiv & \Let{\px}{\pe_1}{\Let{\py}{\Lam{\pz}{\pz}}{\pe_2'} \\
-            \equiv & \Let{\py}{\Lam{\pz}{\pz}}{\Let{\px}{\pe_1}{\pe_2'} \\
-            \equiv & \Let{\py}{\Lam{\pz}{\pz}}{\Let{\px}{\pe_2}{\pe_2'} \\
-            \equiv & \Let{\px}{\pe_2}{\Let{\py}{\Lam{\pz}{\pz}}{\pe_2'} \\
-            \equiv & \Let{\px}{\pe_2}{\Let{\py}{\pe_1'}{\pe_2'} \\
+                   & \Let{\px}{\pe_1}{\Let{\py}{\pe_1'}{\pe_2'}} \\
+            \equiv & \Let{\px}{\pe_1}{\Let{\py}{\Lam{\pz}{\pz}}{\pe_2'}} \\
+            \equiv & \Let{\py}{\Lam{\pz}{\pz}}{\Let{\px}{\pe_1}{\pe_2'}} \\
+            \equiv & \Let{\py}{\Lam{\pz}{\pz}}{\Let{\px}{\pe_2}{\pe_2'}} \\
+            \equiv & \Let{\px}{\pe_2}{\Let{\py}{\Lam{\pz}{\pz}}{\pe_2'}} \\
+            \equiv & \Let{\px}{\pe_2}{\Let{\py}{\pe_1'}{\pe_2'}} \\
           \end{array}\]
           as requested.
         \item \textbf{Case $\tr'(\px) \not⊑ \semusg{\pe_1}_{\tr'}$}:
