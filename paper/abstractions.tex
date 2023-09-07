@@ -14,6 +14,15 @@ $\semevt{\wild}$ and $\equiv$:
   Otherwise, $\px$ is \emph{live}.
 \end{definition}
 
+\begin{lemmarep}[]
+  \Cref{thm:blah}
+  If $\px$ is dead in $\pe_1$ and $\pe_2$, then it is also dead in
+  $\Let{\py}{\pe_1}{\pe_2}$.
+\end{lemmarep}
+\begin{proof}
+
+\end{proof}
+
 \begin{theoremrep}[$\semusg{\wild}$ is a correct deadness analysis]
   \label{thm:semusg-correct-live-3}
   Let $\pe$ be an expression, $\px$ a variable and $\tr$ a usage environment.
@@ -25,25 +34,26 @@ $\semevt{\wild}$ and $\equiv$:
   We proceed by induction on $\pe$, generalising $\tr_Δ$ in the assumption
   $\semusg{\pe}_{\tr_Δ}(\px) = 0$ to ``there exists a $\tr$ such that
   $\tr(\px) \not⊑ \semusg{\pe}_{\tr}$''.
-  Additionally, we maintain the invariant that $\tr(\px) \not⊆ \tr(\py)$ implies that $\py$
+  %Additionally, we maintain the invariant that $\tr(\px) \not⊆ \tr(\py)$ implies that $\py$
 
   The goal is to show that $\px$ is dead in $\pe$.
-%  So we fix some $\pe_1,\pe_2$ and show that
-%  \[
-%    \Let{\px}{\pe_1}{\pe} \equiv \Let{\px}{\pe_2}{\pe}
-%  \]
-  So we fix some $\pe_1,\pe_2$ and $\pE$ to show
+  So we fix some $\pe_1,\pe_2$ and show that
   \[
-    \len(\semevt{\pE[\Let{\px}{\pe_1}{\pe}]}_{[]}([])) = ω
-    \Longleftrightarrow
-    \len(\semevt{\pE[\Let{\px}{\pe_2}{\pe}]}_{[]}([])) = ω
+    \Let{\px}{\pe_1}{\pe} \equiv \Let{\px}{\pe_2}{\pe}
   \]
-  Since $\pe_i$ were chosen arbitrary and the predicate is symmetric, it
-  suffices to show one direction.
-  % Furthermore, we generalise the empty environment and heap to arbitrary
-  % $ρ$ and $μ$.
-  So let us assume that $\semevt{\pE[\Let{\px}{\pe_1}{\pe}]}_{[]}([])$
-  diverges and show that $\semevt{\pE[\Let{\px}{\pe_2}{\pe}]}_{[]}([])$ does, too.
+%  So we fix some $\pe_1,\pe_2$ and $\pE$ to show
+%  \[
+%    \len(\semevt{\pE[\Let{\px}{\pe_1}{\pe}]}_{[]}([]))
+%    =
+%    \len(\semevt{\pE[\Let{\px}{\pe_2}{\pe}]}_{[]}([]))
+%  \]
+%  Which implies the termination property.
+%  Note that
+%  \[
+%    \len(\semevt{\pE[\Let{\px}{\pe_i}{\pe}]}_{[]}([]))
+%    =
+%    \len(\semevt{\pE}(\semevt{\Let{\px}{\pe_i}{\hole}}(\semevt{\pe_i}))_{[]}([]))
+%  \]
 
   We proceed by induction on $\pe$.
 
@@ -53,6 +63,49 @@ $\semevt{\wild}$ and $\equiv$:
   %  \semevt{\pE[\Let{\px}{\pe_1}{\pe}]}_{[]}([]) = \semevt{\pE}(\semevt{[\Let{\px}{\pe_1}{\pe}]})_{[]}([]).
   %\]
   \begin{itemize}
+    \item \textbf{Case $\pe = \Let{\py}{\pe_1'}{\pe_2'}$}:
+      Since there is no shadowing, it is $\px \not= \py$ and we see that
+      $\tr(\px) = \tr'(\px)$, where
+      $\tr' \triangleq {\operatorname{fix}(\fn{\tr'}{\tr ⊔ [\py ↦
+      [\py↦1]+\semusg{\pe_1'}_{\tr'}]})}$.
+      We know that
+      \[
+        \tr'(\px) = \tr(\px) \not⊑ \semusg{\pe}_{\tr} = \semusg{\pe_2'}_{\tr'}
+      \]
+      but we cannot apply the induction hypothesis yet, because we cannot
+      float out the binding for $\py$ because it might not be dead in $\px$.
+
+      We proceed by cases over $\tr(\px) = \tr'(\px) ⊑ \semusg{\pe_1'}_{\tr'}$.
+      \begin{itemize}
+        \item \textbf{Case $\tr'(\px) ⊑ \semusg{\pe_1'}_{\tr'}$}: Then
+          $\tr'(\px) ⊑ \tr'(\py)$ and $\py$ is also dead in $\pe_2'$ by the above
+          inequality.
+          Both deadness facts together allow us to rewrite
+          \[\begin{array}{ll}
+                   & \Let{\px}{\pe_1}{\Let{\py}{\pe_1'}{\pe_2'} \\
+            \equiv & \Let{\px}{\pe_1}{\Let{\py}{\Lam{\pz}{\pz}}{\pe_2'} \\
+            \equiv & \Let{\py}{\Lam{\pz}{\pz}}{\Let{\px}{\pe_1}{\pe_2'} \\
+            \equiv & \Let{\py}{\Lam{\pz}{\pz}}{\Let{\px}{\pe_2}{\pe_2'} \\
+            \equiv & \Let{\px}{\pe_2}{\Let{\py}{\Lam{\pz}{\pz}}{\pe_2'} \\
+            \equiv & \Let{\px}{\pe_2}{\Let{\py}{\pe_1'}{\pe_2'} \\
+          \end{array}\]
+          as requested.
+        \item \textbf{Case $\tr'(\px) \not⊑ \semusg{\pe_1}_{\tr'}$}:
+          Then $\pa$ is dead in $d_{\pe_1}$ and thus in the range of
+          $μ_i[\pa'↦d_{\pe_i}']$ and we may invoke the induction hypothesis
+          directly to show the goal.
+      \end{itemize}
+
+      We abbreviate
+      ${ρ' \triangleq ρ[\px↦\pa]}$,
+      $d_{\pe_i} \triangleq \semevt{\pe_i}_{ρ'[\py↦\pa']}$,
+      ${μ_i' \triangleq μ_i[\pa↦d_i]}$,
+      so the goal is to prove
+      \[
+        A ⊦ d_{\pe_2}(μ_1'[\pa'↦d_{\pe_1}]) \sim d_{\pe_2}(μ_2'[\pa'↦d_{\pe_1}])
+      \]
+      where $\pa' \not∈ \dom(μ_i')$ (so, in particular, $\pa' \not= \pa$).
+
     \item \textbf{Case $\pe = \py$}:
       If $\px=\py$, then $\semusg{\py}_{\tr} = \semusg{\px}_{\tr}$,
       contradicting the inequality.
