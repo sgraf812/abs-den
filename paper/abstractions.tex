@@ -8,14 +8,16 @@ $\semevt{\wild}$ and $\cong$:
 
 \begin{definition}[Denotational deadness, lazily]
   \label{defn:deadness3}
-  An address $\pa$ is \emph{dead} in a denotation $\semevt{\pe}_ρ$ (written $\dead(\pa,\semevt{\pe}_ρ)$)
-  if and only if, for all $d_1,d_2$, we have
+  An address $\pa$ is \emph{dead} in a denotation $\semevt{\pe}_ρ$
+  (written $\dead(\pa,\semevt{\pe}_ρ)$)
+  if and only if, for all $d$, we have
   \[
-    (ρ_\cong=ρ) \wedge \later(\dead(\pa,μ_\cong)) ⊦ \semevt{\pe}_{ρ_\cong}(μ_\cong[\pa↦d_1]) \cong \semevt{\pe}_{ρ_\cong}(μ_\cong[\pa↦d_2])
+    (ρ_\cong=ρ) \wedge \later(\dead(\pa,μ_\cong)) ⊦ \semevt{\pe}_{ρ_\cong}(μ_\cong) \cong \semevt{\pe}_{ρ_\cong}(μ_\cong[\pa↦d])
   \]
   (See \Cref{defn:sem-equiv-abbrev} for notation.)
   An address $\pa$ is dead in a heap $μ=[\many{\pa'↦\memo(\pa',\semevt{\pe'}_{ρ'})}]$
-  (written $\dead(\pa,μ)$) when $\pa$ is dead in every $\semevt{\pe'}_{ρ'}$.
+  (written $\dead(\pa,μ)$) when $\pa$ is dead in every $\semevt{\pe'}_{ρ'}$
+  except when $\pa' = \pa$.
   A variable $\px$ is \emph{dead} in an expression $\pe$ if and only if
   any $\pa$ is dead in $\semevt{\pe}_{ρ[\px↦\pa]}$ for any $ρ$ such
   that $\pa \not∈ \rng(ρ)$.
@@ -41,9 +43,10 @@ $\semevt{\wild}$ and $\cong$:
   $\pa \not∈ \dom(μ_\cong)$ and the additional $\BindE$ step has no effect on
   divergence and hence was dropped.
   % TODO: Lemma: No occ implies deadness
-  Since $\pa$ cannot occur in $μ_\cong$, we have $\dead(\pa,μ_\cong)$.
+  Since $\pa$ cannot occur in $μ_\cong$, we have $\dead(\pa,μ_\cong[\pa↦d_1])$.
   Since $\px$ is assumed dead in $\pe$, $\pa$ is dead in
-  $\semevt{\pe}_{ρ_\cong[\px↦\pa]}$ and show the goal.
+  $\semevt{\pe}_{ρ_\cong[\px↦\pa]}$ and we can apply to $d \triangleq d_2$ to
+  show the goal.
 \end{proof}
 
 So if $x$ is dead in $\pe_2$, we can justify the following rewrite by
@@ -58,44 +61,27 @@ $\mathit{panic}$s.
 
 \begin{lemmarep}[Dead let]
   \label{thm:dead-let}
-  If $\px$ is dead in $\pe_r$ and $\pe$ and $\px \not= \py$, then $\px$ is also
-  dead in $\Let{\py}{\pe_r}{\pe}$.
+  If $\px$ is dead in $\pe_1$ and $\pe_2$ and $\px \not= \py$, then $\px$ is also
+  dead in $\Let{\py}{\pe_1}{\pe_2}$.
 \end{lemmarep}
 \begin{proof}
-%  It suffices to show that the following equivalence holds for all $\pe_1$:
-%  \[
-%    \Let{\px}{\pe_1}{\Let{\py}{\pe_r}{\pe}} \equiv \Let{\py}{\Let{\px'}{\pe_1[\px:=\px']}{\pe_r[\px:=\px']}}{\Let{\px}{\pe_1}{\pe}}
-%  \]
-%  Where $\px'$ is a fresh program variable and $\pe[\py := \pz]$ denotes
-%  (capture-free) substitution of $\pz$ for $\py$ inside $\pe$.
-%  Clearly, for all $\pe$, $\Let{\px}{\pe_1}{\pe} \equiv \Let{\px'}{\pe_1[\px:=\px']}{\pe}$ by alpha equivalence.
-
-We fix some $\pe_1,\pe_2$,
-abbreviate $S_i \triangleq \semevt{\Let{\px}{\pe_1}{\Let{\py}{\pe_r}{\pe}}}$
-and show $S_1 \cong S_2$.
-
-We reduce the $S_i$ as follows,
-abbreviating $d_i \triangleq \memo(\pa_1,\semevt{\pe_1}_{ρ[\px↦\pa_1]})$ \\
-and $d_r \triangleq \memo(\pa_2, \semevt{\pe_r}_{ρ[\px↦\pa_1,\py↦\pa_2]})$:
-\[\begin{array}{rcl}
-  S_i(ρ)(μ) & = & \wild \cons \wild \cons \semevt{\pe}_{ρ[\px↦\pa_1,\py↦\pa_2]}(μ[\pa_1↦d_i,\pa_2↦d_r]) \\
-            & = & \wild \cons \wild \cons \semevt{\pe}_{ρ[\py↦\pa_2,\px↦\pa_1]}(μ[\pa_2↦d_r,\pa_1↦d_i]) \\
-            & = & \semevt{\pe}_{ρ[\py↦\pa_2,\px↦\pa_1]}(μ[\pa_2↦d_r,\pa_1↦d_i]) \\
-\end{array}\]
-We omit the two $\BindE$ events because they are not important.
-
-This is equivalent to
-%\[
-%  \len(\semevt{\pE}{\semevt{{\Let{\py}{\pe_r}{\pe}}]}_{[]}([])) = ω
-%  \Longrightarrow
-%  \len(\semevt{\pE[\Let{\px}{\pe_2}{\Let{\py}{\pe_r}{\pe}}]}_{[]}([])) = ω
-%\]
-By induction on $\pe$.
-\begin{itemize}
-  \item \textbf{Case $\pe = \pz$}:
-
-    If the $\pe_1$ term diverges, then so does the $\pe_2$ term.
-\end{itemize}
+We fix $\pa,d$, abbreviate $\pe_{\mathsf{let}} \triangleq \Let{\py}{\pe_1}{\pe_2}$ and show
+\[
+  \pa \not∈ \rng(ρ_\cong) \wedge \later(\dead(\pa,μ_\cong)) ⊦ \semevt{\pe_{\mathsf{let}}}_{ρ_\cong[\px↦\pa]}(μ_\cong) \cong \semevt{\pe_{\mathsf{let}}}_{ρ_\cong[\px↦\pa]}(μ_\cong[\pa↦d])
+\]
+we unfold the let case, allocate a fresh $\pa'$,
+abbreviate $ρ' \triangleq ρ_\cong[\px↦\pa,\py↦\pa']$,
+$d_r \triangleq \memo(\pa',\semevt{\pe_1}_{ρ'})$
+and simplify to
+\[
+  \pa \not∈ \rng(ρ_\cong) \wedge \later(\dead(\pa,μ_\cong)) ⊦ \semevt{\pe_2}_{ρ'}(μ_\cong[\pa'↦d_r]) \cong \semevt{\pe_2}_{ρ'}(μ_\cong[\pa↦d,\pa'↦d_r])
+\]
+$\px$ is dead in $\pe_1$ per assumption.
+It is also $\pa \not∈ \rng(ρ) ∪ \{\pa'\}$ and both facts together imply that
+$\pa$ is dead in $\semevt{\pe_1}_{ρ'}$; similarly for $\pe_2$.
+That in turn implies that $\dead(\pa,μ_\cong[\pa↦d,\pa'↦d_r])$, for any $d$.
+We can apply this fact to the assumed deadness of $\semevt{\pe_2}_{ρ'}$ to show
+the goal.
 \end{proof}
 
 \begin{theoremrep}[$\semusg{\wild}$ is a correct deadness analysis]
