@@ -364,7 +364,7 @@ function of $\pe$.
 
 Compositionality means we can factor $\semevt{\pE[\pe]}$ into two functions
 such that $\semevt{\pE[\pe]} = \semevt{\pE}(\semevt{\pe})$, thus
-recovering a semantic function for contexts
+recovering a semantics for contexts
 \[
   \semevt{\pE} \colon ((\Var \pfun \Addresses) → \EventD) → ((\Var \pfun \Addresses) → \EventD)
 \]
@@ -447,24 +447,73 @@ notions coincide.
   contextually equivalent expressions are contextually equivalent.
 \end{proof}
 
-\subsection{A Semantic Equivalence Relation?}
+\subsection{A Useful Semantic Equivalence Relation}
 
-Interestingly, we could now capitalise on our new $\semevt{\pE}$ function and
-try to derive a ``semantic'' equivalence relation on domain elements $\EventD$
-from the ``syntactic'' equivalence $\equiv$ on expressions $\Exp$, by
-considering
+Contextual equivalence allows to prove many transformations compatible by
+high-level, first-order equational reasoning on a syntactic level.
+Many equations are folklore, such as any $(\impequiv)$ law in
+\citet{MoranSands:99}.
+
+Some laws, such as
 \[
-  \fn{d_1\,d_2}{\forall \pE.\
-    \len(\semevt{\pE}(\constfn{d_1})_{[]}([]) = ω
-    \Longleftrightarrow
-    \len(\semevt{\pE}(\constfn{d_2})_{[]}([]) = ω}
+  \Let{\px}{\pe_1}{\pE[\pe_2]} \equiv \pE[\Let{\px}{\pe_1}{\pe_2}]
 \]
-It would be interesting to see whether this is actually an equivalence relation
-and whether it contains coincides with $\equiv$ on the range of $\semevt{\pe}$.
+come with a condition; in this case that $\px$ does not occur freely in $\pE$.
+To prove such laws, one must unfold the definition of $\equiv$ and attempt
+a lower level proof based on the underlying semantics, exploiting the condition
+by interpreting it semantically.
 
-In an earlier version of this work, we attempted to give a semantic equivalence
-relation on $\EventD$ directly; a bold endeavour that we ultimately abandoned
-due to complexity reasons, diminishing confidence in its correctness.
+We will see a concrete example in the next section, where we maintain the
+invariant that an address is dead in a heap in order to justify certain
+rewrites.
+Such an invariant is purely semantic and does not really have an obvious
+syntactic interpretation at all!
+Hence it is crucial that we have a way to express semantic demands on the
+evaluation contexts to consider in $(\equiv)$.
+
+Interestingly, we can capitalise on our new $\semevt{\pE}$ function to derive
+a more ``semantic'' equivalence relation $(\cong)$ from from the ``syntactic''
+equivalence $(\equiv)$ on expressions $\Exp$:
+\[
+  S_1 \cong S_2 \triangleq \forall \pE.\ \len(\semevt{\pE}(S_1)_{[]}([])) = ω \Longleftrightarrow \len(\semevt{\pE}(S_2)_{[]}([])) = ω
+\]
+$(\cong)$ is an equivalence relation on semantic objects with
+functionality $S \colon (\Var \pfun \Addresses) → \EventD$, with $\semevt{\pe}$
+being an example of such an object.
+In fact, we have $\pe_1 \equiv \pe_2$ if and only if $\semevt{\pe_1} \cong
+\semevt{\pe_2}$.
+
+Curiously, it is possible to augment this relation to express semantic
+conditions $P$ on $ρ$ and $μ$ of the syntactic evaluation contexts considered;
+by generating stuck traces when the condition is \emph{not} satisfied (thus both
+objects equate trivially).
+Given such a condition $P$ and a semantic object $S$, we define the filter function
+\[
+  φ_P(S)(ρ)(μ) \triangleq \begin{cases}
+    S(ρ)(μ)     & P(ρ,μ) \\
+    \stuckend{} & \text{otherwise} \\
+  \end{cases}
+\]
+
+\begin{definition}[Semantic equivalence relation]
+Given an arbitrary property $P(ρ,μ)$ on environments and heaps, we write
+$P(ρ_\cong,μ_\cong) ⊦ S_1 \cong S_2$ to mean
+\[
+  \forall \pE.\ \len(\semevt{\pE}(φ_P(S_1))_{[]}([])) = ω \Longleftrightarrow \len(\semevt{\pE}(φ_P(S_2))_{[]}([])) = ω
+\]
+A tautological antecedent can be left out, \ie, $S_1 \cong S_2$ means
+$⊦ S_1 \cong S_2$ means $\mathsf{true} ⊦ S_1 \cong S_2$.
+\end{definition}
+Now we can express conditions such as ``$\pa$ is fresh'' by writing
+$\pa \not∈ \dom(μ_\cong) ⊦ \semevt{\pe_1} \cong \semevt{\pe_2}$.
+%Additionally, $P$ may be folded into the arguments of $S_i$, \ie, $S_1(ρ')(μ')
+%\cong S_2(ρ')(μ')$ means $ρ_\cong=ρ' \wedge μ_\cong=μ' ⊦ S_1 \cong S_2$.
+
+It would be interesting to recover a semantic equivalence relation that doesn't
+need to appeal to $\semevt{\pE}$, preferrably on $\EventD$ directly.
+In an earlier version of this work, we attempted to give such a definition;
+a bold endeavour that we ultimately abandoned due to complexity reasons and
+diminishing confidence in its correctness.
 The reader may find the alternative version of this Section in the Appendix.
 
 Since we stick to the syntactic contextual equivalence, we elegantly work around
