@@ -4,23 +4,98 @@
 \subsection{Lazy Denotational Deadness}
 
 Let us now finally try to reformulate semantic deadness in terms of
-$\semevt{\wild}$ and $\equiv$:
+$\semevt{\wild}$ and $\cong$:
 
 \begin{definition}[Denotational deadness, lazily]
   \label{defn:deadness3}
+  An address $\pa$ is \emph{dead} in a denotation $\semevt{\pe}_ρ$ (written $\dead(\pa,\semevt{\pe}_ρ)$)
+  if and only if, for all $d_1,d_2$, we have
+  \[
+    (ρ_\cong=ρ) \wedge \later(\dead(\pa,μ_\cong)) ⊦ \semevt{\pe}_{ρ_\cong}(μ_\cong[\pa↦d_1]) \cong \semevt{\pe}_{ρ_\cong}(μ_\cong[\pa↦d_2])
+  \]
+  (See \Cref{defn:sem-equiv-abbrev} for notation.)
+  An address $\pa$ is dead in a heap $μ=[\many{\pa'↦\memo(\pa',\semevt{\pe'}_{ρ'})}]$
+  (written $\dead(\pa,μ)$) when $\pa$ is dead in every $\semevt{\pe'}_{ρ'}$.
   A variable $\px$ is \emph{dead} in an expression $\pe$ if and only if
-  for any $\pe_1,\pe_2$ it is
-  $\Let{\px}{\pe_1}{\pe} \equiv \Let{\px}{\pe_2}{\pe}$
-  Otherwise, $\px$ is \emph{live}.
+  any $\pa$ is dead in $\semevt{\pe}_{ρ[\px↦\pa]}$ for any $ρ$ such
+  that $\pa \not∈ \rng(ρ)$.
+  Otherwise, $\pa/\px$ is \emph{live}.
 \end{definition}
 
-\begin{lemmarep}[]
-  \Cref{thm:blah}
-  If $\px$ is dead in $\pe_1$ and $\pe_2$, then it is also dead in
-  $\Let{\py}{\pe_1}{\pe_2}$.
+\begin{lemmarep}[Deadness implies irrelevance]
+  If $\px$ is dead in $\pe$,
+  then for all $ρ, \pe_1,\pe_2$,
+  \[\Let{\px}{\pe_1}{\pe} \equiv \Let{\px}{\pe_2}{\pe}.\]
 \end{lemmarep}
 \begin{proof}
+  Assume that $\px$ is dead in $\pe$. The goal is to show
+  \[
+    \semevt{\Let{\px}{\pe_1}{\pe}} \cong \semevt{\Let{\px}{\pe_2}{\pe}},
+  \]
+  so we unfold the let case of $\semevt{\wild}$ and simplify to
+  \[
+    \semevt{\pe}_{ρ_\cong[\px↦\pa]}(μ_\cong[\pa↦d_1]) \cong \semevt{\pe}_{ρ_\cong[\px↦\pa]}(μ_\cong[\pa↦d_2]).
+  \]
+  where $d_i \triangleq \semevt{\pe_i}_{ρ[\px↦\pa]}$, $\pa \not∈ \rng(ρ_\cong)$,
+  % TODO: Lemma: May drop arbitrary many steps
+  $\pa \not∈ \dom(μ_\cong)$ and the additional $\BindE$ step has no effect on
+  divergence and hence was dropped.
+  % TODO: Lemma: No occ implies deadness
+  Since $\pa$ cannot occur in $μ_\cong$, we have $\dead(\pa,μ_\cong)$.
+  Since $\px$ is assumed dead in $\pe$, $\pa$ is dead in
+  $\semevt{\pe}_{ρ_\cong[\px↦\pa]}$ and show the goal.
+\end{proof}
 
+So if $x$ is dead in $\pe_2$, we can justify the following rewrite by
+irrelevance:
+\[
+  \Let{x}{\pe_1}{\pe_2} \equiv \Let{x}{\mathit{panic}}{\pe_2}
+\]
+A syntactic \emph{occurrence analysis} could subsequently figure out whether the
+binding for $x$ can be dropped without introducing scoping errors, a feat
+that becomes far simpler once huge expressions $\pe_1$ are turned into small
+$\mathit{panic}$s.
+
+\begin{lemmarep}[Dead let]
+  \label{thm:dead-let}
+  If $\px$ is dead in $\pe_r$ and $\pe$ and $\px \not= \py$, then $\px$ is also
+  dead in $\Let{\py}{\pe_r}{\pe}$.
+\end{lemmarep}
+\begin{proof}
+%  It suffices to show that the following equivalence holds for all $\pe_1$:
+%  \[
+%    \Let{\px}{\pe_1}{\Let{\py}{\pe_r}{\pe}} \equiv \Let{\py}{\Let{\px'}{\pe_1[\px:=\px']}{\pe_r[\px:=\px']}}{\Let{\px}{\pe_1}{\pe}}
+%  \]
+%  Where $\px'$ is a fresh program variable and $\pe[\py := \pz]$ denotes
+%  (capture-free) substitution of $\pz$ for $\py$ inside $\pe$.
+%  Clearly, for all $\pe$, $\Let{\px}{\pe_1}{\pe} \equiv \Let{\px'}{\pe_1[\px:=\px']}{\pe}$ by alpha equivalence.
+
+We fix some $\pe_1,\pe_2$,
+abbreviate $S_i \triangleq \semevt{\Let{\px}{\pe_1}{\Let{\py}{\pe_r}{\pe}}}$
+and show $S_1 \cong S_2$.
+
+We reduce the $S_i$ as follows,
+abbreviating $d_i \triangleq \memo(\pa_1,\semevt{\pe_1}_{ρ[\px↦\pa_1]})$ \\
+and $d_r \triangleq \memo(\pa_2, \semevt{\pe_r}_{ρ[\px↦\pa_1,\py↦\pa_2]})$:
+\[\begin{array}{rcl}
+  S_i(ρ)(μ) & = & \wild \cons \wild \cons \semevt{\pe}_{ρ[\px↦\pa_1,\py↦\pa_2]}(μ[\pa_1↦d_i,\pa_2↦d_r]) \\
+            & = & \wild \cons \wild \cons \semevt{\pe}_{ρ[\py↦\pa_2,\px↦\pa_1]}(μ[\pa_2↦d_r,\pa_1↦d_i]) \\
+            & = & \semevt{\pe}_{ρ[\py↦\pa_2,\px↦\pa_1]}(μ[\pa_2↦d_r,\pa_1↦d_i]) \\
+\end{array}\]
+We omit the two $\BindE$ events because they are not important.
+
+This is equivalent to
+%\[
+%  \len(\semevt{\pE}{\semevt{{\Let{\py}{\pe_r}{\pe}}]}_{[]}([])) = ω
+%  \Longrightarrow
+%  \len(\semevt{\pE[\Let{\px}{\pe_2}{\Let{\py}{\pe_r}{\pe}}]}_{[]}([])) = ω
+%\]
+By induction on $\pe$.
+\begin{itemize}
+  \item \textbf{Case $\pe = \pz$}:
+
+    If the $\pe_1$ term diverges, then so does the $\pe_2$ term.
+\end{itemize}
 \end{proof}
 
 \begin{theoremrep}[$\semusg{\wild}$ is a correct deadness analysis]
@@ -91,9 +166,8 @@ $\semevt{\wild}$ and $\equiv$:
           \end{array}\]
           as requested.
         \item \textbf{Case $\tr'(\px) \not⊑ \semusg{\pe_1}_{\tr'}$}:
-          Then $\pa$ is dead in $d_{\pe_1}$ and thus in the range of
-          $μ_i[\pa'↦d_{\pe_i}']$ and we may invoke the induction hypothesis
-          directly to show the goal.
+          Then $\px$ is dead both in $\pe_1'$ and $\pe_2'$ by the induction
+          hypothesis and the result follows by \Cref{thm:dead-let}.
       \end{itemize}
 
       We abbreviate

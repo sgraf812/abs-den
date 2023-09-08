@@ -496,14 +496,28 @@ Given such a condition $P$ and a semantic object $S$, we define the filter funct
 \]
 
 \begin{definition}[Semantic equivalence relation]
+\label{defn:sem-equiv}
 Given an arbitrary property $P(ρ,μ)$ on environments and heaps, we write
 $P(ρ_\cong,μ_\cong) ⊦ S_1 \cong S_2$ to mean
 \[
   \forall \pE.\ \len(\semevt{\pE}(φ_P(S_1))_{[]}([])) = ω \Longleftrightarrow \len(\semevt{\pE}(φ_P(S_2))_{[]}([])) = ω
 \]
-A tautological antecedent can be left out, \ie, $S_1 \cong S_2$ means
-$⊦ S_1 \cong S_2$ means $\mathsf{true} ⊦ S_1 \cong S_2$.
 \end{definition}
+
+\begin{abbreviation}
+\label{defn:sem-equiv-abbrev}
+A tautological antecedent can be omitted, \ie, $S_1 \cong S_2$ means
+$\mathsf{true} ⊦ S_1 \cong S_2$. \\
+Any term standing in for a semantic object that is free in $ρ_\cong$ and
+$μ_\cong$ is lambda-abstracted over.
+For example, the expanded form of $\semevt{\pe_1}_{ρ_\cong}(μ_\cong[\pa↦d_1])
+\cong \semevt{\pe_2}_{ρ_\cong}(μ_\cong[\pa↦d_2])$
+is
+\[
+  \mathsf{true} ⊦ (\fn{ρ_\cong\,μ_\cong}{\semevt{\pe_1}_{ρ_\cong}(μ_\cong[\pa↦d_1])}) \cong (\fn{ρ_\cong\,μ_\cong}{\semevt{\pe_2}_{ρ_\cong}(μ_\cong[\pa↦d_2])}).
+\]
+\end{abbreviation}
+
 Now we can express conditions such as ``$\pa$ is fresh'' by writing
 $\pa \not∈ \dom(μ_\cong) ⊦ \semevt{\pe_1} \cong \semevt{\pe_2}$.
 %Additionally, $P$ may be folded into the arguments of $S_i$, \ie, $S_1(ρ')(μ')
@@ -516,8 +530,8 @@ a bold endeavour that we ultimately abandoned due to complexity reasons and
 diminishing confidence in its correctness.
 The reader may find the alternative version of this Section in the Appendix.
 
-Since we stick to the syntactic contextual equivalence, we elegantly work around
-questions of \emph{Full abstraction}~\citep{Plotkin:77}.
+Since we essentially stick to syntactic contextual equivalence, we elegantly
+work around questions of \emph{full abstraction}~\citep{Plotkin:77}.
 
 %\begin{toappendix}
 %\subsection{A Useful Program Equivalence}
