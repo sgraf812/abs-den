@@ -60,29 +60,45 @@ binding for $x$ can be dropped without introducing scoping errors, a feat
 that becomes far simpler once huge expressions $\pe_1$ are turned into small
 $\mathit{panic}$s.
 
+\begin{toappendix}
+It is convenient to abbreviate alias-freeness for $\px$, as follows:
+\begin{abbreviation}
+  We write $\noalias(\px,\pa,ρ)$ to mean that
+  $\forall \py.\ ρ(\py) = \pa \Longleftrightarrow \py = \px$, \eg, that there
+  is no other variable in $ρ$ with the same address $\pa$ as $\px$.
+\end{abbreviation}
+
+We can use $\noalias$ to simplify the statement ``$\px$ is dead in $\pe$'' to
+showing, for some $\pa$,$d$,
+\[
+  \noalias(\px,\pa,ρ_\cong) \wedge \dead(\pa,μ_\cong) ⊦ \semevt{\pe}_{ρ_\cong}(μ_\cong) \cong \semevt{\pe}_{ρ_\cong}(μ_\cong[\pa↦d]),
+\]
+rather than to introduce a $ρ$ such that $\pa \not∈ \rng(ρ)$ just for this purpose.
+\end{toappendix}
+
 \begin{lemmarep}[Dead let]
   \label{thm:dead-let}
   If $\px$ is dead in $\pe_1$ and $\pe_2$ and $\px \not= \py$, then $\px$ is also
   dead in $\Let{\py}{\pe_1}{\pe_2}$.
 \end{lemmarep}
 \begin{proof}
-We fix $\pa,d$, abbreviate $\pe_{\mathsf{let}} \triangleq \Let{\py}{\pe_1}{\pe_2}$ and show
+We fix $d$, abbreviate $\pe_{\mathsf{let}} \triangleq \Let{\py}{\pe_1}{\pe_2}$ and show
 \[
-  \pa \not∈ \rng(ρ_\cong) \wedge \dead(\pa,μ_\cong) ⊦ \semevt{\pe_{\mathsf{let}}}_{ρ_\cong[\px↦\pa]}(μ_\cong) \cong \semevt{\pe_{\mathsf{let}}}_{ρ_\cong[\px↦\pa]}(μ_\cong[\pa↦d])
+  \noalias(\px,\pa,ρ_\cong) \wedge \dead(\pa,μ_\cong) ⊦ \semevt{\pe_{\mathsf{let}}}_{ρ_\cong[\px↦\pa]}(μ_\cong) \cong \semevt{\pe_{\mathsf{let}}}_{ρ_\cong[\px↦\pa]}(μ_\cong[\pa↦d])
 \]
 we unfold the let case, allocate a fresh $\pa'$,
-abbreviate $ρ' \triangleq ρ_\cong[\px↦\pa,\py↦\pa']$,
+abbreviate $ρ' \triangleq ρ_\cong[\py↦\pa']$,
 $d_r \triangleq \memo(\pa',\semevt{\pe_1}_{ρ'})$
 and simplify to
 \[
-  \pa \not∈ \rng(ρ_\cong) \wedge \dead(\pa,μ_\cong) ⊦ \semevt{\pe_2}_{ρ'}(μ_\cong[\pa'↦d_r]) \cong \semevt{\pe_2}_{ρ'}(μ_\cong[\pa↦d,\pa'↦d_r])
+  \noalias(\px,\pa,ρ_\cong) \wedge \dead(\pa,μ_\cong) ⊦ \semevt{\pe_2}_{ρ'}(μ_\cong[\pa'↦d_r]) \cong \semevt{\pe_2}_{ρ'}(μ_\cong[\pa↦d,\pa'↦d_r])
 \]
 $\px$ is dead in $\pe_1$ per assumption.
-It is also $\pa \not∈ \rng(ρ_\cong) ∪ \{\pa'\}$ in the antecedent and both
+It is also $\noalias(\px,ρ')$ in the antecedent and both
 facts together imply that $\pa$ is dead in $\semevt{\pe_1}_{ρ'}$; similarly for
 $\pe_2$.
 We can combine $\dead(\pa,μ_\cong)$ from the antecedent with deadness of $\pe_1$
-to get $\dead(\pa,μ_\cong[\pa↦d,\pa'↦d_r])$, for any $d$.
+to get $\dead(\pa,μ_\cong[\pa'↦d_r])$.
 We can apply this fact to the assumed deadness of $\semevt{\pe_2}_{ρ'}$ to show
 the goal.
 \end{proof}
@@ -111,27 +127,28 @@ the goal.
 \begin{proof}
 We fix $\pa,d$ and show
 \[
-  \pa \not∈ \rng(ρ_\cong) \wedge \dead(\pa,μ_\cong) ⊦ \semevt{\py}_{ρ_\cong[\px↦\pa]}(μ_\cong) \cong \semevt{\py}_{ρ_\cong[\px↦\pa]}(μ_\cong[\pa↦d])
+  \noalias(\px,\pa,ρ_\cong) \wedge \dead(\pa,μ_\cong) ⊦ \semevt{\py}_{ρ_\cong[\px↦\pa]}(μ_\cong) \cong \semevt{\py}_{ρ_\cong[\px↦\pa]}(μ_\cong[\pa↦d])
 \]
 The stuck case is simple to see.
 In the interesting case, note that $\px \not= \py$ implies
-$\pa' \triangleq ρ_\cong(\py) \not= \pa$ because $\pa \not∈ \rng(ρ_\cong)$.
+$\pa' \triangleq ρ_\cong(\py) \not= \pa$ because $\noalias(\px,\pa,ρ_\cong)$.
 We can discard the lookup step and simplify the goal to
 \[
-  \pa \not∈ \rng(ρ_\cong) \wedge \dead(\pa,μ_\cong) ⊦ \later(\memo(\pa',\semevt{\pe'}_{ρ'})(μ_\cong) \cong \memo(\pa',\semevt{\pe'}_{ρ'})(μ_\cong[\pa↦d]))
+  \noalias(\px,\pa,ρ_\cong) \wedge \dead(\pa,μ_\cong) ⊦ \later(\memo(\pa',\semevt{\pe'}_{ρ'})(μ_\cong) \cong \memo(\pa',\semevt{\pe'}_{ρ'})(μ_\cong[\pa↦d]))
 \]
 for some $\semevt{\pe'}_{ρ'}$ that $\pa$ is known to be dead in.
 
 Without loss of generality, we may assume that $\pe'$ is a value $\pv$, because
-$\pe' \equiv \pv$ for whatever value $\pe'$ reduces to, and we can apply this
-rewrite to both occurrences of $\pe'$.
+$\pe' \equiv \pv$ for whatever value $\pe'$ reduces to (NB: the equivalence
+holds trivially when $\pe'$ diverges), and we can apply this rewrite to both
+occurrences of $\pe'$.
 %XXX: This argument doesn't hold up for improvement, I think
 
 For a value $\pv$, $\memo$ has no observable effect and we can simply discard
 the extra transition.
 The goal becomes
 \[
-  \pa \not∈ \rng(ρ_\cong) \wedge \dead(\pa,μ_\cong) ⊦ \later(\semevt{\pv}_{ρ'})(μ_\cong) \cong \semevt{\pv}_{ρ'})(μ_\cong[\pa↦d]))
+  \noalias(\px,\pa,ρ_\cong) \wedge \dead(\pa,μ_\cong) ⊦ \later(\semevt{\pv}_{ρ'})(μ_\cong) \cong \semevt{\pv}_{ρ'})(μ_\cong[\pa↦d]))
 \]
 and that follows simply from deadness of $\pa$ in $\semevt{\pv}_{ρ'}$.
 \end{proof}
@@ -148,6 +165,7 @@ We proceed by induction on $\pe$, generalising $\tr_Δ$ in the assumption
 $\semusg{\pe}_{\tr_Δ}(\px) = 0$ to ``there exists a $\tr$ such that
 $\tr(\px) \not⊑ \semusg{\pe}_{\tr}$'' with the goal to show that
 $\px$ is dead in $\pe$.
+Stuck cases are boring and hence omitted.
 \begin{itemize}
   \item \textbf{Case $\pe = \py$}:
     If $\px=\py$, then $\semusg{\py}_{\tr} = \semusg{\px}_{\tr}$,
@@ -187,8 +205,19 @@ $\px$ is dead in $\pe$.
     \end{itemize}
 
   \item \textbf{Case $\pe = \pe'~\py$}:
-    Since $\tr(\px) \not⊑ \tr(\py)$, we have $\px \not= \py ∈ \rng(ρ)$ and
-    by \Cref{thm:var-dead} $\px$ is dead in $\py$.
+    Since $\tr(\px) \not⊑ \tr(\py)$, we have $\px \not= \py$ and
+    by \Cref{thm:var-dead}, $\px$ is dead in $\py$.
+
+    It is also $\tr(\px) \not⊑ \semusg{\pe'}_\tr$, so $\px$ is dead in $\pe'$.
+
+    To show that $\px$ is dead in $\pe'~\py$, the goal is to show
+    \[
+      \noalias(\px,\pa,ρ_\cong) \wedge \dead(\pa,μ_\cong) ⊦ \semevt{\pe'~\py}_{ρ_\cong}(μ_\cong) \cong \semevt{\pe'~\py}_{ρ_\cong}(μ_\cong[\pa↦d]),
+    \]
+    where we assume that $ρ(\px) = \pa$ and $\pa' \triangleq ρ_\cong(\py) \not= \pa$.
+
+    The interesting case is when $\pe'$ does not diverge and ultimately reduces
+    to a lambda; otherwise, $\betastep$ will get stuck.
 
     $\pa$ is trivially dead in the stuck case, so we assume that there exists
     $\pa' \triangleq ρ[\px↦\pa](\py)$.
