@@ -76,31 +76,110 @@ showing, for some $\pa$,$d$,
 rather than to introduce a $ρ$ such that $\pa \not∈ \rng(ρ)$ just for this purpose.
 \end{toappendix}
 
+\begin{definition}
+  \label{defn:dead-ctx}
+  A variable is dead in a context $\pE$ if and only if whenever $\px$ is dead in
+  an expression $\pe$, then $\px$ is dead in $\pE[\pe]$.
+\end{definition}
+
+\begin{lemmarep}[Predicate preserving contexts are dead]
+  \label{thm:ctx-preserve-dead}
+  Let $\pE$ be an evaluation context and $\px$ a variable.
+
+  If for all $ρ,μ,\pa$ such that $\noalias(\px,\pa,ρ)$ and $\dead(\pa,μ)$ it
+  follows that in $\semevt{\pE}(S)_ρ(μ)$ all calls to an arbitrary $S$ are with
+  a $ρ',μ'$ such that $\noalias(\px,\pa,ρ')$ and $\dead(\pa,μ')$, then $\px$
+  is dead in $\pE$.
+\end{lemmarep}
+\begin{proof}
+We abbreviate $P(ρ_\cong,μ_\cong) \triangleq \noalias(\px,\pa,ρ_\cong) \wedge \dead(\pa,μ_\cong)$
+and $\diverges(τ) \triangleq \len(τ) = ω$.
+We assume that $\px$ dead in some expression $\pe$ and show
+\begin{DispWithArrows*}[format=Rl,fleqn,mathindent=1em]
+                      & P(ρ_\cong,μ_\cong) ⊦ \semevt{\pe}_{ρ_\cong}(μ_\cong) \cong \semevt{\pe}_{ρ_\cong}(μ_\cong[\pa↦d]) \Arrow{Unfold $(\cong)$} \\
+  \Longleftrightarrow & \forall \pE'. \left(\begin{array}{ll}
+                                                & \diverges(\semevt{\pE'}(φ_P(\fn{ρ\,μ}{\semevt{\pe}_ρ(μ)}))_{[]}([])) \\
+                            \Longleftrightarrow & \diverges(\semevt{\pE'}(φ_P(\fn{ρ\,μ}{\semevt{\pe}_ρ(μ[\pa↦d])}))_{[]}([]))
+                          \end{array}\right)
+                          \Arrow{$\pE' \triangleq \pE''[\pE]$} \\
+  \Longrightarrow     & \forall \pE'. \left(\begin{array}{ll}
+                                                & \diverges(\semevt{\pE'}(\semevt{\pE}(φ_P(\fn{ρ\,μ}{\semevt{\pe}_ρ(μ)})))_{[]}([])) \\
+                            \Longleftrightarrow & \diverges(\semevt{\pE'}(\semevt{\pE}(φ_P(\fn{ρ\,μ}{\semevt{\pe}_ρ(μ[\pa↦d])})))_{[]}([]))
+                          \end{array}\right)
+                          \Arrow{$\pE$ preserves $P$} \\
+  \Longleftrightarrow & \forall \pE'. \left(\begin{array}{ll}
+                                                & \diverges(\semevt{\pE'}(φ_P(\fn{ρ\,μ}{\semevt{\pE}(\semevt{\pe})_ρ(μ)}))_{[]}([])) \\
+                            \Longleftrightarrow & \diverges(\semevt{\pE'}(φ_P(\fn{ρ\,μ}{\semevt{\pE}(\semevt{\pe})_ρ(μ[\pa↦d])}))_{[]}([]))
+                          \end{array}\right)
+                          \Arrow{Fold $(\cong)$} \\
+                      & P(ρ_\cong,μ_\cong) ⊦ \semevt{\pE}(\semevt{\pe})_{ρ_\cong}(μ_\cong) \cong \semevt{\pE}(\semevt{\pe})_{ρ_\cong}(μ_\cong[\pa↦d]) \Arrow{\Cref{thm:semevt-comp}} \\
+                      & P(ρ_\cong,μ_\cong) ⊦ \semevt{\pE[\pe]}_{ρ_\cong}(μ_\cong) \cong \semevt{\pE[\pe]}_{ρ_\cong}(μ_\cong[\pa↦d])
+\end{DispWithArrows*}
+So $\px$ is dead in $\pE[\pe]$, too, hence $\px$ is dead in $\pE$.
+\end{proof}
+
+\begin{lemmarep}
+  A variable $\px$ is dead in an expression $\pe$ if $\px$ is dead in $\pE[\pe]$
+  for any dead context $\pE$.
+\end{lemmarep}
+\begin{proof}
+We fix some $\pa,d$
+and abbreviate $P(ρ_\cong,μ_\cong) \triangleq \noalias(\px,\pa,ρ_\cong) \wedge \dead(\pa,μ_\cong)$.
+Note that the ``semantic context'' $E(S) \triangleq \fn{ρ\,μ}{\semevt{\pE'}(φ_P(S))_{ρ}(μ)}$
+derived from an arbitrary context $\pE'$
+preserves $P$, in that $P(ρ,μ)$ implies that all calls to $S$ are with $ρ',μ'$
+such that $P(ρ',μ')$. (We don't even need the assumption to see that.)
+Arguably, that makes $E$ a dead context since it is possible to embed a variant
+of $E$ into a syntactic context $\pE$.
+
+Equipped with this realisation, we show that $\px$ is dead in $\pe$ as follows:
+\begin{DispWithArrows*}[format=Rl,fleqn,mathindent=1em]
+                      & P(ρ_\cong,μ_\cong) ⊦ \semevt{\pe}_{ρ_\cong}(μ_\cong) \cong \semevt{\pe}_{ρ_\cong}(μ_\cong[\pa↦d]) \Arrow{Unfold $(\cong)$} \\
+  \Longleftrightarrow & \forall \pE'. \left(\begin{array}{ll}
+                                                & \diverges(\semevt{\pE'}(φ_P(\fn{ρ\,μ}{\semevt{\pe}_ρ(μ)}))_{[]}([])) \\
+                            \Longleftrightarrow & \diverges(\semevt{\pE'}(φ_P(\fn{ρ\,μ}{\semevt{\pe}_ρ(μ[\pa↦d])}))_{[]}([]))
+                          \end{array}\right)
+                          \Arrow{$E(S) \triangleq \fn{ρ\,μ}{\semevt{\pE'}(φ_P(S))_{ρ}(μ)}$} \\
+  \Longleftrightarrow & \forall \pE'. \left(\begin{array}{ll}
+                                                & \diverges(E(\fn{ρ\,μ}{\semevt{\pe}_ρ(μ)})_{[]}([])) \\
+                            \Longleftrightarrow & \diverges(E(\fn{ρ\,μ}{\semevt{\pe}_ρ(μ[\pa↦d])})_{[]}([]))
+                          \end{array}\right)
+                          \Arrow{$E$ is dead} \\
+  \Longrightarrow     & \forall \pE'. \left(\begin{array}{ll}
+                                                & \diverges(\semevt{\pE'}(\semevt{\pE}(φ_P(\fn{ρ\,μ}{\semevt{\pe}_ρ(μ)})))_{[]}([])) \\
+                            \Longleftrightarrow & \diverges(\semevt{\pE'}(\semevt{\pE}(φ_P(\fn{ρ\,μ}{\semevt{\pe}_ρ(μ[\pa↦d])})))_{[]}([]))
+                          \end{array}\right)
+                          \Arrow{$\pE$ preserves $P$} \\
+  \Longleftrightarrow & \forall \pE'. \left(\begin{array}{ll}
+                                                & \diverges(\semevt{\pE'}(φ_P(\fn{ρ\,μ}{\semevt{\pE}(\semevt{\pe})_ρ(μ)}))_{[]}([])) \\
+                            \Longleftrightarrow & \diverges(\semevt{\pE'}(φ_P(\fn{ρ\,μ}{\semevt{\pE}(\semevt{\pe})_ρ(μ[\pa↦d])}))_{[]}([]))
+                          \end{array}\right)
+                          \Arrow{Fold $(\cong)$} \\
+                      & P(ρ_\cong,μ_\cong) ⊦ \semevt{\pE}(\semevt{\pe})_{ρ_\cong}(μ_\cong) \cong \semevt{\pE}(\semevt{\pe})_{ρ_\cong}(μ_\cong[\pa↦d]) \Arrow{\Cref{thm:semevt-comp}} \\
+                      & P(ρ_\cong,μ_\cong) ⊦ \semevt{\pE[\pe]}_{ρ_\cong}(μ_\cong) \cong \semevt{\pE[\pe]}_{ρ_\cong}(μ_\cong[\pa↦d])
+\end{DispWithArrows*}
+\end{proof}
+
 \begin{lemmarep}[Dead let]
   \label{thm:dead-let}
   If $\px$ is dead in $\pe_1$ and $\pe_2$ and $\px \not= \py$, then $\px$ is also
   dead in $\Let{\py}{\pe_1}{\pe_2}$.
 \end{lemmarep}
 \begin{proof}
-We fix $d$, abbreviate $\pe_{\mathsf{let}} \triangleq \Let{\py}{\pe_1}{\pe_2}$ and show
-\[
-  \noalias(\px,\pa,ρ_\cong) \wedge \dead(\pa,μ_\cong) ⊦ \semevt{\pe_{\mathsf{let}}}_{ρ_\cong[\px↦\pa]}(μ_\cong) \cong \semevt{\pe_{\mathsf{let}}}_{ρ_\cong[\px↦\pa]}(μ_\cong[\pa↦d])
-\]
-we unfold the let case, allocate a fresh $\pa'$,
-abbreviate $ρ' \triangleq ρ_\cong[\py↦\pa']$,
-$d_r \triangleq \memo(\pa',\semevt{\pe_1}_{ρ'})$
-and simplify to
-\[
-  \noalias(\px,\pa,ρ_\cong) \wedge \dead(\pa,μ_\cong) ⊦ \semevt{\pe_2}_{ρ'}(μ_\cong[\pa'↦d_r]) \cong \semevt{\pe_2}_{ρ'}(μ_\cong[\pa↦d,\pa'↦d_r])
-\]
-$\px$ is dead in $\pe_1$ per assumption.
-It is also $\noalias(\px,ρ')$ in the antecedent and both
-facts together imply that $\pa$ is dead in $\semevt{\pe_1}_{ρ'}$; similarly for
-$\pe_2$.
-We can combine $\dead(\pa,μ_\cong)$ from the antecedent with deadness of $\pe_1$
-to get $\dead(\pa,μ_\cong[\pa'↦d_r])$.
-We can apply this fact to the assumed deadness of $\semevt{\pe_2}_{ρ'}$ to show
-the goal.
+We show that $\px$ is dead in the context $\Let{\py}{\pe_1}{\hole}$ by
+\Cref{thm:ctx-preserve-dead} to show the goal.
+
+So fix $ρ,μ,\pa$ such that $\noalias(\px,\pa,ρ)$ and $\dead(\pa,μ)$.
+We need to show that all calls to $S$ in $\semevt{\Let{\py}{\pe_1}{\hole}}(S)_ρ(μ)$
+are with some $ρ',μ'$ such that $\noalias(\px,\pa,ρ')$ and $\dead(\pa,μ')$.
+Hence we unfold the definition of $\semevt{\Let{\py}{\pe_1}{\hole}}(S)_ρ(μ)$ and
+see the call $S(ρ[\py↦\pa'])(μ[\pa'↦\memo(\pa',\semevt{\pe_1}_{ρ[\py↦\pa']}])$.
+
+Since $\py \not= \px$ and $\pa' \not∈ \dom(μ)$, we have $\noalias(\px,\pa,ρ[\py↦\pa'])$.
+Furthermore, since $\px$ is dead in $\pe_1$, we have that
+$\pa$ is dead in $\semevt{\pe_1}_{ρ[\py↦\pa']}$; hence
+$\dead(\pa,μ[\pa'↦\memo(\pa',\semevt{\pe_1}_{ρ[\py↦\pa']}])$, thus showing the
+goal.
 \end{proof}
 
 \begin{lemmarep}
@@ -151,6 +230,56 @@ The goal becomes
   \noalias(\px,\pa,ρ_\cong) \wedge \dead(\pa,μ_\cong) ⊦ \later(\semevt{\pv}_{ρ'})(μ_\cong) \cong \semevt{\pv}_{ρ'})(μ_\cong[\pa↦d]))
 \]
 and that follows simply from deadness of $\pa$ in $\semevt{\pv}_{ρ'}$.
+\end{proof}
+
+\begin{figure}
+\[\begin{array}{c}
+ \ruleform{ \dead(V,\pe) \qquad \dead(V,\pE) }
+ \\
+ \\[-0.5em]
+ \inferrule*[right=]
+    {\many{\dead(\px,\pe)}}
+    {\dead(\{\many{\px}\},\pe)}
+ \quad
+ \inferrule*[right=]
+    {\quad}
+    {\dead(V,\hole)}
+ \quad
+ \inferrule*[right=]
+    {\px ∈ V}
+    {\dead(V,\pE~\px)}
+ \\
+ \\[-0.5em]
+ \inferrule*[right=]
+    {\dead(V,\pe) \quad \dead(V,\pE)}
+    {\dead(V,\Let{\px}{\pe}{\pE})}
+ \quad
+ \inferrule*[right=]
+    {\dead(V ∪ \{\px\},\pE)}
+    {\dead(V,\Let{\px}{\pe}{\pE})}
+ \quad
+ \inferrule*[right=]
+    {\dead(V,\pE_1) \quad x \not∈ V}
+    {\dead(V,\Let{\px}{\pE_1}{\pE_2[\px]})}
+ \\
+ \\[-0.5em]
+\end{array}\]
+\label{fig:correct-deadness}
+\caption{Correctness relation for \Cref{thm:semusg-correct-live-3}}
+\end{figure}
+
+\begin{lemmarep}
+  If $\dead(V, \pE)$, then for all $\pe$ such that $\dead(V,\pe)$, $\dead(V,\pE[\pe])$.
+\end{lemmarep}
+\begin{proof}
+By induction on $\pE$.
+\begin{itemize}
+  \item \textbf{Case $\pE = \hole$}: By assumption.
+  \item \textbf{Case $\pE = \pE'~\py$}:
+    By $\dead(V,\pE'~\py)$, we know that $\py ∈ V$.
+    By the induction hypothesis, $\dead(V,\pE'[\pe])$.
+
+\end{itemize}
 \end{proof}
 
 \begin{theoremrep}[$\semusg{\wild}$ is a correct deadness analysis]
@@ -207,35 +336,17 @@ Stuck cases are boring and hence omitted.
   \item \textbf{Case $\pe = \pe'~\py$}:
     Since $\tr(\px) \not⊑ \tr(\py)$, we have $\px \not= \py$ and
     by \Cref{thm:var-dead}, $\px$ is dead in $\py$.
-
     It is also $\tr(\px) \not⊑ \semusg{\pe'}_\tr$, so $\px$ is dead in $\pe'$.
 
-    To show that $\px$ is dead in $\pe'~\py$, the goal is to show
-    \[
-      \noalias(\px,\pa,ρ_\cong) \wedge \dead(\pa,μ_\cong) ⊦ \semevt{\pe'~\py}_{ρ_\cong}(μ_\cong) \cong \semevt{\pe'~\py}_{ρ_\cong}(μ_\cong[\pa↦d]),
-    \]
-    where we assume that $ρ(\px) = \pa$ and $\pa' \triangleq ρ_\cong(\py) \not= \pa$.
+    To show that $\px$ is dead in $\pe'~\py$ it suffices to show that $\px$
+    is dead in the context $\hole~\py$, assuming that $\px \not= \py$, by
+    \Cref{thm:ctx-preserve-dead}.
 
-    The interesting case is when $\pe'$ does not diverge and ultimately reduces
-    to a lambda; otherwise, $\betastep$ will get stuck.
-
-    $\pa$ is trivially dead in the stuck case, so we assume that there exists
-    $\pa' \triangleq ρ[\px↦\pa](\py)$.
-    We unfold $\apply$ and abbreviate
-    $d_{\pe'} \triangleq \semevt{\pe'}_{ρ[\px↦\pa]}$,
-    $k \triangleq \fn{(\FunV(f))}{f(\pa')}$, so the goal is to prove
-    \[
-      A ⊦ (d_{\pe'} \betastep k)(μ_1[\pa↦d_1]) \sim (d_{\pe'} \betastep k)(μ_2[\pa↦d_2])
-    \]
-    Since $d_{\pe'} \equiv d_{\pe'}$, the only interesting case is when
-    $\bigstep{d_{\pe'}}{μ_i[\pa↦d_i]}{\FunV(f_i)}{μ_i'}$, in which case we
-    have to show that
-    \[
-      A ⊦ f_1(\pa')(μ_1') \sim f_2(\pa')(μ_2').
-    \]
-    But $\pa' ∈ \rng(ρ)$ and thus $\pa' ∈ A$ by the Address Domain property,
-    so we can apply the premise of the $\eqfun$ judgment at the end of the
-    $d_{\pe'}$ trace.
+    Hence we assume for some $ρ,μ,\pa$ that $\noalias(\px,\pa,ρ)$
+    and $\dead(\pa,μ)$ and have to show that the calls to $S$ in
+    $\semevt{\hole~\py}(S)_ρ(μ)$ are such that $\noalias$ and $\dead$ follows.
+    Since the only call to $S$ is with an unchanged $ρ$ and $μ$, the goal
+    follows immediately.
 
   \item \textbf{Case $\pe = \Lam{\py}{\pe'}$}:
     Note that $\px \not= \py$ because there is no shadowing.
@@ -244,6 +355,44 @@ Stuck cases are boring and hence omitted.
       \tr(\px) = \tr[\py↦⊥](\px) \not⊑ \semusg{\pe'}_{\tr[\py↦⊥]} ⊑ \semusg{\pe}_{\tr}.
     \]
     By induction, $\px$ is dead in $\pe'$.
+
+    We need to show that $\px$ is dead in $\Lam{\py}{\pe'}$, so we
+    fix some $\pa,d$
+    and abbreviate $P(ρ_\cong,μ_\cong) \triangleq \noalias(\px,\pa,ρ_\cong) \wedge \dead(\pa,μ_\cong)$
+    to show
+    \[\begin{array}{ll}
+                            & P(ρ_\cong,μ_\cong) ⊦ \semevt{\Lam{\py}{\pe'}}_{ρ_\cong}(μ_\cong) \cong \semevt{\Lam{\py}{\pe'}}_{ρ_\cong}(μ_\cong[\pa↦d]) \\
+      \Longleftrightarrow{} & \forall \pE. \left(\begin{array}{ll}
+                                                      & \len(\semevt{\pE}(φ_P(\fn{ρ\,μ}{\semevt{\Lam{\py}{\pe'}}_ρ(μ)}))_{[]}([])) = ω \\
+                                  \Longleftrightarrow & \len(\semevt{\pE}(φ_P(\fn{ρ\,μ}{\semevt{\Lam{\py}{\pe'}}_ρ(μ[\pa↦d])}))_{[]}([])) = ω
+                                \end{array}\right) \\
+    \end{array}\]
+
+    By cases on the innermost frame of $\pE$.
+    \begin{itemize}
+      \item \textbf{Case $\pE = \hole$}: Then both sides do exactly 0 steps.
+      \item \textbf{Case $\pE = \pE'[\hole~\pz]$}:
+        Then we have
+        \[
+          \left(\begin{array}{ll}
+                                      & \len(\semevt{\pE'}(\semevt{\hole~\pz}(φ_P(\fn{ρ\,μ}{\semevt{\Lam{\py}{\pe'}}_ρ(μ)})))_{[]}([])) = ω \\
+                  \Longleftrightarrow & \len(\semevt{\pE'}(\semevt{\hole~\pz}(φ_P(\fn{ρ\,μ}{\semevt{\Lam{\py}{\pe'}}_ρ(μ[\pa↦d])})))_{[]}([])) = ω
+                \end{array}\right)
+        \]
+        and since $\px$ is dead in $\pz$ (WHY IS THAT THE CASE?), that is equivalent
+        \[
+          \left(\begin{array}{ll}
+                                      & \len(\semevt{\pE'}(φ_P(\fn{ρ\,μ}{\semevt{(\Lam{\py}{\pe'})~\pz}_ρ(μ)})))_{[]}([])) = ω \\
+                  \Longleftrightarrow & \len(\semevt{\pE'}(φ_P(\fn{ρ\,μ}{\semevt{(\Lam{\py}{\pe'})~\pz}_ρ(μ[\pa↦d])})))_{[]}([])) = ω
+                \end{array}\right)
+        \]
+        and $\hole~\py$ preserves $P$, hence
+
+
+    \end{itemize}
+
+    We will show that $\px$ is dead in $\Lam{\py}{\pe'}$ by induction on
+    evaluation contexts $\pE$.
 
     We abbreviate
     $μ_i' \triangleq μ_i[\pa↦d_i]$, $ρ' \triangleq ρ[\px↦\pa]$
