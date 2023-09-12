@@ -467,10 +467,15 @@ by interpreting it semantically.
 We will see a concrete example in the next section, where we maintain the
 invariant that an address is dead in a heap and any arguments in order to
 justify certain rewrites.
-Such an invariant is ``semantic'' in that it does not have an obvious syntactic
-interpretation at all!%
+We found it far simpler to express this invariant in the semantic domain
+(\eg, as a predicate on environments and heaps) rather than in the syntactic
+domain (\eg, as a predicate on the evaluation contexts).%
 \footnote{For the curious: We found proving \Cref{thm:dead-let} surprisingly
-difficult for a syntactic deadness definition.}
+difficult using irrelevance as defined in \Cref{thm:dead-irrelevant} as the
+definition of deadness.
+It is necessary to strengthen the definition by allowing arbitrary ``dead''
+evaluation contexts between $\Let{\px}{\pe_i}{\hole}$ and $\pe$, for some
+notion of ``dead''.}
 Hence it is crucial that we have a way to express semantic demands on the
 evaluation contexts to consider in $(\equiv)$.
 
@@ -488,7 +493,7 @@ $\mathsf{true} ⊦ \pe_1 \equiv \pe_2 \Longleftrightarrow \pe_1 \equiv \pe_2$,
 hence we usually omit a tautological antecedent.
 
 Orthogonally, we can capitalise on our new $\semevt{\pE}$ function to derive
-a more ``semantic'' equivalence relation $(\cong)$ from from the ``syntactic''
+a more ``semantic'' equivalence relation $(\cong)$ from the ``syntactic''
 equivalence $(\equiv)$ on expressions $\Exp$:
 \[
   S_1 \cong S_2 \triangleq \forall \pE.\ \len(\semevt{\pE}(S_1)_{[]}([])) = ω \Longleftrightarrow \len(\semevt{\pE}(S_2)_{[]}([])) = ω
@@ -508,7 +513,7 @@ Given an arbitrary property $P(ρ,μ,A)$ on environments, heaps and a list of
 addresses occuring in applications, we write
 $P(ρ_\cong,μ_\cong,A_\cong) ⊦ S_1 \cong S_2$ to mean
 \[
-  \forall \pE.\ P(ρ(\pE),μ(\pE),A(\pE)) \Longrightarrow \len(\semevt{\pE}(φ_P(S_1))_{[]}([])) = ω \Longleftrightarrow \len(\semevt{\pE}(φ_P(S_2))_{[]}([])) = ω,
+  \forall \pE.\ P(ρ(\pE),μ(\pE),A(\pE)) \Longrightarrow \len(\semevt{\pE}(S_1)_{[]}([])) = ω \Longleftrightarrow \len(\semevt{\pE}(S_2)_{[]}([])) = ω,
 \]
 where $ρ(\pE)$ denotes the environment in which $\semevt{\pE}(S)_{[]}([])$ calls
 (an arbitrary) $S$; $μ(\pE)$ denotes the heap and $A(\pE)$ denotes the list of
@@ -540,13 +545,14 @@ $\pa \not∈ \dom(μ_\cong) ⊦ \semevt{\pe_1} \cong \semevt{\pe_2}$.
 It would be interesting to recover a semantic equivalence relation that doesn't
 need to appeal to $\semevt{\pE}$, preferrably on $\EventD$ directly.
 In an earlier version of this work, we attempted to give such a definition;
-a bold endeavour that we ultimately abandoned due to complexity reasons and
-diminishing confidence in its correctness.
+an endeavour that we ultimately abandoned due to lacking familiarity with the
+topic, complexity and diminishing confidence in its correctness.
 The reader may find the alternative version of this Section in the Appendix.
 
 Since we essentially stick to syntactic contextual equivalence, we navigate
-around questions of \emph{full abstraction}~\citep{Plotkin:77}; clearly,
-$(\equiv)$ is fully abstract.
+around questions of \emph{full abstraction}~\citep{Plotkin:77}.
+Clearly, $(\equiv)$ is fully abstract and hence so is $\cong$ when semantic
+objects are restricted to $\rng(\semevt{\wild})$.
 
 %\begin{toappendix}
 %\subsection{A Useful Program Equivalence}
