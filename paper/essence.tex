@@ -420,7 +420,8 @@ on expressions:
 
 In this sense, definitional equality $\fn{\pe_1\,\pe_2}{\semevt{\pe_1}_ρ = \semevt{\pe_2}_ρ}$
 is compositional by \Cref{thm:semevt-comp}.
-It is also well-known that \emph{contextual equivalence} is compositional:
+It is also well-known that \emph{contextual equivalence}~\citep{Morris:69} is
+compositional:
 
 \begin{definition}[Contextual equivalence, as in \citep{MoranSands:99}]
   Two expressions $\pe_1,\pe_2$ are \emph{contextually equivalent}, written
@@ -458,19 +459,35 @@ Some laws, such as
   \Let{\px}{\pe_1}{\pE[\pe_2]} \equiv \pE[\Let{\px}{\pe_1}{\pe_2}]
 \]
 come with a condition; in this case that $\px$ does not occur freely in $\pE$.
+
 To prove such laws, one must unfold the definition of $\equiv$ and attempt
 a lower level proof based on the underlying semantics, exploiting the condition
 by interpreting it semantically.
 
 We will see a concrete example in the next section, where we maintain the
-invariant that an address is dead in a heap in order to justify certain
-rewrites.
-Such an invariant is purely semantic and does not really have an obvious
-syntactic interpretation at all!
+invariant that an address is dead in a heap and any arguments in order to
+justify certain rewrites.
+Such an invariant is ``semantic'' in that it does not have an obvious syntactic
+interpretation at all!%
+\footnote{For the curious: We found proving \Cref{thm:dead-let} surprisingly
+difficult for a syntactic deadness definition.}
 Hence it is crucial that we have a way to express semantic demands on the
 evaluation contexts to consider in $(\equiv)$.
 
-Interestingly, we can capitalise on our new $\semevt{\pE}$ function to derive
+A first step then is to define conditional contextual equivalence:
+\begin{definition}[Conditional contextual equivalence]
+Given an arbitrary property $P(\pE)$ on evaluation contexts, we write
+$P(\pE_\cong) ⊦ \pe_1 \equiv \pe_2$ to mean
+\[
+  \forall \pE.\ P(\pE) \Longrightarrow \len(\semevt{\pE[\pe_1]}_{[]}([])) = ω \Longleftrightarrow \len(\semevt{\pE[\pe_1]}_{[]}([])) = ω
+\]
+\end{definition}
+
+Clearly,
+$\mathsf{true} ⊦ \pe_1 \equiv \pe_2 \Longleftrightarrow \pe_1 \equiv \pe_2$,
+hence we usually omit a tautological antecedent.
+
+Orthogonally, we can capitalise on our new $\semevt{\pE}$ function to derive
 a more ``semantic'' equivalence relation $(\cong)$ from from the ``syntactic''
 equivalence $(\equiv)$ on expressions $\Exp$:
 \[
@@ -482,31 +499,29 @@ being an example of such an object.
 In fact, we have $\pe_1 \equiv \pe_2$ if and only if $\semevt{\pe_1} \cong
 \semevt{\pe_2}$.
 
-Curiously, it is possible to augment this relation to express semantic
-conditions $P$ on $ρ$ and $μ$ of the syntactic evaluation contexts considered;
-by generating stuck traces when the condition is \emph{not} satisfied (thus both
-objects equate trivially).
-Given such a condition $P$ and a semantic object $S$, we define the filter function
-\[
-  φ_P(S)(ρ)(μ) \triangleq \begin{cases}
-    S(ρ)(μ)     & P(ρ,μ) \\
-    \stuckend{} & \text{otherwise} \\
-  \end{cases}
-\]
+Both ideas above can be combined into the following conditional semantic
+equivalence:
 
 \begin{definition}[Semantic equivalence relation]
 \label{defn:sem-equiv}
-Given an arbitrary property $P(ρ,μ)$ on environments and heaps, we write
-$P(ρ_\cong,μ_\cong) ⊦ S_1 \cong S_2$ to mean
+Given an arbitrary property $P(ρ,μ,A)$ on environments, heaps and a list of
+addresses occuring in applications, we write
+$P(ρ_\cong,μ_\cong,A_\cong) ⊦ S_1 \cong S_2$ to mean
 \[
-  \forall \pE.\ \len(\semevt{\pE}(φ_P(S_1))_{[]}([])) = ω \Longleftrightarrow \len(\semevt{\pE}(φ_P(S_2))_{[]}([])) = ω
+  \forall \pE.\ P(ρ(\pE),μ(\pE),A(\pE)) \Longrightarrow \len(\semevt{\pE}(φ_P(S_1))_{[]}([])) = ω \Longleftrightarrow \len(\semevt{\pE}(φ_P(S_2))_{[]}([])) = ω,
 \]
+where $ρ(\pE)$ denotes the environment in which $\semevt{\pE}(S)_{[]}([])$ calls
+(an arbitrary) $S$; $μ(\pE)$ denotes the heap and $A(\pE)$ denotes the list of
+addresses of $\px$ in frames of the form $\hole~\px$,
+from innermost to outermost.
 \end{definition}
+
+We have
+$\mathsf{true} ⊦ \semevt{\pe_1} \cong \semevt{\pe_2} \Longleftrightarrow \pe_1 \equiv \pe_2$
+and omit tautological antecedents, as before.
 
 \begin{abbreviation}
 \label{defn:sem-equiv-abbrev}
-A tautological antecedent can be omitted, \ie, $S_1 \cong S_2$ means
-$\mathsf{true} ⊦ S_1 \cong S_2$. \\
 Any term standing in for a semantic object that is free in $ρ_\cong$ and
 $μ_\cong$ is lambda-abstracted over.
 For example, the expanded form of $\semevt{\pe_1}_{ρ_\cong}(μ_\cong[\pa↦d_1])
@@ -529,8 +544,9 @@ a bold endeavour that we ultimately abandoned due to complexity reasons and
 diminishing confidence in its correctness.
 The reader may find the alternative version of this Section in the Appendix.
 
-Since we essentially stick to syntactic contextual equivalence, we elegantly
-work around questions of \emph{full abstraction}~\citep{Plotkin:77}.
+Since we essentially stick to syntactic contextual equivalence, we navigate
+around questions of \emph{full abstraction}~\citep{Plotkin:77}; clearly,
+$(\equiv)$ is fully abstract.
 
 %\begin{toappendix}
 %\subsection{A Useful Program Equivalence}
