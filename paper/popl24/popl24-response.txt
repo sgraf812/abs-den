@@ -1,0 +1,164 @@
+# Topics
+
+- Technical sections hard to understand
+- Ignores Related Work
+  - In PLT: trace semantics and call-by-need
+- Denotational semantics vs. Definitional Interpreter
+  - Fig 3. Monadic interpreter
+  - "I have found particularly interesting the use of guarded recursive types to define what I see as a monadic definitional interpreter for call-by-need in a total meta-language."
+    Focus on that!
+  - Address missconception about DI
+    - DI describes an approach where we define an interpreter of a defined
+      language in a defining language. Out of the exemplified interpreters, only
+      the meta-circular fits the bill and is properly structurally recursive.
+      "For the reader who already has a thorough and correct understanding of
+      the defining language, a meta-circular definition will provide a concise
+      and complete description of the defined language."
+  - What is the difference between Definitional Interpreters and Denotational Semantics?
+    - Definitional Interpreters are defined in a programming language, Denotational Semantics defined in math (topology).
+    - What if the defining language is total and expressive enough to formalise the foundation of mathematics? Then this distinction becomes insensible.
+- First Denotational Semantics for call-by-need: Doubtful
+  - Clairvoyant call-by-need (better justify the trace problem)
+  - When proving analysis correct/doing abstract interpretation, we want to re-use the result for `e` to justify the result for `e~y`. We fail to see how that's possible if the *whole trace* changes.
+- Trace equivalence
+  - As many pointed out, the submitted definition for trace equivalence is broken.
+    In particular, heap extension does not preserve $μ1 \equiv μ2$, because the extended $A$ gives the observer better means to differentiate heap entries.
+    I don't want to go into details here, but we think we were able to fix that particular issue.
+    Nevertheless, we no longer think it wise to define our own equivalence relation and decided to use contextual equivalence/improvement throughout.
+    Perhaps we will give an account of the custom trace equivalence in the Appendix.
+  - > "So I think it would make more sense to introduce the standard notion of contextual equivalence and transform Definition 34 as a lemma saying that contextual equivalence coincides with this notion of equivalence that uses len(_)=ωlen(_)=ω and evaluation contexts"
+    Indeed. We will just bring contextual improvement relation, starting with full contexts and showing the lemma to evaluation contexts, and bring it earlier, as suggested
+- Lazy Domain
+  - Not sure if it stays; didn't need it for deadness
+- Why Guarded Domain Theory and not good old Domain Theory?
+  - Well, how can you be sure that your object exists? It's like writing a program without a type system
+  - Dial back on claims about admissibility?
+- Put call-by-need in the title?
+  - "I think the paper does not accurately highlight its main contribution,
+    which is the definition and study of denotational semantics for call-by-need
+    lambda calculus (and I believe this should be reflected in the title!)"
+- Dial back on claim that it also applies to call-by-value?
+- Explain ANF and how that means call-by-value is a matter of an updated rule for Let.
+  - Give that as an extension?
+- "consistent readdressing"
+- Do other coinductive approaches like sized types justice
+
+# Rev A
+
+- Is Fig. 1(b) a definitional interpreter?
+  - Easily answered by considering the defining language: It's topology! Hence it is a denotational semantics.
+  - In particular, we wouldn't be able to prove Theorem 2 if we didn't fix a defining language, otherwise what's its semantics?
+  - The defining language of Reynold's meta-circular interpreter (which is the only compositional definition) is not written in a language that is total
+  - The style of this semantics is reminiscent of Scott and Strachey's "Toward a Mathematical Semantics for Computer Languages". Perhaps should cite that instead.
+- Starting from a Definitional Interpreter for call-by-need such as Ager's?
+  - Memoisation is handled in Var case
+  - But heap contains (what corresponds to our) D
+  - Then discuss meta language difficulty
+  - Whether monadic is feasible we shall see
+- Derive trace semantics as Abstract Definitional Interpreter?
+  - ADI: "It is not at all clear whether a similar approach is possible with a higher-level formulation
+          of the semantics, such as a compositional evaluation function defined
+          recursively over the syntax of expressions."
+  - Trace Collecting Semantics there is one collecting stateful rather than eventful traces; nevertheless I'm hopeful to derive the latter, too.
+- Confusion around Theorem 16/14: Thank you, typo in LaTeX label
+- Full abstraction
+  - counterexample: I would think that we could show those particular terms as equivalent, but since author response time is short and we will no longer be bringing the trace equivalence, I won't try (right now, that is)
+  - Quote: Yes, parallel-or is a problem because one might execute two traces round robin. We'll improve
+- Deadness Analysis
+  -
+- Game semantics
+  - An interesting field that we lack awareness of. We will think of a better title that comes by without "TRace Semantics"; see response to reviewer B.
+
+Qs:
+- Do you have an example of two programs that are trace equivalent, but that do not reduce to the same value with a call-by-name evaluation strategy?
+  - We don't think there is one; they should be prohibited by Corollary 38, because those terms should be contextually equal.
+    (That said; since the heap equality is broken, we can't extend heaps won't actually be able to show Corollary 38. A revised version could, but we'll use contextual equivalence instead.)
+- Is it the case that the two programs provided in the paragraph on full abstraction above are not trace equivalent?
+  - I'd think we could prove those terms equivalent with the definition (that we will no longer be using).
+    Given equal heaps μ1,μ2 which contain an address a_f for f (assuming that the environment on both terms is $[f ↦ a_f]$), we ultimately have to show the goal $dom(μ1) ⊦ <Con(K,a1,a1),μ1[a1↦d1]> ~ <Con(K,a1,a2),μ1[a1↦d1,a2↦d2]>$.
+    We can do so with the Con rule. The more interesting part concerns the second field, where there is an address mismatch.
+    There we have to show $dom(μ1) ⊦ d1(μ1[a1↦d1]) ~ d2(μ1[a1↦d1,a2↦d2])$, where $d_2 := S[[f True]]_[f↦af,x↦a1,y↦a2]$ and $d_1 := S[[f True]]_[f↦af,x↦a1]$.
+    I'd say that these traces equate: The terms aren't even free in x or y, (hence dead) and nothing can observe the difference in heaps.
+- Is it possible to present the denotational semantics of Figure 3 as a monadic
+  definitional interpreter derived from Launchbury's natural semantics?
+  - We sure hope so and are eager to try.
+    Although we would rather start from Ager's definitional interpreter using higher-orderness of the defining language.
+- How do you compare the eventful trace semantics of Figure 5 with the trace
+  semantics that can be derived using the Abstracting definitional interpreter
+  methodology?
+  - The Collecting Trace Semantics of the Abstracting definitional interpreter approach generates /stateful/ rather than /eventful/ traces.
+    The distinction is not fundamental, because one can recover the transition taken from a detailed stateful trace.
+    That said, we prefer the focus on declarative events over capturing every detail of operational states.
+    In other words: We will attempt to derive the eventful semantics in Fig. 5 by a similar technique as in "Abstracting Definitional Interpreters"
+
+# Rev B
+
+Qs:
+
+- What's the relationship between the trace semantics of this paper and the prior work on trace semantics in the following papers?
+  - A trace is generally a potentially infinite list of states some transition system progresses through.
+    For our use case, we emit the transitions that this transition system takes.
+    That is also the way [Cousot 2021] uses this term; he would call our semantics a "Maximal Trace Semantics" (or, rather "Structural Fixpoint Trace Semantics").
+    By contrast, the literature seems to refer to "Trace Semantics" as a history of the interaction between an observer and a (semantic denotation of a) program.
+    By quantifying over all possible traces/interactions of the observer with
+    the program, one apparently can recover a semantic equivalence relation that
+    coincides with contextual equivalence (a property called "Full Abstraction").
+    The latter way is how the first, second and fourth references interpret Trace Semantics, immediately in context with Full Abstraction.
+    In the third one, a more general framework is chosen; the states in the trace stem from a coalgebra.
+    In light of the inherent overload of terminology we are convinced that eschewing the term "Trace Semantics" is for the better.
+
+TODO:
+1. Explain that α_V only considers return states. Explain why α_S carries over κ
+2. Change title. To what?
+
+# Rev C
+
+- What would go wrong when trying to recast your semantics from figs. 3 and 5 to use Scott domains?
+  - In essence, this is a long-form of the reasons given in Section 2.
+    We started this work without being aware of Guarded Domain Theory and tried to employ Scott domains.
+    But we quickly developed doubts:
+    What if the solution to our Domain Equation didn't exist in the way we expected it to?
+    What if some detail about our semantic function makes it non-continuous? What if it is bottom everywhere?
+    We tried to work around this at first by giving a model implementation in ML, but that seemed very hand-wavy.
+    Plus, we wouldn't be able to prove properties (that have to be proven admissible) without referring to that model implementation in ML.
+    With Guarded Domain Theory, we have a type system to guarantee well-definedness and termination, without having to assert a single domain equation.
+    Conveniently, we can extract runnable Haskell by leaving out Later modalities. It's just so nice!
+- There are operational approaches to semantics that target compositionality, such as Peter Mosses's modular SOS. How does your vision compare to these?
+  - We only skimmed the paper briefly, but the beta reduction rule in section
+    6.1 where they exemplify their framework uses substitution and hence is not
+    "compositional" in the denotational semantics sense (which actually means
+    "structurally recursive" as a function definition).
+    Thus it lacks the key property we want to exploit.
+- How much of the meta-theory presented here has been formalised in Guarded Cubical Agda?
+  - Nothing, unfortunately. We only use it to typecheck the semantics, for the
+    reasons above.
+    We managed to encode the address space parameter $A$ in the types of
+    denotations, though, lending us a firm grip on "well-addressedness". Our
+    attempts to formalise the heap forcing relation from Section 5 faltered
+    because of general unfamiliarity with Agda, the non-optional Cubical
+    component and lacking productivity.
+- There are some design decisions that seem strange, and are not explained in
+  the paper. One is to restrict applications to their righthand sides being
+  variables rather than arbitrary expressions. The reader is left wondering
+  whether this has been done in order to avoid some technical complications.
+  Another choice is the inclusion of algebraic datatypes in the calculus --
+  are they interesting in any way w.r.t. the developed meta-theory?
+  - The syntactic form is called A-normal form.
+    It is particularly appealing to us because it confines the choice of
+    evaluation strategy to Let binding -- Give a semantics for strict let and
+    your language becomes a strict one. That's how you would adopt this approach
+    for a call-by-value language.
+    Furthermore, ANF allows for less duplication in the application case and it is not a significant restriction in practice.
+    See also the cited work by [Sestoft 1997].
+- Please explain why you need let-rec at the meta-level, in particular why you evaluate d1 using rho' rather that rho.
+  - We are modelling the semantics of a recursive Let, so we need x to be in the environment in e1.
+    This is also done for example in Reynold's meta-circular interpreter of "Definitional Intepreters".
+    If space would have permitted, I'd have used an explicit fix operator instead.
+- on identifying trace-based heaps modulo "consistent readdressing": Is this an informal identification? How does your Agda formalisation handle this?
+  -
+- There is an extra horizontal line there. Similarly on line 1035.
+  - Actually over-bar notation
+- Do you mean to redefine the domain to contain only the lazy items?
+  - Yes. Will change.
+- In the fig. 3 semantics, it took me a bit to see where the negative occurrences are in the mutually recursive domain definitions, which would prevent a more standard set-theoretic coinductive semantics. Please clarify those for the reader.
+  - Will do.
