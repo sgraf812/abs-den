@@ -1,0 +1,460 @@
+POPL 2024 Paper #227 Reviews and Comments
+===========================================================================
+Paper #227 Compositional Trace Semantics for Lambda Calculus
+
+
+Review #227A
+===========================================================================
+
+Overall merit
+-------------
+C. Weak reject: I lean towards rejection.
+
+Reviewer expertise
+------------------
+X. Expert: I am an expert on the topic of the paper (or at least key
+   aspects of it).
+
+Summary of the paper
+--------------------
+This paper provides a denotational semantics for an untyped $\lambda$ calculus with constructors and pattern-matching, and a call-by-need evaluation strategy. It is defined as a form of definitional interpreter in a total meta-language equipped with guarded recursive types. This semantics is shown to be adequate with respect to an operational semantics defined by a standard abstract machine for call-by-need.\
+Using abstract interpretation, a trace semantics is derived from this denotational semantics, which faithfully represents all the internal computational steps of the abstract machine.
+A trace equivalence is then introduced, which is shown to be sound relative to the contextual equivalence.
+This trace semantics is used to semantically define when a variable is dead.
+This allows them to prove that a simple usage analysis, introduced as a motivating example at the beginning of the paper, does indeed perform a death analysis. This proof makes crucial use of the fact that trace semantics is defined by structural recursion on language syntax. \
+Trace equivalence is then refined to be sound with respect to the notion of contextual improvement introduced by Moran and Sands.
+In doing so, it can be proven that the simple usage analysis can indeed compute whether a variable is used only once.
+
+Assessment of the paper
+-----------------------
+The aim of this paper, namely the construction of a denotational semantics of call-by-need that can be used to perform accurate resource analysis, is an important challenge in the field of programming language semantics. One of the main difficulties is that the contextual equivalence for call-by-name and call-by-need generally coincide. We therefore need a more intentional denotational model than the one constructed using standard techniques such as domain theory.
+Another important difficulty is that the semantics must not be too intentional, by distinguishing in the model two terms that differ only in the value of an unused variable, for example.
+
+This paper tackles this challenge using abstract interpretation techniques. I particularly liked the fact that it was motivated by a precise technical question: How can we prove that a simple static analysis accurately computes the resource usage of variables in a program? In this respect, the first two sections of the paper are particularly illuminating, providing compelling evidence for the need for compositional semantics to achieve such a proof.
+
+But it took me a lot of effort to understand the technical sections of the paper.  The way the paper is written assumes that the reader is familiar with [Moran and Sands 1999] and several chapters of [Cousot 2021]. But it also ignores large parts of the literature on programming language theory, on both trace semantics and call-by-need.
+
+The authors boldly claim to provide the first denotational semantics for call-by-need, without comparing themselves to previous papers where denotational semantics for call-by-need were already provided.
+
+Moreover, this paper does not mention the notion of _Definitional Interpreter_, and conflates it with the notion of _Denotational Semantics_. For example, the denotational semantics given in Figure 3 seems to be a monadic interpreter, and the abstract semantics in Figure 5 could possibly be derived in a principled way using the Abstracting definitional interpreters approach. If not, it would be important to explain why.
+
+I have found particularly interesting the use of guarded recursive types to define what I see as a monadic definitional interpreter for call-by-need in a total meta-language.
+
+Trace equivalence and the notion of a lazy domain are, in my opinion, the other main novelties of this paper. I think that we can consider this eventful semantics with trace semantics to be a denotational semantics. But they are introduced too quickly, and too few examples are given.
+And what is my main concern, I was waiting for a more detailed analysis of the degree of intentionality of this denotational semantics.
+
+I therefore think that this work could be improved to become an excellent paper, but the changes required are too significant to support the acceptance of this document in its current version.
+
+Detailed comments for authors
+-----------------------------
+## Denotational semantics
+
+I was surprised to read the caption of Fig. 1 (b) as "Denotational semantics after Scott".
+What is defined there is rather a definitional interpreter, as introduced in [Reynolds, 1972].
+Seeing the type of the functions of the defining language using Scott domain is advocated in:
+- J. C. Reynolds.  (1998). Definitional interpreters revisited. _Higher-Order and Symbolic Computation_, _11_, 355-361.
+
+In addition, the paper claims to provide "the first denotational semantics for call-by-need lambda calculus". However, previous papers have already claimed to provide a denotational semantics for for call-by-need lambda calculus:
+- In [Hackett and Hutton, 2019], they claimed to provide "the first denotational cost semantics for lazy evaluation." 
+	In the related work, you explain that we could imagine deriving a trace semantics from their operational semantics, but discard it saying
+> 	"The trace generated by e may not even share a common prefix with the trace generated
+for e x. "
+	I do not understand why this is an issue. It could provide in fact a less intentional trace model.
+- In Accattoli, B., Guerrieri, G., & Leberle, M. (2019, April). Types by Need. In _ESOP_ (pp. 410-439),\
+  the authors claimed that: "Our system produces exact bounds and induces a denotational model of call-by-need, providing the first tight quantitative semantics of call-by-need."
+
+As far as I understand, the main novelty of this work is to provide a trace semantics that is sound for contextual equivalence, and that can be refined to take into account resource usage for a call-by-need evaluation strategy.
+
+## Definitional Interpreter
+
+I think it would help greatly the reader to first introduce a standard definitional interpreter for call-by-need before introducing the denotational semantics in Figure 3. 
+It is rather direct to derive one from Launchnbury's natural semantics. You can find a full definition of such a definitional interpreter in Section 2.2 of
+- Ager, M. S., Danvy, O., & Midtgaard, J. (2004). A functional correspondence between call-by-need evaluators and lazy abstract machines. _Information Processing Letters_, _90_(5), 223-232.\
+Then, if it is possible it would be great to state the semantics of Figure 3 as a monadic definitional interpreter written in a defining language (i.e. a meta-language) that has guarded recursive types. The monadic structuration of the defining language seems to be similar to the one used in Moggi's computational meta-language, it would help a lot to be formal here.
+
+## Guarded recursion
+
+One thing that particularly intrigued me was the need for guarded recursive types over the simpler delay monad that is widely used to define interpreters in total languages (e.g. proof assistant languages like Coq or Agda). The circularity issue between the definitions of Heap and Domain is well explained in the paper. It seems to be similar to that encountered in realisability models and Kripke logical relations for languages with higher-order references, which is indeed solved using step indexing/recursive guarded types. Since evaluators for call-by-need use a heap, it is thus not completely surprising to need guarded recursive types and not just a Delay monad. It would help to give a precise explanation here.
+
+I would have liked to understand how guarded recursion is used in the proof of adequacy, and what comes directly fro [Sestoft 1997].
+
+## Abstracting definitional interpreter
+
+While reading the paper, I've kept wondering if we could derive the trace semantics of Figure 5 using the Abstracting Definitional Interpreter methodology, as defined in the following paper:
+- Darais, D., Labich, N., Nguyen, P. C., & Van Horn, D. (2017). Abstracting definitional interpreters (functional pearl). _Proceedings of the ACM on Programming Languages_, _1_(ICFP), 1-25.\
+Indeed, in that paper a trace semantics is derived from a standard definitional interpreter by varying the monad and instrumenting the recursive call of the interpreter.
+
+Let me stress that if the denotational semantics of Figure 3 could be defined as a monadic interpreter, from which Figure 5 could be derived using the _Abstracting definitional interpreter_ methodology, this would make the result of this paper even more impressive. In effect, it would provide a principled way of constructing a denotational trace semantics for call-by-need.
+
+## Contextual equivalence and improvement
+
+Your definition of contextual equivalence (Definition 34) is rather non-standard, since it uses $len(\_) = \omega$ as the notion of observation, and only quantifies evaluation contexts.
+In fact, [Moran and Sands 1999] introduce the standard notion of contextual equivalence (Definition 3.2 of that paper introduces the observational approximation), and then prove a context lemma to explain that they can be reduced to the evaluation contexts of the abstract machine. Then they prove that these evaluation contexts coincide with those defined directly on the syntax of the language (as you make clear in your footnote 8).
+So I think it would make more sense to introduce the standard notion of contextual equivalence and transform Definition 34 as a lemma saying that contextual equivalence coincides with this notion of equivalence that uses $len(\_) = \omega$ and evaluation contexts.
+
+I think contextual equivalence could be introduced in Section 2 so that it could be used in Definition 4. This would clarify what you mean by "operate in lockstep", and give a stronger result from Lemma 40 (cf. below).
+
+Similarly, the operational definition of contextual improvement from  [Moran and Sands 1999] should be given upfront. Otherwise, it is really hard to make sense of Sections 6.3 and 6.4.
+
+## Adequacy 
+
+It would help to explain that you only define $\alpha_{\mathbb{V}^L}$ only on return states.
+I have not understand why $\alpha_{\mathbb{S}^{\infty}}$ carries over $\kappa$ as a second argument. It does not seem useful since it can retrieved from $\sigma_0$.
+
+I was surprised that Theorem 15 is proven using Theorem 16 rather than Theorem 14. Is it a typo in both the main paper and the appendix?
+
+## Full abstraction
+
+I had the feeling that it should be quite easy to design terms that are contextually equivalent but that are not trace equivalent. For example the following two terms, with True and K two constructors, and f a free variable:
+- let x = f True in K x x
+- let x = f True in let y = f true in K x y
+
+Am I missing something?
+
+
+I was rather puzzled by the sentence on l.989: 
+> Guarded types prevent probing for diverging computation without executing them...
+
+Paviotti et al. model of PCF in gDTT is way more intentional than the Scott model, so as far as I know, the parallel-or still exists in the semantics defined in gDTT. 
+
+## Deadness analysis
+
+I had a really hard time understanding section 6.1.
+- In definition 39, you say "such that $a$ is dead in $rng(\mu_i)$" so it seems your definition is circular.  Why is it not so?
+- In Lemma 40, what do you mean formally by irrelevance?
+- If I understand correctly, from Lemma 40 and Theorem 38 you can deduce that your denotational notion of deadness coincides with the operational one given in Definition 4. To get that, I guess you would need to define operational deadness explicitly using contextual equivalence.
+- It would help to say explicitly that panic is a stuck term.
+- I do not understand why it "becomes far simpler once huge expressions $e_1$ are turned into small panics". Don't you simply have to analyse $e_2$ ?
+- In Theorem 41, you do not explain the use of $\tilde{\rho(x)} \not\sqsubseteq \mathcal{S}_u\llbracket e \rrbracket_{\tilde{\rho}}$ rather than  $\mathcal{S}_u\llbracket e \rrbracket_{\tilde{\rho}}(x) = 0$. This is only done in the proof of Theorem 2 in the appendix.
+
+## Trace Semantics
+
+The title of this paper is rather vague: it could give the wrong intuition that it is the first paper to provide compositional trace semantics for lambda calculus.
+But there is a huge literature on this subject, that this paper does not cite. To name a few landmark ones:
+- Game semantics, which is a form of denotational semantics where programs are denoted by set of traces, called plays. The following papers won the 2017 Church Award:
+	- S. Abramsky, R. Jagadeesan, and P. Malacaria. Full Abstraction for PCF. _Information and Computation_, Vol. 163, No. 2, pp. 409-470, 2000.
+	- J.M.E. Hyland and C.-H.L. Ong. On Full Abstraction for PCF: I, II, and III. _Information and Computation_, Vol. 163, No. 2, pp. 285-408, 2000.
+	- H. Nickau. Hereditarily sequential functionals. Proc. Symp. _Logical Foundations of Computer Science_: Logic at St. Petersburg (eds. A. Nerode and Yu.V. Matiyasevich), Lecture Notes in Computer Science, Vol. 813, pp. 253-264. Springer-Verlag, 1994.
+
+	Game semantics can be presented in an operational way, akin to the trace semantics presented in this paper. See for example:  
+	- J. Laird. "A fully abstract trace semantics for general references." _International Colloquium on Automata, Languages, and Programming_. Berlin, Heidelberg: Springer Berlin Heidelberg, 2007.
+- Brooke's denotational trace semantics, which was first used for parallel programs in:
+	- Brookes, S. (1996). Full abstraction for a shared-variable parallel language. Information and Computation, 127(2), 145-163.
+
+	This kind of trace semantics was extended to higher-order languages in the following paper:
+	- N. Benton, M. Hofmann, and V. Nigam. "Effect-dependent transformations for concurrent programs." _Science of Computer Programming_ 155 (2018): 27-51.
+- Trace semantics for the lambda-calculus have also been defined via encoding into the $\pi$-calculus, following Milner's seminal work:
+	- R. Milner. "Functions as processes." _Mathematical structures in computer science_ 2.2 (1992).\
+	Such trace semantics have been studied for Call-by-need evaluation strategy in Section 14.3.3 of:
+	- Sangiorgi, D., & Walker, D. (2003). _The pi-calculus: a Theory of Mobile Processes_. Cambridge University Press.
+
+Therefore, if the authors wish to retain the same title for their paper, they should probably explain the distinction between their trace semantics with these works.
+
+
+## Minor remarks
+- l.135: "that that"
+- l.203-207: "admissable" is spelled admissible. I was not able to understand the explanation why the predicate given cannot be admissible.
+- l.312: Is $\Rightarrow$ the reflexive transitive closure of $\hookrightarrow$ ?
+- l.406: "are permissible as" ...
+- Figure 3: I do not think that the notation $\rightharpoonup$ used in the definition of Heap and the bind has been introduced.
+- Figure 3, l.450: $L^n\ f(v,\mu')$ should be $L^n f(v)(\mu')$
+- l.565: I think the second transition should be removed
+- l.601 and Theorem 15: inj(e) should be a constructor K
+- l.627: you could be explicit about the shape of $\tau$ rather than putting "otherwise"
+- l.742-743: I have not understood what you mean by using a mixed guarded-recursive/inductive type. What would represent $X$ and $Y$ here?
+- l.749-750: They are undefined references ?? to the appendix
+- Definition 21: You should say explicitly that the definitions of lazy heap and values and lazy element are defined by a mutual induction.
+- l.827-833: Saying that the relation $\langle d,\_\rangle \Downarrow \langle v,\_\rangle$ is natural in the category theory sense is rather misleading since you have not defined any category. Why not explain this result using bisimulations?
+- l.858-860: I do not understand, by "present" do you mean evaluated? And what do you mean by congruence?
+
+Questions to be addressed by author response
+--------------------------------------------
+- Do you have an example of two programs that are trace equivalent, but that do not reduce to the same value with a call-by-name evaluation strategy?
+- Is it the case that the two programs provided in the paragraph on full abstraction above are not trace equivalent?
+- Is it possible to present the denotational semantics of Figure 3 as a monadic definitional interpreter derived from Launchbury's natural semantics?
+- How do you compare the eventful trace semantics of Figure 5 with the trace semantics that can be derived using the Abstracting definitional interpreter methodology?
+
+
+
+Review #227B
+===========================================================================
+
+Overall merit
+-------------
+A. Strong accept: I will argue for acceptance.
+
+Reviewer expertise
+------------------
+Y. Knowledgeable: I am knowledgeable about the topic of the paper (or at
+   least key aspects of it).
+
+Summary of the paper
+--------------------
+The paper introduces a new style of denotational semantics for the
+call-by-need lambda calculus. The semantics uses guarded domain theory
+and maps terms to semantic traces, which are defined something like:
+
+    τ ∈ 𝕋 ::= ⟨v,μ⟩ | stuck | L ▷τ
+
+where the "L" constructor is read as "later". A diverging term is
+mapped to an infinite sequence of L's. A term that encounters a type
+error is mapped to a finite sequence of L's followed by stuck.
+A term that halts with a value is mapped to a finite sequence of L's
+followed by ⟨v,μ⟩, where v is a semantic value and μ is a semantic heap
+(whose definitions are all mutually recursive).
+
+The paper proves that this denotational semantics is adequate wrt.  a
+standard lazy Krivine abstract machine.
+
+The paper shows how to enhance the denotational semantics with events
+that correspond to transitions of machine, replacing the L's with more
+informative constructors. The paper then uses this eventful semantics
+to prove the correctness of a usage analysis. That is, whenever a let
+binding is used at most once, then that binding does not need to make
+use of memoization.
+
+Assessment of the paper
+-----------------------
+The paper is well written. It clearly describes how usage analysis is
+difficult to reason about using a traditional denotational semantics,
+and then the paper introduces an elegant solution, using guarded
+domain theory to construct a semantics that can distinguish between
+diverging and getting stuck, and that can be enhanced to carry
+information that corresponds to events, such as reading a variable, in
+the machine.
+
+Detailed comments for authors
+-----------------------------
+p. 9
+
+"are permissible as" "As a type constructor,"
+Strange line break and incomplete sentence.
+
+"3.4 Definition"
+
+Definition of what? This section heading is not as informative as it should be.
+Even better, use both a noun and a verb in the section heading.
+
+It would be helpful to first introduce the semantic domain prior to discussing
+the semantics S_L.
+
+"implicitly encoded in call structure"
+What do you mean by "call structure" here?
+
+p. 10
+
+The notation ">>β=" is rather noisy. Also, monadic let is much easier to
+ready than bind.
+
+p. 11
+
+"Note that this update has no effect on the heap."
+Then how is it an update? I'm confused.
+
+"repeat the same same heap update"
+Remove the extra "same"
+
+p. 12
+
+"We call infinite and interior traces diverging."
+Please rephrase to avoid ambiguity, perhaps you meant:
+"A trace is diverging if it is both infinite and interior."
+Or maybe:
+"We call infinite trace diverging and we call an interior trace diverging."
+
+p. 13
+
+"abstraction of every maximal LK"
+
+I'm not so sure "abstraction" is the right word to use here.
+What information is being lost?
+
+"Definition 11"
+What's the binary operator after "len"? I can't find its definition.
+
+p. 16
+
+"we give in ?? in the Appendix"
+Fix the reference.
+
+"C from ?? holds"
+Fix the reference.
+
+"allows to observe"
+Allows who? (grammar problem)
+
+p. 20
+
+"Definition 30 ... if an only if d ≡ d."
+Is this equality the propositional equality?
+Isn't that equality reflexive, so this definition is vacuous?
+What am I missing?
+
+Questions to be addressed by author response
+--------------------------------------------
+What's the relationship between the trace semantics of this paper and
+the prior work on trace semantics in the following papers?
+
+Java Jr: Fully abstract trace semantics for a core java language.
+Jeffrey and Rathke. ESOP 2005.
+
+A fully abstract trace semantics for general references. J. Laird.
+ICALP, 2007.
+
+Trace semantics via determinization. Jacobs, Silva, Sokolova.
+Journal of Comp. Sys. Sci. 2015
+
+Trace semantics for polymorphic references. Jaber and Tzevelekos.
+LICS 2016.
+
+
+
+Review #227C
+===========================================================================
+
+Overall merit
+-------------
+B. Weak accept: I lean towards acceptance.
+
+Reviewer expertise
+------------------
+Y. Knowledgeable: I am knowledgeable about the topic of the paper (or at
+   least key aspects of it).
+
+Summary of the paper
+--------------------
+The paper contains two parts. The first part consist of a "position-paper" like pleading for the desirability of a flexible notion of denotational semantics. It is argued that denotational semantics, being defined by structural recursion on syntax, has the same nature as various kinds of static (compositional) analyses, and therefore allows for natural and smooth proofs of the soundness of these analyses. It is also argued that traditional semantics based on order-theoretic domains and continuous functions is mostly specialised in capturing coarse-grained end-to-end semantic behaviour, and for example handles nontermination in a non-informative way. While acknowledging that there are workarounds to address these issues within traditional domain theory, it is argued that these often lead to overly complex and unnatural solutions. The paper calls for a more natural and flexible approach to denotational semantics, which is able to adjust the level of computation detail that needs to be "exported" in order to validate given static analyses. A call-by-need lambda-calculus with let bindings and algebraic datatypes, and a rough variable usage analysis, are used as running example when making these points.
+
+The second part of the paper is dedicated to developing fine-grained trace-based denotational semantics for the aforementioned call-by-need lambda calculus. For the semantic interpretation, the authors employ the framework of Guarded Domain Theory, which was previously developed in the context of intensional type theory as a way to specify inductive and coinductive datatypes while allowing for negative occurrences in the (co)recursive specification (in the style of domain theory, but without appealing to partial objects and continuity). For the to-be-developed denotational semantics, the authors first describe a reference operational semantics: a standard abstract machine evaluator employing environments, heaps and control stacks, and doing the expected tricks for enabling call-by-need evaluation. Namely, when evaluating an expression of the form "let x = e1 in e2", (1) x is bound in the environment to a new address which in turn is bound in the heap to a closure for e1, then e2 is evaluated -- like one would do in call-by-name; but then, (2) when evaluating a single-variable expression, e.g., when evaluation reaches the first occurrence of x in e2, one pushes on the control stack an instruction to update the address of x according to the environment. 
+
+A trace semantics is then defined, following the above operational ideas. While the operational semantics is not compositional, the denotational semantics is (must be!). To achieve compositionality, for example, to be able to define the interpretation of "let x = e1 in e2" in terms of those of e1 and e2, the semantic domains must be deeply nested. Thus, while in the operational semantics e1 awaits in a closure within the heap for the evaluation of e2 to reach x, in the denotational version entire traces for e1 must await in the heap -- meaning that the heap now contains (items that nest) traces. The denotational semantics developed along this idea is proved to be adequate for the operational semantics, after the identification of a precise set of well-behaved traces that the denotational semantics captures. 
+
+The authors also define a second trace semantics, which is more fine-grained than the first in that the transitions in traces are labeled by "events", which indicate more precisely the nature of the transition -- the stated reason for introducing this new semantics is to get closer to the desideratum of recovering the transition system from the traces. Several properties are proved about the two semantics, including the soundness of "heap forcing" and the well-behavedness of a semantic equivalence that equates let-bindings of dead variables. It is shown that, for any two expressions, not only the equality but also the equivalence between their semantic interpretations yields contextual equivalence (the latter defined from the operational semantics); this result is part of the usual repertoire of validating a denotational w.r.t. an operational semantics. On the other hand, expectedly, full abstraction does not seem to hold.
+
+Finally, the authors come back to the problem of proving correctness of (some) static analysis using denotational semantics -- showing that variable deadness w.r.t. usage analysis implies semantic deadness w.r.t. the eventful semantics. Usage analysis is also used to express what it means for a let-bound variable to be evaluated at most once, in which case an "update avoidance" optimisation becomes sound.
+
+Assessment of the paper
+-----------------------
++ I should say that the "position paper" embedded within this paper is a delightful manifesto for why we need more versatile and lighter denotational semantics. I always felt that the perceived complexity and heaviness of denotational compared to operational semantics has given the former something of an unfair trial, and has led to a much greater focus on operational semantics in recent decades. This text is a good reminder of the potential virtues of "denotational semantics done right".
+
++ On the technical side, I believe the paper provides valuable results on the meta-theory of call-by-name lambda calculus. The authors claim that this is the first denotational semantics for call-by-name lambda calculus, and I am not aware of any such construction in the literature either. Moreover, the results of this paper bring strong evidence that the proposed semantics are interesting, and indeed they (and possible refinements or abstractions of them) seem promissing for validating various program analyses. 
+
+- I was less convinced by the authors' suggestion that their approach based on Guarded Domain Theory brings a radically new twist to the work on lambda calculus semantics in general. First, this paper's results are specialised to call-by-need, and indeed their valuable parts are specific to call-by-need; the authors do not describe, as they suggest in the introduction, a new general framework for giving semantics to lambda-calculi. Second, while I found the approach interesting, I did not agree with the claim that standard order-theoretic domain theory would be excessively heavy as a solution compared to the authors' solution -- for example, the definitions from Figs. 3 and 5 would read essentially the same using some (properly chosen) Scott domains, except that the "later" annotations would be missing. I fail to see how the treatment of nontermination would be problematic for traditional methods; the authors' pointed problem with nontermination stems not from the order-theoretic structures themselves, but from the coarse-grained end-to-end view of the cited semantics; nothing prevents the definition of nested infinite traces using Scott domains. In short, I believe the authors' contribution to denotational semantics would have read essentially the same using good old mechanisms a la Scott and Strachey. 
+
+- I think the paper does not accurately highlight its main contribution, which is the definition and study of denotational semantics for call-by-need lambda calculus (and I believe this should be reflected in the title!). IMO, the paper does *not* propose a new general method for defining trace-based denotational semantics. It is possible that such a general method could emerge after abstracting from the details of this extensive call-by-name "exercise" and proving a generic correctness result; but I do not see it in this work, not even implicitly. 
+
+- There are some design decisions that seem strange, and are not explained in the paper. One is to restrict applications to their righthand sides being variables rather than arbitrary expressions. The reader is left wondering whether this has been done in order to avoid some technical complications. Another choice is the inclusion of algebraic datatypes in the calculus -- are they interesting in any way w.r.t. the developed meta-theory?
+
++ It is reassuring that detailed proofs are included in the appendix, and there is also an accompanying Agda formalisation. (On the negative side, there is a prominent aspect that seems to be treated informally: the issue of the "consistent readdressing" of heaps, which is much less trivial than alpha-equivalence; I hope the authors can clarify this during the rebuttal.)
+
+Overall, I would be slightly inclined towards acceptance, but I am waiting for the authors to clarify the claims and design decisions that I have questioned above.
+
+Detailed comments for authors
+-----------------------------
+* On the rigour and the self-containedness of your text: 
+(1) It was not clear from your footnote 6 whether your meta-logic of this paper refers to a certain specialised topos of trees, or whether the meta-logic is given by the usual "naive" set theory and  your domains are sets equipped with suitable structure. Please clarify this important aspect, and in either case give a primer of what that topos or those structures are. 
+(2) Concerning your omission of the "later" modality annotation mentioned on 411, I would advise strongly against this: the reader needs to be on solid ground about the mathematical foundations, and omitting annotations that are the most characteristic feature of the foundation you are employing is not a good idea. 
+
+* Fig. 1, (b) and (c): Please explain why you need let-rec at the meta-level, in particular why you evaluate d1 using rho' rather that rho.
+
+* 383: Citing only the old [Coquand 1994] paper does not do justice to the state of the art -- there are quite a few semantic approaches to corecursion/coinduction, e.g., those based on distributive laws and those based on sized types, which have been implemented in several proof assistants including Agda, Coq and Isabelle.
+
+* 406: unfinished sentence.
+
+* 565: Why is the second configuration repeated?
+
+* 656: "Theorem 16". You mean "Theorem 14".
+
+* 676: Since this goal, of recovering the LK transition system, is part of the motivation for this section (even though I understand you do not pursue this fully), it is worth defining it briefly rather than pointing the reader to a monograph.
+
+* 749, 750: two broken references ("??")
+
+* 799: on identifying trace-based heaps modulo "consistent readdressing": Is this an informal identification? How does your Agda formalisation handle this? 
+
+* 842: There is an extra horizontal line there. Similarly on line 1035.
+
+* 869: "tacit assumption that all elements are lazy". Please be clearer about this, and whenever possible make the assumptions explicit. Do you mean to redefine the domain to contain only the lazy items?
+
+* In the fig. 3 semantics, it took me a bit to see where the negative occurrences are in the mutually recursive domain definitions, which would prevent a more standard set-theoretic coinductive semantics. Please clarify those for the reader.
+
+Questions to be addressed by author response
+--------------------------------------------
+The authors are welcome to address any questions and concerns expressed in my review.
+
+Let me restate a main question here: What would go wrong when trying to recast your semantics from figs. 3 and 5 to use Scott domains? 
+
+Other questions:
+
+* There are *operational* approaches to semantics that target compositionality, such as Peter Mosses's modular SOS. How does your vision compare to these?
+
+* How much of the meta-theory presented here has been formalised in Guarded Cubical Agda?
+
+
+
+Review #227D
+===========================================================================
+
+Overall merit
+-------------
+C. Weak reject: I lean towards rejection.
+
+Reviewer expertise
+------------------
+X. Expert: I am an expert on the topic of the paper (or at least key
+   aspects of it).
+
+Summary of the paper
+--------------------
+The paper argues that traditional denotational semantics is inappropriate for establishing the correctness of some program analyses, but that operational semantics is unappealingly non-compositional. An example of a denotational model of untyped lambda calculus using guarded domains to model call by need evaluation is given, which makes updating of thunks in the heap explicit and tracks traces intermediate states. There is also a variant that tracks reduction events rather than states.
+
+These models are applied to establish the soundness of a simple analysis of deadness and a slightly more refined cardinality of evaluation analysis that can be used to elide memoisation. Finally, it's discussed how this latter analysis can be use to justify that the transformation is an improvement, in the sense of Moran and Sands.
+
+Assessment of the paper
+-----------------------
+The basic idea of justifying program analyses and transformations in terms of a compositional denotational model that captures just enough intensional information (and, ideally, can also be used to establish that transformations actually are improvements) is a very good one.
+
+But I found the paper a rather vexing read. It's not nearly as novel as the authors believe and there are a good many sweeping statements about related work and alternative approaches which seem not entirely accurate. It's not "well situated" with respect to previous work, and that applies not just to the introduction and related work section, but to much of the discussion in the body of the paper. Just presenting a denotational model of an instrumented semantics and proving soundness of cardinality analysis together with improvement of memoization, without all the bits around the edges, would have been better.
+
+I do think there's something here that's worth communicating, or reminding people of. It's not that there's a new approach to denotational semantics, but rather that 80s style denotational methods (the use of guarded domains rather than Scott domains or w-cpos being, I believe, entirely optional for these purposes) can easily be instrumented to be adequate for capturing the correctness of some intensional analyses, in particular cost for call by need. That would constitute a fairly substantial rewrite/repositioning, though, so I lean towards rejection.
+
+Detailed comments for authors
+-----------------------------
+L22. "Traditional denotational semantics does not model operational details - but those details might be the whole point of the analysis"
+This is true and well understood. But it's generally regarded as a feature not a bug
+- Denotational semantics quotients out by unobservable operational details, for some chosen notion of observation. "Traditional" denotational semantics usually chooses a notion of observation that doesn't include any internal details of execution - it's about defining the semantics of *the language* not that of a particular implementation. If you want to model something like time complexity or how many times a variable is evaluated, under some more specific implementation strategy, then obviously you have to instrument the semantics to track those details.
+- Notwithstanding the above, it's often the case that an *apparently* very intensional analysis can be proved correct wrt a "nicer" denotational property. The well-analysed distinction between strictness and neededness is one such example, as is that between never-evaluates and constancy (the deadness analysis of this very paper). If the soundness of the analysis can be expressed as saying that a particular source-to-source transformation preserves observational equivalence, then the "traditional" denotational semantics will pretty much always suffice. Again, this is a feature not a bug - the denotational properties are stable under variations of the precision of the analysis and of the details of particular implementations/operational semantics. (L1020 effectively says as much)
+- And further notwistanding the above, we've actually got very good at reasoning about the correctness of compositional program logics, program analyses, type systems directly over a less-compositional operational semantics over the last couple of decades, e.g. by defining step-indexed predicates and relations, which have become quite routine.
+
+L99 Would prefer isomorphism to equality for domain equations (and even explicit fold/unfold in the semantics)
+
+L110 Remark that you don't really need "let" to mean "letrec" as you're in the untyped lambda calculus, where you can write a fixpoint combinator already.
+
+L176 The remarks on divergence strike me as rather muddled. Yes, according to the definition above, an always looping program is dead in all its free variables. That's the right answer for a semantics that doesn't make "which particular endless loop is taken" observable. If you care then you tweak the semantics (in a way that makes it less abstract - fewer programs are equivalent).
+
+L190 "abuses \bot as a collecting pool for error cases" This section is also muddled. Firstly, one wouldn't normally give a semantics that was supposed to account for "scope errors" - even the untyped lambda calculus has notion of free variable, which can be seen as a unityped type system, and one would usually only give a semantics to judgements of the form x_1,...,x_n |- t. Secondly, nobody would simply suggest the program transformation let x=e in e' |-> e' as a sensible thing to do on the basis of deadness. (L1009 revisits this much more sensibly)
+
+L203 termination is not an admissible predicate. No it's not. That just says you can't prove |- rec x.e terminates by showing x terminates |- e terminates, and nor should you be able to. That doesn't mean that a semantics that models divergence by a bottom element can't reason about termination!
+
+L292 don't get this. Surely the answer to "is x dead in y?" is still "yes"? (which is not to say that one shouldn't always formulate properties in the context of a collection of free variables)
+
+L299 "one way is to extend S_u to entire configurations" yes, that's the approach taken by syntactic type safety proofs. But it's not the only way - one only has to extend the semantic interpretation of the analysis to cover whatever shows up the semantics one chooses to work with. (And the recursion, where that shows up, is often just a single big fixpoint.)
+
+L358 Don't think we need a recap of the origins of domain theory here, and the " | \bot" part was not, I think, something Scott would have considered. There is a good reason for \bot being bottom - it's divergence with no observable behaviour. If you allow potentially infinite traces to be observed then, yes, there are diverging programs with total (in particular non-\bot) denotations. But there's still a real bottom element there.
+
+L373 This intro to guarded domain theory (or type theory) doesn't seem entirely accurate, and gives the impression that it is more different from Scott domain theory than it actually is. Most of the things said here are still true of Scott domains (or just w-cpos). For example, one can define coinductive types such as infinite streams, one can solve the equation D=D->D (or (D->D) + 1, if one wants to), and so on. That's not to say that guarded type theory isn't a great place to do this kind of thing, of course.
+
+Fig 3 presents a denotational semantics for call by need using mutually recursive guarded types. One could do something essentially isomorphic with Scott domains if one wanted. In particular, the type T of traces is just an alternative to (VxH)_\bot (or (VxH + 1)_\bot because it includes an error value). That type has a bottom element (even if the order is never used here), which is the infinite sequence of ticks. Benton et al (TPHOLs 09) reconstruct traditional domains from this coinductive type.
+
+(There's a can of worms hiding under the non-determinism in choosing fresh addresses, but let's just assume it's done deterministically. The resulting semantics is still very non-abstract as elements of D can branch on things to do with addresses, but anything adequate will do for justifying the analysis.)
+
+An early example of this approach to modelling laziness is Joseph "The Semantics of Lazy Functional Languages" TCS 1989. It's not a very good semantics, but nevertheless is in the same style: a denotational-style interpreter using a state monad to make thunk updating explicit.
+
+L406 "permissible as" is missing the end of the sentence
+
+L750 "C from ?? holds" ?
+
+L871 Section 5.2 considers quotienting the trace-based semantics to recapture something a bit closer to observational equivalence. This is a spendid thing to do, and there's masses of previous work on using logical relations to do this kind of thing a bit better, both over operational and denotational models (Ahmed, Birkedal, Dreyer & collaborators). 
+
+L991 "we have reason to doubt ... is fully abstract" Indeed!
+
+L1056 Sections 6.3 and 6.4 on proving that the intensional "at most once" analysis justifies an actually improving transformation are the most interesting part of the paper, but the authors themselves say they're not entirely happy with the proof. The bits don't quite seem to connect the way one would like.
