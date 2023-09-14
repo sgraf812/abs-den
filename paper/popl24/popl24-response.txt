@@ -1,3 +1,9 @@
+First off, we wholeheartedly would like to thank the reviewers.
+And we really mean it; these reviews were incredibly resourceful and encouraging,
+including good advice on how to better position this paper.
+
+
+
 # Topics
 
 - Technical sections hard to understand
@@ -33,6 +39,7 @@
 - Why Guarded Domain Theory and not good old Domain Theory?
   - Well, how can you be sure that your object exists? It's like writing a program without a type system
   - Dial back on claims about admissibility?
+  - Dial back on claims about bottom, but make clear that proving continuity is tiresome; it's like writing assembler compared to writing C.
 - Put call-by-need in the title?
   - "I think the paper does not accurately highlight its main contribution,
     which is the definition and study of denotational semantics for call-by-need
@@ -150,6 +157,7 @@ TODO:
     for a call-by-value language.
     Furthermore, ANF allows for less duplication in the application case and it is not a significant restriction in practice.
     See also the cited work by [Sestoft 1997].
+  - Data types are there so that we can observe type errors (stuckness) other than scoping errors
 - Please explain why you need let-rec at the meta-level, in particular why you evaluate d1 using rho' rather that rho.
   - We are modelling the semantics of a recursive Let, so we need x to be in the environment in e1.
     This is also done for example in Reynold's meta-circular interpreter of "Definitional Intepreters".
@@ -162,3 +170,8 @@ TODO:
   - Yes. Will change.
 - In the fig. 3 semantics, it took me a bit to see where the negative occurrences are in the mutually recursive domain definitions, which would prevent a more standard set-theoretic coinductive semantics. Please clarify those for the reader.
   - Will do.
+
+# Rev D
+
+- Joseph "The Semantics of Lazy Functional Languages" TCS 1989
+  - Thanks for the pointer!
