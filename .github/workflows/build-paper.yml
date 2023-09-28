@@ -12,13 +12,13 @@ jobs:
         with:
           run: |
             apk add make
-            make -C paper comp-trace.pdf comp-trace-ext.pdf
+            make -C paper abs-den.pdf abs-den-ext.pdf
       - name: Upload as release
         uses: xresloader/upload-to-github-release@v1
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
-          file: "paper/comp-trace*.pdf"
+          file: "paper/abs-den*.pdf"
           branches: main
           tag_name: "Latest"
           overwrite: true
