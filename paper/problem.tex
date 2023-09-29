@@ -343,7 +343,7 @@ each require more context to make sense.
 \slpj{Need to say what $⊑$ is for $\UsgD$.}
 \sg{I stated elsewhere that the obvious pointwise ordering holds.}
 
-\subsection{Continuity and Divergence}
+\subsection{Approximation Order and Safety Properties}
 \label{sec:continuity}
 
 % Nevermind our confidence in the ultimate correctness of $\semusg{\wild}$,
@@ -351,14 +351,7 @@ Our notion of deadness has a blind spot \wrt diverging computations:
 $\semscott{\wild}$ denotes any looping program such as
 $\pe_{\mathit{loop}} \triangleq \Let{\mathit{loop}}{\Lam{x}{\mathit{loop}~x}}{{\mathit{loop}~\mathit{loop}}}$ by $\bot$, the
 same element that is meant to indicate partiality in the approximation order
-of the domain (\eg, insufficiently specified input%
-\slpj{What is ``insufficiently specified input''?}%
-\sg{Partial input data; so something containing $\bot$ somewhere. You might enjoy the Turing machine analogy of Andrej Bauer here: \url{https://cs.stackexchange.com/a/81018/10048}}%
-).
-\slpj{Indeed I note that $\UsgD$ doesn't seem to have a $\bot$ element; at least
-  not a visible one.  Perhaps the bottom element is a function that maps
-  every variable to $0$?  Need to say things like this.}
-\sg{Grep for ``according''}
+of the domain (\eg, insufficiently specified input).
 Hence any looping program is automatically dead in all its free variables, even
 though any of them might influence which particular endless loop is taken.
 
@@ -371,62 +364,62 @@ The bottom element of the non-standard domain is the empty set of reached
 program labels. So if the non-standard semantics were to assign the bottom
 element to diverging programs like the denotational semantics does, it would
 neglect that any part of the program before the loop was ever reached.
-\slpj{I could not parse that sentence and I don't know what it means.}
-\sg{I tried to improve.}
 The non-standard semantic interpretation is far more reasonable, but credibility
 of this approach solely rests on the structural similarity to the standard
 denotational semantics.
 
-Furthermore, as is often done, $\semscott{\wild}$ abuses $\bot$ as a collecting
-pool for error cases.
-This shows in the following example:
-$x$ is dead in $(\Lam{y}{\Lam{z}{z}})~x$, but dropping the $\mathbf{let}$
-binding in $\Let{x}{\pe_1}{(\Lam{y}{\Lam{z}{z}})~x}$
-introduces a scoping error which is not observable under $\semscott{\wild}$.
-\slpj{But who said you could drop the binding?  Previously you just argued you could replace it with
-  a panic binding.}
-\sg{Grep for ``justifies''.}
-We could take inspiration in the work of \citet{Milner:78}
-and navigate around the issue by introducing a $\mathbf{wrong}$ denotation for
-errors which is propagated strictly; then we would notice when we optimise a
-looping program such as $\pe_{\mathit{loop}}$ into one that has a scoping error.
-\slpj{Sorry don't get this, esp as the example is not looping.}
-\sg{I clarified.}
+Both usage analysis and control-flow analysis infer so called
+\emph{safety properties}~\citep{Lamport:77,Cousot:21}.
+When a diverging execution violates a safety property (\eg, evaluates a variable
+or reaches a control-flow node), one of its finite prefixes will also violate
+it.
+Any analysis inferring a safety property that is not trivial on infinite traces
+(\eg, there are infinite traces which have and which violate the property)
+is impossible to verify correct \wrt a denotational semantics where diverging
+computations are denoted with the bottom element of an approximation order,
+because one of the infinite executions denoted by $\bot$ violates this property.
 
-We can try to apply that same trick to diverging programs and assign them a
-total domain element $\mathsf{div}$ distinct from all other elements.
-But then when would we go from $\bot$ to $\mathsf{div}$ in the least fixed-point in
-$\semscott{\Let{\wild}{\wild}{\wild}}$?
-There is no way to introduce $\mathsf{div}$ unless we make it a partial element
-that approximates every total element; but then we could have just chosen $\bot$
-as the denotation to begin with.
-Hence denoting diverging programs by a partial element $\bot$ or $\mathsf{div}$
-is a fundamental phenomenon of traditional denotational semantics and brings
-with it annoying pitfalls.
-To see one, consider the predicate ``Denotation $d$ will get stuck and not
-diverge''.
-This predicate is not \emph{admissable}~\citep{Abramsky:94}, because an
-admissable predicate that is at all satisfiable would need to be true for
-the partial elements $d=\bot$ and $d=\mathsf{div}$.
-A practical consequence is that such a predicate could not be proven about a
-recursive let binding because that would need admissability to apply fixpoint
-induction.  \slpj{Is this paragraph important? I did not understand it.}
-\sg{Well, I suppose it isn't important to you, then.
-It would be important to Joachim, I think, who currently grapples with defining a
-traditional denotational semantics for his rec-def work:
-\url{https://discourse.haskell.org/t/icfp-pearl-on-rec-def/6626}
-His \texttt{rseq} primitive lacks continuity; as a result he won't be able to
-use fixpoint induction and I'm skeptical whether his semantics even exists.
-By contrast, I think a guarded domain theoretic approach would be much simpler.
-Will try that after the deadline.}
+According to \citet[Section 2.3]{WrightFelleisen:94}, the approximation order
+used in traditional denotational semantics and the resulting recurring need
+to solve domain equations and prove continuity -- tedious manual processes --
+contributed great arguments in favor of operational semantics.
 
-We would rather not need to reason about continuity and admissability.
+%Furthermore, as is often done, $\semscott{\wild}$ abuses $\bot$ as a collecting
+%pool for error cases.
+%This shows in the following example:
+%$x$ is dead in $(\Lam{y}{\Lam{z}{z}})~x$, but dropping the $\mathbf{let}$
+%binding in $\Let{x}{\pe_1}{(\Lam{y}{\Lam{z}{z}})~x}$
+%introduces a scoping error which is not observable under $\semscott{\wild}$.
+%We could take inspiration in the work of \citet{Milner:78}
+%and navigate around the issue by introducing a $\mathbf{wrong}$ denotation for
+%errors which is propagated strictly; then we would notice when we optimise a
+%looping program such as $\pe_{\mathit{loop}}$ into one that has a scoping error.
+
+%We can try to apply that same trick to diverging programs and assign them a
+%total domain element $\mathsf{div}$ distinct from all other elements.
+%But then when would we go from $\bot$ to $\mathsf{div}$ in the least fixed-point in
+%$\semscott{\Let{\wild}{\wild}{\wild}}$?
+%There is no way to introduce $\mathsf{div}$ unless we make it a partial element
+%that approximates every total element; but then we could have just chosen $\bot$
+%as the denotation to begin with.
+%Hence denoting diverging programs by a partial element $\bot$ or $\mathsf{div}$
+%is a fundamental phenomenon of traditional denotational semantics and brings
+%with it annoying pitfalls.
+%To see one, consider the predicate ``Denotation $d$ will get stuck and not
+%diverge''.
+%This predicate is not \emph{admissable}~\citep{Abramsky:94}, because an
+%admissable predicate that is at all satisfiable would need to be true for
+%the partial elements $d=\bot$ and $d=\mathsf{div}$.
+%A practical consequence is that such a predicate could not be proven about a
+%recursive let binding because that would need admissability to apply fixpoint
+%induction.
+
 Hence we formulate the following goal:
 
 \formgoal{2}{Find a semantic domain in which diverging programs can be denoted
 by a total element.}
 
-\subsection{Operational Detail and Structural Mismatch}
+\subsection{Operational Detail}
 
 Blind spots and annoyances notwithstanding, the denotational notion of deadness
 above is quite reasonable and \Cref{thm:semusg-correct-live} is convincing.
@@ -546,8 +539,9 @@ Unfortunately, we still suffer from immense proof complexity caused by the
 \emph{structural mismatch} between transition semantics and compositional
 analysis, as we shall see in due course.
 Let us first try to define a notion of deadness that is similar to
-\Cref{defn:deadness}, in terms of \emph{contextual equivalence} as in
+\Cref{defn:deadness}, in terms of \emph{contextual improvement} à la
 \citep{MoranSands:99}:
+%TODO: Make evaluation contexts explicit, show correspondence to contexts
 
 \begin{definition}[Deadness, operationally]
   \label{defn:deadness2}
@@ -563,20 +557,38 @@ Let us first try to define a notion of deadness that is similar to
 This definition captures diverging behaviors correctly and straightforwardly
 legitimises the transformation we want to perform, without any mention of
 addresses. It is however unwieldy in a correctness proof due to its use of
-bisimulation, so a bit of rejigging is in order:
+bisimulation, so let us find a different formulation in terms of the
+semantic property of evaluation cardinality:
+
+\begin{definition}[Evaluation cardinality]
+  \label{defn:deadness2}
+  An expression $\pe$ \emph{evaluates} $\px$ \emph{at most $u$ times}
+  if and only if for any evaluation context $(ρ,μ,κ)$ and expression $\pe'$,
+  there are at most $u$ configurations $σ$ in the trace
+  $(\Let{\px}{\pe'}{\pe},ρ,μ,κ) \smallstep (\pe,ρ[\px↦\pa],\wild,\wild) \smallstep^* σ$ such
+  that $σ=(\py,ρ',\wild,\wild)$ and $ρ'(\py) = \pa$.
+\end{definition}
+
+In other words, evaluation cardinality is an upper bound on the number of
+$\LookupT$ transitions that alias to a variable.
+
+% Demonstrate that this is a safety property!
+% Say that following Deadness from cardinality is like verifying the
+% transformation correct, whereas showing that usage analysis provides an
+% estimate to evaluation cardinality is proving the analysis correct
+
+a bit of rejigging is in order:
 
 \begin{lemma}[Without proof]
-  $\px$ is dead in $\pe$ if and only if for any evaluation context $(ρ,μ,κ)$
-  and $\pa \not∈ \dom(μ)$ there exists no sequence of transitions
-  $(\pe,ρ[\px↦\pa],μ[\pa↦([],\Lam{z}{z})],κ) \smallstep^* (\py,ρ',μ',κ')$ such
-  that $ρ'(\py) = \pa$.
+  $\px$ is dead in $\pe$
 \end{lemma}
 
 This property is a bit easier to handle in a proof.
-However, note that it is not compositional in $\pe$:
-To see that, consider a variable occurrence $y$; is $x$ dead in $y$?
-That depends on which expression $y$ is bound to in the heap, but our deadness
-predicate does not make assumptions about free variables.
+One would expect to be able to conclude that $x$ is dead in
+$\Let{y}{\pe_1}{\pe_2}$ if both $x$ and $y$ are dead in $\pe_2$,
+but unfortunately deadness is not ``stable under reduction'':
+the freshness condition is violated in the evaluation context
+$(ρ[\px↦\pa],μ[\pa↦([],\Lam{z}{z})],κ)$.
 Consequently, it is impossible to prove that $\semusg{\pe}$ satisfies
 \Cref{thm:semusg-correct-live} by direct structural induction on $\pe$ (in a way
 that would be useful to the proof).

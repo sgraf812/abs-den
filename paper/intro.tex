@@ -26,13 +26,28 @@ as a sequence of machine states.  Now we have two un-appealing alternatives:
   with an analysis defined by structural recursion.
 \item Re-imagine and re-implement the analysis as an abstraction of the
   reachable states of an operational semantics.
-  This is the essence of Abstracting Abstract Machines \cite{aam}, a very
-  fruitful approach, but one that requires the entire analysis to cleverly
-  reason about heaps.
+  This is the essence of \emph{Abstracting Abstract Machines} (AAM) \cite{aam},
+  a very fruitful approach, but one that requires the entire analysis to
+  cleverly reason about heaps.
 \end{itemize}
-In this paper we explore a new third path: \emph{to enrich a structurally-defined semantics so that
-it expresses enough operational detail to support our static analysis}.
+
+Recent years have seen successful applications of the AAM recipe to big-step
+style \emph{Definitional Interpreters} as well \cite{Reynolds:72,adi},
+somewhat confining the structural mismatch problem to function applications.
+However, concrete interpreters usually diverge when the defined program
+diverges, hence definitional interpreters are no adequate substitute for a
+formal semantics when reasoning about correctness of program optimisations.
+
+In this paper, we explore \emph{Denotational Interpreters}:
+total, mathematical objects that live at the intersection of
+structurally-defined definitional interpreters and denotational semantics,
+enjoying a straightforward encoding in typical higher-order programming
+languages.
+Denotational interpreters capture enough operational detail to recover many
+analyses as abstractions, often without explicit reasoning about reachable heaps.
+
 We make the following contributions:
+% TODO: Update
 \begin{itemize}
 \item We use a concrete example (usage analysis) to explain the problems we sketched
   above: the lack of operational detail in denotational semantics, and the structural mismatch
