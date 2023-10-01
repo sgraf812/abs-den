@@ -45,7 +45,7 @@ element $\bot$.}
 \Cref{fig:usage} defines a static \emph{usage analysis}.
 The idea is that $\semusg{\pe}_{ρ}$ is a function $d ∈ \UsgD$ whose domain
 is the free variables of $\pe$; this function maps each free variable $\px$ of
-$\pe$ to its \emph{evaluation cardinality} $u ∈ \Usg$, an upper bound on the
+$\pe$ to its \emph{usage cardinality} $u ∈ \Usg$, an upper bound on the
 number of times that $\px$ will be evaluated when $\pe$ is evaluated (regardless
 of context).
 Thus, $\Usg$ is equipped with a total order that corresponds to the inclusion
@@ -63,16 +63,6 @@ Any number of uses beyond $1$, such as $2$ for $x$ in $\semusg{x+x}_{ρ}$, are
 collapsed to $d(x) = ω$.
 Similarly $\semusg{\Lam{v}{v+z}}_{\rho}$
 maps $z$ to $\omega$, since the lambda might be called many times.
-\slpj{Actually this isn't right. S seems to give usage for the \emph{bound}
-  variables of $e$ too (not just the \emph{free} variables),
-  which is a strange, intensional kind of thing. Needs discussion.}
-\sg{We haven't said anything about how we use the results of this analysis.
-Of course, the info about bound variables is often not useful (it quickly
-deteriorates to $ω$), but it's also unnecessary noise to remove them and in one
-specific scenario
-($\Let{x}{\pe_1}{\pe_2}$) we do want to look at the usage of bound var
-$x$. Just roll with it for now, I'm confident this is all correct since
-I've spent countless hours proving it correct.}
 
 For open expressions, we need a way to describe the denotations of its
 free variables with a \emph{usage environment}\footnote{
@@ -456,7 +446,7 @@ this theorem cannot be proven correct.
 %model.
 
 \formgoal{3}{Find a semantics that can observe operational detail such as
-arbitrary evaluation cardinality.}
+usage cardinality.}
 
 \subsection{Structural Mismatch}
 
@@ -534,13 +524,59 @@ It is easy to see that the transition system maintains this invariant and that
 it is still possible to observe scoping errors which are thus confined to lookup
 in $ρ$.
 
-This machine allows us to observe variable lookups as $\LookupT$ transitions.
-Unfortunately, we still suffer from immense proof complexity caused by the
-\emph{structural mismatch} between transition semantics and compositional
-analysis, as we shall see in due course.
+This machine allows us to observe variable lookups as $\LookupT$ transitions,
+which enables a semantic characterisation of \emph{usage cardinality}:
+
+\begin{definition}[Usage cardinality]
+  \label{defn:deadness2}
+  An expression $\pe$ \emph{evaluates} $\px$ \emph{at most $u$ times}
+  if and only if for any evaluation context $(ρ,μ,κ)$ and expression $\pe'$,
+  there are at most $u$ configurations $σ$ in the trace
+  $(\Let{\px}{\pe'}{\pe},ρ,μ,κ) \smallstep (\pe,ρ[\px↦\pa],\wild,\wild) \smallstep^* σ$ such
+  that $σ=(\py,ρ',\wild,\wild)$ and $ρ'(\py) = \pa$.
+\end{definition}
+
+In other words, the usage cardinality of a variable $\px$ is an upper bound to
+the number of $\LookupT$ transitions that alias to the heap entry of $\px$,
+assuming we start in a state where $\px$ is alias-free.
+
+% Demonstrate that this is a safety property!
+
+Intuitively, $\px$ is dead in $\pe$ if the usage cardinality of $\px$ is
+0, given a suitable redefinition of deadness.
+We will give such a definition in terms of the semantics' \emph{contextual
+improvement} relation as in \citep{MoranSands:99}.
+These are the \emph{contexts} $\pC$ with holes $\hole$ of our language
+(excluding data types, for brevity):
+\[\begin{array}{rcl}
+  \pC & ::=  & \hole \mid \pC~\px \mid \Lam{\px}{\pC} \mid \Let{\px}{\pe}{\pC} \mid \Let{\px}{\pC}{\pe} \\
+\end{array}\]
+$\pC[\pe]$ denotes an expression where the hole in $\pC$ has been filled
+with $\pe$, expressing that the bigger expression $\pC[\pe]$ is a function of
+$\pe$.
+\begin{abbreviation}
+  We write $\bigsteppn{\pe}{n}{\pv}$ to say that $\inj(\pe) \smallstep^n (\pv,\wild,\wild,\StopF)$.
+  Likewise, $\bigsteppn{\pe}{\leq n}{\pv}$
+\end{abbreviation}
+We will write
+\begin{definition}[Contextual improvement~\citep{MoranSands:99}]
+  An expression $\pe_1$ \emph{improves on} an expression $\pe_2$ (written $\pe_1 \lessequiv \pe_2$)
+  if for all $\pC$ such that $\pC[\pe_i]$ are closed,
+  \[
+    \pC[\pe_2] \smallstep^n \Longrightarrow \pC[\pe_1]
+  \]
+\end{definition}
+
+are any possible expression
+with a hole
+To give such a definition, we need
+
+
+Let us make that formal with the followi
+
 Let us first try to define a notion of deadness that is similar to
 \Cref{defn:deadness}, in terms of \emph{contextual improvement} à la
-\citep{MoranSands:99}:
+:
 %TODO: Make evaluation contexts explicit, show correspondence to contexts
 
 \begin{definition}[Deadness, operationally]
@@ -560,19 +596,10 @@ addresses. It is however unwieldy in a correctness proof due to its use of
 bisimulation, so let us find a different formulation in terms of the
 semantic property of evaluation cardinality:
 
-\begin{definition}[Evaluation cardinality]
-  \label{defn:deadness2}
-  An expression $\pe$ \emph{evaluates} $\px$ \emph{at most $u$ times}
-  if and only if for any evaluation context $(ρ,μ,κ)$ and expression $\pe'$,
-  there are at most $u$ configurations $σ$ in the trace
-  $(\Let{\px}{\pe'}{\pe},ρ,μ,κ) \smallstep (\pe,ρ[\px↦\pa],\wild,\wild) \smallstep^* σ$ such
-  that $σ=(\py,ρ',\wild,\wild)$ and $ρ'(\py) = \pa$.
-\end{definition}
+%Unfortunately, we still suffer from immense proof complexity caused by the
+%\emph{structural mismatch} between transition semantics and compositional
+%analysis, as we shall see in due course.
 
-In other words, evaluation cardinality is an upper bound on the number of
-$\LookupT$ transitions that alias to a variable.
-
-% Demonstrate that this is a safety property!
 % Say that following Deadness from cardinality is like verifying the
 % transformation correct, whereas showing that usage analysis provides an
 % estimate to evaluation cardinality is proving the analysis correct
