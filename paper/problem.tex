@@ -554,18 +554,20 @@ These are the \emph{contexts} $\pC$ with holes $\hole$ of our language
 $\pC[\pe]$ denotes an expression where the hole in $\pC$ has been filled
 with $\pe$, expressing that the bigger expression $\pC[\pe]$ is a function of
 $\pe$.
-\begin{abbreviation}
-  We write $\bigsteppn{\pe}{n}{\pv}$ to say that $\inj(\pe) \smallstep^n (\pv,\wild,\wild,\StopF)$.
-  Likewise, $\bigsteppn{\pe}{\leq n}{\pv}$
+\begin{abbreviation}[Bigstep]
+  We write $\bigsteppn{n}{\pe}{\pv}$ to say that $\inj(\pe) \smallstep^n (\pv,\wild,\wild,\StopF)$.
+  Likewise, $\bigsteppn{\leq n}{\pe}{\pv}$ implies $\bigsteppn{m}{\pe}{\pv}$ for
+  some $m \leq n$; and $\bigstepp{\pe}{\pv}$ means that there is any $n$ at all
+  such that $\bigsteppn{n}{\pe}{\pv}$.
 \end{abbreviation}
-We will write
 \begin{definition}[Contextual improvement~\citep{MoranSands:99}]
   An expression $\pe_1$ \emph{improves on} an expression $\pe_2$ (written $\pe_1 \lessequiv \pe_2$)
   if for all $\pC$ such that $\pC[\pe_i]$ are closed,
   \[
-    \pC[\pe_2] \smallstep^n \Longrightarrow \pC[\pe_1]
+    \bigsteppn{n}{\pC[\pe_2]}{\wild} \Longrightarrow \bigsteppn{\leq n}{\pC[\pe_1]}{\wild}.
   \]
 \end{definition}
+
 
 are any possible expression
 with a hole
