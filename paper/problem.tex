@@ -424,26 +424,10 @@ identification of \emph{one-shot} lambdas~\citep{cardinality-ext} --- functions 
 called at most once for every activation --- because it allows floating of heap
 allocations from a hot code path into cold function bodies.
 Simplicity prohibits $\semusg{\wild}$ from inferring such properties.}
-Thus, our usage analysis should satisfy the following generalisation of
-\Cref{thm:semusg-correct-live}:
-
-\begin{theorem}[Correctness of $\semusg{\wild}$]
-  \label{thm:semusg-correct-2}
-  Let $\pe$ be an expression, $\px$ a variable.
-  If $\semusg{\pe}_{\tr_Δ}(\px) ⊑ u$
-  then $\pe$ evaluates $\px$ at most $u$ times.
-\end{theorem}
 
 Unfortunately, our denotational semantics does not allow us to express the
 operational property ``$\pe$ evaluates $\px$ at most $u$ times'', so
-this theorem cannot be proven correct.
-
-% We should probably mvoe this RElated Work? Don't want to discuss it here
-%The problem of observable cardinality also comes up in Quantitative Type
-%Theory~\citep{Atkey:18}, where the solution is to give a categorical
-%semantics that postulates observability of cardinality in a suitable
-%\emph{$R$-Quantitative Category with Families} without giving a concrete
-%model.
+we cannot prove that $\semusg{\wild}$ can be used for update avoidance.
 
 \formgoal{3}{Find a semantics that can observe operational detail such as
 usage cardinality.}
@@ -560,64 +544,69 @@ $\pe$.
   some $m \leq n$; and $\bigstepp{\pe}{\pv}$ means that there is any $n$ at all
   such that $\bigsteppn{n}{\pe}{\pv}$.
 \end{abbreviation}
-\begin{definition}[Contextual improvement~\citep{MoranSands:99}]
+\begin{definition}[Contextual improvement]
   An expression $\pe_1$ \emph{improves on} an expression $\pe_2$ (written $\pe_1 \lessequiv \pe_2$)
   if for all $\pC$ such that $\pC[\pe_i]$ are closed,
   \[
     \bigsteppn{n}{\pC[\pe_2]}{\wild} \Longrightarrow \bigsteppn{\leq n}{\pC[\pe_1]}{\wild}.
   \]
 \end{definition}
-
-
-are any possible expression
-with a hole
-To give such a definition, we need
-
-
-Let us make that formal with the followi
-
-Let us first try to define a notion of deadness that is similar to
-\Cref{defn:deadness}, in terms of \emph{contextual improvement} à la
-:
-%TODO: Make evaluation contexts explicit, show correspondence to contexts
-
+We will write $\pe_1 \impequiv \pe_2$ if both $\pe_1 \lessequiv \pe_2$ and
+$\pe_2 \lessequiv \pe_1$, in which case both expressions are also contextually
+equivalent~\citep{MoranSands:99}.
+\Cref{defn:deadness2} informally called triples $(ρ,μ,κ)$ \emph{evaluation contexts}.
+They have a corresponding syntactic notion as well~\citep{Ariola:95}:
+\[\begin{array}{rcl}
+  \pE & ::=  & \hole \mid \pE~\px \mid \Let{\px}{\pe}{\pE} \mid \Let{\px}{\pE_1}{\pE_2[\px]} \\
+\end{array}\]
+\citeauthor{MoranSands:99} proved that it is sufficient to consider evaluation
+contexts to show improvement:
+\begin{lemma}[Context lemma]
+  For all expressions $\pe_1$,$\pe_2$, if for all $\pE$ such that $\pE[\pe_i]$ are closed
+  we have $\bigsteppn{n}{\pE[\pe_2]}{\wild} \Longrightarrow \bigsteppn{\leq n}{\pE[\pe_1]}{\wild}$,
+  then $\pe_1 \lessequiv \pe_2$.
+\end{lemma}
+Now we can finally give a precise definition of deadness:
 \begin{definition}[Deadness, operationally]
   \label{defn:deadness2}
   Let $\pe$ be an expression and $\px$ a variable.
   $\px$ is \emph{dead} in $\pe$ if and only if
-  for any evaluation context $(ρ,μ,κ)$ and expressions $\pe_1,\pe_2$
-  (where $\px$ does not occur in the context)
-  the sequences of transitions $(\Let{\px}{\pe_1}{\pe},ρ,μ,κ) \smallstep^*$
-  and $(\Let{\px}{\pe_2}{\pe},ρ,μ,κ) \smallstep^*$ operate in lockstep.
-  Otherwise, $\px$ is \emph{live}.
+  for any expressions $\pe_1,\pe_2$
+  \[
+    \Let{\px}{\pe_1}{\pe} \impequiv \Let{\px}{\pe_2}{\pe}
+  \]
 \end{definition}
+This definition improves upon \Cref{defn:deadness} in that it does not only
+capture soundness of the implied rewrite but also that the program does not slow
+down.
+Furthermore, it guarantees that infinite executions will not get stuck and vice
+versa.
 
-This definition captures diverging behaviors correctly and straightforwardly
-legitimises the transformation we want to perform, without any mention of
-addresses. It is however unwieldy in a correctness proof due to its use of
-bisimulation, so let us find a different formulation in terms of the
-semantic property of evaluation cardinality:
-
-%Unfortunately, we still suffer from immense proof complexity caused by the
-%\emph{structural mismatch} between transition semantics and compositional
-%analysis, as we shall see in due course.
-
-% Say that following Deadness from cardinality is like verifying the
-% transformation correct, whereas showing that usage analysis provides an
-% estimate to evaluation cardinality is proving the analysis correct
-
-a bit of rejigging is in order:
-
-\begin{lemma}[Without proof]
-  $\px$ is dead in $\pe$
+In effect, \label{defn:deadness2} is an extensional condition of when a
+particular \emph{transformation} is an optimisation.
+We can connect it to our semantic definition of cardinality (\eg, what our
+\emph{analysis} approximates) as follows:
+\begin{lemma}[Never used implies dead]
+  If an expression $\pe$ evaluates a variable $\px$ at most $0$ times, $\px$ is
+  dead in $\pe$.
 \end{lemma}
-
-This property is a bit easier to handle in a proof.
-One would expect to be able to conclude that $x$ is dead in
-$\Let{y}{\pe_1}{\pe_2}$ if both $x$ and $y$ are dead in $\pe_2$,
-but unfortunately deadness is not ``stable under reduction'':
-the freshness condition is violated in the evaluation context
-$(ρ[\px↦\pa],μ[\pa↦([],\Lam{z}{z})],κ)$.
+Although this lemma should make intuitive sense, its proof is much less so
+(annoyingly), for reasons we discuss in a bit.
+Because it is so intuitively true, this part of proving an analysis correct \wrt
+a transformation it enables is often neglected.
+The following statement is more interesting to researchers of static analyses,
+because it involves their specific analysis:
+\begin{theorem}[Correctness of $\semusg{\wild}$]
+  \label{thm:semusg-correct-2}
+  Let $\pe$ be an expression, $\px$ a variable.
+  If $\semusg{\pe}_{\tr_Δ}(\px) ⊑ u$
+  then $\pe$ evaluates $\px$ at most $u$ times.
+\end{theorem}
+One would expect to be able to conclude that $\Let{y}{\pe_1}{\pe_2}$ never
+evaluates $x$ if $\pe_2$ never evaluates $x$ and $y$, but unfortunately
+evaluation cardinality is not ``stable under reduction'':
+The freshness condition is violated in the evaluation context
+$(ρ[\px↦\pa],μ[\pa↦([],\Lam{z}{z})],κ)$. % TODO
 Consequently, it is impossible to prove that $\semusg{\pe}$ satisfies
 \Cref{thm:semusg-correct-live} by direct structural induction on $\pe$ (in a way
 that would be useful to the proof).
