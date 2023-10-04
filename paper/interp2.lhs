@@ -2,43 +2,65 @@
 \section{A Denotational Interpreter}
 \label{sec:interp}
 
-\lstset{language=Haskell,style=hsyl}
+\begin{minipage}{0.27\textwidth}
+\begin{code}
+type ConTag = Integer
+type D τ = τ (Value τ)
+data Value τ
+  =  Stuck
+  |  Fun (D τ -> D τ)
+  |  Con ConTag [D τ]
+data T a
+  =  Delay (T a)
+  |  Now a
+\end{code}
+\end{minipage}%
+\begin{minipage}{0.43\textwidth}
+\begin{code}
+instance Monad T where ...
+instance IsTrace T where
+  lookup _ = Delay; app1 = Delay; ...
+instance IsValue T (Value T) where ...
+\end{code}
+\end{minipage}%
+\begin{minipage}{0.3\textwidth}
+\begin{code}
+instance Monad T where ...
+instance IsTrace T where
+  lookup _ = Delay; app1 = Delay; ...
+instance IsTrace τ -> IsValue τ (Value τ) where ...
+\end{code}
+\end{minipage}
 
-\begin{lstlisting}
-type D m = m (Value m)
-data Value m
-  = Stuck
-  | Fun (D m -> D m)
-  | Con ConTag [D m]
-type Env = S.Map Name
+\begin{code}
+class Monad τ => IsTrace τ where
+  lookup :: Name -> τ v -> τ v
+  app1,app2,bind,case1,case2,update :: τ v -> τ v
 
-class Monad m => MonadTrace m where
-  lookup :: Name -> m v -> m v
-  app1,app2,bind,case1,case2,let_,update :: m v -> m v
+class Monad τ => IsValue τ v where
+  stuck :: τ v
+  injFun :: (τ v -> τ v) -> τ v
+  apply :: v -> τ v -> τ v
+  injCon :: ConTag -> [τ v] -> τ v
+  select :: v -> [(ConTag, [τ v] -> τ v)] -> τ v
 
-class Monad m => IsValue m v where
-  stuck :: m v
-  injFun :: (m v -> m v) -> m v
-  apply :: v -> m v -> m v
-  injCon :: ConTag -> [m v] -> m v
-  select :: v -> [(ConTag, [m v] -> m v)] -> m v
+class IsTrace τ => HasAlloc τ v where
+  alloc :: (τ v -> τ v) -> τ (τ v)
 
-class MonadTrace m => MonadAlloc m v where
-  alloc :: (m v -> m v) -> m (m v)
-
-eval :: forall m v. (MonadTrace m, IsValue m v, MonadAlloc m v)
-     => Expr -> Env (m v) -> m v
+type (:->) = Map
+eval :: forall τ v. (IsTrace τ, IsValue τ v, HasAlloc τ v)
+     => Expr -> (Name :-> τ v) -> τ v
 eval e env = case e of
-  Var x -> S.findWithDefault stuck x env
-  App e x -> case S.lookup x env of
+  Var x -> Map.findWithDefault stuck x env
+  App e x -> case Map.lookup x env of
     Nothing -> stuck
     Just d  -> app1 (eval e env) >>= \v -> apply v d
-  Lam x e -> injFun (\d -> app2 (eval e (S.insert x d env)))
+  Lam x e -> injFun (\d -> app2 (eval e (Map.insert x d env)))
   Let x e1 e2 -> do
-    let ext d = S.insert x (lookup x d) env
+    let ext d = Map.insert x (lookup x d) env
     d1 <- alloc (\d1 -> eval e1 (ext d1))
     bind (eval e2 (ext d1))
-  ConApp k xs -> case traverse (env S.!?) xs of
+  ConApp k xs -> case traverse (env Map.!?) xs of
     Just ds
       | length xs == conArity k
       -> injCon k ds
@@ -49,6 +71,6 @@ eval e env = case e of
       alt_cont xs rhs ds
         | length xs == length ds = case2 (eval rhs (insertMany env xs ds))
         | otherwise              = stuck
-      insertMany :: Env (m v) -> [Name] -> [m v] -> Env (m v)
-      insertMany env xs ds = foldr (uncurry S.insert) env (zip xs ds)
-\end{lstlisting}
+      insertMany :: (Name :-> τ v) -> [Name] -> [τ v] -> (Name :-> τ v)
+      insertMany env xs ds = foldr (uncurry Map.insert) env (zip xs ds)
+\end{code}

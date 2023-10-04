@@ -11,6 +11,9 @@
 %% For final camera-ready submission, w/ required CCS and ACM Reference
 %\documentclass[acmsmall,screen]{acmart}\settopmatter{}
 
+% https://github.com/borisveytsman/acmart/issues/406#issuecomment-667180341
+\PassOptionsToPackage{prologue,dvipsnames}{xcolor}
+
 \documentclass[acmsmall,review]{acmart}\settopmatter{printfolios=true,printccs=false,printacmref=false}
 
 %% Journal information
@@ -61,9 +64,7 @@
 \usepackage[appendix=strip]{apxproof}
 \fi
 \usepackage{array} % \newcolumntype
-\usepackage{color}
 \usepackage{ifdraft}
-%\usepackage[svgnames]{xcolor}
 \usepackage{cleveref}
 \usepackage{xspace}
 \usepackage{url}
@@ -98,11 +99,17 @@
 
 \ifnonanon{\usepackage[mark]{gitinfo2}}
 
+%include custom.fmt
+\newcommand{\keyword}[1]{\textcolor{BlueViolet}{\textbf{#1}}}
+\newcommand{\id}[1]{\textsf{\textsl{#1}}}
+\newcommand{\varid}[1]{\textcolor{Sepia}{\id{#1}}}
+\newcommand{\conid}[1]{\textcolor{OliveGreen}{\id{#1}}}
+%\newcommand{\tick}{\text{\textquoteright}}
+\newcommand{\package}[1]{\textsf{#1}}
+
 % Tables should have the caption above
 \floatstyle{plaintop}
 \restylefloat{table}
-
-%include custom.fmt
 
 \begin{document}
 
@@ -196,15 +203,15 @@
 
 \maketitle
 
-%\input{intro.tex}
-%\input{problem.tex}
-%\input{interp.tex}
-%%include interp2.lhs
-%\input{vanilla.tex}
-%\input{eventful.tex}
-%\input{essence.tex}
-%\input{abstractions.tex}
-%\input{related-work.tex}
+\input{intro.tex}
+\input{problem.tex}
+\input{interp.tex}
+%include interp2.lhs
+\input{vanilla.tex}
+\input{eventful.tex}
+\input{essence.tex}
+\input{abstractions.tex}
+\input{related-work.tex}
 
 \begin{acks}
 We would like to thank the anonymous POPL reviewers for their feedback.

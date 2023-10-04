@@ -16,8 +16,8 @@ appendix.pdf: abs-den-ext.pdf
 supplemental.zip: appendix.pdf
 	zip -j supplemental.zip appendix.pdf ../agda/*.agda
 
-%.tex: %.lhs
-	lhs2TeX -o $@ $<
+abs-den.tex: *.lhs
+	lhs2TeX -o $@ abs-den.lhs
 
 %.pdf: %.tex macros.tex references.bib
 	$(PDFLATEX) $*
@@ -34,10 +34,10 @@ quick-ext: abs-den-ext.tex macros.tex
 	$(PDFLATEX) abs-den-ext
 
 watch:
-	ls *.tex | entr -n make quick
+	ls *.lhs *.tex | entr -n make quick
 
 watch-ext:
-	ls *.tex | entr -n make quick-ext
+	ls *.lhs *.tex | entr -n make quick-ext
 
 clean:
 	git clean -fxd

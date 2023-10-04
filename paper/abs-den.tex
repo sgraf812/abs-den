@@ -11,6 +11,9 @@
 %% For final camera-ready submission, w/ required CCS and ACM Reference
 %\documentclass[acmsmall,screen]{acmart}\settopmatter{}
 
+% https://github.com/borisveytsman/acmart/issues/406#issuecomment-667180341
+\PassOptionsToPackage{prologue,dvipsnames}{xcolor}
+
 \documentclass[acmsmall,review]{acmart}\settopmatter{printfolios=true,printccs=false,printacmref=false}
 
 %% Journal information
@@ -61,9 +64,7 @@
 \usepackage[appendix=strip]{apxproof}
 \fi
 \usepackage{array} % \newcolumntype
-\usepackage{color}
 \usepackage{ifdraft}
-%\usepackage[svgnames]{xcolor}
 \usepackage{cleveref}
 \usepackage{xspace}
 \usepackage{url}
@@ -97,10 +98,6 @@
 \input{macros}
 
 \ifnonanon{\usepackage[mark]{gitinfo2}}
-
-% Tables should have the caption above
-\floatstyle{plaintop}
-\restylefloat{table}
 
 \let\Bbbk\relax
 %% ODER: format ==         = "\mathrel{==}"
@@ -409,6 +406,17 @@
 
 \makeatother
 \EndFmtInput
+\newcommand{\keyword}[1]{\textcolor{BlueViolet}{\textbf{#1}}}
+\newcommand{\id}[1]{\textsf{\textsl{#1}}}
+\newcommand{\varid}[1]{\textcolor{Sepia}{\id{#1}}}
+\newcommand{\conid}[1]{\textcolor{OliveGreen}{\id{#1}}}
+%\newcommand{\tick}{\text{\textquoteright}}
+\newcommand{\package}[1]{\textsf{#1}}
+
+% Tables should have the caption above
+\floatstyle{plaintop}
+\restylefloat{table}
+
 \begin{document}
 
 %\special{papersize=8.5in,11in}
@@ -505,15 +513,214 @@
 
 \maketitle
 
-%\input{intro.tex}
-%\input{problem.tex}
-%\input{interp.tex}
-%%include interp2.lhs
-%\input{vanilla.tex}
-%\input{eventful.tex}
-%\input{essence.tex}
-%\input{abstractions.tex}
-%\input{related-work.tex}
+\input{intro.tex}
+\input{problem.tex}
+\input{interp.tex}
+\let\Bbbk\relax
+
+
+   % the above one is unnecessary, but included for completeness
+
+
+% suppress some built-in formatting of lhs2TeX:
+
+
+\section{A Denotational Interpreter}
+\label{sec:interp}
+
+\begin{minipage}{0.27\textwidth}
+\begin{hscode}\SaveRestoreHook
+\column{B}{@{}>{\hspre}l<{\hspost}@{}}%
+\column{3}{@{}>{\hspre}c<{\hspost}@{}}%
+\column{3E}{@{}l@{}}%
+\column{6}{@{}>{\hspre}l<{\hspost}@{}}%
+\column{E}{@{}>{\hspre}l<{\hspost}@{}}%
+\>[B]{}\keyword{type}\;\conid{ConTag}\mathrel{=}\conid{Integer}{}\<[E]%
+\\
+\>[B]{}\keyword{type}\;\conid{D}\;\varid{\ensuremath{\tau}}\mathrel{=}\varid{\ensuremath{\tau}}\;(\conid{Value}\;\varid{\ensuremath{\tau}}){}\<[E]%
+\\
+\>[B]{}\keyword{data}\;\conid{Value}\;\varid{\ensuremath{\tau}}{}\<[E]%
+\\
+\>[B]{}\hsindent{3}{}\<[3]%
+\>[3]{}\mathrel{=}{}\<[3E]%
+\>[6]{}\conid{Stuck}{}\<[E]%
+\\
+\>[B]{}\hsindent{3}{}\<[3]%
+\>[3]{}\mid {}\<[3E]%
+\>[6]{}\conid{Fun}\;(\conid{D}\;\varid{\ensuremath{\tau}}\to \conid{D}\;\varid{\ensuremath{\tau}}){}\<[E]%
+\\
+\>[B]{}\hsindent{3}{}\<[3]%
+\>[3]{}\mid {}\<[3E]%
+\>[6]{}\conid{Con}\;\conid{ConTag}\;[\mskip1.5mu \conid{D}\;\varid{\ensuremath{\tau}}\mskip1.5mu]{}\<[E]%
+\\
+\>[B]{}\keyword{data}\;\conid{T}\;\varid{a}{}\<[E]%
+\\
+\>[B]{}\hsindent{3}{}\<[3]%
+\>[3]{}\mathrel{=}{}\<[3E]%
+\>[6]{}\conid{Delay}\;(\conid{T}\;\varid{a}){}\<[E]%
+\\
+\>[B]{}\hsindent{3}{}\<[3]%
+\>[3]{}\mid {}\<[3E]%
+\>[6]{}\conid{Now}\;\varid{a}{}\<[E]%
+\ColumnHook
+\end{hscode}\resethooks
+\end{minipage}%
+\begin{minipage}{0.43\textwidth}
+\begin{hscode}\SaveRestoreHook
+\column{B}{@{}>{\hspre}l<{\hspost}@{}}%
+\column{3}{@{}>{\hspre}l<{\hspost}@{}}%
+\column{E}{@{}>{\hspre}l<{\hspost}@{}}%
+\>[B]{}\keyword{instance}\;\conid{Monad}\;\conid{T}\;\keyword{where}\mathbin{...}{}\<[E]%
+\\
+\>[B]{}\keyword{instance}\;\conid{IsTrace}\;\conid{T}\;\keyword{where}{}\<[E]%
+\\
+\>[B]{}\hsindent{3}{}\<[3]%
+\>[3]{}\varid{lookup}\;\anonymous \mathrel{=}\conid{Delay};\varid{app1}\mathrel{=}\conid{Delay};\mathbin{...}{}\<[E]%
+\\
+\>[B]{}\keyword{instance}\;\conid{IsValue}\;\conid{T}\;(\conid{Value}\;\conid{T})\;\keyword{where}\mathbin{...}{}\<[E]%
+\ColumnHook
+\end{hscode}\resethooks
+\end{minipage}%
+\begin{minipage}{0.3\textwidth}
+\begin{hscode}\SaveRestoreHook
+\column{B}{@{}>{\hspre}l<{\hspost}@{}}%
+\column{3}{@{}>{\hspre}l<{\hspost}@{}}%
+\column{E}{@{}>{\hspre}l<{\hspost}@{}}%
+\>[B]{}\keyword{instance}\;\conid{Monad}\;\conid{T}\;\keyword{where}\mathbin{...}{}\<[E]%
+\\
+\>[B]{}\keyword{instance}\;\conid{IsTrace}\;\conid{T}\;\keyword{where}{}\<[E]%
+\\
+\>[B]{}\hsindent{3}{}\<[3]%
+\>[3]{}\varid{lookup}\;\anonymous \mathrel{=}\conid{Delay};\varid{app1}\mathrel{=}\conid{Delay};\mathbin{...}{}\<[E]%
+\\
+\>[B]{}\keyword{instance}\;\conid{IsTrace}\;\varid{\ensuremath{\tau}}\to \conid{IsValue}\;\varid{\ensuremath{\tau}}\;(\conid{Value}\;\varid{\ensuremath{\tau}})\;\keyword{where}\mathbin{...}{}\<[E]%
+\ColumnHook
+\end{hscode}\resethooks
+\end{minipage}
+
+\begin{hscode}\SaveRestoreHook
+\column{B}{@{}>{\hspre}l<{\hspost}@{}}%
+\column{3}{@{}>{\hspre}l<{\hspost}@{}}%
+\column{5}{@{}>{\hspre}l<{\hspost}@{}}%
+\column{6}{@{}>{\hspre}l<{\hspost}@{}}%
+\column{7}{@{}>{\hspre}l<{\hspost}@{}}%
+\column{9}{@{}>{\hspre}l<{\hspost}@{}}%
+\column{13}{@{}>{\hspre}l<{\hspost}@{}}%
+\column{34}{@{}>{\hspre}l<{\hspost}@{}}%
+\column{E}{@{}>{\hspre}l<{\hspost}@{}}%
+\>[B]{}\keyword{class}\;\conid{Monad}\;\varid{\ensuremath{\tau}}\Rightarrow \conid{IsTrace}\;\varid{\ensuremath{\tau}}\;\keyword{where}{}\<[E]%
+\\
+\>[B]{}\hsindent{3}{}\<[3]%
+\>[3]{}\varid{lookup}\mathbin{::}\conid{Name}\to \varid{\ensuremath{\tau}}\;\varid{v}\to \varid{\ensuremath{\tau}}\;\varid{v}{}\<[E]%
+\\
+\>[B]{}\hsindent{3}{}\<[3]%
+\>[3]{}\varid{app1},\varid{app2},\varid{bind},\varid{case1},\varid{case2},\varid{update}\mathbin{::}\varid{\ensuremath{\tau}}\;\varid{v}\to \varid{\ensuremath{\tau}}\;\varid{v}{}\<[E]%
+\\[\blanklineskip]%
+\>[B]{}\keyword{class}\;\conid{Monad}\;\varid{\ensuremath{\tau}}\Rightarrow \conid{IsValue}\;\varid{\ensuremath{\tau}}\;\varid{v}\;\keyword{where}{}\<[E]%
+\\
+\>[B]{}\hsindent{3}{}\<[3]%
+\>[3]{}\varid{stuck}\mathbin{::}\varid{\ensuremath{\tau}}\;\varid{v}{}\<[E]%
+\\
+\>[B]{}\hsindent{3}{}\<[3]%
+\>[3]{}\varid{injFun}\mathbin{::}(\varid{\ensuremath{\tau}}\;\varid{v}\to \varid{\ensuremath{\tau}}\;\varid{v})\to \varid{\ensuremath{\tau}}\;\varid{v}{}\<[E]%
+\\
+\>[B]{}\hsindent{3}{}\<[3]%
+\>[3]{}\varid{apply}\mathbin{::}\varid{v}\to \varid{\ensuremath{\tau}}\;\varid{v}\to \varid{\ensuremath{\tau}}\;\varid{v}{}\<[E]%
+\\
+\>[B]{}\hsindent{3}{}\<[3]%
+\>[3]{}\varid{injCon}\mathbin{::}\conid{ConTag}\to [\mskip1.5mu \varid{\ensuremath{\tau}}\;\varid{v}\mskip1.5mu]\to \varid{\ensuremath{\tau}}\;\varid{v}{}\<[E]%
+\\
+\>[B]{}\hsindent{3}{}\<[3]%
+\>[3]{}\varid{select}\mathbin{::}\varid{v}\to [\mskip1.5mu (\conid{ConTag},[\mskip1.5mu \varid{\ensuremath{\tau}}\;\varid{v}\mskip1.5mu]\to \varid{\ensuremath{\tau}}\;\varid{v})\mskip1.5mu]\to \varid{\ensuremath{\tau}}\;\varid{v}{}\<[E]%
+\\[\blanklineskip]%
+\>[B]{}\keyword{class}\;\conid{IsTrace}\;\varid{\ensuremath{\tau}}\Rightarrow \conid{HasAlloc}\;\varid{\ensuremath{\tau}}\;\varid{v}\;\keyword{where}{}\<[E]%
+\\
+\>[B]{}\hsindent{3}{}\<[3]%
+\>[3]{}\varid{alloc}\mathbin{::}(\varid{\ensuremath{\tau}}\;\varid{v}\to \varid{\ensuremath{\tau}}\;\varid{v})\to \varid{\ensuremath{\tau}}\;(\varid{\ensuremath{\tau}}\;\varid{v}){}\<[E]%
+\\[\blanklineskip]%
+\>[B]{}\keyword{type}\;(\rightharpoonup)\mathrel{=}\conid{Map}{}\<[E]%
+\\
+\>[B]{}\varid{eval}\mathbin{::}\keyword{$\forall$}\!\! \hsforall \;\varid{\ensuremath{\tau}}\;\varid{v}\hsdot{\circ }{.\,}(\conid{IsTrace}\;\varid{\ensuremath{\tau}},\conid{IsValue}\;\varid{\ensuremath{\tau}}\;\varid{v},\conid{HasAlloc}\;\varid{\ensuremath{\tau}}\;\varid{v}){}\<[E]%
+\\
+\>[B]{}\hsindent{6}{}\<[6]%
+\>[6]{}\Rightarrow \conid{Expr}\to (\conid{Name}\rightharpoonup\varid{\ensuremath{\tau}}\;\varid{v})\to \varid{\ensuremath{\tau}}\;\varid{v}{}\<[E]%
+\\
+\>[B]{}\varid{eval}\;\varid{e}\;\varid{env}\mathrel{=}\keyword{case}\;\varid{e}\;\keyword{of}{}\<[E]%
+\\
+\>[B]{}\hsindent{3}{}\<[3]%
+\>[3]{}\conid{Var}\;\varid{x}\to \varid{\conid{Map}.findWithDefault}\;\varid{stuck}\;\varid{x}\;\varid{env}{}\<[E]%
+\\
+\>[B]{}\hsindent{3}{}\<[3]%
+\>[3]{}\conid{App}\;\varid{e}\;\varid{x}\to \keyword{case}\;\varid{\conid{Map}.lookup}\;\varid{x}\;\varid{env}\;\keyword{of}{}\<[E]%
+\\
+\>[3]{}\hsindent{2}{}\<[5]%
+\>[5]{}\conid{Nothing}\to \varid{stuck}{}\<[E]%
+\\
+\>[3]{}\hsindent{2}{}\<[5]%
+\>[5]{}\conid{Just}\;\varid{d}{}\<[13]%
+\>[13]{}\to \varid{app1}\;(\varid{eval}\;\varid{e}\;\varid{env})\bind \lambda \varid{v}\to \varid{apply}\;\varid{v}\;\varid{d}{}\<[E]%
+\\
+\>[B]{}\hsindent{3}{}\<[3]%
+\>[3]{}\conid{Lam}\;\varid{x}\;\varid{e}\to \varid{injFun}\;(\lambda \varid{d}\to \varid{app2}\;(\varid{eval}\;\varid{e}\;(\varid{\conid{Map}.insert}\;\varid{x}\;\varid{d}\;\varid{env}))){}\<[E]%
+\\
+\>[B]{}\hsindent{3}{}\<[3]%
+\>[3]{}\conid{Let}\;\varid{x}\;\varid{e1}\;\varid{e2}\to \keyword{do}{}\<[E]%
+\\
+\>[3]{}\hsindent{2}{}\<[5]%
+\>[5]{}\keyword{let}\;\varid{ext}\;\varid{d}\mathrel{=}\varid{\conid{Map}.insert}\;\varid{x}\;(\varid{lookup}\;\varid{x}\;\varid{d})\;\varid{env}{}\<[E]%
+\\
+\>[3]{}\hsindent{2}{}\<[5]%
+\>[5]{}\varid{d1}\leftarrow \varid{alloc}\;(\lambda \varid{d1}\to \varid{eval}\;\varid{e1}\;(\varid{ext}\;\varid{d1})){}\<[E]%
+\\
+\>[3]{}\hsindent{2}{}\<[5]%
+\>[5]{}\varid{bind}\;(\varid{eval}\;\varid{e2}\;(\varid{ext}\;\varid{d1})){}\<[E]%
+\\
+\>[B]{}\hsindent{3}{}\<[3]%
+\>[3]{}\conid{ConApp}\;\varid{k}\;\varid{xs}\to \keyword{case}\;\varid{traverse}\;(\varid{env}\mathbin{\conid{Map}.!?})\;\varid{xs}\;\keyword{of}{}\<[E]%
+\\
+\>[3]{}\hsindent{2}{}\<[5]%
+\>[5]{}\conid{Just}\;\varid{ds}{}\<[E]%
+\\
+\>[5]{}\hsindent{2}{}\<[7]%
+\>[7]{}\mid \varid{length}\;\varid{xs}{}\mathop{==}{}\varid{conArity}\;\varid{k}{}\<[E]%
+\\
+\>[5]{}\hsindent{2}{}\<[7]%
+\>[7]{}\to \varid{injCon}\;\varid{k}\;\varid{ds}{}\<[E]%
+\\
+\>[3]{}\hsindent{2}{}\<[5]%
+\>[5]{}\anonymous \to \varid{stuck}{}\<[E]%
+\\
+\>[B]{}\hsindent{3}{}\<[3]%
+\>[3]{}\conid{Case}\;\varid{e}\;\varid{alts}\to \varid{case1}\mathbin{\$}\varid{eval}\;\varid{e}\;\varid{env}\bind \lambda \varid{v}\to {}\<[E]%
+\\
+\>[3]{}\hsindent{2}{}\<[5]%
+\>[5]{}\varid{select}\;\varid{v}\;[\mskip1.5mu (\varid{k},\varid{alt\char95 cont}\;\varid{xs}\;\varid{rhs})\mid (\varid{k},\varid{xs},\varid{rhs})\leftarrow \varid{alts}\mskip1.5mu]{}\<[E]%
+\\
+\>[3]{}\hsindent{2}{}\<[5]%
+\>[5]{}\keyword{where}{}\<[E]%
+\\
+\>[5]{}\hsindent{2}{}\<[7]%
+\>[7]{}\varid{alt\char95 cont}\;\varid{xs}\;\varid{rhs}\;\varid{ds}{}\<[E]%
+\\
+\>[7]{}\hsindent{2}{}\<[9]%
+\>[9]{}\mid \varid{length}\;\varid{xs}{}\mathop{==}{}\varid{length}\;\varid{ds}\mathrel{=}\varid{case2}\;(\varid{eval}\;\varid{rhs}\;(\varid{insertMany}\;\varid{env}\;\varid{xs}\;\varid{ds})){}\<[E]%
+\\
+\>[7]{}\hsindent{2}{}\<[9]%
+\>[9]{}\mid \varid{otherwise}{}\<[34]%
+\>[34]{}\mathrel{=}\varid{stuck}{}\<[E]%
+\\
+\>[5]{}\hsindent{2}{}\<[7]%
+\>[7]{}\varid{insertMany}\mathbin{::}(\conid{Name}\rightharpoonup\varid{\ensuremath{\tau}}\;\varid{v})\to [\mskip1.5mu \conid{Name}\mskip1.5mu]\to [\mskip1.5mu \varid{\ensuremath{\tau}}\;\varid{v}\mskip1.5mu]\to (\conid{Name}\rightharpoonup\varid{\ensuremath{\tau}}\;\varid{v}){}\<[E]%
+\\
+\>[5]{}\hsindent{2}{}\<[7]%
+\>[7]{}\varid{insertMany}\;\varid{env}\;\varid{xs}\;\varid{ds}\mathrel{=}\varid{foldr}\;(\varid{uncurry}\;\varid{\conid{Map}.insert})\;\varid{env}\;(\varid{zip}\;\varid{xs}\;\varid{ds}){}\<[E]%
+\ColumnHook
+\end{hscode}\resethooks
+\input{vanilla.tex}
+\input{eventful.tex}
+\input{essence.tex}
+\input{abstractions.tex}
+\input{related-work.tex}
 
 \begin{acks}
 We would like to thank the anonymous POPL reviewers for their feedback.

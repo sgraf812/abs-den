@@ -2,6 +2,8 @@
 %include polycode.fmt
 
 %format (at x) = "@" x
+%format τ = "\varid{\ensuremath{\tau}}"
+%format :-> = "\rightharpoonup"
 
 %if style == poly
 %format nil = "\tick" []
