@@ -1,6 +1,8 @@
-comp-trace-ext.tex
+abs-den.tex
+abs-den-ext.tex
 supplemental.zip
 .direnv
+.auctex-auto
 
 *.aux
 *.axp
@@ -11,4 +13,5 @@ supplemental.zip
 *.out
 *.cut
 *.pdf
+*.ptb
 *.agdai
