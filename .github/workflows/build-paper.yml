@@ -16,7 +16,7 @@ jobs:
         with:
           run: |
             apk add make
-            make -C paper abs-den.pdf abs-den-ext.pdf
+            PATH=$PATH:/usr/bin make -C paper abs-den.pdf abs-den-ext.pdf
       - name: Upload as release
         uses: xresloader/upload-to-github-release@v1
         env:
