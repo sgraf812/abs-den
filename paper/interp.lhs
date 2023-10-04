@@ -1,41 +1,90 @@
-%include custom.fmt
 \section{A Denotational Interpreter}
 \label{sec:interp}
+
+\iffalse
+\begin{code}
+import Expr
+\end{code}
+\fi
 
 A denotational interpreter is both a definitional interpreter as well as a
 denotational semantics.
 Then what is its \emph{semantic domain}?
-As such, it is understanding its semantic domain it by way of its semantics domain.
-
-\begin{minipage}{0.27\textwidth}
+To a first approximation, we can think of it as a type |D T| such as
+\begin{minipage}{0.65\textwidth}
 \begin{code}
-type ConTag = Integer
-type D τ = τ (Value τ)
-data Value τ
-  =  Stuck
-  |  Fun (D τ -> D τ)
-  |  Con ConTag [D τ]
-data T a
-  =  Delay (T a)
-  |  Now a
+data T a      = Delay (T a) | Now a
+type D τ      = τ (Value τ); type Tag = Integer
+data Value τ  = Stuck | Fun (D τ -> D τ) | Con Tag [D τ]
 \end{code}
-\end{minipage}%
-\begin{minipage}{0.43\textwidth}
+\end{minipage}
+\begin{minipage}{0.35\textwidth}
 \begin{code}
-instance Monad T where ...
+instance Monad T where
+  return a = Now a
+  Delay τ >>= k = Delay (τ >>= k)
+\end{code}
+\end{minipage}
+Every such |D T| corresponds to a program trace |T| that ends with a |Value|.
+
+A trace |T| can either have reached a terminal state |Now| or it can be
+|Delay|ed, indicating that the program makes another small-step transition
+before reaching a terminal state.
+Readers who are familiar with the literature on coinduction will immediately
+note that |T| is the delay monad popularised by \citet{Capretta:05}, and that it
+could readily be replaced by a more elaborate construction such as interaction
+trees~\citep{interaction-trees}.
+The coinductive nature of |T|'s definition in Haskell is crucial to our
+approach because it allows us to express diverging traces as an infinite,
+productive nesting of |Delay|s.
+
+A semantic element |D T| eventually terminates with a |Value| that is either
+|Stuck|, a |Fun|ction waiting to be applied to an argument denotation to yield
+one of the same, or a |Con|structor application giving the denotations of its
+fields.
+|Value|s are a standard denotational encoding of their syntactic counterpart,
+devoid of any syntax.
+(We leave matters of well-definedness and totality to \Cref{sec:totality}.)
+
+The |Monad| instance of |T| implements |return| via |Now| and the
+bind operator |(>>=)| by forwarding the |Delay|, thus guarding the recursion.
+
+
+\begin{figure}
+\begin{minipage}{0.43\textwidth}
+\begin{comment}
+\begin{code}
+instance IsTrace T where
+  lookup _ = Delay
+  app1 = Delay
+  app2 = Delay
+  case1 = Delay
+  case2 = Delay
+  update = Delay
+  let_ = Delay
+instance IsValue T (Value T) where
+  stuck = return Stuck
+  injFun f = return (Fun f)
+  injCon k ds = return (Con k ds)
+  apply (Fun f) d = f d
+  apply _       _ = stuck
+  select v alts
+    | Con k ds <- v
+    , Just (_,alt) <- List.find (\(k',_) -> k' == k) alts
+    = alt ds
+    | otherwise
+    = stuck
+\end{code}
+\end{comment}
+\begin{spec}
 instance IsTrace T where
   lookup _ = Delay; app1 = Delay; ...
 instance IsValue T (Value T) where ...
-\end{code}
+\end{spec}
 \end{minipage}%
-\begin{minipage}{0.3\textwidth}
-\begin{code}
-instance Monad T where ...
-instance IsTrace T where
-  lookup _ = Delay; app1 = Delay; ...
-instance IsTrace τ -> IsValue τ (Value τ) where ...
-\end{code}
-\end{minipage}
+\label{fig:conc-trace}
+\caption{Concrete Domain of Traces}
+\end{figure}
 
 \begin{code}
 class Monad τ => IsTrace τ where
