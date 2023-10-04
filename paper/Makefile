@@ -16,6 +16,9 @@ appendix.pdf: abs-den-ext.pdf
 supplemental.zip: appendix.pdf
 	zip -j supplemental.zip appendix.pdf ../agda/*.agda
 
+%.tex: %.lhs
+	lhs2TeX -o $@ $<
+
 %.pdf: %.tex macros.tex references.bib
 	$(PDFLATEX) $*
 	bibtex $*
