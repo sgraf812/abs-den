@@ -2,6 +2,11 @@
 \section{A Denotational Interpreter}
 \label{sec:interp}
 
+A denotational interpreter is both a definitional interpreter as well as a
+denotational semantics.
+Then what is its \emph{semantic domain}?
+As such, it is understanding its semantic domain it by way of its semantics domain.
+
 \begin{minipage}{0.27\textwidth}
 \begin{code}
 type ConTag = Integer
