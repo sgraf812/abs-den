@@ -702,8 +702,8 @@ If $τ$ evaluates $\px$ more than $u$ times, then some finite prefix of $τ$ wil
 also evaluate $\px$ more than $u$ times.
 Thus we can formulate usage cardinality of a trace as a mathematical function:
 \[\begin{array}{lcl}
-  \usg    & \colon     & \mathbb{T} \to \UsgD \\
-  \usg(τ) & \triangleq & \begin{cases}
+  \usg    & \colon & \mathbb{T} \to \UsgD \\
+  \usg(τ) & =      & \begin{cases}
     [ \px ↦ 1 \mid ρ(\py) = ρ(\px) ] + \usg(τ') & τ = (\py,ρ,\wild,\wild) \smallstep τ' \\
     \usg(τ') & τ = σ \smallstep τ' \\
     \bot & τ = σ, σ \not\smallstep \\
