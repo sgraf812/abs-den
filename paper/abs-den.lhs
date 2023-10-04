@@ -205,8 +205,7 @@
 
 \input{intro.tex}
 \input{problem.tex}
-\input{interp.tex}
-%include interp2.lhs
+%include interp.lhs
 \input{vanilla.tex}
 \input{eventful.tex}
 \input{essence.tex}
