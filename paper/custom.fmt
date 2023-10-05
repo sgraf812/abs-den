@@ -2,95 +2,97 @@
 %include polycode.fmt
 
 %format (at x) = "@" x
-%format τ = "\varid{\ensuremath{\tau}}"
-%format :-> = "\rightharpoonup"
-
 %if style == poly
-%format nil = "\tick" []
-%format :~> = "\mathop{{:}{\rightsquigarrow}}"
-%format :~: = "\mathop{{:}{\sim}{:}}"
-%format :~~: = "\mathop{{:}{\approx}{:}}"
+
 %subst conid a = "\conid{" a "}"
 %subst varid a = "\varid{" a "}"
 %subst keyword a = "\keyword{" a "}"
-%format ^^ = "\;"
-%format ^^^ = "\,"
-%format ^^^^ = " "
-%format blank = " "
-%format ## = "\!"
-%format (FromNat x) = x
-%format BOX = "\square"
-%format ~ = "\,\sim\,"
-%format qquad = "\qquad"
-%format com = "\text{-}\text{-}"
-%format bang = "!"
-%format family = "\keyword{family}"
-%format pattern = "\keyword{pattern}"
-%format COMPLETE = "\keyword{complete}"
-%format RULES = "\keyword{RULES}"
-%format NOINLINE = "\keyword{noinline}"
-%format /~ = "\not\sim"
-%format =-> = "\mapsto"
-%format dollar = $
-%format ~> = "\twoheadrightarrow"
-%format th_d_open = "[\id{d}|\;"
-%format th_d_close = |]
-   % the above one is unnecessary, but included for completeness
-%format ghci = "\lambda\!"
-%format /\ = "\wedge"
-%format pi = "\Pi"
-%format tau = "\tau"
-%format taus = "\overline\tau"
-%format upsilon = "\upsilon"
-%format upsilons = "\overline\upsilon"
-%format sigma = "\sigma"
-%format alpha = "\alpha"
-%format alphas = "\overline\alpha"
-%format beta = "\beta"
-%format <$ = "\mathop{\raisebox{0.025em}{$<$}\hspace{-0.16em}{\$}}"
-%format <$$ = "\mathop{\raisebox{0.025em}{$<$}\hspace{-0.16em}{\$}\hspace{-0.18em}{\$}}"
-%format <$> = "\mathop{{\langle}{\$}{\rangle}}"
-%format <*> = "\mathop{{\langle}{*}{\rangle}}"
-%format <|> = "\mathop{{\langle}{|}{\rangle}}"
-%format >=> = "\mathrel{{>}\hspace{-0.32em}{=}\hspace{-0.32em}{>}}"
-%format >>  = "\mathrel{{>}\hspace{-0.4em}{>}}"
-%format >>> = "\mathrel{{>}\hspace{-0.4em}{>}\hspace{-0.4em}{>}}"
-%format |> = "\triangleright"
-%format |-> = "\mapsto"
 
-%format ^ = "\string^"
-%format bottom = "\bot"
-%format prag_begin = "\{-{\#}"
-%format prag_end = "{\#}{-}\}"
-%format k1
-%format k2
+%format τ = "\varid{\ensuremath{\tau}}"
+%format ρ = "\varid{\ensuremath{\rho}}"
+%format :-> = "\rightharpoonup"
+%format ∈ = "\in"
+%format ! = "\mathop{!}"
+%format qquad = "\qquad"
+
+%%format nil = "\tick" []
+%%format :~> = "\mathop{{:}{\rightsquigarrow}}"
+%%format :~: = "\mathop{{:}{\sim}{:}}"
+%%format :~~: = "\mathop{{:}{\approx}{:}}"
+%%format ^^ = "\;"
+%%format ^^^ = "\,"
+%%format ^^^^ = " "
+%%format blank = " "
+%%format ## = "\!"
+%%format (FromNat x) = x
+%%format BOX = "\square"
+%%format ~ = "\,\sim\,"
+%%format com = "\text{-}\text{-}"
+%%format bang = "!"
+%%format family = "\keyword{family}"
+%%format pattern = "\keyword{pattern}"
+%%format COMPLETE = "\keyword{complete}"
+%%format RULES = "\keyword{RULES}"
+%%format NOINLINE = "\keyword{noinline}"
+%%format /~ = "\not\sim"
+%%format =-> = "\mapsto"
+%%format dollar = $
+%%format ~> = "\twoheadrightarrow"
+%%format th_d_open = "[\id{d}|\;"
+%%format th_d_close = |]
+%   % the above one is unnecessary, but included for completeness
+%%format ghci = "\lambda\!"
+%%format /\ = "\wedge"
+%%format pi = "\Pi"
+%%format tau = "\tau"
+%%format taus = "\overline\tau"
+%%format upsilon = "\upsilon"
+%%format upsilons = "\overline\upsilon"
+%%format sigma = "\sigma"
+%%format alpha = "\alpha"
+%%format alphas = "\overline\alpha"
+%%format beta = "\beta"
+%%format <$ = "\mathop{\raisebox{0.025em}{$<$}\hspace{-0.16em}{\$}}"
+%%format <$$ = "\mathop{\raisebox{0.025em}{$<$}\hspace{-0.16em}{\$}\hspace{-0.18em}{\$}}"
+%%format <$> = "\mathop{{\langle}{\$}{\rangle}}"
+%%format <*> = "\mathop{{\langle}{*}{\rangle}}"
+%%format <|> = "\mathop{{\langle}{|}{\rangle}}"
+%%format >=> = "\mathrel{{>}\hspace{-0.32em}{=}\hspace{-0.32em}{>}}"
+%%format >>  = "\mathrel{{>}\hspace{-0.4em}{>}}"
+%%format >>> = "\mathrel{{>}\hspace{-0.4em}{>}\hspace{-0.4em}{>}}"
+%%format |> = "\triangleright"
+%%format |-> = "\mapsto"
+
+%%format ^ = "\string^"
+%%format bottom = "\bot"
+%%format prag_begin = "\{-{\#}"
+%%format prag_end = "{\#}{-}\}"
+%format d1
+%format d2
+%format e1
+%format e2
+%format app1
+%format app2
+%format case1
+%format case2
+%format App1
+%format App2
+%format Case1
+%format Case2
+%%format xs = "\overline{\varid{x}}"
+%%format ds = "\overline{\varid{d}}"
+%%format alts = "\overline{\varid{alt}}"
 
 % suppress some built-in formatting of lhs2TeX:
-%format not = "\varid{not}"
-%format == = "{}\mathop{==}{}"
-%format /= = "\mathop{{/}{=}}"
-%format && = "\mathop{\&\&}"
-%format ++ = "\mathop{++}"
-%format undefined = "\varid{undefined}"
+%%format not = "\varid{not}"
+%%format == = "{}\mathop{==}{}"
+%%format /= = "\mathop{{/}{=}}"
+%%format && = "\mathop{\&\&}"
+%%format ++ = "\mathop{++}"
+%%format undefined = "\varid{undefined}"
 
 %else
-%format KK = k
-%format ^^ =
-%format ^^^ =
-%format ^^^^ =
-%format blank =
-%format ## =
 %format qquad =
-%format com = --
-%format \* = *
-%format nil = TICK []
-%format dollar = $
-%format begin_comment = "{-"
-%format end_comment = "-}"
-%format th_d_open = "[d|"
-%format prag_begin = "{-#"
-%format prag_end = "#-}"
-
 %endif
 
 %if False

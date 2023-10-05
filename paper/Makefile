@@ -17,7 +17,10 @@ supplemental.zip: appendix.pdf
 	zip -j supplemental.zip appendix.pdf ../agda/*.agda
 
 abs-den.tex: *.lhs
-	lhs2TeX -o $@ abs-den.lhs
+	lhs2TeX --poly -o $@ abs-den.lhs
+
+abs-den.hs: *.lhs
+	lhs2TeX --newcode -o $@ abs-den.lhs
 
 %.pdf: %.tex macros.tex references.bib
 	$(PDFLATEX) $*
@@ -38,6 +41,9 @@ watch:
 
 watch-ext:
 	ls *.lhs *.tex | entr -n make quick-ext
+
+test: abs-den.hs
+	ghc -fno-code abs-den.hs
 
 clean:
 	git clean -fxd
