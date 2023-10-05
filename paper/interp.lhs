@@ -1,11 +1,18 @@
 \section{A Denotational Interpreter}
 \label{sec:interp}
 
+We will now define a denotational interpreter in Haskell.
+Crucially, we picked Haskell out of convenience and familiarity, not out of
+necessity: We make use of laziness in only one key position and could just as
+well have used OCaml or ML with an explicit @Thunk@ operator.
+
 \iffalse
 \begin{code}
 import Expr
 \end{code}
 \fi
+
+\subsection{Semantic Domain}
 
 A denotational interpreter is both a definitional interpreter as well as a
 denotational semantics.
@@ -13,8 +20,8 @@ Then what is its \emph{semantic domain}?
 To a first approximation, we can think of it as a type |D T| such as
 \begin{minipage}{0.65\textwidth}
 \begin{code}
-data T a      = Delay (T a) | Now a
-type D τ      = τ (Value τ); type Tag = Integer
+data T a = Delay (T a) | Now a
+type D τ = τ (Value τ); qquad type Tag = Integer
 data Value τ  = Stuck | Fun (D τ -> D τ) | Con Tag [D τ]
 \end{code}
 \end{minipage}
