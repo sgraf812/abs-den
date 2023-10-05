@@ -36,14 +36,17 @@ quick-ext: abs-den-ext.tex macros.tex
 	$(PDFLATEX) abs-den-ext
 	$(PDFLATEX) abs-den-ext
 
+test: abs-den.hs
+	ghc -fno-code -W abs-den.hs
+
 watch:
 	ls *.lhs *.tex | entr -n make quick
 
 watch-ext:
 	ls *.lhs *.tex | entr -n make quick-ext
 
-test: abs-den.hs
-	ghc -fno-code abs-den.hs
+watch-test:
+	ls *.lhs | entr -n make test
 
 clean:
 	git clean -fxd

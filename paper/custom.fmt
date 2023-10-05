@@ -71,10 +71,6 @@
 %format d2
 %format e1
 %format e2
-%format app1
-%format app2
-%format case1
-%format case2
 %format App1
 %format App2
 %format Case1
