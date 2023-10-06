@@ -5,17 +5,15 @@ jobs:
   build_latex:
     runs-on: ubuntu-latest
     steps:
-      - uses: awalsh128/cache-apt-pkgs-action@latest
+      - name: Cache lhs2TeX
+        uses: awalsh128/cache-apt-pkgs-action@latest
         with:
-          packages: make lhs2tex
+          packages: lhs2tex texlive-full ghc
           version: 1.0
       - name: Checkout
         uses: actions/checkout@v3
       - name: Build PDF
-        uses: xu-cheng/texlive-action/full@v1
-        with:
-          run: |
-            PATH=$PATH:/usr/bin make -C paper abs-den.pdf abs-den-ext.pdf
+        run: make -C paper abs-den.pdf abs-den-ext.pdf
       - name: Upload as release
         uses: xresloader/upload-to-github-release@v1
         env:
@@ -25,3 +23,5 @@ jobs:
           branches: main
           tag_name: "Latest"
           overwrite: true
+      - name: Run tests
+        run: make -C paper test
