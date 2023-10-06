@@ -1,31 +1,47 @@
 \let\Bbbk\relax
 %include polycode.fmt
 
-%format (at x) = "@" x
-%if style == poly
+%if style == newcode
+
+%format qquad =
+%format ^ =
+%format ^^ = " "
+
+%else
+
+%format qquad = "\qquad"
+%format ^ = " "
+%format ^^ = "\;"
 
 %subst conid a = "\conid{" a "}"
 %subst varid a = "\varid{" a "}"
 %subst keyword a = "\keyword{" a "}"
+%subst dummy = "\wild"
 
 %format τ = "\varid{\ensuremath{\tau}}"
 %format ρ = "\varid{\ensuremath{\rho}}"
 %format :-> = "\rightharpoonup"
 %format ∈ = "\in"
 %format ! = "\mathop{!}"
-%format qquad = "\qquad"
+%format eval = "\mathcal{S}"
+%format eval(a)(b) = "\mathcal{S}\denot{" a "}_{" b "}"
+%format ext(rho)(x)(d) = rho "[" x "\mapsto" d "]"
+%format exts(rho)(xs)(ds) = rho "[\many{" xs "\mapsto" ds "}]"
+%format ghci = "\lambda\!\!"
 
-%%format nil = "\tick" []
-%%format :~> = "\mathop{{:}{\rightsquigarrow}}"
-%%format :~: = "\mathop{{:}{\sim}{:}}"
-%%format :~~: = "\mathop{{:}{\approx}{:}}"
-%%format ^^ = "\;"
-%%format ^^^ = "\,"
-%%format ^^^^ = " "
-%%format blank = " "
-%%format ## = "\!"
-%%format (FromNat x) = x
-%%format BOX = "\square"
+%format d1
+%format d2
+%format e1
+%format e2
+%format er = "\varid{\ensuremath{e_r}}"
+%format App1
+%format App2
+%format Case1
+%format Case2
+%%format xs = "\overline{\varid{x}}"
+%%format ds = "\overline{\varid{d}}"
+%%format alts = "\overline{\varid{alt}}"
+
 %%format ~ = "\,\sim\,"
 %%format com = "\text{-}\text{-}"
 %%format bang = "!"
@@ -35,23 +51,6 @@
 %%format RULES = "\keyword{RULES}"
 %%format NOINLINE = "\keyword{noinline}"
 %%format /~ = "\not\sim"
-%%format =-> = "\mapsto"
-%%format dollar = $
-%%format ~> = "\twoheadrightarrow"
-%%format th_d_open = "[\id{d}|\;"
-%%format th_d_close = |]
-%   % the above one is unnecessary, but included for completeness
-%%format ghci = "\lambda\!"
-%%format /\ = "\wedge"
-%%format pi = "\Pi"
-%%format tau = "\tau"
-%%format taus = "\overline\tau"
-%%format upsilon = "\upsilon"
-%%format upsilons = "\overline\upsilon"
-%%format sigma = "\sigma"
-%%format alpha = "\alpha"
-%%format alphas = "\overline\alpha"
-%%format beta = "\beta"
 %%format <$ = "\mathop{\raisebox{0.025em}{$<$}\hspace{-0.16em}{\$}}"
 %%format <$$ = "\mathop{\raisebox{0.025em}{$<$}\hspace{-0.16em}{\$}\hspace{-0.18em}{\$}}"
 %%format <$> = "\mathop{{\langle}{\$}{\rangle}}"
@@ -63,32 +62,7 @@
 %%format |> = "\triangleright"
 %%format |-> = "\mapsto"
 
-%%format ^ = "\string^"
-%%format bottom = "\bot"
-%%format prag_begin = "\{-{\#}"
-%%format prag_end = "{\#}{-}\}"
-%format d1
-%format d2
-%format e1
-%format e2
-%format App1
-%format App2
-%format Case1
-%format Case2
-%%format xs = "\overline{\varid{x}}"
-%%format ds = "\overline{\varid{d}}"
-%%format alts = "\overline{\varid{alt}}"
-
-% suppress some built-in formatting of lhs2TeX:
-%%format not = "\varid{not}"
-%%format == = "{}\mathop{==}{}"
-%%format /= = "\mathop{{/}{=}}"
-%%format && = "\mathop{\&\&}"
-%%format ++ = "\mathop{++}"
-%%format undefined = "\varid{undefined}"
-
 %else
-%format qquad =
 %endif
 
 %if False
