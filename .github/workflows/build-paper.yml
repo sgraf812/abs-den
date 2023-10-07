@@ -8,12 +8,20 @@ jobs:
       - name: Cache lhs2TeX
         uses: awalsh128/cache-apt-pkgs-action@latest
         with:
-          packages: lhs2tex texlive-full ghc
+          packages: lhs2tex texlive-full ghc cabal-install
           version: 1.0
+      - name: Build new lhs2TeX
+        run: |
+          git clone https://github.com/sgraf812/lhs2tex ~/lhs2TeX/
+          cd ~/lhs2TeX
+          touch doc/Guide2.pdf
+          texhash # https://tex.stackexchange.com/a/64895/52414
+          cabal update
+          cabal install
       - name: Checkout
         uses: actions/checkout@v3
       - name: Build PDF
-        run: make -C paper abs-den.pdf abs-den-ext.pdf
+        run: PATH=~/.cabal/bin:$PATH make -C paper abs-den.pdf abs-den-ext.pdf
       - name: Upload as release
         uses: xresloader/upload-to-github-release@v1
         env:
