@@ -1,5 +1,4 @@
-%options ghci
-\begin{comment}
+%if style == newcode
 \begin{code}
 {-# LANGUAGE FunctionalDependencies #-}
 {-# LANGUAGE DerivingStrategies #-}
@@ -25,7 +24,7 @@ instance Show (Value τ) where
 instance (Show (τ v)) => Show (ByName τ v) where
   show (ByName τ) = show τ
 \end{code}
-\end{comment}
+%endif
 
 \section{A Denotational Interpreter}
 \label{sec:interp}
@@ -33,9 +32,9 @@ instance (Show (τ v)) => Show (ByName τ v) where
 We will now define a denotational interpreter in Haskell.
 It is worth stressing that we picked Haskell out of convenience and familiarity,
 rather than out of necessity:
-We make use of laziness in only one key position and could just as well have
-used a strict higher-order language such as OCaml, ML or Scheme with an explicit
-thunk operator.
+We make use of thunks in only one key position where memoisation is not
+important and could just as well have used a strict higher-order language such
+as OCaml, ML or Scheme with explicit suspension @fun () -> _@.
 
 \begin{figure}
 \begin{spec}
@@ -178,14 +177,28 @@ of three type classes |IsTrace|,|IsValue| and |HasAlloc| depicted in
 Each of these offer knobs that we will tweak individually in later Sections.
 |T|races and |Value|s are instances of these type classes via
 \Cref{fig:trace-instances}, so |D| can stand in as a |τ v| for |eval|.
-For example, we can evaluate the expression $\Let{i}{\Lam{x}{x}}{i~i}$ like this:
+For example, we can evaluate the expression $e \triangleq
+\Let{i}{\Lam{x}{x}}{i~i}$ like this:
 
 < ghci> eval (read "let i = λx.x in i i") empty :: D
 
-%\eval{eval (read "let i = λx.x in i i") empty :: D (ByName T)}
-\texttt{Bind→App1→Lookup "i"→App2→Lookup "i"→⟨λ⟩}
+%options ghci -pgmL lhs2TeX -optL--pre
+\perform{eval (read "let i = λx.x in i i") empty :: D (ByName T)}
 
-Which is in direct correspondence to the call-by-name small-step trace.
+Which is in direct correspondence to the call-by-name small-step trace
+\[\begin{array}{c}
+  \arraycolsep2pt
+  \begin{array}{clclcl}
+             & (\Let{i}{\Lam{x}{x}}{i~i}, [], [], \StopF) & \smallstep[\BindT] & (i~i, ρ_1, μ, \StopF)
+             & \smallstep[\AppIT] & (i, ρ_1, μ, \ApplyF(\pa_1) \pushF \StopF)
+             \\
+  \smallstep[\LookupT] & (\Lam{x}{x}, ρ_1, μ, \ApplyF(\pa_1) \pushF \StopF) & \smallstep[\AppET] & (x, ρ_2, μ, \StopF) & \smallstep[\LookupT] & (\Lam{x}{x}, ρ_1, μ, \StopF)
+  \end{array} \\
+  \\[-0.5em]
+  \quad \text{where} \quad \begin{array}{lll}
+    ρ_1 = [i ↦ \pa_1] & ρ_2 = [i ↦ \pa_1, x ↦ \pa_1] & μ = [\pa_1 ↦ (ρ_1,\Lam{x}{x})]. \\
+  \end{array}
+\end{array}\]
 
 While |IsTrace| is exactly a final encoding of |T|, |IsValue| is not quite the
 same to |Value|:
