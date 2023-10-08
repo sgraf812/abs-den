@@ -10,6 +10,7 @@ import Data.List (find, foldl')
 import Data.Function (fix)
 import Control.Monad
 import Control.Monad.Trans.State
+import Data.Coerce
 import Expr
 
 main = eval @_ @(Value (ByName T))`seq` return ()
@@ -33,6 +34,12 @@ takeT :: Int -> T a -> T (Either Div a)
 takeT 0 _ = return (Left Div)
 takeT _ (Ret a) = return (Right a)
 takeT n (Step e t) = Step e (takeT (n-1) t)
+
+takeName :: Int -> ByName T a -> T (Either Div a)
+takeName n (ByName τ) = takeT n τ
+
+takeNeed :: Int -> ByNeed T a -> T (Either Div a)
+takeNeed n (ByNeed m) = takeT n (evalStateT m empty)
 \end{code}
 %endif
 
@@ -347,24 +354,24 @@ We conclude this Subsection with a few examples, starting with two programs that
 diverge. The corecursive formulation allows us to observe finite prefixes of the
 trace:
 
-< ghci> takeT 3 $ eval (read "let x = x in x") empty :: D
+< ghci> takeT 3 $ eval (read "let x = x in x") empty :: T (Either Div Value)
 %options ghci -pgmL lhs2TeX -optL--pre
-\perform{takeT 3 $ eval (read "let x = x in x") empty :: D (ByName T)}
+\perform{takeName 3 $ eval (read "let x = x in x") empty :: T (Either Div (Value (ByName T)))}
 
-< ghci> takeT 3 $ eval (read "let w = λy. y y in w w") empty :: D
+< ghci> takeT 3 $ eval (read "let w = λy. y y in w w") empty :: T (Either Div Value)
 %options ghci -pgmL lhs2TeX -optL--pre
-\perform{takeT 3 $ eval (read "let w = λy. y y in w w") empty :: D (ByName T)}
+\perform{takeName 3 $ eval (read "let w = λy. y y in w w") empty :: T (Either Div (Value (ByName T)))}
 
 \noindent
 And data types work as well, allowing for interesting ways to get stuck:
 
-< ghci> takeT 3 $ eval (read "let z = Z() in let o = S(z) in case o of { S(zz) -> zz }") empty :: D
+< ghci> eval (read "let z = Z() in let o = S(z) in case o of { S(zz) -> zz }") empty :: D
 %options ghci -pgmL lhs2TeX -optL--pre
-\perform{takeT 3 $ eval (read "let z = Z() in let o = S(z) in case o of { S(zz) -> zz }") empty :: D (ByName T)}
+\perform{eval (read "let z = Z() in let o = S(z) in case o of { S(zz) -> zz }") empty :: D (ByName T)}
 
-< ghci> takeT 3 $ eval (read "let z = Z() in z z") empty :: D
+< ghci> eval (read "let z = Z() in z z") empty :: D
 %options ghci -pgmL lhs2TeX -optL--pre
-\perform{takeT 3 $ eval (read "let z = Z() in z z") empty :: D (ByName T)}
+\perform{eval (read "let z = Z() in z z") empty :: D (ByName T)}
 
 \begin{figure}
 \begin{spec}
