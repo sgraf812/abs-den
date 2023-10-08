@@ -22,12 +22,13 @@ traceWith f a = trace (f a) a
 
 type Name = String -- [a-z][a-zA-Z0-9]+
 data Tag
-  = F | T | None | Some | Pair
+  = FF | TT | None | Some | Pair | S | Z
   deriving (Show, Read, Eq, Ord, Enum, Bounded)
 
 conArity :: Tag -> Int
 conArity Pair = 2
 conArity Some = 1
+conArity S = 1
 conArity _ = 0
 
 data Expr
