@@ -1,45 +1,62 @@
+%options ghci -pgmL lhs2TeX -optL--pre -XPartialTypeSignatures
 %if style == newcode
 \begin{code}
 {-# LANGUAGE FunctionalDependencies #-}
 {-# LANGUAGE DerivingStrategies #-}
+{-# LANGUAGE PartialTypeSignatures #-}
 import Data.Map (Map)
 import qualified Data.Map as Map
 import Data.Set (Set)
 import qualified Data.Set as Set
 import Data.List (find, foldl')
 import Data.Function (fix)
+import Text.Show (showListWith)
 import Control.Monad
 import Control.Monad.Trans.State
-import Data.Coerce
 import Expr
 
-main = eval @_ @(Value (ByName T))`seq` return ()
+main = eval @_ @(Value (ByName T)) `seq` takeName `seq` runByNeed `seq` return ()
 
-deriving instance Show Event
+instance {-# OVERLAPPING #-} Show (Maybe (Value τ)) where
+  show Nothing = "\\bot"
+  show (Just a) = "\\mathtt{Just}(" ++ show a ++ ")"
+instance Show Event where
+  show (Lookup x) = "\\LookupT(" ++ x ++ ")"
+  show App1 = "\\AppIT"
+  show App2 = "\\AppET"
+  show Case1 = "\\CaseIT"
+  show Case2 = "\\CaseET"
+  show Bind = "\\BindT"
+  show Update = "\\UpdateT"
 instance Show a => Show (T a) where
-  show (Step e t) = show e ++ "→" ++ show t
-  show (Ret a) = '⟨':show a++"⟩"
+  show (Step e t) = show e ++ "\\rightarrow" ++ show t
+  show (Ret a) = "\\langle "++show a++"\\rangle "
+--   show (collect -> (es, a)) = case es of
+--     [] -> "\\langle "++show a++"\\rangle "
+--     _  -> "\\smallstep" ++ showListWith shows es [] ++ "\\langle "++show a++"\\rangle "
+-- collect (Step e (collect -> (es,a))) = (e:es,a)
+-- collect (Ret a)                      = ([],a)
 instance Show (Value τ) where
-  show (Fun _) = "λ"
-  show (Con k _) = show k ++ "(...)"
-  show Stuck = "🗲"
+  show (Fun _) = "\\lambda"
+  show (Con k _) = "Con(" ++ show k ++ ",...)"
+  show Stuck = "\\lightning"
 instance (Show (τ v)) => Show (ByName τ v) where
   show (ByName τ) = show τ
+instance Show (ByNeed τ a) where
+  show _ = show "_"
+instance {-# OVERLAPPING #-} Show (Addr :-> ByNeed τ a) where
+  showsPrec _ = showListWith (\a -> shows a . showString "\\!\\! \\mapsto \\!\\! \\wild") . Map.keys
 
-data Div = Div
-instance Show Div where
-  show Div = "..."
-
-takeT :: Int -> T a -> T (Either Div a)
-takeT 0 _ = return (Left Div)
-takeT _ (Ret a) = return (Right a)
+takeT :: Int -> T a -> T (Maybe a)
+takeT 0 _ = return Nothing
+takeT _ (Ret a) = return (Just a)
 takeT n (Step e t) = Step e (takeT (n-1) t)
 
-takeName :: Int -> ByName T a -> T (Either Div a)
+takeName :: Int -> ByName T a -> T (Maybe a)
 takeName n (ByName τ) = takeT n τ
 
-takeNeed :: Int -> ByNeed T a -> T (Either Div a)
-takeNeed n (ByNeed m) = takeT n (evalStateT m empty)
+takeNeed :: Int -> ByNeed T a -> T (Maybe a)
+takeNeed n = fmap (fmap fst) . takeT n . runByNeed
 \end{code}
 %endif
 
@@ -293,9 +310,7 @@ this:%
 \footnote{where we use |read :: String -> Expr| as a parsing function}
 
 < ghci> eval (read "let i = λx.x in i i") empty :: D
-
-%options ghci -pgmL lhs2TeX -optL--pre
-\perform{eval (read "let i = λx.x in i i") empty :: D (ByName T)}
+$\perform{eval (read "let i = λx.x in i i") empty :: D (ByName T)}$
 
 Which is in direct correspondence to the call-by-name small-step trace
 \[\begin{array}{c}
@@ -354,24 +369,20 @@ We conclude this Subsection with a few examples, starting with two programs that
 diverge. The corecursive formulation allows us to observe finite prefixes of the
 trace:
 
-< ghci> takeT 3 $ eval (read "let x = x in x") empty :: T (Either Div Value)
-%options ghci -pgmL lhs2TeX -optL--pre
-\perform{takeName 3 $ eval (read "let x = x in x") empty :: T (Either Div (Value (ByName T)))}
+< ghci> takeT 3 $ eval (read "let x = x in x") empty :: T (Maybe Value)
+$\perform{takeName 3 $ eval (read "let x = x in x") empty :: T (Maybe (Value (ByName T)))}$
 
-< ghci> takeT 3 $ eval (read "let w = λy. y y in w w") empty :: T (Either Div Value)
-%options ghci -pgmL lhs2TeX -optL--pre
-\perform{takeName 3 $ eval (read "let w = λy. y y in w w") empty :: T (Either Div (Value (ByName T)))}
-
+< ghci> takeT 3 $ eval (read "let w = λy. y y in w w") empty :: T (Maybe Value)
+$\perform{takeName 3 $ eval (read "let w = λy. y y in w w") empty :: T (Maybe (Value (ByName T)))}$
+\\[\belowdisplayskip]
 \noindent
 And data types work as well, allowing for interesting ways to get stuck:
 
 < ghci> eval (read "let z = Z() in let o = S(z) in case o of { S(zz) -> zz }") empty :: D
-%options ghci -pgmL lhs2TeX -optL--pre
-\perform{eval (read "let z = Z() in let o = S(z) in case o of { S(zz) -> zz }") empty :: D (ByName T)}
+$\perform{eval (read "let z = Z() in let o = S(z) in case o of { S(zz) -> zz }") empty :: D (ByName T)}$
 
 < ghci> eval (read "let z = Z() in z z") empty :: D
-%options ghci -pgmL lhs2TeX -optL--pre
-\perform{eval (read "let z = Z() in z z") empty :: D (ByName T)}
+$\perform{eval (read "let z = Z() in z z") empty :: D (ByName T)}$
 
 \begin{figure}
 \begin{spec}
@@ -401,6 +412,7 @@ instance Monad τ => HasAlloc (ByName τ) (Value (ByName τ)) where
 \begin{spec}
 type Addr = Int; type Heap τ = Addr :-> D τ; nextFree :: Heap τ -> Addr
 data ByNeed τ v = ByNeed (StateT (Heap (ByNeed τ)) τ v)
+runByNeed :: ByNeed τ a -> τ (a, Heap (ByNeed τ))
 instance Monad τ => Monad (ByNeed τ) where ...
 
 instance IsTrace τ => IsTrace (ByNeed τ) where
@@ -428,6 +440,9 @@ nextFree h = case Map.lookupMax h of
 
 newtype ByNeed τ v = ByNeed (StateT (Heap (ByNeed τ)) τ v)
   deriving newtype (Functor,Applicative,Monad)
+
+runByNeed :: ByNeed τ a -> τ (a, Heap (ByNeed τ))
+runByNeed (ByNeed (StateT m)) = m empty
 
 instance IsTrace τ => IsTrace (ByNeed τ) where
   step e (ByNeed (StateT m)) = ByNeed $ StateT $ \μ -> step e (m μ)
@@ -507,7 +522,6 @@ but that seems like a lot complexity for such little benefit.}
 
 Example evaluating $\Let{i}{(\Lam{y}{\Lam{x}{x}})~i}{i~i}$:
 
-< ghci> eval (read "let i = (λy.λx.x) i in i i") empty :: D (ByNeed T)
-%options ghci -pgmL lhs2TeX -optL--pre
-\perform{eval (read "let i = (λy.λx.x) i in i i") empty :: D (ByNeed T)}
+< ghci> runByNeed $ eval (read "let i = (λy.λx.x) i in i i") empty :: T (Value (ByNeed T), Heap _)
+$\perform{runByNeed $ eval (read "let i = (λy.λx.x) i in i i") empty :: T (Value (ByNeed T), Heap _)}$
 
