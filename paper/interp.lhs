@@ -12,6 +12,7 @@ import Data.Set (Set)
 import qualified Data.Set as Set
 import Data.List (find, foldl')
 import Text.Show (showListWith)
+import Data.Functor.Identity
 import Control.Applicative
 import Control.Monad
 import Control.Monad.Fix
@@ -23,6 +24,8 @@ main = eval @_ @(Value (ByName T)) `seq` takeName `seq` runByNeed `seq` return (
 instance {-# OVERLAPPING #-} Show (Maybe (Value τ)) where
   show Nothing = "\\bot"
   show (Just a) = "\\mathtt{Just}(" ++ show a ++ ")"
+instance {-# OVERLAPPING #-} Show (Identity (Value (ByName Identity))) where
+  show (Identity a) = "\\langle " ++ show a ++ "\\rangle "
 instance Show Event where
   show (Lookup x) = "\\LookupT(" ++ x ++ ")"
   show App1 = "\\AppIT"
@@ -812,3 +815,36 @@ binding for $i$ might be needed at an unknown point in the future
 This renders Clairvoyant call-by-value inadequate for verifying safety
 properties.
 
+\begin{figure}
+\begin{spec}
+data Identity a = Identity a
+instance Monad Identity where ...
+instance IsTrace Identity where step _ = id
+\end{spec}
+\begin{comment}
+\begin{code}
+instance IsTrace Identity where step _ = id
+\end{code}
+\end{comment}
+\caption{Identity as a trace type}
+\label{fig:identity}
+\end{figure}
+
+\subsection{More Trace Types}
+
+Our simple trace type |T| has served us well so far, allowing us to study a
+variety of total denotational interpreters for all major evaluation strategies
+(\eg, |ByName|, |ByNeed|, |ByVInit|).
+It is of course possible in Haskell to abandon totality, discard all events and
+use plain |data Identity a = Identity a| as the trace type accompanied by the
+one-line definition |instance IsTrace Identity where step _ ia = ia|.
+The resulting interpreter diverges whenever the defined program diverges, as is
+typical for partial definitional interpreters:
+
+< ghci> eval (read "let i = λx.x in i i") emp :: D (ByName Identity)
+$\perform{eval (read "let i = λx.x in i i") emp :: D (ByName Identity)}$
+
+< ghci> eval (read "let x = x in x") emp :: D (ByName Identity)
+%$\perform{eval (read "let x = x in x") emp :: D (ByName Identity)}$
+\texttt{\textasciicircum{}CInterrupted}
+\\[\belowdisplayskip]
