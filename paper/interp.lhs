@@ -4,14 +4,17 @@
 {-# LANGUAGE FunctionalDependencies #-}
 {-# LANGUAGE DerivingStrategies #-}
 {-# LANGUAGE PartialTypeSignatures #-}
+{-# LANGUAGE LambdaCase #-}
+{-# LANGUAGE QuantifiedConstraints #-}
 import Data.Map (Map)
 import qualified Data.Map as Map
 import Data.Set (Set)
 import qualified Data.Set as Set
 import Data.List (find, foldl')
-import Data.Function (fix)
 import Text.Show (showListWith)
+import Control.Applicative
 import Control.Monad
+import Control.Monad.Fix
 import Control.Monad.Trans.State
 import Expr
 
@@ -28,6 +31,7 @@ instance Show Event where
   show Case2 = "\\CaseET"
   show Bind = "\\BindT"
   show Update = "\\UpdateT"
+  show Let1 = "\\LetIT"
 instance Show a => Show (T a) where
   show (Step e t) = show e ++ "\\rightarrow" ++ show t
   show (Ret a) = "\\langle "++show a++"\\rangle "
@@ -44,6 +48,16 @@ instance (Show (τ v)) => Show (ByName τ v) where
   show (ByName τ) = show τ
 instance Show (ByNeed τ a) where
   show _ = show "_"
+instance (Show (τ v)) => Show (ByValue τ v) where
+  show (ByValue τ) = show τ
+instance (Show (τ v)) => Show (ByVInit τ v) where
+  show (ByVInit _) = "_"
+instance (Show a, forall a. Show a => Show (τ a)) => Show (Fork (ParT τ) a) where
+  show Empty = "Empty"
+  show (Single a) = show a
+  show (Fork l r) = "Fork(" ++ show l ++ "," ++ show r ++ ")"
+instance (Show a, forall a. Show a => Show (m a)) => Show (ParT m a) where
+  show (ParT m) = show m
 instance {-# OVERLAPPING #-} Show (Addr :-> ByNeed τ a) where
   showsPrec _ = showListWith (\a -> shows a . showString "\\!\\! \\mapsto \\!\\! \\wild") . Map.keys
 
@@ -55,8 +69,8 @@ takeT n (Step e t) = Step e (takeT (n-1) t)
 takeName :: Int -> ByName T a -> T (Maybe a)
 takeName n (ByName τ) = takeT n τ
 
-takeNeed :: Int -> ByNeed T a -> T (Maybe a)
-takeNeed n = fmap (fmap fst) . takeT n . runByNeed
+takeValue :: Int -> ByValue T a -> T (Maybe a)
+takeValue n (ByValue τ) = takeT n τ
 \end{code}
 %endif
 
@@ -93,7 +107,7 @@ To a first approximation, we can think of it as a type |D|, defined as
 type D τ = τ (Value τ)
 data T a = Step Event (T a) | Ret a
 data Event  = Lookup Name | Update | App1 | App2
-            | Bind | Case1 | Case2
+            | Bind | Case1 | Case2 | Let1
 data Value τ = Stuck | Fun (D τ -> D τ) | Con Tag [D τ]
 \end{code}
 \end{comment}
@@ -162,7 +176,7 @@ of any syntax.
 \begin{figure}
 \begin{code}
 type (:->) = Map
-empty :: Ord k => k :-> v
+emp :: Ord k => k :-> v
 ext :: Ord k => (k :-> v) -> k -> v -> (k :-> v)
 exts :: Ord k => (k :-> v) -> [k] -> [v] -> (k :-> v)
 (!) :: Ord k => (k :-> v) -> k -> v
@@ -171,7 +185,7 @@ dom :: Ord k => (k :-> v) -> Set k
 \end{code}
 \begin{comment}
 \begin{code}
-empty = Map.empty
+emp = Map.empty
 ext ρ x d = Map.insert x d ρ
 exts ρ xs ds = foldl' (uncurry . ext) ρ (zip xs ds)
 (!) = (Map.!)
@@ -309,9 +323,10 @@ For example, we can evaluate the expression $\Let{i}{\Lam{x}{x}}{i~i}$ like
 this:%
 \footnote{where we use |read :: String -> Expr| as a parsing function}
 
-< ghci> eval (read "let i = λx.x in i i") empty :: D
-$\perform{eval (read "let i = λx.x in i i") empty :: D (ByName T)}$
-
+< ghci> eval (read "let i = λx.x in i i") emp :: D
+$\perform{eval (read "let i = λx.x in i i") emp :: D (ByName T)}$
+\\[\belowdisplayskip]
+\noindent
 Which is in direct correspondence to the call-by-name small-step trace
 \[\begin{array}{c}
   \arraycolsep2pt
@@ -369,20 +384,20 @@ We conclude this Subsection with a few examples, starting with two programs that
 diverge. The corecursive formulation allows us to observe finite prefixes of the
 trace:
 
-< ghci> takeT 3 $ eval (read "let x = x in x") empty :: T (Maybe Value)
-$\perform{takeName 3 $ eval (read "let x = x in x") empty :: T (Maybe (Value (ByName T)))}$
+< ghci> takeT 3 $ eval (read "let x = x in x") emp :: T (Maybe Value)
+$\perform{takeName 3 $ eval (read "let x = x in x") emp :: T (Maybe (Value (ByName T)))}$
 
-< ghci> takeT 3 $ eval (read "let w = λy. y y in w w") empty :: T (Maybe Value)
-$\perform{takeName 3 $ eval (read "let w = λy. y y in w w") empty :: T (Maybe (Value (ByName T)))}$
+< ghci> takeT 3 $ eval (read "let w = λy. y y in w w") emp :: T (Maybe Value)
+$\perform{takeName 3 $ eval (read "let w = λy. y y in w w") emp :: T (Maybe (Value (ByName T)))}$
 \\[\belowdisplayskip]
 \noindent
 And data types work as well, allowing for interesting ways to get stuck:
 
-< ghci> eval (read "let z = Z() in let o = S(z) in case o of { S(zz) -> zz }") empty :: D
-$\perform{eval (read "let z = Z() in let o = S(z) in case o of { S(zz) -> zz }") empty :: D (ByName T)}$
+< ghci> eval (read "let z = Z() in let o = S(z) in case o of { S(zz) -> zz }") emp :: D
+$\perform{eval (read "let z = Z() in let o = S(z) in case o of { S(zz) -> zz }") emp :: D (ByName T)}$
 
-< ghci> eval (read "let z = Z() in z z") empty :: D
-$\perform{eval (read "let z = Z() in z z") empty :: D (ByName T)}$
+< ghci> eval (read "let z = Z() in z z") emp :: D
+$\perform{eval (read "let z = Z() in z z") emp :: D (ByName T)}$
 
 \begin{figure}
 \begin{spec}
@@ -442,7 +457,7 @@ newtype ByNeed τ v = ByNeed (StateT (Heap (ByNeed τ)) τ v)
   deriving newtype (Functor,Applicative,Monad)
 
 runByNeed :: ByNeed τ a -> τ (a, Heap (ByNeed τ))
-runByNeed (ByNeed (StateT m)) = m empty
+runByNeed (ByNeed (StateT m)) = m emp
 
 instance IsTrace τ => IsTrace (ByNeed τ) where
   step e (ByNeed (StateT m)) = ByNeed $ StateT $ \μ -> step e (m μ)
@@ -522,6 +537,278 @@ but that seems like a lot complexity for such little benefit.}
 
 Example evaluating $\Let{i}{(\Lam{y}{\Lam{x}{x}})~i}{i~i}$:
 
-< ghci> runByNeed $ eval (read "let i = (λy.λx.x) i in i i") empty :: T (Value (ByNeed T), Heap _)
-$\perform{runByNeed $ eval (read "let i = (λy.λx.x) i in i i") empty :: T (Value (ByNeed T), Heap _)}$
+< ghci> runByNeed $ eval (read "let i = (λy.λx.x) i in i i") emp :: T (Value (ByNeed T), Heap _)
+$\perform{runByNeed $ eval (read "let i = (λy.λx.x) i in i i") emp :: T (Value (ByNeed T), Heap _)}$
+\\[\belowdisplayskip]
+\noindent
+We can observe memoisation at play:
+Between the first bracket of $\LookupT$ and $\UpdateT$ events, the heap entry
+for $i$ goes through a beta reduction before producing a value.
+This work is cached, so that the second $\LookupT$ bracket does not do any beta
+reduction.
+
+Finally note that it would be very simple to suppress $\UpdateT$ events for
+already evaluated heap bindings by tweaking |upd| to omit the |memo| wrapper,
+\eg,
+
+< upd v μ = return (v, ext μ a (return v))
+
+\noindent
+We decided against that because it obscures the simple correspondence to the LK
+transition system that we prove in \Cref{sec:adequacy}.
+
+\begin{figure}
+\begin{spec}
+instance MonadFix T where
+  mfix f = τ where  (τ,v) = go (f v)
+                    go (Step e τ) | (τ', v) <- go τ  = (Step e τ', v)
+                    go (Ret v)                       = (Ret v, v)
+
+data Event = ... | Let1
+data ByValue τ v = ByValue { unByValue :: τ v }
+
+instance (IsTrace τ, MonadFix τ) => HasAlloc (ByValue τ) (Value (ByValue τ)) where
+  alloc f = fmap return $ step Let1 $ ByValue $ mfix (unByValue . f . return)
+\end{spec}
+\begin{comment}
+\begin{code}
+instance MonadFix T where
+  mfix f = τ where  (τ,v) = go (f v)
+                    go (Step e τ) | (τ', v) <- go τ  = (Step e τ', v)
+                    go (Ret v)                       = (Ret v, v)
+
+newtype ByValue τ v = ByValue { unByValue :: τ v }
+  deriving (Functor,Applicative,Monad)
+instance IsTrace τ => IsTrace (ByValue τ) where
+  step e (ByValue τ) = ByValue (step e τ)
+
+instance (IsTrace τ, MonadFix τ) => HasAlloc (ByValue τ) (Value (ByValue τ)) where
+  alloc f = fmap return $ step Let1 $ ByValue $ mfix (unByValue . f . return)
+\end{code}
+\end{comment}
+\caption{Call-by-value}
+\label{fig:by-value}
+\end{figure}
+
+\begin{figure}
+\begin{spec}
+data ByVInit τ v = ByVInit (StateT (Heap (ByVInit τ)) τ v)
+runByVInit :: ByVInit τ a -> τ a; fetch :: Monad τ => Addr -> D (ByVInit τ)
+memo :: Monad τ => Addr -> D (ByVInit τ) -> D (ByVInit τ)
+instance IsTrace τ => HasAlloc (ByVInit τ) (Value (ByVInit τ)) where
+  alloc f = do
+    a <- nextFree <$> ByVInit get
+    ByVInit $ modify (\μ -> ext μ a retStuck)
+    fmap return $ step Let1 $ memo a $ f (fetch a)
+\end{spec}
+\begin{comment}
+\begin{code}
+newtype ByVInit τ v = ByVInit (StateT (Heap (ByVInit τ)) τ v)
+  deriving (Functor,Applicative,Monad)
+
+runByVInit :: IsTrace τ => ByVInit τ a -> τ a
+runByVInit (ByVInit m) = evalStateT m emp
+
+instance IsTrace τ => IsTrace (ByVInit τ) where
+  step e (ByVInit (StateT m)) = ByVInit $ StateT $ \μ -> step e (m μ)
+
+fetch' :: Monad τ => Addr -> D (ByVInit τ)
+fetch' a = ByVInit get >>= \μ -> μ ! a
+
+memo' :: Monad τ => Addr -> D (ByVInit τ) -> D (ByVInit τ)
+memo' a d = d >>= ByVInit . StateT . upd
+  where upd v μ = return (v, ext μ a (return v))
+
+instance IsTrace τ => HasAlloc (ByVInit τ) (Value (ByVInit τ)) where
+  alloc f = do
+    a <- nextFree <$> ByVInit get
+    ByVInit $ modify (\μ -> ext μ a retStuck)
+    fmap return $ step Let1 $ memo' a $ f (fetch' a)
+\end{code}
+\end{comment}
+\caption{Call-by-value with lazy initialisation}
+\label{fig:by-value-init}
+\end{figure}
+
+\subsubsection{Call-by-value}
+
+By defining a |MonadFix| instance for |T| and defining |alloc| in terms
+of this instance, we can give a by-value semantics to |Expr|, as shown in
+\Cref{fig:by-value}.
+Let us unpack the definition of |alloc|.
+The first action is that it yields a brand new |Let1| event, indicating in the
+trace that focus descends into the right-hand side of a |Let|.%
+\footnote{If call-by-value was our main focus, it would be prudent to rename
+$\BindT$ to $\LetET$ to indicate the bracket relation.}
+The definition of |mfix| on |T| then takes over;
+producing a trace |τ| which ends in a |Ret v| after finitely many steps, the
+value |v| of which is then passed to the argument |f| of |alloc|, wrapped in a
+|return|.
+The effect of this procedure is that the trace |τ| is yielded \emph{while
+executing |mfix|}, and the value |v| is then |return|ed as the result of
+|alloc|.
+
+Let us trace $\Let{i}{(\Lam{y}{\Lam{x}{x}})~i}{i~i}$ for call-by-value:
+
+< ghci> eval (read "let i = (λy.λx.x) i in i i") emp :: D (ByValue T)
+$\perform{eval (read "let i = (λy.λx.x) i in i i") emp :: D (ByValue T)}$
+\\[\belowdisplayskip]
+\noindent
+The beta reduction now happens once within the $\LetIT$/$\BindT$ bracket; the
+two $\LookupT$ events immediately halt with a value.
+
+\subsubsection{Lazy Initialisation and Black-holing}
+
+Alas, this model of call-by-value does not yield a total interpreter!
+Consider the case when the right-hand side accesses its value before producing
+one, \eg,
+
+< ghci> takeT 5 $ eval (read "let x = x in x x") emp :: ByValue T (Maybe (Value (ByValue T)))
+$\LetIT\rightarrow\LookupT(x)\rightarrow\BindT\rightarrow\AppIT\rightarrow\LookupT(x)\rightarrow\texttt{\textasciicircum{}CInterrupted}$
+\\[\belowdisplayskip]
+\noindent
+This would loop forever unproductively, rendering the interpreter unfit as a
+denotational semantics.
+Typical strict languages work around this issue in either of two ways:
+They enforce termination of the RHS syntactically (OCaml, ML), or they use
+\emph{lazy initialisation} techniques~\citep{Nakata:10,Nakata:06} (Scheme,
+recursive modules in OCaml).
+We could recover a total interpreter using the semantics in \citet{Nakano:10},
+by starting from |ByNeed| and initialising the heap with a \emph{black
+hole}~\citep{stg} |retStuck| in |alloc| as in \Cref{fig:by-value-init}.
+
+< ghci> runByVInit $ eval (read "let x = x in x x") emp :: T (Value (ByVInit T))
+$\perform{runByVInit $ eval (read "let x = x in x x") emp :: T (Value (ByVInit T))}$
+
+
+\begin{figure}
+\begin{spec}
+data Fork f a = Empty | Single a | Fork (f a) (f a)
+data ParT m a = ParT (m (Fork (ParT m) a))
+instance Monad τ => Alternative (ParT τ) where
+  empty = ParT (pure Empty)
+  l <|> r = ParT (pure (Fork l r))
+
+newtype Clairvoyant τ a = Clairvoyant (ParT τ a)
+runClair :: D (Clairvoyant T) -> T (Value (Clairvoyant T))
+
+instance (MonadFix τ, IsTrace τ) => HasAlloc (Clairvoyant τ) (Value (Clairvoyant τ)) where
+  alloc f = Clairvoyant (skip <|> let') where  skip = return (Clairvoyant empty)
+                                               let' = fmap return $ step Let1 $ ... ^^ mfix ... f ...
+\end{spec}
+\begin{comment}
+\begin{code}
+data Fork f a = Empty | Single !a | Fork (f a) (f a)
+  deriving Functor
+
+newtype ParT τ a = ParT { unParT :: τ (Fork (ParT τ) a) }
+  deriving Functor
+
+instance Monad τ => Applicative (ParT τ) where
+  pure a = ParT (pure (Single a))
+  (<*>) = ap
+instance Monad τ => Monad (ParT τ) where
+  ParT mas >>= k = ParT $ mas >>= \case
+    Empty -> pure Empty
+    Single a -> unParT (k a)
+    Fork l r -> pure (Fork (l >>= k) (r >>= k))
+instance Monad τ => Alternative (ParT τ) where
+  empty = ParT (pure Empty)
+  l <|> r = ParT (pure (Fork l r))
+
+newtype Clairvoyant τ a = Clairvoyant { unClair :: ParT τ a }
+  deriving newtype (Functor,Applicative,Monad)
+
+instance IsTrace τ => IsTrace (Clairvoyant τ) where
+  step e (Clairvoyant (ParT mforks)) = Clairvoyant $ ParT $ step e mforks
+
+leftT :: Monad τ => ParT τ a -> ParT τ a
+leftT (ParT τ) = ParT $ τ >>= \case
+  Fork l _ -> unParT l
+
+rightT :: Monad τ => ParT τ a -> ParT τ a
+rightT (ParT τ) = ParT $ τ >>= \case
+  Fork _ r -> unParT r
+
+parLöb :: MonadFix τ => (Fork (ParT τ) a -> ParT τ a) -> ParT τ a
+parLöb f = ParT $ mfix (unParT . f) >>= \case
+    Empty -> pure Empty
+    Single a -> pure (Single a)
+    Fork l r -> pure (Fork (parLöb (leftT . f)) (parLöb (rightT . f)))
+
+instance (MonadFix τ, IsTrace τ) => HasAlloc (Clairvoyant τ) (Value (Clairvoyant τ)) where
+  alloc f = Clairvoyant (skip <|> let')
+    where
+      skip = return (Clairvoyant empty)
+      let' = do
+        v <- parLöb $ unClair . step Let1 . f . Clairvoyant . ParT . pure
+        return (return v)
+
+-- This is VERY weird
+class Monad m => MonadRecord m where
+  recordIfJust :: m (Maybe a) -> Maybe (m a)
+
+instance MonadRecord T where
+  recordIfJust (Ret Nothing) = Nothing
+  recordIfJust (Ret (Just a)) = Just (Ret a)
+  recordIfJust (Step e t) = Step e <$> (recordIfJust t)
+
+headParT :: MonadRecord m => ParT m a -> m (Maybe a)
+headParT m = go m
+  where
+    go :: MonadRecord m => ParT m a -> m (Maybe a)
+    go (ParT m) = m >>= \case
+      Empty    -> pure Nothing
+      Single a -> pure (Just a)
+      Fork l r -> case recordIfJust (go l) of
+        Nothing -> go r
+        Just m  -> Just <$> m
+
+runClair :: MonadRecord τ => D (Clairvoyant τ) -> τ (Value (Clairvoyant τ))
+runClair (Clairvoyant m) = headParT m >>= \case
+  Nothing -> error "There should have been at least one Clairvoyant trace"
+  Just t  -> pure t
+
+\end{code}
+\end{comment}
+\caption{Clairvoyant Call-by-value}
+\label{fig:clairvoyant-by-value}
+\end{figure}
+
+\subsubsection{Clairvoyant Call-by-value}
+
+Clairvoyant call-by-value~\citep{HackettHutton:19} is an approach to
+call-by-need semantics that exploits non-determinism and a cost model to absolve
+of the heap.
+We can instantiate our interpreter to generate the shortest clairvoyant
+call-by-value trace as well, as sketched out in \Cref{fig:clairvoyant-by-value}.
+Doing so yields an evaluation strategy that either skips or speculates let
+bindings, depending on whether or not the binding is needed, such as $f$ in the
+following examples:
+
+< ghci> runClair $ eval (read "let f = λx.x in let g = λy.f in g") emp :: T (Value (Clairvoyant T))
+$\perform{runClair $ eval (read "let f = λx.x in let g = λy.f in g") emp :: T (Value (Clairvoyant T))}$
+
+< ghci> runClair $ eval (read "let f = λx.x in let g = λy.f in g g") emp :: T (Value (Clairvoyant T))
+$\perform{runClair $ eval (read "let f = λx.x in let g = λy.f in g g") emp :: T (Value (Clairvoyant T))}$
+\\[\belowdisplayskip]
+\noindent
+The first example discards $f$, but the second needs it, so the trace starts
+with an additional $\LetIT$ event.
+Similar to |ByValue|, the interpreter is not total so it is unfit as a
+denotational semantics.
+Furthermore, the decision whether or not a $\LetIT$ is needed can be delayed for
+an infinite amount of time, adding to the peculiarity of this instantiation,
+\eg,
+
+< ghci> runClair $ eval (read "let i = λx.x in let w = λy. y y in w w") emp :: T (Value (Clairvoyant T))
+%$\perform{runClair $ eval (read "let i = λx.x in let w = λy. y y in w w") emp :: T (Value (Clairvoyant T))}$
+\texttt{\textasciicircum{}CInterrupted}
+\\[\belowdisplayskip]
+\noindent
+The program diverges without producing even a prefix of a trace because the
+binding for $i$ might be needed at an unknown point in the future
+(a \emph{liveness property} and hence impossible to verify at runtime).
+This renders Clairvoyant call-by-value inadequate for verifying safety
+properties.
 

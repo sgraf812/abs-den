@@ -769,3 +769,48 @@
   numpages = {26},
   keywords = {Abstract Interpretation, Soundness}
 }
+
+@inproceedings{Nakata:10,
+  author       = {Keiko Nakata},
+  editor       = {Luigi Santocanale},
+  title        = {Denotational Semantics for Lazy Initialization of letrec},
+  booktitle    = {7th Workshop on Fixed Points in Computer Science, {FICS} 2010, Brno,
+                  Czech Republic, August 21-22, 2010},
+  pages        = {61--67},
+  publisher    = {Laboratoire d'Informatique Fondamentale de Marseille},
+  year         = {2010},
+  url          = {https://hal.archives-ouvertes.fr/hal-00512377/document\#page=62},
+  timestamp    = {Tue, 21 Jul 2020 00:40:32 +0200},
+  biburl       = {https://dblp.org/rec/conf/fics/Nakata10.bib},
+  bibsource    = {dblp computer science bibliography, https://dblp.org}
+}
+
+@article{Nakata:06,
+  author = {Nakata, Keiko and Garrigue, Jacques},
+  title = {Recursive Modules for Programming},
+  year = {2006},
+  issue_date = {September 2006},
+  publisher = {Association for Computing Machinery},
+  address = {New York, NY, USA},
+  volume = {41},
+  number = {9},
+  issn = {0362-1340},
+  url = {https://doi.org/10.1145/1160074.1159813},
+  doi = {10.1145/1160074.1159813},
+  abstract = {TheML module system is useful for building large-scale programs. The programmer can factor programs into nested and parameterized modules, and can control abstraction with signatures. Yet ML prohibits recursion between modules. As a result of this constraint, the programmer may have to consolidate conceptually separate components into a single module, intruding on modular programming. Introducing recursive modules is a natural way out of this predicament. Existing proposals, however, vary in expressiveness and verbosity. In this paper, we propose a type system for recursive modules, which can infer their signatures. Opaque signatures can also be given explicitly, to provide type abstraction either inside or outside the recursion. The type system is decidable, and is sound for a call-by-value semantics. We also present a solution to the expression problem, in support of our design choices.},
+  journal = {SIGPLAN Not.},
+  month = {sep},
+  pages = {74–86},
+  numpages = {13},
+  keywords = {the expression problem, type systems, recursive modules, applicative functors, type inference}
+}
+
+@article{stg,
+  abstract = {The Spineless Tagless G-machine is an abstract machine designed to support non-strict higher-order functional languages. This presentation of the machine falls into three parts. Firstly, we give a general discussion of the design issues involved in implementing non-strict functional languages. Next, we present the STG language, an austere but recognizably-functional language, which as well as a denotational meaning has a well-defined operational semantics. The STG language is the abstract machine code for the Spineless Tagless G-machine. Lastly, we discuss the mapping of the STG language onto stock hardware. The success of an abstract machine model depends largely on how efficient this mapping can be made, though this topic is often relegated to a short section. Instead, we give a detailed discussion of the design issues and the choices we have made. Our principal target is the C language, treating the C compiler as a portable assembler.},
+  author = {Simon L. Peyton Jones},
+  doi = {10.1017/S0956796800000319},
+  issn = {14697653},
+  journal = {Journal of Functional Programming},
+  title = {Implementing lazy functional languages on stock hardware: The Spineless Tagless G-machine},
+  year = {1992},
+}

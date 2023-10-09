@@ -19,18 +19,20 @@
 %subst dummy = "\wild"
 
 %format τ = "\varid{\ensuremath{\tau}}"
+%format τ' = "\varid{\ensuremath{\tau'}}"
 %format ρ = "\varid{\ensuremath{\rho}}"
 %format μ = "\varid{\ensuremath{\mu}}"
 %format :-> = "\rightharpoonup"
 %format ∈ = "\in"
-%format empty = "\varid{\ensuremath{\epsilon}}"
+%format emp = "\varid{\ensuremath{\epsilon}}"
 %format ! = "\mathop{!}"
 %format eval = "\mathcal{S}"
 %format eval(a)(b) = "\mathcal{S}\denot{" a "}_{" b "}"
 %format ext(rho)(x)(d) = rho "[" x "\mapsto" d "]"
 %format exts(rho)(xs)(ds) = rho "[\many{" xs "\mapsto" ds "}]"
 %format ghci = "\lambda\!\!"
-%format <$> = "\mathop{{\langle}{\$}{\rangle}}"
+%format <$> = "\mathbin{<\mspace{-6mu}\$\mspace{-6mu}>}"
+%format <|> = "\mathbin{<\mspace{-6mu}|\mspace{-6mu}>}"
 
 %format d1
 %format d2
@@ -41,6 +43,7 @@
 %format App2
 %format Case1
 %format Case2
+%format Let1
 %%format xs = "\overline{\varid{x}}"
 %%format ds = "\overline{\varid{d}}"
 %%format alts = "\overline{\varid{alt}}"
@@ -57,7 +60,6 @@
 %%format <$ = "\mathop{\raisebox{0.025em}{$<$}\hspace{-0.16em}{\$}}"
 %%format <$$ = "\mathop{\raisebox{0.025em}{$<$}\hspace{-0.16em}{\$}\hspace{-0.18em}{\$}}"
 %%format <*> = "\mathop{{\langle}{*}{\rangle}}"
-%%format <|> = "\mathop{{\langle}{|}{\rangle}}"
 %%format >=> = "\mathrel{{>}\hspace{-0.32em}{=}\hspace{-0.32em}{>}}"
 %%format >>  = "\mathrel{{>}\hspace{-0.4em}{>}}"
 %%format >>> = "\mathrel{{>}\hspace{-0.4em}{>}\hspace{-0.4em}{>}}"
