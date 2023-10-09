@@ -13,6 +13,8 @@
       let
         pkgs = nixpkgs.legacyPackages.${system};
 
+        texlive = pkgs.texlive.combined.scheme-full;
+
         lhs2tex = pkgs.lhs2tex.overrideAttrs (_: { src = lhs2tex-src + "/lhs2tex-1.24.tar.gz"; });
       in {
         packages.abs-den = pkgs.stdenvNoCC.mkDerivation {
@@ -21,7 +23,7 @@
             ghc
             gnumake
             lhs2tex
-            pkgs.texlive.combined.scheme-minimal
+            texlive
           ];
           builder = "${pkgs.bash}/bin/bash";
           args = [ "-c" "source $stdenv/setup && ${pkgs.gnumake}/bin/make abs-den.pdf && cp abs-den.pdf $out" ];
@@ -35,7 +37,7 @@
           buildInputs = with pkgs; [
             ghc
             lhs2tex
-            pkgs.texlive.combined.scheme-minimal
+            texlive
           ];
         };
       });
