@@ -19,7 +19,13 @@ import Control.Monad.Fix
 import Control.Monad.Trans.State
 import Expr
 
-main = eval @_ @(Value (ByName T)) `seq` takeName `seq` runByNeed `seq` return ()
+main =
+  eval @_ @(Value (ByName T)) `seq`
+  takeName `seq`
+  runByNeed `seq`
+  runByVInit @T `seq`
+  runClair @T `seq`
+  return ()
 
 instance {-# OVERLAPPING #-} Show (Maybe (Value τ)) where
   show Nothing = "\\bot"
@@ -71,9 +77,6 @@ takeT n (Step e t) = Step e (takeT (n-1) t)
 
 takeName :: Int -> ByName T a -> T (Maybe a)
 takeName n (ByName τ) = takeT n τ
-
-takeValue :: Int -> ByValue T a -> T (Maybe a)
-takeValue n (ByValue τ) = takeT n τ
 \end{code}
 %endif
 
@@ -728,16 +731,18 @@ instance IsTrace τ => IsTrace (Clairvoyant τ) where
 leftT :: Monad τ => ParT τ a -> ParT τ a
 leftT (ParT τ) = ParT $ τ >>= \case
   Fork l _ -> unParT l
+  _ -> undefined
 
 rightT :: Monad τ => ParT τ a -> ParT τ a
 rightT (ParT τ) = ParT $ τ >>= \case
   Fork _ r -> unParT r
+  _ -> undefined
 
 parLöb :: MonadFix τ => (Fork (ParT τ) a -> ParT τ a) -> ParT τ a
 parLöb f = ParT $ mfix (unParT . f) >>= \case
     Empty -> pure Empty
     Single a -> pure (Single a)
-    Fork l r -> pure (Fork (parLöb (leftT . f)) (parLöb (rightT . f)))
+    Fork _ _ -> pure (Fork (parLöb (leftT . f)) (parLöb (rightT . f)))
 
 instance (MonadFix τ, IsTrace τ) => HasAlloc (Clairvoyant τ) (Value (Clairvoyant τ)) where
   alloc f = Clairvoyant (skip <|> let')
@@ -771,7 +776,6 @@ runClair :: MonadRecord τ => D (Clairvoyant τ) -> τ (Value (Clairvoyant τ))
 runClair (Clairvoyant m) = headParT m >>= \case
   Nothing -> error "There should have been at least one Clairvoyant trace"
   Just t  -> pure t
-
 \end{code}
 \end{comment}
 \caption{Clairvoyant Call-by-value}
