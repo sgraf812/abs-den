@@ -786,8 +786,7 @@ of the heap.
 We can instantiate our interpreter to generate the shortest clairvoyant
 call-by-value trace as well, as sketched out in \Cref{fig:clairvoyant-by-value}.
 Doing so yields an evaluation strategy that either skips or speculates let
-bindings, depending on whether or not the binding is needed, such as $f$ in the
-following examples:
+bindings, depending on whether or not the binding is needed:
 
 < ghci> runClair $ eval (read "let f = λx.x in let g = λy.f in g") emp :: T (Value (Clairvoyant T))
 $\perform{runClair $ eval (read "let f = λx.x in let g = λy.f in g") emp :: T (Value (Clairvoyant T))}$
@@ -801,8 +800,7 @@ with an additional $\LetIT$ event.
 Similar to |ByValue|, the interpreter is not total so it is unfit as a
 denotational semantics.
 Furthermore, the decision whether or not a $\LetIT$ is needed can be delayed for
-an infinite amount of time, adding to the peculiarity of this instantiation,
-\eg,
+an infinite amount of time, as exemplified by
 
 < ghci> runClair $ eval (read "let i = λx.x in let w = λy. y y in w w") emp :: T (Value (Clairvoyant T))
 %$\perform{runClair $ eval (read "let i = λx.x in let w = λy. y y in w w") emp :: T (Value (Clairvoyant T))}$
@@ -848,3 +846,5 @@ $\perform{eval (read "let i = λx.x in i i") emp :: D (ByName Identity)}$
 %$\perform{eval (read "let x = x in x") emp :: D (ByName Identity)}$
 \texttt{\textasciicircum{}CInterrupted}
 \\[\belowdisplayskip]
+\noindent
+We will consider more abstract trace instantiations in \Cref{sec:abstractions}.
