@@ -167,17 +167,16 @@ more elaborate construction such as interaction trees~\citep{interaction-trees}.
 The coinductive nature of |T|'s definition in Haskell is crucial to our
 approach because it allows us to express diverging traces as an infinite,
 productive nesting of |Step|s; in a strict language, we would have introduced
-an explicit thunk in the definition of |Step|, \eg, @Step of event * 'a t Lazy.t@.
+an explicit thunk in the definition of |Step|, \eg, @Step of event * (unit -> 'a t)@.
 The |Monad| instance of |T| implements the bind operator |(>>=)| by forwarding
 |Step|s, thus guarding the recursion~\citep{Capretta:05}.
 
 A semantic element |D| eventually terminates with a |Value| that is either
-|Stuck|, a |Fun|ction waiting to be applied to an argument |D| to yield
-one of the same, or a |Con|structor application giving the denotations of its
-fields.
+|Stuck|, a |Fun|ction waiting to be applied to an argument |D| to yield another
+|D|, or a |Con|structor application giving the denotations of its fields.
 |Value| is a standard denotational encoding of its syntactic counterpart, devoid
 of any syntax.
-(We repress worries about well-definedness and totality to \Cref{sec:adequacy}.)
+(We postpone worries about well-definedness and totality to \Cref{sec:adequacy}.)
 
 \begin{figure}
 \begin{code}
@@ -303,12 +302,12 @@ instance IsTrace τ => IsValue τ (Value τ) where
 
 We will now use |D| to give meaning to an expression |e| via an interpreter
 function |eval :: Expr -> (Name :-> D) -> D|, where the variable environment
-|Name :-> D| is simply a finite mapping from free variables of |e| to their
-meaning in |D|.
+|Name :-> D| is a finite mapping from free variables of |e| to their meaning in
+|D|.
 We summarise the API of environments and sets in \Cref{fig:map}.
 
 We give a definition for |eval| in \Cref{fig:eval}, although in the spirit of
-abstract definitional interpreters such as in \citet{Keidel:18} its type is
+abstract definitional interpreters such as in \citet{Keidel:18}, its type is
 quite a bit more general than its instantiation at |D|.
 
 In particular, the interpreter maps expressions not into a concrete,
@@ -327,7 +326,7 @@ Each of these offer knobs that we will tweak individually in later Sections.
 \Cref{fig:trace-instances}, so |D| can stand in as a |τ v| for |eval|.
 For example, we can evaluate the expression $\Let{i}{\Lam{x}{x}}{i~i}$ like
 this:%
-\footnote{where we use |read :: String -> Expr| as a parsing function}
+\footnote{We use |read :: String -> Expr| as a parsing function.}
 
 < ghci> eval (read "let i = λx.x in i i") emp :: D
 $\perform{eval (read "let i = λx.x in i i") emp :: D (ByName T)}$
@@ -360,7 +359,9 @@ The omitted definition for |select| finds the |alt| in |alts| that matches the
 |Tag| of the |Con| value |v| and applies said |alt| to the field denotations of
 |v|; failure to perform any of these steps results in |retStuck|.%
 \footnote{We extract from this document a runnable Haskell file which we add as
-a Supplement, containing the complete definitions.}
+a Supplement, containing the complete definitions.
+Furthermore, the (non-diverging) interpreter outputs are directly generated from
+this extract.}
 
 The third type class is |HasAlloc|, a most significant knob to our
 interpreter because it fixes a particular evaluation strategy.
@@ -397,13 +398,14 @@ $\perform{takeName 3 $ eval (read "let x = x in x") emp :: T (Maybe (Value (ByNa
 $\perform{takeName 3 $ eval (read "let w = λy. y y in w w") emp :: T (Maybe (Value (ByName T)))}$
 \\[\belowdisplayskip]
 \noindent
-And data types work as well, allowing for interesting ways to get stuck:
+And data types work as well, allowing for interesting ways (type errors) to get
+stuck:
 
-< ghci> eval (read "let z = Z() in let o = S(z) in case o of { S(zz) -> zz }") emp :: D
-$\perform{eval (read "let z = Z() in let o = S(z) in case o of { S(zz) -> zz }") emp :: D (ByName T)}$
+< ghci> eval (read "let zero = Z() in let one = S(zero) in case one of { S(z) -> z }") emp :: D
+$\perform{eval (read "let zero = Z() in let one = S(zero) in case one of { S(zz) -> zz }") emp :: D (ByName T)}$
 
-< ghci> eval (read "let z = Z() in z z") emp :: D
-$\perform{eval (read "let z = Z() in z z") emp :: D (ByName T)}$
+< ghci> eval (read "let zero = Z() in zero zero") emp :: D
+$\perform{eval (read "let zero = Z() in zero zero") emp :: D (ByName T)}$
 
 \begin{figure}
 \begin{spec}
@@ -512,16 +514,14 @@ Our old |D| can be recovered as |D (ByName T)|.
 
 \subsubsection{Call-by-need}
 
-By introducing a heap and memoisation to |τ|, yielding
-a trace transformer |ByNeed| in \Cref{fig:by-need} that encodes a call-by-need
-evaluation strategy.
-What is interesting is that |ByNeed T| denotes a \emph{stateful function
-returning a trace}, thus it is the first time we compute with something
-different than a |T|.
+The trace transformer |ByNeed| in \Cref{fig:by-need} mixes in a call-by-need
+evaluation strategy by introducing a heap and memoisation to |τ|.
+Interestingly, |ByNeed T| denotes a \emph{stateful function returning a trace},
+thus it is the first time we compute with something different than a |T|.
 The |alloc| implementation for |ByNeed| traces will return a |D| that |fetch|es
-the bound action from the heap, under an address |a| that is not taken yet in
-the current heap |μ|.
-This newly heap-bound |D| in turn evaluates |f ...|, the result of which is then
+the bound action from a heap, under an address |a| that is not taken yet in the
+current heap |μ|.
+This newly heap-bound |D| in turn evaluates |f ...|, the result of which is
 |memo|ised in an |Update| step, so that the heap-bound |D| is replaced by
 one that immediately |return|s the value.
 We have proven this semantics adequate \wrt to the LK transition system in
@@ -529,17 +529,18 @@ We have proven this semantics adequate \wrt to the LK transition system in
 
 \todo{Mention that we could also have tested this result, with a type like
 |type ValidateT τ = StateT σ τ|, where the |step| action crashes if the |Event|
-does not match the currently applicable LK transition.}
+does not match the currently applicable LK transition for $σ$.}
 
 It is worth stressing how simple it was to carry out this extension.
 Furthermore, nothing here is specific to |Expr| or |Value|!
-The only requirement on |T| is that its |Event| type has an |Update| action,
-which makes the implementation of |ByNeed| easily reusable.
+The only indirect requirement on |T| is that the |Event| type has an |Update|
+action, which makes the implementation of |ByNeed| easily reusable.
 \sg{That's not completely true; one would still need to duplicate the code to
 adjust it to the particular |Event| data type.
 That could be worked around with by parameterising |IsTrace τ ε| over the event
 type and then have type class constraint |HasUpdateEvent ε| in |HasAlloc|,
-but that seems like a lot complexity for such little benefit.}
+but that seems like a lot complexity for such little benefit.
+Perhaps retract on this claim before long.}
 
 Example evaluating $\Let{i}{(\Lam{y}{\Lam{x}{x}})~i}{i~i}$:
 
@@ -555,11 +556,7 @@ reduction.
 
 Finally note that it would be very simple to suppress $\UpdateT$ events for
 already evaluated heap bindings by tweaking |upd| to omit the |memo| wrapper,
-\eg,
-
-< upd v μ = return (v, ext μ a (return v))
-
-\noindent
+\eg, |upd v μ = return (v, ext μ a (return v))|.
 We decided against that because it obscures the simple correspondence to the LK
 transition system that we prove in \Cref{sec:adequacy}.
 
@@ -642,17 +639,20 @@ By defining a |MonadFix| instance for |T| and defining |alloc| in terms
 of this instance, we can give a by-value semantics to |Expr|, as shown in
 \Cref{fig:by-value}.
 Let us unpack the definition of |alloc|.
-The first action is that it yields a brand new |Let1| event, indicating in the
+As its first action, it yields a brand new |Let1| event, indicating in the
 trace that focus descends into the right-hand side of a |Let|.%
 \footnote{If call-by-value was our main focus, it would be prudent to rename
 $\BindT$ to $\LetET$ to indicate the bracket relation.}
 The definition of |mfix| on |T| then takes over;
-producing a trace |τ| which ends in a |Ret v| after finitely many steps, the
-value |v| of which is then passed to the argument |f| of |alloc|, wrapped in a
+producing a trace |τ| which ends in a |Ret v| after finitely many steps.
+The value |v| is then passed to the argument |f| of |alloc|, wrapped in a
 |return|.
-The effect of this procedure is that the trace |τ| is yielded \emph{while
-executing |mfix|}, and the value |v| is then |return|ed as the result of
-|alloc|.
+This procedure works as long as |f| does not scrutinise |v| before producing
+the |Ret| constructor.
+The effect is that the trace |τ| is yielded \emph{while executing |mfix|}, and
+the value |v| is then |return|ed as the result of |alloc|.
+Subsequent evaluations of |return v| will not have to yield the |Step|s of |τ|
+again.
 
 Let us trace $\Let{i}{(\Lam{y}{\Lam{x}{x}})~i}{i~i}$ for call-by-value:
 
@@ -661,27 +661,28 @@ $\perform{eval (read "let i = (λy.λx.x) i in i i") emp :: D (ByValue T)}$
 \\[\belowdisplayskip]
 \noindent
 The beta reduction now happens once within the $\LetIT$/$\BindT$ bracket; the
-two $\LookupT$ events immediately halt with a value.
+two subsequent $\LookupT$ events immediately halt with a value.
 
 \subsubsection{Lazy Initialisation and Black-holing}
 
 Alas, this model of call-by-value does not yield a total interpreter!
-Consider the case when the right-hand side accesses its value before producing
+Consider the case when the right-hand side accesses its value before yielding
 one, \eg,
 
 < ghci> takeT 5 $ eval (read "let x = x in x x") emp :: ByValue T (Maybe (Value (ByValue T)))
 $\LetIT\rightarrow\LookupT(x)\rightarrow\BindT\rightarrow\AppIT\rightarrow\LookupT(x)\rightarrow\texttt{\textasciicircum{}CInterrupted}$
 \\[\belowdisplayskip]
 \noindent
-This would loop forever unproductively, rendering the interpreter unfit as a
+This loops forever unproductively, rendering the interpreter unfit as a
 denotational semantics.
 Typical strict languages work around this issue in either of two ways:
 They enforce termination of the RHS syntactically (OCaml, ML), or they use
 \emph{lazy initialisation} techniques~\citep{Nakata:10,Nakata:06} (Scheme,
 recursive modules in OCaml).
-We could recover a total interpreter using the semantics in \citet{Nakano:10},
-by starting from |ByNeed| and initialising the heap with a \emph{black
-hole}~\citep{stg} |retStuck| in |alloc| as in \Cref{fig:by-value-init}.
+We could recover a total interpreter using the semantics in \citet{Nakata:10},
+reusing the implementation from |ByNeed| and initialising the heap
+with a \emph{black hole}~\citep{stg} |retStuck| in |alloc| as in
+\Cref{fig:by-value-init}.
 
 < ghci> runByVInit $ eval (read "let x = x in x x") emp :: T (Value (ByVInit T))
 $\perform{runByVInit $ eval (read "let x = x in x x") emp :: T (Value (ByVInit T))}$
@@ -802,12 +803,12 @@ $\perform{runClair $ eval (read "let f = λx.x in let g = λy.f in g g") emp :: 
 The first example discards $f$, but the second needs it, so the trace starts
 with an additional $\LetIT$ event.
 Similar to |ByValue|, the interpreter is not total so it is unfit as a
-denotational semantics.
+denotational semantics without a complicated domain theoretic judgment.
 Furthermore, the decision whether or not a $\LetIT$ is needed can be delayed for
 an infinite amount of time, as exemplified by
 
-< ghci> runClair $ eval (read "let i = λx.x in let w = λy. y y in w w") emp :: T (Value (Clairvoyant T))
-%$\perform{runClair $ eval (read "let i = λx.x in let w = λy. y y in w w") emp :: T (Value (Clairvoyant T))}$
+< ghci> runClair $ eval (read "let i = Z() in let w = λy.y y in w w") emp :: T (Value (Clairvoyant T))
+%$\perform{runClair $ eval (read "let i = Z() in let w = λy.y y in w w") emp :: T (Value (Clairvoyant T))}$
 \texttt{\textasciicircum{}CInterrupted}
 \\[\belowdisplayskip]
 \noindent
@@ -816,21 +817,6 @@ binding for $i$ might be needed at an unknown point in the future
 (a \emph{liveness property} and hence impossible to verify at runtime).
 This renders Clairvoyant call-by-value inadequate for verifying safety
 properties.
-
-\begin{figure}
-\begin{spec}
-data Identity a = Identity a
-instance Monad Identity where ...
-instance IsTrace Identity where step _ = id
-\end{spec}
-\begin{comment}
-\begin{code}
-instance IsTrace Identity where step _ = id
-\end{code}
-\end{comment}
-\caption{Identity as a trace type}
-\label{fig:identity}
-\end{figure}
 
 \subsection{More Trace Types}
 
@@ -842,6 +828,12 @@ use plain |data Identity a = Identity a| as the trace type accompanied by the
 one-line definition |instance IsTrace Identity where step _ ia = ia|.
 The resulting interpreter diverges whenever the defined program diverges, as is
 typical for partial definitional interpreters:
+
+\begin{comment}
+\begin{code}
+instance IsTrace Identity where step _ = id
+\end{code}
+\end{comment}
 
 < ghci> eval (read "let i = λx.x in i i") emp :: D (ByName Identity)
 $\perform{eval (read "let i = λx.x in i i") emp :: D (ByName Identity)}$
