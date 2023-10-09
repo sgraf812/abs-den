@@ -117,8 +117,8 @@
 \setlength{\pdfpageheight}{\paperheight}
 \setlength{\pdfpagewidth}{\paperwidth}
 
-\title{Compositional Trace Semantics for Lambda Calculus}
-%\subtitle{Or: Denotational semantics for Call-by-need Lambda Calculus}
+\title{Abstracting Denotational Interpreters}
+%\subtitle{Or: Denotational Interpreters}
 
 \author{Sebastian Graf}
 \affiliation{%
