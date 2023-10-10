@@ -17,10 +17,10 @@ supplemental.zip: appendix.pdf
 	zip -j supplemental.zip appendix.pdf ../agda/*.agda
 
 abs-den.tex: *.lhs
-	lhs2TeX --poly -o $@ abs-den.lhs
+	LANG=C.UTF-8 lhs2TeX --poly -o $@ abs-den.lhs
 
 abs-den.hs: *.lhs
-	lhs2TeX --newcode -o $@ abs-den.lhs
+	LANG=C.UTF-8 lhs2TeX --newcode -o $@ abs-den.lhs
 
 %.pdf: %.tex macros.tex references.bib
 	$(PDFLATEX) $*
@@ -37,7 +37,7 @@ quick-ext: abs-den-ext.tex macros.tex
 	$(PDFLATEX) abs-den-ext
 
 test: abs-den.hs
-	ghc -fno-code -W abs-den.hs
+	LANG=C.UTF-8 ghc -fno-code -W abs-den.hs
 
 watch:
 	ls *.lhs *.tex | entr -n make quick

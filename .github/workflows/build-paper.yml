@@ -11,13 +11,13 @@ jobs:
       - name: Build PDF
         run: |
           cd paper/
-          nix develop --command bash -c "lhs2TeX -v --poly abs-den.lhs -o /dev/null && make abs-den.pdf abs-den-ext.pdf"
+          nix build
       - name: Upload as release
         uses: xresloader/upload-to-github-release@v1
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
-          file: "paper/abs-den*.pdf"
+          file: "paper/result/abs-den*.pdf"
           branches: main
           tag_name: "Latest"
           overwrite: true

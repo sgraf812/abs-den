@@ -18,23 +18,6 @@
         "type": "github"
       }
     },
-    "lhs2tex-src": {
-      "flake": false,
-      "locked": {
-        "lastModified": 1696676114,
-        "narHash": "sha256-vPRAvgJYZcWikSFoTytt1ofIEEG8bfbKTAX5fCA8U90=",
-        "owner": "sgraf812",
-        "repo": "lhs2TeX",
-        "rev": "c02c67e747f57abcd89c387245c3ce9b6417e793",
-        "type": "github"
-      },
-      "original": {
-        "owner": "sgraf812",
-        "ref": "fix-with-srcdist",
-        "repo": "lhs2TeX",
-        "type": "github"
-      }
-    },
     "nixpkgs": {
       "locked": {
         "lastModified": 1696697597,
@@ -54,7 +37,6 @@
     "root": {
       "inputs": {
         "flake-utils": "flake-utils",
-        "lhs2tex-src": "lhs2tex-src",
         "nixpkgs": "nixpkgs"
       }
     },
