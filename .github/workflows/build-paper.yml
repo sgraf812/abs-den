@@ -11,7 +11,7 @@ jobs:
       - name: Build PDF
         run: |
           cd paper/
-          nix develop --command bash -c "make abs-den.pdf abs-den-ext.pdf"
+          nix develop --command bash -c "lhs2TeX -v --poly abs-den.lhs -o /dev/null && make abs-den.pdf abs-den-ext.pdf"
       - name: Upload as release
         uses: xresloader/upload-to-github-release@v1
         env:
