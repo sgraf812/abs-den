@@ -15,7 +15,7 @@
 
         texlive = pkgs.texlive.combined.scheme-full;
 
-        lhs2tex = pkgs.lhs2tex.overrideAttrs (_: { src = lhs2tex-src + "/lhs2tex-1.24.tar.gz"; });
+        lhs2tex = pkgs.haskellPackages.lhs2tex.overrideAttrs (_: { src = lhs2tex-src + "/lhs2tex-1.24.tar.gz"; });
       in {
         packages.abs-den = pkgs.stdenvNoCC.mkDerivation {
           name = "abs-den";
@@ -26,7 +26,7 @@
             texlive
           ];
           builder = "${pkgs.bash}/bin/bash";
-          args = [ "-c" "source $stdenv/setup && ${pkgs.gnumake}/bin/make abs-den.pdf && cp abs-den.pdf $out" ];
+          args = [ "-c" "source $stdenv/setup && cp -rL --no-preserve=all $src paper/ && cd paper/ && lhs2TeX -v --poly abs-den.lhs -o /dev/null && ghci -pgmL lhs2TeX -optL--pre -XPartialTypeSignatures -v0 -ignore-dot-ghci ./interp.lhs && lhs2TeX --pre -o interp.tex ./abs-den.lhs && echo here && ${pkgs.lhs2tex}/bin/lhs2TeX -v --poly -o abs-den.hs abs-den.lhs && make abs-den.pdf && cp abs-den.pdf $out" ];
           src = ./.;
           system = "x86_64-linux";
         };
