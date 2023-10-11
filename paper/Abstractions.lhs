@@ -31,6 +31,8 @@ import Interpreter
 \section{Abstractions}
 \label{sec:abstractions}
 
+\cite{*}
+
 We have seen that |eval| is well-suited to express concrete semantics
 coninductively.
 In this section, we will see how |eval| is also well-suited to

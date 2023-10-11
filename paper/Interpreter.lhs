@@ -103,7 +103,7 @@ denotational semantics.
 Then what is its \emph{semantic domain}?
 To a first approximation, we can think of it as a type |D|, defined as
 \begin{minipage}{0.65\textwidth}
-\begin{comment}
+%if style == newcode
 \begin{code}
 type D τ = τ (Value τ)
 data T a = Step Event (T a) | Ret a
@@ -111,7 +111,7 @@ data Event  = Lookup Name | Update | App1 | App2
             | Bind | Case1 | Case2 | Let1
 data Value τ = Stuck | Fun (D τ -> D τ) | Con Tag [D τ]
 \end{code}
-\end{comment}
+%endif
 \begin{spec}
 type D = T Value
 data T a = Step Event (T a) | Ret a
@@ -127,7 +127,7 @@ instance Monad T where
   Ret a >>= k = k a
   Step e τ >>= k = Step e (τ >>= k)
 \end{spec}
-\begin{comment}
+%if style == newcode
 \begin{code}
 instance Functor T where
   fmap f (Ret a) = Ret (f a)
@@ -139,7 +139,7 @@ instance Monad T where
   Ret a >>= k = k a
   Step e τ >>= k = Step e (τ >>= k)
 \end{code}
-\end{comment}
+%endif
 \end{minipage}
 \noindent
 Every such |D| corresponds to a program trace |T| that ends with a concrete
@@ -183,7 +183,7 @@ exts :: Ord k => (k :-> v) -> [k] -> [v] -> (k :-> v)
 dom :: Ord k => (k :-> v) -> Set k
 (∈) :: Name -> Set Name -> Bool
 \end{code}
-\begin{comment}
+%if style == newcode
 \begin{code}
 emp = Map.empty
 ext ρ x d = Map.insert x d ρ
@@ -192,7 +192,7 @@ exts ρ xs ds = foldl' (uncurry . ext) ρ (zip xs ds)
 dom = Map.keysSet
 (∈) = Set.member
 \end{code}
-\end{comment}
+%endif
 \caption{Environments}
 \label{fig:map}
 \end{figure}
@@ -410,7 +410,7 @@ instance IsTrace τ => IsTrace (ByName τ) where ...
 instance Monad τ => HasAlloc (ByName τ) (Value (ByName τ)) where
   alloc f = return (fix f)
 \end{spec}
-\begin{comment}
+%if style == newcode
 \begin{code}
 newtype ByName τ v = ByName { unByName :: (τ v) }
   deriving newtype (Functor,Applicative,Monad)
@@ -421,7 +421,7 @@ instance IsTrace τ => IsTrace (ByName τ) where
 instance Monad τ => HasAlloc (ByName τ) (Value (ByName τ)) where
   alloc f = return (fix f)
 \end{code}
-\end{comment}
+%endif
 \caption{Call-by-name}
 \label{fig:by-name}
 \end{figure}
@@ -448,7 +448,7 @@ instance IsTrace τ => HasAlloc (ByNeed τ) (Value (ByNeed τ)) where
     let a = nextFree μ
     return (fetch a, ext μ a (memo a (f (fetch a))))
 \end{spec}
-\begin{comment}
+%if style == newcode
 \begin{code}
 type Addr = Int; type Heap τ = Addr :-> D τ; nextFree :: Heap τ -> Addr
 
@@ -477,7 +477,7 @@ instance IsTrace τ => HasAlloc (ByNeed τ) (Value (ByNeed τ)) where
     let a = nextFree μ
     return (fetch a, ext μ a (memo a (f (fetch a))))
 \end{code}
-\end{comment}
+%endif
 \caption{Call-by-need}
 \label{fig:by-need}
 \end{figure}
@@ -568,7 +568,7 @@ data ByValue τ v = ByValue { unByValue :: τ v }
 instance (IsTrace τ, MonadFix τ) => HasAlloc (ByValue τ) (Value (ByValue τ)) where
   alloc f = fmap return $ step Let1 $ ByValue $ mfix (unByValue . f . return)
 \end{spec}
-\begin{comment}
+%if style == newcode
 \begin{code}
 instance MonadFix T where
   mfix f = τ where  (τ,v) = go (f v)
@@ -583,7 +583,7 @@ instance IsTrace τ => IsTrace (ByValue τ) where
 instance (IsTrace τ, MonadFix τ) => HasAlloc (ByValue τ) (Value (ByValue τ)) where
   alloc f = fmap return $ step Let1 $ ByValue $ mfix (unByValue . f . return)
 \end{code}
-\end{comment}
+%endif
 \caption{Call-by-value}
 \label{fig:by-value}
 \end{figure}
@@ -599,7 +599,7 @@ instance IsTrace τ => HasAlloc (ByVInit τ) (Value (ByVInit τ)) where
     ByVInit $ modify (\μ -> ext μ a retStuck)
     fmap return $ step Let1 $ memo a $ f (fetch a)
 \end{spec}
-\begin{comment}
+%if style == newcode
 \begin{code}
 newtype ByVInit τ v = ByVInit (StateT (Heap (ByVInit τ)) τ v)
   deriving (Functor,Applicative,Monad)
@@ -623,7 +623,7 @@ instance IsTrace τ => HasAlloc (ByVInit τ) (Value (ByVInit τ)) where
     ByVInit $ modify (\μ -> ext μ a retStuck)
     fmap return $ step Let1 $ memo' a $ f (fetch' a)
 \end{code}
-\end{comment}
+%endif
 \caption{Call-by-value with lazy initialisation}
 \label{fig:by-value-init}
 \end{figure}
@@ -698,7 +698,7 @@ instance (MonadFix τ, IsTrace τ) => HasAlloc (Clairvoyant τ) (Value (Clairvoy
   alloc f = Clairvoyant (skip <|> let') where  skip = return (Clairvoyant empty)
                                                let' = fmap return $ step Let1 $ ... ^^ mfix ... f ...
 \end{spec}
-\begin{comment}
+%if style == newcode
 \begin{code}
 data Fork f a = Empty | Single !a | Fork (f a) (f a)
   deriving Functor
@@ -773,7 +773,7 @@ runClair (Clairvoyant m) = headParT m >>= \case
   Nothing -> error "There should have been at least one Clairvoyant trace"
   Just t  -> pure t
 \end{code}
-\end{comment}
+%endif
 \caption{Clairvoyant Call-by-value}
 \label{fig:clairvoyant-by-value}
 \end{figure}
@@ -824,11 +824,11 @@ one-line definition |instance IsTrace Identity where step _ ia = ia|.
 The resulting interpreter diverges whenever the defined program diverges, as is
 typical for partial definitional interpreters:
 
-\begin{comment}
+%if style == newcode
 \begin{code}
 instance IsTrace Identity where step _ = id
 \end{code}
-\end{comment}
+%endif
 
 < ghci> eval (read "let i = λx.x in i i") emp :: D (ByName Identity)
 $\perform{eval (read "let i = λx.x in i i") emp :: D (ByName Identity)}$
