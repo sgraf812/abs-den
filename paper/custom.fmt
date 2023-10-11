@@ -21,15 +21,18 @@
 %format τ = "\varid{\ensuremath{\tau}}"
 %format τ' = "\varid{\ensuremath{\tau'}}"
 %format ρ = "\varid{\ensuremath{\rho}}"
+%format φ = "\varid{\ensuremath{\varphi}}"
+%format φ1 = "\varid{\ensuremath{\varphi_1}}"
+%format φ2 = "\varid{\ensuremath{\varphi_2}}"
 %format μ = "\varid{\ensuremath{\mu}}"
 %format :-> = "\rightharpoonup"
 %format ∈ = "\in"
 %format emp = "\varid{\ensuremath{\epsilon}}"
 %format ! = "\mathop{!}"
-%format eval = "\mathcal{S}"
 %format eval(a)(b) = "\mathcal{S}\denot{" a "}_{" b "}"
 %format ext(rho)(x)(d) = rho "[" x "\mapsto" d "]"
 %format exts(rho)(xs)(ds) = rho "[\many{" xs "\mapsto" ds "}]"
+%format `Map.map` = "\circ_{\rightharpoonup}"
 %format ghci = "\lambda\!\!"
 %format <$> = "\mathbin{<\mspace{-6mu}\$\mspace{-6mu}>}"
 %format <|> = "\mathbin{<\mspace{-6mu}|\mspace{-6mu}>}"
@@ -39,6 +42,8 @@
 %format e1
 %format e2
 %format er = "\varid{\ensuremath{e_r}}"
+%format us1
+%format us2
 %format App1
 %format App2
 %format Case1
@@ -47,6 +52,13 @@
 %%format xs = "\overline{\varid{x}}"
 %%format ds = "\overline{\varid{d}}"
 %%format alts = "\overline{\varid{alt}}"
+
+%format UD = "\conid{\ensuremath{\widehat{D}}}"
+%format UT = "\conid{\ensuremath{\widehat{T}}}"
+%format UValue = "\conid{\ensuremath{\widehat{Value}}}"
+%format U0 = "\conid{$U_0$}"
+%format U1 = "\conid{$U_1$}"
+%format Uω = "\conid{$U_\omega$}"
 
 %%format ~ = "\,\sim\,"
 %%format com = "\text{-}\text{-}"

@@ -14,10 +14,10 @@ appendix.pdf: abs-den-ext.pdf
 supplemental.zip: appendix.pdf
 	zip -j supplemental.zip appendix.pdf ../agda/*.agda
 
-abs-den.tex: *.lhs
+abs-den.tex: *.lhs *.fmt
 	LANG=C.UTF-8 lhs2TeX --poly -o $@ abs-den.lhs
 
-abs-den.hs: *.lhs
+abs-den.hs: *.lhs *.fmt
 	LANG=C.UTF-8 lhs2TeX --newcode -o $@ abs-den.lhs
 
 %.pdf: %.tex macros.tex references.bib

@@ -51,19 +51,21 @@ instance Show (Value τ) where
 instance (Show (τ v)) => Show (ByName τ v) where
   show (ByName τ) = show τ
 instance Show (ByNeed τ a) where
-  show _ = show "_"
+  show _ = show "\\wild"
 instance (Show (τ v)) => Show (ByValue τ v) where
   show (ByValue τ) = show τ
 instance (Show (τ v)) => Show (ByVInit τ v) where
-  show (ByVInit _) = "_"
+  show (ByVInit _) = "\\wild"
 instance (Show a, forall a. Show a => Show (τ a)) => Show (Fork (ParT τ) a) where
   show Empty = "Empty"
   show (Single a) = show a
   show (Fork l r) = "Fork(" ++ show l ++ "," ++ show r ++ ")"
 instance (Show a, forall a. Show a => Show (m a)) => Show (ParT m a) where
   show (ParT m) = show m
-instance {-# OVERLAPPING #-} Show (Addr :-> ByNeed τ a) where
-  showsPrec _ = showListWith (\a -> shows a . showString "\\!\\! \\mapsto \\!\\! \\wild") . Map.keys
+instance {-# OVERLAPPING #-} (Show v) => Show (Addr :-> v) where
+  showsPrec _ = showListWith (\(k,v) -> shows k . showString "\\!\\! \\mapsto \\!\\! " . shows v) . Map.toList
+instance {-# OVERLAPPING #-} (Show v) => Show (Name :-> v) where
+  showsPrec _ = showListWith (\(k,v) -> showString k . showString "\\! \\mapsto \\! " . shows v) . Map.toList
 
 takeT :: Int -> T a -> T (Maybe a)
 takeT 0 _ = return Nothing
