@@ -205,8 +205,8 @@
 
 %\input{intro.tex}
 %\input{problem.tex}
-%%include interp.lhs
-%include abstractions.lhs
+%include Interpreter.lhs
+%include Abstractions.lhs
 %\input{vanilla.tex}
 %\input{eventful.tex}
 %\input{essence.tex}

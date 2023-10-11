@@ -1,7 +1,27 @@
-%options ghci -pgmL lhs2TeX -optL--pre -XPartialTypeSignatures
-%include preamble.lhs
+%options ghci -pgmL lhs2TeX -optL--pre
 %if style == newcode
 \begin{code}
+{-# LANGUAGE FunctionalDependencies #-}
+{-# LANGUAGE DerivingStrategies #-}
+{-# LANGUAGE PartialTypeSignatures #-}
+{-# LANGUAGE LambdaCase #-}
+{-# LANGUAGE QuantifiedConstraints #-}
+
+module Interpreter where
+
+import Data.Map (Map)
+import qualified Data.Map as Map
+import Data.Set (Set)
+import qualified Data.Set as Set
+import Data.List (find, foldl')
+import Text.Show (showListWith)
+import Data.Functor.Identity
+import Control.Applicative
+import Control.Monad
+import Control.Monad.Fix
+import Control.Monad.Trans.State
+import Expr
+
 instance {-# OVERLAPPING #-} Show (Maybe (Value τ)) where
   show Nothing = "\\bot"
   show (Just a) = "\\mathtt{Just}(" ++ show a ++ ")"
