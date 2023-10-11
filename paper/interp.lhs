@@ -1,32 +1,7 @@
 %options ghci -pgmL lhs2TeX -optL--pre -XPartialTypeSignatures
+%include preamble.lhs
 %if style == newcode
 \begin{code}
-{-# LANGUAGE FunctionalDependencies #-}
-{-# LANGUAGE DerivingStrategies #-}
-{-# LANGUAGE PartialTypeSignatures #-}
-{-# LANGUAGE LambdaCase #-}
-{-# LANGUAGE QuantifiedConstraints #-}
-import Data.Map (Map)
-import qualified Data.Map as Map
-import Data.Set (Set)
-import qualified Data.Set as Set
-import Data.List (find, foldl')
-import Text.Show (showListWith)
-import Data.Functor.Identity
-import Control.Applicative
-import Control.Monad
-import Control.Monad.Fix
-import Control.Monad.Trans.State
-import Expr
-
-main =
-  eval @_ @(Value (ByName T)) `seq`
-  takeName `seq`
-  runByNeed `seq`
-  runByVInit @T `seq`
-  runClair @T `seq`
-  return ()
-
 instance {-# OVERLAPPING #-} Show (Maybe (Value τ)) where
   show Nothing = "\\bot"
   show (Just a) = "\\mathtt{Just}(" ++ show a ++ ")"

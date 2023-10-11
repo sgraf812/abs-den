@@ -205,11 +205,12 @@
 
 %\input{intro.tex}
 %\input{problem.tex}
-%include interp.lhs
+%%include interp.lhs
+%include abstractions.lhs
 %\input{vanilla.tex}
 %\input{eventful.tex}
 %\input{essence.tex}
-%\input{abstractions.tex}
+%\input{abstractions-old.tex}
 %\input{related-work.tex}
 
 \begin{acks}
