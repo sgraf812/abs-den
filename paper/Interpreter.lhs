@@ -90,7 +90,7 @@ as OCaml, ML or Scheme with explicit suspension @fun () -> _@.
 \begin{figure}
 \begin{spec}
 type Name = String
-type Tag = Int; conArity :: Tag -> Int
+data Tag = ...; conArity :: Tag -> Int
 data Expr  = Var Name | App Expr Name | Lam Name Expr | Let Name Expr Expr
            | ConApp Tag [Name] | Case Expr [Alt]
 type Alt = (Tag,[Name],Expr)

@@ -26,6 +26,7 @@
 %format φ2 = "\varid{\ensuremath{\varphi_2}}"
 %format μ = "\varid{\ensuremath{\mu}}"
 %format :-> = "\rightharpoonup"
+%format :->: = ":\rightarrow:"
 %format ∈ = "\in"
 %format emp = "\varid{\ensuremath{\epsilon}}"
 %format ! = "\mathop{!}"

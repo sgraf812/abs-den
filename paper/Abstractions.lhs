@@ -13,7 +13,12 @@ module Abstractions where
 
 import Prelude hiding ((+), (*))
 import qualified Data.Map as Map
+import Data.Set (Set)
+import qualified Data.Set as Set
 import Control.Monad
+import Control.Monad.Trans.State
+import Data.Foldable
+import qualified Data.List as List
 import Expr
 import Order
 import Interpreter
@@ -199,7 +204,6 @@ abstraction for simple examples:
 < ghci> eval (read "let i = λx.x in let j = λy.y in i j j") emp :: UD
 $\perform{eval (read "let i = λx.x in let j = λy.y in i j j") emp :: UD}$
 \\[\belowdisplayskip]
-
 \noindent
 However, there are many examples where the results are approximate:
 < ghci> eval (read "let i = λx.x in let j = λy.y in i j") emp :: D (ByName UT)
@@ -210,5 +214,207 @@ $\perform{eval (read "let i = λx.x in let j = λy.y in i j") emp  :: UD}$
 $\perform{eval (read "let z = Z() in case Z() of { Z() -> Z(); S(n) -> z }") emp  :: D (ByName UT)}$
 < ghci> eval (read "let z = Z() in case Z() of { Z() -> Z(); S(n) -> z }") emp :: UD
 $\perform{eval (read "let z = Z() in case Z() of { Z() -> Z(); S(n) -> z }") emp  :: UD}$
-\\[\belowdisplayskip]
-\noindent
+
+\begin{figure}
+\begin{code}
+data TyCon = {-" ... \iffalse "-} BoolTyCon | NatTyCon | OptionTyCon | PairTyCon {-" \fi "-}; data PolyType = PT [Name] Type
+data Type = Type :->: Type | TyConApp TyCon [Type] | TyVar Name | Wrong
+conTy :: Tag -> PolyType
+
+type Constraint = (Type, Type)
+type Subst = Name :-> Type; applySubst :: Subst -> Type -> Type
+addCt :: Constraint -> Subst -> Maybe Subst;
+
+data Cts a = Cts (StateT ([Name],Subst) Maybe a)
+
+emitCt :: Constraint -> Cts ()
+freshTyVar :: Cts Type
+instantiatePolyTy :: PolyType -> Cts Type
+generalise :: Cts Type -> Cts PolyType
+instance IsTrace Cts where step _ = id
+instance IsValue Cts PolyType where {-" ... \iffalse "-}
+  retStuck = return (PT [] Wrong)
+  retFun f = do
+    arg <- freshTyVar
+    res <- f (return (PT [] arg)) >>= instantiatePolyTy
+    return (PT [] (arg :->: res))
+  retCon k ds = do
+    con_app_ty <- instantiateCon k
+    arg_tys <- traverse (>>= instantiatePolyTy) ds
+    res_ty <- freshTyVar
+    emitCt (con_app_ty, foldr (:->:) res_ty arg_tys)
+    return (PT [] res_ty)
+  apply fun_ty d = do
+    arg_ty <- d >>= instantiatePolyTy
+    res_ty <- freshTyVar
+    ty <- instantiatePolyTy fun_ty
+    emitCt (ty, arg_ty :->: res_ty)
+    return (PT [] res_ty)
+  select _  [] = retStuck
+  select con_ty fs@((k,_):_) = do
+    res_ty <- snd . splitFunTys <$> instantiateCon k
+    let TyConApp tc tc_args = res_ty
+    ty <- instantiatePolyTy con_ty
+    emitCt (ty, res_ty)
+    ks_tys <- enumerateCons tc tc_args
+    tys <- forM ks_tys $ \(k,tys) ->
+      case List.find (\(k',_) -> k' == k) fs of
+        Just (_,f) -> f (map (fmap (PT [])) tys)
+        _          -> retStuck
+    traverse instantiatePolyTy tys >>= \case
+      []      -> retStuck
+      ty:tys' -> traverse (\ty' -> emitCt (ty,ty')) tys' >> return (PT [] ty)
+
+{-" \fi "-}
+instance HasAlloc Cts PolyType where
+  alloc f = fmap return $ generalise $ do
+    f_ty <- freshTyVar
+    f_ty' <- f (return (PT [] f_ty)) >>= instantiatePolyTy
+    emitCt (f_ty, f_ty')
+    return f_ty
+
+runCts :: Cts PolyType -> PolyType
+runCts (Cts m) = case evalStateT m ([], emp) of
+  Just  ρ -> ρ
+  Nothing -> PT [] Wrong
+
+inferType :: Cts PolyType -> PolyType
+inferType d = runCts (generalise $ d >>= instantiatePolyTy)
+\end{code}
+%if style == newcode
+\begin{code}
+unCts :: Cts a -> StateT ([Name],Subst) Maybe a
+unCts (Cts m) = m
+deriving instance Eq TyCon
+deriving instance Eq Type
+deriving instance Functor Cts
+
+instance Applicative Cts where
+  pure = Cts . pure
+  (<*>) = ap
+
+instance Monad Cts where
+  Cts m >>= k = Cts (m >>= unCts . k)
+
+instance Show TyCon where
+  show BoolTyCon = "\\texttt{bool}"
+  show NatTyCon = "\\texttt{nat}"
+  show OptionTyCon = "\\texttt{option}"
+  show PairTyCon = "\\times"
+
+instance Show Type where
+  showsPrec _ (TyConApp k tys) = showsPrec 0 k . foldr (\t s -> showString "\\;" . showsPrec 1 t . s) id tys
+  showsPrec _ (TyVar x)  = showString x
+  showsPrec _ Wrong      = showString "\\textbf{wrong}"
+  showsPrec p (l :->: r) =
+    showParen (p > 0) $ showsPrec 1 l . showString " \\rightarrow " . showsPrec 0 r
+
+instance Show PolyType where
+  showsPrec _ (PT [] body) = shows body
+  showsPrec _ (PT alphas body) = showString "\\forall" . showSep (showString ",") (map showString alphas) . showString ".\\ " . shows body
+
+freeVars :: Type -> Set Name
+freeVars (TyVar x) = Set.singleton x
+freeVars (a :->: r) = freeVars a `Set.union` freeVars r
+freeVars (TyConApp _ as) = Set.unions (map freeVars as)
+freeVars Wrong = Set.empty
+
+splitFunTys :: Type -> ([Type], Type)
+splitFunTys ty = go [] ty
+  where
+    go as (a :->: r) = go (a:as) r
+    go as ty = (reverse as, ty)
+
+conTy TT = PT [] (TyConApp BoolTyCon [])
+conTy FF = PT [] (TyConApp BoolTyCon [])
+conTy Z = PT [] (TyConApp NatTyCon [])
+conTy S = PT [] (TyConApp NatTyCon [] :->: TyConApp NatTyCon [])
+conTy None = PT ["a_none"] (TyConApp OptionTyCon [TyVar "a_none"])
+conTy Some = PT ["a_some"] (TyVar "a_some" :->: TyConApp OptionTyCon [TyVar "a_some"])
+conTy Pair = PT ["a_pair", "b_pair"]
+  (TyVar "a_pair" :->: TyVar "b_pair" :->: TyConApp PairTyCon [TyVar "a_pair", TyVar "b_pair"])
+
+tyConTags :: TyCon -> [Tag]
+tyConTags tc =
+  [ k | k <- [minBound..maxBound]
+      , let PT _ ty = conTy k
+      , TyConApp tc' _ <- [snd (splitFunTys ty)]
+      , tc == tc' ]
+
+applySubst subst ty@(TyVar y)
+  | Just ty <- Map.lookup y subst = ty
+  | otherwise                   = ty
+applySubst subst (a :->: r) =
+  applySubst subst a :->: applySubst subst r
+applySubst subst (TyConApp k tys) =
+  TyConApp k (map (applySubst subst) tys)
+applySubst _ ty = ty
+
+addCt (l,r) subst = case (applySubst subst l, applySubst subst r) of
+  (l, r) | l == r -> Just subst
+  (TyVar x, ty)
+    | not (occurs x ty)
+    -> Just (Map.insert x ty subst)
+  (_, TyVar _) -> addCt (r,l) subst
+  (a1 :->: r1, a2 :->: r2) -> addCt (a1,a2) subst >>= addCt (r1,r2)
+  (Wrong, Wrong) -> Just subst
+  (TyConApp k1 tys1, TyConApp k2 tys2) | k1 == k2 -> foldrM addCt subst (zip tys1 tys2)
+  _ -> Nothing
+  where
+    occurs x ty = applySubst (ext emp x ty) ty /= ty -- quick and dirty
+
+emitCt ct = Cts $ StateT $ \(names,subst) -> case addCt ct subst of
+  Just subst' -> Just ((), (names, subst'))
+  Nothing     -> Nothing
+
+freshTyVar = Cts $ state $ \(ns,subst) ->
+  let n = "\\alpha_{" ++ show (length ns) ++ "}"
+  in (TyVar n,(n:ns,subst))
+
+freshenVars :: [Name] -> Cts Subst
+freshenVars alphas = foldM one emp alphas
+  where
+    one subst alpha = do
+      beta <- freshTyVar
+      pure (ext subst alpha beta)
+
+instantiatePolyTy (PT alphas ty) = do
+  subst <- freshenVars alphas
+  return (applySubst subst ty)
+
+instantiateCon :: Tag -> Cts Type
+instantiateCon k = instantiatePolyTy (conTy k)
+
+enumerateCons :: TyCon -> [Type] -> Cts [(Tag,[Cts Type])]
+enumerateCons tc tc_arg_tys = forM (tyConTags tc) $ \k -> do
+  ty <- instantiateCon k
+  let (field_tys,res_ty) = splitFunTys ty
+  emitCt (TyConApp tc tc_arg_tys, res_ty)
+  return (k, map pure field_tys)
+
+generalise (Cts m) = Cts $ do
+  (outer_names,_) <- get
+  ty <- m
+  (_names',subst) <- get
+  let ty' = applySubst subst ty
+  let alphas = freeVars ty' `Set.difference` Set.fromList outer_names
+  return (PT (Set.toList alphas) ty')
+
+\end{code}
+%endif
+\caption{Naïve usage analysis via |IsValue| and |HasAlloc|}
+\label{fig:type-analysis}
+\end{figure}
+
+\subsection{Type Analysis}
+
+By choosing an
+
+
+< ghci> inferType $ eval (read "let i = λx.x in i i i i i i") emp
+$\perform{inferType $ eval (read "let i = λx.x in i i i i i i") emp}$
+< ghci> inferType $ eval (read "λx. let y = x in y x") emp
+$\perform{inferType $ eval (read "λx. let y = x in y x") emp}$
+< ghci> inferType $ eval (read "let i = λx.x in let o = Some(i) in o") emp
+$\perform{inferType $ eval (read "let i = λx.x in let o = Some(i) in o") emp}$
+
