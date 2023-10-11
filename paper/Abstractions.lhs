@@ -25,9 +25,10 @@ import Interpreter
 
 %\cite{*}
 We have seen that |eval| is well-suited to express concrete semantics
-coninductively.
-In this section, we will see how |eval| is also well-suited to
-implement abstract semantics, \eg, static program analyses.
+coinductively.
+In this section, we will see how |eval| is also well-suited to implement
+abstract semantics, \eg, static program analyses thus featuring an
+inductively-defined domain.
 
 \begin{figure}
 \begin{spec}
