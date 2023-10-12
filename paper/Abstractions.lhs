@@ -452,3 +452,19 @@ $\perform{closedType $ eval (read "λx. let y = x in y x") emp}$
 $\perform{closedType $ eval (read "let i = λx.x in let o = Some(i) in o") emp}$
 < ghci> closedType $ eval (read "let x = x in x") emp
 $\perform{closedType $ eval (read "let x = x in x") emp}$
+
+\begin{figure}
+
+\caption{0CFA for a PCF-like language
+\label{fig:pcf-cfa}
+\end{figure}
+
+\subsection{0CFA}
+
+In our last example, we will discuss a classic benchmark of abstract
+higher-order interpreters: Control-flow analysis.
+For us, this example serves two purposes:
+The first is that our approach can be applied to other languages such as PCF as
+well; in fact, most abstractions carry over unchanged.
+The second is that 0CFA becomes somewhat peculiar
+
