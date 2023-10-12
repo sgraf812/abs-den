@@ -222,7 +222,7 @@ data Type = Type :->: Type | TyConApp TyCon [Type] | TyVar Name | Wrong
 data PolyType = PT [Name] Type; data TyCon = {-" ... \iffalse "-} BoolTyCon | NatTyCon | OptionTyCon | PairTyCon {-" \fi "-}
 
 type Constraint = (Type, Type); type Subst = Name :-> Type
-data Cts a = Cts (StateT ([Name],Subst) Maybe a)
+data Cts a = Cts (StateT (Set Name,Subst) Maybe a)
 emitCt :: Constraint -> Cts ();                   freshTyVar :: Cts Type
 instantiatePolyTy :: PolyType -> Cts Type; ^^ ^^  generaliseTy :: Cts Type -> Cts PolyType
 
@@ -269,7 +269,7 @@ instance HasAlloc Cts PolyType where
     return f_ty
 
 runCts :: Cts PolyType -> PolyType
-runCts (Cts m) = case evalStateT m ([], emp) of Just ty -> ty; Nothing -> PT [] Wrong
+runCts (Cts m) = case evalStateT m (Set.empty, emp) of Just ty -> ty; Nothing -> PT [] Wrong
 
 closedType :: Cts PolyType -> PolyType
 closedType d = runCts (generaliseTy $ d >>= instantiatePolyTy)
@@ -343,7 +343,7 @@ applySubst subst (TyConApp k tys) =
   TyConApp k (map (applySubst subst) tys)
 applySubst _ ty = ty
 
-unCts :: Cts a -> StateT ([Name],Subst) Maybe a
+unCts :: Cts a -> StateT (Set Name,Subst) Maybe a
 unCts (Cts m) = m
 
 addCt (l,r) subst = case (applySubst subst l, applySubst subst r) of
@@ -364,8 +364,8 @@ emitCt ct = Cts $ StateT $ \(names,subst) -> case addCt ct subst of
   Nothing     -> Nothing
 
 freshTyVar = Cts $ state $ \(ns,subst) ->
-  let n = "\\alpha_{" ++ show (length ns) ++ "}"
-  in (TyVar n,(n:ns,subst))
+  let n = "\\alpha_{" ++ show (Set.size ns) ++ "}"
+  in (TyVar n,(Set.insert n ns,subst))
 
 freshenVars :: [Name] -> Cts Subst
 freshenVars alphas = foldM one emp alphas
@@ -393,9 +393,8 @@ generaliseTy (Cts m) = Cts $ do
   ty <- m
   (_names',subst) <- get
   let ty' = applySubst subst ty
-  let alphas = freeVars ty' `Set.difference` Set.fromList outer_names
+  let alphas = freeVars ty' `Set.difference` outer_names
   return (PT (Set.toList alphas) ty')
-
 \end{code}
 %endif
 \caption{Hindley-Milner-style type analysis with Let generalisation}
@@ -404,7 +403,46 @@ generaliseTy (Cts m) = Cts $ do
 
 \subsection{Type Analysis}
 
-Hindley-Milner-style type inference
+To demonstrate the flexibility of our approach, we have implemented
+Hindley-Milner-style type analysis including Let generalisation as an
+abstraction.
+The gist is given in \Cref{fig:type-analysis}; we omitted large parts of the
+implementation and the |IsValue| instance for space reasons.
+The full implementation can be found in the Supplement,
+the |HasAlloc| instance is exemplary of the approach.
+
+This analysis is all about inferring the most general |PolyType| of the
+form $\forall \many{\alpha}.\ θ$ for an expression, where $θ$ ranges over
+a |Type| that can be either a type variable |TyVar x|, a function type |θ1 :->:
+θ2|, or a type constructor application |TyConApp|.
+The |Wrong| type is used to indicate a type error.
+
+Key to the analysis is maintenance of a consistent set of type constraints
+as a |Subst|itution, which is why the trace type |Cts| carries one as state,
+with the option of failure indicated by |Maybe| when such a substitution
+does not exist.
+Additionally, |Cts| carries a set of used |Name|s with it to satisfy freshness
+constraints in |freshTyVar| and |instantiatePolyTy|, as well as to have a
+superset of $\fv(Γ)$ in |generaliseTy|.
+
+While the operational detail offered by |IsTrace| is completely uninteresting to
+|Cts|, all these pieces fall together in the implementation of |alloc|, where we
+see yet another strategy to compute a fixpoint:
+The knot is tied by calling the iteratee |f| with a fresh unification variable
+type |f_ty| of the shape $α_1$.
+The result of this call in turn is instantiated to a non-|PolyType| |f_ty|, perhaps
+turning a type-scheme $\forall α_2.\ \mathtt{option}\;(α_2 \rightarrow α_2)$ into the
+shape $\mathtt{option}\;(α_3 \rightarrow α_3)$ for fresh $α_3$.
+Then a constraint is emitted to unify $α_1$ with
+$\mathtt{option}\;(α_3 \rightarrow α_3)$.
+Ultimately, the type |f_ty| is returned and generalised to $\forall α_3.\
+\mathtt{option}\;(α_3 \rightarrow α_3)$, because $α_3$ is not a |Name| in use
+before the call to |generaliseTy| (and thus couldn't have possibly leaked it
+into the range of the type context).
+
+Since this is just intended as another example, we do not attempt a proof of
+correctness.
+Instead, we conclude with some example uses:
 
 < ghci> closedType $ eval (read "let i = λx.x in i i i i i i") emp
 $\perform{closedType $ eval (read "let i = λx.x in i i i i i i") emp}$
@@ -414,4 +452,3 @@ $\perform{closedType $ eval (read "λx. let y = x in y x") emp}$
 $\perform{closedType $ eval (read "let i = λx.x in let o = Some(i) in o") emp}$
 < ghci> closedType $ eval (read "let x = x in x") emp
 $\perform{closedType $ eval (read "let x = x in x") emp}$
-
