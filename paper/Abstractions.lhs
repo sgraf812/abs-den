@@ -16,11 +16,14 @@ import Prelude hiding ((+), (*))
 import qualified Data.Map as Map
 import Data.Set (Set)
 import qualified Data.Set as Set
+import Numeric.Natural
+import Data.Function
 import Control.Monad
 import Control.Monad.Trans.State
 import Data.Foldable
 import qualified Data.List as List
 import Expr
+import PCF
 import Order
 import Interpreter
 \end{code}
@@ -454,8 +457,51 @@ $\perform{closedType $ eval (read "let i = λx.x in let o = Some(i) in o") emp}$
 $\perform{closedType $ eval (read "let x = x in x") emp}$
 
 \begin{figure}
-
-\caption{0CFA for a PCF-like language
+\begin{spec}
+type Label = Int
+data PCF  =  VarP Name | LamP Label Name PCF | AppP Label PCF PCF | Y Name PCF
+          |  Zero | Succ PCF | Pred PCF | IfZero PCF PCF PCF
+data Event = E; stp = step E
+\end{spec}
+\begin{code}
+class IsValueP τ v | v -> τ where
+  retStuckP :: m v
+  retZeroP :: m v
+  retSuccP :: v -> m v
+  retPredP :: v -> m v
+  ifZeroP :: v -> m v -> m v -> m v
+  retFunP :: Label -> (m v -> m v) -> m v
+  applyP :: Label -> v -> m v -> m v
+evalP :: forall τ v. (IsTrace τ, IsValueP τ v, HasAlloc τ v) => PCF -> (Name :-> τ v) -> τ v
+evalP e ρ = case e of
+  VarP x  | x `elem` dom ρ  -> stp (ρ ! x)
+          | otherwise       -> retStuckP
+  Zero -> retZeroP
+  Succ e -> evalP e ρ >>= retSuccP
+  Pred e -> evalP e ρ >>= retPredP
+  IfZero c t e -> evalP c ρ >>= \v -> stp (ifZeroP v (stp (evalP t ρ)) (evalP e ρ))
+  AppP ell f a -> do vf <- stp (evalP f ρ); va <- stp (evalP a ρ); applyP ell vf (return va)
+  LamP ell x body -> retFunP ell (\d -> stp (evalP body (ext ρ x d)))
+  Y x f -> alloc (\d -> evalP f (ext ρ x (stp d))) >>= stp
+type DP τ = τ (ValueP τ); data ValueP τ = StuckP | LitP Natural | FunP (DP τ -> DP τ)
+data Conc τ a = Conc (τ a)
+instance HasAlloc (Conc T) (ValueP (Conc T)) where alloc f = pure (fix f)
+\end{code}
+%if style == newcode
+\begin{code}
+stp :: IsTrace τ => τ v -> τ v
+stp = step App1
+deriving instance Functor τ => Functor (Conc τ)
+instance Monad τ => Applicative (Conc τ) where
+  pure = Conc . pure
+  (<*>) = ap
+instance Monad τ => Monad (Conc τ) where
+  Conc m >>= k = Conc (m >>= \v -> case k v of Conc m' -> m')
+instance IsTrace τ => IsTrace (Conc τ) where
+  step e (Conc m) = Conc (step e m)
+\end{code}
+%endif
+\caption{0CFA for PCF}
 \label{fig:pcf-cfa}
 \end{figure}
 

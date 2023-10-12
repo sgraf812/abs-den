@@ -33,7 +33,8 @@
 %format eval(a)(b) = "\mathcal{S}\denot{" a "}_{" b "}"
 %format ext(rho)(x)(d) = rho "[" x "\mapsto" d "]"
 %format exts(rho)(xs)(ds) = rho "[\many{" xs "\mapsto" ds "}]"
-%format `Map.map` = "\circ_{\rightharpoonup}"
+%format ell = "\varid{\ensuremath{\ell}}"
+%format evalP(a)(b) = "\mathcal{S}_{\scriptscriptstyle\mathsf{P}}\denot{" a "}_{" b "}"
 %format ghci = "\lambda\!\!"
 %format <$> = "\mathbin{<\mspace{-6mu}\$\mspace{-6mu}>}"
 %format <|> = "\mathbin{<\mspace{-6mu}|\mspace{-6mu}>}"
@@ -50,6 +51,21 @@
 %format Case1
 %format Case2
 %format Let1
+%format VarP = Var
+%format LamP = Lam
+%format AppP = App
+%format DP = D
+%format ValueP = Value
+%format StuckP = Stuck
+%format LitP = Lit
+%format FunP = Fun
+%format retStuckP = retStuck
+%format retZeroP = retZero
+%format retSuccP = retSucc
+%format retPredP = retPred
+%format ifZeroP = ifZero
+%format retFunP = retFun
+%format applyP = apply
 %%format xs = "\overline{\varid{x}}"
 %%format ds = "\overline{\varid{d}}"
 %%format alts = "\overline{\varid{alt}}"
