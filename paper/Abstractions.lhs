@@ -1,6 +1,7 @@
 %options ghci -pgmL lhs2TeX -optL--pre -XPartialTypeSignatures
 
 %if style == newcode
+%include custom.fmt
 \begin{code}
 {-# OPTIONS_GHC -Wno-noncanonical-monad-instances #-}
 {-# LANGUAGE FunctionalDependencies #-}
@@ -217,20 +218,14 @@ $\perform{eval (read "let z = Z() in case Z() of { Z() -> Z(); S(n) -> z }") emp
 
 \begin{figure}
 \begin{code}
-data TyCon = {-" ... \iffalse "-} BoolTyCon | NatTyCon | OptionTyCon | PairTyCon {-" \fi "-}; data PolyType = PT [Name] Type
 data Type = Type :->: Type | TyConApp TyCon [Type] | TyVar Name | Wrong
-conTy :: Tag -> PolyType
+data PolyType = PT [Name] Type; data TyCon = {-" ... \iffalse "-} BoolTyCon | NatTyCon | OptionTyCon | PairTyCon {-" \fi "-}
 
-type Constraint = (Type, Type)
-type Subst = Name :-> Type; applySubst :: Subst -> Type -> Type
-addCt :: Constraint -> Subst -> Maybe Subst;
-
+type Constraint = (Type, Type); type Subst = Name :-> Type
 data Cts a = Cts (StateT ([Name],Subst) Maybe a)
+emitCt :: Constraint -> Cts ();                   freshTyVar :: Cts Type
+instantiatePolyTy :: PolyType -> Cts Type; ^^ ^^  generaliseTy :: Cts Type -> Cts PolyType
 
-emitCt :: Constraint -> Cts ()
-freshTyVar :: Cts Type
-instantiatePolyTy :: PolyType -> Cts Type
-generalise :: Cts Type -> Cts PolyType
 instance IsTrace Cts where step _ = id
 instance IsValue Cts PolyType where {-" ... \iffalse "-}
   retStuck = return (PT [] Wrong)
@@ -267,24 +262,20 @@ instance IsValue Cts PolyType where {-" ... \iffalse "-}
 
 {-" \fi "-}
 instance HasAlloc Cts PolyType where
-  alloc f = fmap return $ generalise $ do
+  alloc f = fmap return $ generaliseTy $ do
     f_ty <- freshTyVar
     f_ty' <- f (return (PT [] f_ty)) >>= instantiatePolyTy
     emitCt (f_ty, f_ty')
     return f_ty
 
 runCts :: Cts PolyType -> PolyType
-runCts (Cts m) = case evalStateT m ([], emp) of
-  Just  ρ -> ρ
-  Nothing -> PT [] Wrong
+runCts (Cts m) = case evalStateT m ([], emp) of Just ty -> ty; Nothing -> PT [] Wrong
 
-inferType :: Cts PolyType -> PolyType
-inferType d = runCts (generalise $ d >>= instantiatePolyTy)
+closedType :: Cts PolyType -> PolyType
+closedType d = runCts (generaliseTy $ d >>= instantiatePolyTy)
 \end{code}
 %if style == newcode
 \begin{code}
-unCts :: Cts a -> StateT ([Name],Subst) Maybe a
-unCts (Cts m) = m
 deriving instance Eq TyCon
 deriving instance Eq Type
 deriving instance Functor Cts
@@ -325,6 +316,7 @@ splitFunTys ty = go [] ty
     go as (a :->: r) = go (a:as) r
     go as ty = (reverse as, ty)
 
+conTy :: Tag -> PolyType
 conTy TT = PT [] (TyConApp BoolTyCon [])
 conTy FF = PT [] (TyConApp BoolTyCon [])
 conTy Z = PT [] (TyConApp NatTyCon [])
@@ -341,6 +333,7 @@ tyConTags tc =
       , TyConApp tc' _ <- [snd (splitFunTys ty)]
       , tc == tc' ]
 
+applySubst :: Subst -> Type -> Type
 applySubst subst ty@(TyVar y)
   | Just ty <- Map.lookup y subst = ty
   | otherwise                   = ty
@@ -349,6 +342,9 @@ applySubst subst (a :->: r) =
 applySubst subst (TyConApp k tys) =
   TyConApp k (map (applySubst subst) tys)
 applySubst _ ty = ty
+
+unCts :: Cts a -> StateT ([Name],Subst) Maybe a
+unCts (Cts m) = m
 
 addCt (l,r) subst = case (applySubst subst l, applySubst subst r) of
   (l, r) | l == r -> Just subst
@@ -392,7 +388,7 @@ enumerateCons tc tc_arg_tys = forM (tyConTags tc) $ \k -> do
   emitCt (TyConApp tc tc_arg_tys, res_ty)
   return (k, map pure field_tys)
 
-generalise (Cts m) = Cts $ do
+generaliseTy (Cts m) = Cts $ do
   (outer_names,_) <- get
   ty <- m
   (_names',subst) <- get
@@ -402,19 +398,20 @@ generalise (Cts m) = Cts $ do
 
 \end{code}
 %endif
-\caption{Naïve usage analysis via |IsValue| and |HasAlloc|}
+\caption{Hindley-Milner-style type analysis with Let generalisation}
 \label{fig:type-analysis}
 \end{figure}
 
 \subsection{Type Analysis}
 
-By choosing an
+Hindley-Milner-style type inference
 
-
-< ghci> inferType $ eval (read "let i = λx.x in i i i i i i") emp
-$\perform{inferType $ eval (read "let i = λx.x in i i i i i i") emp}$
-< ghci> inferType $ eval (read "λx. let y = x in y x") emp
-$\perform{inferType $ eval (read "λx. let y = x in y x") emp}$
-< ghci> inferType $ eval (read "let i = λx.x in let o = Some(i) in o") emp
-$\perform{inferType $ eval (read "let i = λx.x in let o = Some(i) in o") emp}$
+< ghci> closedType $ eval (read "let i = λx.x in i i i i i i") emp
+$\perform{closedType $ eval (read "let i = λx.x in i i i i i i") emp}$
+< ghci> closedType $ eval (read "λx. let y = x in y x") emp
+$\perform{closedType $ eval (read "λx. let y = x in y x") emp}$
+< ghci> closedType $ eval (read "let i = λx.x in let o = Some(i) in o") emp
+$\perform{closedType $ eval (read "let i = λx.x in let o = Some(i) in o") emp}$
+< ghci> closedType $ eval (read "let x = x in x") emp
+$\perform{closedType $ eval (read "let x = x in x") emp}$
 
