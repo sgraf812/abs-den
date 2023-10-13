@@ -8,7 +8,6 @@ import qualified Text.ParserCombinators.ReadP as ReadP
 import qualified Text.Read as Read
 import Data.Char
 import GHC.Stack
-import Data.Bits (xor)
 
 assert :: HasCallStack => Bool -> a -> a
 assert True  x = x
@@ -57,15 +56,12 @@ type Alt = (Tag,[Name],Expr)
 --                                      e1' e2'
 --         _                      -> False
 
-type Label = Int
+type Label = String
 label :: Expr -> Label
 label e = case e of
-  Lam x _     -> hash_string x
-  ConApp k xs -> hash_list hash_string (fromEnum k `xor` 49062409) xs
+  Lam x _     -> "\\lambda " ++ x ++ ".."
+  ConApp k xs -> show k ++ "(" ++ showSep (showString ",") (map showString xs) [] ++ ")"
   _           -> undefined
-  where
-    hash_string = hash_list ord 1539013292
-    hash_list f = foldr (\x h -> f x + h)
 
 isVal :: Expr -> Bool
 isVal Lam{}    = True

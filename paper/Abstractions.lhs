@@ -454,6 +454,7 @@ $\perform{closedType $ eval (read "let i = λx.x in let o = Some(i) in o") emp}$
 $\perform{closedType $ eval (read "let x = x in x") emp}$
 \begin{figure}
 \begin{spec}
+type Label = String
 class IsValue τ v | v -> τ where
   retCon :: {-" \highlight{ "-}Label -> {-" } "-}Tag -> [τ v] -> τ v
   retFun :: {-" \highlight{ "-}Label -> {-" } "-}(τ v -> τ v) -> τ v
@@ -465,35 +466,44 @@ type AbsD = CFA (Pow Label)
 newtype Pow a = Pow { unPow :: Set.Set a }
   deriving (Eq, Ord)
 
-instance Show a => Show (Pow a) where
+instance Show (Pow Label) where
   showsPrec _ (Pow s) =
-    showString "\\{" . showSep (showString ", ") (map shows (Set.toList s)) . showString "\\}"
+    showString "\\{" . showSep (showString ", ") (map showString (Set.toList s)) . showString "\\}"
 
 instance Ord a => Lat (Pow a) where
   bottom = Pow Set.empty
   Pow l ⊔ Pow r = Pow (Set.union l r)
 
-data FunCache a b = FC (a :-> b) (a -> b)
+data FunCache = FC (Pow Label) (Pow Label) (AbsD -> AbsD)
+
+instance Eq FunCache where
+  FC in_1 out1 _ == FC in_2 out2 _ = in_1 == in_2 && out1 == out2
+instance Lat FunCache where
+  bottom = FC bottom bottom (const (return bottom))
+  FC in_1 out1 f1 ⊔ FC in_2 out2 f2 = FC in_' out' f'
+    where
+      f' d = do
+        v <- d
+        lv <- f1 (return v)
+        rv <- f2 (return v)
+        return (lv ⊔ rv)
+      (in_',out') | in_1 ⊑ in_2, out1 ⊑ out2 = (in_2, out2)
+                  | in_2 ⊑ in_1, out2 ⊑ out1 = (in_1, out1)
+                  | otherwise                = (bottom, out1⊔out2)
+
+instance Show FunCache where
+  show (FC in_ out _) = "[" ++ show in_ ++ " \\mapsto " ++ show out ++ "]"
+
 data Cache = Cache
   { cCons :: Label :-> (Tag :-> [Pow Label])
-  , cArgs :: Label :-> Pow Label
-  , cFuns :: Label :-> (AbsD -> AbsD) }
+  , cFuns :: Label :-> FunCache }
 
 instance Eq Cache where
-  c1 == c2 = cArgs c1 == cArgs c2 && cCons c1 == cCons c2
+  c1 == c2 = cFuns c1 == cFuns c2 && cCons c1 == cCons c2
 
-instance Eq (AbsD -> AbsD) where
-  _ == _ = True
-instance Lat (AbsD -> AbsD) where
-  bottom = const (return bottom)
-  (l ⊔ r) d = do
-    v <- d
-    lv <- l (return v)
-    rv <- r (return v)
-    return (lv ⊔ rv)
 instance Lat Cache where
-  bottom = Cache Map.empty Map.empty Map.empty
-  c1 ⊔ c2 = Cache (f cCons) (f cArgs) (Map.unionWith (\l r d -> d >>= \v -> lub <$> sequence [l (return v), r (return v)]) (cFuns c1) (cFuns c2))
+  bottom = Cache Map.empty Map.empty
+  c1 ⊔ c2 = Cache (f cCons) (f cFuns)
     where
       f fld = fld c1 ⊔ fld c2
 
@@ -519,12 +529,16 @@ updCacheCon ell k vs = CFA $ modify $ \cache ->
   cache { cCons = Map.singleton ell (Map.singleton k vs) ⊔ cCons cache }
 updCacheFun :: Label -> (AbsD -> AbsD) -> CFA ()
 updCacheFun ell f = CFA $ modify $ \cache ->
-  cache { cFuns = Map.singleton ell f ⊔ cFuns cache }
-joinArgsAtLoc :: Label -> Pow Label -> CFA (Pow Label)
-joinArgsAtLoc ell v = CFA $ do
-  modify $ \cache ->
-    cache { cArgs = Map.singleton ell v ⊔ cArgs cache }
-  gets ((Map.! ell) . cArgs)
+  cache { cFuns = Map.singleton ell (FC bottom bottom f) ⊔ cFuns cache }
+cachedCall :: Label -> Pow Label -> CFA (Pow Label)
+cachedCall ell v = CFA $ do
+  FC in_ out f <- gets (Map.findWithDefault bottom ell . cFuns)
+  if v ⊑ in_ then return out else do
+    let in_' = in_ ⊔ v      com merge all Labels that reach the lambda var ell!
+    modify $ (\c -> c { cFuns = Map.insert ell (FC in_' out f) (cFuns c) })
+    out' <- unCFA (f (return in_'))
+    modify $ (\c -> c { cFuns = Map.insert ell (FC in_' out' f) (cFuns c) })
+    return out'
 instance IsValue CFA (Pow Label) where
   retStuck = return (Pow Set.empty)
   retCon ell k ds = do
@@ -535,9 +549,8 @@ instance IsValue CFA (Pow Label) where
     updCacheFun ell f
     return (Pow (Set.singleton ell))
   apply (Pow lbls) d = do
-    cache <- CFA get
     v <- d
-    vals <- sequence [ joinArgsAtLoc ell v >>= fun . return | ell <- Set.toList lbls, Just fun <- [Map.lookup ell (cFuns cache)] ]
+    vals <- sequence [ cachedCall ell v | ell <- Set.toList lbls ]
     return (lub vals)
   select (Pow lbls) fs = do
     cache <- CFA get
@@ -576,5 +589,9 @@ The second is that 0CFA becomes somewhat peculiar
 
 < ghci> runCFA $ eval (read "let i = λx.x in let j = λy.y in i j") emp
 $\perform{runCFA $ eval (read "let i = λx.x in let j = λy.y in i j") emp}$
-< ghci> runCFA $ eval (read "let f = λx. f x in f 0") emp
-$\perform{runCFA $ eval (read "let f = λx. f x in f 0") emp}$
+< ghci> runCFA $ eval (read "let ω = λx. x x in ω ω") emp
+$\perform{runCFA $ eval (read "let ω = λx. x x in ω ω") emp}$
+< ghci> runCFA $ eval (read "let x = x in x x") emp
+$\perform{runCFA $ eval (read "let x = x in x x") emp}$
+< ghci> runCFA $ eval (read "let x = let y = S(x) in S(y) in x") emp
+$\perform{runCFA $ eval (read "let x = let y = S(x) in S(y) in x") emp}$

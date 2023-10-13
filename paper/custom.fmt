@@ -6,6 +6,7 @@
 %format qquad =
 %format ^ =
 %format ^^ = " "
+%format com = "--"
 
 %else
 
@@ -39,6 +40,7 @@
 %format ghci = "\lambda\!\!"
 %format <$> = "\mathbin{<\mspace{-6mu}\$\mspace{-6mu}>}"
 %format <|> = "\mathbin{<\mspace{-6mu}|\mspace{-6mu}>}"
+%format com = "\text{-}\text{-}"
 
 %format d1
 %format d2
@@ -79,7 +81,6 @@
 %format Uω = "\conid{$U_\omega$}"
 
 %%format ~ = "\,\sim\,"
-%%format com = "\text{-}\text{-}"
 %%format bang = "!"
 %%format family = "\keyword{family}"
 %%format pattern = "\keyword{pattern}"
