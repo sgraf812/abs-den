@@ -452,26 +452,22 @@ $\perform{closedType $ eval (read "λx. let y = x in y x") emp}$
 $\perform{closedType $ eval (read "let i = λx.x in let o = Some(i) in o") emp}$
 < ghci> closedType $ eval (read "let x = x in x") emp
 $\perform{closedType $ eval (read "let x = x in x") emp}$
-
 \begin{figure}
 \begin{spec}
 class IsValue τ v | v -> τ where
   retCon :: {-" \highlight{ "-}Label -> {-" } "-}Tag -> [τ v] -> τ v
   retFun :: {-" \highlight{ "-}Label -> {-" } "-}(τ v -> τ v) -> τ v
 \end{spec}
+
 \begin{code}
 type AbsD = CFA (Pow Label)
-
---instance Show SynVal where
---  show SomeLit = "N"
---  show (SomeLam l _) = show l
 
 newtype Pow a = Pow { unPow :: Set.Set a }
   deriving (Eq, Ord)
 
 instance Show a => Show (Pow a) where
   showsPrec _ (Pow s) =
-    showString "{" . showSep (showString ", ") (map shows (Set.toList s)) . showString "}"
+    showString "\\{" . showSep (showString ", ") (map shows (Set.toList s)) . showString "\\}"
 
 instance Ord a => Lat (Pow a) where
   bottom = Pow Set.empty
@@ -488,6 +484,13 @@ instance Eq Cache where
 
 instance Eq (AbsD -> AbsD) where
   _ == _ = True
+instance Lat (AbsD -> AbsD) where
+  bottom = const (return bottom)
+  (l ⊔ r) d = do
+    v <- d
+    lv <- l (return v)
+    rv <- r (return v)
+    return (lv ⊔ rv)
 instance Lat Cache where
   bottom = Cache Map.empty Map.empty Map.empty
   c1 ⊔ c2 = Cache (f cCons) (f cArgs) (Map.unionWith (\l r d -> d >>= \v -> lub <$> sequence [l (return v), r (return v)]) (cFuns c1) (cFuns c2))
@@ -541,11 +544,23 @@ instance IsValue CFA (Pow Label) where
     vals <- sequence [ f (map return vs) | ell <- Set.toList lbls, Just cons <- [Map.lookup ell (cCons cache)]
                      , (k,f) <- fs, Just vs <- [Map.lookup k cons] ]
     return (lub vals)
+instance HasAlloc CFA (Pow Label) where
+  alloc f = fmap return $ CFA $ state $ \cache -> go bottom cache
+    where
+      go :: Pow Label -> Cache -> (Pow Label, Cache)
+      go v cache =
+        let (v',cache') = runState (unCFA (f (return v))) cache in
+        if v' ⊑ v && cache' ⊑ cache then (v',cache') else go v' cache'
+
+runCFA :: CFA (Pow Label) -> Pow Label
+runCFA = flip evalState bottom . unCFA
 \end{code}
+
 %if style == newcode
 \begin{code}
 \end{code}
 %endif
+
 \caption{0CFA for PCF}
 \label{fig:pcf-cfa}
 \end{figure}
@@ -559,3 +574,7 @@ The first is that our approach can be applied to other languages such as PCF as
 well; in fact, most abstractions carry over unchanged.
 The second is that 0CFA becomes somewhat peculiar
 
+< ghci> runCFA $ eval (read "let i = λx.x in let j = λy.y in i j") emp
+$\perform{runCFA $ eval (read "let i = λx.x in let j = λy.y in i j") emp}$
+< ghci> runCFA $ eval (read "let f = λx. f x in f 0") emp
+$\perform{runCFA $ eval (read "let f = λx. f x in f 0") emp}$

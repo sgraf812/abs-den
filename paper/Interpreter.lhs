@@ -211,8 +211,8 @@ eval e ρ = case e of
                v <- eval e ρ
                apply v (ρ ! x)
            | otherwise  -> retStuck
-  Lam x e -> retFun {-" \iffalse "-}(label e){-" \fi "-} $ \d ->
-    step App2 (eval e ((ext ρ x d)))
+  Lam x e' -> retFun {-" \iffalse "-}(label e){-" \fi "-} $ \d ->
+    step App2 (eval e' ((ext ρ x d)))
   Let x e1 e2 -> do
     d1 <- alloc (\d1 -> eval e1 (ext ρ x (step (Lookup x) d1)))
     step Bind (eval e2 (ext ρ x (step (Lookup x) d1)))

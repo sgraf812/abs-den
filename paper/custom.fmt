@@ -25,6 +25,7 @@
 %format φ1 = "\varid{\ensuremath{\varphi_1}}"
 %format φ2 = "\varid{\ensuremath{\varphi_2}}"
 %format μ = "\varid{\ensuremath{\mu}}"
+%format θ = "\varid{\ensuremath{\theta}}"
 %format :-> = "\rightharpoonup"
 %format :->: = ":\rightarrow:"
 %format ∈ = "\in"

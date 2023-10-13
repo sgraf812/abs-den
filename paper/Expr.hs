@@ -65,7 +65,7 @@ label e = case e of
   _           -> undefined
   where
     hash_string = hash_list ord 1539013292
-    hash_list f = foldr (\x h -> f x `xor` h)
+    hash_list f = foldr (\x h -> f x + h)
 
 isVal :: Expr -> Bool
 isVal Lam{}    = True
