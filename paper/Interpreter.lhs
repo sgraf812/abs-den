@@ -211,25 +211,24 @@ eval e ρ = case e of
                v <- eval e ρ
                apply v (ρ ! x)
            | otherwise  -> retStuck
-  Lam x e -> retFun $ \d ->
+  Lam x e -> retFun {-" \iffalse "-}(label e){-" \fi "-} $ \d ->
     step App2 (eval e ((ext ρ x d)))
   Let x e1 e2 -> do
     d1 <- alloc (\d1 -> eval e1 (ext ρ x (step (Lookup x) d1)))
     step Bind (eval e2 (ext ρ x (step (Lookup x) d1)))
   ConApp k xs
     | all (∈ dom ρ) xs, length xs == conArity k
-    -> retCon k (map (ρ !) xs)
+    -> retCon {-" \iffalse "-}(label e){-" \fi "-} k (map (ρ !) xs)
     | otherwise
     -> retStuck
   Case e alts -> step Case1 $ do
     v <- eval e ρ
     select v [ (k, cont er xs) | (k,xs,er) <- alts ]
     where
-       cont er xs ds
-         | length xs == length ds
-         = step Case2 (eval er (exts ρ xs ds))
-         | otherwise
-         = retStuck
+       cont er xs ds  |  length xs == length ds
+                      =  step Case2 (eval er (exts ρ xs ds))
+                      |  otherwise
+                      =  retStuck
 \end{code}
 %  ConApp k xs  | all (∈ dom ρ) xs  -> retCon k (map (ρ !) xs)
 %               | otherwise         -> retStuck
@@ -243,9 +242,9 @@ class Monad τ => IsTrace τ where
 
 class IsValue τ v | v -> τ where
   retStuck :: τ v
-  retFun :: (τ v -> τ v) -> τ v
+  retFun :: {-" \iffalse "-}Label -> {-" \fi "-}(τ v -> τ v) -> τ v
   apply :: v -> τ v -> τ v
-  retCon :: Tag -> [τ v] -> τ v
+  retCon :: {-" \iffalse "-}Label -> {-" \fi "-}Tag -> [τ v] -> τ v
   select :: v -> [(Tag, [τ v] -> τ v)] ->  τ v
 
 class HasAlloc τ v | v -> τ where
@@ -260,8 +259,8 @@ instance IsTrace T where
 
 instance IsValue T Value where
   retStuck = return Stuck
-  retFun f = return (Fun f)
-  retCon k ds = return (Con k ds)
+  retFun {-" \iffalse "-}_{-" \fi "-} f = return (Fun f)
+  retCon {-" \iffalse "-}_{-" \fi "-} k ds = return (Con k ds)
   apply  (Fun f)  d  = f d
   apply  _        _  = retStuck
   select v alts = ...
@@ -276,8 +275,8 @@ instance IsTrace T where
 
 instance IsTrace τ => IsValue τ (Value τ) where
   retStuck = return Stuck
-  retFun f = return (Fun f)
-  retCon k ds = return (Con k ds)
+  retFun {-" \iffalse "-}_{-" \fi "-} f = return (Fun f)
+  retCon {-" \iffalse "-}_{-" \fi "-} k ds = return (Con k ds)
   apply (Fun f) d = f d
   apply _       _ = retStuck
   select v alts

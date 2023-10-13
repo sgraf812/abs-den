@@ -8,6 +8,7 @@ import qualified Text.ParserCombinators.ReadP as ReadP
 import qualified Text.Read as Read
 import Data.Char
 import GHC.Stack
+import Data.Bits (xor)
 
 assert :: HasCallStack => Bool -> a -> a
 assert True  x = x
@@ -40,11 +41,6 @@ data Expr
   | Case Expr [Alt]
 type Alt = (Tag,[Name],Expr)
 
-isVal :: Expr -> Bool
-isVal Lam{}    = True
-isVal ConApp{} = True
-isVal _        = False
-
 -- instance Eq Expr where
 --   e1 == e2 = go Map.empty Map.empty e1 e2
 --     where
@@ -60,6 +56,21 @@ isVal _        = False
 --                                      (Map.insert y (Map.size benv2) benv2)
 --                                      e1' e2'
 --         _                      -> False
+
+type Label = Int
+label :: Expr -> Label
+label e = case e of
+  Lam x _     -> hash_string x
+  ConApp k xs -> hash_list hash_string (fromEnum k `xor` 49062409) xs
+  _           -> undefined
+  where
+    hash_string = hash_list ord 1539013292
+    hash_list f = foldr (\x h -> f x `xor` h)
+
+isVal :: Expr -> Bool
+isVal Lam{}    = True
+isVal ConApp{} = True
+isVal _        = False
 
 appPrec, lamPrec :: Read.Prec
 lamPrec = Read.minPrec

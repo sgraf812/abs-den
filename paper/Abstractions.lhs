@@ -16,14 +16,11 @@ import Prelude hiding ((+), (*))
 import qualified Data.Map as Map
 import Data.Set (Set)
 import qualified Data.Set as Set
-import Numeric.Natural
-import Data.Function
 import Control.Monad
 import Control.Monad.Trans.State
 import Data.Foldable
 import qualified Data.List as List
 import Expr
-import PCF
 import Order
 import Interpreter
 \end{code}
@@ -85,11 +82,11 @@ manify :: UD -> UD
 manify (Uses φ Nop) = Uses (φ+φ) Nop
 
 instance IsValue UT UValue where
-  retStuck       = nopD
-  retFun f       = manify (f nopD)
-  retCon _ ds    = manify (foldr (+) nopD ds)
-  apply Nop d    = manify d
-  select Nop fs  = lub [ f (replicate (conArity k) nopD) | (k,f) <- fs ]
+  retStuck                                  = nopD
+  retFun {-" \iffalse "-}_{-" \fi "-} f     = manify (f nopD)
+  retCon {-" \iffalse "-}_{-" \fi "-} _ ds  = manify (foldr (+) nopD ds)
+  apply Nop d                               = manify d
+  select Nop fs                             = lub [ f (replicate (conArity k) nopD) | (k,f) <- fs ]
 
 instance Lat UD where
   bottom = nopD
@@ -232,11 +229,11 @@ instantiatePolyTy :: PolyType -> Cts Type; ^^ ^^  generaliseTy :: Cts Type -> Ct
 instance IsTrace Cts where step _ = id
 instance IsValue Cts PolyType where {-" ... \iffalse "-}
   retStuck = return (PT [] Wrong)
-  retFun f = do
+  retFun {-" \iffalse "-}_{-" \fi "-} f = do
     arg <- freshTyVar
     res <- f (return (PT [] arg)) >>= instantiatePolyTy
     return (PT [] (arg :->: res))
-  retCon k ds = do
+  retCon {-" \iffalse "-}_{-" \fi "-} k ds = do
     con_app_ty <- instantiateCon k
     arg_tys <- traverse (>>= instantiatePolyTy) ds
     res_ty <- freshTyVar
@@ -458,47 +455,95 @@ $\perform{closedType $ eval (read "let x = x in x") emp}$
 
 \begin{figure}
 \begin{spec}
-type Label = Int
-data PCF  =  VarP Name | LamP Label Name PCF | AppP Label PCF PCF | Y Name PCF
-          |  Zero | Succ PCF | Pred PCF | IfZero PCF PCF PCF
-data Event = E; stp = step E
+class IsValue τ v | v -> τ where
+  retCon :: {-" \highlight{ "-}Label -> {-" } "-}Tag -> [τ v] -> τ v
+  retFun :: {-" \highlight{ "-}Label -> {-" } "-}(τ v -> τ v) -> τ v
 \end{spec}
 \begin{code}
-class IsValueP τ v | v -> τ where
-  retStuckP :: m v
-  retZeroP :: m v
-  retSuccP :: v -> m v
-  retPredP :: v -> m v
-  ifZeroP :: v -> m v -> m v -> m v
-  retFunP :: Label -> (m v -> m v) -> m v
-  applyP :: Label -> v -> m v -> m v
-evalP :: forall τ v. (IsTrace τ, IsValueP τ v, HasAlloc τ v) => PCF -> (Name :-> τ v) -> τ v
-evalP e ρ = case e of
-  VarP x  | x `elem` dom ρ  -> stp (ρ ! x)
-          | otherwise       -> retStuckP
-  Zero -> retZeroP
-  Succ e -> evalP e ρ >>= retSuccP
-  Pred e -> evalP e ρ >>= retPredP
-  IfZero c t e -> evalP c ρ >>= \v -> stp (ifZeroP v (stp (evalP t ρ)) (evalP e ρ))
-  AppP ell f a -> do vf <- stp (evalP f ρ); va <- stp (evalP a ρ); applyP ell vf (return va)
-  LamP ell x body -> retFunP ell (\d -> stp (evalP body (ext ρ x d)))
-  Y x f -> alloc (\d -> evalP f (ext ρ x (stp d))) >>= stp
-type DP τ = τ (ValueP τ); data ValueP τ = StuckP | LitP Natural | FunP (DP τ -> DP τ)
-data Conc τ a = Conc (τ a)
-instance HasAlloc (Conc T) (ValueP (Conc T)) where alloc f = pure (fix f)
+type AbsD = CFA (Pow Label)
+
+--instance Show SynVal where
+--  show SomeLit = "N"
+--  show (SomeLam l _) = show l
+
+newtype Pow a = Pow { unPow :: Set.Set a }
+  deriving (Eq, Ord)
+
+instance Show a => Show (Pow a) where
+  showsPrec _ (Pow s) =
+    showString "{" . showSep (showString ", ") (map shows (Set.toList s)) . showString "}"
+
+instance Ord a => Lat (Pow a) where
+  bottom = Pow Set.empty
+  Pow l ⊔ Pow r = Pow (Set.union l r)
+
+data FunCache a b = FC (a :-> b) (a -> b)
+data Cache = Cache
+  { cCons :: Label :-> (Tag :-> [Pow Label])
+  , cArgs :: Label :-> Pow Label
+  , cFuns :: Label :-> (AbsD -> AbsD) }
+
+instance Eq Cache where
+  c1 == c2 = cArgs c1 == cArgs c2 && cCons c1 == cCons c2
+
+instance Eq (AbsD -> AbsD) where
+  _ == _ = True
+instance Lat Cache where
+  bottom = Cache Map.empty Map.empty Map.empty
+  c1 ⊔ c2 = Cache (f cCons) (f cArgs) (Map.unionWith (\l r d -> d >>= \v -> lub <$> sequence [l (return v), r (return v)]) (cFuns c1) (cFuns c2))
+    where
+      f fld = fld c1 ⊔ fld c2
+
+data CFA a = CFA (State Cache a)
+  deriving Functor
+instance Applicative CFA where
+  pure = CFA . pure
+  (<*>) = ap
+unCFA :: CFA a -> State Cache a
+unCFA (CFA m) = m
+instance Monad CFA where
+  CFA m >>= k = CFA (m >>= unCFA . k)
+instance IsTrace CFA where step _ = id
+
+instance Lat a => Lat [a] where
+  bottom = []
+  [] ⊔ ys = ys
+  xs ⊔ [] = xs
+  (x:xs) ⊔ (y:ys) = x ⊔ y : xs ⊔ ys
+
+updCacheCon :: Label -> Tag -> [Pow Label] -> CFA ()
+updCacheCon ell k vs = CFA $ modify $ \cache ->
+  cache { cCons = Map.singleton ell (Map.singleton k vs) ⊔ cCons cache }
+updCacheFun :: Label -> (AbsD -> AbsD) -> CFA ()
+updCacheFun ell f = CFA $ modify $ \cache ->
+  cache { cFuns = Map.singleton ell f ⊔ cFuns cache }
+joinArgsAtLoc :: Label -> Pow Label -> CFA (Pow Label)
+joinArgsAtLoc ell v = CFA $ do
+  modify $ \cache ->
+    cache { cArgs = Map.singleton ell v ⊔ cArgs cache }
+  gets ((Map.! ell) . cArgs)
+instance IsValue CFA (Pow Label) where
+  retStuck = return (Pow Set.empty)
+  retCon ell k ds = do
+    vs <- sequence ds
+    updCacheCon ell k vs
+    return (Pow (Set.singleton ell))
+  retFun ell f = do
+    updCacheFun ell f
+    return (Pow (Set.singleton ell))
+  apply (Pow lbls) d = do
+    cache <- CFA get
+    v <- d
+    vals <- sequence [ joinArgsAtLoc ell v >>= fun . return | ell <- Set.toList lbls, Just fun <- [Map.lookup ell (cFuns cache)] ]
+    return (lub vals)
+  select (Pow lbls) fs = do
+    cache <- CFA get
+    vals <- sequence [ f (map return vs) | ell <- Set.toList lbls, Just cons <- [Map.lookup ell (cCons cache)]
+                     , (k,f) <- fs, Just vs <- [Map.lookup k cons] ]
+    return (lub vals)
 \end{code}
 %if style == newcode
 \begin{code}
-stp :: IsTrace τ => τ v -> τ v
-stp = step App1
-deriving instance Functor τ => Functor (Conc τ)
-instance Monad τ => Applicative (Conc τ) where
-  pure = Conc . pure
-  (<*>) = ap
-instance Monad τ => Monad (Conc τ) where
-  Conc m >>= k = Conc (m >>= \v -> case k v of Conc m' -> m')
-instance IsTrace τ => IsTrace (Conc τ) where
-  step e (Conc m) = Conc (step e m)
 \end{code}
 %endif
 \caption{0CFA for PCF}
