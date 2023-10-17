@@ -25,5 +25,9 @@ instance (Ord a, Lat a) => Lat (Set a) where
   bottom = Set.empty
   (⊔) = Set.union
 
+instance (Lat a, Lat b) => Lat (a,b) where
+  bottom = (bottom,bottom)
+  (a1,b1) ⊔ (a2,b2) = (a1⊔a2,b1⊔b2)
+
 kleeneFix :: Lat a => (a -> a) -> a
 kleeneFix f = stationary $ iterate f bottom where stationary (a:b:r) = if b ⊑ a then b else stationary (b:r)

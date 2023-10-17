@@ -160,9 +160,9 @@ If we want to assess usage cardinality statically, we have to find a more abstra
 representation of |Value|.
 \Cref{fig:abs-usg} gives on such candidate |UValue|, a type containing a single
 inhabitant |Nop|, so it is the simplest abstraction possible.
-It is a matter of simple calculation to see that |eval e {-"\tr_Δ"-} :: UD|
+It is a matter of simple calculation to see that |eval e ({-"\tr_Δ"-}) :: UD|
 indeed computes the same result as $\semusg{\pe}_{\tr_Δ}$ (given an appropriate
-encoding of $\tr_Δ$ as a |Name :-> U| and an |e| without data types), once we
+encoding of $\tr_Δ$ as a |Name :-> UD| and an |e| without data types), once we
 have understood the type class instances at play.
 
 This abstraction is fundamentally encoded in the |IsValue| instance:
@@ -456,17 +456,58 @@ $\perform{closedType $ eval (read "let x = x in x") emp}$
 \begin{spec}
 type Label = String
 class IsValue τ v | v -> τ where
-  retCon :: {-" \highlight{ "-}Label -> {-" } "-}Tag -> [τ v] -> τ v
-  retFun :: {-" \highlight{ "-}Label -> {-" } "-}(τ v -> τ v) -> τ v
+  retCon  :: {-" \highlight{ "-}Label -> {-" {}} "-} Tag -> [τ v] -> τ v
+  retFun  :: {-" \highlight{ "-}Label -> {-" {}} "-} (τ v -> τ v) -> τ v
 \end{spec}
 
 \begin{code}
-type AbsD = CFA (Pow Label)
+data Pow a = Pow (Set a); singleP ell = Pow (Set.singleton ell)
+type CValue = Pow Label
+type CD = CT CValue
 
-newtype Pow a = Pow { unPow :: Set.Set a }
-  deriving (Eq, Ord)
+type ConCache = Tag :-> [CValue]
+data FunCache = FC (Maybe (CValue, CValue)) (CD -> CD)
+data Cache = Cache (Label :-> ConCache) (Label :-> FunCache)
 
-instance Show (Pow Label) where
+data CT a = CT (State Cache a)
+instance IsTrace CT where step _ = id
+
+instance IsValue CT CValue where
+  retStuck = return bottom
+  retCon ell k ds  = do vs <- sequence ds; updCacheCon ell k vs; return (singleP ell)
+  retFun ell f     = do updCacheFun ell f; return (singleP ell)
+  apply (Pow ells) d = d >>= \v ->
+    lub <$> traverse (\ell -> cachedCall ell v) (Set.toList ells)
+  select (Pow ells) fs = {-" ... \iffalse "-}do
+    cache <- CT get
+    vals <- sequence [ f (map return vs) | ell <- Set.toList ells, Just cons <- [Map.lookup ell (cCons cache)]
+                     , (k,f) <- fs, Just vs <- [Map.lookup k cons] ]
+    return (lub vals)
+{-" \fi "-}
+
+instance HasAlloc CT CValue where{-" ... \iffalse "-}
+  alloc f = fmap return (go bottom)
+    where
+      go :: CValue -> CT CValue
+      go v = do
+        cache <- CT get
+        v' <- f (return v)
+        cache' <- CT get
+        if v' ⊑ v && cache' ⊑ cache then return v' else go v'
+{-" \fi "-}
+
+runCFA :: CT CValue -> CValue
+runCFA (CT m) = evalState m (Cache bottom bottom)
+\end{code}
+
+%if style == newcode
+\begin{code}
+unP :: Pow a -> Set a
+unP (Pow s) = s
+deriving instance Eq a => Eq (Pow a)
+deriving instance Ord a => Ord (Pow a)
+
+instance Show (CValue) where
   showsPrec _ (Pow s) =
     showString "\\{" . showSep (showString ", ") (map showString (Set.toList s)) . showString "\\}"
 
@@ -474,29 +515,29 @@ instance Ord a => Lat (Pow a) where
   bottom = Pow Set.empty
   Pow l ⊔ Pow r = Pow (Set.union l r)
 
-data FunCache = FC (Pow Label) (Pow Label) (AbsD -> AbsD)
-
 instance Eq FunCache where
-  FC in_1 out1 _ == FC in_2 out2 _ = in_1 == in_2 && out1 == out2
+  FC cache1 _ == FC cache2 _ = cache1 == cache2
 instance Lat FunCache where
-  bottom = FC bottom bottom (const (return bottom))
-  FC in_1 out1 f1 ⊔ FC in_2 out2 f2 = FC in_' out' f'
+  bottom = FC Nothing (const (return bottom))
+  FC cache1 f1 ⊔ FC cache2 f2 = FC cache' f'
     where
       f' d = do
         v <- d
         lv <- f1 (return v)
         rv <- f2 (return v)
         return (lv ⊔ rv)
-      (in_',out') | in_1 ⊑ in_2, out1 ⊑ out2 = (in_2, out2)
-                  | in_2 ⊑ in_1, out2 ⊑ out1 = (in_1, out1)
-                  | otherwise                = (bottom, out1⊔out2)
+      cache' = case (cache1,cache2) of
+        (Nothing, Nothing)            -> Nothing
+        (Just c1, Nothing)            -> Just c1
+        (Nothing, Just c2)            -> Just c2
+        (Just (in_1,out1), Just (in_2,out2))
+          | in_1 ⊑ in_2, out1 ⊑ out2  -> Just (in_2, out2)
+          | in_2 ⊑ in_1, out2 ⊑ out1  -> Just (in_1, out1)
+          | otherwise                 -> Nothing  com nuke the cache
 
 instance Show FunCache where
-  show (FC in_ out _) = "[" ++ show in_ ++ " \\mapsto " ++ show out ++ "]"
-
-data Cache = Cache
-  { cCons :: Label :-> (Tag :-> [Pow Label])
-  , cFuns :: Label :-> FunCache }
+  show (FC Nothing _)           = "[]"
+  show (FC (Just (in_, out)) _) = "[" ++ show in_ ++ " \\mapsto " ++ show out ++ "]"
 
 instance Eq Cache where
   c1 == c2 = cFuns c1 == cFuns c2 && cCons c1 == cCons c2
@@ -507,16 +548,17 @@ instance Lat Cache where
     where
       f fld = fld c1 ⊔ fld c2
 
-data CFA a = CFA (State Cache a)
-  deriving Functor
-instance Applicative CFA where
-  pure = CFA . pure
+unCT :: CT a -> State Cache a
+unCT (CT m) = m
+
+deriving instance Functor CT
+
+instance Applicative CT where
+  pure = CT . pure
   (<*>) = ap
-unCFA :: CFA a -> State Cache a
-unCFA (CFA m) = m
-instance Monad CFA where
-  CFA m >>= k = CFA (m >>= unCFA . k)
-instance IsTrace CFA where step _ = id
+
+instance Monad CT where
+  CT m >>= k = CT (m >>= unCT . k)
 
 instance Lat a => Lat [a] where
   bottom = []
@@ -524,58 +566,45 @@ instance Lat a => Lat [a] where
   xs ⊔ [] = xs
   (x:xs) ⊔ (y:ys) = x ⊔ y : xs ⊔ ys
 
-updCacheCon :: Label -> Tag -> [Pow Label] -> CFA ()
-updCacheCon ell k vs = CFA $ modify $ \cache ->
-  cache { cCons = Map.singleton ell (Map.singleton k vs) ⊔ cCons cache }
-updCacheFun :: Label -> (AbsD -> AbsD) -> CFA ()
-updCacheFun ell f = CFA $ modify $ \cache ->
-  cache { cFuns = Map.singleton ell (FC bottom bottom f) ⊔ cFuns cache }
-cachedCall :: Label -> Pow Label -> CFA (Pow Label)
-cachedCall ell v = CFA $ do
-  FC in_ out f <- gets (Map.findWithDefault bottom ell . cFuns)
-  if v ⊑ in_ then return out else do
-    let in_' = in_ ⊔ v      com merge all Labels that reach the lambda var ell!
-    modify $ (\c -> c { cFuns = Map.insert ell (FC in_' out f) (cFuns c) })
-    out' <- unCFA (f (return in_'))
-    modify $ (\c -> c { cFuns = Map.insert ell (FC in_' out' f) (cFuns c) })
-    return out'
-instance IsValue CFA (Pow Label) where
-  retStuck = return (Pow Set.empty)
-  retCon ell k ds = do
-    vs <- sequence ds
-    updCacheCon ell k vs
-    return (Pow (Set.singleton ell))
-  retFun ell f = do
-    updCacheFun ell f
-    return (Pow (Set.singleton ell))
-  apply (Pow lbls) d = do
-    v <- d
-    vals <- sequence [ cachedCall ell v | ell <- Set.toList lbls ]
-    return (lub vals)
-  select (Pow lbls) fs = do
-    cache <- CFA get
-    vals <- sequence [ f (map return vs) | ell <- Set.toList lbls, Just cons <- [Map.lookup ell (cCons cache)]
-                     , (k,f) <- fs, Just vs <- [Map.lookup k cons] ]
-    return (lub vals)
-instance HasAlloc CFA (Pow Label) where
-  alloc f = fmap return $ CFA $ state $ \cache -> go bottom cache
-    where
-      go :: Pow Label -> Cache -> (Pow Label, Cache)
-      go v cache =
-        let (v',cache') = runState (unCFA (f (return v))) cache in
-        if v' ⊑ v && cache' ⊑ cache then (v',cache') else go v' cache'
+cCons :: Cache -> Label :-> ConCache
+cCons (Cache cons _) = cons
 
-runCFA :: CFA (Pow Label) -> Pow Label
-runCFA = flip evalState bottom . unCFA
-\end{code}
+overCons :: ((Label :-> ConCache) -> (Label :-> ConCache)) -> Cache -> Cache
+overCons f (Cache cons funs) = Cache (f cons) funs
 
-%if style == newcode
-\begin{code}
+cFuns :: Cache -> Label :-> FunCache
+cFuns (Cache _ funs) = funs
+
+overFuns :: ((Label :-> FunCache) -> (Label :-> FunCache)) -> Cache -> Cache
+overFuns f (Cache cons funs) = Cache cons (f funs)
+
+updCacheCon :: Label -> Tag -> [CValue] -> CT ()
+updCacheCon ell k vs = CT $ modify $ overCons $ \cons ->
+  Map.singleton ell (Map.singleton k vs) ⊔ cons
+
+updCacheFun :: Label -> (CD -> CD) -> CT ()
+updCacheFun ell f = CT $ modify $ overFuns $ \funs ->
+  Map.singleton ell (FC Nothing f) ⊔ funs
+
+cachedCall :: Label -> CValue -> CT CValue
+cachedCall ell v = CT $ do
+  FC cache f <- gets (Map.findWithDefault bottom ell . cFuns)
+  let call in_ out = do
+        let in_' = in_ ⊔ v      com merge all Labels that reach the lambda var ell!
+        modify $ overFuns (Map.insert ell (FC (Just (in_',out)) f))
+        out' <- unCT (f (return in_'))
+        modify $ overFuns (Map.insert ell (FC (Just (in_',out')) f))
+        return out'
+  case cache of
+    Just (in_,out)
+      | v ⊑ in_   -> return out
+      | otherwise -> call in_ out
+    Nothing       -> call bottom bottom
 \end{code}
 %endif
 
-\caption{0CFA for PCF}
-\label{fig:pcf-cfa}
+\caption{0CFA}
+\label{fig:cfa}
 \end{figure}
 
 \subsection{0CFA}
@@ -589,9 +618,13 @@ The second is that 0CFA becomes somewhat peculiar
 
 < ghci> runCFA $ eval (read "let i = λx.x in let j = λy.y in i j") emp
 $\perform{runCFA $ eval (read "let i = λx.x in let j = λy.y in i j") emp}$
+< ghci> runCFA $ eval (read "let i = λx.x in let j = λy.y in i i j") emp
+$\perform{runCFA $ eval (read "let i = λx.x in let j = λy.y in i i j") emp}$
 < ghci> runCFA $ eval (read "let ω = λx. x x in ω ω") emp
 $\perform{runCFA $ eval (read "let ω = λx. x x in ω ω") emp}$
 < ghci> runCFA $ eval (read "let x = x in x x") emp
 $\perform{runCFA $ eval (read "let x = x in x x") emp}$
 < ghci> runCFA $ eval (read "let x = let y = S(x) in S(y) in x") emp
 $\perform{runCFA $ eval (read "let x = let y = S(x) in S(y) in x") emp}$
+< ghci> runCFA $ eval (read "let f = λx.λy.y in let g = λz.z in let ω = ω in f ω f") emp
+$\perform{runCFA $ eval (read "let f = λx.λy.y in let g = λz.z in let ω = ω in f ω f") emp}$

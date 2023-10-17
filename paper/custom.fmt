@@ -35,7 +35,10 @@
 %format eval(a)(b) = "\mathcal{S}\denot{" a "}_{" b "}"
 %format ext(rho)(x)(d) = rho "[" x "\mapsto" d "]"
 %format exts(rho)(xs)(ds) = rho "[\many{" xs "\mapsto" ds "}]"
+%format emptyP = "\varid{\ensuremath{\varnothing}}"
+%format singleP(a) = "\{" a "\}"
 %format ell = "\varid{\ensuremath{\ell}}"
+%format ells = "\varid{\ensuremath{\many{\ell}}}"
 %format evalP(a)(b) = "\mathcal{S}_{\scriptscriptstyle\mathsf{P}}\denot{" a "}_{" b "}"
 %format ghci = "\lambda\!\!"
 %format <$> = "\mathbin{<\mspace{-6mu}\$\mspace{-6mu}>}"
@@ -79,6 +82,10 @@
 %format U0 = "\conid{$U_0$}"
 %format U1 = "\conid{$U_1$}"
 %format Uω = "\conid{$U_\omega$}"
+
+%format CD = "\conid{\ensuremath{\widehat{D}}}"
+%format CT = "\conid{\ensuremath{\widehat{T}}}"
+%format CValue = "\conid{\ensuremath{\widehat{Value}}}"
 
 %%format ~ = "\,\sim\,"
 %%format bang = "!"
