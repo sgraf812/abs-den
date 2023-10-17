@@ -13,14 +13,11 @@
 module Abstractions where
 
 import Prelude hiding ((+), (*))
-import Text.Show (showListWith)
 import qualified Data.Map as Map
 import Data.Set (Set)
 import qualified Data.Set as Set
 import Control.Monad
 import Control.Monad.Trans.State
-import Control.Monad.Trans.Reader
-import Control.Monad.Trans.Class
 import Data.Foldable
 import qualified Data.List as List
 import Expr
@@ -465,24 +462,24 @@ class IsValue τ v | v -> τ where
 
 \begin{code}
 data Pow a = Pow (Set a); singleP ell = Pow (Set.singleton ell)
-type CValue = Pow Contour
+type CValue = Pow Label
 type CD = CT CValue
 
 type ConCache = Tag :-> [CValue]
 data FunCache = FC (Maybe (CValue, CValue)) (CD -> CD)
-data Cache = Cache (Contour :-> ConCache) (Contour :-> FunCache)
-type Contour = [Label]
-data CT a = CT (ReaderT Contour (State Cache) a)
+data Cache = Cache (Label :-> ConCache) (Label :-> FunCache)
+
+data CT a = CT (State Cache a)
 instance IsTrace CT where step _ = id
 
 instance IsValue CT CValue where
   retStuck = return bottom
-  retCon ell k ds  = do vs <- sequence ds; updCacheCon ell k vs
-  retFun ell f     = do updCacheFun ell f
+  retCon ell k ds  = do vs <- sequence ds; updCacheCon ell k vs; return (singleP ell)
+  retFun ell f     = do updCacheFun ell f; return (singleP ell)
   apply (Pow ells) d = d >>= \v ->
     lub <$> traverse (\ell -> cachedCall ell v) (Set.toList ells)
   select (Pow ells) fs = {-" ... \iffalse "-}do
-    cache <- CT (lift get)
+    cache <- CT get
     vals <- sequence [ f (map return vs) | ell <- Set.toList ells, Just cons <- [Map.lookup ell (cCons cache)]
                      , (k,f) <- fs, Just vs <- [Map.lookup k cons] ]
     return (lub vals)
@@ -493,14 +490,14 @@ instance HasAlloc CT CValue where{-" ... \iffalse "-}
     where
       go :: CValue -> CT CValue
       go v = do
-        cache <- CT (lift get)
+        cache <- CT get
         v' <- f (return v)
-        cache' <- CT (lift get)
+        cache' <- CT get
         if v' ⊑ v && cache' ⊑ cache then return v' else go v'
 {-" \fi "-}
 
 runCFA :: CT CValue -> CValue
-runCFA (CT m) = evalState (runReaderT m []) (Cache bottom bottom)
+runCFA (CT m) = evalState m (Cache bottom bottom)
 \end{code}
 
 %if style == newcode
@@ -512,7 +509,7 @@ deriving instance Ord a => Ord (Pow a)
 
 instance Show (CValue) where
   showsPrec _ (Pow s) =
-    showString "\\{" . showSep (showString ", ") (map (showListWith showString) (Set.toList s)) . showString "\\}"
+    showString "\\{" . showSep (showString ", ") (map showString (Set.toList s)) . showString "\\}"
 
 instance Ord a => Lat (Pow a) where
   bottom = Pow Set.empty
@@ -551,7 +548,7 @@ instance Lat Cache where
     where
       f fld = fld c1 ⊔ fld c2
 
-unCT :: CT a -> ReaderT Contour (State Cache) a
+unCT :: CT a -> State Cache a
 unCT (CT m) = m
 
 deriving instance Functor CT
@@ -569,39 +566,34 @@ instance Lat a => Lat [a] where
   xs ⊔ [] = xs
   (x:xs) ⊔ (y:ys) = x ⊔ y : xs ⊔ ys
 
-cCons :: Cache -> Contour :-> ConCache
+cCons :: Cache -> Label :-> ConCache
 cCons (Cache cons _) = cons
 
-overCons :: ((Contour :-> ConCache) -> (Contour :-> ConCache)) -> Cache -> Cache
+overCons :: ((Label :-> ConCache) -> (Label :-> ConCache)) -> Cache -> Cache
 overCons f (Cache cons funs) = Cache (f cons) funs
 
-cFuns :: Cache -> Contour :-> FunCache
+cFuns :: Cache -> Label :-> FunCache
 cFuns (Cache _ funs) = funs
 
-overFuns :: ((Contour :-> FunCache) -> (Contour :-> FunCache)) -> Cache -> Cache
+overFuns :: ((Label :-> FunCache) -> (Label :-> FunCache)) -> Cache -> Cache
 overFuns f (Cache cons funs) = Cache cons (f funs)
 
-updCacheCon :: Label -> Tag -> [CValue] -> CD
-updCacheCon ell k vs = consContour ell $ CT $ ReaderT $ \ctx -> do
-  modify $ overCons $ \cons -> Map.singleton ctx (Map.singleton k vs) ⊔ cons
-  return (singleP ctx)
+updCacheCon :: Label -> Tag -> [CValue] -> CT ()
+updCacheCon ell k vs = CT $ modify $ overCons $ \cons ->
+  Map.singleton ell (Map.singleton k vs) ⊔ cons
 
-updCacheFun :: Label -> (CD -> CD) -> CD
-updCacheFun ell f = consContour ell $ CT $ ReaderT $ \ctx -> do
-  modify $ overFuns $ \funs -> Map.singleton ctx (FC Nothing f) ⊔ funs
-  return (singleP ctx)
+updCacheFun :: Label -> (CD -> CD) -> CT ()
+updCacheFun ell f = CT $ modify $ overFuns $ \funs ->
+  Map.singleton ell (FC Nothing f) ⊔ funs
 
-consContour :: Label -> CT CValue -> CT CValue
-consContour ell (CT m) = CT $ local (take 2 . (ell:)) m
-
-cachedCall :: Contour -> CValue -> CT CValue
-cachedCall ctx v = CT $ do
-  FC cache f <- lift $ gets (Map.findWithDefault bottom ctx . cFuns)
+cachedCall :: Label -> CValue -> CT CValue
+cachedCall ell v = CT $ do
+  FC cache f <- gets (Map.findWithDefault bottom ell . cFuns)
   let call in_ out = do
-        let in_' = in_ ⊔ v      com merge all Labels that reach the lambda var ctx!
-        lift $ modify $ overFuns (Map.insert ctx (FC (Just (in_',out)) f))
-        out' <- local (const ctx) (unCT (f (return in_')))
-        lift $ modify $ overFuns (Map.insert ctx (FC (Just (in_',out')) f))
+        let in_' = in_ ⊔ v      com merge all Labels that reach the lambda var ell!
+        modify $ overFuns (Map.insert ell (FC (Just (in_',out)) f))
+        out' <- unCT (f (return in_'))
+        modify $ overFuns (Map.insert ell (FC (Just (in_',out')) f))
         return out'
   case cache of
     Just (in_,out)
