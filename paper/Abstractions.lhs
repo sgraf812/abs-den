@@ -277,6 +277,8 @@ closedType d = runCts (generaliseTy $ d >>= instantiatePolyTy)
 %if style == newcode
 \begin{code}
 deriving instance Eq TyCon
+deriving instance Enum TyCon
+deriving instance Bounded TyCon
 deriving instance Eq Type
 deriving instance Functor Cts
 
@@ -532,8 +534,8 @@ instance Lat FunCache where
         (Nothing, Just c2)            -> Just c2
         (Just (in_1,out1), Just (in_2,out2))
           | in_1 ⊑ in_2, out1 ⊑ out2  -> Just (in_2, out2)
-          | in_2 ⊑ in_1, out2 ⊑ out1  -> Just (in_1, out1)
-          | otherwise                 -> Nothing  com nuke the cache
+          | in_2 ⊑ in_1, out2 ⊑ out1  -> error "uh oh2" Just (in_1, out1)
+          | otherwise                 -> error "uh oh"
 
 instance Show FunCache where
   show (FC Nothing _)           = "[]"
@@ -628,3 +630,7 @@ $\perform{runCFA $ eval (read "let x = x in x x") emp}$
 $\perform{runCFA $ eval (read "let x = let y = S(x) in S(y) in x") emp}$
 < ghci> runCFA $ eval (read "let f = λx.λy.y in let g = λz.z in let ω = ω in f ω f") emp
 $\perform{runCFA $ eval (read "let f = λx.λy.y in let g = λz.z in let ω = ω in f ω f") emp}$
+< ghci> runCFA $ eval (read "let f = λx. let g = λy. f y in g f in f f") emp
+$\perform{runCFA $ eval (read "let f = λx. let g = λy. f y in g f in f f") emp}$
+< ghci> runCFA $ eval (read "let f = λx. case x of { Z() -> x; S(n) -> f n } in let z = Z() in f z") emp
+$\perform{runCFA $ eval (read "let f = λx. case x of { Z() -> x; S(n) -> f n } in let z = Z() in f z") emp}$
