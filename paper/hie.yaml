@@ -1,0 +1,3 @@
+cradle:
+  direct:
+    arguments: ["-ihs", "-pgmL", "lhs2TeX", "-optL--pre"]

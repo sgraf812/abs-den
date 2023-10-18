@@ -1,0 +1,1 @@
+:set -ihs -pgmL lhs2TeX -optL--pre
