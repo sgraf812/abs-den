@@ -6,6 +6,7 @@ import Debug.Trace
 import qualified Text.ParserCombinators.ReadPrec as Read
 import qualified Text.ParserCombinators.ReadP as ReadP
 import qualified Text.Read as Read
+import qualified Data.Map as Map
 import Data.Char
 import GHC.Stack
 
@@ -40,21 +41,30 @@ data Expr
   | Case Expr [Alt]
 type Alt = (Tag,[Name],Expr)
 
--- instance Eq Expr where
---   e1 == e2 = go Map.empty Map.empty e1 e2
---     where
---       occ benv x = maybe (Left x) Right (Map.lookup x benv)
---       go benv1 benv2 e1 e2 = case (e1,e2) of
---         (Var x, Var y)         -> occ benv1 x == occ benv2 y
---         (App f x, App g y)     -> occ benv1 x == occ benv2 y && go benv1 benv2 f g
---         (Let x e1 e2, Let y e3 e4) -> go benv1' benv2' e1 e3 && go benv1' benv2' e2 e4
---           where
---             benv1' = Map.insert x (Map.size benv1) benv1
---             benv2' = Map.insert y (Map.size benv2) benv2
---         (Lam x e1', Lam y e2') -> go (Map.insert x (Map.size benv1) benv1)
---                                      (Map.insert y (Map.size benv2) benv2)
---                                      e1' e2'
---         _                      -> False
+instance Eq Expr where
+  e1 == e2 = go Map.empty Map.empty e1 e2
+    where
+      bind x benv = Map.insert x (Map.size benv) benv
+      occ benv x = maybe (Left x) Right (Map.lookup x benv)
+      go benv1 benv2 e1 e2 = case (e1,e2) of
+        (Var x, Var y)         -> occ benv1 x == occ benv2 y
+        (App f x, App g y)     -> occ benv1 x == occ benv2 y && go benv1 benv2 f g
+        (Let x e1 e2, Let y e3 e4) -> go benv1' benv2' e1 e3 && go benv1' benv2' e2 e4
+          where
+            benv1' = bind x benv1
+            benv2' = bind y benv2
+        (Lam x e1', Lam y e2') -> go (Map.insert x (Map.size benv1) benv1)
+                                     (Map.insert y (Map.size benv2) benv2)
+                                     e1' e2'
+        (ConApp k1 xs, ConApp k2 ys) -> k1 == k2 && all (\(x,y) ->occ benv1 x == occ benv2 y) (zip xs ys)
+        (Case e1 alts1, Case e2 alts2) -> go benv1 benv2 e1 e2
+           && all (uncurry alt) (zip alts1 alts2)
+           where
+             alt (k1,xs1,rhs1) (k2,xs2,rhs2)
+               | let benv1' = foldr bind benv1 xs1
+               , let benv2' = foldr bind benv2 xs2
+               = k1 == k2 && go benv1' benv2' rhs1 rhs2
+        _                      -> False
 
 type Label = String
 label :: Expr -> Label

@@ -495,7 +495,7 @@ instance HasAlloc CT CValue where{-" ... \iffalse "-}
         cache <- CT get
         v' <- f (return v)
         cache' <- CT get
-        if v' ⊑ v && cache' ⊑ cache then return v' else go v'
+        if v' ⊑ v && cache' ⊑ cache then do { v'' <- f (return v'); if v' /= v'' then error "blah" else return v' } else go v'
 {-" \fi "-}
 
 runCFA :: CT CValue -> CValue
@@ -534,7 +534,7 @@ instance Lat FunCache where
         (Nothing, Just c2)            -> Just c2
         (Just (in_1,out1), Just (in_2,out2))
           | in_1 ⊑ in_2, out1 ⊑ out2  -> Just (in_2, out2)
-          | in_2 ⊑ in_1, out2 ⊑ out1  -> error "uh oh2" Just (in_1, out1)
+          | in_2 ⊑ in_1, out2 ⊑ out1  -> Just (in_1, out1)
           | otherwise                 -> error "uh oh"
 
 instance Show FunCache where
