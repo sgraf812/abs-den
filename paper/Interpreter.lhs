@@ -1,4 +1,4 @@
-%options ghci -pgmL lhs2TeX -optL--pre
+%options ghci -ihs -pgmL lhs2TeX -optL--pre
 %if style == newcode
 \begin{code}
 {-# LANGUAGE FunctionalDependencies #-}

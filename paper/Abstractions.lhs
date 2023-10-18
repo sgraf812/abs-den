@@ -1,4 +1,4 @@
-%options ghci -pgmL lhs2TeX -optL--pre -XPartialTypeSignatures
+%options ghci -ihs -pgmL lhs2TeX -optL--pre -XPartialTypeSignatures
 
 %if style == newcode
 %include custom.fmt
