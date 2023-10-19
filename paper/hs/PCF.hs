@@ -142,28 +142,55 @@ label e = evalState (lab e) 1
       Pred e -> Pred <$> lab e
       IfZero c t e -> IfZero <$> lab c <*> lab t <*> lab e
 
-{-
 type Env = Map.Map Name
+
+data Event = App1 | App2 | App3 | Unroll | Other
+class IsTrace τ where
+  step :: Event -> τ v -> τ v
+class IsValue τ v | v -> τ where
+  retStuck :: τ v
+  zero :: τ v
+  pred :: v -> τ v
+  succ :: v -> τ v
+  ifZero :: v -> τ v -> τ v -> τ v
+  retFun :: Label -> (v -> τ v) -> τ v
+  apply :: Label -> v -> (v -> τ v)
+class HasAlloc τ v | v -> τ where
+  alloc :: (τ v -> τ v) -> τ (τ v)
+    -- Could also have chosen to return τ v instead of τ (τ v); then this would
+    -- be literally `fix`
 
 eval :: forall τ v. (IsTrace τ, IsValue τ v, HasAlloc τ v) => PCF -> Env (τ v) -> τ v
 eval e env = case e.expr of
   VarP x -> lookup e.lbl (Map.findWithDefault stuck x env)
   AppP f a -> do
-    vf <- app1 (eval f env)
-    va <- app2 (eval a env) -- TODO: transitions??
---    d <- lookup <$> alloc (\_ld -> return va)
-    apply e.lbl vf (return va)
-  LamP x body -> injFun e.lbl (\d -> app3 (eval body (Map.insert x d env)))
+    vf <- step App1 (eval f env)
+    va <- step App2 (eval a env)
+    apply e.lbl vf va
+  LamP x body -> retFun e.lbl (\d -> step App3 (eval body (Map.insert x d env)))
   Y x f -> do
     ld <- alloc (\ld -> eval f (Map.insert x (unroll ld) env))
     unroll ld
-  Zero -> zero
+  Zero -> zero e.lbl
   Succ e -> eval e env >>= succ
   Pred e -> eval e env >>= pred
   IfZero c t e -> eval c env >>= \v -> ifZero v (eval t env) (eval e env)
 
 type D m = m (Value m)
 data Value m = Stuck | Lit Natural | Fun (D m -> D m)
+data T v = Step Event (T v) | Ret v deriving Functor
+
+instance Applicative T where
+  pure = Ret
+  (<*>) = ap
+instance Monad T where
+  Ret a >>= k = k a
+  Step e τ >>= k = Step e (τ >>= k)
+instance IsTrace T where step = Step
+
+instance Show a => Show (T a) where
+  show (Step e t) = show e ++ "->" ++ show t
+  show (Ret a) = "<"++show a++">"
 
 instance Show (Value m) where
   show (Fun _) = "λ"
@@ -171,63 +198,162 @@ instance Show (Value m) where
   show Stuck = "🗲"
 
 instance IsTrace τ => IsValue τ (Value τ) where
-  stuck = return Stuck
+  retStuck = return Stuck
   zero = return (Lit 0)
   succ (Lit n) = return (Lit (n+1))
-  succ _       = stuck
+  succ _       = retStuck
   pred (Lit 0) = return (Lit 0)
   pred (Lit n) = return (Lit (n-1))
-  pred _       = stuck
+  pred _       = retStuck
   ifZero (Lit 0) t _ = t
   ifZero (Lit _) _ e = e
-  ifZero _       _ _ = stuck
-  injFun _ = return . Fun
+  ifZero _       _ _ = retStuck
+  retFun _ = return . Fun
   apply _ (Fun f) d = f d
-  apply _ _       _ = stuck
-
-------------------------
--- Bare adjustments
-------------------------
-instance Applicative l => IsTrace (Bare l) where
-  step _ = Delay . pure
+  apply _ _       _ = retStuck
 
 -----------------------
 -- Concrete semantics
 -----------------------
-newtype Concrete m a = Concrete { unConcrete :: (m a) }
-  deriving newtype (Functor,Applicative,Monad)
+newtype Concrete τ v = Concrete { unConcrete :: (τ v) }
+  deriving newtype (Functor,Applicative,Monad,IsTrace)
 
-liftConc :: (forall a. m a -> m a) -> Concrete m a -> Concrete m a
-liftConc f (Concrete m) = Concrete (f m)
+instance HasAlloc (Concrete τ) (Value (Concrete τ)) where
+  alloc f = pure (fix f)
+    -- As I said in the class decl, this particular type class could be just
+    -- about providing a `fix`, in contrast to the Sestoft-style calculus
+    -- where we use this combinator to encode different evaluation strategies
 
-liftConcL :: Functor l => (l (m v) -> m v) -> l (Concrete m v) -> Concrete m v
-liftConcL f = Concrete . f . fmap unConcrete
-
-instance MonadCoindTrace m => MonadTrace (Concrete m) where
-  type L (Concrete m) = Later
-  unroll = liftConcL unroll
-  lookup l = liftConc (lookup l)
-  app1 = liftConc app1
-  app2 = liftConc app2
-  app3 = liftConc app3
-
-instance (MonadCoindTrace m) => MonadAlloc (Concrete m) (Value (Concrete m)) where
-  alloc f = pure (\_α -> löb f)
-
-instance Show (Concrete m a) where
+instance Show (Concrete τ v) where
   show _ = "_"
 
-evalConc :: MonadCoindTrace m => LExpr -> m (Value (Concrete m))
+evalConc :: IsTrace τ => Expr -> τ (Value (Concrete τ))
 evalConc e = unConcrete $ eval e Map.empty
 
 --------------------
--- 0CFA
+-- 0CFA+IntervalAnalysis
 --------------------
-newtype AllEqual a = AE a
-  deriving Show
-instance Eq (AllEqual a) where _ == _ = True
-instance Ord (AllEqual a) where compare _ _ = EQ
+-----------
+-- IV
+data InfiniteNumber a = NegInfinity | Number a | Infinity deriving (Eq,Ord)
+data IV = IV { lower :: InfiniteNumber Natural, upper :: InfiniteNumber Natural }
+  deriving Eq
 
+instance Lat IV where
+  bottom = IV Infinity NegInfinity
+  IV l1 u1 ⊔ IV l2 u2 = IV (min l1 l2) (max u1 u2)
+
+instance Show a => Show (InfiniteNumber a) where
+  show NefInfinity = "-∞"
+  show Infinity = "∞"
+  show (Number a) = show a
+instance Show IV where IV l u = "[" ++ show l ++ "," ++ show u ++ "]"
+
+-----------
+-- May-Powersets
+newtype Pow a = P { unP :: Set a } deriving (Eq, Ord,Show)
+
+instance Ord a => Lat (Pow a) where
+  bottom = Pow Set.empty
+  Pow l ⊔ Pow r = Pow (Set.union l r)
+
+type CValue = Pow Label
+type CD = CT CValue
+
+-----------
+-- FunCache
+data FunCache = FC (Maybe (CValue, CValue)) (CValue -> CD)
+instance Eq FunCache where
+  FC cache1 _ == FC cache2 _ = cache1 == cache2
+instance Lat FunCache where
+  bottom = FC Nothing (const (return bottom))
+  FC cache1 f1 ⊔ FC cache2 f2 = FC cache' f'
+    where
+      f' d = do
+        v <- d
+        lv <- f1 (return v)
+        rv <- f2 (return v)
+        return (lv ⊔ rv)
+      cache' = case (cache1,cache2) of
+        (Nothing, Nothing)            -> Nothing
+        (Just c1, Nothing)            -> Just c1
+        (Nothing, Just c2)            -> Just c2
+        (Just (in_1,out1), Just (in_2,out2))
+          | in_1 ⊑ in_2, out1 ⊑ out2  -> Just (in_2, out2)
+          | in_2 ⊑ in_1, out2 ⊑ out1  -> Just (in_1, out1)
+          | otherwise                 -> error "uh oh"
+
+instance Show FunCache where
+  show (FC Nothing _)           = "[]"
+  show (FC (Just (in_, out)) _) = "[" ++ show in_ ++ " \\mapsto " ++ show out ++ "]"
+
+-----------
+-- Cache
+data Cache = Cache { cIVs :: Label :-> IV, cFuns :: Label :-> FunCache }
+  deriving Eq
+
+instance Eq Cache where
+  c1 == c2 = cFuns c1 == cFuns c2 && cIVs c1 == cIVs c2
+
+instance Lat Cache where
+  bottom = Cache Map.empty Map.empty
+  c1 ⊔ c2 = Cache (f cIVs) (f cFuns)
+    where
+      f fld = fld c1 ⊔ fld c2
+
+----------
+-- CT (the trace monad)
+newtype CT a = CT { unCT :: State Cache a } deriving (Functor,Applicative,Monad)
+instance IsTrace CT where step _ = id
+instance IsValue CT CValue where
+  retStuck = return bottom
+  zero =
+  retFun ell f = do updCacheFun ell f; return (P (Set..singleton ell))
+  apply (Pow ells) d = d >>= \v ->
+    lub <$> traverse (\ell -> cachedCall ell v) (Set.toList ells)
+instance HasAlloc CT CValue where
+  alloc f = fmap return (go bottom)
+    where
+      go :: CValue -> CT CValue
+      go v = do
+        cache <- CT get
+        v' <- f (return v)
+        cache' <- CT get
+        if v' ⊑ v && cache' ⊑ cache then do { v'' <- f (return v'); if v' /= v'' then error "blah" else return v' } else go v'
+
+runCFA :: CT CValue -> CValue
+runCFA (CT m) = evalState m (Cache bottom bottom)
+
+overIVs :: ((Label :-> IV) -> (Label :-> IV)) -> Cache -> Cache
+overIVs f (Cache ivs funs) = Cache (f ivs) funs
+
+overFuns :: ((Label :-> FunCache) -> (Label :-> FunCache)) -> Cache -> Cache
+overFuns f (Cache ivs funs) = Cache ivs (f funs)
+
+updCacheIV :: Label -> IV -> CT ()
+updCacheIV ell iv = CT $ modify $ overIVs $ \ivs ->
+  Map.singleton ell iv ⊔ ivs
+
+updCacheFun :: Label -> (CD -> CD) -> CT ()
+updCacheFun ell f = CT $ modify $ overFuns $ \funs ->
+  Map.singleton ell (FC Nothing f) ⊔ funs
+
+cachedCall :: Label -> CValue -> CT CValue
+cachedCall ell v = CT $ do
+  FC cache f <- gets (Map.findWithDefault bottom ell . cFuns)
+  let call in_ out = do
+        let in_' = in_ ⊔ v      com merge all Labels that reach the lambda var ell!
+        modify $ overFuns (Map.insert ell (FC (Just (in_',out)) f))
+        out' <- unCT (f (return in_'))
+        modify $ overFuns (Map.insert ell (FC (Just (in_',out')) f))
+        return out'
+  case cache of
+    Just (in_,out)
+      | v ⊑ in_   -> return out
+      | otherwise -> call in_ out
+    Nothing       -> call bottom bottom
+
+{-
 type AbsD = CFA (Pow SynVal)
 data SynVal = SomeLit | SomeLam Label (AllEqual (AbsD -> AbsD))
   deriving (Eq, Ord)
@@ -282,7 +408,7 @@ instance IsValue CFA (Pow SynVal) where
   succ _ = return $ Pow (Set.singleton SomeLit)
   pred _ = return $ Pow (Set.singleton SomeLit)
   ifZero _ t e = (⊔) <$> t <*> e
-  injFun l f = do
+  retFun l f = do
     return (Pow (Set.singleton (SomeLam l (AE f))))
   apply l head_lams arg = do
     addCall l head_lams
@@ -371,9 +497,9 @@ instance IsValue CachedCFA (Pow SynVal) where
   succ = liftCached . succ
   pred = liftCached . pred
   ifZero _ t e = (⊔) <$> t <*> e -- same impl, but more caching
-  injFun l f = do
+  retFun l f = do
     addFun l f
-    liftCached $ injFun l (runCached . f . liftCached)
+    liftCached $ retFun l (runCached . f . liftCached)
   apply l head_lams arg = do
     liftCached $ addCall l head_lams
     let do_one SomeLit = stuck

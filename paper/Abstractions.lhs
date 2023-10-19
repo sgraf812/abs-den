@@ -504,8 +504,6 @@ runCFA (CT m) = evalState m (Cache bottom bottom)
 
 %if style == newcode
 \begin{code}
-unP :: Pow a -> Set a
-unP (Pow s) = s
 deriving instance Eq a => Eq (Pow a)
 deriving instance Ord a => Ord (Pow a)
 

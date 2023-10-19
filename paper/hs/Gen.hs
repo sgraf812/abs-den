@@ -79,6 +79,8 @@ openExprShadow env = Gen.sized $ \size ->
     , [ ((unSize size `div` 3) + 1, app env)  | not $ null $ boundVars env ]
     , [ ((unSize size `div` 3) + 1, conApp env)  | not $ null $ boundVars env ]
     , [ ((unSize size `div` 3) + 1, case_ env)  | not $ null $ boundVars env ]
+--    , [ (0, conApp env)  | not $ null $ boundVars env ]
+--    , [ (0, case_ env)  | not $ null $ boundVars env ]
     ]
 
 myElement :: HasCallStack => [a] -> Gen a
