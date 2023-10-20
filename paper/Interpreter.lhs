@@ -109,8 +109,8 @@ To a first approximation, we can think of it as a type |D|, defined as
 \begin{code}
 type D τ = τ (Value τ)
 data T a = Step Event (T a) | Ret a
-data Event  = Lookup Name | Update | App1 | App2
-            | Bind | Case1 | Case2 | Let1
+data Event  =  Lookup Name | Update | App1 | App2
+            |  Bind | Case1 | Case2 | Let1
 data Value τ = Stuck | Fun (D τ -> D τ) | Con Tag [D τ]
 \end{code}
 %endif
