@@ -27,6 +27,8 @@
 %format φ2 = "\varid{\ensuremath{\varphi_2}}"
 %format μ = "\varid{\ensuremath{\mu}}"
 %format θ = "\varid{\ensuremath{\theta}}"
+%format θ1 = "\varid{\ensuremath{\theta_1}}"
+%format θ2 = "\varid{\ensuremath{\theta_2}}"
 %format :-> = "\rightharpoonup"
 %format :->: = ":\rightarrow:"
 %format ∈ = "\in"
@@ -36,7 +38,6 @@
 %format ext(rho)(x)(d) = rho "[" x "\mapsto" d "]"
 %format exts(rho)(xs)(ds) = rho "[\many{" xs "\mapsto" ds "}]"
 %format emptyP = "\varid{\ensuremath{\varnothing}}"
-%format singleP(a) = "\{" a "\}"
 %format ell = "\varid{\ensuremath{\ell}}"
 %format ells = "\varid{\ensuremath{\many{\ell}}}"
 %format evalP(a)(b) = "\mathcal{S}_{\scriptscriptstyle\mathsf{P}}\denot{" a "}_{" b "}"
@@ -45,11 +46,14 @@
 %format <|> = "\mathbin{<\mspace{-6mu}|\mspace{-6mu}>}"
 %format com = "\text{-}\text{-}"
 
+%format bottom = "\bot"
 %format d1
 %format d2
 %format e1
 %format e2
 %format er = "\varid{\ensuremath{e_r}}"
+%format v1
+%format v2
 %format us1
 %format us2
 %format App1

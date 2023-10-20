@@ -454,33 +454,26 @@ $\perform{closedType $ eval (read "λx. let y = x in y x") emp}$
 $\perform{closedType $ eval (read "let i = λx.x in let o = Some(i) in o") emp}$
 < ghci> closedType $ eval (read "let x = x in x") emp
 $\perform{closedType $ eval (read "let x = x in x") emp}$
+
+
 \begin{figure}
-\begin{spec}
-type Label = String
-class IsValue τ v | v -> τ where
-  retCon  :: {-" \highlight{ "-}Label -> {-" {}} "-} Tag -> [τ v] -> τ v
-  retFun  :: {-" \highlight{ "-}Label -> {-" {}} "-} (τ v -> τ v) -> τ v
-\end{spec}
-
 \begin{code}
-data Pow a = Pow (Set a); singleP ell = Pow (Set.singleton ell)
-type CValue = Pow Label
-type CD = CT CValue
-
-type ConCache = Tag :-> [CValue]
-data FunCache = FC (Maybe (CValue, CValue)) (CD -> CD)
+data Pow a = P (Set a); type CValue = Pow Label
+type ConCache = {-" ... \iffalse "-}(Tag, [CValue]){-" \fi "-}; data FunCache = {-" ... \iffalse "-}FC (Maybe (CValue, CValue)) (CD -> CD){-" \fi "-}
 data Cache = Cache (Label :-> ConCache) (Label :-> FunCache)
+data CT a = CT (State Cache a); type CD = CT CValue
 
-data CT a = CT (State Cache a)
 instance IsTrace CT where step _ = id
 
+updFunCache :: Label -> (CD -> CD) -> CT ()
 instance IsValue CT CValue where
-  retStuck = return bottom
-  retCon ell k ds  = do vs <- sequence ds; updCacheCon ell k vs; return (singleP ell)
-  retFun ell f     = do updCacheFun ell f; return (singleP ell)
-  apply (Pow ells) d = d >>= \v ->
+  retFun ell f = do updFunCache ell f; return (P (Set.singleton ell))
+  apply (P ells) d = d >>= \v ->
     lub <$> traverse (\ell -> cachedCall ell v) (Set.toList ells)
-  select (Pow ells) fs = {-" ... \iffalse "-}do
+  {-" ... \iffalse "-}
+  retStuck = return bottom
+  retCon ell k ds = do vs <- sequence ds; updConCache ell k vs; return (P (Set.singleton ell))
+  select (P ells) fs = do
     cache <- CT get
     vals <- sequence [ f (map return vs) | ell <- Set.toList ells, Just cons <- [Map.lookup ell (cCons cache)]
                      , (k,f) <- fs, Just vs <- [Map.lookup k cons] ]
@@ -498,7 +491,7 @@ instance HasAlloc CT CValue where{-" ... \iffalse "-}
         if v' ⊑ v && cache' ⊑ cache then do { v'' <- f (return v'); if v' /= v'' then error "blah" else return v' } else go v'
 {-" \fi "-}
 
-runCFA :: CT CValue -> CValue
+runCFA :: CD -> CValue
 runCFA (CT m) = evalState m (Cache bottom bottom)
 \end{code}
 
@@ -508,12 +501,12 @@ deriving instance Eq a => Eq (Pow a)
 deriving instance Ord a => Ord (Pow a)
 
 instance Show (CValue) where
-  showsPrec _ (Pow s) =
+  showsPrec _ (P s) =
     showString "\\{" . showSep (showString ", ") (map showString (Set.toList s)) . showString "\\}"
 
 instance Ord a => Lat (Pow a) where
-  bottom = Pow Set.empty
-  Pow l ⊔ Pow r = Pow (Set.union l r)
+  bottom = P Set.empty
+  P l ⊔ P r = P (Set.union l r)
 
 instance Eq FunCache where
   FC cache1 _ == FC cache2 _ = cache1 == cache2
@@ -578,12 +571,11 @@ cFuns (Cache _ funs) = funs
 overFuns :: ((Label :-> FunCache) -> (Label :-> FunCache)) -> Cache -> Cache
 overFuns f (Cache cons funs) = Cache cons (f funs)
 
-updCacheCon :: Label -> Tag -> [CValue] -> CT ()
-updCacheCon ell k vs = CT $ modify $ overCons $ \cons ->
-  Map.singleton ell (Map.singleton k vs) ⊔ cons
+updConCache :: Label -> Tag -> [CValue] -> CT ()
+updConCache ell k vs = CT $ modify $ overCons $ \cons ->
+  Map.singleton ell (k, vs) ⊔ cons
 
-updCacheFun :: Label -> (CD -> CD) -> CT ()
-updCacheFun ell f = CT $ modify $ overFuns $ \funs ->
+updFunCache ell f = CT $ modify $ overFuns $ \funs ->
   Map.singleton ell (FC Nothing f) ⊔ funs
 
 cachedCall :: Label -> CValue -> CT CValue
@@ -607,14 +599,54 @@ cachedCall ell v = CT $ do
 \label{fig:cfa}
 \end{figure}
 
-\subsection{0CFA}
+\subsection{Control-flow Analysis}
 
 In our last example, we will discuss a classic benchmark of abstract
-higher-order interpreters: Control-flow analysis.
-For us, this example serves two purposes:
-The first is that our approach can be applied to other languages such as PCF as
-well; in fact, most abstractions carry over unchanged.
-The second is that 0CFA becomes somewhat peculiar
+higher-order interpreters: Control-flow analysis (CFA).
+To facilitate CFA, we have to revise the |IsValue| class to pass down a
+\emph{label} from allocation sites, which is to serve as the syntactic proxy of
+the particular control-flow node in case of lambdas:
+\begin{spec}
+type Label = String
+class IsValue τ v | v -> τ where
+  retCon  :: {-" \highlight{ "-}Label -> {-" {}} "-} Tag -> [τ v] -> τ v
+  retFun  :: {-" \highlight{ "-}Label -> {-" {}} "-} (τ v -> τ v) -> τ v
+\end{spec}
+\noindent
+We omit how to forward labels appropriately in |eval| and how to adjust
+|IsValue| instances.
+
+\Cref{fig:cfa} gives a rough outline of how we use this extension to define a 0CFA:%
+\footnote{As before, the extract of this document contains the full, executable
+definition.}
+An abstract |CValue| is the usual set of |Label|s that over-approximates the
+syntactic values an expression might evaluate to.
+The trace abstraction |CT| is a stateful computation maintaining a |Cache| that
+approximates the shape of values at a particular |Label|.
+For constructor values, that is simply a pair of the |Tag| and |CValue|s for the fields.
+For a lambda value, that is \emph{the semantic control-flow abstraction of
+the function itself}, of type |CD -> CD| (populated by |updFunCache|) plus a
+single point |(v1,v2)| of its graph (k-CFA would have one point per contour),
+functioning as the function's \emph{abstract transformer}.
+
+At call sites in |apply|, we will iterate over each function label and attempt a
+|cachedCall|.
+In doing so, we look up the label's transformer and sees if the single point
+is applicable for the incoming value |v|, \eg, if |v ⊑ v1|, and if so return the
+cached result |v2| straight away.
+Otherwise, the function stores for the label is called at |v| and the result is
+cached as the new transformer.
+An allocation site might be re-analysed multiple times with monotonically increasing
+environment due to fixed-point iteration in |alloc|.
+Whenever that happens, the point that has been cached for that allocation
+site is cleared, because the function might have increased its result.
+Then re-evaluating the function at the next |cachedCall| is mandatory.
+
+A common challenge with instances of CFA is proving that the analysis terminates
+on all inputs.
+Our framework makes this obligation especially apparent, because semantic
+control-flow abstractions |CD -> CD| stored in |Cache|s induce unguarded cycles
+into |CD|.
 
 < ghci> runCFA $ eval (read "let i = λx.x in let j = λy.y in i j") emp
 $\perform{runCFA $ eval (read "let i = λx.x in let j = λy.y in i j") emp}$
