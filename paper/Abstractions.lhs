@@ -475,8 +475,8 @@ instance IsValue CT CValue where
   retCon ell k ds = do vs <- sequence ds; updConCache ell k vs; return (P (Set.singleton ell))
   select (P ells) fs = do
     cache <- CT get
-    vals <- sequence [ f (map return vs) | ell <- Set.toList ells, Just cons <- [Map.lookup ell (cCons cache)]
-                     , (k,f) <- fs, Just vs <- [Map.lookup k cons] ]
+    vals <- sequence [ f (map return vs) | ell <- Set.toList ells, Just (k',vs) <- [Map.lookup ell (cCons cache)]
+                     , (k,f) <- fs, k == k' ]
     return (lub vals)
 {-" \fi "-}
 
@@ -552,6 +552,12 @@ instance Applicative CT where
 
 instance Monad CT where
   CT m >>= k = CT (m >>= unCT . k)
+
+-- | This instance is a huge hack, but it works.
+-- If we were serious, we should have used the flat lattice over `Tag`.
+instance Lat Tag where
+  bottom = error "no bottom Tag"
+  k1 ⊔ k2 = if k1 /= k2 then error "k1 /= k2" else k1
 
 instance Lat a => Lat [a] where
   bottom = []
