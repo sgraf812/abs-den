@@ -9,6 +9,7 @@
 {-# LANGUAGE PartialTypeSignatures #-}
 {-# LANGUAGE LambdaCase #-}
 {-# LANGUAGE QuantifiedConstraints #-}
+{-# LANGUAGE UndecidableInstances #-}
 
 module Abstractions where
 
@@ -459,14 +460,14 @@ $\perform{closedType $ eval (read "let x = x in x") emp}$
 \begin{figure}
 \begin{code}
 data Pow a = P (Set a); type CValue = Pow Label
-type ConCache = {-" ... \iffalse "-}(Tag, [CValue]){-" \fi "-}; data FunCache = {-" ... \iffalse "-}FC (Maybe (CValue, CValue)) (CD -> CD){-" \fi "-}
-data Cache = Cache (Label :-> ConCache) (Label :-> FunCache)
-data CT a = CT (State Cache a); type CD = CT CValue
+type ConCache = {-" ... \iffalse "-}(Tag, [CValue]){-" \fi "-}; data FunCache τ = {-" ... \iffalse "-}FC (Maybe (τ CValue, τ CValue)) (CD τ -> CD τ){-" \fi "-}
+data Cache τ = Cache (Label :-> ConCache) (Label :-> FunCache τ)
+data CT τ a = CT (StateT (Cache τ) τ a); type CD τ = CT τ CValue
 
-instance IsTrace CT where step _ = id
+instance IsTrace τ => IsTrace (CT τ) where step e (CT (StateT m)) = CT $ StateT $ step . m
 
-updFunCache :: Label -> (CD -> CD) -> CT ()
-instance IsValue CT CValue where
+updFunCache :: Label -> (CD τ -> CD τ) -> CT τ ()
+instance IsTrace τ => IsValue (CT τ) CValue where
   retFun ell f = do updFunCache ell f; return (P (Set.singleton ell))
   apply (P ells) d = d >>= \v ->
     lub <$> traverse (\ell -> cachedCall ell v) (Set.toList ells)
@@ -480,18 +481,18 @@ instance IsValue CT CValue where
     return (lub vals)
 {-" \fi "-}
 
-instance HasAlloc CT CValue where{-" ... \iffalse "-}
+instance IsTrace τ => HasAlloc (CT τ) CValue where{-" ... \iffalse "-}
   alloc f = fmap return (go bottom)
     where
-      go :: CValue -> CT CValue
-      go v = do
-        cache <- CT get
-        v' <- f (return v)
-        cache' <- CT get
-        if v' ⊑ v && cache' ⊑ cache then do { v'' <- f (return v'); if v' /= v'' then error "blah" else return v' } else go v'
+      one :: τ (Cache, CValue) -> τ (Cache, CValue)
+      one = do (cache, v) <- τ; runStateT (unCT (f (return v))) cache
+      go :: τ (Cache, CValue) -> τ (Cache, CValue)
+      go τ = do
+        let τ' = one τ
+        if τ' ⊑ τ then do { τ'' <- one τ'; if τ' /= τ'' then error "blah" else return τ' } else go τ'
 {-" \fi "-}
 
-runCFA :: CD -> CValue
+runCFA :: CD τ -> CValue
 runCFA (CT m) = evalState m (Cache bottom bottom)
 \end{code}
 
@@ -508,9 +509,9 @@ instance Ord a => Lat (Pow a) where
   bottom = P Set.empty
   P l ⊔ P r = P (Set.union l r)
 
-instance Eq FunCache where
+instance (forall v. Eq v => Eq (τ v)) => Eq (FunCache τ) where
   FC cache1 _ == FC cache2 _ = cache1 == cache2
-instance Lat FunCache where
+instance (forall v. Lat v => Lat (τ v)) => Lat (FunCache τ) where
   bottom = FC Nothing (const (return bottom))
   FC cache1 f1 ⊔ FC cache2 f2 = FC cache' f'
     where
@@ -528,29 +529,28 @@ instance Lat FunCache where
           | in_2 ⊑ in_1, out2 ⊑ out1  -> Just (in_1, out1)
           | otherwise                 -> error "uh oh"
 
-instance Show FunCache where
+instance (forall v. Show v => Show (τ v)) => Show (FunCache τ) where
   show (FC Nothing _)           = "[]"
   show (FC (Just (in_, out)) _) = "[" ++ show in_ ++ " \\mapsto " ++ show out ++ "]"
 
-instance Eq Cache where
-  c1 == c2 = cFuns c1 == cFuns c2 && cCons c1 == cCons c2
+deriving instance (forall v. Eq v => Eq (τ v)) => Eq (Cache τ)
 
-instance Lat Cache where
+instance (forall v. Lat v => Lat (τ v)) => Lat (Cache τ) where
   bottom = Cache Map.empty Map.empty
   c1 ⊔ c2 = Cache (f cCons) (f cFuns)
     where
       f fld = fld c1 ⊔ fld c2
 
-unCT :: CT a -> State Cache a
+unCT :: CT τ a -> StateT (Cache τ) τ a
 unCT (CT m) = m
 
-deriving instance Functor CT
+deriving instance Functor (CT τ)
 
-instance Applicative CT where
+instance Applicative τ => Applicative (CT τ) where
   pure = CT . pure
   (<*>) = ap
 
-instance Monad CT where
+instance Monad τ => Monad (CT τ) where
   CT m >>= k = CT (m >>= unCT . k)
 
 -- | This instance is a huge hack, but it works.
@@ -565,26 +565,26 @@ instance Lat a => Lat [a] where
   xs ⊔ [] = xs
   (x:xs) ⊔ (y:ys) = x ⊔ y : xs ⊔ ys
 
-cCons :: Cache -> Label :-> ConCache
+cCons :: Cache τ -> Label :-> ConCache
 cCons (Cache cons _) = cons
 
-overCons :: ((Label :-> ConCache) -> (Label :-> ConCache)) -> Cache -> Cache
+overCons :: ((Label :-> ConCache) -> (Label :-> ConCache)) -> Cache τ -> Cache τ
 overCons f (Cache cons funs) = Cache (f cons) funs
 
-cFuns :: Cache -> Label :-> FunCache
+cFuns :: Cache τ -> Label :-> FunCache τ
 cFuns (Cache _ funs) = funs
 
-overFuns :: ((Label :-> FunCache) -> (Label :-> FunCache)) -> Cache -> Cache
+overFuns :: ((Label :-> FunCache τ) -> (Label :-> FunCache τ)) -> Cache τ -> Cache τ
 overFuns f (Cache cons funs) = Cache cons (f funs)
 
-updConCache :: Label -> Tag -> [CValue] -> CT ()
+updConCache :: Label -> Tag -> [CValue] -> CT τ ()
 updConCache ell k vs = CT $ modify $ overCons $ \cons ->
   Map.singleton ell (k, vs) ⊔ cons
 
 updFunCache ell f = CT $ modify $ overFuns $ \funs ->
   Map.singleton ell (FC Nothing f) ⊔ funs
 
-cachedCall :: Label -> CValue -> CT CValue
+cachedCall :: Label -> τ CValue -> CT τ CValue
 cachedCall ell v = CT $ do
   FC cache f <- gets (Map.findWithDefault bottom ell . cFuns)
   let call in_ out = do
