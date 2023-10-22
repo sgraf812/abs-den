@@ -240,14 +240,14 @@ eval e ρ = case e of
 class Monad τ => IsTrace τ where
   step :: Event -> τ v -> τ v
 
-class IsValue τ v | v -> τ where
+class IsValue τ v where
   retStuck :: τ v
   retFun :: {-" \iffalse "-}Label -> {-" \fi "-}(τ v -> τ v) -> τ v
   apply :: v -> τ v -> τ v
   retCon :: {-" \iffalse "-}Label -> {-" \fi "-}Tag -> [τ v] -> τ v
   select :: v -> [(Tag, [τ v] -> τ v)] ->  τ v
 
-class HasAlloc τ v | v -> τ where
+class HasAlloc τ v where
   alloc :: (τ v -> τ v) -> τ (τ v)
 \end{code}
 \subcaption{Final encoding of traces and values}
@@ -343,14 +343,14 @@ Which is in direct correspondence to the call-by-name small-step trace
   \end{array}
 \end{array}\]
 \noindent
-While |IsTrace| is exactly a final encoding of |T|, |IsValue| is not quite the
-same to |Value|:
-For one, the ``injections'' |retStuck|, |retFun| and |retCon| return a
+While |IsTrace| is exactly a final encoding of |T|, |IsValue| is only
+\emph{almost} one of |Value|.
+The ``injections'' |retStuck|, |retFun| and |retCon| return a
 |D = T Value|, not simply a |Value|; a curiosity that we will revisit in
-\Cref{fig:abstractions} when we consider abstract interpretations of |Value|
-that don't necessarily instantiate these methods with |return . _|.
-On the other hand, the ``eliminators'' |apply| and |select| can be implemented
-in the obvious way for |T|.
+\Cref{fig:abstractions} when we consider abstract interpretations that
+\emph{summarise} a |Value| in different ways.
+The ``eliminators'' |apply| and |select| have the expected type and structure
+dictated by a final encoding, where a ``type error'' results in |retStuck|.
 The omitted definition for |select| finds the |alt| in |alts| that matches the
 |Tag| of the |Con| value |v| and applies said |alt| to the field denotations of
 |v|; failure to perform any of these steps results in |retStuck|.%
@@ -363,10 +363,7 @@ The third type class is |HasAlloc|, a most significant knob to our
 interpreter because it fixes a particular evaluation strategy.
 We will play with this knob in \Cref{sec:evaluation-strategies}.
 Like |IsValue|, it is parameterised both over the type of values
-\emph{as well as} the type of trace, where the syntax | || v -> τ| is a
-functional dependency indicating that the type of |v| completely determines |τ|.
-In other words: The choice of value will always be specific to a particular type
-of trace, the same way that |Value| hard-codes its use of |T|.
+\emph{as well as} the type of trace.
 
 The |alloc| method of |HasAlloc| is used to give meaning to recursive let
 bindings; as such its type is \emph{almost} an instance of the venerable least
