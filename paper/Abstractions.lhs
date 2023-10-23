@@ -52,10 +52,10 @@ instance (Ord k, Lat v) => Lat (k :-> v) where bottom = emp; (⊔) = Map.unionWi
 
 data U = U0 | U1 | Uω; instance Lat U where {-" ... \iffalse "-}
   bottom = U0
-  U0 ⊔ u = u
-  u ⊔ U0 = u
-  U1 ⊔ U1 = U1
-  _ ⊔ _ = Uω
+  U0  ⊔  u   = u
+  u   ⊔  U0  = u
+  U1  ⊔  U1  = U1
+  _   ⊔  _   = Uω
 {-" \fi "-}
 data UT a = Uses (Name :-> U) a
 
@@ -158,14 +158,14 @@ abstraction is a precise fold over the program trace, thanks to the concrete
 
 If we want to assess usage cardinality statically, we have to find a more abstract
 representation of |Value|.
-\Cref{fig:abs-usg} gives on such candidate |UValue|, a type containing a single
-inhabitant |Nop|, so it is the simplest abstraction possible.
-It is a matter of simple calculation to see that |eval e ({-"\tr_Δ"-}) :: UD|
-indeed computes the same result as $\semusg{\pe}_{\tr_Δ}$ (given an appropriate
-encoding of $\tr_Δ$ as a |Name :-> UD| and an |e| without data types), once we
-have understood the type class instances at play.
+\Cref{fig:abs-usg} gives one such candidate |UValue|, a type containing a single
+inhabitant |Nop|, so it is the crudest possible summary of a concrete |Value|.
+It is a matter of simple calculation to see that |eval e trD :: UD|
+indeed computes the same result as $\semusg{\pe}_{\tr_Δ}$ from \Cref{fig:usage}
+(given an appropriate encoding of $\tr_Δ$ as a |Name :-> UD| and an |e| without
+data types), once we have understood the type class instances at play.
 
-This abstraction is fundamentally encoded in the |IsValue| instance:
+The |IsValue| instance calculates an abstract summary:
 |retStuck|,|retFun| and |retCon| correspond to abstraction functions from
 concrete value to abstract representation, and |apply| and |select| encode
 the concretisation of operations on functions and constructors in terms of
@@ -196,7 +196,7 @@ uses inside the function body at any potential call site.
 The final key to a terminating definition is in swapping out the fixpoint
 combinator via a |HasAlloc| instance for |UValue| that computes an
 order-theoretic Kleene fixpoint (\cf. \Cref{fig:lat}) instead of |fix| (which
-only works for a productive |f|).
+only works for a corecursive |f|).
 The Kleene fixpoint exists by monotonicity and finiteness of |UD|.
 
 Our naive usage analysis yields the same result as the semantic usage
@@ -216,6 +216,11 @@ $\perform{eval (read "let z = Z() in case Z() of { Z() -> Z(); S(n) -> z }") emp
 < ghci> eval (read "let z = Z() in case Z() of { Z() -> Z(); S(n) -> z }") emp :: UD
 $\perform{eval (read "let z = Z() in case Z() of { Z() -> Z(); S(n) -> z }") emp  :: UD}$
 
+< ghci> eval (read "let i = λy.y in i x x") (ext emp "x" bottom) :: UD
+$\perform{eval (read "let i = λy.y in i x x") (ext emp "x" bottom)  :: UD}$
+
+< ghci> runCFA $ eval (read "let f = λn. let i = λy.y in case n of { Z() -> Z(); S(m) -> let a = i m in let r = f a in S(r)} in let z = Z() in let o = S(z) in f o") emp
+$\perform{runState (unCT (eval (read "let f = λn. let i = λy.y in case n of { Z() -> Z(); S(m) -> let a = i m in let r = f a in S(r) } in let z = Z() in let o = S(z) in let t = S(o) in let g = f t in f z") emp)) bottom :: (CValue, Cache)}$
 \begin{figure}
 \begin{code}
 data Type = Type :->: Type | TyConApp TyCon [Type] | TyVar Name | Wrong
@@ -541,6 +546,8 @@ instance Lat Cache where
     where
       f fld = fld c1 ⊔ fld c2
 
+deriving instance Show Cache
+
 unCT :: CT a -> State Cache a
 unCT (CT m) = m
 
@@ -609,9 +616,15 @@ cachedCall ell v = CT $ do
 
 In our last example, we will discuss a classic benchmark of abstract
 higher-order interpreters: Control-flow analysis (CFA).
+CFA calculates an approximation of which values an expression might evaluate to,
+so as to narrow down the control-flow edges at application sites.
+The resulting control-flow graph conservatively approximates the control-flow of
+the whole program and can be used to apply classic intraprocedural analyses such
+as interval analysis in a higher-order setting.
+
 To facilitate CFA, we have to revise the |IsValue| class to pass down a
 \emph{label} from allocation sites, which is to serve as the syntactic proxy of
-the particular control-flow node in case of lambdas:
+the value's control-flow node:
 \begin{spec}
 type Label = String
 class IsValue τ v | v -> τ where
@@ -625,48 +638,97 @@ We omit how to forward labels appropriately in |eval| and how to adjust
 \Cref{fig:cfa} gives a rough outline of how we use this extension to define a 0CFA:%
 \footnote{As before, the extract of this document contains the full, executable
 definition.}
-An abstract |CValue| is the usual set of |Label|s that over-approximates the
-syntactic values an expression might evaluate to.
-The trace abstraction |CT| is a stateful computation maintaining a |Cache| that
-approximates the shape of values at a particular |Label|.
-For constructor values, that is simply a pair of the |Tag| and |CValue|s for the fields.
-For a lambda value, that is \emph{the semantic control-flow abstraction of
-the function itself}, of type |CD -> CD| (populated by |updFunCache|) plus a
-single point |(v1,v2)| of its graph (k-CFA would have one point per contour),
-functioning as the function's \emph{abstract transformer}.
+An abstract |CValue| is the usual set of |Label|s standing in for a syntactic
+value.
+The trace abstraction |CT| maintains as state a |Cache| that approximates the
+shape of values at a particular |Label|, an abstraction of the heap.
+For constructor values, the shape is simply a pair of the |Tag| and |CValue|s
+for the fields.
+For a lambda value, the shape is its abstract control-flow transformer, of
+type |CD -> CD| (populated by |updFunCache|), plus a single point |(v1,v2)| of
+its graph (k-CFA would have one point per contour), serving as the transformer's
+summary.
 
 At call sites in |apply|, we will iterate over each function label and attempt a
 |cachedCall|.
 In doing so, we look up the label's transformer and sees if the single point
 is applicable for the incoming value |v|, \eg, if |v ⊑ v1|, and if so return the
 cached result |v2| straight away.
-Otherwise, the function stores for the label is called at |v| and the result is
-cached as the new transformer.
+Otherwise, the transformer stored for the label is evaluated at |v| and the
+result is cached as the new summary.
 An allocation site might be re-analysed multiple times with monotonically increasing
 environment due to fixed-point iteration in |alloc|.
 Whenever that happens, the point that has been cached for that allocation
 site is cleared, because the function might have increased its result.
 Then re-evaluating the function at the next |cachedCall| is mandatory.
 
-A common challenge with instances of CFA is proving that the analysis terminates
-on all inputs.
-Our framework makes this obligation especially apparent, because semantic
-control-flow abstractions |CD -> CD| stored in |Cache|s induce unguarded cycles
-into |CD|.
+Note that a |CD| transitively (through |Cache|) recurses into |CD -> CD|, thus
+introducing vicious cycles in negative position.
+This highlights a common challenge with instances of CFA: The obligation to
+prove that the analysis actually terminates on all inputs; an obligation that we
+will gloss over in this work.
+\sg{Surprisingly tricky due to mutual recursion; but I'm sure this has been done
+before in one form or another, hence boring.}
+
+We conclude with some examples.
+The first two demonstrate a precise and an imprecise result, respectively.
+The latter is due to the fact that both |i| and |j| flow into |x|.
 
 < ghci> runCFA $ eval (read "let i = λx.x in let j = λy.y in i j") emp
 $\perform{runCFA $ eval (read "let i = λx.x in let j = λy.y in i j") emp}$
 < ghci> runCFA $ eval (read "let i = λx.x in let j = λy.y in i i j") emp
 $\perform{runCFA $ eval (read "let i = λx.x in let j = λy.y in i i j") emp}$
+
+The |HasAlloc| instance guarantees termination for diverging programs and cyclic
+data:
 < ghci> runCFA $ eval (read "let ω = λx. x x in ω ω") emp
 $\perform{runCFA $ eval (read "let ω = λx. x x in ω ω") emp}$
-< ghci> runCFA $ eval (read "let x = x in x x") emp
-$\perform{runCFA $ eval (read "let x = x in x x") emp}$
 < ghci> runCFA $ eval (read "let x = let y = S(x) in S(y) in x") emp
 $\perform{runCFA $ eval (read "let x = let y = S(x) in S(y) in x") emp}$
-< ghci> runCFA $ eval (read "let f = λx.λy.y in let g = λz.z in let ω = ω in f ω f") emp
-$\perform{runCFA $ eval (read "let f = λx.λy.y in let g = λz.z in let ω = ω in f ω f") emp}$
-< ghci> runCFA $ eval (read "let f = λx. let g = λy. f y in g f in f f") emp
-$\perform{runCFA $ eval (read "let f = λx. let g = λy. f y in g f in f f") emp}$
-< ghci> runCFA $ eval (read "let f = λx. case x of { Z() -> x; S(n) -> f n } in let z = Z() in f z") emp
-$\perform{runCFA $ eval (read "let f = λx. case x of { Z() -> x; S(n) -> f n } in let z = Z() in f z") emp}$
+
+\subsection{Discussion}
+
+By recovering usage analysis as an abstraction of |eval|, we have achieved our
+main goal:
+To derive a structurally-defined static analysis with a simple but useful
+summary mechanism as an instance of an abstract definitional interpreter, thus
+sharing most of its structure with the concrete semantics.
+
+Our second example of type analysis, in which |PolyType|s serve as summaries,
+demonstrates that our approach enjoys a broad range of applications that
+wouldn't be easily defined in terms of abstract big-step interpreters.
+We think that the ability to compute summaries of abstract transformers is an
+inherent advantage to our denotational approach, because it enables modular
+analyses.
+
+Finally, the example of 0CFA demonstrates that our framework can be instantiated
+to perform traditional, whole-program, higher-order analysis based on
+approximate call-strings, even though we strongly favour a summary-based
+approach where possible.
+The reasons are modularity of the analysis, as well as precision and
+performance of the analysis; for example, \citep{Mangal:14} report that 2-CFA
+is less precise and slower than a summary-based approach to pointer analysis.
+
+We are certain that for any trace property (\ie, |IsTrace| instance), there is
+an analysis that can be built on 0CFA, without the need to define a custom
+summary mechanism encoded as an |IsValue| instance.
+For our usage analysis, that would mean less explanation of its |IsValue|
+instance, but in some cases we'd lose out on precision due to the lack of
+modularity.
+For example, it is trivial for modular usage analysis to determine that |i|
+in |let i = λy.y in i x x| uses |i| only once, \emph{in any context this
+expression is ever embedded}.
+By contrast, an approach based on k-CFA will have trouble with recursions where
+multiple activations of |i| are live simultaneously, \ie, the Haskell expression
+
+< let f n = let i y = y in if n == 0 then 0 else i (f (n-1) + 1) in f 42
+
+The definition of |f| is a complicated way to define the identity function.
+Nevertheless, it is evident that |i| is evaluated at most once, and
+$\semusg{\wild}$ would infer this fact if we were to desugar and ANFise this
+expression into an |Expr|.
+On the other hand, k-CFA (for k < 42) would confuse different recursive
+activations of |i|, thus conservatively attributing evaluations multiple times,
+to the effect that |i| is not inferred as used at most once.
+So the very simple summary-based $\semusg{\wild}$ can yield more precise results
+than an analysis based on k-CFA.

@@ -69,6 +69,7 @@
 %format StuckP = Stuck
 %format LitP = Lit
 %format FunP = Fun
+%format trD = "\tr_Δ"
 %format retStuckP = retStuck
 %format retZeroP = retZero
 %format retSuccP = retSucc
