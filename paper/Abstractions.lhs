@@ -216,11 +216,6 @@ $\perform{eval (read "let z = Z() in case Z() of { Z() -> Z(); S(n) -> z }") emp
 < ghci> eval (read "let z = Z() in case Z() of { Z() -> Z(); S(n) -> z }") emp :: UD
 $\perform{eval (read "let z = Z() in case Z() of { Z() -> Z(); S(n) -> z }") emp  :: UD}$
 
-< ghci> eval (read "let i = λy.y in i x x") (ext emp "x" bottom) :: UD
-$\perform{eval (read "let i = λy.y in i x x") (ext emp "x" bottom)  :: UD}$
-
-< ghci> runCFA $ eval (read "let f = λn. let i = λy.y in case n of { Z() -> Z(); S(m) -> let a = i m in let r = f a in S(r)} in let z = Z() in let o = S(z) in f o") emp
-$\perform{runState (unCT (eval (read "let f = λn. let i = λy.y in case n of { Z() -> Z(); S(m) -> let a = i m in let r = f a in S(r) } in let z = Z() in let o = S(z) in let t = S(o) in let g = f t in f z") emp)) bottom :: (CValue, Cache)}$
 \begin{figure}
 \begin{code}
 data Type = Type :->: Type | TyConApp TyCon [Type] | TyVar Name | Wrong
