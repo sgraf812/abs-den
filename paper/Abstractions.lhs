@@ -29,12 +29,11 @@ import Interpreter
 \section{Abstractions}
 \label{sec:abstractions}
 
-%\cite{*}
 We have seen that |eval| is well-suited to express concrete semantics
 coinductively.
 In this section, we will see how |eval| is also well-suited to implement
-abstract semantics, \eg, static program analyses thus featuring an
-inductively-defined domain.
+abstract semantics, \eg, static program analyses with an inductively-defined
+domain.
 
 \begin{figure}
 \begin{spec}
@@ -136,7 +135,7 @@ instance Plussable UD where
 
 \subsection{Usage analysis}
 
-The gist of usage analysis is that it collects upper bounds for the number
+The gist of usage analysis is that it collects upper bounds for the number of
 $\LookupT$ transitions per variable.
 We can encode this intuition in the custom trace type |UT| in \Cref{fig:usg-abs}
 that will take the place of |T|.
@@ -165,13 +164,12 @@ indeed computes the same result as $\semusg{\pe}_{\tr_Δ}$ from \Cref{fig:usage}
 (given an appropriate encoding of $\tr_Δ$ as a |Name :-> UD| and an |e| without
 data types), once we have understood the type class instances at play.
 
-The |IsValue| instance calculates an abstract summary:
-|retStuck|,|retFun| and |retCon| correspond to abstraction functions from
-concrete value to abstract representation, and |apply| and |select| encode
-the concretisation of operations on functions and constructors in terms of
-the abstract domain |UD|.
+The |IsValue| instance calculates a summary of a semantic usage value.
+|retStuck|,|retFun| and |retCon| map from values to summarised representation,
+and |apply| and |select| encode the concretisation of |Nop| in terms of the
+abstract domain |UD|.
 
-When a |Nop| value is |apply|'d to an argument, the result is that of
+When a |Nop| is |apply|'d to an argument, the result is that of
 evaluating that argument many times (note that it is enough to evaluate twice in
 |U|), corresponding exactly to the $ω * d$ in the application case of
 \Cref{fig:usage}.
@@ -190,17 +188,17 @@ already been ``squeezed dry'' in |retCon|.
 Likewise, when returning a function in |retFun|, that function is ``squeezed
 dry'' by passing it a |nopD| and |manify|ing the result, thus accounting for
 uses inside the function body at any potential call site.
-(Recall that uses of the concrete argument at the call site is handled by
-|apply|.)
+(Recall that uses of the argument at the call site is handled by |apply|.)
 
 The final key to a terminating definition is in swapping out the fixpoint
-combinator via a |HasAlloc| instance for |UValue| that computes an
+combinator via the |HasAlloc| instance for |UValue| that computes an
 order-theoretic Kleene fixpoint (\cf. \Cref{fig:lat}) instead of |fix| (which
 only works for a corecursive |f|).
 The Kleene fixpoint exists by monotonicity and finiteness of |UD|.
 
+\subsubsection*{Examples}
 Our naive usage analysis yields the same result as the semantic usage
-abstraction for simple examples:
+abstraction in simple cases:
 
 < ghci> eval (read "let i = λx.x in let j = λy.y in i j j") emp :: UD
 $\perform{eval (read "let i = λx.x in let j = λy.y in i j j") emp :: UD}$
@@ -395,7 +393,9 @@ generaliseTy (Cts m) = Cts $ do
   ty <- m
   (_names',subst) <- get
   let ty' = applySubst subst ty
-  let alphas = freeVars ty' `Set.difference` outer_names
+  let one n = freeVars $ applySubst subst (TyVar n)
+  let fvΓ = Set.unions (Set.map one outer_names)
+  let alphas = freeVars ty' `Set.difference` fvΓ
   return (PT (Set.toList alphas) ty')
 \end{code}
 %endif
@@ -407,44 +407,46 @@ generaliseTy (Cts m) = Cts $ do
 
 To demonstrate the flexibility of our approach, we have implemented
 Hindley-Milner-style type analysis including Let generalisation as an
-abstraction.
+insitance of our abstract denotational interpreter.
 The gist is given in \Cref{fig:type-analysis}; we omitted large parts of the
 implementation and the |IsValue| instance for space reasons.
-The full implementation can be found in the Supplement,
-the |HasAlloc| instance is exemplary of the approach.
+While the full implementation can be found in the extract generated from this
+document, the |HasAlloc| instance is sufficiently exemplary of the approach.
 
-This analysis is all about inferring the most general |PolyType| of the
-form $\forall \many{\alpha}.\ θ$ for an expression, where $θ$ ranges over
-a |Type| that can be either a type variable |TyVar x|, a function type |θ1 :->:
+The analysis infers most general |PolyType|s of the
+form $\forall \many{\alpha}.\ θ$ for an expression, where $θ$ ranges over a
+|Type| that can be either a type variable |TyVar α|, a function type |θ1 :->:
 θ2|, or a type constructor application |TyConApp|.
 The |Wrong| type is used to indicate a type error.
 
 Key to the analysis is maintenance of a consistent set of type constraints
-as a |Subst|itution, which is why the trace type |Cts| carries one as state,
-with the option of failure indicated by |Maybe| when such a substitution
-does not exist.
+as a unifying |Subst|itution.
+That is why the trace type |Cts| carries the current unifier as state, with the
+option of failure indicated by |Maybe| when the unifier does not exist.
 Additionally, |Cts| carries a set of used |Name|s with it to satisfy freshness
-constraints in |freshTyVar| and |instantiatePolyTy|, as well as to have a
+constraints in |freshTyVar| and |instantiatePolyTy|, as well as to construct a
 superset of $\fv(Γ)$ in |generaliseTy|.
 
-While the operational detail offered by |IsTrace| is completely uninteresting to
-|Cts|, all these pieces fall together in the implementation of |alloc|, where we
-see yet another strategy to compute a fixpoint:
+While the operational detail offered by |IsTrace| is ignored by |Cts|, all the
+pieces fall together in the implementation of |alloc|, where we see yet another
+domain-specific fixpoint strategy:
 The knot is tied by calling the iteratee |f| with a fresh unification variable
 type |f_ty| of the shape $α_1$.
-The result of this call in turn is instantiated to a non-|PolyType| |f_ty|, perhaps
-turning a type-scheme $\forall α_2.\ \mathtt{option}\;(α_2 \rightarrow α_2)$ into the
-shape $\mathtt{option}\;(α_3 \rightarrow α_3)$ for fresh $α_3$.
+The result of this call in turn is instantiated to a non-|PolyType| |f_ty'|,
+perhaps turning a type-scheme $\forall α_2.\ \mathtt{option}\;(α_2 \rightarrow
+α_2)$ into the shape $\mathtt{option}\;(α_3 \rightarrow α_3)$ for fresh $α_3$.
 Then a constraint is emitted to unify $α_1$ with
 $\mathtt{option}\;(α_3 \rightarrow α_3)$.
 Ultimately, the type |f_ty| is returned and generalised to $\forall α_3.\
 \mathtt{option}\;(α_3 \rightarrow α_3)$, because $α_3$ is not a |Name| in use
-before the call to |generaliseTy| (and thus couldn't have possibly leaked it
-into the range of the type context).
+before the call to |generaliseTy| (and thus it couldn't have possibly leaked
+into the range of the ambient type context).
 
-Since this is just intended as another example, we do not attempt a proof of
-correctness.
-Instead, we conclude with some example uses:
+\subsubsection*{Examples}
+%Since this is just intended as another example, we do not attempt a proof of
+%correctness.
+%Instead, we conclude with some example uses:
+Let us again conclude with some examples:
 
 < ghci> closedType $ eval (read "let i = λx.x in i i i i i i") emp
 $\perform{closedType $ eval (read "let i = λx.x in i i i i i i") emp}$
@@ -459,17 +461,17 @@ $\perform{closedType $ eval (read "let x = x in x") emp}$
 \begin{figure}
 \begin{code}
 data Pow a = P (Set a); type CValue = Pow Label
-type ConCache = {-" ... \iffalse "-}(Tag, [CValue]){-" \fi "-}; data FunCache = {-" ... \iffalse "-}FC (Maybe (CValue, CValue)) (CD -> CD){-" \fi "-}
+type ConCache = (Tag, [CValue]); data FunCache = FC (Maybe (CValue, CValue)) (CD -> CD)
 data Cache = Cache (Label :-> ConCache) (Label :-> FunCache)
 data CT a = CT (State Cache a); type CD = CT CValue
 
+runCFA :: CD -> CValue; updFunCache :: Label -> (CD -> CD) -> CT ()
+
 instance IsTrace CT where step _ = id
 
-updFunCache :: Label -> (CD -> CD) -> CT ()
 instance IsValue CT CValue where
   retFun ell f = do updFunCache ell f; return (P (Set.singleton ell))
-  apply (P ells) d = d >>= \v ->
-    lub <$> traverse (\ell -> cachedCall ell v) (Set.toList ells)
+  apply (P ells) d = d >>= \v -> lub <$> traverse (\ell -> cachedCall ell v) (Set.toList ells)
   {-" ... \iffalse "-}
   retStuck = return bottom
   retCon ell k ds = do vs <- sequence ds; updConCache ell k vs; return (P (Set.singleton ell))
@@ -490,9 +492,6 @@ instance HasAlloc CT CValue where{-" ... \iffalse "-}
         cache' <- CT get
         if v' ⊑ v && cache' ⊑ cache then do { v'' <- f (return v'); if v' /= v'' then error "blah" else return v' } else go v'
 {-" \fi "-}
-
-runCFA :: CD -> CValue
-runCFA (CT m) = evalState m (Cache bottom bottom)
 \end{code}
 
 %if style == newcode
@@ -545,6 +544,8 @@ deriving instance Show Cache
 
 unCT :: CT a -> State Cache a
 unCT (CT m) = m
+
+runCFA (CT m) = evalState m (Cache bottom bottom)
 
 deriving instance Functor CT
 
@@ -641,7 +642,7 @@ For constructor values, the shape is simply a pair of the |Tag| and |CValue|s
 for the fields.
 For a lambda value, the shape is its abstract control-flow transformer, of
 type |CD -> CD| (populated by |updFunCache|), plus a single point |(v1,v2)| of
-its graph (k-CFA would have one point per contour), serving as the transformer's
+its graph ($k$-CFA would have one point per contour), serving as the transformer's
 summary.
 
 At call sites in |apply|, we will iterate over each function label and attempt a
@@ -665,15 +666,16 @@ will gloss over in this work.
 \sg{Surprisingly tricky due to mutual recursion; but I'm sure this has been done
 before in one form or another, hence boring.}
 
-We conclude with some examples.
-The first two demonstrate a precise and an imprecise result, respectively.
-The latter is due to the fact that both |i| and |j| flow into |x|.
+\subsubsection*{Examples}
+The following two examples demonstrate a precise and an imprecise result,
+respectively. The latter is due to the fact that both |i| and |j| flow into |x|.
 
 < ghci> runCFA $ eval (read "let i = λx.x in let j = λy.y in i j") emp
 $\perform{runCFA $ eval (read "let i = λx.x in let j = λy.y in i j") emp}$
 < ghci> runCFA $ eval (read "let i = λx.x in let j = λy.y in i i j") emp
 $\perform{runCFA $ eval (read "let i = λx.x in let j = λy.y in i i j") emp}$
-
+\\[\belowdisplayskip]
+\noindent
 The |HasAlloc| instance guarantees termination for diverging programs and cyclic
 data:
 < ghci> runCFA $ eval (read "let ω = λx. x x in ω ω") emp
@@ -685,45 +687,52 @@ $\perform{runCFA $ eval (read "let x = let y = S(x) in S(y) in x") emp}$
 
 By recovering usage analysis as an abstraction of |eval|, we have achieved our
 main goal:
-To derive a structurally-defined static analysis with a simple but useful
-summary mechanism as an instance of an abstract definitional interpreter, thus
-sharing most of its structure with the concrete semantics.
+To derive a \emph{structurally-defined} static analysis approximating a property
+of a \emph{small-step trace} with a simple but useful \emph{summary} mechanism
+as an instance of an abstract definitional interpreter, thus sharing most of its
+structure with the concrete semantics.
 
-Our second example of type analysis, in which |PolyType|s serve as summaries,
-demonstrates that our approach enjoys a broad range of applications that
-wouldn't be easily defined in terms of abstract big-step interpreters.
-We think that the ability to compute summaries of abstract transformers is an
-inherent advantage to our denotational approach, because it enables modular
-analyses.
+Our second example of type analysis, in which |PolyType|s serve as summaries
+that can be instantiated at call sites, demonstrates that our approach enjoys a
+broad range of applications that wouldn't be easily defined in terms of abstract
+big-step interpreters.
+We think that the ability to symbolically compute summaries of abstract
+transformers is an inherent advantage to our denotational approach, because it
+enables modular analyses; just like a type signature needs to be inferred once
+and subsequently can be instantiated in client modules without needing to
+re-analyse the original function.
+\sg{Perhaps move tangent to Problem statement}
 
 Finally, the example of 0CFA demonstrates that our framework can be instantiated
 to perform traditional, whole-program, higher-order analysis based on
-approximate call-strings, even though we strongly favour a summary-based
-approach where possible.
-The reasons are modularity of the analysis, as well as precision and
-performance of the analysis; for example, \citep{Mangal:14} report that 2-CFA
-is less precise and slower than a summary-based approach to pointer analysis.
+approximate call-strings.
 
-We are certain that for any trace property (\ie, |IsTrace| instance), there is
+We think that for any trace property (\ie, |IsTrace| instance), there is
 an analysis that can be built on 0CFA, without the need to define a custom
 summary mechanism encoded as an |IsValue| instance.
-For our usage analysis, that would mean less explanation of its |IsValue|
-instance, but in some cases we'd lose out on precision due to the lack of
-modularity.
-For example, it is trivial for modular usage analysis to determine that |i|
-in |let i = λy.y in i x x| uses |i| only once, \emph{in any context this
-expression is ever embedded}.
-By contrast, an approach based on k-CFA will have trouble with recursions where
-multiple activations of |i| are live simultaneously, \ie, the Haskell expression
+For our usage analysis, that would mean less explanation of its |Nop| summary,
+but in some cases we'd lose out on precision due to the lack of modularity.
 
-< let f n = let i y = y in if n == 0 then 0 else i (f (n-1) + 1) in f 42
+For example, it is trivial for modular usage analysis to determine that |i|
+in $\Let{i}{\Lam{y}{y}}{i~x~x}$ uses |i| only once, \emph{in any context this
+expression is ever embedded}.
+By contrast, an approach based on $k$-CFA will have trouble with recursions
+where multiple activations of |i| are live simultaneously, \ie, in the Haskell
+expression
+
+< let f n = let i y = y in if n == 0 then 0 else i (f (n-1) + 1) in f 42{-"."-}
 
 The definition of |f| is a complicated way to define the identity function.
 Nevertheless, it is evident that |i| is evaluated at most once, and
 $\semusg{\wild}$ would infer this fact if we were to desugar and ANFise this
 expression into an |Expr|.
-On the other hand, k-CFA (for k < 42) would confuse different recursive
+On the other hand, $k$-CFA (for $k < 42$) would confuse different recursive
 activations of |i|, thus conservatively attributing evaluations multiple times,
 to the effect that |i| is not inferred as used at most once.
 So the very simple summary-based $\semusg{\wild}$ can yield more precise results
-than an analysis based on k-CFA.
+than any usage analysis based on $k$-CFA.
+
+We are not the first to realise this.
+\citep{Mangal:14} report that 2-CFA is less precise and slower than a
+summary-based approach to pointer analysis.
+That is why we would strongly favour a summary-based approach where possible.
