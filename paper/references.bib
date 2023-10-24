@@ -829,3 +829,22 @@
   abstract="Many interprocedural static analyses perform a lossy join for reasons of termination or efficiency. We study the relationship between two predominant approaches to interprocedural analysis, the summary-based (or functional) approach and the call-strings (or k-CFA) approach, in the presence of a lossy join. Despite the use of radically different ways to distinguish procedure contexts by these two approaches, we prove that post-processing their results using a form of garbage collection renders them equivalent. Our result extends the classic result by Sharir and Pnueli that showed the equivalence between these two approaches in the setting of distributive analysis, wherein the join is lossless.",
   isbn="978-3-642-54833-8"
 }
+
+@article{Kalita:2022,
+  author = {Kalita, Pankaj Kumar and Muduli, Sujit Kumar and D’Antoni, Loris and Reps, Thomas and Roy, Subhajit},
+  title = {Synthesizing Abstract Transformers},
+  year = {2022},
+  issue_date = {October 2022},
+  publisher = {Association for Computing Machinery},
+  address = {New York, NY, USA},
+  volume = {6},
+  number = {OOPSLA2},
+  url = {https://doi.org/10.1145/3563334},
+  doi = {10.1145/3563334},
+  abstract = {This paper addresses the problem of creating abstract transformers automatically. The method we present automates the construction of static analyzers in a fashion similar to the way yacc automates the construction of parsers. Our method treats the problem as a program-synthesis problem. The user provides specifications of (i) the concrete semantics of a given operation op, (ii) the abstract domain A to be used by the analyzer, and (iii) the semantics of a domain-specific language L in which the abstract transformer is to be expressed. As output, our method creates an abstract transformer for op in abstract domain A, expressed in L (an “L-transformer for op over A”). Moreover, the abstract transformer obtained is a most-precise L-transformer for op over A; that is, there is no other L-transformer for op over A that is strictly more precise. We implemented our method in a tool called AMURTH. We used AMURTH to create sets of replacement abstract transformers for those used in two existing analyzers, and obtained essentially identical performance. However, when we compared the existing transformers with the transformers obtained using AMURTH, we discovered that four of the existing transformers were unsound, which demonstrates the risk of using manually created transformers.},
+  journal = {Proc. ACM Program. Lang.},
+  month = {oct},
+  articleno = {171},
+  numpages = {29},
+  keywords = {DSL, abstract transformer, program synthesis}
+}

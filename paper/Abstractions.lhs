@@ -735,4 +735,7 @@ than any usage analysis based on $k$-CFA.
 We are not the first to realise this.
 \citep{Mangal:14} report that 2-CFA is less precise and slower than a
 summary-based approach to pointer analysis.
-That is why we would strongly favour a summary-based approach where possible.
+That is why we would favour a summary-based approach where possible.
+Furthermore, given a semantic description of abstract values, it is likely
+that the implementation of |IsValue| can be synthesised using the approach of
+\citet{Kalita:2022}.
