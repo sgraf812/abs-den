@@ -112,7 +112,7 @@ instance Plussable U where
   U1 + U1 = Uω
   u1 + u2 = u1 ⊔ u2
 
-instance Plussable (Name :-> U) where
+instance (Ord k, Plussable v) => Plussable (k :-> v) where
   (+) = Map.unionWith (+)
 
 instance Show a => Show (UT a) where
