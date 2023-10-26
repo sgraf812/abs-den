@@ -260,11 +260,11 @@ instance IsValue Cts PolyType where {-" ... \iffalse "-}
 
 {-" \fi "-}
 instance HasBind Cts PolyType where
-  bind rhs body = (>>= body . return) $ generaliseTy $ do
+  bind rhs body = body . return =<< generaliseTy (do
     rhs_ty <- freshTyVar
     rhs_ty' <- rhs (return (PT [] rhs_ty)) >>= instantiatePolyTy
     emitCt (rhs_ty, rhs_ty')
-    return rhs_ty
+    return rhs_ty)
 
 runCts :: Cts PolyType -> PolyType
 runCts (Cts m) = case evalStateT m (Set.empty, emp) of Just ty -> ty; Nothing -> PT [] Wrong
