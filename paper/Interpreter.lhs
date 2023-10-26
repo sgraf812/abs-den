@@ -1,4 +1,6 @@
-%options ghci -ihs -pgmL lhs2TeX -optL--pre
+%options ghci -ihs -pgmL lhs2TeX -optL--pre -XPartialTypeSignatures
+% Need the -XPartialTypeSignatures for the CbNeed example, for some weird reason
+
 %if style == newcode
 \begin{code}
 {-# LANGUAGE FunctionalDependencies #-}
@@ -51,7 +53,7 @@ instance Show (Value τ) where
 instance (Show (τ v)) => Show (ByName τ v) where
   show (ByName τ) = show τ
 instance Show (ByNeed τ a) where
-  show _ = show "\\wild"
+  show _ = "\\wild"
 instance (Show (τ v)) => Show (ByValue τ v) where
   show (ByValue τ) = show τ
 instance (Show (τ v)) => Show (ByVInit τ v) where
@@ -89,15 +91,42 @@ higher-order language such as OCaml, ML or Scheme with explicit suspension
 @fun () -> _@.
 
 \begin{figure}
+\begin{minipage}{0.49\textwidth}
 \begin{spec}
 type Name = String
 data Tag = ...; conArity :: Tag -> Int
-data Expr  =  Var Name | App Expr Name | Lam Name Expr | Let Name Expr Expr
-           |  ConApp Tag [Name] | Case Expr [Alt]
+data Expr
+  =  Var Name | Let Name Expr Expr
+  |  Lam Name Expr | App Expr Name
+  |  ConApp Tag [Name] | Case Expr [Alt]
 type Alt = (Tag,[Name],Expr)
 \end{spec}
 \caption{Syntax}
 \label{fig:syntax}
+\end{minipage}%
+\begin{minipage}{0.51\textwidth}
+\begin{code}
+type (:->) = Map; emp :: Ord k => k :-> v
+ext :: Ord k => (k :-> v) -> k -> v -> (k :-> v)
+exts :: Ord k  => (k :-> v) -> [k] -> [v]
+               -> (k :-> v)
+(!) :: Ord k => (k :-> v) -> k -> v
+dom :: Ord k => (k :-> v) -> Set k
+(∈) :: Name -> Set Name -> Bool
+\end{code}
+%if style == newcode
+\begin{code}
+emp = Map.empty
+ext ρ x d = Map.insert x d ρ
+exts ρ xs ds = foldl' (uncurry . ext) ρ (zip xs ds)
+(!) = (Map.!)
+dom = Map.keysSet
+(∈) = Set.member
+\end{code}
+%endif
+\caption{Environments}
+\label{fig:map}
+\end{minipage}
 \end{figure}
 
 \subsection{Semantic Domain}
@@ -175,30 +204,6 @@ A semantic element |D| eventually terminates with a |Value| that is either
 |Value| is a standard denotational encoding of its syntactic counterpart, devoid
 of any syntax.
 (We postpone worries about well-definedness and totality to \Cref{sec:adequacy}.)
-
-\begin{figure}
-\begin{code}
-type (:->) = Map
-emp :: Ord k => k :-> v
-ext :: Ord k => (k :-> v) -> k -> v -> (k :-> v)
-exts :: Ord k => (k :-> v) -> [k] -> [v] -> (k :-> v)
-(!) :: Ord k => (k :-> v) -> k -> v
-dom :: Ord k => (k :-> v) -> Set k
-(∈) :: Name -> Set Name -> Bool
-\end{code}
-%if style == newcode
-\begin{code}
-emp = Map.empty
-ext ρ x d = Map.insert x d ρ
-exts ρ xs ds = foldl' (uncurry . ext) ρ (zip xs ds)
-(!) = (Map.!)
-dom = Map.keysSet
-(∈) = Set.member
-\end{code}
-%endif
-\caption{Environments}
-\label{fig:map}
-\end{figure}
 
 \begin{figure}
 \begin{minipage}{0.55\textwidth}
@@ -402,8 +407,7 @@ $\perform{eval (read "let zero = Z() in zero zero") emp :: D (ByName T)}$
 data ByName τ v = ByName (τ v)
 instance Monad τ => Monad (ByName τ) where ...
 instance IsTrace τ => IsTrace (ByName τ) where ...
-instance Monad τ => HasAlloc (ByName τ) (Value (ByName τ)) where
-  alloc f = return (fix f)
+instance Monad τ => HasAlloc (ByName τ) (Value (ByName τ)) where ...
 \end{spec}
 %if style == newcode
 \begin{code}
@@ -415,9 +419,9 @@ instance IsTrace τ => IsTrace (ByName τ) where
 
 instance Monad τ => HasAlloc (ByName τ) (Value (ByName τ)) where
   alloc f = return (fix f)
-\end{code}
+\end{code}%
 %endif
-\caption{Call-by-name}
+\caption{Redefinition of call-by-name semantics from \Cref{fig:trace-instances}}
 \label{fig:by-name}
 \end{figure}
 
@@ -589,10 +593,9 @@ data ByVInit τ v = ByVInit (StateT (Heap (ByVInit τ)) τ v)
 runByVInit :: ByVInit τ a -> τ a; fetch :: Monad τ => Addr -> D (ByVInit τ)
 memo :: Monad τ => Addr -> D (ByVInit τ) -> D (ByVInit τ)
 instance IsTrace τ => HasAlloc (ByVInit τ) (Value (ByVInit τ)) where
-  alloc f = do
-    a <- nextFree <$> ByVInit get
-    ByVInit $ modify (\μ -> ext μ a retStuck)
-    fmap return $ step Let0 $ memo a $ f (fetch a)
+  alloc f = do  a <- nextFree <$> ByVInit get
+                ByVInit $ modify (\μ -> ext μ a retStuck)
+                fmap return $ step Let0 $ memo a $ f (fetch a)
 \end{spec}
 %if style == newcode
 \begin{code}
@@ -613,10 +616,9 @@ memo' a d = d >>= ByVInit . StateT . upd
   where upd v μ = return (v, ext μ a (return v))
 
 instance IsTrace τ => HasAlloc (ByVInit τ) (Value (ByVInit τ)) where
-  alloc f = do
-    a <- nextFree <$> ByVInit get
-    ByVInit $ modify (\μ -> ext μ a retStuck)
-    fmap return $ step Let0 $ memo' a $ f (fetch' a)
+  alloc f = do  a <- nextFree <$> ByVInit get
+                ByVInit $ modify (\μ -> ext μ a retStuck)
+                fmap return $ step Let0 $ memo' a $ f (fetch' a)
 \end{code}
 %endif
 \caption{Call-by-value with lazy initialisation}
@@ -659,7 +661,7 @@ Consider the case when the right-hand side accesses its value before yielding
 one, \eg,
 
 < ghci> takeT 5 $ eval (read "let x = x in x x") emp :: ByValue T (Maybe (Value (ByValue T)))
-$\LetIT\rightarrow\LookupT(x)\rightarrow\LetIT\rightarrow\AppIT\rightarrow\LookupT(x)\rightarrow\texttt{\textasciicircum{}CInterrupted}$
+$\LetOT\rightarrow\LookupT(x)\rightarrow\LetIT\rightarrow\AppIT\rightarrow\LookupT(x)\rightarrow\texttt{\textasciicircum{}CInterrupted}$
 \\[\belowdisplayskip]
 \noindent
 This loops forever unproductively, rendering the interpreter unfit as a
@@ -679,11 +681,9 @@ $\perform{runByVInit $ eval (read "let x = x in x x") emp :: T (Value (ByVInit T
 
 \begin{figure}
 \begin{spec}
-data Fork f a = Empty | Single a | Fork (f a) (f a)
-data ParT m a = ParT (m (Fork (ParT m) a))
+data Fork f a = Empty | Single a | Fork (f a) (f a); data ParT m a = ParT (m (Fork (ParT m) a))
 instance Monad τ => Alternative (ParT τ) where
-  empty = ParT (pure Empty)
-  l <|> r = ParT (pure (Fork l r))
+  empty = ParT (pure Empty); l <|> r = ParT (pure (Fork l r))
 
 newtype Clairvoyant τ a = Clairvoyant (ParT τ a)
 runClair :: D (Clairvoyant T) -> T (Value (Clairvoyant T))

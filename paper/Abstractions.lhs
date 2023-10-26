@@ -47,8 +47,8 @@ instance (Ord k, Lat v) => Lat (k :-> v) where bottom = emp; (⊔) = Map.unionWi
 \end{figure}
 
 \begin{figure}
+\begin{minipage}{0.65\textwidth}
 \begin{code}
-
 data U = U0 | U1 | Uω; instance Lat U where {-" ... \iffalse "-}
   bottom = U0
   U0  ⊔  u   = u
@@ -58,14 +58,20 @@ data U = U0 | U1 | Uω; instance Lat U where {-" ... \iffalse "-}
 {-" \fi "-}
 data UT a = Uses (Name :-> U) a
 
-instance Monad UT where
-  return a = Uses emp a
-  Uses φ1 a >>= k | Uses φ2 b <- k a = Uses (φ1+φ2) b
-
 instance IsTrace UT where
   step (Lookup x)  (Uses φ a)  = Uses (φ + ext emp x U1) a
   step _           τ           = τ
 \end{code}
+\end{minipage}%
+\begin{minipage}{0.35\textwidth}
+\begin{code}
+instance Monad UT where
+  return a = Uses emp a
+  Uses φ1 a >>= k
+    |  Uses φ2 b <- k a
+    =  Uses (φ1+φ2) b
+\end{code}
+\end{minipage}
 \caption{|IsTrace| instance for semantic usage abstraction}
 \label{fig:usg-abs}
 \end{figure}

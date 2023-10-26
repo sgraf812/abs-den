@@ -30,7 +30,7 @@
 %format θ = "\varid{\ensuremath{\theta}}"
 %format θ1 = "\varid{\ensuremath{\theta_1}}"
 %format θ2 = "\varid{\ensuremath{\theta_2}}"
-%format :-> = "\rightharpoonup"
+%format :-> = "\hspace{-0.15em}\rightharpoonup\hspace{-0.19em}"
 %format :->: = ":\rightarrow:"
 %format ∈ = "\in"
 %format emp = "\varid{\ensuremath{\epsilon}}"
@@ -61,6 +61,7 @@
 %format App2
 %format Case1
 %format Case2
+%format Let0
 %format Let1
 %format VarP = Var
 %format LamP = Lam
