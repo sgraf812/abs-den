@@ -33,9 +33,9 @@ instance Show Event where
   show App2 = "\\AppET"
   show Case1 = "\\CaseIT"
   show Case2 = "\\CaseET"
-  show Bind = "\\BindT"
-  show Update = "\\UpdateT"
+  show Let0 = "\\LetOT"
   show Let1 = "\\LetIT"
+  show Update = "\\UpdateT"
 instance Show a => Show (T a) where
   show (Step e t) = show e ++ "\\rightarrow" ++ show t
   show (Ret a) = "\\langle "++show a++"\\rangle "
@@ -83,16 +83,17 @@ takeName n (ByName τ) = takeT n τ
 We will now define a denotational interpreter in Haskell.
 It is worth stressing that we picked Haskell out of convenience and familiarity,
 rather than out of necessity:
-We make use of thunks in only one key position where memoisation is not
-important and could just as well have used a strict higher-order language such
-as OCaml, ML or Scheme with explicit suspension @fun () -> _@.
+We make use of thunks in only one key position that does not require
+memoisation, and thus could just as well have been defined in a strict
+higher-order language such as OCaml, ML or Scheme with explicit suspension
+@fun () -> _@.
 
 \begin{figure}
 \begin{spec}
 type Name = String
 data Tag = ...; conArity :: Tag -> Int
-data Expr  = Var Name | App Expr Name | Lam Name Expr | Let Name Expr Expr
-           | ConApp Tag [Name] | Case Expr [Alt]
+data Expr  =  Var Name | App Expr Name | Lam Name Expr | Let Name Expr Expr
+           |  ConApp Tag [Name] | Case Expr [Alt]
 type Alt = (Tag,[Name],Expr)
 \end{spec}
 \caption{Syntax}
@@ -110,7 +111,7 @@ To a first approximation, we can think of it as a type |D|, defined as
 type D τ = τ (Value τ)
 data T a = Step Event (T a) | Ret a
 data Event  =  Lookup Name | Update | App1 | App2
-            |  Bind | Case1 | Case2 | Let1
+            |  Let1 | Case1 | Case2 | Let0
 data Value τ = Stuck | Fun (D τ -> D τ) | Con Tag [D τ]
 \end{code}
 %endif
@@ -118,7 +119,7 @@ data Value τ = Stuck | Fun (D τ -> D τ) | Con Tag [D τ]
 type D = T Value
 data T a = Step Event (T a) | Ret a
 data Event  = Lookup Name | Update | App1 | App2
-            | Bind | Case1 | Case2
+            | Let1 | Case1 | Case2
 data Value = Stuck | Fun (D -> D) | Con Tag [D]
 \end{spec}
 \end{minipage}
@@ -158,13 +159,13 @@ choice of |Event| suggests a spectrum of intensionality, with |data Event =
 Unit| corresponding to the ``delay monad'' popularised by \citet{Capretta:05} on
 the more abstract end of the spectrum and arbitrary syntactic detail attached to
 each of |Event|'s constructors at the other end of the spectrum.
-If our language had facilities for input/output, we could have started from a
+If our language had facilities for input/output we could have started from a
 more elaborate construction such as interaction trees~\citep{interaction-trees}.
 
 The coinductive nature of |T|'s definition in Haskell is crucial to our
-approach because it allows us to express diverging traces as an infinite,
-productive nesting of |Step|s; in a strict language, we would have introduced
-an explicit thunk in the definition of |Step|, \eg, @Step of event * (unit -> 'a t)@.
+approach because diverging traces can be expressed as an infinite, productive
+nesting of |Step|s; in a strict language, we would have introduced an explicit
+thunk in the definition of |Step|, \eg, @Step of event * (unit -> 'a t)@.
 The |Monad| instance of |T| implements the bind operator |(>>=)| by forwarding
 |Step|s, thus guarding the recursion~\citep{Capretta:05}.
 
@@ -215,7 +216,7 @@ eval e ρ = case e of
     step App2 (eval e' ((ext ρ x d)))
   Let x e1 e2 -> do
     d1 <- alloc (\d1 -> eval e1 (ext ρ x (step (Lookup x) d1)))
-    step Bind (eval e2 (ext ρ x (step (Lookup x) d1)))
+    step Let1 (eval e2 (ext ρ x (step (Lookup x) d1)))
   ConApp k xs
     | all (∈ dom ρ) xs, length xs == conArity k
     -> retCon {-" \iffalse "-}(label e){-" \fi "-} k (map (ρ !) xs)
@@ -298,7 +299,7 @@ instance IsTrace τ => IsValue τ (Value τ) where
 
 We will now use |D| to give meaning to an expression |e| via an interpreter
 function |eval :: Expr -> (Name :-> D) -> D|, where the variable environment
-|Name :-> D| is a finite mapping from free variables of |e| to their meaning in
+|ρ `elem` Name :-> D| is a finite mapping from free variables of |e| to their meaning in
 |D|.
 We summarise the API of environments and sets in \Cref{fig:map}.
 
@@ -311,15 +312,11 @@ In particular, the interpreter maps expressions not into a concrete,
 fold-like \emph{final encoding}~\citep{Carette:07} thereof, in terms
 of three type classes |IsTrace|,|IsValue| and |HasAlloc| depicted in
 \Cref{fig:trace-classes}.
-%
-%TODO: Related Work
-%This approach evokes memories of~\citet{Carette:07} because we effectively
-%encode expressions as a fold, but our semantic domain |D| of traces is quite
-%different because it gives a proper account of diverging traces and is total.
-%
+
 Each of these offer knobs that we will tweak individually in later Sections.
 |T|races and |Value|s are instances of these type classes via
-\Cref{fig:trace-instances}, so |D| can stand in as a |τ v| for |eval|.
+\Cref{fig:trace-instances}, so |τ v| in the type of |eval| can be instantiated
+to |D|.
 For example, we can evaluate the expression $\Let{i}{\Lam{x}{x}}{i~i}$ like
 this:%
 \footnote{We use |read :: String -> Expr| as a parsing function.}
@@ -332,7 +329,7 @@ Which is in direct correspondence to the call-by-name small-step trace
 \[\begin{array}{c}
   \arraycolsep2pt
   \begin{array}{clclcl}
-             & (\Let{i}{\Lam{x}{x}}{i~i}, [], [], \StopF) & \smallstep[\BindT] & (i~i, ρ_1, μ, \StopF)
+             & (\Let{i}{\Lam{x}{x}}{i~i}, [], [], \StopF) & \smallstep[\LetIT] & (i~i, ρ_1, μ, \StopF)
              & \smallstep[\AppIT] & (i, ρ_1, μ, \ApplyF(\pa_1) \pushF \StopF)
              \\
   \smallstep[\LookupT] & (\Lam{x}{x}, ρ_1, μ, \ApplyF(\pa_1) \pushF \StopF) & \smallstep[\AppET] & (x, ρ_2, μ, \StopF) & \smallstep[\LookupT] & (\Lam{x}{x}, ρ_1, μ, \StopF)
@@ -560,11 +557,11 @@ instance MonadFix T where
                     go (Step e τ) | (τ', v) <- go τ  = (Step e τ', v)
                     go (Ret v)                       = (Ret v, v)
 
-data Event = ... | Let1
+data Event = ... | Let0
 data ByValue τ v = ByValue { unByValue :: τ v }
 
 instance (IsTrace τ, MonadFix τ) => HasAlloc (ByValue τ) (Value (ByValue τ)) where
-  alloc f = fmap return $ step Let1 $ ByValue $ mfix (unByValue . f . return)
+  alloc f = fmap return $ step Let0 $ ByValue $ mfix (unByValue . f . return)
 \end{spec}
 %if style == newcode
 \begin{code}
@@ -579,7 +576,7 @@ instance IsTrace τ => IsTrace (ByValue τ) where
   step e (ByValue τ) = ByValue (step e τ)
 
 instance (IsTrace τ, MonadFix τ) => HasAlloc (ByValue τ) (Value (ByValue τ)) where
-  alloc f = fmap return $ step Let1 $ ByValue $ mfix (unByValue . f . return)
+  alloc f = fmap return $ step Let0 $ ByValue $ mfix (unByValue . f . return)
 \end{code}
 %endif
 \caption{Call-by-value}
@@ -595,7 +592,7 @@ instance IsTrace τ => HasAlloc (ByVInit τ) (Value (ByVInit τ)) where
   alloc f = do
     a <- nextFree <$> ByVInit get
     ByVInit $ modify (\μ -> ext μ a retStuck)
-    fmap return $ step Let1 $ memo a $ f (fetch a)
+    fmap return $ step Let0 $ memo a $ f (fetch a)
 \end{spec}
 %if style == newcode
 \begin{code}
@@ -619,7 +616,7 @@ instance IsTrace τ => HasAlloc (ByVInit τ) (Value (ByVInit τ)) where
   alloc f = do
     a <- nextFree <$> ByVInit get
     ByVInit $ modify (\μ -> ext μ a retStuck)
-    fmap return $ step Let1 $ memo' a $ f (fetch' a)
+    fmap return $ step Let0 $ memo' a $ f (fetch' a)
 \end{code}
 %endif
 \caption{Call-by-value with lazy initialisation}
@@ -632,10 +629,8 @@ By defining a |MonadFix| instance for |T| and defining |alloc| in terms
 of this instance, we can give a by-value semantics to |Expr|, as shown in
 \Cref{fig:by-value}.
 Let us unpack the definition of |alloc|.
-As its first action, it yields a brand new |Let1| event, indicating in the
-trace that focus descends into the right-hand side of a |Let|.%
-\footnote{If call-by-value was our main focus, it would be prudent to rename
-$\BindT$ to $\LetET$ to indicate the bracket relation.}
+As its first action, it yields a brand new |Let0| event, indicating in the
+trace that focus descends into the right-hand side of a |let|.%
 The definition of |mfix| on |T| then takes over;
 producing a trace |τ| which ends in a |Ret v| after finitely many steps.
 The value |v| is then passed to the argument |f| of |alloc|, wrapped in a
@@ -653,8 +648,9 @@ Let us trace $\Let{i}{(\Lam{y}{\Lam{x}{x}})~i}{i~i}$ for call-by-value:
 $\perform{eval (read "let i = (λy.λx.x) i in i i") emp :: D (ByValue T)}$
 \\[\belowdisplayskip]
 \noindent
-The beta reduction now happens once within the $\LetIT$/$\BindT$ bracket; the
-two subsequent $\LookupT$ events immediately halt with a value.
+The beta reduction of $(\Lam{y}{\Lam{x}{x}})~i$ now happens once within the
+$\LetOT$/$\LetIT$ bracket; the two subsequent $\LookupT$ events immediately halt
+with a value.
 
 \subsubsection{Lazy Initialisation and Black-holing}
 
@@ -663,7 +659,7 @@ Consider the case when the right-hand side accesses its value before yielding
 one, \eg,
 
 < ghci> takeT 5 $ eval (read "let x = x in x x") emp :: ByValue T (Maybe (Value (ByValue T)))
-$\LetIT\rightarrow\LookupT(x)\rightarrow\BindT\rightarrow\AppIT\rightarrow\LookupT(x)\rightarrow\texttt{\textasciicircum{}CInterrupted}$
+$\LetIT\rightarrow\LookupT(x)\rightarrow\LetIT\rightarrow\AppIT\rightarrow\LookupT(x)\rightarrow\texttt{\textasciicircum{}CInterrupted}$
 \\[\belowdisplayskip]
 \noindent
 This loops forever unproductively, rendering the interpreter unfit as a
@@ -694,7 +690,7 @@ runClair :: D (Clairvoyant T) -> T (Value (Clairvoyant T))
 
 instance (MonadFix τ, IsTrace τ) => HasAlloc (Clairvoyant τ) (Value (Clairvoyant τ)) where
   alloc f = Clairvoyant (skip <|> let') where  skip = return (Clairvoyant empty)
-                                               let' = fmap return $ step Let1 $ ... ^^ mfix ... f ...
+                                               let' = fmap return $ step Let0 $ ... ^^ mfix ... f ...
 \end{spec}
 %if style == newcode
 \begin{code}
@@ -743,7 +739,7 @@ instance (MonadFix τ, IsTrace τ) => HasAlloc (Clairvoyant τ) (Value (Clairvoy
     where
       skip = return (Clairvoyant empty)
       let' = do
-        v <- parLöb $ unClair . step Let1 . f . Clairvoyant . ParT . pure
+        v <- parLöb $ unClair . step Let0 . f . Clairvoyant . ParT . pure
         return (return v)
 
 -- This is VERY weird
