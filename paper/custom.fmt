@@ -31,6 +31,7 @@
 %format θ1 = "\varid{\ensuremath{\theta_1}}"
 %format θ2 = "\varid{\ensuremath{\theta_2}}"
 %format :-> = "\hspace{-0.15em}\rightharpoonup\hspace{-0.19em}"
+%format :->: = "\mathbin{:\rightarrow:}"
 %format :->: = ":\rightarrow:"
 %format ∈ = "\in"
 %format emp = "\varid{\ensuremath{\epsilon}}"

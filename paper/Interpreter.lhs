@@ -195,8 +195,8 @@ The coinductive nature of |T|'s definition in Haskell is crucial to our
 approach because diverging traces can be expressed as an infinite, productive
 nesting of |Step|s; in a strict language, we would have introduced an explicit
 thunk in the definition of |Step|, \eg, @Step of event * (unit -> 'a t)@.
-The |Monad| instance of |T| implements the bind operator |(>>=)| by forwarding
-|Step|s, thus guarding the recursion~\citep{Capretta:05}.
+The |Monad| instance of |T| implements the monadic bind operator |(>>=)| by
+forwarding |Step|s, thus guarding the recursion~\citep{Capretta:05}.
 
 A semantic element |D| eventually terminates with a |Value| that is either
 |Stuck|, a |Fun|ction waiting to be applied to an argument |D| to yield another
@@ -208,7 +208,7 @@ of any syntax.
 \begin{figure}
 \begin{minipage}{0.55\textwidth}
 \begin{code}
-eval  ::  (IsTrace τ, IsValue τ v, HasAlloc τ v)
+eval  ::  (IsTrace τ, IsValue τ v, HasBind τ v)
       =>  Expr -> (Name :-> τ v) -> τ v
 eval e ρ = case e of
   Var x    | x ∈ dom ρ  -> ρ ! x
@@ -219,9 +219,9 @@ eval e ρ = case e of
            | otherwise  -> retStuck
   Lam x e' -> retFun {-" \iffalse "-}(label e){-" \fi "-} $ \d ->
     step App2 (eval e' ((ext ρ x d)))
-  Let x e1 e2 -> do
-    d1 <- alloc (\d1 -> eval e1 (ext ρ x (step (Lookup x) d1)))
-    step Let1 (eval e2 (ext ρ x (step (Lookup x) d1)))
+  Let x e1 e2 -> bind
+    (\d1 -> eval e1 (ext ρ x (step (Lookup x) d1)))
+    (\d1 -> step Let1 (eval e2 (ext ρ x (step (Lookup x) d1))))
   ConApp k xs
     | all (∈ dom ρ) xs, length xs == conArity k
     -> retCon {-" \iffalse "-}(label e){-" \fi "-} k (map (ρ !) xs)
@@ -253,8 +253,8 @@ class IsValue τ v where
   retCon :: {-" \iffalse "-}Label -> {-" \fi "-}Tag -> [τ v] -> τ v
   select :: v -> [(Tag, [τ v] -> τ v)] ->  τ v
 
-class HasAlloc τ v where
-  alloc :: (τ v -> τ v) -> τ (τ v)
+class HasBind τ v where
+  bind :: (τ v -> τ v) -> (τ v -> τ v) -> τ v
 \end{code}
 \subcaption{Final encoding of traces and values}
   \label{fig:trace-classes}
@@ -271,8 +271,8 @@ instance IsValue T Value where
   apply  _        _  = retStuck
   select v alts = ...
 
-instance HasAlloc T Value where
-  alloc f = return (fix f)
+instance HasBind T Value where
+  bind rhs body = body (fix rhs)
 \end{code}
 %else
 \begin{code}
@@ -315,7 +315,7 @@ quite a bit more general than its instantiation at |D|.
 In particular, the interpreter maps expressions not into a concrete,
 \emph{initial} encoding of a trace as an algebraic data type, but into a
 fold-like \emph{final encoding}~\citep{Carette:07} thereof, in terms
-of three type classes |IsTrace|,|IsValue| and |HasAlloc| depicted in
+of three type classes |IsTrace|,|IsValue| and |HasBind| depicted in
 \Cref{fig:trace-classes}.
 
 Each of these offer knobs that we will tweak individually in later Sections.
@@ -361,20 +361,23 @@ a Supplement, containing the complete definitions.
 Furthermore, the (non-diverging) interpreter outputs are directly generated from
 this extract.}
 
-The third type class is |HasAlloc|, a most significant knob to our
+The third type class is |HasBind|, a most significant knob to our
 interpreter because it fixes a particular evaluation strategy.
 We will play with this knob in \Cref{sec:evaluation-strategies}.
 Like |IsValue|, it is parameterised both over the type of values
 \emph{as well as} the type of trace.
 
-The |alloc| method of |HasAlloc| is used to give meaning to recursive let
+The |bind| method of |HasBind| is used to give meaning to recursive let
 bindings; as such its type is \emph{almost} an instance of the venerable least
-fixpoint combinator |fix :: (a -> a) -> a|, if it weren't for the additional |τ|
-wrapping in its result type.
+fixpoint combinator |fix :: (a -> a) -> a|, but it takes two functionals
+for building the denotation of the right-hand side and that of the let body,
+given a denotation for the right-hand side.
 The concrete implementation for |D| given in \Cref{fig:trace-instances} simply
-defers to |fix|, yielding a call-by-name evaluation strategy.
+hands over the fixpoint of the right-hand side to the body, yielding a
+call-by-name evaluation strategy.
 We will shortly see examples of eager evaluation strategies that will make some
-|step|s in |alloc| instead of simply |return|ing.
+|step|s in |bind| and eagerly emit from |fix rhs| instead of calling |body|
+immediately.
 
 %TODO: Move to later section?
 Evidently, |eval| is defined by recursion on the structure of |e|.
@@ -407,7 +410,7 @@ $\perform{eval (read "let zero = Z() in zero zero") emp :: D (ByName T)}$
 data ByName τ v = ByName (τ v)
 instance Monad τ => Monad (ByName τ) where ...
 instance IsTrace τ => IsTrace (ByName τ) where ...
-instance Monad τ => HasAlloc (ByName τ) (Value (ByName τ)) where ...
+instance Monad τ => HasBind (ByName τ) (Value (ByName τ)) where ...
 \end{spec}
 %if style == newcode
 \begin{code}
@@ -417,8 +420,8 @@ newtype ByName τ v = ByName { unByName :: (τ v) }
 instance IsTrace τ => IsTrace (ByName τ) where
   step e = ByName . step e . unByName
 
-instance Monad τ => HasAlloc (ByName τ) (Value (ByName τ)) where
-  alloc f = return (fix f)
+instance Monad τ => HasBind (ByName τ) (Value (ByName τ)) where
+  bind rhs body = body (fix rhs)
 \end{code}%
 %endif
 \caption{Redefinition of call-by-name semantics from \Cref{fig:trace-instances}}
@@ -442,10 +445,10 @@ memo :: IsTrace τ => Addr -> D (ByNeed τ) -> D (ByNeed τ)
 memo a d = d >>= step Update . ByNeed . StateT . upd
   where upd v μ = return (v, ext μ a (memo a (return v)))
 
-instance IsTrace τ => HasAlloc (ByNeed τ) (Value (ByNeed τ)) where
-  alloc f = ByNeed $ StateT $ \μ -> do
-    let a = nextFree μ
-    return (fetch a, ext μ a (memo a (f (fetch a))))
+instance IsTrace τ => HasBind (ByNeed τ) (Value (ByNeed τ)) where
+  bind rhs body = do  a <- nextFree <$> ByNeed get
+                      ByNeed $ modify (\μ -> ext μ a (memo a (rhs (fetch a))))
+                      body (fetch a)
 \end{spec}
 %if style == newcode
 \begin{code}
@@ -471,10 +474,10 @@ memo :: IsTrace τ => Addr -> D (ByNeed τ) -> D (ByNeed τ)
 memo a d = d >>= step Update . ByNeed . StateT . upd
   where upd v μ = return (v, ext μ a (memo a (return v)))
 
-instance IsTrace τ => HasAlloc (ByNeed τ) (Value (ByNeed τ)) where
-  alloc f = ByNeed $ StateT $ \μ -> do
-    let a = nextFree μ
-    return (fetch a, ext μ a (memo a (f (fetch a))))
+instance IsTrace τ => HasBind (ByNeed τ) (Value (ByNeed τ)) where
+  bind rhs body = do  a <- nextFree <$> ByNeed get
+                      ByNeed $ modify (\μ -> ext μ a (memo a (rhs (fetch a))))
+                      body (fetch a)
 \end{code}
 %endif
 \caption{Call-by-need}
@@ -484,7 +487,7 @@ instance IsTrace τ => HasAlloc (ByNeed τ) (Value (ByNeed τ)) where
 \subsection{More Evaluation Strategies}
 \label{sec:evaluation-strategies}
 
-By varying the |HasAlloc| instance of our type |D|, we can endow our language
+By varying the |HasBind| instance of our type |D|, we can endow our language
 |Expr| with different evaluation strategies.
 With a bit of generalisation, variations become as simple as switching out a
 monad transformer, a common phenomenon in abstract definitional
@@ -512,9 +515,9 @@ The trace transformer |ByNeed| in \Cref{fig:by-need} mixes in a call-by-need
 evaluation strategy by introducing a heap and memoisation to |τ|.
 Interestingly, |ByNeed T| denotes a \emph{stateful function returning a trace},
 thus it is the first time we compute with something different than a |T|.
-The |alloc| implementation for |ByNeed| traces will return a |D| that |fetch|es
-the bound action from a heap, under an address |a| that is not taken yet in the
-current heap |μ|.
+The |bind| implementation for |ByNeed| traces will tie the recursive know with
+a |D| that |fetch|es the bound action from a heap, under an address |a| that is
+not taken yet in the current heap |μ|.
 This newly heap-bound |D| in turn evaluates |f ...|, the result of which is
 |memo|ised in an |Update| step, so that the heap-bound |D| is replaced by
 one that immediately |return|s the value.
@@ -526,15 +529,12 @@ We have proven this semantics adequate \wrt to the LK transition system in
 does not match the currently applicable LK transition for $σ$.}
 
 It is worth stressing how simple it was to carry out this extension.
-Furthermore, nothing here is specific to |Expr| or |Value|!
-The only indirect requirement on |T| is that the |Event| type has an |Update|
-action, which makes the implementation of |ByNeed| easily reusable.
-\sg{That's not completely true; one would still need to duplicate the code to
-adjust it to the particular |Event| data type.
-That could be worked around with by parameterising |IsTrace τ ε| over the event
-type and then have type class constraint |HasUpdateEvent ε| in |HasAlloc|,
-but that seems like a lot complexity for such little benefit.
-Perhaps retract on this claim before long.}
+Furthermore, nothing in our approach is particularly specific to |Expr| or
+|Value|!
+We have built similar interpreters for PCF, where the @rec@, @let@ and
+non-atomic argument constructs can simply reuse |bind| to recover a
+call-by-need semantics.
+(The |Event| type needs semantics- and use-case-specific adjustment, though.)
 
 Example evaluating $\Let{i}{(\Lam{y}{\Lam{x}{x}})~i}{i~i}$:
 
@@ -564,8 +564,8 @@ instance MonadFix T where
 data Event = ... | Let0
 data ByValue τ v = ByValue { unByValue :: τ v }
 
-instance (IsTrace τ, MonadFix τ) => HasAlloc (ByValue τ) (Value (ByValue τ)) where
-  alloc f = fmap return $ step Let0 $ ByValue $ mfix (unByValue . f . return)
+instance (IsTrace τ, MonadFix τ) => HasBind (ByValue τ) (Value (ByValue τ)) where
+  bind rhs body = step Let0 (ByValue (mfix (unByValue . rhs . return))) >>= body . return
 \end{spec}
 %if style == newcode
 \begin{code}
@@ -579,8 +579,8 @@ newtype ByValue τ v = ByValue { unByValue :: τ v }
 instance IsTrace τ => IsTrace (ByValue τ) where
   step e (ByValue τ) = ByValue (step e τ)
 
-instance (IsTrace τ, MonadFix τ) => HasAlloc (ByValue τ) (Value (ByValue τ)) where
-  alloc f = fmap return $ step Let0 $ ByValue $ mfix (unByValue . f . return)
+instance (IsTrace τ, MonadFix τ) => HasBind (ByValue τ) (Value (ByValue τ)) where
+  bind rhs body = step Let0 (ByValue (mfix (unByValue . rhs . return))) >>= body . return
 \end{code}
 %endif
 \caption{Call-by-value}
@@ -592,10 +592,10 @@ instance (IsTrace τ, MonadFix τ) => HasAlloc (ByValue τ) (Value (ByValue τ))
 data ByVInit τ v = ByVInit (StateT (Heap (ByVInit τ)) τ v)
 runByVInit :: ByVInit τ a -> τ a; fetch :: Monad τ => Addr -> D (ByVInit τ)
 memo :: Monad τ => Addr -> D (ByVInit τ) -> D (ByVInit τ)
-instance IsTrace τ => HasAlloc (ByVInit τ) (Value (ByVInit τ)) where
-  alloc f = do  a <- nextFree <$> ByVInit get
-                ByVInit $ modify (\μ -> ext μ a retStuck)
-                fmap return $ step Let0 $ memo a $ f (fetch a)
+instance IsTrace τ => HasBind (ByVInit τ) (Value (ByVInit τ)) where
+  bind rhs body = do  a <- nextFree <$> ByVInit get
+                      ByVInit $ modify (\μ -> ext μ a retStuck)
+                      step Let0 (memo' a (rhs (fetch' a))) >>= body . return
 \end{spec}
 %if style == newcode
 \begin{code}
@@ -615,10 +615,10 @@ memo' :: Monad τ => Addr -> D (ByVInit τ) -> D (ByVInit τ)
 memo' a d = d >>= ByVInit . StateT . upd
   where upd v μ = return (v, ext μ a (return v))
 
-instance IsTrace τ => HasAlloc (ByVInit τ) (Value (ByVInit τ)) where
-  alloc f = do  a <- nextFree <$> ByVInit get
-                ByVInit $ modify (\μ -> ext μ a retStuck)
-                fmap return $ step Let0 $ memo' a $ f (fetch' a)
+instance IsTrace τ => HasBind (ByVInit τ) (Value (ByVInit τ)) where
+  bind rhs body = do  a <- nextFree <$> ByVInit get
+                      ByVInit $ modify (\μ -> ext μ a retStuck)
+                      step Let0 (memo' a (rhs (fetch' a))) >>= body . return
 \end{code}
 %endif
 \caption{Call-by-value with lazy initialisation}
@@ -627,20 +627,24 @@ instance IsTrace τ => HasAlloc (ByVInit τ) (Value (ByVInit τ)) where
 
 \subsubsection{Call-by-value}
 
-By defining a |MonadFix| instance for |T| and defining |alloc| in terms
+By defining a |MonadFix| instance for |T| and defining |bind| in terms
 of this instance, we can give a by-value semantics to |Expr|, as shown in
 \Cref{fig:by-value}.
-Let us unpack the definition of |alloc|.
+Let us unpack the definition of |bind|.
 As its first action, it yields a brand new |Let0| event, indicating in the
-trace that focus descends into the right-hand side of a |let|.%
+trace that focus descends into the right-hand side of a |let|.
 The definition of |mfix| on |T| then takes over;
 producing a trace |τ| which ends in a |Ret v| after finitely many steps.
-The value |v| is then passed to the argument |f| of |alloc|, wrapped in a
+The value |v| is then passed to the argument |f| of |bind|, wrapped in a
 |return|.
 This procedure works as long as |f| does not scrutinise |v| before producing
 the |Ret| constructor.
 The effect is that the trace |τ| is yielded \emph{while executing |mfix|}, and
-the value |v| is then |return|ed as the result of |alloc|.
+the value |v| is then passed |return|ed to |body|.
+Notably, |body (step Let0 ...)| would have different semantics, deferring the
+effect of evaluating |rhs| to its fixed-point at use sites; hence the
+|(>>= body . return)| idiom that forces the effects (\eg, yields the trace) of
+its argument eagerly.
 Subsequent evaluations of |return v| will not have to yield the |Step|s of |τ|
 again.
 
@@ -667,12 +671,12 @@ $\LetOT\rightarrow\LookupT(x)\rightarrow\LetIT\rightarrow\AppIT\rightarrow\Looku
 This loops forever unproductively, rendering the interpreter unfit as a
 denotational semantics.
 Typical strict languages work around this issue in either of two ways:
-They enforce termination of the RHS syntactically (OCaml, ML), or they use
+They enforce termination of the RHS statically (OCaml, ML), or they use
 \emph{lazy initialisation} techniques~\citep{Nakata:10,Nakata:06} (Scheme,
 recursive modules in OCaml).
 We could recover a total interpreter using the semantics in \citet{Nakata:10},
 reusing the implementation from |ByNeed| and initialising the heap
-with a \emph{black hole}~\citep{stg} |retStuck| in |alloc| as in
+with a \emph{black hole}~\citep{stg} |retStuck| in |bind| as in
 \Cref{fig:by-value-init}.
 
 < ghci> runByVInit $ eval (read "let x = x in x x") emp :: T (Value (ByVInit T))
@@ -688,9 +692,10 @@ instance Monad τ => Alternative (ParT τ) where
 newtype Clairvoyant τ a = Clairvoyant (ParT τ a)
 runClair :: D (Clairvoyant T) -> T (Value (Clairvoyant T))
 
-instance (MonadFix τ, IsTrace τ) => HasAlloc (Clairvoyant τ) (Value (Clairvoyant τ)) where
-  alloc f = Clairvoyant (skip <|> let') where  skip = return (Clairvoyant empty)
-                                               let' = fmap return $ step Let0 $ ... ^^ mfix ... f ...
+instance (MonadFix τ, IsTrace τ) => HasBind (Clairvoyant τ) (Value (Clairvoyant τ)) where
+  bind rhs body = Clairvoyant (skip <|> let') >>= body
+    where  skip = return (Clairvoyant empty)
+           let' = fmap return $ step Let0 $ ... ^^ mfix ... rhs . return ...
 \end{spec}
 %if style == newcode
 \begin{code}
@@ -728,19 +733,17 @@ rightT (ParT τ) = ParT $ τ >>= \case
   Fork _ r -> unParT r
   _ -> undefined
 
-parLöb :: MonadFix τ => (Fork (ParT τ) a -> ParT τ a) -> ParT τ a
-parLöb f = ParT $ mfix (unParT . f) >>= \case
+parFix :: MonadFix τ => (Fork (ParT τ) a -> ParT τ a) -> ParT τ a
+parFix f = ParT $ mfix (unParT . f) >>= \case
     Empty -> pure Empty
     Single a -> pure (Single a)
-    Fork _ _ -> pure (Fork (parLöb (leftT . f)) (parLöb (rightT . f)))
+    Fork _ _ -> pure (Fork (parFix (leftT . f)) (parFix (rightT . f)))
 
-instance (MonadFix τ, IsTrace τ) => HasAlloc (Clairvoyant τ) (Value (Clairvoyant τ)) where
-  alloc f = Clairvoyant (skip <|> let')
+instance (MonadFix τ, IsTrace τ) => HasBind (Clairvoyant τ) (Value (Clairvoyant τ)) where
+  bind rhs body = Clairvoyant (skip <|> let') >>= body
     where
       skip = return (Clairvoyant empty)
-      let' = do
-        v <- parLöb $ unClair . step Let0 . f . Clairvoyant . ParT . pure
-        return (return v)
+      let' = fmap return $ unClair $ step Let0 $ Clairvoyant $ parFix $ unClair . rhs . Clairvoyant . ParT . return
 
 -- This is VERY weird
 class Monad m => MonadRecord m where
@@ -790,10 +793,10 @@ $\perform{runClair $ eval (read "let f = λx.x in let g = λy.f in g g") emp :: 
 \\[\belowdisplayskip]
 \noindent
 The first example discards $f$, but the second needs it, so the trace starts
-with an additional $\LetIT$ event.
+with an additional $\LetOT$ event.
 Similar to |ByValue|, the interpreter is not total so it is unfit as a
 denotational semantics without a complicated domain theoretic judgment.
-Furthermore, the decision whether or not a $\LetIT$ is needed can be delayed for
+Furthermore, the decision whether or not a $\LetOT$ is needed can be delayed for
 an infinite amount of time, as exemplified by
 
 < ghci> runClair $ eval (read "let i = Z() in let w = λy.y y in w w") emp :: T (Value (Clairvoyant T))
@@ -832,4 +835,8 @@ $\perform{eval (read "let i = λx.x in i i") emp :: D (ByName Identity)}$
 \texttt{\textasciicircum{}CInterrupted}
 \\[\belowdisplayskip]
 \noindent
-We will consider more abstract trace instantiations in \Cref{sec:abstractions}.
+More generally, a total description of the \emph{dynamics} of a language
+requires a coinductive domain.
+For \emph{static analysis} we need to find good abstractions that approximate
+the dynamics in an inductive domain.
+We will now consider examples of such abstract, inductive domains.

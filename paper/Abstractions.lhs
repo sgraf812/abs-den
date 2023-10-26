@@ -29,12 +29,6 @@ import Interpreter
 \section{Abstractions}
 \label{sec:abstractions}
 
-We have seen that |eval| is well-suited to express concrete semantics
-coinductively.
-In this section, we will see how |eval| is also well-suited to implement
-abstract semantics, \eg, static program analyses with an inductively-defined
-domain.
-
 \begin{figure}
 \begin{spec}
 class Eq a => Lat a where bottom :: a; (⊔) :: a -> a -> a;
@@ -97,7 +91,7 @@ instance Lat UD where
   bottom = nopD
   Uses φ1 Nop ⊔ Uses φ2 Nop = Uses (φ1 ⊔ φ2) Nop
 
-instance HasAlloc UT UValue where alloc f = pure (kleeneFix f)
+instance HasBind UT UValue where bind rhs body = body (kleeneFix rhs)
 \end{code}
 %if style == newcode
 \begin{code}
@@ -135,7 +129,7 @@ instance Plussable UD where
   Uses us1 _ + Uses us2 _ = Uses (us1 + us2) Nop
 \end{code}
 %endif
-\caption{Naïve usage analysis via |IsValue| and |HasAlloc|}
+\caption{Naïve usage analysis via |IsValue| and |HasBind|}
 \label{fig:abs-usg}
 \end{figure}
 
@@ -197,13 +191,13 @@ uses inside the function body at any potential call site.
 (Recall that uses of the argument at the call site is handled by |apply|.)
 
 The final key to a terminating definition is in swapping out the fixpoint
-combinator via the |HasAlloc| instance for |UValue| that computes an
+combinator via the |HasBind| instance for |UValue| that computes an
 order-theoretic Kleene fixpoint (\cf. \Cref{fig:lat}) instead of |fix| (which
 only works for a corecursive |f|).
 The Kleene fixpoint exists by monotonicity and finiteness of |UD|.
 
 \subsubsection*{Examples}
-Our naive usage analysis yields the same result as the semantic usage
+Our naïve usage analysis yields the same result as the semantic usage
 abstraction in simple cases:
 
 < ghci> eval (read "let i = λx.x in let j = λy.y in i j j") emp :: UD
@@ -265,12 +259,12 @@ instance IsValue Cts PolyType where {-" ... \iffalse "-}
       ty:tys' -> traverse (\ty' -> emitCt (ty,ty')) tys' >> return (PT [] ty)
 
 {-" \fi "-}
-instance HasAlloc Cts PolyType where
-  alloc f = fmap return $ generaliseTy $ do
-    f_ty <- freshTyVar
-    f_ty' <- f (return (PT [] f_ty)) >>= instantiatePolyTy
-    emitCt (f_ty, f_ty')
-    return f_ty
+instance HasBind Cts PolyType where
+  bind rhs body = (>>= body . return) $ generaliseTy $ do
+    rhs_ty <- freshTyVar
+    rhs_ty' <- rhs (return (PT [] rhs_ty)) >>= instantiatePolyTy
+    emitCt (rhs_ty, rhs_ty')
+    return rhs_ty
 
 runCts :: Cts PolyType -> PolyType
 runCts (Cts m) = case evalStateT m (Set.empty, emp) of Just ty -> ty; Nothing -> PT [] Wrong
@@ -417,7 +411,7 @@ insitance of our abstract denotational interpreter.
 The gist is given in \Cref{fig:type-analysis}; we omitted large parts of the
 implementation and the |IsValue| instance for space reasons.
 While the full implementation can be found in the extract generated from this
-document, the |HasAlloc| instance is sufficiently exemplary of the approach.
+document, the |HasBind| instance is sufficiently exemplary of the approach.
 
 The analysis infers most general |PolyType|s of the
 form $\forall \many{\alpha}.\ θ$ for an expression, where $θ$ ranges over a
@@ -434,19 +428,20 @@ constraints in |freshTyVar| and |instantiatePolyTy|, as well as to construct a
 superset of $\fv(Γ)$ in |generaliseTy|.
 
 While the operational detail offered by |IsTrace| is ignored by |Cts|, all the
-pieces fall together in the implementation of |alloc|, where we see yet another
+pieces fall together in the implementation of |bind|, where we see yet another
 domain-specific fixpoint strategy:
 The knot is tied by calling the iteratee |f| with a fresh unification variable
-type |f_ty| of the shape $α_1$.
-The result of this call in turn is instantiated to a non-|PolyType| |f_ty'|,
+type |rhs_ty| of the shape $α_1$.
+The result of this call in turn is instantiated to a non-|PolyType| |rhs_ty'|,
 perhaps turning a type-scheme $\forall α_2.\ \mathtt{option}\;(α_2 \rightarrow
 α_2)$ into the shape $\mathtt{option}\;(α_3 \rightarrow α_3)$ for fresh $α_3$.
 Then a constraint is emitted to unify $α_1$ with
 $\mathtt{option}\;(α_3 \rightarrow α_3)$.
-Ultimately, the type |f_ty| is returned and generalised to $\forall α_3.\
+Ultimately, the type |rhs_ty| is returned and generalised to $\forall α_3.\
 \mathtt{option}\;(α_3 \rightarrow α_3)$, because $α_3$ is not a |Name| in use
 before the call to |generaliseTy| (and thus it couldn't have possibly leaked
 into the range of the ambient type context).
+The generalised |PolyType| is then used when analysing the |body|.
 
 \subsubsection*{Examples}
 %Since this is just intended as another example, we do not attempt a proof of
@@ -488,15 +483,15 @@ instance IsValue CT CValue where
     return (lub vals)
 {-" \fi "-}
 
-instance HasAlloc CT CValue where{-" ... \iffalse "-}
-  alloc f = fmap return (go bottom)
+instance HasBind CT CValue where{-" ... \iffalse "-}
+  bind rhs body = go bottom >>= body . return
     where
       go :: CValue -> CT CValue
       go v = do
         cache <- CT get
-        v' <- f (return v)
+        v' <- rhs (return v)
         cache' <- CT get
-        if v' ⊑ v && cache' ⊑ cache then do { v'' <- f (return v'); if v' /= v'' then error "blah" else return v' } else go v'
+        if v' ⊑ v && cache' ⊑ cache then do { v'' <- rhs (return v'); if v' /= v'' then error "blah" else return v' } else go v'
 {-" \fi "-}
 \end{code}
 
@@ -659,7 +654,7 @@ cached result |v2| straight away.
 Otherwise, the transformer stored for the label is evaluated at |v| and the
 result is cached as the new summary.
 An allocation site might be re-analysed multiple times with monotonically increasing
-environment due to fixed-point iteration in |alloc|.
+environment due to fixed-point iteration in |bind|.
 Whenever that happens, the point that has been cached for that allocation
 site is cleared, because the function might have increased its result.
 Then re-evaluating the function at the next |cachedCall| is mandatory.
@@ -682,7 +677,7 @@ $\perform{runCFA $ eval (read "let i = λx.x in let j = λy.y in i j") emp}$
 $\perform{runCFA $ eval (read "let i = λx.x in let j = λy.y in i i j") emp}$
 \\[\belowdisplayskip]
 \noindent
-The |HasAlloc| instance guarantees termination for diverging programs and cyclic
+The |HasBind| instance guarantees termination for diverging programs and cyclic
 data:
 < ghci> runCFA $ eval (read "let ω = λx. x x in ω ω") emp
 $\perform{runCFA $ eval (read "let ω = λx. x x in ω ω") emp}$
