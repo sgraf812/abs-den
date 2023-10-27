@@ -39,9 +39,11 @@ instance Lat Demand where
 instance Eq SubDemand where
   Seq == Seq = True
   Top == Top = True
+  Call n1 sd1 == Call n2 sd2 = n1 == n2 && sd1 == sd2
   Top == Call n sd = n == Uω && sd == Top
   Top == Prod dmds = all (== topDmd) dmds
   Seq == Prod dmds = all (== absDmd) dmds
+  Prod dmds1 == Prod dmds2 = dmds1 == dmds2
   _   == _         = False
 instance Lat SubDemand where
   bottom = Seq
@@ -149,29 +151,34 @@ instance IsValue DmdT DmdVal where
           _          -> (Uω, Top) in
     let (v,φ) = unDT (f sentinel) ns' sd' in
     let (d,φ') = (Map.findWithDefault absDmd x φ,Map.delete x φ) in
-    (DmdFun d v, φ')
+    (DmdFun d v, multDmdEnv n φ')
   retCon lbl k ds = DT $ \ns sd ->
     let dmds = case sd of
           Prod dmds | length dmds == length ds, isProd k -> dmds
           Seq -> replicate (length ds) absDmd
           _   -> replicate (length ds) topDmd in
     (DmdNop, foldr (+) emp (zipWith (squeezeDmd ns) ds dmds))
-  apply v arg = DT $ \ns sd ->
-    case v of
-      DmdFun dmd v' -> (v',     squeezeDmd ns arg dmd)
-      DmdNop        -> (DmdNop, squeezeDmd ns arg topDmd)
-      DmdBot        -> (DmdBot, emp)
-  select _ [(k,f)] | k == Pair = DT $ \ns sd ->
+  apply (DT f) arg = DT $ \ns sd ->
+    case f ns (Call U1 sd) of
+      (DmdFun dmd v', φ) -> (v',     φ + squeezeDmd ns arg dmd)
+      (DmdNop       , φ) -> (DmdNop, φ + squeezeDmd ns arg topDmd)
+      (DmdBot       , φ) -> (DmdBot, φ + emp)
+  select (DT scrut) [(k,f)] | k == Pair = DT $ \ns sd ->
     let (xs,ns')  = freshs (conArity k) ns in
     let sentinels = map (\x -> step (Lookup x) (pure DmdNop)) xs in
     let (v,φ)     = unDT (f sentinels) ns' sd in
     let (ds,φ')   = (map (\x -> Map.findWithDefault absDmd x φ) xs,foldr Map.delete φ xs) in
-    undefined -- want to unleash ds on the scrutinee here! Would have to pass down via value
---  select _ fs = DT $ \sd ->
---    case v of
---      DmdFun dmd v' -> (v',     squeezeDmd ns arg dmd)
---      DmdNop        -> (DmdNop, squeezeDmd ns arg topDmd)
---      DmdBot        -> (DmdBot, emp)
+    case scrut ns (Prod ds) of
+      (_v,φ'') -> (v,φ''+φ')
+  select (DT scrut) fs = DT $ \ns sd ->
+    let (_v,φ) = scrut ns Top in
+    let (v,φ') = lub (map (alt ns sd) fs) in
+    (v, φ+φ')
+    where
+      alt ns sd (k,f) =
+        let (xs,ns')  = freshs (conArity k) ns in
+        let sentinels = map (\x -> pure DmdNop) xs in
+        unDT (f sentinels) ns' sd
 
 -- | Very hacky way to see the arity of a function
 arity :: Set Name -> DmdD -> Int
@@ -180,10 +187,11 @@ arity ns (DT m) = go 0
     go n
       | n > 100                       = n
       | φ /= emp                      = n
+      | DmdNop <- v                   = n
       | DmdFun d v' <- v, d /= absDmd = n Prelude.+ 1
       | otherwise                     = go (n Prelude.+ 1)
       where
-        sd = iterate (Call U1) Top !! n
+        sd = iterate (Call U1) Seq !! n
         (v,φ) = m ns sd
 
 nopD' :: DmdD
@@ -193,6 +201,7 @@ peelManyCalls :: Int -> SubDemand -> (U, SubDemand)
 peelManyCalls 0 sd = (U1,sd)
 peelManyCalls _ Seq = (U0, Seq)
 peelManyCalls _ Top = (Uω, Top)
+peelManyCalls _ Prod{} = (Uω, Top)
 peelManyCalls n (Call u sd) | (u',sd') <- peelManyCalls (n-1) sd = (u `mult` u', sd')
   where
     mult U0 _  = U0
@@ -243,10 +252,15 @@ instance HasBind DmdT DmdVal where
         let sd'' = sd ⊔ sd' in
         case unDT (rhs (step (Lookup x) (pure v))) ns' sd'' of
           (v',φ') ->
-            let (d,φ'') = (Map.findWithDefault absDmd x φ,Map.delete x φ) in
+            let (d,φ'') = (Map.findWithDefault absDmd x φ',Map.delete x φ') in
             case d of
-              Abs -> (sd'',v',φ'')
+              Abs -> (traceShowId sd'',v',φ'')
               _n :* sd''' -> (sd'' ⊔ sd''',v',φ'')
 
 runDmd :: SubDemand -> DmdD -> (DmdVal, DmdEnv)
 runDmd sd (DT d) = d Set.empty sd
+
+many :: String -> (DmdVal, DmdEnv)
+many s = runDmd Top $ eval (read s) emp
+call :: String -> (DmdVal, DmdEnv)
+call s = runDmd (Call U1 Top) $ eval (read s) emp
