@@ -140,9 +140,9 @@ fresh ns = (x, Set.insert x ns) where x = "X" ++ show (Set.size ns)
 freshs :: Int -> Set Name -> ([Name], Set Name)
 freshs n ns = (xs, foldr Set.insert ns xs) where xs = take n (map (("X" ++) . show) [Set.size ns ..])
 
-instance IsValue DmdT DmdVal where
-  retStuck = return DmdBot
-  retFun _ f = DT $ \ns sd ->
+instance Domain (DmdT DmdVal) where
+  stuck = return DmdBot
+  fun _ f = DT $ \ns sd ->
     let (x,ns') = fresh ns in
     let sentinel = step (Lookup x) (pure DmdNop) in
     let (n,sd') = case sd of
@@ -152,7 +152,7 @@ instance IsValue DmdT DmdVal where
     let (v,φ) = unDT (f sentinel) ns' sd' in
     let (d,φ') = (Map.findWithDefault absDmd x φ,Map.delete x φ) in
     (DmdFun d v, multDmdEnv n φ')
-  retCon lbl k ds = DT $ \ns sd ->
+  con lbl k ds = DT $ \ns sd ->
     let dmds = case sd of
           Prod dmds | length dmds == length ds, isProd k -> dmds
           Seq -> replicate (length ds) absDmd
@@ -231,7 +231,7 @@ absDmdSummary :: Int -> Set Name -> DmdD -> DmdSummary
 absDmdSummary arty ns (DT d) =
   d ns (iterate (Call U1) Top !! arty)
 
-instance HasBind DmdT DmdVal where
+instance HasBind DmdD where
   bind rhs body = DT $ \ns sd ->
     let arty = arity ns (rhs nopD') in
     if trace (show arty) arty == 0

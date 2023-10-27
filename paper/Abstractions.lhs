@@ -80,10 +80,10 @@ nopD = Uses emp Nop
 manify :: UD -> UD
 manify (Uses φ Nop) = Uses (φ+φ) Nop
 
-instance IsValue UT UValue where
-  retStuck                                  = nopD
-  retFun {-" \iffalse "-}_{-" \fi "-} f     = manify (f nopD)
-  retCon {-" \iffalse "-}_{-" \fi "-} _ ds  = manify (foldr (+) nopD ds)
+instance Domain UD where
+  stuck                                  = nopD
+  fun {-" \iffalse "-}_{-" \fi "-} f     = manify (f nopD)
+  con {-" \iffalse "-}_{-" \fi "-} _ ds  = manify (foldr (+) nopD ds)
   apply d1 d2                               = d1 + manify d2
   select d fs                               = d + lub [ f (replicate (conArity k) nopD) | (k,f) <- fs ]
 
@@ -91,7 +91,7 @@ instance Lat UD where
   bottom = nopD
   Uses φ1 Nop ⊔ Uses φ2 Nop = Uses (φ1 ⊔ φ2) Nop
 
-instance HasBind UT UValue where bind rhs body = body (kleeneFix rhs)
+instance HasBind UD where bind rhs body = body (kleeneFix rhs)
 \end{code}
 %if style == newcode
 \begin{code}
@@ -129,7 +129,7 @@ instance Plussable UD where
   Uses us1 _ + Uses us2 _ = Uses (us1 + us2) Nop
 \end{code}
 %endif
-\caption{Naïve usage analysis via |IsValue| and |HasBind|}
+\caption{Naïve usage analysis via |Domain| and |HasBind|}
 \label{fig:abs-usg}
 \end{figure}
 
@@ -164,8 +164,8 @@ indeed computes the same result as $\semusg{\pe}_{\tr_Δ}$ from \Cref{fig:usage}
 (given an appropriate encoding of $\tr_Δ$ as a |Name :-> UD| and an |e| without
 data types), once we have understood the type class instances at play.
 
-The |IsValue| instance calculates a summary of a semantic usage value.
-|retStuck|,|retFun| and |retCon| map from values to summarised representation,
+The |Domain| instance calculates a summary of a semantic usage value.
+|stuck|,|fun| and |con| map from values to summarised representation,
 and |apply| and |select| encode the concretisation of |Nop| in terms of the
 abstract domain |UD|.
 
@@ -180,12 +180,12 @@ Such a |nopD| is simply an inert denotation that does not contribute any uses
 itself, but crucially distributes the |Nop| value to field accesses inside |fs|,
 leading to conservative approximation in turn.
 
-Dually, when a constructor application is returned in |retCon|, all the fields
+Dually, when a constructor application is returned in |con|, all the fields
 are evaluated eagerly, and many times, conservatively approximating potential
 use of any of the fields in the future.
 This justifies passing |nopD| for field denotations in |select|; the fields have
-already been ``squeezed dry'' in |retCon|.
-Likewise, when returning a function in |retFun|, that function is ``squeezed
+already been ``squeezed dry'' in |con|.
+Likewise, when returning a function in |fun|, that function is ``squeezed
 dry'' by passing it a |nopD| and |manify|ing the result, thus accounting for
 uses inside the function body at any potential call site.
 (Recall that uses of the argument at the call site is handled by |apply|.)
@@ -225,13 +225,13 @@ emitCt :: Constraint -> Cts ();                   freshTyVar :: Cts Type
 instantiatePolyTy :: PolyType -> Cts Type; ^^ ^^  generaliseTy :: Cts Type -> Cts PolyType
 
 instance IsTrace Cts where step _ = id
-instance IsValue Cts PolyType where {-" ... \iffalse "-}
-  retStuck = return (PT [] Wrong)
-  retFun {-" \iffalse "-}_{-" \fi "-} f = do
+instance Domain (Cts PolyType) where {-" ... \iffalse "-}
+  stuck = return (PT [] Wrong)
+  fun {-" \iffalse "-}_{-" \fi "-} f = do
     arg <- freshTyVar
     res <- f (return (PT [] arg)) >>= instantiatePolyTy
     return (PT [] (arg :->: res))
-  retCon {-" \iffalse "-}_{-" \fi "-} k ds = do
+  con {-" \iffalse "-}_{-" \fi "-} k ds = do
     con_app_ty <- instantiateCon k
     arg_tys <- traverse (>>= instantiatePolyTy) ds
     res_ty <- freshTyVar
@@ -243,7 +243,7 @@ instance IsValue Cts PolyType where {-" ... \iffalse "-}
     res_ty <- freshTyVar
     emitCt (fun_ty, arg_ty :->: res_ty)
     return (PT [] res_ty)
-  select _  [] = retStuck
+  select _  [] = stuck
   select dv fs@((k,_):_) = do
     con_ty <- dv >>= instantiatePolyTy
     res_ty <- snd . splitFunTys <$> instantiateCon k
@@ -253,13 +253,13 @@ instance IsValue Cts PolyType where {-" ... \iffalse "-}
     tys <- forM ks_tys $ \(k,tys) ->
       case List.find (\(k',_) -> k' == k) fs of
         Just (_,f) -> f (map (fmap (PT [])) tys)
-        _          -> retStuck
+        _          -> stuck
     traverse instantiatePolyTy tys >>= \case
-      []      -> retStuck
+      []      -> stuck
       ty:tys' -> traverse (\ty' -> emitCt (ty,ty')) tys' >> return (PT [] ty)
 
 {-" \fi "-}
-instance HasBind Cts PolyType where
+instance HasBind (Cts PolyType) where
   bind rhs body = body . return =<< generaliseTy (do
     rhs_ty <- freshTyVar
     rhs_ty' <- rhs (return (PT [] rhs_ty)) >>= instantiatePolyTy
@@ -409,7 +409,7 @@ To demonstrate the flexibility of our approach, we have implemented
 Hindley-Milner-style type analysis including Let generalisation as an
 insitance of our abstract denotational interpreter.
 The gist is given in \Cref{fig:type-analysis}; we omitted large parts of the
-implementation and the |IsValue| instance for space reasons.
+implementation and the |Domain| instance for space reasons.
 While the full implementation can be found in the extract generated from this
 document, the |HasBind| instance is sufficiently exemplary of the approach.
 
@@ -470,12 +470,12 @@ runCFA :: CD -> CValue; updFunCache :: Label -> (CD -> CD) -> CT ()
 
 instance IsTrace CT where step _ = id
 
-instance IsValue CT CValue where
-  retFun ell f = do updFunCache ell f; return (P (Set.singleton ell))
+instance Domain CD where
+  fun ell f = do updFunCache ell f; return (P (Set.singleton ell))
   apply dv da = dv >>= \(P ells) -> da >>= \a -> lub <$> traverse (\ell -> cachedCall ell a) (Set.toList ells)
   {-" ... \iffalse "-}
-  retStuck = return bottom
-  retCon ell k ds = do vs <- sequence ds; updConCache ell k vs; return (P (Set.singleton ell))
+  stuck = return bottom
+  con ell k ds = do vs <- sequence ds; updConCache ell k vs; return (P (Set.singleton ell))
   select dv fs = do
     P ells <- dv
     cache <- CT get
@@ -484,7 +484,7 @@ instance IsValue CT CValue where
     return (lub vals)
 {-" \fi "-}
 
-instance HasBind CT CValue where{-" ... \iffalse "-}
+instance HasBind CD where{-" ... \iffalse "-}
   bind rhs body = go bottom >>= body . return
     where
       go :: CValue -> CT CValue
@@ -620,18 +620,18 @@ The resulting control-flow graph conservatively approximates the control-flow of
 the whole program and can be used to apply classic intraprocedural analyses such
 as interval analysis in a higher-order setting.
 
-To facilitate CFA, we have to revise the |IsValue| class to pass down a
+To facilitate CFA, we have to revise the |Domain| class to pass down a
 \emph{label} from allocation sites, which is to serve as the syntactic proxy of
 the value's control-flow node:
 \begin{spec}
 type Label = String
-class IsValue τ v | v -> τ where
-  retCon  :: {-" \highlight{ "-}Label -> {-" {}} "-} Tag -> [τ v] -> τ v
-  retFun  :: {-" \highlight{ "-}Label -> {-" {}} "-} (τ v -> τ v) -> τ v
+class Domain d where
+  con  :: {-" \highlight{ "-}Label -> {-" {}} "-} Tag -> [d] -> d
+  fun  :: {-" \highlight{ "-}Label -> {-" {}} "-} (d -> d) -> d
 \end{spec}
 \noindent
 We omit how to forward labels appropriately in |eval| and how to adjust
-|IsValue| instances.
+|Domain| instances.
 
 \Cref{fig:cfa} gives a rough outline of how we use this extension to define a 0CFA:%
 \footnote{As before, the extract of this document contains the full, executable
@@ -711,7 +711,7 @@ approximate call-strings.
 
 We think that for any trace property (\ie, |IsTrace| instance), there is
 an analysis that can be built on 0CFA, without the need to define a custom
-summary mechanism encoded as an |IsValue| instance.
+summary mechanism encoded as an |Domain| instance.
 For our usage analysis, that would mean less explanation of its |Nop| summary,
 but in some cases we'd lose out on precision due to the lack of modularity.
 
@@ -739,5 +739,5 @@ We are not the first to realise this.
 summary-based approach to pointer analysis.
 That is why we would favour a summary-based approach where possible.
 Furthermore, given a semantic description of abstract values, it is likely
-that the implementation of |IsValue| can be synthesised using the approach of
+that the implementation of |Domain| can be synthesised using the approach of
 \citet{Kalita:2022}.

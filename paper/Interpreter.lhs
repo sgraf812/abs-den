@@ -208,34 +208,34 @@ of any syntax.
 \begin{figure}
 \begin{minipage}{0.55\textwidth}
 \begin{code}
-eval  ::  (IsTrace τ, IsValue τ v, HasBind τ v)
+eval  ::  (IsTrace τ, Domain (τ v), HasBind (τ v))
       =>  Expr -> (Name :-> τ v) -> τ v
 eval e ρ = case e of
   Var x    | x ∈ dom ρ  -> ρ ! x
-           | otherwise  -> retStuck
+           | otherwise  -> stuck
   App e x  | x ∈ dom ρ  -> step App1 $ do
                apply (eval e ρ) (ρ ! x)
-           | otherwise  -> retStuck
-  Lam x e' -> retFun {-" \iffalse "-}(label e){-" \fi "-} $ \d ->
+           | otherwise  -> stuck
+  Lam x e' -> fun {-" \iffalse "-}(label e){-" \fi "-} $ \d ->
     step App2 (eval e' ((ext ρ x d)))
   Let x e1 e2 -> bind
     (\d1 -> eval e1 (ext ρ x (step (Lookup x) d1)))
     (\d1 -> step Let1 (eval e2 (ext ρ x (step (Lookup x) d1))))
   ConApp k xs
     | all (∈ dom ρ) xs, length xs == conArity k
-    -> retCon {-" \iffalse "-}(label e){-" \fi "-} k (map (ρ !) xs)
+    -> con {-" \iffalse "-}(label e){-" \fi "-} k (map (ρ !) xs)
     | otherwise
-    -> retStuck
+    -> stuck
   Case e alts -> step Case1 $ do
     select (eval e ρ) [ (k, cont er xs) | (k,xs,er) <- alts ]
     where
        cont er xs ds  |  length xs == length ds
                       =  step Case2 (eval er (exts ρ xs ds))
                       |  otherwise
-                      =  retStuck
+                      =  stuck
 \end{code}
-%  ConApp k xs  | all (∈ dom ρ) xs  -> retCon k (map (ρ !) xs)
-%               | otherwise         -> retStuck
+%  ConApp k xs  | all (∈ dom ρ) xs  -> con k (map (ρ !) xs)
+%               | otherwise         -> stuck
 %  Case e alts -> step Case1 (eval e ρ >>= \v ->
 %    select v [ (k, step Case2 . eval er . exts ρ xs) | (k,xs,er) <- alts ])
 \end{minipage}%
@@ -244,15 +244,15 @@ eval e ρ = case e of
 class Monad τ => IsTrace τ where
   step :: Event -> τ v -> τ v
 
-class IsValue τ v where
-  retStuck :: τ v
-  retFun :: {-" \iffalse "-}Label -> {-" \fi "-}(τ v -> τ v) -> τ v
-  apply :: τ v -> τ v -> τ v
-  retCon :: {-" \iffalse "-}Label -> {-" \fi "-}Tag -> [τ v] -> τ v
-  select :: τ v -> [(Tag, [τ v] -> τ v)] ->  τ v
+class Domain d where
+  stuck :: d
+  fun :: {-" \iffalse "-}Label -> {-" \fi "-}(d -> d) -> d
+  apply :: d -> d -> d
+  con :: {-" \iffalse "-}Label -> {-" \fi "-}Tag -> [d] -> d
+  select :: d -> [(Tag, [d] -> d)] ->  d
 
-class HasBind τ v where
-  bind :: (τ v -> τ v) -> (τ v -> τ v) -> τ v
+class HasBind d where
+  bind :: (d -> d) -> (d -> d) -> d
 \end{code}
 \subcaption{Final encoding of traces and values}
   \label{fig:trace-classes}
@@ -261,14 +261,14 @@ class HasBind τ v where
 instance IsTrace T where
   step = Step
 
-instance IsValue T Value where
-  retStuck = return Stuck
-  retFun {-" \iffalse "-}_{-" \fi "-} f = return (Fun f)
-  retCon {-" \iffalse "-}_{-" \fi "-} k ds = return (Con k ds)
-  apply  dv da = dv >>= \case Fun f -> f da; _ -> retStuck
+instance Domain D where
+  stuck = return Stuck
+  fun {-" \iffalse "-}_{-" \fi "-} f = return (Fun f)
+  con {-" \iffalse "-}_{-" \fi "-} k ds = return (Con k ds)
+  apply  dv da = dv >>= \case Fun f -> f da; _ -> stuck
   select v alts = ...
 
-instance HasBind T Value where
+instance HasBind D where
   bind rhs body = body (fix rhs)
 \end{code}
 %else
@@ -276,16 +276,16 @@ instance HasBind T Value where
 instance IsTrace T where
   step = Step
 
-instance IsTrace τ => IsValue τ (Value τ) where
-  retStuck = return Stuck
-  retFun {-" \iffalse "-}_{-" \fi "-} f = return (Fun f)
-  retCon {-" \iffalse "-}_{-" \fi "-} k ds = return (Con k ds)
-  apply  dv da = dv >>= \case Fun f -> f da; _ -> retStuck
+instance IsTrace τ => Domain (D τ) where
+  stuck = return Stuck
+  fun {-" \iffalse "-}_{-" \fi "-} f = return (Fun f)
+  con {-" \iffalse "-}_{-" \fi "-} k ds = return (Con k ds)
+  apply  dv da = dv >>= \case Fun f -> f da; _ -> stuck
   select dv alts = dv >>= \case
     Con k ds
       | Just (_,alt) <- find (\(k',_) -> k' == k) alts
       -> alt ds
-    _ -> retStuck
+    _ -> stuck
 \end{code}
 %endif
 \subcaption{Concrete by-name semantics for |D|}
@@ -310,7 +310,7 @@ quite a bit more general than its instantiation at |D|.
 In particular, the interpreter maps expressions not into a concrete,
 \emph{initial} encoding of a trace as an algebraic data type, but into a
 fold-like \emph{final encoding}~\citep{Carette:07} thereof, in terms
-of three type classes |IsTrace|,|IsValue| and |HasBind| depicted in
+of three type classes |IsTrace|,|Domain| and |HasBind| depicted in
 \Cref{fig:trace-classes}.
 
 Each of these offer knobs that we will tweak individually in later Sections.
@@ -340,17 +340,17 @@ Which is in direct correspondence to the call-by-name small-step trace
   \end{array}
 \end{array}\]
 \noindent
-While |IsTrace| is exactly a final encoding of |T|, |IsValue| is only
+While |IsTrace| is exactly a final encoding of |T|, |Domain| is only
 \emph{almost} one of |Value|.
-The ``injections'' |retStuck|, |retFun| and |retCon| return a
+The ``injections'' |stuck|, |fun| and |con| return a
 |D = T Value|, not simply a |Value|; a curiosity that we will revisit in
 \Cref{fig:abstractions} when we consider abstract interpretations that
 \emph{summarise} a |Value| in different ways.
 The ``eliminators'' |apply| and |select| have the expected type and structure
-dictated by a final encoding, where a ``type error'' results in |retStuck|.
+dictated by a final encoding, where a ``type error'' results in |stuck|.
 The omitted definition for |select| finds the |alt| in |alts| that matches the
 |Tag| of the |Con| value |v| and applies said |alt| to the field denotations of
-|v|; failure to perform any of these steps results in |retStuck|.%
+|v|; failure to perform any of these steps results in |stuck|.%
 \footnote{We extract from this document a runnable Haskell file which we add as
 a Supplement, containing the complete definitions.
 Furthermore, the (non-diverging) interpreter outputs are directly generated from
@@ -359,7 +359,7 @@ this extract.}
 The third type class is |HasBind|, a most significant knob to our
 interpreter because it fixes a particular evaluation strategy.
 We will play with this knob in \Cref{sec:evaluation-strategies}.
-Like |IsValue|, it is parameterised both over the type of values
+Like |Domain|, it is parameterised both over the type of values
 \emph{as well as} the type of trace.
 
 The |bind| method of |HasBind| is used to give meaning to recursive let
@@ -405,7 +405,7 @@ $\perform{eval (read "let zero = Z() in zero zero") emp :: D (ByName T)}$
 data ByName τ v = ByName (τ v)
 instance Monad τ => Monad (ByName τ) where ...
 instance IsTrace τ => IsTrace (ByName τ) where ...
-instance Monad τ => HasBind (ByName τ) (Value (ByName τ)) where ...
+instance Monad τ => HasBind (D (ByName τ)) where ...
 \end{spec}
 %if style == newcode
 \begin{code}
@@ -415,7 +415,7 @@ newtype ByName τ v = ByName { unByName :: (τ v) }
 instance IsTrace τ => IsTrace (ByName τ) where
   step e = ByName . step e . unByName
 
-instance Monad τ => HasBind (ByName τ) (Value (ByName τ)) where
+instance Monad τ => HasBind (D (ByName τ)) where
   bind rhs body = body (fix rhs)
 \end{code}%
 %endif
@@ -440,7 +440,7 @@ memo :: IsTrace τ => Addr -> D (ByNeed τ) -> D (ByNeed τ)
 memo a d = d >>= step Update . ByNeed . StateT . upd
   where upd v μ = return (v, ext μ a (memo a (return v)))
 
-instance IsTrace τ => HasBind (ByNeed τ) (Value (ByNeed τ)) where
+instance IsTrace τ => HasBind (D (ByNeed τ)) where
   bind rhs body = do  a <- nextFree <$> ByNeed get
                       ByNeed $ modify (\μ -> ext μ a (memo a (rhs (fetch a))))
                       body (fetch a)
@@ -469,7 +469,7 @@ memo :: IsTrace τ => Addr -> D (ByNeed τ) -> D (ByNeed τ)
 memo a d = d >>= step Update . ByNeed . StateT . upd
   where upd v μ = return (v, ext μ a (memo a (return v)))
 
-instance IsTrace τ => HasBind (ByNeed τ) (Value (ByNeed τ)) where
+instance IsTrace τ => HasBind (D (ByNeed τ)) where
   bind rhs body = do  a <- nextFree <$> ByNeed get
                       ByNeed $ modify (\μ -> ext μ a (memo a (rhs (fetch a))))
                       body (fetch a)
@@ -491,7 +491,7 @@ Thus we parameterise |D| and |Value| over the particular trace type |T|:
 \begin{spec}
 type D τ = τ (Value τ)
 data Value τ = Stuck | Fun (D τ -> D τ) | Con Tag [D τ]
-instance IsTrace τ => IsValue τ (Value τ) where ...
+instance IsTrace τ => Domain (D τ) where ...
 \end{spec}
 
 \noindent
@@ -559,7 +559,7 @@ instance MonadFix T where
 data Event = ... | Let0
 data ByValue τ v = ByValue { unByValue :: τ v }
 
-instance (IsTrace τ, MonadFix τ) => HasBind (ByValue τ) (Value (ByValue τ)) where
+instance (IsTrace τ, MonadFix τ) => HasBind (D (ByValue τ)) where
   bind rhs body = step Let0 (ByValue (mfix (unByValue . rhs . return))) >>= body . return
 \end{spec}
 %if style == newcode
@@ -574,7 +574,7 @@ newtype ByValue τ v = ByValue { unByValue :: τ v }
 instance IsTrace τ => IsTrace (ByValue τ) where
   step e (ByValue τ) = ByValue (step e τ)
 
-instance (IsTrace τ, MonadFix τ) => HasBind (ByValue τ) (Value (ByValue τ)) where
+instance (IsTrace τ, MonadFix τ) => HasBind (D (ByValue τ)) where
   bind rhs body = step Let0 (ByValue (mfix (unByValue . rhs . return))) >>= body . return
 \end{code}
 %endif
@@ -587,9 +587,9 @@ instance (IsTrace τ, MonadFix τ) => HasBind (ByValue τ) (Value (ByValue τ)) 
 data ByVInit τ v = ByVInit (StateT (Heap (ByVInit τ)) τ v)
 runByVInit :: ByVInit τ a -> τ a; fetch :: Monad τ => Addr -> D (ByVInit τ)
 memo :: Monad τ => Addr -> D (ByVInit τ) -> D (ByVInit τ)
-instance IsTrace τ => HasBind (ByVInit τ) (Value (ByVInit τ)) where
+instance IsTrace τ => HasBind (D (ByVInit τ)) where
   bind rhs body = do  a <- nextFree <$> ByVInit get
-                      ByVInit $ modify (\μ -> ext μ a retStuck)
+                      ByVInit $ modify (\μ -> ext μ a stuck)
                       step Let0 (memo' a (rhs (fetch' a))) >>= body . return
 \end{spec}
 %if style == newcode
@@ -610,9 +610,9 @@ memo' :: Monad τ => Addr -> D (ByVInit τ) -> D (ByVInit τ)
 memo' a d = d >>= ByVInit . StateT . upd
   where upd v μ = return (v, ext μ a (return v))
 
-instance IsTrace τ => HasBind (ByVInit τ) (Value (ByVInit τ)) where
+instance IsTrace τ => HasBind (D (ByVInit τ)) where
   bind rhs body = do  a <- nextFree <$> ByVInit get
-                      ByVInit $ modify (\μ -> ext μ a retStuck)
+                      ByVInit $ modify (\μ -> ext μ a stuck)
                       step Let0 (memo' a (rhs (fetch' a))) >>= body . return
 \end{code}
 %endif
@@ -671,7 +671,7 @@ They enforce termination of the RHS statically (OCaml, ML), or they use
 recursive modules in OCaml).
 We could recover a total interpreter using the semantics in \citet{Nakata:10},
 reusing the implementation from |ByNeed| and initialising the heap
-with a \emph{black hole}~\citep{stg} |retStuck| in |bind| as in
+with a \emph{black hole}~\citep{stg} |stuck| in |bind| as in
 \Cref{fig:by-value-init}.
 
 < ghci> runByVInit $ eval (read "let x = x in x x") emp :: T (Value (ByVInit T))
@@ -687,7 +687,7 @@ instance Monad τ => Alternative (ParT τ) where
 newtype Clairvoyant τ a = Clairvoyant (ParT τ a)
 runClair :: D (Clairvoyant T) -> T (Value (Clairvoyant T))
 
-instance (MonadFix τ, IsTrace τ) => HasBind (Clairvoyant τ) (Value (Clairvoyant τ)) where
+instance (MonadFix τ, IsTrace τ) => HasBind (D (Clairvoyant τ)) where
   bind rhs body = Clairvoyant (skip <|> let') >>= body
     where  skip = return (Clairvoyant empty)
            let' = fmap return $ step Let0 $ ... ^^ mfix ... rhs . return ...
@@ -734,7 +734,7 @@ parFix f = ParT $ mfix (unParT . f) >>= \case
     Single a -> pure (Single a)
     Fork _ _ -> pure (Fork (parFix (leftT . f)) (parFix (rightT . f)))
 
-instance (MonadFix τ, IsTrace τ) => HasBind (Clairvoyant τ) (Value (Clairvoyant τ)) where
+instance (MonadFix τ, IsTrace τ) => HasBind (D (Clairvoyant τ)) where
   bind rhs body = Clairvoyant (skip <|> let') >>= body
     where
       skip = return (Clairvoyant empty)
