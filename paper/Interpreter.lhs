@@ -214,8 +214,7 @@ eval e ρ = case e of
   Var x    | x ∈ dom ρ  -> ρ ! x
            | otherwise  -> retStuck
   App e x  | x ∈ dom ρ  -> step App1 $ do
-               v <- eval e ρ
-               apply v (ρ ! x)
+               apply (eval e ρ) (ρ ! x)
            | otherwise  -> retStuck
   Lam x e' -> retFun {-" \iffalse "-}(label e){-" \fi "-} $ \d ->
     step App2 (eval e' ((ext ρ x d)))
@@ -228,8 +227,7 @@ eval e ρ = case e of
     | otherwise
     -> retStuck
   Case e alts -> step Case1 $ do
-    v <- eval e ρ
-    select v [ (k, cont er xs) | (k,xs,er) <- alts ]
+    select (eval e ρ) [ (k, cont er xs) | (k,xs,er) <- alts ]
     where
        cont er xs ds  |  length xs == length ds
                       =  step Case2 (eval er (exts ρ xs ds))
@@ -249,9 +247,9 @@ class Monad τ => IsTrace τ where
 class IsValue τ v where
   retStuck :: τ v
   retFun :: {-" \iffalse "-}Label -> {-" \fi "-}(τ v -> τ v) -> τ v
-  apply :: v -> τ v -> τ v
+  apply :: τ v -> τ v -> τ v
   retCon :: {-" \iffalse "-}Label -> {-" \fi "-}Tag -> [τ v] -> τ v
-  select :: v -> [(Tag, [τ v] -> τ v)] ->  τ v
+  select :: τ v -> [(Tag, [τ v] -> τ v)] ->  τ v
 
 class HasBind τ v where
   bind :: (τ v -> τ v) -> (τ v -> τ v) -> τ v
@@ -267,8 +265,7 @@ instance IsValue T Value where
   retStuck = return Stuck
   retFun {-" \iffalse "-}_{-" \fi "-} f = return (Fun f)
   retCon {-" \iffalse "-}_{-" \fi "-} k ds = return (Con k ds)
-  apply  (Fun f)  d  = f d
-  apply  _        _  = retStuck
+  apply  dv da = dv >>= \case Fun f -> f da; _ -> retStuck
   select v alts = ...
 
 instance HasBind T Value where
@@ -283,14 +280,12 @@ instance IsTrace τ => IsValue τ (Value τ) where
   retStuck = return Stuck
   retFun {-" \iffalse "-}_{-" \fi "-} f = return (Fun f)
   retCon {-" \iffalse "-}_{-" \fi "-} k ds = return (Con k ds)
-  apply (Fun f) d = f d
-  apply _       _ = retStuck
-  select v alts
-    | Con k ds <- v
-    , Just (_,alt) <- find (\(k',_) -> k' == k) alts
-    = alt ds
-    | otherwise
-    = retStuck
+  apply  dv da = dv >>= \case Fun f -> f da; _ -> retStuck
+  select dv alts = dv >>= \case
+    Con k ds
+      | Just (_,alt) <- find (\(k',_) -> k' == k) alts
+      -> alt ds
+    _ -> retStuck
 \end{code}
 %endif
 \subcaption{Concrete by-name semantics for |D|}

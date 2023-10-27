@@ -84,8 +84,8 @@ instance IsValue UT UValue where
   retStuck                                  = nopD
   retFun {-" \iffalse "-}_{-" \fi "-} f     = manify (f nopD)
   retCon {-" \iffalse "-}_{-" \fi "-} _ ds  = manify (foldr (+) nopD ds)
-  apply Nop d                               = manify d
-  select Nop fs                             = lub [ f (replicate (conArity k) nopD) | (k,f) <- fs ]
+  apply d1 d2                               = d1 + manify d2
+  select d fs                               = d + lub [ f (replicate (conArity k) nopD) | (k,f) <- fs ]
 
 instance Lat UD where
   bottom = nopD
@@ -237,18 +237,18 @@ instance IsValue Cts PolyType where {-" ... \iffalse "-}
     res_ty <- freshTyVar
     emitCt (con_app_ty, foldr (:->:) res_ty arg_tys)
     return (PT [] res_ty)
-  apply fun_ty d = do
-    arg_ty <- d >>= instantiatePolyTy
+  apply dv da = do
+    fun_ty <- dv >>= instantiatePolyTy
+    arg_ty <- da >>= instantiatePolyTy
     res_ty <- freshTyVar
-    ty <- instantiatePolyTy fun_ty
-    emitCt (ty, arg_ty :->: res_ty)
+    emitCt (fun_ty, arg_ty :->: res_ty)
     return (PT [] res_ty)
   select _  [] = retStuck
-  select con_ty fs@((k,_):_) = do
+  select dv fs@((k,_):_) = do
+    con_ty <- dv >>= instantiatePolyTy
     res_ty <- snd . splitFunTys <$> instantiateCon k
     let TyConApp tc tc_args = res_ty
-    ty <- instantiatePolyTy con_ty
-    emitCt (ty, res_ty)
+    emitCt (con_ty, res_ty)
     ks_tys <- enumerateCons tc tc_args
     tys <- forM ks_tys $ \(k,tys) ->
       case List.find (\(k',_) -> k' == k) fs of
@@ -472,11 +472,12 @@ instance IsTrace CT where step _ = id
 
 instance IsValue CT CValue where
   retFun ell f = do updFunCache ell f; return (P (Set.singleton ell))
-  apply (P ells) d = d >>= \v -> lub <$> traverse (\ell -> cachedCall ell v) (Set.toList ells)
+  apply dv da = dv >>= \(P ells) -> da >>= \a -> lub <$> traverse (\ell -> cachedCall ell a) (Set.toList ells)
   {-" ... \iffalse "-}
   retStuck = return bottom
   retCon ell k ds = do vs <- sequence ds; updConCache ell k vs; return (P (Set.singleton ell))
-  select (P ells) fs = do
+  select dv fs = do
+    P ells <- dv
     cache <- CT get
     vals <- sequence [ f (map return vs) | ell <- Set.toList ells, Just (k',vs) <- [Map.lookup ell (cCons cache)]
                      , (k,f) <- fs, k == k' ]
