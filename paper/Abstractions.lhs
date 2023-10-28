@@ -52,7 +52,7 @@ data U = U0 | U1 | Uω; instance Lat U where {-" ... \iffalse "-}
 {-" \fi "-}
 data UT a = Uses (Name :-> U) a
 
-instance IsTrace UT where
+instance Trace UT where
   step (Lookup x)  (Uses φ a)  = Uses (φ + ext emp x U1) a
   step _           τ           = τ
 \end{code}
@@ -66,7 +66,7 @@ instance Monad UT where
     =  Uses (φ1+φ2) b
 \end{code}
 \end{minipage}
-\caption{|IsTrace| instance for semantic usage abstraction}
+\caption{|Trace| instance for semantic usage abstraction}
 \label{fig:usg-abs}
 \end{figure}
 
@@ -140,7 +140,7 @@ $\LookupT$ transitions per variable.
 We can encode this intuition in the custom trace type |UT| in \Cref{fig:usg-abs}
 that will take the place of |T|.
 |UT| collects the number of transitions per variable in a usage environment
-|Name :-> U|, with the matching |Monad| and |IsTrace| instances.
+|Name :-> U|, with the matching |Monad| and |Trace| instances.
 Whenever we omit definitions for |(⊔)| and |(+)| (such as for |U| and
 |Name :-> U|), they follows straightforwardly from \Cref{fig:usage}.
 
@@ -224,7 +224,7 @@ data Cts a = Cts (StateT (Set Name,Subst) Maybe a)
 emitCt :: Constraint -> Cts ();                   freshTyVar :: Cts Type
 instantiatePolyTy :: PolyType -> Cts Type; ^^ ^^  generaliseTy :: Cts Type -> Cts PolyType
 
-instance IsTrace Cts where step _ = id
+instance Trace Cts where step _ = id
 instance Domain (Cts PolyType) where {-" ... \iffalse "-}
   stuck = return (PT [] Wrong)
   fun {-" \iffalse "-}_{-" \fi "-} f = do
@@ -427,7 +427,7 @@ Additionally, |Cts| carries a set of used |Name|s with it to satisfy freshness
 constraints in |freshTyVar| and |instantiatePolyTy|, as well as to construct a
 superset of $\fv(Γ)$ in |generaliseTy|.
 
-While the operational detail offered by |IsTrace| is ignored by |Cts|, all the
+While the operational detail offered by |Trace| is ignored by |Cts|, all the
 pieces fall together in the implementation of |bind|, where we see yet another
 domain-specific fixpoint strategy:
 The knot is tied by calling the iteratee |f| with a fresh unification variable
@@ -468,7 +468,7 @@ data CT a = CT (State Cache a); type CD = CT CValue
 
 runCFA :: CD -> CValue; updFunCache :: Label -> (CD -> CD) -> CT ()
 
-instance IsTrace CT where step _ = id
+instance Trace CT where step _ = id
 
 instance Domain CD where
   fun ell f = do updFunCache ell f; return (P (Set.singleton ell))
@@ -709,7 +709,7 @@ Finally, the example of 0CFA demonstrates that our framework can be instantiated
 to perform traditional, whole-program, higher-order analysis based on
 approximate call-strings.
 
-We think that for any trace property (\ie, |IsTrace| instance), there is
+We think that for any trace property (\ie, |Trace| instance), there is
 an analysis that can be built on 0CFA, without the need to define a custom
 summary mechanism encoded as an |Domain| instance.
 For our usage analysis, that would mean less explanation of its |Nop| summary,

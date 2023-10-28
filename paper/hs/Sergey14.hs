@@ -116,7 +116,7 @@ instance Lat DmdVal where
 mapDmdEnv :: (DmdEnv -> DmdEnv) -> DmdT v -> DmdT v
 mapDmdEnv f (DT m) = DT $ \ns sd -> case m ns sd of (v,φ) -> (v, f φ)
 
-instance IsTrace DmdT where
+instance Trace DmdT where
   step (Lookup x) (DT m) = DT $ \ns sd ->
     let (a, φ) = m ns sd in (a, φ + ext emp x (U1 :* sd))
   step _ τ = τ

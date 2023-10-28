@@ -208,7 +208,7 @@ of any syntax.
 \begin{figure}
 \begin{minipage}{0.55\textwidth}
 \begin{code}
-eval  ::  (IsTrace τ, Domain (τ v), HasBind (τ v))
+eval  ::  (Trace τ, Domain (τ v), HasBind (τ v))
       =>  Expr -> (Name :-> τ v) -> τ v
 eval e ρ = case e of
   Var x    | x ∈ dom ρ  -> ρ ! x
@@ -241,7 +241,7 @@ eval e ρ = case e of
 \end{minipage}%
 \begin{minipage}{0.44\textwidth}
 \begin{code}
-class Monad τ => IsTrace τ where
+class Monad τ => Trace τ where
   step :: Event -> τ v -> τ v
 
 class Domain d where
@@ -258,7 +258,7 @@ class HasBind d where
   \label{fig:trace-classes}
 %if style /= newcode
 \begin{code}
-instance IsTrace T where
+instance Trace T where
   step = Step
 
 instance Domain D where
@@ -273,10 +273,10 @@ instance HasBind D where
 \end{code}
 %else
 \begin{code}
-instance IsTrace T where
+instance Trace T where
   step = Step
 
-instance IsTrace τ => Domain (D τ) where
+instance Trace τ => Domain (D τ) where
   stuck = return Stuck
   fun {-" \iffalse "-}_{-" \fi "-} f = return (Fun f)
   con {-" \iffalse "-}_{-" \fi "-} k ds = return (Con k ds)
@@ -299,7 +299,7 @@ instance IsTrace τ => Domain (D τ) where
 
 We will now use |D| to give meaning to an expression |e| via an interpreter
 function |eval :: Expr -> (Name :-> D) -> D|, where the variable environment
-|ρ `elem` Name :-> D| is a finite mapping from free variables of |e| to their meaning in
+|ρ :: Name :-> D| is a finite mapping from free variables of |e| to their meaning in
 |D|.
 We summarise the API of environments and sets in \Cref{fig:map}.
 
@@ -310,11 +310,11 @@ quite a bit more general than its instantiation at |D|.
 In particular, the interpreter maps expressions not into a concrete,
 \emph{initial} encoding of a trace as an algebraic data type, but into a
 fold-like \emph{final encoding}~\citep{Carette:07} thereof, in terms
-of three type classes |IsTrace|,|Domain| and |HasBind| depicted in
+of three type classes |Trace|,|Domain| and |HasBind| depicted in
 \Cref{fig:trace-classes}.
 
 Each of these offer knobs that we will tweak individually in later Sections.
-|T|races and |Value|s are instances of these type classes via
+Traces |T| and denotations |D| are instances of these type classes via
 \Cref{fig:trace-instances}, so |τ v| in the type of |eval| can be instantiated
 to |D|.
 For example, we can evaluate the expression $\Let{i}{\Lam{x}{x}}{i~i}$ like
@@ -340,30 +340,36 @@ Which is in direct correspondence to the call-by-name small-step trace
   \end{array}
 \end{array}\]
 \noindent
-While |IsTrace| is exactly a final encoding of |T|, |Domain| is only
-\emph{almost} one of |Value|.
-The ``injections'' |stuck|, |fun| and |con| return a
-|D = T Value|, not simply a |Value|; a curiosity that we will revisit in
-\Cref{fig:abstractions} when we consider abstract interpretations that
-\emph{summarise} a |Value| in different ways.
-The ``eliminators'' |apply| and |select| have the expected type and structure
-dictated by a final encoding, where a ``type error'' results in |stuck|.
+While |Trace| is exactly a final encoding of |T|, |Domain| is a bit of a mixture
+between |Value| and |D = T Value|.
+The method names of |Domain| bear resemblance to |Value|:
+There are ``injections'' |fun|, |con| and |stuck| as well as ``eliminators''
+|apply| and |select|.
+The \emph{types} are wrong, though, with |D|s where we would expect |Value|s
+and a non-standard encoding for |select|.
+We will revisit this curious generalisation in \Cref{fig:abstractions} where we
+consider abstract interpretations that \emph{summarise} a |D| in different ways
+depending on the |Domain| instance.
+
+\todo{Discuss laws; for concrete instances we have |stuck >>= _ = stuck| (a zero
+of the monad) and of course (more interestingly) |apply (fun f) d = fun f >> f d|,
+|apply (con k ds) d = con k ds >> stuck|, etc.}
+
 The omitted definition for |select| finds the |alt| in |alts| that matches the
 |Tag| of the |Con| value |v| and applies said |alt| to the field denotations of
 |v|; failure to perform any of these steps results in |stuck|.%
 \footnote{We extract from this document a runnable Haskell file which we add as
 a Supplement, containing the complete definitions.
-Furthermore, the (non-diverging) interpreter outputs are directly generated from
+Furthermore, the (terminating) interpreter outputs are directly generated from
 this extract.}
 
 The third type class is |HasBind|, a most significant knob to our
 interpreter because it fixes a particular evaluation strategy.
 We will play with this knob in \Cref{sec:evaluation-strategies}.
-Like |Domain|, it is parameterised both over the type of values
-\emph{as well as} the type of trace.
+Like |Domain|, it is parameterised over the type of denotations.
 
 The |bind| method of |HasBind| is used to give meaning to recursive let
-bindings; as such its type is \emph{almost} an instance of the venerable least
+bindings; as such its type is \emph{almost} an instance of the venerable
 fixpoint combinator |fix :: (a -> a) -> a|, but it takes two functionals
 for building the denotation of the right-hand side and that of the let body,
 given a denotation for the right-hand side.
@@ -404,18 +410,18 @@ $\perform{eval (read "let zero = Z() in zero zero") emp :: D (ByName T)}$
 \begin{spec}
 data ByName τ v = ByName (τ v)
 instance Monad τ => Monad (ByName τ) where ...
-instance IsTrace τ => IsTrace (ByName τ) where ...
-instance Monad τ => HasBind (D (ByName τ)) where ...
+instance Trace τ => Trace (ByName τ) where ...
+instance HasBind (D (ByName τ)) where ...
 \end{spec}
 %if style == newcode
 \begin{code}
 newtype ByName τ v = ByName { unByName :: (τ v) }
   deriving newtype (Functor,Applicative,Monad)
 
-instance IsTrace τ => IsTrace (ByName τ) where
+instance Trace τ => Trace (ByName τ) where
   step e = ByName . step e . unByName
 
-instance Monad τ => HasBind (D (ByName τ)) where
+instance HasBind (D (ByName τ)) where
   bind rhs body = body (fix rhs)
 \end{code}%
 %endif
@@ -430,17 +436,17 @@ data ByNeed τ v = ByNeed (StateT (Heap (ByNeed τ)) τ v)
 runByNeed :: ByNeed τ a -> τ (a, Heap (ByNeed τ))
 instance Monad τ => Monad (ByNeed τ) where ...
 
-instance IsTrace τ => IsTrace (ByNeed τ) where
+instance Trace τ => Trace (ByNeed τ) where
   step e (ByNeed (StateT m)) = ByNeed $ StateT $ \μ -> step e (m μ)
 
 fetch :: Monad τ => Addr -> D (ByNeed τ)
 fetch a = ByNeed get >>= \μ -> μ ! a
 
-memo :: IsTrace τ => Addr -> D (ByNeed τ) -> D (ByNeed τ)
+memo :: Trace τ => Addr -> D (ByNeed τ) -> D (ByNeed τ)
 memo a d = d >>= step Update . ByNeed . StateT . upd
   where upd v μ = return (v, ext μ a (memo a (return v)))
 
-instance IsTrace τ => HasBind (D (ByNeed τ)) where
+instance Trace τ => HasBind (D (ByNeed τ)) where
   bind rhs body = do  a <- nextFree <$> ByNeed get
                       ByNeed $ modify (\μ -> ext μ a (memo a (rhs (fetch a))))
                       body (fetch a)
@@ -459,17 +465,17 @@ newtype ByNeed τ v = ByNeed (StateT (Heap (ByNeed τ)) τ v)
 runByNeed :: ByNeed τ a -> τ (a, Heap (ByNeed τ))
 runByNeed (ByNeed (StateT m)) = m emp
 
-instance IsTrace τ => IsTrace (ByNeed τ) where
+instance Trace τ => Trace (ByNeed τ) where
   step e (ByNeed (StateT m)) = ByNeed $ StateT $ \μ -> step e (m μ)
 
 fetch :: Monad τ => Addr -> D (ByNeed τ)
 fetch a = ByNeed get >>= \μ -> μ ! a
 
-memo :: IsTrace τ => Addr -> D (ByNeed τ) -> D (ByNeed τ)
+memo :: Trace τ => Addr -> D (ByNeed τ) -> D (ByNeed τ)
 memo a d = d >>= step Update . ByNeed . StateT . upd
   where upd v μ = return (v, ext μ a (memo a (return v)))
 
-instance IsTrace τ => HasBind (D (ByNeed τ)) where
+instance Trace τ => HasBind (D (ByNeed τ)) where
   bind rhs body = do  a <- nextFree <$> ByNeed get
                       ByNeed $ modify (\μ -> ext μ a (memo a (rhs (fetch a))))
                       body (fetch a)
@@ -491,7 +497,7 @@ Thus we parameterise |D| and |Value| over the particular trace type |T|:
 \begin{spec}
 type D τ = τ (Value τ)
 data Value τ = Stuck | Fun (D τ -> D τ) | Con Tag [D τ]
-instance IsTrace τ => Domain (D τ) where ...
+instance Trace τ => Domain (D τ) where ...
 \end{spec}
 
 \noindent
@@ -500,7 +506,7 @@ instance IsTrace τ => Domain (D τ) where ...
 We redefine by-name semantics via the |ByName| \emph{trace transformer}
 in \Cref{fig:by-name}%
 \footnote{The Supplement defines these datatypes as |newtype|s.},
-so called because |ByName τ| inherits its |Monad| and |IsTrace|
+so called because |ByName τ| inherits its |Monad| and |Trace|
 instance from |τ| (busywork we omit).
 Our old |D| can be recovered as |D (ByName T)|.
 
@@ -559,7 +565,7 @@ instance MonadFix T where
 data Event = ... | Let0
 data ByValue τ v = ByValue { unByValue :: τ v }
 
-instance (IsTrace τ, MonadFix τ) => HasBind (D (ByValue τ)) where
+instance (Trace τ, MonadFix τ) => HasBind (D (ByValue τ)) where
   bind rhs body = step Let0 (ByValue (mfix (unByValue . rhs . return))) >>= body . return
 \end{spec}
 %if style == newcode
@@ -571,10 +577,10 @@ instance MonadFix T where
 
 newtype ByValue τ v = ByValue { unByValue :: τ v }
   deriving (Functor,Applicative,Monad)
-instance IsTrace τ => IsTrace (ByValue τ) where
+instance Trace τ => Trace (ByValue τ) where
   step e (ByValue τ) = ByValue (step e τ)
 
-instance (IsTrace τ, MonadFix τ) => HasBind (D (ByValue τ)) where
+instance (Trace τ, MonadFix τ) => HasBind (D (ByValue τ)) where
   bind rhs body = step Let0 (ByValue (mfix (unByValue . rhs . return))) >>= body . return
 \end{code}
 %endif
@@ -587,7 +593,7 @@ instance (IsTrace τ, MonadFix τ) => HasBind (D (ByValue τ)) where
 data ByVInit τ v = ByVInit (StateT (Heap (ByVInit τ)) τ v)
 runByVInit :: ByVInit τ a -> τ a; fetch :: Monad τ => Addr -> D (ByVInit τ)
 memo :: Monad τ => Addr -> D (ByVInit τ) -> D (ByVInit τ)
-instance IsTrace τ => HasBind (D (ByVInit τ)) where
+instance Trace τ => HasBind (D (ByVInit τ)) where
   bind rhs body = do  a <- nextFree <$> ByVInit get
                       ByVInit $ modify (\μ -> ext μ a stuck)
                       step Let0 (memo' a (rhs (fetch' a))) >>= body . return
@@ -597,10 +603,10 @@ instance IsTrace τ => HasBind (D (ByVInit τ)) where
 newtype ByVInit τ v = ByVInit (StateT (Heap (ByVInit τ)) τ v)
   deriving (Functor,Applicative,Monad)
 
-runByVInit :: IsTrace τ => ByVInit τ a -> τ a
+runByVInit :: Trace τ => ByVInit τ a -> τ a
 runByVInit (ByVInit m) = evalStateT m emp
 
-instance IsTrace τ => IsTrace (ByVInit τ) where
+instance Trace τ => Trace (ByVInit τ) where
   step e (ByVInit (StateT m)) = ByVInit $ StateT $ \μ -> step e (m μ)
 
 fetch' :: Monad τ => Addr -> D (ByVInit τ)
@@ -610,7 +616,7 @@ memo' :: Monad τ => Addr -> D (ByVInit τ) -> D (ByVInit τ)
 memo' a d = d >>= ByVInit . StateT . upd
   where upd v μ = return (v, ext μ a (return v))
 
-instance IsTrace τ => HasBind (D (ByVInit τ)) where
+instance Trace τ => HasBind (D (ByVInit τ)) where
   bind rhs body = do  a <- nextFree <$> ByVInit get
                       ByVInit $ modify (\μ -> ext μ a stuck)
                       step Let0 (memo' a (rhs (fetch' a))) >>= body . return
@@ -687,7 +693,7 @@ instance Monad τ => Alternative (ParT τ) where
 newtype Clairvoyant τ a = Clairvoyant (ParT τ a)
 runClair :: D (Clairvoyant T) -> T (Value (Clairvoyant T))
 
-instance (MonadFix τ, IsTrace τ) => HasBind (D (Clairvoyant τ)) where
+instance (MonadFix τ, Trace τ) => HasBind (D (Clairvoyant τ)) where
   bind rhs body = Clairvoyant (skip <|> let') >>= body
     where  skip = return (Clairvoyant empty)
            let' = fmap return $ step Let0 $ ... ^^ mfix ... rhs . return ...
@@ -715,7 +721,7 @@ instance Monad τ => Alternative (ParT τ) where
 newtype Clairvoyant τ a = Clairvoyant { unClair :: ParT τ a }
   deriving newtype (Functor,Applicative,Monad)
 
-instance IsTrace τ => IsTrace (Clairvoyant τ) where
+instance Trace τ => Trace (Clairvoyant τ) where
   step e (Clairvoyant (ParT mforks)) = Clairvoyant $ ParT $ step e mforks
 
 leftT :: Monad τ => ParT τ a -> ParT τ a
@@ -734,7 +740,7 @@ parFix f = ParT $ mfix (unParT . f) >>= \case
     Single a -> pure (Single a)
     Fork _ _ -> pure (Fork (parFix (leftT . f)) (parFix (rightT . f)))
 
-instance (MonadFix τ, IsTrace τ) => HasBind (D (Clairvoyant τ)) where
+instance (MonadFix τ, Trace τ) => HasBind (D (Clairvoyant τ)) where
   bind rhs body = Clairvoyant (skip <|> let') >>= body
     where
       skip = return (Clairvoyant empty)
@@ -812,13 +818,13 @@ variety of total denotational interpreters for all major evaluation strategies
 (\eg, |ByName|, |ByNeed|, |ByVInit|).
 It is of course possible in Haskell to abandon totality, discard all events and
 use plain |data Identity a = Identity a| as the trace type accompanied by the
-one-line definition |instance IsTrace Identity where step _ ia = ia|.
+one-line definition |instance Trace Identity where step _ ia = ia|.
 The resulting interpreter diverges whenever the defined program diverges, as is
 typical for partial definitional interpreters:
 
 %if style == newcode
 \begin{code}
-instance IsTrace Identity where step _ = id
+instance Trace Identity where step _ = id
 \end{code}
 %endif
 
