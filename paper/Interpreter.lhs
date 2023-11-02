@@ -67,7 +67,7 @@ instance (Show a, forall a. Show a => Show (m a)) => Show (ParT m a) where
 instance {-# OVERLAPPING #-} (Show v) => Show (Addr :-> v) where
   showsPrec _ = showListWith (\(k,v) -> shows k . showString "\\!\\! \\mapsto \\!\\! " . shows v) . Map.toList
 instance {-# OVERLAPPING #-} (Show v) => Show (Name :-> v) where
-  showsPrec _ = showListWith (\(k,v) -> showString k . showString "\\! \\mapsto \\! " . shows v) . Map.toList
+  showsPrec _ = showListWith (\(k,v) -> showString "\\mathit{" . showString k . showString "} \\! \\mapsto \\! " . shows v) . Map.toList
 
 takeT :: Int -> T a -> T (Maybe a)
 takeT 0 _ = return Nothing

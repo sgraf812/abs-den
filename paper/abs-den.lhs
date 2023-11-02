@@ -207,6 +207,7 @@
 %\input{problem.tex}
 %include Interpreter.lhs
 %include Abstractions.lhs
+%include Soundness.lhs
 %\input{vanilla.tex}
 %\input{eventful.tex}
 %\input{essence.tex}
