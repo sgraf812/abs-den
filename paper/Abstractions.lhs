@@ -23,6 +23,7 @@ import qualified Data.List as List
 import Expr
 import Order
 import Interpreter
+import {-# SOURCE #-} Sergey14
 \end{code}
 %endif
 
@@ -741,3 +742,22 @@ That is why we would favour a summary-based approach where possible.
 Furthermore, given a semantic description of abstract values, it is likely
 that the implementation of |Domain| can be synthesised using the approach of
 \citet{Kalita:2022}.
+
+\subsection{Bonus: Higher-order Cardinality Analysis}
+
+TODO flesh out
+
+< ghci> many "let i = λx.x in let j = λy.y in i j j"
+$\perform{many "let i = λx.x in let j = λy.y in i j j"}$
+< ghci> many "let i = λx.x in let j = λy.y in i j"
+$\perform{many "let i = λx.x in let j = λy.y in i j"}$
+< ghci> call 2 "let i = λx.x in i"
+$\perform{call 2 "let i = λx.x in i"}$
+< ghci> call 2 "let const = λx.λy.y in const"
+$\perform{call 2 "let const = λx.λy.y in const"}$
+< ghci> call 2 "let wurble2 = λa. λg. let t = g a in t t in wurble2"
+$\perform{call 2 "let wurble2 = λa. λg. let t = g a in t t in wurble2"}$
+< ghci> call 2 "let wurble2 = λa. λg. let t = g a in t t in wurble2"
+$\perform{call 2 "let wurble2 = λa. λg. let t = g a in t t in wurble2"}$
+< ghci> many "let z = Z() in let o = S(z) in let plus = λa.λb. case a of { Z() -> b; S(n) -> let plusn = plus n b in S(plusn) } in plus z o"
+$\perform{many "let z = Z() in let o = S(z) in let plus = λa.λb. case a of { Z() -> b; S(n) -> let plusn = plus n b in S(plusn) } in plus z o"}$

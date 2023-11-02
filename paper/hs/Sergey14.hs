@@ -28,6 +28,16 @@ data SubDemand
   | Call UNonAbs SubDemand
   | Prod [Demand]
 
+mkCall :: U -> SubDemand -> SubDemand
+mkCall U0 _   = Seq
+mkCall Uω Top = Top
+mkCall n  sd  = Call n sd
+
+mkProd :: [Demand] -> SubDemand
+mkProd ds | all (== absDmd) ds = Seq
+          | all (== topDmd) ds = Top
+          | otherwise          = Prod ds
+
 absDmd = Abs
 topDmd = Uω :* Top
 
@@ -40,10 +50,10 @@ instance Eq SubDemand where
   Seq == Seq = True
   Top == Top = True
   Call n1 sd1 == Call n2 sd2 = n1 == n2 && sd1 == sd2
+  Prod dmds1 == Prod dmds2 = dmds1 == dmds2
   Top == Call n sd = n == Uω && sd == Top
   Top == Prod dmds = all (== topDmd) dmds
   Seq == Prod dmds = all (== absDmd) dmds
-  Prod dmds1 == Prod dmds2 = dmds1 == dmds2
   _   == _         = False
 instance Lat SubDemand where
   bottom = Seq
@@ -51,8 +61,8 @@ instance Lat SubDemand where
   _ ⊔ Top = Top
   Seq ⊔ sd = sd
   sd ⊔ Seq = sd
-  Call n1 sd1 ⊔ Call n2 sd2 = Call (n1⊔n2) (sd1⊔sd2)
-  Prod dmds1 ⊔ Prod dmds2 = Prod (dmds1⊔dmds2)
+  Call n1 sd1 ⊔ Call n2 sd2 = mkCall (n1⊔n2) (sd1⊔sd2)
+  Prod dmds1 ⊔ Prod dmds2 = mkProd (dmds1⊔dmds2)
   _ ⊔ _ = Top
 
 instance Plussable Demand where
@@ -65,8 +75,8 @@ instance Plussable SubDemand where
   _ + Top = Top
   Seq + sd = sd
   sd + Seq = sd
-  Call n1 sd1 + Call n2 sd2 = Call Uω (sd1 ⊔ sd2)
-  Prod dmds1 + Prod dmds2 | length dmds1 == length dmds2 = Prod (zipWith (+) dmds1 dmds2)
+  Call n1 sd1 + Call n2 sd2 = mkCall Uω (sd1 ⊔ sd2)
+  Prod dmds1 + Prod dmds2 | length dmds1 == length dmds2 = mkProd (zipWith (+) dmds1 dmds2)
   _ + _ = Top
 
 instance Show SubDemand where
@@ -91,6 +101,11 @@ newtype DmdT a = DT { unDT :: Set Name -> SubDemand -> (a, DmdEnv) }
 type DmdD = DmdT DmdVal
 data DmdVal = DmdFun Demand DmdVal | DmdNop | DmdBot
 
+mkDmdFun :: Demand -> DmdVal -> DmdVal
+mkDmdFun d v | d == topDmd, DmdNop <- v = DmdNop
+             | d == absDmd, DmdBot <- v = DmdBot
+             | otherwise                = DmdFun d v
+
 instance Show DmdVal where
   show DmdBot = "\\bottom"
   show DmdNop = "\\bullet"
@@ -111,7 +126,7 @@ instance Lat DmdVal where
   _ ⊔ DmdNop = DmdNop
   DmdBot ⊔ v = v
   v ⊔ DmdBot = v
-  DmdFun d1 v1 ⊔ DmdFun d2 v2 = DmdFun (d1 ⊔ d2) (v1 ⊔ v2)
+  DmdFun d1 v1 ⊔ DmdFun d2 v2 = mkDmdFun (d1 ⊔ d2) (v1 ⊔ v2)
 
 mapDmdEnv :: (DmdEnv -> DmdEnv) -> DmdT v -> DmdT v
 mapDmdEnv f (DT m) = DT $ \ns sd -> case m ns sd of (v,φ) -> (v, f φ)
@@ -149,9 +164,12 @@ instance Domain (DmdT DmdVal) where
           Call n sd' -> (n, sd')
           Seq        -> (U0, Seq)
           _          -> (Uω, Top) in
-    let (v,φ) = unDT (f sentinel) ns' sd' in
-    let (d,φ') = (Map.findWithDefault absDmd x φ,Map.delete x φ) in
-    (DmdFun d v, multDmdEnv n φ')
+    if n == U0
+      then (DmdBot, emp)
+      else
+        let (v,φ) = unDT (f sentinel) ns' sd' in
+        let (d,φ') = (Map.findWithDefault absDmd x φ,Map.delete x φ) in
+        (multDmdVal n (mkDmdFun d v), multDmdEnv n φ')
   con lbl k ds = DT $ \ns sd ->
     let dmds = case sd of
           Prod dmds | length dmds == length ds, isProd k -> dmds
@@ -168,7 +186,7 @@ instance Domain (DmdT DmdVal) where
     let sentinels = map (\x -> step (Lookup x) (pure DmdNop)) xs in
     let (v,φ)     = unDT (f sentinels) ns' sd in
     let (ds,φ')   = (map (\x -> Map.findWithDefault absDmd x φ) xs,foldr Map.delete φ xs) in
-    case scrut ns (Prod ds) of
+    case scrut ns (mkProd ds) of
       (_v,φ'') -> (v,φ''+φ')
   select (DT scrut) fs = DT $ \ns sd ->
     let (_v,φ) = scrut ns Top in
@@ -178,7 +196,9 @@ instance Domain (DmdT DmdVal) where
       alt ns sd (k,f) =
         let (xs,ns')  = freshs (conArity k) ns in
         let sentinels = map (\x -> pure DmdNop) xs in
-        unDT (f sentinels) ns' sd
+        let (v,φ)     = unDT (f sentinels) ns' sd in
+        let φ'        = foldr Map.delete φ xs in
+        (v,φ')
 
 -- | Very hacky way to see the arity of a function
 arity :: Set Name -> DmdD -> Int
@@ -187,8 +207,7 @@ arity ns (DT m) = go 0
     go n
       | n > 100                       = n
       | φ /= emp                      = n
-      | DmdNop <- v                   = n
-      | DmdFun d v' <- v, d /= absDmd = n Prelude.+ 1
+      | v /= DmdBot                   = n
       | otherwise                     = go (n Prelude.+ 1)
       where
         sd = iterate (Call U1) Seq !! n
@@ -217,7 +236,7 @@ multDmdEnv Uω φ = φ+φ
 
 multDmdVal :: U -> DmdVal -> DmdVal
 multDmdVal U0 _ = DmdNop
-multDmdVal Uω (DmdFun d v) = DmdFun (d+d) (multDmdVal Uω v)
+multDmdVal Uω (DmdFun d v) = mkDmdFun (d+d) (multDmdVal Uω v)
 multDmdVal _  v = v
 
 type DmdSummary = (DmdVal, DmdEnv)
@@ -227,40 +246,50 @@ concDmdSummary arty (v,φ) = DT $ \ns sd ->
   let (u,_body_sd) = peelManyCalls arty sd in
   (multDmdVal u v, multDmdEnv u φ)
 
+
+-- | A single call with n args in an otherwise unknown context
+callSd :: Int -> SubDemand
+callSd arity = iterate (Call U1) Top !! arity
+
 absDmdSummary :: Int -> Set Name -> DmdD -> DmdSummary
-absDmdSummary arty ns (DT d) =
-  d ns (iterate (Call U1) Top !! arty)
+absDmdSummary arty ns (DT d) = d ns (callSd arty)
 
 instance HasBind DmdD where
   bind rhs body = DT $ \ns sd ->
     let arty = arity ns (rhs nopD') in
-    if trace (show arty) arty == 0
+--    if trace (show arty) arty == 0
+    if arty == 0
       then
         let (x,ns') = fresh ns in
         let sentinel = step (Lookup x) (pure DmdNop) in
         case unDT (body sentinel) ns' sd of -- LetUp
           (v,φ) ->
-            let (d,φ') = (Map.findWithDefault absDmd x φ,Map.delete x φ) in
-            case d of
-              Abs -> (v,φ')
-              _n :* sd -> let (sd2,v2,φ2) = kleeneFix (letup x rhs ns' sd) in (v,φ' + φ2)
+            case Map.findWithDefault absDmd x φ of
+              Abs -> (v,Map.delete x φ)
+              _n :* sd -> let (sd2,v2,φ2) = kleeneFix (letup x rhs ns' sd) in (v,Map.delete x (φ + φ2))
       else
         let d1 = concDmdSummary arty (kleeneFix (absDmdSummary arty ns . rhs . concDmdSummary arty)) in
         unDT (body d1) ns sd
     where
-      letup x rhs ns' sd (sd',v,φ) =
+      letup x rhs ns' sd (sd',v,_φ) =
         let sd'' = sd ⊔ sd' in
         case unDT (rhs (step (Lookup x) (pure v))) ns' sd'' of
           (v',φ') ->
-            let (d,φ'') = (Map.findWithDefault absDmd x φ',Map.delete x φ') in
-            case d of
-              Abs -> (traceShowId sd'',v',φ'')
-              _n :* sd''' -> (sd'' ⊔ sd''',v',φ'')
+            case Map.findWithDefault absDmd x φ' of
+              Abs -> (sd'',v',φ')
+              _n :* sd''' -> (sd'' ⊔ sd''',v',φ')
 
 runDmd :: SubDemand -> DmdD -> (DmdVal, DmdEnv)
 runDmd sd (DT d) = d Set.empty sd
 
 many :: String -> (DmdVal, DmdEnv)
 many s = runDmd Top $ eval (read s) emp
-call :: String -> (DmdVal, DmdEnv)
-call s = runDmd (Call U1 Top) $ eval (read s) emp
+
+call :: Int -> String -> (DmdVal, DmdEnv)
+call n s = runDmd (callSd n) $ eval (read s) emp
+
+{-
+>>> call 1 "let id = λx.x in id"
+
+-- >>> call 2 "let const = λx.λy.y in const"
+-}
