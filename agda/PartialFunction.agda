@@ -1,5 +1,5 @@
 {-# OPTIONS --cubical #-}
-module Utils.PartialFunction where
+module PartialFunction where
 
 open import Cubical.Relation.Nullary.Base
 open import Cubical.Foundations.Prelude hiding (_[_↦_])
@@ -56,5 +56,4 @@ pmap {_} {B} f (a ∷ as) with f a
     aux : B → Maybe (List B) → Maybe (List B)
     aux b nothing = nothing
     aux b (just bs) = just (b ∷ bs)
-
-  
+ 

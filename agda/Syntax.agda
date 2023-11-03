@@ -7,18 +7,9 @@ open import Data.List
 open import Data.Product
 open import Data.Maybe
 open import Data.Bool
-open import Utils.PartialFunction
 
 Var = ℕ
 Con = ℕ
-
-vx vy vz vi vf vg : Var
-vx = 0
-vy = 1
-vz = 2
-vi = 3
-vf = 4
-vg = 5
 
 decEq-ℕ : (x y : ℕ) → Dec (x ≡ y)
 decEq-ℕ zero zero = yes refl
@@ -43,10 +34,6 @@ data Exp : Set where
   case' : Exp → List Alt → Exp
 
 Alt = Con × List Var × Exp
-
-data Val : Exp → Set where
-  V-lam : ∀{x e} → Val (lam x e)
-  V-conapp : ∀{K addrs} → Val (conapp K addrs)
 
 findAlt : Con → List Alt → Maybe (List Var × Exp)
 findAlt _ [] = nothing

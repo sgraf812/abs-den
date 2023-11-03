@@ -1,5 +1,5 @@
 {-# OPTIONS --guarded --cubical --rewriting #-}
-module Utils.Later where
+module Later where
 
 open import Agda.Builtin.Equality renaming (_≡_ to _≣_)
 open import Agda.Builtin.Equality.Rewrite
@@ -24,10 +24,10 @@ postulate
   Tick : LockU
 
 ▹_ : ∀ {l} → Set l → Set l
-▹_ A = (@tick x : Tick) -> A
+▹_ A = (@tick x : Tick) -> A  -- NB: x not free in A
 
 ▸_ : ∀ {l} → ▹ Set l → Set l
-▸ A = (@tick x : Tick) → A x
+▸ A = (@tick x : Tick) → A x -- NB: x occurs in A 
 
 -- This is Barr's tick constant, to force a finite nesting of ▹s.
 -- Unfortunatley, the type checker doesn't know how to use it safely,
