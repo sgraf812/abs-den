@@ -48,7 +48,7 @@ data Val : Exp → Set where
   V-lam : ∀{x e} → Val (lam x e)
   V-conapp : ∀{K addrs} → Val (conapp K addrs)
 
-findAlt : Con → List (Con × List Var × Exp) → Maybe (List Var × Exp)
+findAlt : Con → List Alt → Maybe (List Var × Exp)
 findAlt _ [] = nothing
 findAlt K ((K' , vs , rhs) ∷ xs) with decEq-ℕ K K' 
 ... | yes _ = just (vs , rhs) 
