@@ -211,13 +211,13 @@ of any syntax.
 eval  ::  (Trace τ, Domain (τ v), HasBind (τ v))
       =>  Expr -> (Name :-> τ v) -> τ v
 eval e ρ = case e of
-  Var x    | x ∈ dom ρ  -> ρ ! x
-           | otherwise  -> stuck
-  App e x  | x ∈ dom ρ  -> step App1 $ do
+  Var x  | x ∈ dom ρ  -> ρ ! x
+         | otherwise  -> stuck
+  Lam x body -> fun {-" \iffalse "-}(label e){-" \fi "-} $ \d ->
+    step App2 (eval body ((ext ρ x d)))
+  App e x  | x ∈ dom ρ  -> step App1 $
                apply (eval e ρ) (ρ ! x)
            | otherwise  -> stuck
-  Lam x e' -> fun {-" \iffalse "-}(label e){-" \fi "-} $ \d ->
-    step App2 (eval e' ((ext ρ x d)))
   Let x e1 e2 -> bind
     (\d1 -> eval e1 (ext ρ x (step (Lookup x) d1)))
     (\d1 -> step Let1 (eval e2 (ext ρ x (step (Lookup x) d1))))
@@ -226,7 +226,7 @@ eval e ρ = case e of
     -> con {-" \iffalse "-}(label e){-" \fi "-} k (map (ρ !) xs)
     | otherwise
     -> stuck
-  Case e alts -> step Case1 $ do
+  Case e alts -> step Case1 $
     select (eval e ρ) [ (k, cont er xs) | (k,xs,er) <- alts ]
     where
        cont er xs ds  |  length xs == length ds
