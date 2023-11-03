@@ -43,26 +43,32 @@ comparatively small and compositional.\sg{improve}
 \subsection{Totality of |D|}
 \label{sec:totality}
 
-As we have discussed in \Cref{sec:continuity}, there are a few strings attached
-to working with continuity and partiality in the context of denotational
-semantics.
+The essential idea to prove totality of concrete instantiations of our semantics
+is that \emph{there is only a finite number of steps between every $\LookupT$
+transition}.
+In other words, if every environment lookup produces a |Step| constructor, then
+our semantics is total by coinduction.
+
+We make this argument precise by encoding |eval| in Guarded Cubical Agda,
+implementing a total type theory with
+\emph{guarded recursive types}~\citet{tctt}.
+In contrast to traditional denotational semantics based on algebraic domain
+theory, this frees us from having to work with continuity and partiality, thus
+elegantly working around the issues discussed in \Cref{sec:continuity}.%
+\footnote{Of course, the underlying model of guarded recursive type
+theories is the topos of trees~\citep{gdtt}, which very much enjoys an
+approximation order and partiality; the point is that any type safe program
+``compiles'' to a well-defined topos model without needing to think about
+topology and approximation directly.
+In essence, we are using guarded type theory as a meta language in the sense of
+\citeauthor{Moggi:07}.}
 
 \sg{Can probably cut out much of this introduction as space becomes lacking}
-The key to getting rid of partiality and thus denoting infinite computations
-with total elements is to avoid working with algebraic domains directly and
-instead work in a total type theory with \emph{guarded recursive types}, such as
-Ticked Cubical Type Theory~(TCTT)~\citep{tctt}.%
-\footnote{Of course, in reality we are just using guarded type theory as a meta
-language~\citep{Moggi:07} with a domain-theoretic model in terms of the topos of
-trees~\citep{gdtt}.
-This meta language is sufficiently expressive as a logic to
-express proofs, though, justifying the view that we are extending ``math''
-with the ability to conveniently reason about computable functions on infinite
-data without needing to think about topology and approximation directly.}
-The fundamental innovation of these theories is the integration of the
-``later'' modality $\later$ which allows to define coinductive data types
-with negative recursive occurrences such in our ``data type'' $D$ from
-\Cref{sec:domain-theory}, as first realised by \citet{Nakano:00}.
+The fundamental innovation of guarded recursive type theory is the integration
+of the ``later'' modality $\later$ which allows to define coinductive data
+types with negative recursive occurrences such as in the data constructor
+|Fun :: (D τ -> D τ) -> Value τ| (recall that |D τ = τ (Value τ)|), as first
+realised by \citet{Nakano:00}.
 
 Whereas previous theories of coinduction require syntactic productivity
 checks~\citep{Coquand:94}, requiring tiresome constraints on the form of guarded
@@ -104,20 +110,52 @@ allowing us to apply a familiar framework of reasoning around $\later$.
 
 We will now outline the changes necessary to encode |eval| in Guarded Cubical
 Agda, a system implementing Ticked Cubical Type Theory~\citep{tctt}.
-The very basic idea is that |step|s doing variable |Lookup| need to suspend
-evaluation of the argument denotation in order to yield a guarded recursive definition.
-
+The full, type-checked function is available in the Supplement.
 \begin{itemize}
-  \item There's a negative occurrence in the type of
+  \item We need to delay in |step|; thus its definition in |Trace| changes to
+    |step :: Event -> Later (τ v) -> τ v|.
+  \item
+    All |D|s that will be passed to lambdas, put into the environment or
+    stored in fields need to have the form |step (Lookup x) d| for some
+    |x::Name| and a delayed |d :: Later (D τ)|.
+    The way this is enforced is as follows:
+    \begin{enumerate}
+      \item
+        The |Domain| type class has an additional predicate parameter |p :: D -> Set|
+        that will be instantiated by the semantics to |is-look|, a predicate that
+        checks that the |D| has the required form.
+      \item
+        Then the method types of |Domain| use Sigma types to
+        encode conformance to |p|.
+        For example, the type of |fun| changes to |(Σ D p -> D) -> D|.
+      \item
+        The reason why we need to encode this fact is that the guarded recursive
+        data type |Value| has a constructor that amounts to
+        |Fun :: (Name times Later (D τ) -> D τ) -> Value τ|, and this
+        type-checks as the recursive cycle in negative position
+        (recall that |D τ = τ (Value τ)|) is broken by a $\later$.
+        This is in contrast to the original definition |Fun :: (D τ -> D τ) ->
+        Value τ| which would \emph{not} type-check.
+    \end{enumerate}
+  \item
+    Expectedly, |HasBind| becomes more complicated because it encodes the
+    fixpoint combinator.
+    We settled on |bind :: Later (Later D → D) → (Later D → D) → D|.
+  \item
+    Higher-order mutable state is among the classic motivating examples for
+    guarded recursive types.
+    As such it is no surprise that the state-passing of the mutable |Heap| in
+    the implementation of |ByNeed| requires breaking of a recursive cycle
+    by delaying heap entries, |Heap τ = Addr :-> Later (D τ)|.
 \end{itemize}
-This requirement
-Thus, we need to change its type to |step :: Event -> Later (τ v) -> τ v|.
 
+We find it remarkable how non-invasive these adjustments were \wrt the
+definition of the semantics!
 
 In doing so, we will have proven that |eval| is a total function, thus
 fast and loose equational reasoning about |eval| is not only \emph{morally}
 correct~\citep{Danielsson:06}, but correct.
-Furthermoe, since evaluation order doesn't matter for |eval|, we could have
-defined it in a strict language (with thunk suspension just as well.
+Furthermore, since evaluation order doesn't matter for |eval|, we could have
+defined it in a strict language (lowering |Later a| as |() -> a|) just as well.
 
 

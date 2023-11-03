@@ -148,11 +148,16 @@ instance
 
 step-ByNeed : ∀ {τ} {{_ : Trace τ}} {v} → Event → ▹(ByNeed τ v) → ByNeed τ v
 step-ByNeed {τ} {v} e m = mkByNeed (λ μ → step e (λ α → ByNeed.get (m α) μ))
+  -- NB: If we were able to switch the order of λ μ and λ α this code would still compile
+  --     and we would not need the postulate no-α-in-μ.
+  --     Alas, we are stuck with the current encoding because of the abstractions involved: 
+  --     We can't push the λ α into the surrounding ByNeed.
 
 instance
   trace-ByNeed : ∀ {τ} {{_ : Trace τ}} → Trace (ByNeed τ)
   trace-ByNeed = record { step = step-ByNeed  }
 
+-- | See step-ByNeed why this postulate is OK.
 postulate no-α-in-μ : ∀ {τ} (f : Heap (ByNeed τ) → ▹(τ (Value (ByNeed τ) × Heap (ByNeed τ))))
                     → Σ (▹(D (ByNeed τ)))
                          (λ d▹ → ∀ μ α → ByNeed.get (d▹ α) μ ≡ f μ α)
@@ -176,10 +181,6 @@ bind-ByNeed : ∀ {τ} {{_ : Trace τ}} → ▹(▹(D (ByNeed τ)) → D (ByNeed
 bind-ByNeed {τ} rhs body = do
   a ← mkByNeed (λ μ → return (nextFree μ , μ))
   mkByNeed (λ μ → return (42 , μ [ a ↦ heapD (memo a (λ α → rhs α (fetch a))) ]))
-  -- NB: No Tick α flows into μ. We could have bound μ before α!
-  --     This is the justification/"proof by refl" for the postulate no-α-in-μ above.
-  --     If we could have type `type ▹(D (ByNeed τ)) = Heap → Tick → τ (v, Heap)`
-  --     that would work just as well. Alas, the latter is not an expresion of D (ByNeed τ).
   step let1 (λ _α → body (fetch a))
 
 instance

@@ -95,6 +95,9 @@
 %format CT = "\conid{\ensuremath{\widehat{T}}}"
 %format CValue = "\conid{\ensuremath{\widehat{Value}}}"
 
+%format Later = "\later\!"
+%format times = "\times"
+
 %%format ~ = "\,\sim\,"
 %%format bang = "!"
 %%format family = "\keyword{family}"
