@@ -47,13 +47,14 @@ As we have discussed in \Cref{sec:continuity}, there are a few strings attached
 to working with continuity and partiality in the context of denotational
 semantics.
 
+\sg{Can probably cut out much of this introduction as space becomes lacking}
 The key to getting rid of partiality and thus denoting infinite computations
-with total elements is to avoid working with algebraic domains altogether and
+with total elements is to avoid working with algebraic domains directly and
 instead work in a total type theory with \emph{guarded recursive types}, such as
-Ticked Cubical Type Theory~\citep{tctt}.%
-\footnote{Of course, in reality we are just using GDTT as a meta
-language~\citep{Moggi:07} with a known domain-theoretic model in terms
-of the topos of trees~\citep{gdtt}.
+Ticked Cubical Type Theory~(TCTT)~\citep{tctt}.%
+\footnote{Of course, in reality we are just using guarded type theory as a meta
+language~\citep{Moggi:07} with a domain-theoretic model in terms of the topos of
+trees~\citep{gdtt}.
 This meta language is sufficiently expressive as a logic to
 express proofs, though, justifying the view that we are extending ``math''
 with the ability to conveniently reason about computable functions on infinite
@@ -65,10 +66,10 @@ with negative recursive occurrences such in our ``data type'' $D$ from
 
 Whereas previous theories of coinduction require syntactic productivity
 checks~\citep{Coquand:94}, requiring tiresome constraints on the form of guarded
-recursive functions, the appeal of GDTT is that productivity is instead proven
+recursive functions, the appeal of TCTT is that productivity is instead proven
 semantically, in the type system.
 
-The way that GDTT achieves this is roughly as follows: The type $\later T$
+The way that TCTT achieves this is roughly as follows: The type $\later T$
 represents data of type $T$ that will become available after a finite amount
 of computation, such as unrolling one layer of a fixpoint definition.
 It comes with a general fixpoint combinator $\fix : \forall A.\ (\later A \to
@@ -103,15 +104,20 @@ allowing us to apply a familiar framework of reasoning around $\later$.
 
 We will now outline the changes necessary to encode |eval| in Guarded Cubical
 Agda, a system implementing Ticked Cubical Type Theory~\citep{tctt}.
+The very basic idea is that |step|s doing variable |Lookup| need to suspend
+evaluation of the argument denotation in order to yield a guarded recursive definition.
+
+\begin{itemize}
+  \item There's a negative occurrence in the type of
+\end{itemize}
+This requirement
+Thus, we need to change its type to |step :: Event -> Later (τ v) -> τ v|.
+
+
 In doing so, we will have proven that |eval| is a total function, thus
 fast and loose equational reasoning about |eval| is not only \emph{morally}
 correct~\citep{Danielsson:06}, but correct.
-Since evaluation order doesn't matter for |eval|, this also proves that we could
-have defined it in a strict language just as well.
-%In order not to obscure our work with pointless symbol pushing
-%in, \eg, \Cref{fig:semvan}, we will often omit the idiom
-%brackets~\citep{McBridePaterson:08} $\idiom{\wild}$
-%to indicate where the $\later$ ``effects'' happen.
-%Rest assured, all $\later$ are present in the Guarded Cubical Agda
-%development for \Cref{fig:semvan,fig:semevt} in the Supplement.
+Furthermoe, since evaluation order doesn't matter for |eval|, we could have
+defined it in a strict language (with thunk suspension just as well.
+
 
