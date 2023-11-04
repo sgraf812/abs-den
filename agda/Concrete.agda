@@ -20,9 +20,6 @@ open import Cubical.Core.Everything hiding (_[_↦_])
 open import Cubical.Relation.Nullary.Base
 open import Semantics
 
-open Monad {{...}}
-open Trace {{...}}
-
 data T (A : Set) : Set where
   ret-T : A → T A
   step-T : Event → ▹ T A → T A

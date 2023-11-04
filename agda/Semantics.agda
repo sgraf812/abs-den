@@ -34,13 +34,13 @@ record Monad (M : Set → Set) : Set₁ where
     _>>=_ : ∀ {A} {B} → M A → (A → M B) → M B
   _>>_ : ∀ {A} {B} → M A → M B → M B
   l >> r = l >>= (λ _ → r)
-open Monad {{...}}
+open Monad {{...}} public
 
 record Trace (T : Set → Set) : Set₁ where
   field
     {{monad}} : Monad T
     step : ∀ {V} → Event → ▹ (T V) → T V
-open Trace {{...}}
+open Trace {{...}} public
 
 record Domain (D : Set) (p : D → Set) : Set where
   field
@@ -49,12 +49,12 @@ record Domain (D : Set) (p : D → Set) : Set where
     apply : D → Σ D p → D
     con : Var → List (Σ D p) → D
     select : D → List (Var × (List (Σ D p) → D)) → D
-open Domain {{...}}
+open Domain {{...}} public
 
 record HasBind (D : Set) : Set where
   field
     bind : ▹(▹ D → D) → (▹ D → D) → D
-open HasBind {{...}}
+open HasBind {{...}} public
 
 -- | This characterises the subtype of `τ v` that we pass around in `fun` and `apply`
 is-look : ∀ {τ} {v} {{trc : Trace τ}} → τ v → Set
@@ -77,7 +77,7 @@ S⟦_⟧_ {τ} {v} e ρ = fix sem' e ρ
            (λ d₁ → step let1 (λ α → recurse▹ α e₂ (ρ [ x ↦ (step (lookup x) d₁ , x , d₁ , refl) ])))
     sem' recurse▹ (conapp K xs) ρ with pmap ρ xs
     ... | nothing = stuck
-    ... | just ds = con K ds -- lacking test that length xs matches the arity of K
+    ... | just ds = con K ds -- lacking boring test that length xs matches the arity of K
     sem' recurse▹ (case' eₛ alts) ρ =
       step case1 (λ α → select (recurse▹ α eₛ ρ) (List.map alt alts))
         where
