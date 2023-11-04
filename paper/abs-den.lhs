@@ -214,10 +214,10 @@
 %\input{abstractions-old.tex}
 %\input{related-work.tex}
 
-\begin{acks}
-We would like to thank the anonymous POPL reviewers for their feedback.
+%\begin{acks}
+%We would like to thank the anonymous POPL reviewers for their feedback.
 %, as well as Bohdan Liesnikov and Sebastian Ullrich.
-\end{acks}
+%\end{acks}
 
 \clearpage
 \bibliography{references}

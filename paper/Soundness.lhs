@@ -46,9 +46,9 @@ comparatively small and compositional.\sg{improve}
 The essential idea to prove totality of concrete semantic instantiations of our
 shared interpreter is that \emph{there is only a finite number of steps between
 every $\LookupT$ transition}.%
-\footnote{Our experiments with a denotational interpreter for PCF indicate that
-this statement would need to include $\UnrollT$ transitions introduced by the
-fixpoint operator.}
+\footnote{Our experiments with a denotational interpreter for
+PCF~\citep{Plotkin:77} indicate that this statement holds for PCF as well if
+$\UnrollT$ transitions introduced by the fixpoint operator were included.}
 In other words, if every environment lookup produces a |Step| constructor, then
 our semantics is total by coinduction.
 
