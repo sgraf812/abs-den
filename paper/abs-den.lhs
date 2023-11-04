@@ -139,17 +139,17 @@
 \ifmain
 
 \begin{abstract}
-  We present a class of denotational semantics for lambda calculus that
-  generates coinductive traces of a corresponding small-step operational
-  semantics.
-  The appeal of our method is that the generated traces can be elaborated with
-  as much operational detail as needed, and that the structural definition
-  enables favorable induction principles.
-  Use of Guarded Domain Theory enables mutable state and thus the first
-  denotational semantics for call-by-need lambda calculus.
-  We demonstrate the usefulness of our trace semantics by proving correct a
-  static analysis for estimating the number of variable lookups by abstract
-  interpretation.
+  %We present a class of denotational semantics for lambda calculus that
+  %generates coinductive traces of a corresponding small-step operational
+  %semantics.
+  %The appeal of our method is that the generated traces can be elaborated with
+  %as much operational detail as needed, and that the structural definition
+  %enables favorable induction principles.
+  %Use of Guarded Domain Theory enables mutable state and thus the first
+  %denotational semantics for call-by-need lambda calculus.
+  %We demonstrate the usefulness of our trace semantics by proving correct a
+  %static analysis for estimating the number of variable lookups by abstract
+  %interpretation.
 \end{abstract}
 
 %% 2012 ACM Computing Classification System (CSS) concepts
