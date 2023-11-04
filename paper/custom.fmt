@@ -18,6 +18,7 @@
 %subst varid a = "\varid{" a "}"
 %subst keyword a = "\keyword{" a "}"
 %subst dummy = "\wild"
+%format highlight(a) = "\highlight{" a "}"
 
 %format τ = "\varid{\ensuremath{\tau}}"
 %format τ' = "\varid{\ensuremath{\tau'}}"

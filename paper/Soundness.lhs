@@ -40,12 +40,15 @@ Finally, in the spirit of \Cref{Keidel:18}, we utilise parametricity to
 derive sufficient soundness criterions for abstract instantiations that are
 comparatively small and compositional.\sg{improve}
 
-\subsection{Totality of |D|}
+\subsection{Totality of |eval|}
 \label{sec:totality}
 
-The essential idea to prove totality of concrete instantiations of our semantics
-is that \emph{there is only a finite number of steps between every $\LookupT$
-transition}.
+The essential idea to prove totality of concrete semantic instantiations of our
+shared interpreter is that \emph{there is only a finite number of steps between
+every $\LookupT$ transition}.%
+\footnote{Our experiments with a denotational interpreter for PCF indicate that
+this statement would need to include $\UnrollT$ transitions introduced by the
+fixpoint operator.}
 In other words, if every environment lookup produces a |Step| constructor, then
 our semantics is total by coinduction.
 
@@ -53,36 +56,38 @@ We make this argument precise by encoding |eval| in Guarded Cubical Agda,
 implementing a total type theory with
 \emph{guarded recursive types}~\citet{tctt}.
 In contrast to traditional denotational semantics based on algebraic domain
-theory, this frees us from having to work with continuity and partiality, thus
-elegantly working around the issues discussed in \Cref{sec:continuity}.%
+theory, guarded recursive type theory avoids issues of continuity and partiality
+discussed in \Cref{sec:continuity}, quite like programming in Rust ensures
+a sound stack and register discipline compared to writing Assembler code
+directly.%
 \footnote{Of course, the underlying model of guarded recursive type
 theories is the topos of trees~\citep{gdtt}, which very much enjoys an
 approximation order and partiality; the point is that any type safe program
-``compiles'' to a well-defined topos model without needing to think about
-topology and approximation directly.
+(Rust) ``compiles'' to a well-defined topos model (Assembler) without needing to
+think about topology and approximation directly.
 In essence, we are using guarded type theory as a meta language in the sense of
 \citeauthor{Moggi:07}.}
 
 \sg{Can probably cut out much of this introduction as space becomes lacking}
 The fundamental innovation of guarded recursive type theory is the integration
 of the ``later'' modality $\later$ which allows to define coinductive data
-types with negative recursive occurrences such as in the data constructor
-|Fun :: (D τ -> D τ) -> Value τ| (recall that |D τ = τ (Value τ)|), as first
-realised by \citet{Nakano:00}.
+types with negative recursive occurrences such as in the data constructor |Fun
+:: (highlight (D τ) -> D τ) -> Value τ| (recall that |D τ = τ (Value τ)|), as
+first realised by \citet{Nakano:00}.
 
 Whereas previous theories of coinduction require syntactic productivity
 checks~\citep{Coquand:94}, requiring tiresome constraints on the form of guarded
-recursive functions, the appeal of TCTT is that productivity is instead proven
-semantically, in the type system.
+recursive functions, the appeal of a guarded type theories is that productivity
+is instead proven semantically, in the type system.
 
-The way that TCTT achieves this is roughly as follows: The type $\later T$
+The way that is achieved is roughly as follows: The type $\later T$
 represents data of type $T$ that will become available after a finite amount
 of computation, such as unrolling one layer of a fixpoint definition.
 It comes with a general fixpoint combinator $\fix : \forall A.\ (\later A \to
 A) \to A$ that can be used to define both coinductive \emph{types} (via guarded
 recursive functions on the universe of types~\citep{BirkedalMogelbergEjlers:13})
 as well as guarded recursive \emph{terms} inhabiting said types.
-The classic example is that of coinductive streams:
+The classic example is that of infinite streams:
 \[
   Str = ℕ \times \later Str \qquad ones = \fix (r : \later Str).\ (1,r),
 \]
@@ -93,24 +98,28 @@ According to \citet{BirkedalMogelbergEjlers:13}, any type expression in simply
 typed lambda calculus defines a locally contractive functor as long as any
 occurrence of $X$ is under a $\later$, so we take that as the well-formedness
 criterion of coinductive types in this work.
-The most exciting consequence is that
-$D ::= \FunV(f ∈ \later D \to \later D) \mid \bot$ (where $\bot$ is interpreted
-as a plain nullary data constructor rather than as the least element of
-some partial order) is a sound coinductive encoding of the data type in
-\Cref{sec:domain-theory}.
-Even unguarded positive occurrences as in
-$D ::= \FunV(f ∈ \later D \to D) \mid \bot$ are permissible as
+The most exciting consequence is that changing the |Fun| data constructor to
+|Fun :: (Later (D τ) -> D τ) -> Value τ| makes |Value τ| a well-defined
+coinductive data type,%
+\footnote{The reason why the positive occurrence of |D τ| does not need to be
+guarded is that the type of |Fun| can more formally be encoded by a mixed
+inductive-coinductive type, \eg,
+$|Value τ| = \fix X.\ \lfp Y.\ ... || |Fun|~(X \to Y) || ...$ }
+whereas syntactic approaches to coinduction reject any negative recursive
+occurrence.
 
-As a type constructor, $\later$ is an applicative
-functor~\citep{McBridePaterson:08} via functions
-\[
-  \purelater : \forall A.\ A \to \later A \qquad \wild \aplater \wild : \forall A,B.\ \later (A \to B) \to \later A \to \later B,
-\]
-allowing us to apply a familiar framework of reasoning around $\later$.
+%As a type constructor, $\later$ is an applicative
+%functor~\citep{McBridePaterson:08} via functions
+%\[
+%  \purelater : \forall A.\ A \to \later A \qquad \wild \aplater \wild : \forall A,B.\ \later (A \to B) \to \later A \to \later B,
+%\]
+%allowing us to apply a familiar framework of reasoning around $\later$.
 
 We will now outline the changes necessary to encode |eval| in Guarded Cubical
-Agda, a system implementing Ticked Cubical Type Theory~\citep{tctt}.
-The full, type-checked function is available in the Supplement.
+Agda, a system implementing Ticked Cubical Type Theory~\citep{tctt}, as well
+as the concrete instances |D (ByName T)| and |D (ByNeed T)| from
+\Cref{fig:trace-instances,fig:by-need}.
+The full, type-checked development is available in the Supplement.
 \begin{itemize}
   \item We need to delay in |step|; thus its definition in |Trace| changes to
     |step :: Event -> Later (τ v) -> τ v|.
@@ -118,22 +127,24 @@ The full, type-checked function is available in the Supplement.
     All |D|s that will be passed to lambdas, put into the environment or
     stored in fields need to have the form |step (Lookup x) d| for some
     |x::Name| and a delayed |d :: Later (D τ)|.
-    The way this is enforced is as follows:
+    This is enforced as follows:
     \begin{enumerate}
       \item
-        The |Domain| type class has an additional predicate parameter |p :: D -> Set|
-        that will be instantiated by the semantics to |is-look|, a predicate that
-        checks that the |D| has the required form.
+        The |Domain| type class gains an additional predicate parameter |p :: D -> Set|
+        that will be instantiated by the semantics to a predicate that checks
+        that the |D| has the required form |step (Lookup x) d| for some
+        |x::Name|, |d :: Later (D τ)|.
       \item
-        Then the method types of |Domain| use Sigma types to
-        encode conformance to |p|.
-        For example, the type of |fun| changes to |(Σ D p -> D) -> D|.
+        Then the method types of |Domain| use a Sigma type to encode conformance
+        to |p|.
+        For example, the type of |Fun| changes to |(Σ D p -> D) -> D|.
       \item
         The reason why we need to encode this fact is that the guarded recursive
-        data type |Value| has a constructor that amounts to
-        |Fun :: (Name times Later (D τ) -> D τ) -> Value τ|, and this
-        type-checks as the recursive cycle in negative position
-        (recall that |D τ = τ (Value τ)|) is broken by a $\later$.
+        data type |Value| has a constructor the type of which amounts to
+        |Fun :: (Name times Later (D τ) -> D τ) -> Value τ|, breaking the
+        previously discussed negative recursive cycle by a $\later$ and
+        expecting |x::Name|, |d::Later (D τ)| such that the original |D τ| can
+        be recovered as |step (Lookup x) d|.
         This is in contrast to the original definition |Fun :: (D τ -> D τ) ->
         Value τ| which would \emph{not} type-check.
     \end{enumerate}
@@ -150,12 +161,10 @@ The full, type-checked function is available in the Supplement.
 \end{itemize}
 
 We find it remarkable how non-invasive these adjustments were \wrt the
-definition of the semantics!
+definition of the interpreter |eval|!
 
-In doing so, we will have proven that |eval| is a total function, thus
-fast and loose equational reasoning about |eval| is not only \emph{morally}
-correct~\citep{Danielsson:06}, but correct.
+Thus we have proven that |eval| is a total function, and fast and
+loose equational reasoning about |eval| is not only \emph{morally}
+correct~\citep{Danielsson:06}, but simply \emph{correct}.
 Furthermore, since evaluation order doesn't matter for |eval|, we could have
 defined it in a strict language (lowering |Later a| as |() -> a|) just as well.
-
-
