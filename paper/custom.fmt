@@ -6,6 +6,7 @@
 %format qquad =
 %format ^ =
 %format ^^ = " "
+%format ^^^ = "^"
 %format com = "--"
 
 %else
@@ -18,7 +19,6 @@
 %subst varid a = "\varid{" a "}"
 %subst keyword a = "\keyword{" a "}"
 %subst dummy = "\wild"
-%format highlight(a) = "\highlight{" a "}"
 
 %format τ = "\varid{\ensuremath{\tau}}"
 %format τ' = "\varid{\ensuremath{\tau'}}"
@@ -31,6 +31,7 @@
 %format θ = "\varid{\ensuremath{\theta}}"
 %format θ1 = "\varid{\ensuremath{\theta_1}}"
 %format θ2 = "\varid{\ensuremath{\theta_2}}"
+%format ω = "\varid{$\omega$}"
 %format :-> = "\hspace{-0.15em}\rightharpoonup\hspace{-0.19em}"
 %format :->: = "\mathbin{:\rightarrow:}"
 %format :->: = ":\rightarrow:"
@@ -65,22 +66,9 @@
 %format Case2
 %format Let0
 %format Let1
-%format VarP = Var
-%format LamP = Lam
-%format AppP = App
-%format DP = D
-%format ValueP = Value
-%format StuckP = Stuck
-%format LitP = Lit
-%format FunP = Fun
 %format trD = "\tr_Δ"
-%format retStuckP = retStuck
-%format retZeroP = retZero
-%format retSuccP = retSucc
-%format retPredP = retPred
-%format ifZeroP = ifZero
-%format retFunP = retFun
-%format applyP = apply
+%format ℕ_ω = "ℕ_ω"
+%format Sn = "\conid{S}^n"
 %%format xs = "\overline{\varid{x}}"
 %%format ds = "\overline{\varid{d}}"
 %%format alts = "\overline{\varid{alt}}"
@@ -97,7 +85,24 @@
 %format CValue = "\conid{\ensuremath{\widehat{Value}}}"
 
 %format Later = "\later\!"
+%format highlight(a) = "\highlight{" a "}"
 %format times = "\times"
+%format := = "\triangleq"
+%format αHeap(h) = "α_\Heaps(" h ")"
+%format αEnv(e) = "α_\Environments(" e ")"
+%format αState(s) = "α_\States(" s ")"
+%format αSTraces(t) = "α_{\STraces}(" t ")"
+%format tr = "\varid{$\tr$}"
+%format tr' = "\varid{$\tr'$}"
+%format trm = "\varid{$\tr_m$}"
+%format tm = "\varid{$\tm$}"
+%format tm' = "\varid{$\tm'$}"
+%format tmm = "\varid{$\tm_m$}"
+%format tl = "\varid{$\tau^{\later}$}"
+%format κ = "\kappa"
+%format σn = "\sigma_n"
+%format lktrace = "(σ_{i+1})_{i∈\overline{n-1}}"
+%format (idiom(a)) = "\idiom{" a "}"
 
 %%format ~ = "\,\sim\,"
 %%format bang = "!"
