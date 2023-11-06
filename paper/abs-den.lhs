@@ -209,7 +209,6 @@
 %include Abstractions.lhs
 %include Soundness.lhs
 %\input{vanilla.tex}
-%\input{eventful.tex}
 %\input{essence.tex}
 %\input{abstractions-old.tex}
 %\input{related-work.tex}
