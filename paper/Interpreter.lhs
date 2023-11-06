@@ -443,8 +443,9 @@ fetch :: Monad τ => Addr -> D (ByNeed τ)
 fetch a = ByNeed get >>= \μ -> μ ! a
 
 memo :: Trace τ => Addr -> D (ByNeed τ) -> D (ByNeed τ)
-memo a d = d >>= step Update . ByNeed . StateT . upd
-  where upd v μ = return (v, ext μ a (memo a (return v)))
+memo a d = d >>= ByNeed . StateT . upd
+  where  upd Stuck  μ = return (Stuck, μ)
+         upd v      μ = step Update (return (v, ext μ a (memo a (return v))))
 
 instance Trace τ => HasBind (D (ByNeed τ)) where
   bind rhs body = do  a <- nextFree <$> ByNeed get
@@ -472,8 +473,9 @@ fetch :: Monad τ => Addr -> D (ByNeed τ)
 fetch a = ByNeed get >>= \μ -> μ ! a
 
 memo :: Trace τ => Addr -> D (ByNeed τ) -> D (ByNeed τ)
-memo a d = d >>= step Update . ByNeed . StateT . upd
-  where upd v μ = return (v, ext μ a (memo a (return v)))
+memo a d = d >>= ByNeed . StateT . upd
+  where upd Stuck  μ = return (Stuck, μ)
+        upd v      μ = step Update (return (v, ext μ a (memo a (return v))))
 
 instance Trace τ => HasBind (D (ByNeed τ)) where
   bind rhs body = do  a <- nextFree <$> ByNeed get
