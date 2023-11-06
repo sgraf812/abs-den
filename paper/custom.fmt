@@ -99,8 +99,11 @@
 %format tm' = "\varid{$\tm'$}"
 %format tmm = "\varid{$\tm_m$}"
 %format tl = "\varid{$\tau^{\later}$}"
+%format tl2 = "\varid{$\tau^{\later}_2$}"
 %format κ = "\kappa"
-%format σn = "\sigma_n"
+%format σ_n = "\sigma_n"
+%format σ_m = "\sigma_m"
+%format a_yi = "\varid{a}_{\varid{y},i}"
 %format lktrace = "(σ_{i+1})_{i∈\overline{n-1}}"
 %format (idiom(a)) = "\idiom{" a "}"
 
