@@ -4,7 +4,7 @@ abs-den-ext.tex
 supplemental.zip
 .direnv
 .auctex-auto
-result/
+result
 
 *.aux
 *.axp

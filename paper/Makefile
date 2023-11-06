@@ -5,7 +5,7 @@ main: abs-den.pdf
 
 .PHONY: main quick watch clean
 
-abs-den-ext.tex: *.tex
+abs-den-ext.tex: abs-den.tex
 	cat abs-den.tex | sed -e 's/^%\\extended/\\extended/g' > abs-den-ext.tex
 
 appendix.pdf: abs-den-ext.pdf
