@@ -35,7 +35,7 @@ quick-ext: abs-den-ext.tex macros.tex
 	$(PDFLATEX) abs-den-ext
 
 test: [A-Z]*.lhs
-	LANG=C.UTF-8 ghc -ihs -pgmL lhs2TeX -optL--pre -fno-code -freverse-errors -W $<
+	LANG=C.UTF-8 ghc -ihs -pgmL lhs2TeX -optL--pre -fno-code -freverse-errors -W $?
 
 watch:
 	ls *.lhs *.tex | entr -n make quick
