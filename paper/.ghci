@@ -1,1 +1,1 @@
-:set -ihs -pgmL lhs2TeX -optL--pre
+:set -ihs -pgmL lhs2TeX -optL--pre -XPartialTypeSignatures
