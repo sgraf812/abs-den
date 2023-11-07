@@ -8,6 +8,8 @@
 {-# LANGUAGE DerivingStrategies #-}
 {-# LANGUAGE PartialTypeSignatures #-}
 {-# LANGUAGE LambdaCase #-}
+{-# LANGUAGE ScopedTypeVariables #-}
+{-# LANGUAGE AllowAmbiguousTypes #-}
 {-# LANGUAGE QuantifiedConstraints #-}
 
 module Soundness where
@@ -694,8 +696,10 @@ instance Eq (D (ByName T)) where
   (==) = undefined
 instance Ord (D (ByName T)) where
   compare = undefined
-powMap :: Ord b => (a -> b) -> Pow a -> Pow b
-powMap f (P s) = P $ Set.fromList $ map f $ Set.toList s
+powMap :: (a -> b) -> Pow a -> Pow b
+powMap f (P s) = P $ undefined $ map f $ Set.toList s
+mapMap = Map.map
+infixr 9 `mapMap`
 \end{code}
 %endif
 
@@ -709,24 +713,38 @@ fromEmbedding ι = abs :<->: conc where
   abs   (P as)  = {-" \Lub \{ \embAbsImpl \} \iffalse "-} undefined {-" \fi "-}
   conc  b       = P {-" \{ \embConcImpl \} \iffalse "-} undefined {-" \fi "-}
 
+fromTrace :: (Trace τ, Domain (τ v), Lat (τ v)) => Galois (Pow (D c)) (τ v) -> Galois (Pow (T (Value c))) (τ v)
+fromTrace inner@(absI :<->: _) = fromEmbedding ι where
+  absF :<->: concF = fromMono inner inner
+  ι (Ret Stuck)       = stuck
+  ι (Ret (Fun f))     = fun {-"\iffalse"-}""{-"\fi"-} (absF (powMap f))
+  ι (Ret (Con k ds))  = con {-"\iffalse"-}""{-"\fi"-} k (map (absI . sing) ds)
+  ι (Step e τ)        = step e (ι τ)
+
 byName :: (Trace τ, Domain (τ v), Lat (τ v)) => Galois (Pow (D (ByName T))) (τ v)
-byName = g where
-  g = fromEmbedding ι
-  absF :<->: concF = fromMono g g
-  ι (ByName d) = go d
-  go (Ret Stuck)       = stuck
-  go (Ret (Fun f))     = fun {-"\iffalse"-}""{-"\fi"-} (absF (powMap f))
-  go (Ret (Con k ds))  = con {-"\iffalse"-}""{-"\fi"-} k (map ι ds)
-  go (Step e τ)        = step e (go τ)
+byName = (abs . powMap unByName) :<->: (powMap ByName . conc) where abs :<->: conc = fromTrace byName
+
+sing = P . Set.singleton
+
+testName  ::  forall τ v. (Trace τ, Domain (τ v), HasBind (τ v), Lat (τ v))
+          =>  Expr -> (Name :-> D (ByName T)) -> Bool
+testName e ρ = α (sing (eval e ρ)) ⊑ (eval e (α `mapMap` sing `mapMap` ρ) :: τ v) where α :<->: _ = byName
 
 fromMono :: Galois a a' -> Galois b b' -> Galois (a -> b) (a' -> b')
 fromMono (absA :<->: concA) (absB :<->: concB) = (\f -> absB . f . concA) :<->: (\f -> concB . f . absA)
+
+fromHeap :: (Trace τ, Domain (τ v), Lat (τ v)) => Galois (Pow (D c)) (τ v) -> Galois (Pow (StateT (Addr :-> T (Value c)) T (Value c))) (StateT (Addr :-> τ v) τ v)
+fromHeap inner@(absI :<->: concI) = abs :<->: conc where
+
+byNeed :: (Trace τ, Domain (τ v), Lat (τ v)) => Galois (Pow (D (ByNeed T))) (StateT (Addr :-> τ v) τ v)
+byNeed = _
 \end{code}
 
 \[
   |refold γ (eval e emp :: D (ByName T)) :: UD| ⊑ |eval e emp :: UD|
 \]
 
+\begin{comment}
 \[\begin{array}{rcl}
   α([\many{\px ↦ \pa_{\py,i}}]) & = & [\many{|x| ↦ |step (Lookup y) (fetch a_yi)|}] \\
   α_\Heaps([\many{\pa ↦ (ρ,\pe)}]) & = & [\many{|a| ↦ |memo a (eval e (αEnv ρ))|}] \\
@@ -747,3 +765,4 @@ fromMono (absA :<->: concA) (absB :<->: concB) = (\f -> absB . f . concA) :<->: 
     |Ret Stuck| & \text{otherwise} \\
   \end{cases} \\
 \end{array}\]
+\end{comment}

@@ -40,6 +40,7 @@
 %format eval(a)(b) = "\mathcal{S}\denot{" a "}_{" b "}"
 %format ext(rho)(x)(d) = rho "[" x "\mapsto" d "]"
 %format exts(rho)(xs)(ds) = rho "[\many{" xs "\mapsto" ds "}]"
+%format `mapMap` = "\circ"
 %format emptyP = "\varid{\ensuremath{\varnothing}}"
 %format ell = "\varid{\ensuremath{\ell}}"
 %format ells = "\varid{\ensuremath{\many{\ell}}}"
@@ -106,6 +107,7 @@
 %format lktrace = "(σ_{i+1})_{i∈\overline{n-1}}"
 %format (idiom(a)) = "\idiom{" a "}"
 %format :<->: = "\rightleftharpoons"
+%format (sing(a)) = "\{" a "\}"
 %format ι = "\varid{$\iota$}"
 
 %%format ~ = "\,\sim\,"
