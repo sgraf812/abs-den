@@ -23,6 +23,7 @@ import qualified Data.List as List
 import Expr
 import Order
 import Interpreter
+import Abstractions
 \end{code}
 %endif
 
@@ -248,7 +249,7 @@ its source state:
 As shown by \citeauthor{Sestoft:97}, a balanced trace starting at a control
 expression $\pe$ and ending with $\pv$ loosely corresponds to a derivation of
 $\pe \Downarrow \pv$ in a natural big-step semantics or a non-$⊥$ result in a
-denotational semantics.
+traditional denotational semantics.
 It is when a derivation in a natural semantics does \emph{not} exist that a
 small-step semantics shows finesse, in that it differentiates two different
 kinds of \emph{maximally interior} (or, just \emph{maximal}) traces:
@@ -684,3 +685,65 @@ The full proof is in the Appendix.
       \end{itemize}
   \end{itemize}
 \end{proof}
+
+\subsection{From Trace Property To Sound Abstract Interpreter}
+
+%if style == newcode
+\begin{code}
+instance Eq (D (ByName T)) where
+  (==) = undefined
+instance Ord (D (ByName T)) where
+  compare = undefined
+powMap :: Ord b => (a -> b) -> Pow a -> Pow b
+powMap f (P s) = P $ Set.fromList $ map f $ Set.toList s
+\end{code}
+%endif
+
+\newcommand{\embAbsImpl}{| ι a || a <- as |}
+\newcommand{\embConcImpl}{| a || a <- as, ι a ⊑ b |}
+\begin{code}
+data Galois a b = (a -> b) :<->: (b -> a)
+
+fromEmbedding :: Lat b => (a -> b) -> Galois (Pow a) b
+fromEmbedding ι = abs :<->: conc where
+  abs   (P as)  = {-" \Lub \{ \embAbsImpl \} \iffalse "-} undefined {-" \fi "-}
+  conc  b       = P {-" \{ \embConcImpl \} \iffalse "-} undefined {-" \fi "-}
+
+byName :: (Trace τ, Domain (τ v), Lat (τ v)) => Galois (Pow (D (ByName T))) (τ v)
+byName = g where
+  g = fromEmbedding ι
+  absF :<->: concF = fromMono g g
+  ι (ByName d) = go d
+  go (Ret Stuck)       = stuck
+  go (Ret (Fun f))     = fun {-"\iffalse"-}""{-"\fi"-} (absF (powMap f))
+  go (Ret (Con k ds))  = con {-"\iffalse"-}""{-"\fi"-} k (map ι ds)
+  go (Step e τ)        = step e (go τ)
+
+fromMono :: Galois a a' -> Galois b b' -> Galois (a -> b) (a' -> b')
+fromMono (absA :<->: concA) (absB :<->: concB) = (\f -> absB . f . concA) :<->: (\f -> concB . f . absA)
+\end{code}
+
+\[
+  |refold γ (eval e emp :: D (ByName T)) :: UD| ⊑ |eval e emp :: UD|
+\]
+
+\[\begin{array}{rcl}
+  α([\many{\px ↦ \pa_{\py,i}}]) & = & [\many{|x| ↦ |step (Lookup y) (fetch a_yi)|}] \\
+  α_\Heaps([\many{\pa ↦ (ρ,\pe)}]) & = & [\many{|a| ↦ |memo a (eval e (αEnv ρ))|}] \\
+  α_\States(\Lam{\px}{\pe},ρ,μ,κ) & = & |(Fun (\d -> eval e (ext (αEnv ρ) x d)), αHeap μ)| \\
+  α_\States(K~\overline{\px},ρ,μ,κ) & = & |(Con k (map (αEnv ρ !) xs), αHeap μ)| \\
+  α_\Events(σ) & = & \begin{cases}
+    |Let1| & σ = (\Let{\px}{\wild}{\wild},\wild,μ,\wild), \pa_{\px,i} \not∈ \dom(μ) \\
+    |App1| & σ = (\wild~\px,\wild,\wild,\wild) \\
+    |Case1| & σ = (\Case{\wild}{\wild},\wild,\wild, \wild)\\
+    |Lookup y| & σ = (\px,ρ,\wild,\wild), ρ(\px) = \pa_{\py,i} \\
+    |App2| & σ = (\Lam{\wild}{\wild},\wild,\wild,\ApplyF(\wild) \pushF \wild) \\
+    |Case2| & σ = (K~\wild, \wild, \wild, \SelF(\wild,\wild) \pushF \wild) \\
+    |Update| & σ = (\pv,\wild,\wild,\UpdateF(\wild) \pushF \wild) \\
+  \end{cases} \\
+  α_{\STraces}((σ_i)_{i∈\overline{n}},κ) & = & \begin{cases}
+    |Step ({-" α_\Events(σ_0) "-}) (idiom (αSTraces (lktrace, κ)))| & n > 0 \\
+    |Ret ({-" α_\States(σ_0) "-})| & \ctrl(σ_0) \text{ value } \wedge \cont(σ_0) = κ \\
+    |Ret Stuck| & \text{otherwise} \\
+  \end{cases} \\
+\end{array}\]

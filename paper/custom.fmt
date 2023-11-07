@@ -34,7 +34,6 @@
 %format ω = "\varid{$\omega$}"
 %format :-> = "\hspace{-0.15em}\rightharpoonup\hspace{-0.19em}"
 %format :->: = "\mathbin{:\rightarrow:}"
-%format :->: = ":\rightarrow:"
 %format ∈ = "\in"
 %format emp = "\varid{\ensuremath{\epsilon}}"
 %format ! = "\mathop{!}"
@@ -106,6 +105,8 @@
 %format a_yi = "\varid{a}_{\varid{y},i}"
 %format lktrace = "(σ_{i+1})_{i∈\overline{n-1}}"
 %format (idiom(a)) = "\idiom{" a "}"
+%format :<->: = "\rightleftharpoons"
+%format ι = "\varid{$\iota$}"
 
 %%format ~ = "\,\sim\,"
 %%format bang = "!"
