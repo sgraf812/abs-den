@@ -24,6 +24,8 @@ import Expr
 import Order
 import Interpreter
 import {-# SOURCE #-} Sergey14
+
+root = call `seq` many -- Suppress redundant import warning
 \end{code}
 %endif
 

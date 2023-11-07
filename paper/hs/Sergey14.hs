@@ -7,14 +7,13 @@ import Expr
 import Order
 import Interpreter
 import Abstractions
-import Numeric.Natural
 import Data.Functor.Identity
 import Control.Monad.Trans.Writer
 import Control.Monad.Trans.Reader
 import qualified Data.Map as Map
 import Data.Set (Set)
 import qualified Data.Set as Set
-import Debug.Trace
+-- import Debug.Trace
 
 
 -- data U = U0 | U1 | Uω -- defined in Abstractions, including ⊔ and +
@@ -75,7 +74,7 @@ instance Plussable SubDemand where
   _ + Top = Top
   Seq + sd = sd
   sd + Seq = sd
-  Call n1 sd1 + Call n2 sd2 = mkCall Uω (sd1 ⊔ sd2)
+  Call _n1 sd1 + Call _n2 sd2 = mkCall Uω (sd1 ⊔ sd2)
   Prod dmds1 + Prod dmds2 | length dmds1 == length dmds2 = mkProd (zipWith (+) dmds1 dmds2)
   _ + _ = Top
 
@@ -144,10 +143,11 @@ squeezeSubDmd :: Set Name -> DmdD -> SubDemand -> DmdEnv
 squeezeSubDmd ns (DT f) sd = snd (f ns sd)
 
 squeezeDmd :: Set Name -> DmdD -> Demand -> DmdEnv
-squeezeDmd ns d Abs = emp
+squeezeDmd _  _ Abs = emp
 squeezeDmd ns d (n :* sd)
   | U1 <- n = squeezeSubDmd ns d sd
   | Uω <- n = squeezeSubDmd ns d sd + squeezeSubDmd ns d Seq
+  | otherwise = error "UNonAbs"
 
 fresh :: Set Name -> (Name, Set Name)
 fresh ns = (x, Set.insert x ns) where x = "X" ++ show (Set.size ns)
@@ -170,7 +170,7 @@ instance Domain (DmdT DmdVal) where
         let (v,φ) = unDT (f sentinel) ns' sd' in
         let (d,φ') = (Map.findWithDefault absDmd x φ,Map.delete x φ) in
         (multDmdVal n (mkDmdFun d v), multDmdEnv n φ')
-  con lbl k ds = DT $ \ns sd ->
+  con _ k ds = DT $ \ns sd ->
     let dmds = case sd of
           Prod dmds | length dmds == length ds, isProd k -> dmds
           Seq -> replicate (length ds) absDmd
@@ -195,7 +195,7 @@ instance Domain (DmdT DmdVal) where
     where
       alt ns sd (k,f) =
         let (xs,ns')  = freshs (conArity k) ns in
-        let sentinels = map (\x -> pure DmdNop) xs in
+        let sentinels = map (\_ -> pure DmdNop) xs in
         let (v,φ)     = unDT (f sentinels) ns' sd in
         let φ'        = foldr Map.delete φ xs in
         (v,φ')
@@ -242,7 +242,7 @@ multDmdVal _  v = v
 type DmdSummary = (DmdVal, DmdEnv)
 
 concDmdSummary :: Int -> DmdSummary -> DmdD
-concDmdSummary arty (v,φ) = DT $ \ns sd ->
+concDmdSummary arty (v,φ) = DT $ \_ns sd ->
   let (u,_body_sd) = peelManyCalls arty sd in
   (multDmdVal u v, multDmdEnv u φ)
 
@@ -266,7 +266,7 @@ instance HasBind DmdD where
           (v,φ) ->
             case Map.findWithDefault absDmd x φ of
               Abs -> (v,Map.delete x φ)
-              _n :* sd -> let (sd2,v2,φ2) = kleeneFix (letup x rhs ns' sd) in (v,Map.delete x (φ + φ2))
+              _n :* sd -> let (_sd2,_v2,φ2) = kleeneFix (letup x rhs ns' sd) in (v,Map.delete x (φ + φ2))
       else
         let d1 = concDmdSummary arty (kleeneFix (absDmdSummary arty ns . rhs . concDmdSummary arty)) in
         unDT (body d1) ns sd
