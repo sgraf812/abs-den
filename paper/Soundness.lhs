@@ -713,6 +713,9 @@ fromEmbedding ι = abs :<->: conc where
   abs   (P as)  = {-" \Lub \{ \embAbsImpl \} \iffalse "-} undefined {-" \fi "-}
   conc  b       = P {-" \{ \embConcImpl \} \iffalse "-} undefined {-" \fi "-}
 
+fromMono :: Galois a a' -> Galois b b' -> Galois (a -> b) (a' -> b')
+fromMono (absA :<->: concA) (absB :<->: concB) = (\f -> absB . f . concA) :<->: (\f -> concB . f . absA)
+
 fromTrace :: (Trace τ, Domain (τ v), Lat (τ v)) => Galois (Pow (D c)) (τ v) -> Galois (Pow (T (Value c))) (τ v)
 fromTrace inner@(absI :<->: _) = fromEmbedding ι where
   absF :<->: concF = fromMono inner inner
@@ -726,25 +729,30 @@ byName = (abs . powMap unByName) :<->: (powMap ByName . conc) where abs :<->: co
 
 sing = P . Set.singleton
 
-testName  ::  forall τ v. (Trace τ, Domain (τ v), HasBind (τ v), Lat (τ v))
-          =>  Expr -> (Name :-> D (ByName T)) -> Bool
-testName e ρ = α (sing (eval e ρ)) ⊑ (eval e (α `mapMap` sing `mapMap` ρ) :: τ v) where α :<->: _ = byName
+soundName  ::  forall τ v. (Trace τ, Domain (τ v), HasBind (τ v), Lat (τ v))
+           =>  Expr -> (Name :-> D (ByName T)) -> Bool
+soundName e ρ = α (sing (eval e ρ)) ⊑ (eval e (α `mapMap` sing `mapMap` ρ) :: τ v) where α :<->: _ = byName
+\end{code}
 
-fromMono :: Galois a a' -> Galois b b' -> Galois (a -> b) (a' -> b')
-fromMono (absA :<->: concA) (absB :<->: concB) = (\f -> absB . f . concA) :<->: (\f -> concB . f . absA)
+What is the free theorem of |θ := forall τ v. (Trace τ, Domain (τ v), HasBind (τ v)) => Expr -> (Name :-> τ v) -> τ v|?
+We have
+\begin{itemize}
+  \item $(|eval|,|eval|) ∈ \denot{θ}_r []$, hence, by $\forall$s,
+  \item $(|eval τ v|,|eval τ v|) ∈ \denot{|(Trace τ, ...) => Expr -> ... -> τ v|}_r [ τ : (\star \to \star)^2, v : \star^2 ]$, hence
+  \item $(|eval τ v ds|,|eval τ v ds|) ∈ \denot{|Expr -> ... -> τ v|}_r [ ..., ds : (... |D (ByName T)| ..., ... |τ v| ...) ]$, hence
+  \item $(|eval τ v ds e|,|eval τ v ds e|) ∈ \denot{|Expr -> ... -> τ v|}_r [ ..., \pe : |Expr|^2 ]$, hence
+  \item $(|eval τ v ds e ρ|,|eval τ v ds e ρ|) ∈ \denot{|Expr -> ... -> τ v|}_r [ ..., ρ :  ]$, hence
+\end{itemize}
 
+\begin{comment}
+\begin{spec}
 fromHeap :: (Trace τ, Domain (τ v), Lat (τ v)) => Galois (Pow (D c)) (τ v) -> Galois (Pow (StateT (Addr :-> T (Value c)) T (Value c))) (StateT (Addr :-> τ v) τ v)
 fromHeap inner@(absI :<->: concI) = abs :<->: conc where
 
 byNeed :: (Trace τ, Domain (τ v), Lat (τ v)) => Galois (Pow (D (ByNeed T))) (StateT (Addr :-> τ v) τ v)
 byNeed = _
-\end{code}
+\end{spec}
 
-\[
-  |refold γ (eval e emp :: D (ByName T)) :: UD| ⊑ |eval e emp :: UD|
-\]
-
-\begin{comment}
 \[\begin{array}{rcl}
   α([\many{\px ↦ \pa_{\py,i}}]) & = & [\many{|x| ↦ |step (Lookup y) (fetch a_yi)|}] \\
   α_\Heaps([\many{\pa ↦ (ρ,\pe)}]) & = & [\many{|a| ↦ |memo a (eval e (αEnv ρ))|}] \\
