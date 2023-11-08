@@ -734,14 +734,18 @@ soundName  ::  forall τ v. (Trace τ, Domain (τ v), HasBind (τ v), Lat (τ v)
 soundName e ρ = α (sing (eval e ρ)) ⊑ (eval e (α `mapMap` sing `mapMap` ρ) :: τ v) where α :<->: _ = byName
 \end{code}
 
+Let us fix |AT|, |AValue| such that there are instance |Trace AT|, |Domain (AT
+AV)|, |HasBind (AT AV)| and |Lat (AT AV)|.
+Let us abbreviate |Dict = (Trace (ByName T), Domain (D (ByName T)), HasBind (D (ByName T)))|
+and |ADict = (Trace AT, Domain AT AV, HasBind AT AV)|, respectively.
+
 What is the free theorem of |θ := forall τ v. (Trace τ, Domain (τ v), HasBind (τ v)) => Expr -> (Name :-> τ v) -> τ v|?
 We have
 \begin{itemize}
   \item $(|eval|,|eval|) ∈ \denot{θ}_r []$, hence, by $\forall$s,
-  \item $(|eval τ v|,|eval τ v|) ∈ \denot{|(Trace τ, ...) => Expr -> ... -> τ v|}_r [ τ : (\star \to \star)^2, v : \star^2 ]$, hence
-  \item $(|eval τ v ds|,|eval τ v ds|) ∈ \denot{|Expr -> ... -> τ v|}_r [ ..., ds : (... |D (ByName T)| ..., ... |τ v| ...) ]$, hence
-  \item $(|eval τ v ds e|,|eval τ v ds e|) ∈ \denot{|Expr -> ... -> τ v|}_r [ ..., \pe : |Expr|^2 ]$, hence
-  \item $(|eval τ v ds e ρ|,|eval τ v ds e ρ|) ∈ \denot{|Expr -> ... -> τ v|}_r [ ..., ρ :  ]$, hence
+  \item $(|eval _ _ :: D (ByName T)|,|eval :: AT AV|) ∈ \denot{|Expr -> ... -> τ v|}_r [τ : \{ (|ByName T|, |AT|) \}, v : \{ (|Value (ByNeed T)|, |AV|) \}, ds : \{ (|Dict|, |ADict|) \} ]$, hence
+  \item $(|eval e|,|eval e|) ∈ \denot{|Expr -> ... -> τ v|}_r [ ..., \pe : |Expr|^2 ]$, hence
+  \item $(|eval e ρ|,|eval e ρ|) ∈ \denot{|Expr -> ... -> τ v|}_r [ ..., ρ : (|Name :-> D (ByName T)|) \times (|Name :-> τ v|) ]$, hence
 \end{itemize}
 
 \begin{comment}

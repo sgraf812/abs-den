@@ -109,6 +109,9 @@
 %format :<->: = "\rightleftharpoons"
 %format (sing(a)) = "\{" a "\}"
 %format ι = "\varid{$\iota$}"
+%format AT = "\varid{$\widehat{T}$}"
+%format AV = "\varid{$\widehat{V}$}"
+%format ADict = "\widehat{\varid{Dict}}"
 
 %%format ~ = "\,\sim\,"
 %%format bang = "!"
