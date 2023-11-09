@@ -740,13 +740,36 @@ Let us abbreviate |Dict = (Trace (ByName T), Domain (D (ByName T)), HasBind (D (
 and |ADict = (Trace AT, Domain AT AV, HasBind AT AV)|, respectively.
 
 What is the free theorem of |θ := forall τ v. (Trace τ, Domain (τ v), HasBind (τ v)) => Expr -> (Name :-> τ v) -> τ v|?
-We have
+We have, for some $\mathcal{T}(X) ⊆ (|T| \times |aτ|), \mathcal{V} ⊆ (|Value (ByName T)| \times |av|), \mathcal{D} ⊆ (|Dict| \times |ADict|), \mathcal{E} ⊆ (|Name :-> D (ByName T)| \times |Name :-> uτ uv|)$
+that we will characterise in a second,
 \begin{itemize}
   \item $(|eval|,|eval|) ∈ \denot{θ}_r []$, hence, by $\forall$s,
-  \item $(|eval _ _ :: D (ByName T)|,|eval :: AT AV|) ∈ \denot{|Expr -> ... -> τ v|}_r [τ : \{ (|ByName T|, |AT|) \}, v : \{ (|Value (ByNeed T)|, |AV|) \}, ds : \{ (|Dict|, |ADict|) \} ]$, hence
-  \item $(|eval e|,|eval e|) ∈ \denot{|Expr -> ... -> τ v|}_r [ ..., \pe : |Expr|^2 ]$, hence
-  \item $(|eval e ρ|,|eval e ρ|) ∈ \denot{|Expr -> ... -> τ v|}_r [ ..., ρ : (|Name :-> D (ByName T)|) \times (|Name :-> τ v|) ]$, hence
+  \item $(|eval _ _ :: D (ByName T)|,|eval :: AT AV|) ∈ \denot{|Expr -> ... -> τ v|}_r [τ : \mathcal{T}, v : \mathcal{V}, ds : \mathcal{D} ]$, hence
+  \item $(|eval e|,|eval e|) ∈ \denot{|(Name :-> τ v) -> τ v|}_r [ ..., \pe : \{ (\pe, \pe) \mid \pe ∈ |Expr| \} ]$, hence
+  \item $(|eval e ρ|,|eval e ρ|) ∈ \mathcal{D} \triangleq \denot{|τ v|}_r [ ..., ρ : \mathcal{E} ]$
 \end{itemize}
+We \emph{want} that $\mathcal{D} ⊆ \{ (|τ|, |uτ|) \mid |α (sing τ) ⊑ uτ| \}$, because then
+the $\mathcal{D}$ implies the soundness property.
+On the other hand, $\mathcal{T}$ is defined as
+\[\begin{array}{ll}
+  & \mathcal{D}
+= & \denot{|τ v|}_r [...]
+= & (\denot{|τ|}_r [...])(\denot{|v|}_r [...])
+= & (\denot{|τ|}_r [...])(\mathcal{V})
+= & \mathcal{T}(\mathcal{V})
+\end{array}\]
+so we can understand our correctness criterion in terms of one of
+$\mathcal{T}(X)$ and $\mathcal{V}$.
+TODO
+
+Likewise, we must clarify our assumption on environments |ρ| expressed in
+$\mathcal{E}$, so that both |eval e ρ| on the left and |eval e (α `mapMap` sing
+`mapMap` ρ)| on the right are an instance. Thus, we require
+\[
+  \mathcal{E} \triangleq \{ (|ρ|,|ρ'|) \mid (|α `mapMap` sing `mapMap` ρ|) ⊑ |ρ'| \} = [[:->]]_r(...)(Id_|Name|)(\mathcal{T}(\mathcal{V}))
+\]
+
+What about $\mathcal{D}$?
 
 \begin{comment}
 \begin{spec}
