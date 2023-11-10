@@ -188,8 +188,9 @@ choice of |Event| suggests a spectrum of intensionality, with |data Event =
 Unit| corresponding to the ``delay monad'' popularised by \citet{Capretta:05} on
 the more abstract end of the spectrum and arbitrary syntactic detail attached to
 each of |Event|'s constructors at the other end of the spectrum.
-If our language had facilities for input/output we could have started from a
-more elaborate construction such as interaction trees~\citep{interaction-trees}.
+If our language had facilities for input/output and more general side-effects,
+we could have started from a more elaborate construction such as (guarded)
+interaction trees~\citep{interaction-trees,gi-trees}.
 
 The coinductive nature of |T|'s definition in Haskell is crucial to our
 approach because diverging traces can be expressed as an infinite, productive
