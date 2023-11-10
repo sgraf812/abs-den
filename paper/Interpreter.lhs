@@ -260,7 +260,7 @@ class HasBind d where
   \label{fig:trace-classes}
 %if style /= newcode
 \begin{code}
-instance Trace T where
+instance Trace (T v) where
   step = Step
 
 instance Domain D where
@@ -278,7 +278,7 @@ instance HasBind D where
 instance Trace (T v) where
   step = Step
 
-instance (Monad τ, Trace (D τ)) => Domain (D τ) where
+instance Monad τ => Domain (D τ) where
   stuck = return Stuck
   fun {-" \iffalse "-}_{-" \fi "-} f = return (Fun f)
   con {-" \iffalse "-}_{-" \fi "-} k ds = return (Con k ds)
@@ -412,7 +412,7 @@ $\perform{eval (read "let zero = Z() in zero zero") emp :: D (ByName T)}$
 \begin{spec}
 data ByName τ v = ByName (τ v)
 instance Monad τ => Monad (ByName τ) where ...
-instance Trace τ => Trace (ByName τ) where ...
+instance Trace (τ v) => Trace (ByName τ v) where ...
 instance HasBind (D (ByName τ)) where ...
 \end{spec}
 %if style == newcode
@@ -438,18 +438,18 @@ data ByNeed τ v = ByNeed (StateT (Heap (ByNeed τ)) τ v)
 runByNeed :: ByNeed τ a -> τ (a, Heap (ByNeed τ))
 instance Monad τ => Monad (ByNeed τ) where ...
 
-instance Trace τ => Trace (ByNeed τ) where
+instance Trace (τ v) => Trace (ByNeed τ v) where
   step e (ByNeed (StateT m)) = ByNeed $ StateT $ \μ -> step e (m μ)
 
 fetch :: Monad τ => Addr -> D (ByNeed τ)
 fetch a = ByNeed get >>= \μ -> μ ! a
 
-memo :: Trace τ => Addr -> D (ByNeed τ) -> D (ByNeed τ)
+memo :: forall τ. (Monad τ, forall v. Trace (τ v)) => Addr -> D (ByNeed τ) -> D (ByNeed τ)
 memo a d = d >>= ByNeed . StateT . upd
-  where  upd Stuck  μ = return (Stuck, μ)
-         upd v      μ = step Update (return (v, ext μ a (memo a (return v))))
+  where upd Stuck  μ = return (Stuck :: Value (ByNeed τ), μ)
+        upd v      μ = step Update (return (v, ext μ a (memo a (return v))))
 
-instance Trace τ => HasBind (D (ByNeed τ)) where
+instance (Monad τ, forall v. Trace (τ v)) => HasBind (D (ByNeed τ)) where
   bind rhs body = do  a <- nextFree <$> ByNeed get
                       ByNeed $ modify (\μ -> ext μ a (memo a (rhs (fetch a))))
                       body (fetch a)
@@ -501,7 +501,7 @@ Thus we parameterise |D| and |Value| over the particular trace type |T|:
 \begin{spec}
 type D τ = τ (Value τ)
 data Value τ = Stuck | Fun (D τ -> D τ) | Con Tag [D τ]
-instance Trace τ => Domain (D τ) where ...
+instance Trace (D τ) => Domain (D τ) where ...
 \end{spec}
 
 \noindent
@@ -569,7 +569,7 @@ instance MonadFix T where
 data Event = ... | Let0
 data ByValue τ v = ByValue { unByValue :: τ v }
 
-instance (Trace τ, MonadFix τ) => HasBind (D (ByValue τ)) where
+instance (Trace (D (ByValue τ)), MonadFix τ) => HasBind (D (ByValue τ)) where
   bind rhs body = step Let0 (ByValue (mfix (unByValue . rhs . return))) >>= body . return
 \end{spec}
 %if style == newcode
@@ -595,9 +595,9 @@ instance (Trace (D (ByValue τ)), MonadFix τ) => HasBind (D (ByValue τ)) where
 \begin{figure}
 \begin{spec}
 data ByVInit τ v = ByVInit (StateT (Heap (ByVInit τ)) τ v)
-runByVInit :: ByVInit τ a -> τ a; fetch :: Monad τ => Addr -> D (ByVInit τ)
+runByVInit :: Monad τ => ByVInit τ a -> τ a; fetch :: Monad τ => Addr -> D (ByVInit τ)
 memo :: forall τ. (Monad τ, forall v. Trace (τ v)) => Addr -> D (ByVInit τ) -> D (ByVInit τ)
-instance Trace τ => HasBind (D (ByVInit τ)) where
+instance (Monad τ, forall v. Trace (τ v)) => HasBind (D (ByVInit τ)) where
   bind rhs body = do  a <- nextFree <$> ByVInit get
                       ByVInit $ modify (\μ -> ext μ a stuck)
                       step Let0 (memo' a (rhs (fetch' a))) >>= body . return
@@ -620,7 +620,6 @@ memo' :: forall τ. (Monad τ, forall v. Trace (τ v)) => Addr -> D (ByVInit τ)
 memo' a d = d >>= ByVInit . StateT . upd
   where upd Stuck  μ = return (Stuck :: Value (ByVInit τ), μ)
         upd v      μ = return (v, ext μ a (return v))
-
 
 instance (Monad τ, forall v. Trace (τ v)) => HasBind (D (ByVInit τ)) where
   bind rhs body = do  a <- nextFree <$> ByVInit get
@@ -699,7 +698,7 @@ instance Monad τ => Alternative (ParT τ) where
 newtype Clairvoyant τ a = Clairvoyant (ParT τ a)
 runClair :: D (Clairvoyant T) -> T (Value (Clairvoyant T))
 
-instance (MonadFix τ, Trace τ) => HasBind (D (Clairvoyant τ)) where
+instance (MonadFix τ, forall v. Trace (τ v)) => HasBind (D (Clairvoyant τ)) where
   bind rhs body = Clairvoyant (skip <|> let') >>= body
     where  skip = return (Clairvoyant empty)
            let' = fmap return $ step Let0 $ ... ^^ mfix ... rhs . return ...
