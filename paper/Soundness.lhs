@@ -721,18 +721,75 @@ fromTrace inner@(absI :<->: _) = fromEmbedding ι where
   absF :<->: concF = fromMono inner inner
   ι (Ret Stuck)       = stuck
   ι (Ret (Fun f))     = fun {-"\iffalse"-}""{-"\fi"-} (absF (powMap f))
-  ι (Ret (Con k ds))  = con {-"\iffalse"-}""{-"\fi"-} k (map (absI . sing) ds)
+  ι (Ret (Con k ds))  = con {-"\iffalse"-}""{-"\fi"-} k (map (absI . set) ds)
   ι (Step e τ)        = step e (ι τ)
 
 byName :: (Trace τ, Domain (τ v), Lat (τ v)) => Galois (Pow (D (ByName T))) (τ v)
 byName = (abs . powMap unByName) :<->: (powMap ByName . conc) where abs :<->: conc = fromTrace byName
 
-sing = P . Set.singleton
+set = P . Set.singleton
 
 soundName  ::  forall τ v. (Trace τ, Domain (τ v), HasBind (τ v), Lat (τ v))
            =>  Expr -> (Name :-> D (ByName T)) -> Bool
-soundName e ρ = α (sing (eval e ρ)) ⊑ (eval e (α `mapMap` sing `mapMap` ρ) :: τ v) where α :<->: _ = byName
+soundName e ρ = α (set (eval e ρ)) ⊑ (eval e (α `mapMap` set `mapMap` ρ) :: τ v) where α :<->: _ = byName
 \end{code}
+
+Assumptions, all derived from |ι . op ⊑ hat op . ι| (is this correct? Sometimes this is definitional, \eg, |ι . step ε = ι . Step ε = step ε . ι|):
+\begin{itemize}
+  \item |step ε (hat d)| monotone in |hat d| for all $ε$
+  \item |fun f| monotone in |f|
+  \item |d >>= k| monotone in |d| and |k| (in the sense that |k v1 ⊑ k v2| when |v1 ⊑ v2|).
+\end{itemize}
+What about |ι (d >>= f) ⊑ ι d >>= (α . powMap f . γ)|?
+\begin{itemize}
+  \item When |d = Step ε d'|, then |ι (d >>= f) = step ε (ι (d' >>= f)) ⊑ (step
+        ε (ι d')) >>= _ = ι d >>= _|. |step ε d >>= f ⊑ step ε (d >>= f)| seems like
+        an important assumption/rule! Maybe even equality?
+  \item Otherwise, |d = Ret v = return v|, so Monad laws dictate
+        |ι (d >>= f) = ι (f v)|. By cases on |v|, demonstrating the |Fun g| case:
+        |ι (f (Fun g)) ⊑ fun g >>= (α . powMap f . γ)| which is the same as
+        |f (Fun g) ∈ γ (fun g >>= (α . powMap f . γ))|.
+\end{itemize}
+We now prove |soundName| directly, by induction on |e|. We abbreviate |ι := α . set|.
+\begin{itemize}
+  \item \textbf{Case} |Var x|:
+    In the stuck case, we require |ι (Ret Stuck)) = stuck ⊑ stuck|. Easy.
+    Otherwise, |x ∈ dom ρ| and |ι (ρ x)) ⊑ ι (ρ x))| by reflexivity.
+  \item \textbf{Case} |Lam x body|:
+    The goal is to show |ι (Ret (Fun f))) = fun (absF (powMap f)) ⊑ fun (hat f)|, for the suitable
+    |f| and |hat f| (|hat f| is just |f| but with |α `mapMap` set `mapMap` ρ|
+    instead of |ρ|, leading to different type class instantiations).
+    \begin{DispWithArrows*}
+      \mathit{IH} ={}       & \forall |d|.\ |ι (eval body (ext ρ x d))| ⊑  |eval body (ι `mapMap` (ext ρ x d))| \Arrow{Intro |hat d ⊒ ι d)|} \\
+      \Longleftrightarrow{} & \forall |hat d|,|d|.\ |ι d ⊑ hat d| \Longrightarrow |ι (eval body (ext ρ x d))| ⊑  |eval body (ext ((ι `mapMap` ρ)) x (hat d))| \Arrow{|step App2 (hat d)| monotone in |hat d|} \\
+      \Longleftrightarrow{} & \forall |hat d|,|d|.\ |ι d ⊑ hat d| \Longrightarrow |ι (f d)| ⊑  |hat f (hat d)| \Arrow{Least upper bound} \\
+      \Longleftrightarrow{} & \forall |hat d|.\ \Lub |(set (ι (f d) || ι d ⊑ hat d))| ⊑  |hat f (hat d)| \Arrow{Defn of |absF|, |ι = α . set|} \\
+      \Longleftrightarrow{} & \forall |hat d|.\ |(α . powMap f . γ) (hat d) ⊑  hat f (hat d)| \Arrow{extensionality} \\
+      \Longleftrightarrow{} & |α . powMap f . γ ⊑ hat f| \Arrow{monotonicity of |fun|} \\
+      \Longrightarrow{}     & |fun (α . powMap f . γ) ⊑ fun (hat f)| \Arrow{By definition of |f|, |hat f|} \\
+      \Longleftrightarrow{} & |ι (eval (Lam x body) ρ)) ⊑ eval (Lam x body) (ι `mapMap` ρ)|
+    \end{DispWithArrows*}
+
+  \item \textbf{Case} |App e x|:
+    The stuck case is the same as for |Var x|.
+    Otherwise, |x ∈ dom ρ| and because |step App1 (hat d)| is monotone in
+    |hat d| per assumption, it suffices to show that
+    |ι (eval e ρ >>= f) ⊑ eval e (ι `mapMap` ρ) >>= hat f|, for the suitable
+    |f| and |hat f|.
+    \begin{DispWithArrows*}
+      \mathit{IH} ={}       & \forall |d|.\ |ι (eval body (ext ρ x d))| ⊑  |eval body (ι `mapMap` (ext ρ x d))| \Arrow{Intro |hat d ⊒ ι d)|} \\
+      \Longleftrightarrow{} & \forall |hat d|,|d|.\ |ι d ⊑ hat d| \Longrightarrow |ι (eval body (ext ρ x d))| ⊑  |eval body (ext ((ι `mapMap` ρ)) x (hat d))| \Arrow{|step App2 (hat d)| monotone in |hat d|} \\
+      \Longleftrightarrow{} & \forall |hat d|,|d|.\ |ι d ⊑ hat d| \Longrightarrow |ι (f d)| ⊑  |hat f (hat d)| \Arrow{Least upper bound} \\
+      \Longleftrightarrow{} & \forall |hat d|.\ \Lub |(set (ι (f d) || ι d ⊑ hat d))| ⊑  |hat f (hat d)| \Arrow{Defn of |absF|, |ι = α . set|} \\
+      \Longleftrightarrow{} & \forall |hat d|.\ |(α . powMap f . γ) (hat d) ⊑  hat f (hat d)| \Arrow{extensionality} \\
+      \Longleftrightarrow{} & |α . powMap f . γ ⊑ hat f| \Arrow{monotonicity of |fun|} \\
+      \Longrightarrow{}     & |fun (α . powMap f . γ) ⊑ fun (hat f)| \Arrow{By definition of |f|, |hat f|} \\
+      \Longleftrightarrow{} & |ι (eval (Lam x body) ρ)) ⊑ eval (Lam x body) (ι `mapMap` ρ)|
+    \end{DispWithArrows*}
+
+\end{itemize}
+
+\subsubsection{Meddling with Parametricity}
 
 Let us fix |AT|, |AValue| such that there are instance |Trace AT|, |Domain (AT
 AV)|, |HasBind (AT AV)| and |Lat (AT AV)|.
@@ -740,33 +797,28 @@ Let us abbreviate |Dict = (Trace (ByName T), Domain (D (ByName T)), HasBind (D (
 and |ADict = (Trace AT, Domain AT AV, HasBind AT AV)|, respectively.
 
 What is the free theorem of |θ := forall τ v. (Trace τ, Domain (τ v), HasBind (τ v)) => Expr -> (Name :-> τ v) -> τ v|?
-We have, for some $\mathcal{T}(X) ⊆ (|T| \times |aτ|), \mathcal{V} ⊆ (|Value (ByName T)| \times |av|), \mathcal{D} ⊆ (|Dict| \times |ADict|), \mathcal{E} ⊆ (|Name :-> D (ByName T)| \times |Name :-> uτ uv|)$
+We have, for some $\mathcal{T}(X) ⊆ (|T| \times |aτ|), \mathcal{V} ⊆ (|Value (ByName T)| \times |av|), \mathcal{D} ⊆ (|Dict| \times |ADict|), \mathcal{E} ⊆ (|Name :-> D (ByName T)| \times |Name :-> aτ av|)$
 that we will characterise in a second,
 \begin{itemize}
   \item $(|eval|,|eval|) ∈ \denot{θ}_r []$, hence, by $\forall$s,
   \item $(|eval _ _ :: D (ByName T)|,|eval :: AT AV|) ∈ \denot{|Expr -> ... -> τ v|}_r [τ : \mathcal{T}, v : \mathcal{V}, ds : \mathcal{D} ]$, hence
-  \item $(|eval e|,|eval e|) ∈ \denot{|(Name :-> τ v) -> τ v|}_r [ ..., \pe : \{ (\pe, \pe) \mid \pe ∈ |Expr| \} ]$, hence
-  \item $(|eval e ρ|,|eval e ρ|) ∈ \mathcal{D} \triangleq \denot{|τ v|}_r [ ..., ρ : \mathcal{E} ]$
+  \item $(|eval e|,|eval e|) ∈ \denot{|(Name :-> τ v) -> τ v|}_r [ ..., \pe : Id_{|Expr|} ]$, hence
+  \item $(|eval e ρ|,|eval e ρ|) ∈ \denot{|τ v|}_r [ τ : \mathcal{T}, v : \mathcal{V}, ds : \mathcal{D}, \pe : Id_{|Expr|}, ρ : \mathcal{E} ]$, hence
+  \item $(|eval e ρ|,|eval e ρ|) ∈ \mathcal{T}(\mathcal{V})$
 \end{itemize}
-We \emph{want} that $\mathcal{D} ⊆ \{ (|τ|, |uτ|) \mid |α (sing τ) ⊑ uτ| \}$, because then
-the $\mathcal{D}$ implies the soundness property.
-On the other hand, $\mathcal{T}$ is defined as
-\[\begin{array}{ll}
-  & \mathcal{D}
-= & \denot{|τ v|}_r [...]
-= & (\denot{|τ|}_r [...])(\denot{|v|}_r [...])
-= & (\denot{|τ|}_r [...])(\mathcal{V})
-= & \mathcal{T}(\mathcal{V})
-\end{array}\]
-so we can understand our correctness criterion in terms of one of
-$\mathcal{T}(X)$ and $\mathcal{V}$.
+We \emph{want} that
+$\mathcal{T}(\mathcal{V},\mathcal{D}) ⊆ \{ (|d|, |hat d|) \mid |α (set d) ⊑ hat d| \}$, because
+then $\mathcal{T}(\mathcal{V})$ implies the soundness property.
+So set $\mathcal{T}(X) \triangleq \{ (|d|, |hat d|) \mid |α (set d) ⊑ hat d| \}$
+\sg{What $α$? I'm at a loss. This needs to hypothesise a |Dict| such that
+|byName| is applicable! My head hurts.}
 TODO
 
 Likewise, we must clarify our assumption on environments |ρ| expressed in
-$\mathcal{E}$, so that both |eval e ρ| on the left and |eval e (α `mapMap` sing
+$\mathcal{E}$, so that both |eval e ρ| on the left and |eval e (α `mapMap` set
 `mapMap` ρ)| on the right are an instance. Thus, we require
 \[
-  \mathcal{E} \triangleq \{ (|ρ|,|ρ'|) \mid (|α `mapMap` sing `mapMap` ρ|) ⊑ |ρ'| \} = [[:->]]_r(...)(Id_|Name|)(\mathcal{T}(\mathcal{V}))
+  \mathcal{E} \triangleq \{ (|ρ|,|ρ'|) \mid (|α `mapMap` set `mapMap` ρ|) ⊑ |ρ'| \} = [[|:->|]]_r(...)(Id_{|Name|})(\mathcal{T}(\mathcal{V}))
 \]
 
 What about $\mathcal{D}$?
