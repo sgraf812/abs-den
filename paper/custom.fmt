@@ -28,6 +28,7 @@
 %format φ2 = "\varid{\ensuremath{\varphi_2}}"
 %format μ = "\varid{\ensuremath{\mu}}"
 %format α = "\varid{\ensuremath{\alpha}}"
+%format γ = "\varid{\ensuremath{\gamma}}"
 %format θ = "\varid{\ensuremath{\theta}}"
 %format θ1 = "\varid{\ensuremath{\theta_1}}"
 %format θ2 = "\varid{\ensuremath{\theta_2}}"

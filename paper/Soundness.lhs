@@ -703,6 +703,7 @@ infixr 9 `mapMap`
 \end{code}
 %endif
 
+
 \newcommand{\embAbsImpl}{| ι a || a <- as |}
 \newcommand{\embConcImpl}{| a || a <- as, ι a ⊑ b |}
 \begin{code}
@@ -733,6 +734,73 @@ soundName  ::  forall d. (Trace d, Domain d, HasBind d, Lat d)
            =>  Expr -> (Name :-> D (ByName T)) -> Bool
 soundName e ρ = α (set (eval e ρ)) ⊑ (eval e (α `mapMap` set `mapMap` ρ) :: d) where α :<->: _ = byName
 \end{code}
+
+Let |τ1 v1| and |τ2 v2| be two domains with a lattice structure, such that
+both have instances for the constraint tuple |C d := (Trace d, Domain d, HasBind d, Lat d)|
+and let |α :<->: γ :: Galois (τ1 v1) (τ2 v2)| be a Galois connection.
+%We also need |αv :<->: γv :: Galois v1 v2|.
+
+When
+\begin{itemize}
+  \item |α . step ε ⊑ step ε . α|
+  \item |α stuck ⊑ stuck|, |α . fun ⊑ fun . α|, |α . apply ⊑ apply . α|
+\end{itemize}
+, then |α (eval e ρ) ⊑ eval e (α `mapMap` ρ)|.
+
+By induction on |e|.
+\begin{itemize}
+  \item \textbf{Case} |Var x|:
+    In the stuck case, we require |α stuck ⊑ stuck|, whcih follows by assumption.
+    Otherwise, |x ∈ dom ρ| and |α (ρ x) ⊑ α (ρ x)| by reflexivity.
+  \item \textbf{Case} |Lam x body|:
+    The goal is to show |α (fun f) ⊑ fun (hat f)|, for the suitable
+    |f| and |hat f| (|hat f| is just |f| but with |α `mapMap` ρ|
+    instead of |ρ|, leading to different type class instantiations).
+    \begin{DispWithArrows*}
+      \mathit{IH} ={}       & \forall |d1|.\ |α (eval body (ext ρ x d1))| ⊑  |eval body (α `mapMap` (ext ρ x d1))| \Arrow{Rearrange} \\
+      \Longleftrightarrow{} & \forall |d1|.\ |α (eval body (ext ρ x d1))| ⊑  |eval body (ext ((α `mapMap` ρ)) x (α d1))| \Arrow{|α . step ε ⊑ step ε . α|} \\
+      \Longleftrightarrow{} & \forall |d1|.\ |α (f d1)| ⊑  |hat f (α d1)| \Arrow{Extensionality} \\
+      \Longleftrightarrow{} & |α . f| ⊑  |hat f . α| \Arrow{Galois} \\
+      \Longleftrightarrow{} & |α . f . γ ⊑ hat f| \Arrow{monotonicity of |fun|} \\
+      \Longrightarrow{}     & |fun (α . f . γ) ⊑ fun (hat f)| \Arrow{|α . fun ⊑ fun . α|} \\
+      \Longrightarrow{}     & |α (fun f) ⊑ fun (hat f)| \Arrow{By definition of |f|, |hat f|} \\
+      \Longleftrightarrow{} & |α (eval (Lam x body) ρ)) ⊑ eval (Lam x body) (α `mapMap` ρ)|
+    \end{DispWithArrows*}
+
+  \item \textbf{Case} |App e x|:
+    The stuck case is the same as for |Var x|.
+    Otherwise, |x ∈ dom ρ| and we can show
+    \begin{DispWithArrows*}
+      \mathit{IH} ={}       & |α (eval e ρ) ⊑ eval e (α `mapMap` ρ)| \Arrow{|α . apply ⊑ apply . α|} \\
+      \Longrightarrow{}     & |α (apply (eval e ρ) (ρ ! x)) ⊑ apply (eval e (α `mapMap` ρ)) (α (ρ ! x))| \Arrow{|α . step ε ⊑ step ε . α|} \\
+      \Longrightarrow{}     & |α (step App1 (apply (eval e ρ) (ρ ! x))) ⊑ step App1 (apply (eval e (α `mapMap` ρ)) (α (ρ ! x)))| \Arrow{By definition of |eval|} \\
+      \Longleftrightarrow{} & |α (eval (App e x) ρ)) ⊑ eval (App e x) (α `mapMap` ρ)|
+    \end{DispWithArrows*}
+
+  \item \textbf{Case} |Let x e1 e2|:
+    We can show, for suitable definitions of |rhs|,|body|,|hat rhs|,|hat body|,
+    \begin{DispWithArrows*}
+      \mathit{IH} \Longrightarrow{} & |α rhs ⊑ hat rhs, α body ⊑ hat body| \Arrow{Monotonicity} \\
+      \Longrightarrow{}             & |bind (α rhs) (α body) ⊑ bind (hat rhs) (hat body)| \Arrow{|α . bind ⊑ bind . α|} \\
+      \Longrightarrow{}             & |α (bind rhs body) ⊑ bind (hat rhs) (hat body)| \Arrow{By definition of |eval|} \\
+      \Longleftrightarrow{}         & |α (eval (Let x e1 e2) ρ)) ⊑ eval (Let x e1 e2) (α `mapMap` ρ)|
+    \end{DispWithArrows*}
+    Where the step from the induction hypothesis to |α rhs ⊑ hat rhs, α body ⊑
+    hat body| is similar to previous arguments, for example in the lambda case
+    for |α f| and |hat f|.
+
+  \item \textbf{Case} |ConApp k xs|:
+    The stuck case is the same as for |Var x|.
+    Otherwise, |x ∈ dom ρ| and we can show
+    \begin{DispWithArrows*}
+      \mathit{IH} ={}       & |α (eval e ρ) ⊑ eval e (α `mapMap` ρ)| \Arrow{|α . apply ⊑ apply . α|} \\
+      \Longrightarrow{}     & |α (apply (eval e ρ) (ρ ! x)) ⊑ apply (eval e (α `mapMap` ρ)) (α (ρ ! x))| \Arrow{|α . step ε ⊑ step ε . α|} \\
+      \Longrightarrow{}     & |α (step App1 (apply (eval e ρ) (ρ ! x))) ⊑ step App1 (apply (eval e (α `mapMap` ρ)) (α (ρ ! x)))| \Arrow{By definition of |eval|} \\
+      \Longleftrightarrow{} & |α (eval (App e x) ρ)) ⊑ eval (App e x) (α `mapMap` ρ)|
+    \end{DispWithArrows*}
+\end{itemize}
+
+
 
 Assumptions, all derived from |ι . op ⊑ hat op . ι| (is this correct? Sometimes this is definitional, \eg, |ι . step ε = ι . Step ε = step ε . ι|):
 \begin{itemize}
