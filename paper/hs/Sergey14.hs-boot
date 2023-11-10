@@ -19,7 +19,7 @@ data DmdVal
 instance Functor DmdT
 instance Applicative DmdT
 instance Monad DmdT
-instance Trace DmdT
+instance Trace (DmdT v)
 instance Domain DmdD
 instance HasBind DmdD
 

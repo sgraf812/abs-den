@@ -8,6 +8,7 @@
 {-# LANGUAGE PartialTypeSignatures #-}
 {-# LANGUAGE LambdaCase #-}
 {-# LANGUAGE QuantifiedConstraints #-}
+{-# LANGUAGE UndecidableInstances #-}
 
 module Interpreter where
 
@@ -209,8 +210,8 @@ of any syntax.
 \begin{figure}
 \begin{minipage}{0.55\textwidth}
 \begin{code}
-eval  ::  (Trace τ, Domain (τ v), HasBind (τ v))
-      =>  Expr -> (Name :-> τ v) -> τ v
+eval  ::  (Trace d, Domain d, HasBind d)
+      =>  Expr -> (Name :-> d) -> d
 eval e ρ = case e of
   Var x  | x ∈ dom ρ  -> ρ ! x
          | otherwise  -> stuck
@@ -242,8 +243,8 @@ eval e ρ = case e of
 \end{minipage}%
 \begin{minipage}{0.44\textwidth}
 \begin{code}
-class Monad τ => Trace τ where
-  step :: Event -> τ v -> τ v
+class Trace τ where
+  step :: Event -> τ -> τ
 
 class Domain d where
   stuck :: d
@@ -274,10 +275,10 @@ instance HasBind D where
 \end{code}
 %else
 \begin{code}
-instance Trace T where
+instance Trace (T v) where
   step = Step
 
-instance Trace τ => Domain (D τ) where
+instance (Monad τ, Trace (D τ)) => Domain (D τ) where
   stuck = return Stuck
   fun {-" \iffalse "-}_{-" \fi "-} f = return (Fun f)
   con {-" \iffalse "-}_{-" \fi "-} k ds = return (Con k ds)
@@ -419,7 +420,7 @@ instance HasBind (D (ByName τ)) where ...
 newtype ByName τ v = ByName { unByName :: (τ v) }
   deriving newtype (Functor,Applicative,Monad)
 
-instance Trace τ => Trace (ByName τ) where
+instance Trace (τ v) => Trace (ByName τ v) where
   step e = ByName . step e . unByName
 
 instance HasBind (D (ByName τ)) where
@@ -467,18 +468,18 @@ newtype ByNeed τ v = ByNeed (StateT (Heap (ByNeed τ)) τ v)
 runByNeed :: ByNeed τ a -> τ (a, Heap (ByNeed τ))
 runByNeed (ByNeed (StateT m)) = m emp
 
-instance Trace τ => Trace (ByNeed τ) where
+instance (forall v. Trace (τ v)) => Trace (ByNeed τ v) where
   step e (ByNeed (StateT m)) = ByNeed $ StateT $ \μ -> step e (m μ)
 
 fetch :: Monad τ => Addr -> D (ByNeed τ)
 fetch a = ByNeed get >>= \μ -> μ ! a
 
-memo :: Trace τ => Addr -> D (ByNeed τ) -> D (ByNeed τ)
+memo :: forall τ. (Monad τ, forall v. Trace (τ v)) => Addr -> D (ByNeed τ) -> D (ByNeed τ)
 memo a d = d >>= ByNeed . StateT . upd
-  where upd Stuck  μ = return (Stuck, μ)
+  where upd Stuck  μ = return (Stuck :: Value (ByNeed τ), μ)
         upd v      μ = step Update (return (v, ext μ a (memo a (return v))))
 
-instance Trace τ => HasBind (D (ByNeed τ)) where
+instance (Monad τ, forall v. Trace (τ v)) => HasBind (D (ByNeed τ)) where
   bind rhs body = do  a <- nextFree <$> ByNeed get
                       ByNeed $ modify (\μ -> ext μ a (memo a (rhs (fetch a))))
                       body (fetch a)
@@ -580,10 +581,10 @@ instance MonadFix T where
 
 newtype ByValue τ v = ByValue { unByValue :: τ v }
   deriving (Functor,Applicative,Monad)
-instance Trace τ => Trace (ByValue τ) where
+instance Trace (τ v) => Trace (ByValue τ v) where
   step e (ByValue τ) = ByValue (step e τ)
 
-instance (Trace τ, MonadFix τ) => HasBind (D (ByValue τ)) where
+instance (Trace (D (ByValue τ)), MonadFix τ) => HasBind (D (ByValue τ)) where
   bind rhs body = step Let0 (ByValue (mfix (unByValue . rhs . return))) >>= body . return
 \end{code}
 %endif
@@ -595,7 +596,7 @@ instance (Trace τ, MonadFix τ) => HasBind (D (ByValue τ)) where
 \begin{spec}
 data ByVInit τ v = ByVInit (StateT (Heap (ByVInit τ)) τ v)
 runByVInit :: ByVInit τ a -> τ a; fetch :: Monad τ => Addr -> D (ByVInit τ)
-memo :: Monad τ => Addr -> D (ByVInit τ) -> D (ByVInit τ)
+memo :: forall τ. (Monad τ, forall v. Trace (τ v)) => Addr -> D (ByVInit τ) -> D (ByVInit τ)
 instance Trace τ => HasBind (D (ByVInit τ)) where
   bind rhs body = do  a <- nextFree <$> ByVInit get
                       ByVInit $ modify (\μ -> ext μ a stuck)
@@ -606,20 +607,22 @@ instance Trace τ => HasBind (D (ByVInit τ)) where
 newtype ByVInit τ v = ByVInit (StateT (Heap (ByVInit τ)) τ v)
   deriving (Functor,Applicative,Monad)
 
-runByVInit :: Trace τ => ByVInit τ a -> τ a
+runByVInit :: Monad τ => ByVInit τ a -> τ a
 runByVInit (ByVInit m) = evalStateT m emp
 
-instance Trace τ => Trace (ByVInit τ) where
+instance (forall v. Trace (τ v)) => Trace (ByVInit τ v) where
   step e (ByVInit (StateT m)) = ByVInit $ StateT $ \μ -> step e (m μ)
 
 fetch' :: Monad τ => Addr -> D (ByVInit τ)
 fetch' a = ByVInit get >>= \μ -> μ ! a
 
-memo' :: Monad τ => Addr -> D (ByVInit τ) -> D (ByVInit τ)
+memo' :: forall τ. (Monad τ, forall v. Trace (τ v)) => Addr -> D (ByVInit τ) -> D (ByVInit τ)
 memo' a d = d >>= ByVInit . StateT . upd
-  where upd v μ = return (v, ext μ a (return v))
+  where upd Stuck  μ = return (Stuck :: Value (ByVInit τ), μ)
+        upd v      μ = return (v, ext μ a (return v))
 
-instance Trace τ => HasBind (D (ByVInit τ)) where
+
+instance (Monad τ, forall v. Trace (τ v)) => HasBind (D (ByVInit τ)) where
   bind rhs body = do  a <- nextFree <$> ByVInit get
                       ByVInit $ modify (\μ -> ext μ a stuck)
                       step Let0 (memo' a (rhs (fetch' a))) >>= body . return
@@ -724,7 +727,7 @@ instance Monad τ => Alternative (ParT τ) where
 newtype Clairvoyant τ a = Clairvoyant { unClair :: ParT τ a }
   deriving newtype (Functor,Applicative,Monad)
 
-instance Trace τ => Trace (Clairvoyant τ) where
+instance (forall v. Trace (τ v)) => Trace (Clairvoyant τ v) where
   step e (Clairvoyant (ParT mforks)) = Clairvoyant $ ParT $ step e mforks
 
 leftT :: Monad τ => ParT τ a -> ParT τ a
@@ -743,7 +746,7 @@ parFix f = ParT $ mfix (unParT . f) >>= \case
     Single a -> pure (Single a)
     Fork _ _ -> pure (Fork (parFix (leftT . f)) (parFix (rightT . f)))
 
-instance (MonadFix τ, Trace τ) => HasBind (D (Clairvoyant τ)) where
+instance (MonadFix τ, forall v. Trace (τ v)) => HasBind (D (Clairvoyant τ)) where
   bind rhs body = Clairvoyant (skip <|> let') >>= body
     where
       skip = return (Clairvoyant empty)
@@ -827,7 +830,7 @@ typical for partial definitional interpreters:
 
 %if style == newcode
 \begin{code}
-instance Trace Identity where step _ = id
+instance Trace (Identity v) where step _ = id
 \end{code}
 %endif
 

@@ -55,7 +55,7 @@ data U = U0 | U1 | Uω; instance Lat U where {-" ... \iffalse "-}
 {-" \fi "-}
 data UT a = Uses (Name :-> U) a
 
-instance Trace UT where
+instance Trace (UT v) where
   step (Lookup x)  (Uses φ a)  = Uses (φ + ext emp x U1) a
   step _           τ           = τ
 \end{code}
@@ -227,7 +227,7 @@ data Cts a = Cts (StateT (Set Name,Subst) Maybe a)
 emitCt :: Constraint -> Cts ();                   freshTyVar :: Cts Type
 instantiatePolyTy :: PolyType -> Cts Type; ^^ ^^  generaliseTy :: Cts Type -> Cts PolyType
 
-instance Trace Cts where step _ = id
+instance Trace (Cts v) where step _ = id
 instance Domain (Cts PolyType) where {-" ... \iffalse "-}
   stuck = return (PT [] Wrong)
   fun {-" \iffalse "-}_{-" \fi "-} f = do
@@ -471,7 +471,7 @@ data CT a = CT (State Cache a); type CD = CT CValue
 
 runCFA :: CD -> CValue; updFunCache :: Label -> (CD -> CD) -> CT ()
 
-instance Trace CT where step _ = id
+instance Trace (CT v) where step _ = id
 
 instance Domain CD where
   fun ell f = do updFunCache ell f; return (P (Set.singleton ell))

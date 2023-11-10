@@ -132,7 +132,7 @@ as the concrete instances |D (ByName T)| and |D (ByNeed T)| from
 The full, type-checked development is available in the Supplement.
 \begin{itemize}
   \item We need to delay in |step|; thus its definition in |Trace| changes to
-    |step :: Event -> Later (τ v) -> τ v|.
+    |step :: Event -> Later d -> d|.
   \item
     All |D|s that will be passed to lambdas, put into the environment or
     stored in fields need to have the form |step (Lookup x) d| for some
@@ -716,7 +716,7 @@ fromEmbedding ι = abs :<->: conc where
 fromMono :: Galois a a' -> Galois b b' -> Galois (a -> b) (a' -> b')
 fromMono (absA :<->: concA) (absB :<->: concB) = (\f -> absB . f . concA) :<->: (\f -> concB . f . absA)
 
-fromTrace :: (Trace τ, Domain (τ v), Lat (τ v)) => Galois (Pow (D c)) (τ v) -> Galois (Pow (T (Value c))) (τ v)
+fromTrace :: (Trace d, Domain d, Lat d) => Galois (Pow (D c)) d -> Galois (Pow (T (Value c))) d
 fromTrace inner@(absI :<->: _) = fromEmbedding ι where
   absF :<->: concF = fromMono inner inner
   ι (Ret Stuck)       = stuck
@@ -724,14 +724,14 @@ fromTrace inner@(absI :<->: _) = fromEmbedding ι where
   ι (Ret (Con k ds))  = con {-"\iffalse"-}""{-"\fi"-} k (map (absI . set) ds)
   ι (Step e τ)        = step e (ι τ)
 
-byName :: (Trace τ, Domain (τ v), Lat (τ v)) => Galois (Pow (D (ByName T))) (τ v)
+byName :: (Trace d, Domain d, Lat d) => Galois (Pow (D (ByName T))) d
 byName = (abs . powMap unByName) :<->: (powMap ByName . conc) where abs :<->: conc = fromTrace byName
 
 set = P . Set.singleton
 
-soundName  ::  forall τ v. (Trace τ, Domain (τ v), HasBind (τ v), Lat (τ v))
+soundName  ::  forall d. (Trace d, Domain d, HasBind d, Lat d)
            =>  Expr -> (Name :-> D (ByName T)) -> Bool
-soundName e ρ = α (set (eval e ρ)) ⊑ (eval e (α `mapMap` set `mapMap` ρ) :: τ v) where α :<->: _ = byName
+soundName e ρ = α (set (eval e ρ)) ⊑ (eval e (α `mapMap` set `mapMap` ρ) :: d) where α :<->: _ = byName
 \end{code}
 
 Assumptions, all derived from |ι . op ⊑ hat op . ι| (is this correct? Sometimes this is definitional, \eg, |ι . step ε = ι . Step ε = step ε . ι|):
@@ -796,14 +796,14 @@ AV)|, |HasBind (AT AV)| and |Lat (AT AV)|.
 Let us abbreviate |Dict = (Trace (ByName T), Domain (D (ByName T)), HasBind (D (ByName T)))|
 and |ADict = (Trace AT, Domain AT AV, HasBind AT AV)|, respectively.
 
-What is the free theorem of |θ := forall τ v. (Trace τ, Domain (τ v), HasBind (τ v)) => Expr -> (Name :-> τ v) -> τ v|?
+What is the free theorem of |θ := forall d. (Trace d, Domain d, HasBind d) => Expr -> (Name :-> d) -> d|?
 We have, for some $\mathcal{T}(X) ⊆ (|T| \times |aτ|), \mathcal{V} ⊆ (|Value (ByName T)| \times |av|), \mathcal{D} ⊆ (|Dict| \times |ADict|), \mathcal{E} ⊆ (|Name :-> D (ByName T)| \times |Name :-> aτ av|)$
 that we will characterise in a second,
 \begin{itemize}
   \item $(|eval|,|eval|) ∈ \denot{θ}_r []$, hence, by $\forall$s,
-  \item $(|eval _ _ :: D (ByName T)|,|eval :: AT AV|) ∈ \denot{|Expr -> ... -> τ v|}_r [τ : \mathcal{T}, v : \mathcal{V}, ds : \mathcal{D} ]$, hence
-  \item $(|eval e|,|eval e|) ∈ \denot{|(Name :-> τ v) -> τ v|}_r [ ..., \pe : Id_{|Expr|} ]$, hence
-  \item $(|eval e ρ|,|eval e ρ|) ∈ \denot{|τ v|}_r [ τ : \mathcal{T}, v : \mathcal{V}, ds : \mathcal{D}, \pe : Id_{|Expr|}, ρ : \mathcal{E} ]$, hence
+  \item $(|eval _ _ :: D (ByName T)|,|eval :: AT AV|) ∈ \denot{|Expr -> ... -> d|}_r [τ : \mathcal{T}, v : \mathcal{V}, ds : \mathcal{D} ]$, hence
+  \item $(|eval e|,|eval e|) ∈ \denot{|(Name :-> d) -> d|}_r [ ..., \pe : Id_{|Expr|} ]$, hence
+  \item $(|eval e ρ|,|eval e ρ|) ∈ \denot{|d|}_r [ τ : \mathcal{T}, v : \mathcal{V}, ds : \mathcal{D}, \pe : Id_{|Expr|}, ρ : \mathcal{E} ]$, hence
   \item $(|eval e ρ|,|eval e ρ|) ∈ \mathcal{T}(\mathcal{V})$
 \end{itemize}
 We \emph{want} that
@@ -825,10 +825,10 @@ What about $\mathcal{D}$?
 
 \begin{comment}
 \begin{spec}
-fromHeap :: (Trace τ, Domain (τ v), Lat (τ v)) => Galois (Pow (D c)) (τ v) -> Galois (Pow (StateT (Addr :-> T (Value c)) T (Value c))) (StateT (Addr :-> τ v) τ v)
+fromHeap :: (Trace d, Domain d, Lat d) => Galois (Pow (D c)) d -> Galois (Pow (StateT (Addr :-> T (Value c)) T (Value c))) (StateT (Addr :-> d) d)
 fromHeap inner@(absI :<->: concI) = abs :<->: conc where
 
-byNeed :: (Trace τ, Domain (τ v), Lat (τ v)) => Galois (Pow (D (ByNeed T))) (StateT (Addr :-> τ v) τ v)
+byNeed :: (Trace d, Domain d, Lat d) => Galois (Pow (D (ByNeed T))) (StateT (Addr :-> d) d)
 byNeed = _
 \end{spec}
 
