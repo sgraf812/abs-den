@@ -8,6 +8,9 @@
 %format ^^ = " "
 %format ^^^ = "^"
 %format com = "--"
+%format Lub(a) = "undefined"
+%format setundef(a) = "undefined"
+%format gal(a) = a
 
 %else
 
@@ -119,6 +122,9 @@
 %format (idiom(a)) = "\idiom{" a "}"
 %format :<->: = "\rightleftharpoons"
 %format (set(a)) = "\{" a "\}"
+%format (setundef(a)) = "\{" a "\}"
+%format Lub(a) = "\Lub\{" a "\}"
+%format (powMap(f)) = "{" f "}^{*}"
 %format ι = "\varid{$\iota$}"
 %format AT = "\varid{$\widehat{T}$}"
 %format AV = "\varid{$\widehat{V}$}"

@@ -520,7 +520,7 @@ We do so by cases over $\pe$, abbreviating |tm := αHeap μ| and |tr := αEnv ρ
     \end{spec}
 
     (Recall that we don't bother mentioning |StateT| and |ByNeed| wrappings.)
-    Let us define |tl := (idiom (eval e' tr' tm)| and apply the induction
+    Let us define |tl := (idiom (eval e' tr' tm))| and apply the induction
     hypothesis $IH$ to the maximal trace starting at $σ_1$.
     This yields an equality
     \[
@@ -553,7 +553,7 @@ We do so by cases over $\pe$, abbreviating |tm := αHeap μ| and |tr := αEnv ρ
   \item \textbf{Case $\pe~\px$}:
     The cases where $τ$ gets stuck or diverges before finishing evaluation of
     $\pe$ are similar to the variable case.
-    So let us focus on the situation when |tl := (idiom (eval e tr tm)|
+    So let us focus on the situation when |tl := (idiom (eval e tr tm))|
     returns and let $σ_m$ be LK state at the end of the balanced trace
     $(σ_{i+1})_{i∈\overline{m-1}}$ through $\pe$ starting in stack
     $\ApplyF(\pa) \pushF κ$.
@@ -688,7 +688,7 @@ The full proof is in the Appendix.
   \end{itemize}
 \end{proof}
 
-\subsection{From Trace Property To Sound Abstract Interpreter}
+\subsection{Sound Abstract Interpretation via Parametricity}
 
 %if style == newcode
 \begin{code}
@@ -700,109 +700,8 @@ powMap :: (a -> b) -> Pow a -> Pow b
 powMap f (P s) = P $ undefined $ map f $ Set.toList s
 mapMap = Map.map
 infixr 9 `mapMap`
+set = P . Set.singleton
 \end{code}
-%endif
-
-
-Gist:
-\begin{itemize}
-  \item
-    Recall \citet{Cousot:21} and \citet{Backhouse:04}. That is, given Galois
-    connections on base types, one can construct a canonical Galois connections
-    for higher-order types such as functions, products and sums, and hence
-    type class dictionaries.
-  \item
-    Furthermore, given a parametrically polymorphic function definition such as
-    |eval|, the type's free theorem ensures sound abstract interpretation,
-    given that all inputs are proven sound abstract interpretations.
-  \item
-    We apply that to our setting to get a sufficient soundness condition for
-    abstract interpretations of |eval|.
-  \item
-    We prove usage analysis sound \wrt |D (ByName T)| using the aforementioned soundness conditions.
-  \item
-    Given an analysis domain |hat d| that is sound \wrt |D (ByName T)|, what is a sufficient condition
-    for it to be sound \wrt |D (ByNeed T)|?
-    This will probably involve heap forcing lemmas and showing that heap forcing is preserved parametricity. ?
-    This will be interesting.
-\end{itemize}
-
-
-%if False
-Input of https://free-theorems.nomeata.de/:
-
----
-
-(Trace d, Domain d, HasBind d, Lat d) => Expr -> (Name -> d) -> d
-
----
-
-type Name = String
-type Tag = Int
-
-data Expr = Var Name | App Expr Name | Lam Name Expr  |  ConApp Tag [Name] | Case Expr [Alt]
-type Alt = (Tag,[Name],Expr)
-
-data Event  =  Lookup Name | Update | App1 | App2
-            |  Let1 | Case1 | Case2 | Let0
-
-class Lat l where
-  bottom :: l
-  lub :: l -> l -> l
-
-class Trace τ where
-  step :: Event -> τ -> τ
-
-class Domain d where
-  stuck :: d
-  fun :: (d -> d) -> d
-  apply :: d -> d -> d
-  con :: Tag -> [d] -> d
-  select :: d -> [(Tag, [d] -> d)] ->  d
-
-class HasBind d where
-  bind :: (d -> d) -> (d -> d) -> d
-
----
-
-Output:
-
-forall t1,t2 in TYPES(Trace, Domain, HasBind, Lat), R in
-REL(t1,t2), R respects (Trace, Domain, HasBind, Lat).
- forall x :: Expr.
-  forall p :: [Char] -> t1.
-   forall q :: [Char] -> t2.
-    (forall y :: [Char]. (p y, q y) in R)
-    ==> ((f_{t1} x p, f_{t2} x q) in R)
-
-R respects Trace if
-  forall x :: Event.
-   forall (y, z) in R. (step_{t1} x y, step_{t2} x z) in R
-R respects Domain if
-  (stuck_{t1}, stuck_{t2}) in R
-  forall p :: t1 -> t1.
-   forall q :: t2 -> t2.
-    (forall (x, y) in R. (p x, q y) in R)
-    ==> ((fun_{t1} p, fun_{t2} q) in R)
-  forall (x, y) in R.
-   forall (z, v) in R. (apply_{t1} x z, apply_{t2} y v) in R
-  forall x :: Int.
-   forall (y, z) in lift{[]}(R). (con_{t1} x y, con_{t2} x z) in R
-  forall (x, y) in R.
-   forall (z, v) in lift{[]}(lift{(,)}(id,lift{[]}(R) -> R)).
-    (select_{t1} x z, select_{t2} y v) in R
-R respects HasBind if
-  forall p :: t1 -> t1.
-   forall q :: t2 -> t2.
-    (forall (x, y) in R. (p x, q y) in R)
-    ==> (forall r :: t1 -> t1.
-          forall s :: t2 -> t2.
-           (forall (z, v) in R. (r z, s v) in R)
-           ==> ((bind_{t1} p r, bind_{t2} q s) in R))
-R respects Lat if
-  (bottom_{t1}, bottom_{t2}) in R
-  forall (x, y) in R.
-   forall (z, v) in R. (lub_{t1} x z, lub_{t2} y v) in R
 %endif
 
 Given a ``concrete'' (but perhaps undecidable, infinite or coinductive)
@@ -947,177 +846,173 @@ encoded in Haskell98.}
   }
   {|α (eval3 c1 e ρ1) ⊑ eval3 c2 e (α `mapMap` ρ1)|}
 \]
+%if False
+Input of https://free-theorems.nomeata.de/:
+
+---
+
+(Trace d, Domain d, HasBind d, Lat d) => Expr -> (Name -> d) -> d
+
+---
+
+type Name = String
+type Tag = Int
+
+data Expr = Var Name | App Expr Name | Lam Name Expr  |  ConApp Tag [Name] | Case Expr [Alt]
+type Alt = (Tag,[Name],Expr)
+
+data Event  =  Lookup Name | Update | App1 | App2
+            |  Let1 | Case1 | Case2 | Let0
+
+class Lat l where
+  bottom :: l
+  lub :: l -> l -> l
+
+class Trace τ where
+  step :: Event -> τ -> τ
+
+class Domain d where
+  stuck :: d
+  fun :: (d -> d) -> d
+  apply :: d -> d -> d
+  con :: Tag -> [d] -> d
+  select :: d -> [(Tag, [d] -> d)] ->  d
+
+class HasBind d where
+  bind :: (d -> d) -> (d -> d) -> d
+
+---
+
+Output:
+
+forall t1,t2 in TYPES(Trace, Domain, HasBind, Lat), R in
+REL(t1,t2), R respects (Trace, Domain, HasBind, Lat).
+ forall x :: Expr.
+  forall p :: [Char] -> t1.
+   forall q :: [Char] -> t2.
+    (forall y :: [Char]. (p y, q y) in R)
+    ==> ((f_{t1} x p, f_{t2} x q) in R)
+
+R respects Trace if
+  forall x :: Event.
+   forall (y, z) in R. (step_{t1} x y, step_{t2} x z) in R
+R respects Domain if
+  (stuck_{t1}, stuck_{t2}) in R
+  forall p :: t1 -> t1.
+   forall q :: t2 -> t2.
+    (forall (x, y) in R. (p x, q y) in R)
+    ==> ((fun_{t1} p, fun_{t2} q) in R)
+  forall (x, y) in R.
+   forall (z, v) in R. (apply_{t1} x z, apply_{t2} y v) in R
+  forall x :: Int.
+   forall (y, z) in lift{[]}(R). (con_{t1} x y, con_{t2} x z) in R
+  forall (x, y) in R.
+   forall (z, v) in lift{[]}(lift{(,)}(id,lift{[]}(R) -> R)).
+    (select_{t1} x z, select_{t2} y v) in R
+R respects HasBind if
+  forall p :: t1 -> t1.
+   forall q :: t2 -> t2.
+    (forall (x, y) in R. (p x, q y) in R)
+    ==> (forall r :: t1 -> t1.
+          forall s :: t2 -> t2.
+           (forall (z, v) in R. (r z, s v) in R)
+           ==> ((bind_{t1} p r, bind_{t2} q s) in R))
+R respects Lat if
+  (bottom_{t1}, bottom_{t2}) in R
+  forall (x, y) in R.
+   forall (z, v) in R. (lub_{t1} x z, lub_{t2} y v) in R
+%endif
+
 The bottom line:
 It suffices to show a total of 7 Lemmas per instantiation to prove an analysis
 correct, and we never need to concern ourselves with the actual definition of
 |eval| (unless a proof needs to reason about the context in which a method call
 occurs).
 
-We now put this result to bear by instantiating the concrete |D1| to by-name
-semantics |D (ByName T)|, but leaving |D2| abstract for now.
-Following \citet{Nielson:99}
+\subsection{Soundness \wrt |D (ByName T)|}
 
-%if False
-\newcommand{\embAbsImpl}{| ι a || a <- as |}
-\newcommand{\embConcImpl}{| a || a <- as, ι a ⊑ b |}
+Gist:
+\begin{itemize}
+  \item
+    Recall \citet{Cousot:21} and \citet{Backhouse:04}. That is, given Galois
+    connections on base types, one can construct a canonical Galois connections
+    for higher-order types such as functions, products and sums, and hence
+    type class dictionaries.
+  \item
+    Furthermore, given a parametrically polymorphic function definition such as
+    |eval|, the type's free theorem ensures sound abstract interpretation,
+    given that all inputs are proven sound abstract interpretations.
+  \item
+    We apply that to our setting to get a sufficient soundness condition for
+    abstract interpretations of |eval|.
+  \item
+    We refine this condition for |D (ByName T)|, introducing trace abstraction
+  \item
+    We prove usage analysis sound \wrt |D (ByName T)| using the aforementioned soundness conditions.
+  \item
+    Given an analysis domain |hat d| that is sound \wrt |D (ByName T)|, what is a sufficient condition
+    for it to be sound \wrt |D (ByNeed T)|?
+    This will probably involve heap forcing lemmas and showing that heap forcing is preserved parametricity. ?
+    This will be interesting.
+\end{itemize}
+
+We now put the soundness result to bear by instantiating the concrete |D1| to
+by-name semantics |D (ByName T)| and deriving an abstraction function capturing
+trace properties from it, but otherwise leaving |D2| abstract for now.
+
+Following \citet[page 253]{Nielson:99}, every embedding |ι :: a -> b| into a
+partial order yields a Galois connection between $(|Pow a|,⊆)$ and $(|b|,⊑)$:
 \begin{code}
 data Galois a b = (a -> b) :<->: (b -> a)
-
-fromEmbedding :: Lat b => (a -> b) -> Galois (Pow a) b
-fromEmbedding ι = abs :<->: conc where
-  abs   (P as)  = {-" \Lub \{ \embAbsImpl \} \iffalse "-} undefined {-" \fi "-}
-  conc  b       = P {-" \{ \embConcImpl \} \iffalse "-} undefined {-" \fi "-}
-
-fromMono :: Galois a a' -> Galois b b' -> Galois (a -> b) (a' -> b')
-fromMono (absA :<->: concA) (absB :<->: concB) = (\f -> absB . f . concA) :<->: (\f -> concB . f . absA)
-
-fromTrace :: (Trace d, Domain d, Lat d) => Galois (Pow (D c)) d -> Galois (Pow (T (Value c))) d
-fromTrace inner@(absI :<->: _) = fromEmbedding ι where
-  absF :<->: concF = fromMono inner inner
-  ι (Ret Stuck)       = stuck
-  ι (Ret (Fun f))     = fun {-"\iffalse"-}""{-"\fi"-} (absF (powMap f))
-  ι (Ret (Con k ds))  = con {-"\iffalse"-}""{-"\fi"-} k (map (absI . set) ds)
-  ι (Step e τ)        = step e (ι τ)
+embed :: Lat b => (a -> b) -> Galois (Pow a) b
+embed ι = α :<->: γ where  α  (P as)  = Lub (ι a | a <- as)
+                           γ  b       = P (setundef (a | ι a ⊑ b))
+\end{code}
+(While the concretisation function exists as a mathematical function, it is in
+general impossible to compute.)
+Every domain |D2| with instances |(Trace D2, Domain D2, Lat D2)| induces a
+\emph{trace abstraction} |trace| via the following embedding, and the |byName|
+abstraction is just the fixpoint of that Galois connection:
+\begin{code}
+trace :: (Trace d, Domain d, Lat d) => Galois (Pow (D c)) d -> Galois (Pow (T (Value c))) d
+trace (α :<->: γ) = embed ι where  ι (Ret Stuck)       = stuck
+                                   ι (Ret (Fun f))     = fun {-"\iffalse"-}""{-"\fi"-} (α . (powMap f) . γ)
+                                   ι (Ret (Con k ds))  = con {-"\iffalse"-}""{-"\fi"-} k (map (α . set) ds)
+                                   ι (Step e τ)        = step e (ι τ)
 
 byName :: (Trace d, Domain d, Lat d) => Galois (Pow (D (ByName T))) d
-byName = (abs . powMap unByName) :<->: (powMap ByName . conc) where abs :<->: conc = fromTrace byName
-
-set = P . Set.singleton
+byName = (α . powMap unByName) :<->: (powMap ByName . γ) where α :<->: γ = trace byName
 \end{code}
-%endif
-
+A delightful consequence of fixing |byName| as the Galois connection in
+\Cref{thm:soundness-abs-int} is that we rid ourselves of 4 trivial soundness
+lemmas (proven by unfolding |byName|), leaving just 3 lemmas in place:
 \[
 \inferrule
   {%
-   |forall (e :: Event) (d :: d1). α (at step c1 e d) ⊑ at step c2 e (α d)|\\\\
-   |α (at stuck c1) ⊑ at stuck c2|\\\\
-   |forall (f :: d1 -> d1). α . at fun c1 f ⊑ at fun c2 (α . f . γ)|\\\\
-   |forall (d :: d1) (a :: d1). α (at apply c1 d a) ⊑ at apply c2 (α d) (α a)|\\\\
-   |forall (k :: Tag) (ds :: [d1]). α (at con c1 k ds) ⊑ at con c2 k (map α ds)|\\\\
-   |forall (d :: d1) (fs :: [(Tag, [d1] -> d1)]). α (sel d f) ⊑ sel (α d) [ (k, α . f . map γ) || (k, f) <- fs ]|\\\\
-   |forall (rhs :: d1 -> d1) (body :: d1 -> d1). α (at bind c1 rhs body) ⊑ at bind c2 (α . rhs . γ) (α . body . γ)|%
+   |α :<->: γ = byName|\\\\
+   |forall d a. α (apply d a) ⊑ apply (α d) (α a)|\\\\
+   |forall d fs. α (select d f) ⊑ select (α d) [ (k, α . f . map γ) || (k, f) <- fs ]|\\\\
+   |forall rhs body. α (bind rhs body) ⊑ bind (α . rhs . γ) (α . body . γ)|%
   }
-  {|α (eval3 c1 e ρ1) ⊑ eval3 c2 e (α `mapMap` ρ1)|}
+  {|α (eval e ρ :: D (ByName T)) ⊑ (eval e (α `mapMap` ρ) :: D2)|}
 \]
+The reading is as follows: The first two soundness lemmas prove correct the
+summary mechanism implemented in |apply| and |select|, while |bind| implements a
+particular fixpointing strategy each of which needs a separate correctness proof.
+(We decided not to inline the instance methods of |C (D (ByName T))|, because
+they don't simplify any further with |α|.)
 
+It is clear that we can't simplify our proof obligations any further without
+fixing a particular instance |C D2|, so we will now prove usage analysis
+(|UD| from \Cref{fig:abs-usg}) correct \wrt by-name semantics, by showing the
+above three lemmas.
 
-
-Assumptions, all derived from |ι . op ⊑ hat op . ι| (is this correct? Sometimes this is definitional, \eg, |ι . step ε = ι . Step ε = step ε . ι|):
-\begin{itemize}
-  \item |step ε (hat d)| monotone in |hat d| for all $ε$
-  \item |fun f| monotone in |f|
-  \item |d >>= k| monotone in |d| and |k| (in the sense that |k v1 ⊑ k v2| when |v1 ⊑ v2|).
-\end{itemize}
-What about |ι (d >>= f) ⊑ ι d >>= (α . powMap f . γ)|?
-\begin{itemize}
-  \item When |d = Step ε d'|, then |ι (d >>= f) = step ε (ι (d' >>= f)) ⊑ (step
-        ε (ι d')) >>= _ = ι d >>= _|. |step ε d >>= f ⊑ step ε (d >>= f)| seems like
-        an important assumption/rule! Maybe even equality?
-  \item Otherwise, |d = Ret v = return v|, so Monad laws dictate
-        |ι (d >>= f) = ι (f v)|. By cases on |v|, demonstrating the |Fun g| case:
-        |ι (f (Fun g)) ⊑ fun g >>= (α . powMap f . γ)| which is the same as
-        |f (Fun g) ∈ γ (fun g >>= (α . powMap f . γ))|.
-\end{itemize}
-We now prove |soundName| directly, by induction on |e|. We abbreviate |ι := α . set|.
-\begin{itemize}
-  \item \textbf{Case} |Var x|:
-    In the stuck case, we require |ι (Ret Stuck)) = stuck ⊑ stuck|. Easy.
-    Otherwise, |x ∈ dom ρ| and |ι (ρ x)) ⊑ ι (ρ x))| by reflexivity.
-  \item \textbf{Case} |Lam x body|:
-    The goal is to show |ι (Ret (Fun f))) = fun (absF (powMap f)) ⊑ fun (hat f)|, for the suitable
-    |f| and |hat f| (|hat f| is just |f| but with |α `mapMap` set `mapMap` ρ|
-    instead of |ρ|, leading to different type class instantiations).
-    \begin{DispWithArrows*}
-      \mathit{IH} ={}       & \forall |d|.\ |ι (eval body (ext ρ x d))| ⊑  |eval body (ι `mapMap` (ext ρ x d))| \Arrow{Intro |hat d ⊒ ι d)|} \\
-      \Longleftrightarrow{} & \forall |hat d|,|d|.\ |ι d ⊑ hat d| \Longrightarrow |ι (eval body (ext ρ x d))| ⊑  |eval body (ext ((ι `mapMap` ρ)) x (hat d))| \Arrow{|step App2 (hat d)| monotone in |hat d|} \\
-      \Longleftrightarrow{} & \forall |hat d|,|d|.\ |ι d ⊑ hat d| \Longrightarrow |ι (f d)| ⊑  |hat f (hat d)| \Arrow{Least upper bound} \\
-      \Longleftrightarrow{} & \forall |hat d|.\ \Lub |(set (ι (f d) || ι d ⊑ hat d))| ⊑  |hat f (hat d)| \Arrow{Defn of |absF|, |ι = α . set|} \\
-      \Longleftrightarrow{} & \forall |hat d|.\ |(α . powMap f . γ) (hat d) ⊑  hat f (hat d)| \Arrow{extensionality} \\
-      \Longleftrightarrow{} & |α . powMap f . γ ⊑ hat f| \Arrow{monotonicity of |fun|} \\
-      \Longrightarrow{}     & |fun (α . powMap f . γ) ⊑ fun (hat f)| \Arrow{By definition of |f|, |hat f|} \\
-      \Longleftrightarrow{} & |ι (eval (Lam x body) ρ)) ⊑ eval (Lam x body) (ι `mapMap` ρ)|
-    \end{DispWithArrows*}
-
-  \item \textbf{Case} |App e x|:
-    The stuck case is the same as for |Var x|.
-    Otherwise, |x ∈ dom ρ| and because |step App1 (hat d)| is monotone in
-    |hat d| per assumption, it suffices to show that
-    |ι (eval e ρ >>= f) ⊑ eval e (ι `mapMap` ρ) >>= hat f|, for the suitable
-    |f| and |hat f|.
-    \begin{DispWithArrows*}
-      \mathit{IH} ={}       & \forall |d|.\ |ι (eval body (ext ρ x d))| ⊑  |eval body (ι `mapMap` (ext ρ x d))| \Arrow{Intro |hat d ⊒ ι d)|} \\
-      \Longleftrightarrow{} & \forall |hat d|,|d|.\ |ι d ⊑ hat d| \Longrightarrow |ι (eval body (ext ρ x d))| ⊑  |eval body (ext ((ι `mapMap` ρ)) x (hat d))| \Arrow{|step App2 (hat d)| monotone in |hat d|} \\
-      \Longleftrightarrow{} & \forall |hat d|,|d|.\ |ι d ⊑ hat d| \Longrightarrow |ι (f d)| ⊑  |hat f (hat d)| \Arrow{Least upper bound} \\
-      \Longleftrightarrow{} & \forall |hat d|.\ \Lub |(set (ι (f d) || ι d ⊑ hat d))| ⊑  |hat f (hat d)| \Arrow{Defn of |absF|, |ι = α . set|} \\
-      \Longleftrightarrow{} & \forall |hat d|.\ |(α . powMap f . γ) (hat d) ⊑  hat f (hat d)| \Arrow{extensionality} \\
-      \Longleftrightarrow{} & |α . powMap f . γ ⊑ hat f| \Arrow{monotonicity of |fun|} \\
-      \Longrightarrow{}     & |fun (α . powMap f . γ) ⊑ fun (hat f)| \Arrow{By definition of |f|, |hat f|} \\
-      \Longleftrightarrow{} & |ι (eval (Lam x body) ρ)) ⊑ eval (Lam x body) (ι `mapMap` ρ)|
-    \end{DispWithArrows*}
-
-\end{itemize}
-
-\subsubsection{Meddling with Parametricity}
-
-Let us fix |AT|, |AValue| such that there are instance |Trace AT|, |Domain (AT
-AV)|, |HasBind (AT AV)| and |Lat (AT AV)|.
-Let us abbreviate |Dict = (Trace (ByName T), Domain (D (ByName T)), HasBind (D (ByName T)))|
-and |ADict = (Trace AT, Domain AT AV, HasBind AT AV)|, respectively.
-
-What is the free theorem of |θ := forall d. (Trace d, Domain d, HasBind d) => Expr -> (Name :-> d) -> d|?
-We have, for some $\mathcal{T}(X) ⊆ (|T| \times |aτ|), \mathcal{V} ⊆ (|Value (ByName T)| \times |av|), \mathcal{D} ⊆ (|Dict| \times |ADict|), \mathcal{E} ⊆ (|Name :-> D (ByName T)| \times |Name :-> aτ av|)$
-that we will characterise in a second,
-\begin{itemize}
-  \item $(|eval|,|eval|) ∈ \denot{θ}_r []$, hence, by $\forall$s,
-  \item $(|eval _ _ :: D (ByName T)|,|eval :: AT AV|) ∈ \denot{|Expr -> ... -> d|}_r [τ : \mathcal{T}, v : \mathcal{V}, ds : \mathcal{D} ]$, hence
-  \item $(|eval e|,|eval e|) ∈ \denot{|(Name :-> d) -> d|}_r [ ..., \pe : Id_{|Expr|} ]$, hence
-  \item $(|eval e ρ|,|eval e ρ|) ∈ \denot{|d|}_r [ τ : \mathcal{T}, v : \mathcal{V}, ds : \mathcal{D}, \pe : Id_{|Expr|}, ρ : \mathcal{E} ]$, hence
-  \item $(|eval e ρ|,|eval e ρ|) ∈ \mathcal{T}(\mathcal{V})$
-\end{itemize}
-We \emph{want} that
-$\mathcal{T}(\mathcal{V},\mathcal{D}) ⊆ \{ (|d|, |hat d|) \mid |α (set d) ⊑ hat d| \}$, because
-then $\mathcal{T}(\mathcal{V})$ implies the soundness property.
-So set $\mathcal{T}(X) \triangleq \{ (|d|, |hat d|) \mid |α (set d) ⊑ hat d| \}$
-\sg{What $α$? I'm at a loss. This needs to hypothesise a |Dict| such that
-|byName| is applicable! My head hurts.}
-TODO
-
-Likewise, we must clarify our assumption on environments |ρ| expressed in
-$\mathcal{E}$, so that both |eval e ρ| on the left and |eval e (α `mapMap` set
-`mapMap` ρ)| on the right are an instance. Thus, we require
+\begin{theoremrep} Usage Analysis as implemented by |UD| in \Cref{fig:abs-usg}
+is sound \wrt |D (ByName T)|, that is,
 \[
-  \mathcal{E} \triangleq \{ (|ρ|,|ρ'|) \mid (|α `mapMap` set `mapMap` ρ|) ⊑ |ρ'| \} = [[|:->|]]_r(...)(Id_{|Name|})(\mathcal{T}(\mathcal{V}))
+  |forall e ρ. α (eval e ρ :: D (ByName T)) ⊑ (eval e (α `mapMap` ρ) :: UD) where α :<->: _ = byName|
 \]
-
-What about $\mathcal{D}$?
-
-\begin{comment}
-\begin{spec}
-fromHeap :: (Trace d, Domain d, Lat d) => Galois (Pow (D c)) d -> Galois (Pow (StateT (Addr :-> T (Value c)) T (Value c))) (StateT (Addr :-> d) d)
-fromHeap inner@(absI :<->: concI) = abs :<->: conc where
-
-byNeed :: (Trace d, Domain d, Lat d) => Galois (Pow (D (ByNeed T))) (StateT (Addr :-> d) d)
-byNeed = _
-\end{spec}
-
-\[\begin{array}{rcl}
-  α([\many{\px ↦ \pa_{\py,i}}]) & = & [\many{|x| ↦ |step (Lookup y) (fetch a_yi)|}] \\
-  α_\Heaps([\many{\pa ↦ (ρ,\pe)}]) & = & [\many{|a| ↦ |memo a (eval e (αEnv ρ))|}] \\
-  α_\States(\Lam{\px}{\pe},ρ,μ,κ) & = & |(Fun (\d -> eval e (ext (αEnv ρ) x d)), αHeap μ)| \\
-  α_\States(K~\overline{\px},ρ,μ,κ) & = & |(Con k (map (αEnv ρ !) xs), αHeap μ)| \\
-  α_\Events(σ) & = & \begin{cases}
-    |Let1| & σ = (\Let{\px}{\wild}{\wild},\wild,μ,\wild), \pa_{\px,i} \not∈ \dom(μ) \\
-    |App1| & σ = (\wild~\px,\wild,\wild,\wild) \\
-    |Case1| & σ = (\Case{\wild}{\wild},\wild,\wild, \wild)\\
-    |Lookup y| & σ = (\px,ρ,\wild,\wild), ρ(\px) = \pa_{\py,i} \\
-    |App2| & σ = (\Lam{\wild}{\wild},\wild,\wild,\ApplyF(\wild) \pushF \wild) \\
-    |Case2| & σ = (K~\wild, \wild, \wild, \SelF(\wild,\wild) \pushF \wild) \\
-    |Update| & σ = (\pv,\wild,\wild,\UpdateF(\wild) \pushF \wild) \\
-  \end{cases} \\
-  α_{\STraces}((σ_i)_{i∈\overline{n}},κ) & = & \begin{cases}
-    |Step ({-" α_\Events(σ_0) "-}) (idiom (αSTraces (lktrace, κ)))| & n > 0 \\
-    |Ret ({-" α_\States(σ_0) "-})| & \ctrl(σ_0) \text{ value } \wedge \cont(σ_0) = κ \\
-    |Ret Stuck| & \text{otherwise} \\
-  \end{cases} \\
-\end{array}\]
-\end{comment}
+\end{theoremrep}
+\begin{proof}
+Oh boy
+\end{proof}
