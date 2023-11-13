@@ -704,6 +704,260 @@ infixr 9 `mapMap`
 %endif
 
 
+Gist:
+\begin{itemize}
+  \item
+    Recall \citet{Cousot:21} and \citet{Backhouse:04}. That is, given Galois
+    connections on base types, one can construct a canonical Galois connections
+    for higher-order types such as functions, products and sums, and hence
+    type class dictionaries.
+  \item
+    Furthermore, given a parametrically polymorphic function definition such as
+    |eval|, the type's free theorem ensures sound abstract interpretation,
+    given that all inputs are proven sound abstract interpretations.
+  \item
+    We apply that to our setting to get a sufficient soundness condition for
+    abstract interpretations of |eval|.
+  \item
+    We prove usage analysis sound \wrt |D (ByName T)| using the aforementioned soundness conditions.
+  \item
+    Given an analysis domain |hat d| that is sound \wrt |D (ByName T)|, what is a sufficient condition
+    for it to be sound \wrt |D (ByNeed T)|?
+    This will probably involve heap forcing lemmas and showing that heap forcing is preserved parametricity. ?
+    This will be interesting.
+\end{itemize}
+
+
+%if False
+Input of https://free-theorems.nomeata.de/:
+
+---
+
+(Trace d, Domain d, HasBind d, Lat d) => Expr -> (Name -> d) -> d
+
+---
+
+type Name = String
+type Tag = Int
+
+data Expr = Var Name | App Expr Name | Lam Name Expr  |  ConApp Tag [Name] | Case Expr [Alt]
+type Alt = (Tag,[Name],Expr)
+
+data Event  =  Lookup Name | Update | App1 | App2
+            |  Let1 | Case1 | Case2 | Let0
+
+class Lat l where
+  bottom :: l
+  lub :: l -> l -> l
+
+class Trace τ where
+  step :: Event -> τ -> τ
+
+class Domain d where
+  stuck :: d
+  fun :: (d -> d) -> d
+  apply :: d -> d -> d
+  con :: Tag -> [d] -> d
+  select :: d -> [(Tag, [d] -> d)] ->  d
+
+class HasBind d where
+  bind :: (d -> d) -> (d -> d) -> d
+
+---
+
+Output:
+
+forall t1,t2 in TYPES(Trace, Domain, HasBind, Lat), R in
+REL(t1,t2), R respects (Trace, Domain, HasBind, Lat).
+ forall x :: Expr.
+  forall p :: [Char] -> t1.
+   forall q :: [Char] -> t2.
+    (forall y :: [Char]. (p y, q y) in R)
+    ==> ((f_{t1} x p, f_{t2} x q) in R)
+
+R respects Trace if
+  forall x :: Event.
+   forall (y, z) in R. (step_{t1} x y, step_{t2} x z) in R
+R respects Domain if
+  (stuck_{t1}, stuck_{t2}) in R
+  forall p :: t1 -> t1.
+   forall q :: t2 -> t2.
+    (forall (x, y) in R. (p x, q y) in R)
+    ==> ((fun_{t1} p, fun_{t2} q) in R)
+  forall (x, y) in R.
+   forall (z, v) in R. (apply_{t1} x z, apply_{t2} y v) in R
+  forall x :: Int.
+   forall (y, z) in lift{[]}(R). (con_{t1} x y, con_{t2} x z) in R
+  forall (x, y) in R.
+   forall (z, v) in lift{[]}(lift{(,)}(id,lift{[]}(R) -> R)).
+    (select_{t1} x z, select_{t2} y v) in R
+R respects HasBind if
+  forall p :: t1 -> t1.
+   forall q :: t2 -> t2.
+    (forall (x, y) in R. (p x, q y) in R)
+    ==> (forall r :: t1 -> t1.
+          forall s :: t2 -> t2.
+           (forall (z, v) in R. (r z, s v) in R)
+           ==> ((bind_{t1} p r, bind_{t2} q s) in R))
+R respects Lat if
+  (bottom_{t1}, bottom_{t2}) in R
+  forall (x, y) in R.
+   forall (z, v) in R. (lub_{t1} x z, lub_{t2} y v) in R
+%endif
+
+Given a ``concrete'' (but perhaps undecidable, infinite or coinductive)
+semantics and a more ``abstract'' (but perhaps decidable, finite and inductive)
+semantics, when does the latter \emph{conservatively approximate} the former?
+This question of \emph{soundness} is a prominent in program analysis,
+and \emph{Abstract Interpretation}~\citet{Cousot:21} provides a generic
+framework to understand it via construction of a Galois connection
+$(|D|, ≤) \galois{|α|}{|γ|} (|hat D|,⊑)$ between concrete and abstract partial
+orders $≤,⊑$ that encodes the soundness condition.
+E.g., when |α d ⊑ hat d| --- or, equivalently, |d ≤ γ (hat d)| --- then
+this Galois connection expresses that |hat d| is a sound abstraction of |d|.
+This theory comes to life when instantiating the concrete lattice to the set of
+program traces, in which the set |set (eval e ρ :: D (ByName T))| can be
+regarded as the most precise program property characterising the evaluation of
+an expression |e| in an environment |ρ|.
+In this case, the concrete order $≤$ really is subset inclusion $⊆$ and
+soundness of the analysis is expressed as
+\[\begin{array}{ll}
+                      & |forall e ρ. (set (eval e ρ :: D (ByName T))) ⊆ γ (eval e (α `mapMap` set `mapMap` ρ) :: hat D)| \\
+  \Longleftrightarrow & |forall e ρ. α (set (eval e ρ :: D (ByName T))) ⊑ eval e (α `mapMap` set `mapMap` ρ) :: hat D|.
+\end{array}\]
+This statement should be read as ``The concrete semantics implies the abstract
+semantics up to concretisation''~\citet[p. 26]{Cousot:21}.
+Note that this statement is conceivably more complex to show than the simple
+statement |α d ⊑ hat d| that we derived it from, yet the process is almost
+entirely mechanical, given that both applications of |eval| share a lot of
+structure!
+
+There are at least two ways to exploit this similarity in structure.
+The first is to let the soundness criterion drive us to \emph{construct} a
+suitable abstract semantics; Cousot calls this process \emph{calculational
+design}~\citet{Cousot:21}.
+
+But in our case, we already have a shared interpreter.
+It would be far more economical to prove sound approximation lemmas for each
+input to |eval| such as |ρ| and the type class methods individually and get
+the soundness proof on |eval| for free, without ever reasoning about shared
+structure!
+
+What sounds to good to be true has first been demonstrated by
+\citet{Backhouse:04}.
+Their contribution is threefold:
+\begin{itemize}
+  \item
+    The first is that they have shown how to systematically construct Galois
+    connections of higher-order types (such as for |ρ :: Name :-> D| above) from
+    Galois connection for base types (such as |D|).
+    For example, given a Galois connection
+    $(|D|, ≤) \galois{|α|}{|γ|} (|hat D|,⊑)$, there is a canonical way to
+    construct a Galois connection
+    $(|D -> D|, \dot{≤}) \galois{\dot{|α|}}{\dot{|γ|}} (|hat D -> hat D|, \dot{⊑})$
+    simply by following the structure of types, in this case as
+    |αdot f := α . f . γ|.
+    Similar constructions can be given for products, sums, polymorphic types and
+    thus for the dictionary desugaring of Haskell 98 type class declarations~\citet{Hall:96}.
+    We will denote abstraction functions thus derived with |αup| and omit |α| as
+    well as its type when it is clear from context (\eg, its argument).
+  \item
+    Secondly, by appealing to parametricity~\citet{Reynolds:83} of Haskell's
+    type system (its total subset we have used to define our framework using
+    in particular), the proof that the Galois connection thus systematically
+    constructed is in fact a Galois connection follows by the \emph{Free
+    Theorem}~\citet{Wadler:89,Ghani:16} of its type.
+    I.e., defining $\mathcal{D} \triangleq |set ((d,hat d) || α d ⊑ hat d)|$,
+    the Identity Extension Lemma~\citet[Lemma 3.2]{Ghani:16} applied to an
+    arbitrary function pairing |f :: D -> D|, |hat f :: hat D -> hat D| yields
+    $(|f|,|hat f|) ∈ \denot{|d -> d|}_r(\mathcal{D})$, so for all |d|, |hat d| such
+    that $(|d|, |hat d|) ∈ \mathcal{D}$, we have
+    $(|f d|, |hat f (hat d)|) ∈ \mathcal{D}$.
+    This proves that $(|αdot|,|γdot|)$ forms a Galois connection:
+    \[\begin{array}{rllll}
+      |αdot f|\mathrel{\dot{⊑}} |hat f| \Longleftrightarrow & |forall (hat d). f (γ (hat d)) ≤ γ ((hat f (hat d)))| \Longrightarrow |forall d. f (γ (α d)) ≤ γ ((hat f (α d)))| \\
+                               \Longrightarrow     & |forall d. f d ≤ γ ((hat f (α d)))| \Longleftrightarrow |f| \mathrel{\dot{≤}} |γdot (hat f)| \\
+    \end{array}\]
+    Similar results follow for products, sums and polymorphic types, thus
+    Haskell 98 type classes.
+  \item
+    When it is possible to extract a generic component that is shared by
+    both abstract and concrete semantics, the soundness theorem follows
+    from showing soundness for the non-shared components (\ie, type class
+    instances) only.
+\end{itemize}
+
+The third point has recently been used to great effect in \citet{Keidel:18}.
+For us the effect is no different:
+
+\begin{theoremrep}[Sound Abstract Interpretation]
+\label{thm:sound-abs-int}
+Let |D1|, |D2| be two domains such that there are instances |c1 :: C D1|,|c2 ::
+C D2| for the constraint tuple |C d := (Trace d, Domain d, HasBind d)|,
+and $(|D1|,≤) \galois{|α|}{|γ|} (|D2|,⊑)$ a Galois connection.
+Then |eval3 c2 e (α `mapMap` ρ)| is a sound abstract interpretation of |eval3 c1
+e ρ|, written
+\[
+  |forall e ρ. α (eval3 c1 e ρ :: D1) ⊑ (eval3 c2 e (α `mapMap` ρ) :: D2)|,
+\]
+if |αup c1 ⊑ c2|, that is, all methods of |c2| are sound abstractions of |c1|
+according to |α|.
+\end{theoremrep}
+\begin{proof}
+The Identity Extension Lemma applied to the type
+|C d => Expr -> (Name :-> d) -> d| yields
+\[
+  (|eval3|,|eval3|) ∈ \denot{|forall d. C d => Expr -> (Name :-> d) -> d|}_r
+\]
+This simplifies to the following inference rule:
+\[
+\inferrule*
+  {(|c1|,|c2|) ∈ \denot{|C d|}_r(\mathcal{D}) \\
+   (|dom ρ1 = dom ρ2| \wedge \forall |x|∈|dom ρ1|.\ (|ρ1 x|,|ρ2 x|) ∈ \mathcal{D})}
+  {(|eval3 c1 e ρ1|,|eval3 c2 e ρ2|) ∈ \mathcal{D}}
+\]
+We instantiate this rule at $\mathcal{D} \triangleq |set ((d1,d2) || α d1 ⊑ d2)|$,
+pick |ρ2 := αdot ρ1|, abbreviate |αup c1 ⊑ c2| (recall that |αup| is derived
+from $\denot{|C d|}_r(\mathcal{D})$) and simplify to
+\[
+\inferrule*
+  {|αup c1 ⊑ c2|}
+  {|α (eval3 c1 e ρ1) ⊑ eval3 c2 e (α `mapMap` ρ1)|}
+\]
+\end{proof}
+
+As discussed above, the types dictate the definition of |αup|.
+Applied to our type class algebra |C d|, \Cref{thm:sound-abs-int} turns into
+the following simplified (\eg, with |αup| expanded) inference rule:
+\footnote{We found it handy to double-check our result using the
+``Free Theorems'' Web UI provided by
+\url{https://free-theorems.nomeata.de/}~\citet{Boehme:07} to generate the free
+theorem for the |eval| function, the type of which is simple enough to be
+encoded in Haskell98.}
+\[
+\inferrule
+  {%
+   |forall (e :: Event) (d :: d1). α (at step c1 e d) ⊑ at step c2 e (α d)|\\\\
+   |α (at stuck c1) ⊑ at stuck c2|\\\\
+   |forall (f :: d1 -> d1). α (at fun c1 f) ⊑ at fun c2 (α . f . γ)|\\\\
+   |forall (d :: d1) (a :: d1). α (at apply c1 d a) ⊑ at apply c2 (α d) (α a)|\\\\
+   |forall (k :: Tag) (ds :: [d1]). α (at con c1 k ds) ⊑ at con c2 k (map α ds)|\\\\
+   |forall (d :: d1) (fs :: [(Tag, [d1] -> d1)]). α (sel d f) ⊑ sel (α d) [ (k, α . f . map γ) || (k, f) <- fs ]|\\\\
+   |forall (rhs :: d1 -> d1) (body :: d1 -> d1). α (at bind c1 rhs body) ⊑ at bind c2 (α . rhs . γ) (α . body . γ)|%
+  }
+  {|α (eval3 c1 e ρ1) ⊑ eval3 c2 e (α `mapMap` ρ1)|}
+\]
+The bottom line:
+It suffices to show a total of 7 Lemmas per instantiation to prove an analysis
+correct, and we never need to concern ourselves with the actual definition of
+|eval| (unless a proof needs to reason about the context in which a method call
+occurs).
+
+We now put this result to bear by instantiating the concrete |D1| to by-name
+semantics |D (ByName T)|, but leaving |D2| abstract for now.
+Following \citet{Nielson:99}
+
+%if False
 \newcommand{\embAbsImpl}{| ι a || a <- as |}
 \newcommand{\embConcImpl}{| a || a <- as, ι a ⊑ b |}
 \begin{code}
@@ -729,76 +983,22 @@ byName :: (Trace d, Domain d, Lat d) => Galois (Pow (D (ByName T))) d
 byName = (abs . powMap unByName) :<->: (powMap ByName . conc) where abs :<->: conc = fromTrace byName
 
 set = P . Set.singleton
-
-soundName  ::  forall d. (Trace d, Domain d, HasBind d, Lat d)
-           =>  Expr -> (Name :-> D (ByName T)) -> Bool
-soundName e ρ = α (set (eval e ρ)) ⊑ (eval e (α `mapMap` set `mapMap` ρ) :: d) where α :<->: _ = byName
 \end{code}
+%endif
 
-Let |τ1 v1| and |τ2 v2| be two domains with a lattice structure, such that
-both have instances for the constraint tuple |C d := (Trace d, Domain d, HasBind d, Lat d)|
-and let |α :<->: γ :: Galois (τ1 v1) (τ2 v2)| be a Galois connection.
-%We also need |αv :<->: γv :: Galois v1 v2|.
-
-When
-\begin{itemize}
-  \item |α . step ε ⊑ step ε . α|
-  \item |α stuck ⊑ stuck|, |α . fun ⊑ fun . α|, |α . apply ⊑ apply . α|
-\end{itemize}
-, then |α (eval e ρ) ⊑ eval e (α `mapMap` ρ)|.
-
-By induction on |e|.
-\begin{itemize}
-  \item \textbf{Case} |Var x|:
-    In the stuck case, we require |α stuck ⊑ stuck|, whcih follows by assumption.
-    Otherwise, |x ∈ dom ρ| and |α (ρ x) ⊑ α (ρ x)| by reflexivity.
-  \item \textbf{Case} |Lam x body|:
-    The goal is to show |α (fun f) ⊑ fun (hat f)|, for the suitable
-    |f| and |hat f| (|hat f| is just |f| but with |α `mapMap` ρ|
-    instead of |ρ|, leading to different type class instantiations).
-    \begin{DispWithArrows*}
-      \mathit{IH} ={}       & \forall |d1|.\ |α (eval body (ext ρ x d1))| ⊑  |eval body (α `mapMap` (ext ρ x d1))| \Arrow{Rearrange} \\
-      \Longleftrightarrow{} & \forall |d1|.\ |α (eval body (ext ρ x d1))| ⊑  |eval body (ext ((α `mapMap` ρ)) x (α d1))| \Arrow{|α . step ε ⊑ step ε . α|} \\
-      \Longleftrightarrow{} & \forall |d1|.\ |α (f d1)| ⊑  |hat f (α d1)| \Arrow{Extensionality} \\
-      \Longleftrightarrow{} & |α . f| ⊑  |hat f . α| \Arrow{Galois} \\
-      \Longleftrightarrow{} & |α . f . γ ⊑ hat f| \Arrow{monotonicity of |fun|} \\
-      \Longrightarrow{}     & |fun (α . f . γ) ⊑ fun (hat f)| \Arrow{|α . fun ⊑ fun . α|} \\
-      \Longrightarrow{}     & |α (fun f) ⊑ fun (hat f)| \Arrow{By definition of |f|, |hat f|} \\
-      \Longleftrightarrow{} & |α (eval (Lam x body) ρ)) ⊑ eval (Lam x body) (α `mapMap` ρ)|
-    \end{DispWithArrows*}
-
-  \item \textbf{Case} |App e x|:
-    The stuck case is the same as for |Var x|.
-    Otherwise, |x ∈ dom ρ| and we can show
-    \begin{DispWithArrows*}
-      \mathit{IH} ={}       & |α (eval e ρ) ⊑ eval e (α `mapMap` ρ)| \Arrow{|α . apply ⊑ apply . α|} \\
-      \Longrightarrow{}     & |α (apply (eval e ρ) (ρ ! x)) ⊑ apply (eval e (α `mapMap` ρ)) (α (ρ ! x))| \Arrow{|α . step ε ⊑ step ε . α|} \\
-      \Longrightarrow{}     & |α (step App1 (apply (eval e ρ) (ρ ! x))) ⊑ step App1 (apply (eval e (α `mapMap` ρ)) (α (ρ ! x)))| \Arrow{By definition of |eval|} \\
-      \Longleftrightarrow{} & |α (eval (App e x) ρ)) ⊑ eval (App e x) (α `mapMap` ρ)|
-    \end{DispWithArrows*}
-
-  \item \textbf{Case} |Let x e1 e2|:
-    We can show, for suitable definitions of |rhs|,|body|,|hat rhs|,|hat body|,
-    \begin{DispWithArrows*}
-      \mathit{IH} \Longrightarrow{} & |α rhs ⊑ hat rhs, α body ⊑ hat body| \Arrow{Monotonicity} \\
-      \Longrightarrow{}             & |bind (α rhs) (α body) ⊑ bind (hat rhs) (hat body)| \Arrow{|α . bind ⊑ bind . α|} \\
-      \Longrightarrow{}             & |α (bind rhs body) ⊑ bind (hat rhs) (hat body)| \Arrow{By definition of |eval|} \\
-      \Longleftrightarrow{}         & |α (eval (Let x e1 e2) ρ)) ⊑ eval (Let x e1 e2) (α `mapMap` ρ)|
-    \end{DispWithArrows*}
-    Where the step from the induction hypothesis to |α rhs ⊑ hat rhs, α body ⊑
-    hat body| is similar to previous arguments, for example in the lambda case
-    for |α f| and |hat f|.
-
-  \item \textbf{Case} |ConApp k xs|:
-    The stuck case is the same as for |Var x|.
-    Otherwise, |x ∈ dom ρ| and we can show
-    \begin{DispWithArrows*}
-      \mathit{IH} ={}       & |α (eval e ρ) ⊑ eval e (α `mapMap` ρ)| \Arrow{|α . apply ⊑ apply . α|} \\
-      \Longrightarrow{}     & |α (apply (eval e ρ) (ρ ! x)) ⊑ apply (eval e (α `mapMap` ρ)) (α (ρ ! x))| \Arrow{|α . step ε ⊑ step ε . α|} \\
-      \Longrightarrow{}     & |α (step App1 (apply (eval e ρ) (ρ ! x))) ⊑ step App1 (apply (eval e (α `mapMap` ρ)) (α (ρ ! x)))| \Arrow{By definition of |eval|} \\
-      \Longleftrightarrow{} & |α (eval (App e x) ρ)) ⊑ eval (App e x) (α `mapMap` ρ)|
-    \end{DispWithArrows*}
-\end{itemize}
+\[
+\inferrule
+  {%
+   |forall (e :: Event) (d :: d1). α (at step c1 e d) ⊑ at step c2 e (α d)|\\\\
+   |α (at stuck c1) ⊑ at stuck c2|\\\\
+   |forall (f :: d1 -> d1). α . at fun c1 f ⊑ at fun c2 (α . f . γ)|\\\\
+   |forall (d :: d1) (a :: d1). α (at apply c1 d a) ⊑ at apply c2 (α d) (α a)|\\\\
+   |forall (k :: Tag) (ds :: [d1]). α (at con c1 k ds) ⊑ at con c2 k (map α ds)|\\\\
+   |forall (d :: d1) (fs :: [(Tag, [d1] -> d1)]). α (sel d f) ⊑ sel (α d) [ (k, α . f . map γ) || (k, f) <- fs ]|\\\\
+   |forall (rhs :: d1 -> d1) (body :: d1 -> d1). α (at bind c1 rhs body) ⊑ at bind c2 (α . rhs . γ) (α . body . γ)|%
+  }
+  {|α (eval3 c1 e ρ1) ⊑ eval3 c2 e (α `mapMap` ρ1)|}
+\]
 
 
 

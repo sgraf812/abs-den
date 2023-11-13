@@ -14,6 +14,7 @@
 %format qquad = "\qquad"
 %format ^ = " "
 %format ^^ = "\;"
+%format at(a)(b) = a "_{\{" b "\}}"
 
 %subst conid a = "\conid{" a "}"
 %subst varid a = "\varid{" a "}"
@@ -23,12 +24,17 @@
 %format τ = "\varid{\ensuremath{\tau}}"
 %format τ' = "\varid{\ensuremath{\tau'}}"
 %format ρ = "\varid{\ensuremath{\rho}}"
+%format ρ1 = "\varid{\ensuremath{\rho}}_1"
+%format ρ2 = "\varid{\ensuremath{\rho}}_2"
 %format φ = "\varid{\ensuremath{\varphi}}"
-%format φ1 = "\varid{\ensuremath{\varphi_1}}"
-%format φ2 = "\varid{\ensuremath{\varphi_2}}"
+%format φ1 = "\varid{\ensuremath{\varphi}}_1"
+%format φ2 = "\varid{\ensuremath{\varphi}}_2"
 %format μ = "\varid{\ensuremath{\mu}}"
 %format α = "\varid{\ensuremath{\alpha}}"
+%format αdot = "\dot{\varid{\ensuremath{\alpha}}}"
+%format αup = "\varid{\ensuremath{\alpha}}^{*}"
 %format γ = "\varid{\ensuremath{\gamma}}"
+%format γdot = "\dot{\varid{\ensuremath{\gamma}}}"
 %format θ = "\varid{\ensuremath{\theta}}"
 %format θ1 = "\varid{\ensuremath{\theta_1}}"
 %format θ2 = "\varid{\ensuremath{\theta_2}}"
@@ -39,6 +45,7 @@
 %format emp = "\varid{\ensuremath{\epsilon}}"
 %format ! = "\mathop{!}"
 %format eval(a)(b) = "\mathcal{S}\denot{" a "}_{" b "}"
+%format eval3(d)(a)(b) = "\mathcal{S}_{\{" d "\}}\denot{" a "}_{" b "}"
 %format ext(rho)(x)(d) = rho "[" x "\mapsto" d "]"
 %format exts(rho)(xs)(ds) = rho "[\many{" xs "\mapsto" ds "}]"
 %format `mapMap` = "\circ"
@@ -50,6 +57,7 @@
 %format <$> = "\mathbin{<\mspace{-6mu}\$\mspace{-6mu}>}"
 %format <|> = "\mathbin{<\mspace{-6mu}|\mspace{-6mu}>}"
 %format com = "\text{-}\text{-}"
+%format pow(a) = "\pow{" a "}"
 
 %format bottom = "\bot"
 %format d1
@@ -59,6 +67,8 @@
 %format er = "\varid{\ensuremath{e_r}}"
 %format v1
 %format v2
+%format c1
+%format c2
 %format us1
 %format us2
 %format App1
