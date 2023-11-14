@@ -1018,61 +1018,16 @@ is sound \wrt |D (ByName T)|, that is,
 \begin{proofsketch}
 It suffices to show the three soundness lemmas above.
 
-For that, we need the following auxiliary lemma:
-\begin{lemma}[Usage squeezing]
-|forall e ρ x d. eval e (ext ρ x d) ⊑ manify d >> eval e (ext ρ x bottom)|
-\end{lemma}
-\begin{proof}
-By induction on |e|.
-\begin{itemize}
-  \item \textbf{Case} |Var|: By assumption.
-  \item \textbf{Case} |Lam|: By induction hypothesis.
-  \item \textbf{Case} |App e x|:
-    Here, we might evaluate |x| both as part of evaluating |e| and in the lambda
-    body it produces.
-    We have to show
-    \begin{spec}
-      apply (eval e (ext ρ x d)) d = manify d >> eval e (ext ρ x d) ⊑ manify d >> manify bottom >> eval e (ext ρ x bottom)
-    \end{spec}
-    but since we may duplicate |manify d = manify d >> manify d|, we can apply
-    the induction hypothesis without consuming the |manify d|.
-  \item \textbf{Case} |Con|, |Case|:
-    Similar; need to duplicate |manify d| in order to apply the induction
-    hypothesis.
-\end{itemize}
-\end{proof}
-|f (hat d) ⊑ manify (hat d) >> f nopD|
-for any |hat d| and |f| ever passed to |Fun| by the semantics.
-
-In essence, |nopD| is a (syntactic) value; its concrete counterpart is a trace
-|Ret v| that immediately returns a value |v|.
-By contrast, |hat d| might evaluate free variables on its way to head-normal
-form, so there it might do many |Step (Lookup x) _| steps before reaching
-a value.
-By ``forcing'' |manify (hat d)| before the call to |f|, we get to see those
-steps before even calling |f|, mapping each looked up variable to a top result.
-In other words, no evaluation of |hat d| in
-
-In the concrete realm of |D (ByNeed T)| we can capture
-
-But first we need the following auxiliary relation |interleav| that interleaves :
-\begin{code}
-diff :: D (ByName T) -> D (ByName T) -> D (ByName T)
-diff (ByName τ1) (ByName τ2) = ByName (go τ1 τ2) where
-  go (Step e1 τ1)    (Step e2 τ2)  | e1 == e2  = go τ1 τ2
-                                   | otherwise = Step e1 (go τ1 (Step e2 τ2))
-  go (Ret (Fun f1))      (Ret (Fun f2)) = Ret (Fun (\d -> minus (f1 d) (f2 d)))
-  go (Ret (Con k1 ds1))  (Ret (Con k2 ds2)) | k1 == k2 = Ret (Con k1 (zipWith minus ds1 ds2))
-  go (Ret Stuck)         (Ret Stuck)  = Ret Stuck
-\end{code}
-
 \begin{enumerate}
   \item |forall d a. α (apply d a) ⊑ apply (α d) (α a)|: \\
+    By unfolding both definitions, we get the goal
+    \[
+      |forall d a. α (d >>= \case Fun f -> f a; _ -> stuck) ⊑ α d >> manify (α a)|
+    \]
+
     \begin{DispWithArrows*}[fleqn,mathindent=1em]
                             & |forall d a. α (apply d a) ⊑ apply (α d) (α a)| \Arrow{Unfold $(\cong)$} \\
-      \Longleftrightarrow{} & |forall d a. α (apply d a) ⊑ apply (α d) (α a)|
-                              \Arrow{Refold} \\
-      \Longleftrightarrow{} & |forall d a. α (d >>= \case Fun f -> f a; _ -> stuck) ⊑ α d >> manify (α a)|
+      \Longleftrightarrow{} &
                               \Arrow{Refold} \\
       \Longleftrightarrow{} & |forall d a. α (apply d a) ⊑ apply (α d) (α a)|
     \end{DispWithArrows*}

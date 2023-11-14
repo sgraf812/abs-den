@@ -127,7 +127,6 @@
 %format (setundef(a)) = "\{" a "\}"
 %format Lub(a) = "\Lub\{" a "\}"
 %format powMap(f) = "{" f "}^{*}"
-%format interleav a b = "{" a "\interleav" b "}"
 %format ι = "\varid{$\iota$}"
 %format AT = "\varid{$\widehat{T}$}"
 %format AV = "\varid{$\widehat{V}$}"
