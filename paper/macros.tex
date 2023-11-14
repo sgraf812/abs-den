@@ -194,9 +194,14 @@
 \newcommand{\compop}[1]{%
   \mathbin{\vec{\ooalign{$\circ$\cr\hidewidth$#1$\hidewidth}}}}
 \makeatother
+\makeatletter
+\newcommand{\circop}[1]{%
+  \mathbin{\ooalign{$\circ$\cr\hidewidth$#1$\hidewidth}}}
+\makeatother
 \newcommand{\concat}{\concatop{\cdot}}
 \newcommand{\fcomp}{\compop{\cdot}}
 \newcommand{\fcons}{\mathbin{\vec{::}}}
+\newcommand{\interleav}{\circop{\cdot}}
 \newcommand{\getval}[2]{#1 \Downarrow #2}
 \newcommand{\subtrceq}{\superimpose[\mathrel]{\clipbox{0pt 0pt {0.3\width} 0pt}{${\subset}$}}{\hspace{0.6ex}\cdot}}
 \newcommand{\rightsubtrceq}{\subtrceq_r}

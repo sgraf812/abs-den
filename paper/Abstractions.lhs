@@ -86,9 +86,9 @@ manify (Uses φ Nop) = Uses (φ+φ) Nop
 instance Domain UD where
   stuck                                  = nopD
   fun {-" \iffalse "-}_{-" \fi "-} f     = manify (f nopD)
-  con {-" \iffalse "-}_{-" \fi "-} _ ds  = manify (foldr (+) nopD ds)
-  apply d1 d2                               = d1 + manify d2
-  select d fs                               = d + lub [ f (replicate (conArity k) nopD) | (k,f) <- fs ]
+  con {-" \iffalse "-}_{-" \fi "-} _ ds  = manify (foldr (>>) nopD ds)
+  apply d a                              = manify a >> d
+  select d fs                            = d >> lub [ f (replicate (conArity k) nopD) | (k,f) <- fs ]
 
 instance Lat UD where
   bottom = nopD
@@ -127,9 +127,6 @@ instance Applicative UT where
 
 instance Show UValue where
   show Nop = ""
-
-instance Plussable UD where
-  Uses us1 _ + Uses us2 _ = Uses (us1 + us2) Nop
 \end{code}
 %endif
 \caption{Naïve usage analysis via |Domain| and |HasBind|}
@@ -192,6 +189,39 @@ Likewise, when returning a function in |fun|, that function is ``squeezed
 dry'' by passing it a |nopD| and |manify|ing the result, thus accounting for
 uses inside the function body at any potential call site.
 (Recall that uses of the argument at the call site is handled by |apply|.)
+
+The following lemma formalises this notion of ``sequeezing dry'' a |d|, and it
+is material in proving the summary mechanism correct in \Cref{sec:soundness}:
+\begin{lemmarep}[Usage squeezing]
+\label{thm:usage-squeezing}
+|forall e ρ x d. eval e (ext ρ x d) ⊑ manify d >> eval e (ext ρ x bottom)|.
+\end{lemmarep}
+\begin{proof}
+By induction on |e|.
+\begin{itemize}
+  \item \textbf{Case} |Var|: By assumption.
+  \item \textbf{Case} |Lam|: By induction hypothesis.
+  \item \textbf{Case} |App e y|:
+    The case |x /= y| is a simple application of the induction hypothesis.
+    Otherwise, we might evaluate |x| both as part of evaluating |e| and in the
+    lambda body it produces.
+    Fortunately, we may collapse |manify d >> manify d = manify d| as often as
+    needed, and |manify bottom >>| is the identity function.
+    Thus we can show
+    \begin{DispWithArrows*}[fleqn,mathindent=5em]
+         & |eval (App e x) (ext ρ x d)| \Arrow{Definition} \\
+      ={}& |apply (eval e (ext ρ x d)) d| \Arrow{Definition} \\
+      ={}& |manify d >> eval e (ext ρ x d)| \Arrow{IH} \\
+      ⊑{}& |manify d >> manify d >> eval e (ext ρ x bottom)| \Arrow{Collapse |manify d|, expand |d = manify bottom >> d|} \\
+      ={}& |manify bottom >> manify d >> eval e (ext ρ x bottom)| \Arrow{Definition} \\
+      ={}& |manify d >> apply (eval e (ext ρ x bottom)) bottom| \Arrow{Definition} \\
+      ={}& |manify d >> eval (App e x) (ext ρ x bottom)|
+    \end{DispWithArrows*}
+  \item \textbf{Case} |Con|, |Case|:
+    Similar; need to collapse |manify d| after applying the induction
+    hypothesis.
+\end{itemize}
+\end{proof}
 
 The final key to a terminating definition is in swapping out the fixpoint
 combinator via the |HasBind| instance for |UValue| that computes an

@@ -787,7 +787,8 @@ Their contribution is threefold:
 \end{itemize}
 
 The third point has recently been used to great effect in \citet{Keidel:18}.
-For us the effect is no different:
+For us the effect is no different, using notation |eval3 c| to indicate the
+invisible application of |eval| to the type class dictionary |c :: C d|:
 
 \begin{theoremrep}[Sound Abstract Interpretation]
 \label{thm:sound-abs-int}
@@ -795,9 +796,9 @@ Let |D1|, |D2| be two domains such that there are instances |c1 :: C D1|,|c2 ::
 C D2| for the constraint tuple |C d := (Trace d, Domain d, HasBind d)|,
 and $(|D1|,≤) \galois{|α|}{|γ|} (|D2|,⊑)$ a Galois connection.
 Then |eval3 c2 e (α `mapMap` ρ)| is a sound abstract interpretation of |eval3 c1
-e ρ|, written
+e ρ| for all |e :: Expr| and |ρ :: Name :-> D1|, written
 \[
-  |forall e ρ. α (eval3 c1 e ρ :: D1) ⊑ (eval3 c2 e (α `mapMap` ρ) :: D2)|,
+  |forall (e :: Expr) (ρ :: Name :-> D1). α (eval3 c1 e ρ :: D1) ⊑ (eval3 c2 e (α `mapMap` ρ) :: D2)|,
 \]
 if |αup c1 ⊑ c2|, that is, all methods of |c2| are sound abstractions of |c1|
 according to |α|.
@@ -808,7 +809,8 @@ The Identity Extension Lemma applied to the type
 \[
   (|eval3|,|eval3|) ∈ \denot{|forall d. C d => Expr -> (Name :-> d) -> d|}_r
 \]
-This simplifies to the following inference rule:
+This simplifies to the following inference rule (note that $\mathcal{D}$ is just
+universally quantified like any other variable):
 \[
 \inferrule*
   {(|c1|,|c2|) ∈ \denot{|C d|}_r(\mathcal{D}) \\
@@ -830,7 +832,7 @@ Applied to our type class algebra |C d|, \Cref{thm:sound-abs-int} turns into
 the following simplified (\eg, with |αup| expanded) inference rule:
 \footnote{We found it handy to double-check our result using the
 ``Free Theorems'' Web UI provided by
-\url{https://free-theorems.nomeata.de/}~\citet{Boehme:07} to generate the free
+\url{https://free-theorems.nomeata.de/}~\citep{Boehme:07} to generate the free
 theorem for the |eval| function, the type of which is simple enough to be
 encoded in Haskell98.}
 \[
@@ -844,7 +846,7 @@ encoded in Haskell98.}
    |forall (d :: d1) (fs :: [(Tag, [d1] -> d1)]). α (sel d f) ⊑ sel (α d) [ (k, α . f . map γ) || (k, f) <- fs ]|\\\\
    |forall (rhs :: d1 -> d1) (body :: d1 -> d1). α (at bind c1 rhs body) ⊑ at bind c2 (α . rhs . γ) (α . body . γ)|%
   }
-  {|α (eval3 c1 e ρ1) ⊑ eval3 c2 e (α `mapMap` ρ1)|}
+  {|α (eval3 c1 e ρ) ⊑ eval3 c2 e (α `mapMap` ρ)|}
 \]
 %if False
 Input of https://free-theorems.nomeata.de/:
@@ -958,23 +960,23 @@ Gist:
 
 We now put the soundness result to bear by instantiating the concrete |D1| to
 by-name semantics |D (ByName T)| and deriving an abstraction function capturing
-trace properties from it, but otherwise leaving |D2| abstract for now.
+trace properties from it, all the while leaving |D2| abstract.
 
 Following \citet[page 253]{Nielson:99}, every embedding |ι :: a -> b| into a
 partial order yields a Galois connection between $(|Pow a|,⊆)$ and $(|b|,⊑)$:
 \begin{code}
 data Galois a b = (a -> b) :<->: (b -> a)
 embed :: Lat b => (a -> b) -> Galois (Pow a) b
-embed ι = α :<->: γ where  α  (P as)  = Lub (ι a | a <- as)
-                           γ  b       = P (setundef (a | ι a ⊑ b))
+embed ι = α :<->: γ where α (P as) = Lub (ι a | a <- as); γ b = P (setundef (a | ι a ⊑ b))
 \end{code}
 (While the concretisation function exists as a mathematical function, it is in
 general impossible to compute.)
 Every domain |D2| with instances |(Trace D2, Domain D2, Lat D2)| induces a
 \emph{trace abstraction} |trace| via the following embedding, and the |byName|
-abstraction is just the fixpoint of that Galois connection:
+abstraction is the fixpoint of that Galois connection modulo |ByName|
+constructors (we write |powMap f| to map |f| over |Pow|ersets):
 \begin{code}
-trace :: (Trace d, Domain d, Lat d) => Galois (Pow (D c)) d -> Galois (Pow (T (Value c))) d
+trace :: (Trace d, Domain d, Lat d) => Galois (Pow (D r)) d -> Galois (Pow (T (Value r))) d
 trace (α :<->: γ) = embed ι where  ι (Ret Stuck)       = stuck
                                    ι (Ret (Fun f))     = fun {-"\iffalse"-}""{-"\fi"-} (α . (powMap f) . γ)
                                    ι (Ret (Con k ds))  = con {-"\iffalse"-}""{-"\fi"-} k (map (α . set) ds)
@@ -1000,9 +1002,9 @@ The reading is as follows: The first two soundness lemmas prove correct the
 summary mechanism implemented in |apply| and |select|, while |bind| implements a
 particular fixpointing strategy each of which needs a separate correctness proof.
 (We decided not to inline the instance methods of |C (D (ByName T))|, because
-they don't simplify any further with |α|.)
+they don't meaningfully simplify any further with |α|.)
 
-It is clear that we can't simplify our proof obligations any further without
+It is clear that we can't decompose our proof obligations any further without
 fixing a particular instance |C D2|, so we will now prove usage analysis
 (|UD| from \Cref{fig:abs-usg}) correct \wrt by-name semantics, by showing the
 above three lemmas.
@@ -1013,6 +1015,66 @@ is sound \wrt |D (ByName T)|, that is,
   |forall e ρ. α (eval e ρ :: D (ByName T)) ⊑ (eval e (α `mapMap` ρ) :: UD) where α :<->: _ = byName|
 \]
 \end{theoremrep}
+\begin{proofsketch}
+It suffices to show the three soundness lemmas above.
+
+For that, we need the following auxiliary lemma:
+\begin{lemma}[Usage squeezing]
+|forall e ρ x d. eval e (ext ρ x d) ⊑ manify d >> eval e (ext ρ x bottom)|
+\end{lemma}
 \begin{proof}
-Oh boy
+By induction on |e|.
+\begin{itemize}
+  \item \textbf{Case} |Var|: By assumption.
+  \item \textbf{Case} |Lam|: By induction hypothesis.
+  \item \textbf{Case} |App e x|:
+    Here, we might evaluate |x| both as part of evaluating |e| and in the lambda
+    body it produces.
+    We have to show
+    \begin{spec}
+      apply (eval e (ext ρ x d)) d = manify d >> eval e (ext ρ x d) ⊑ manify d >> manify bottom >> eval e (ext ρ x bottom)
+    \end{spec}
+    but since we may duplicate |manify d = manify d >> manify d|, we can apply
+    the induction hypothesis without consuming the |manify d|.
+  \item \textbf{Case} |Con|, |Case|:
+    Similar; need to duplicate |manify d| in order to apply the induction
+    hypothesis.
+\end{itemize}
 \end{proof}
+|f (hat d) ⊑ manify (hat d) >> f nopD|
+for any |hat d| and |f| ever passed to |Fun| by the semantics.
+
+In essence, |nopD| is a (syntactic) value; its concrete counterpart is a trace
+|Ret v| that immediately returns a value |v|.
+By contrast, |hat d| might evaluate free variables on its way to head-normal
+form, so there it might do many |Step (Lookup x) _| steps before reaching
+a value.
+By ``forcing'' |manify (hat d)| before the call to |f|, we get to see those
+steps before even calling |f|, mapping each looked up variable to a top result.
+In other words, no evaluation of |hat d| in
+
+In the concrete realm of |D (ByNeed T)| we can capture
+
+But first we need the following auxiliary relation |interleav| that interleaves :
+\begin{code}
+diff :: D (ByName T) -> D (ByName T) -> D (ByName T)
+diff (ByName τ1) (ByName τ2) = ByName (go τ1 τ2) where
+  go (Step e1 τ1)    (Step e2 τ2)  | e1 == e2  = go τ1 τ2
+                                   | otherwise = Step e1 (go τ1 (Step e2 τ2))
+  go (Ret (Fun f1))      (Ret (Fun f2)) = Ret (Fun (\d -> minus (f1 d) (f2 d)))
+  go (Ret (Con k1 ds1))  (Ret (Con k2 ds2)) | k1 == k2 = Ret (Con k1 (zipWith minus ds1 ds2))
+  go (Ret Stuck)         (Ret Stuck)  = Ret Stuck
+\end{code}
+
+\begin{enumerate}
+  \item |forall d a. α (apply d a) ⊑ apply (α d) (α a)|: \\
+    \begin{DispWithArrows*}[fleqn,mathindent=1em]
+                            & |forall d a. α (apply d a) ⊑ apply (α d) (α a)| \Arrow{Unfold $(\cong)$} \\
+      \Longleftrightarrow{} & |forall d a. α (apply d a) ⊑ apply (α d) (α a)|
+                              \Arrow{Refold} \\
+      \Longleftrightarrow{} & |forall d a. α (d >>= \case Fun f -> f a; _ -> stuck) ⊑ α d >> manify (α a)|
+                              \Arrow{Refold} \\
+      \Longleftrightarrow{} & |forall d a. α (apply d a) ⊑ apply (α d) (α a)|
+    \end{DispWithArrows*}
+\end{enumerate}
+\end{proofsketch}

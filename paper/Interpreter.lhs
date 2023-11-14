@@ -267,8 +267,8 @@ instance Domain D where
   stuck = return Stuck
   fun {-" \iffalse "-}_{-" \fi "-} f = return (Fun f)
   con {-" \iffalse "-}_{-" \fi "-} k ds = return (Con k ds)
-  apply  dv da = dv >>= \case Fun f -> f da; _ -> stuck
-  select v alts = ...
+  apply  d a = d >>= \case Fun f -> f a; _ -> stuck
+  select d alts = ...
 
 instance HasBind D where
   bind rhs body = body (fix rhs)

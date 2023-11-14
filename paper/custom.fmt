@@ -26,6 +26,8 @@
 
 %format τ = "\varid{\ensuremath{\tau}}"
 %format τ' = "\varid{\ensuremath{\tau'}}"
+%format τ1 = "\varid{\ensuremath{\tau}}_1"
+%format τ2 = "\varid{\ensuremath{\tau}}_2"
 %format ρ = "\varid{\ensuremath{\rho}}"
 %format ρ1 = "\varid{\ensuremath{\rho}}_1"
 %format ρ2 = "\varid{\ensuremath{\rho}}_2"
@@ -124,7 +126,8 @@
 %format (set(a)) = "\{" a "\}"
 %format (setundef(a)) = "\{" a "\}"
 %format Lub(a) = "\Lub\{" a "\}"
-%format (powMap(f)) = "{" f "}^{*}"
+%format powMap(f) = "{" f "}^{*}"
+%format interleav a b = "{" a "\interleav" b "}"
 %format ι = "\varid{$\iota$}"
 %format AT = "\varid{$\widehat{T}$}"
 %format AV = "\varid{$\widehat{V}$}"
