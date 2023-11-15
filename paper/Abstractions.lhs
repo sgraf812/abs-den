@@ -194,7 +194,7 @@ The following lemma formalises this notion of ``sequeezing dry'' a |d|, and it
 is material in proving the summary mechanism correct in \Cref{sec:soundness}:
 \begin{lemmarep}[Usage squeezing]
 \label{thm:usage-squeezing}
-|forall e ρ x d. eval e (ext ρ x d) ⊑ manify d >> eval e (ext ρ x bottom)|.
+|forall e ρ x d. eval e (ext ρ x d) ⊑ manify d >> eval e (ext ρ x nopD)|.
 \end{lemmarep}
 \begin{proof}
 By induction on |e|.
@@ -206,16 +206,16 @@ By induction on |e|.
     Otherwise, we might evaluate |x| both as part of evaluating |e| and in the
     lambda body it produces.
     Fortunately, we may collapse |manify d >> manify d = manify d| as often as
-    needed, and |manify bottom >>| is the identity function.
+    needed, and |manify nopD >>| is the identity function.
     Thus we can show
     \begin{DispWithArrows*}[fleqn,mathindent=5em]
          & |eval (App e x) (ext ρ x d)| \Arrow{Definition} \\
       ={}& |apply (eval e (ext ρ x d)) d| \Arrow{Definition} \\
       ={}& |manify d >> eval e (ext ρ x d)| \Arrow{IH} \\
-      ⊑{}& |manify d >> manify d >> eval e (ext ρ x bottom)| \Arrow{Collapse |manify d|, expand |d = manify bottom >> d|} \\
-      ={}& |manify bottom >> manify d >> eval e (ext ρ x bottom)| \Arrow{Definition} \\
-      ={}& |manify d >> apply (eval e (ext ρ x bottom)) bottom| \Arrow{Definition} \\
-      ={}& |manify d >> eval (App e x) (ext ρ x bottom)|
+      ⊑{}& |manify d >> manify d >> eval e (ext ρ x nopD)| \Arrow{Collapse |manify d|, expand |d = manify nopD >> d|} \\
+      ={}& |manify nopD >> manify d >> eval e (ext ρ x nopD)| \Arrow{Definition} \\
+      ={}& |manify d >> apply (eval e (ext ρ x nopD)) nopD| \Arrow{Definition} \\
+      ={}& |manify d >> eval (App e x) (ext ρ x nopD)|
     \end{DispWithArrows*}
   \item \textbf{Case} |Con|, |Case|:
     Similar; need to collapse |manify d| after applying the induction
