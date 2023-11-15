@@ -716,8 +716,8 @@ E.g., when |α d ⊑ hat d| --- or, equivalently, |d ≤ γ (hat d)| --- then
 this Galois connection expresses that |hat d| is a sound abstraction of |d|.
 This theory comes to life when instantiating the concrete lattice to the set of
 program traces, in which the set |set (eval e ρ :: D (ByName T))| can be
-regarded as the most precise program property characterising the evaluation of
-an expression |e| in an environment |ρ|.
+regarded as the most precise property of traces characterising the
+evaluation of an expression |e| in an environment |ρ|.
 In this case, the concrete order $≤$ really is subset inclusion $⊆$ and
 soundness of the analysis is expressed as
 \[\begin{array}{ll}
@@ -762,8 +762,8 @@ Their contribution is threefold:
     well as its type when it is clear from context (\eg, its argument).
   \item
     Secondly, by appealing to parametricity~\citet{Reynolds:83} of Haskell's
-    type system (its total subset we have used to define our framework using
-    in particular), the proof that the Galois connection thus systematically
+    type system (its total subset we have used to define our framework in
+    particular), the proof that the Galois connection thus systematically
     constructed is in fact a Galois connection follows by the \emph{Free
     Theorem}~\citet{Wadler:89,Ghani:16} of its type.
     I.e., defining $\mathcal{D} \triangleq |set ((d,hat d) || α d ⊑ hat d)|$,
