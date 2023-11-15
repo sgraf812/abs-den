@@ -733,14 +733,14 @@ structure!
 
 There are at least two ways to exploit this similarity in structure.
 The first is to let the soundness criterion drive us to \emph{construct} a
-suitable abstract semantics; Cousot calls this process \emph{calculational
-design}~\citet{Cousot:21}.
+abstract semantics from the concrete one and the Galois connection; Cousot calls
+this process \emph{calculational design}~\citet{Cousot:21}.
 
 But in our case, we already have a shared interpreter.
-It would be far more economical to prove sound approximation lemmas for each
-input to |eval| such as |ρ| and the type class methods individually and get
-the soundness proof on |eval| for free, without ever reasoning about shared
-structure!
+It would be far more economical to derive a Galois connection from concrete and
+abstract class instances, prove sound approximation lemmas for each method of
+these type class instances individually and get the soundness proof on |eval|
+for free, without ever reasoning about shared structure!
 
 What sounds to good to be true has first been demonstrated by
 \citet{Backhouse:04}.
@@ -749,15 +749,17 @@ Their contribution is threefold:
   \item
     The first is that they have shown how to systematically construct Galois
     connections of higher-order types (such as for |ρ :: Name :-> D| above) from
-    Galois connection for base types (such as |D|).
+    Galois connections for base types (such as |D|).
     For example, given a Galois connection
     $(|D|, ≤) \galois{|α|}{|γ|} (|hat D|,⊑)$, there is a canonical way to
     construct a Galois connection
     $(|D -> D|, \dot{≤}) \galois{\dot{|α|}}{\dot{|γ|}} (|hat D -> hat D|, \dot{⊑})$
     simply by following the structure of types, in this case as
-    |αdot f := α . f . γ|.
+    |αdot f := α . f . γ|, which coincides with the canonical way for how to
+    lift a Galois connection to monotone functions~\citet[TODO]{Nielson:99}.
     Similar constructions can be given for products, sums, polymorphic types and
-    thus for the dictionary desugaring of Haskell 98 type class declarations~\citet{Hall:96}.
+    thus for the dictionary desugaring of Haskell 98 type class
+    declarations~\citet{Hall:96}.
     We will denote abstraction functions thus derived with |αup| and omit |α| as
     well as its type when it is clear from context (\eg, its argument).
   \item
@@ -768,7 +770,7 @@ Their contribution is threefold:
     Theorem}~\citet{Wadler:89,Ghani:16} of its type.
     I.e., defining $\mathcal{D} \triangleq |set ((d,hat d) || α d ⊑ hat d)|$,
     the Identity Extension Lemma~\citet[Lemma 3.2]{Ghani:16} applied to an
-    arbitrary function pairing |f :: D -> D|, |hat f :: hat D -> hat D| yields
+    arbitrary function pairing $(|f :: D -> D|, |hat f :: hat D -> hat D|)$ yields
     $(|f|,|hat f|) ∈ \denot{|d -> d|}_r(\mathcal{D})$, so for all |d|, |hat d| such
     that $(|d|, |hat d|) ∈ \mathcal{D}$, we have
     $(|f d|, |hat f (hat d)|) ∈ \mathcal{D}$.
@@ -787,15 +789,34 @@ Their contribution is threefold:
 \end{itemize}
 
 The third point has recently been used to great effect in \citet{Keidel:18}.
-For us the effect is no different, using notation |eval3 c| to indicate the
-invisible application of |eval| to the type class dictionary |c :: C d|:
+Alas, the correctness criterion provided by parametricity is too weak, because
+it goes just by the type and thus can't consider how the type class methods are
+used.
+The soundness criterion yielded by parametricity is a good starting point when
+adjusting writing a denotational interpreter for a different language, though.
+\sg{Clean up this bit about parametricity; since we no longer really depend on
+it, why mention it? A short para should be enough.}
+Our soundness criterion can be stated as follows, using notation |eval3 c| to
+indicate the invisible application of |eval| to the type class dictionary
+|c :: C d|:
 
 \begin{theoremrep}[Sound Abstract Interpretation]
 \label{thm:sound-abs-int}
 Let |D1|, |D2| be two domains such that there are instances |c1 :: C D1|,|c2 ::
 C D2| for the constraint tuple |C d := (Trace d, Domain d, HasBind d)|,
 and $(|D1|,≤) \galois{|α|}{|γ|} (|D2|,⊑)$ a Galois connection.
-Then |eval3 c2 e (α `mapMap` ρ)| is a sound abstract interpretation of |eval3 c1
+If the following soundness lemmas relating |c1| and |c2| hold,
+assuming that $|forall d f a. d = fun f| \Longrightarrow |exists e ρ x. f a = step App2 (eval e (ext ρ x a))|$,
+\begin{itemize}
+  \item |forall (e :: Event) (d :: D1). α (at step c1 e d) ⊑ at step c2 e (α d)|
+  \item |α (at stuck c1) ⊑ at stuck c2|
+  \item |forall (f :: D1 -> D1). α (at fun c1 f) ⊑ at fun c2 (α . f . γ)|
+  \item |forall (d :: D1) (a :: D1). (exists e ρ x. fun (α f) α (at apply c1 d a) ⊑ at apply c2 (α d) (α a)|
+  \item |forall (k :: Tag) (ds :: [D1]). α (at con c1 k ds) ⊑ at con c2 k (map α ds)|
+  \item |forall (d :: D1) (fs :: [(Tag, [D1] -> D1)]). α (sel d f) ⊑ sel (α d) [ (k, α . f . map γ) || (k, f) <- fs ]|
+  \item |forall (rhs :: D1 -> D1) (body :: D1 -> D1). α (at bind c1 rhs body) ⊑ at bind c2 (α . rhs . γ) (α . body . γ)|%
+\end{itemize}
+then |eval3 c2 e (α `mapMap` ρ)| is a sound abstract interpretation of |eval3 c1
 e ρ| for all |e :: Expr| and |ρ :: Name :-> D1|, written
 \[
   |forall (e :: Expr) (ρ :: Name :-> D1). α (eval3 c1 e ρ :: D1) ⊑ (eval3 c2 e (α `mapMap` ρ) :: D2)|,
@@ -1053,15 +1074,17 @@ It is customary to write |ι = α . set|, which is equal to the trace embedding 
               & |ι (Ret (Fun f) >>= \case Fun f -> f a; _ -> stuck)|
               \Arrow{Simplify} \\
           ={} & |ι (f a)|
-              \Arrow{|f a| is of the form |step App2 (eval e (ext ρ x a))|} \\
-          ={} & |ι (step App2 (eval e (ext ρ x a)))|
-              \Arrow{Unfold |ι|, |step|} \\
-          ={} & |ι (eval e (ext ρ x a))|
-              \Arrow{Apply \Cref{thm:usage-squeezing}} \\
-          ⊑{} & |ι (step App2 (eval e (ext ρ x a)))|
-              \Arrow{Monotonicity of |step|, IH} \\
-          ⊑{} & |step e (ι d >> ...)|
-              \Arrow{|step| associates with |>>|} \\
+              \Arrow{Galois} \\
+          ⊑{} & |α (powMap f a)| \\
+%              \Arrow{|f a| is of the form |step App2 (eval e (ext ρ x a))|} \\
+%          ={} & |ι (step App2 (eval e (ext ρ x a)))|
+%              \Arrow{Unfold |ι|, |step|} \\
+%          ={} & |ι (eval e (ext ρ x a))|
+%              \Arrow{Apply \Cref{thm:usage-squeezing}} \\
+%          ⊑{} & |ι (step App2 (eval e (ext ρ x a)))|
+%              \Arrow{Monotonicity of |step|, IH} \\
+%          ⊑{} & |step e (ι d >> ...)|
+%              \Arrow{|step| associates with |>>|} \\
           ={} & |step e (ι d) >> ...|
         \end{DispWithArrows*}
     \end{itemize}
