@@ -991,12 +991,12 @@ lemmas (proven by unfolding |byName|), leaving just 3 lemmas in place:
 \[
 \inferrule
   {%
-   |α :<->: γ = byName|\\\\
-   |forall d a. α (apply d a) ⊑ apply (α d) (α a)|\\\\
-   |forall d fs. α (select d f) ⊑ select (α d) [ (k, α . f . map γ) || (k, f) <- fs ]|\\\\
-   |forall rhs body. α (bind rhs body) ⊑ bind (α . rhs . γ) (α . body . γ)|%
+   |α :<->: γ = byName| \\ |ι = α . set| \\\\
+   |forall d a. ι (apply d a) ⊑ apply (ι d) (ι a)|\\\\
+   |forall d fs. ι (select d f) ⊑ select (ι d) [ (k, α . powMap f . map γ) || (k, f) <- fs ]|\\\\
+   |forall rhs body. ι (bind rhs body) ⊑ bind (α . powMap rhs . γ) (α . powMap body . γ)|%
   }
-  {|α (eval e ρ :: D (ByName T)) ⊑ (eval e (α `mapMap` ρ) :: D2)|}
+  {|ι (eval e ρ :: D (ByName T)) ⊑ (eval e (ι `mapMap` ρ) :: D2)|}
 \]
 The reading is as follows: The first two soundness lemmas prove correct the
 summary mechanism implemented in |apply| and |select|, while |bind| implements a
@@ -1012,24 +1012,58 @@ above three lemmas.
 \begin{theoremrep} Usage Analysis as implemented by |UD| in \Cref{fig:abs-usg}
 is sound \wrt |D (ByName T)|, that is,
 \[
-  |forall e ρ. α (eval e ρ :: D (ByName T)) ⊑ (eval e (α `mapMap` ρ) :: UD) where α :<->: _ = byName|
+  |forall e ρ. α (set (eval e ρ :: D (ByName T))) ⊑ (eval e (α `mapMap` set `mapMap` ρ) :: UD) where α :<->: _ = byName|
 \]
 \end{theoremrep}
 \begin{proofsketch}
 It suffices to show the three soundness lemmas above.
-
+It is customary to write |ι = α . set|, which is equal to the trace embedding in
+|trace|.
 \begin{enumerate}
-  \item |forall d a. α (apply d a) ⊑ apply (α d) (α a)|: \\
+  \item |forall d a. ι (apply d a) ⊑ apply (ι d) (ι a)|: \\
     By unfolding both definitions, we get the goal
     \[
-      |forall d a. α (d >>= \case Fun f -> f a; _ -> stuck) ⊑ α d >> manify (α a)|
+      |forall d a. ι (d >>= \case Fun f -> f a; _ -> stuck) ⊑ ι d >> manify (ι a)|
     \]
-
-    \begin{DispWithArrows*}[fleqn,mathindent=1em]
-                            & |forall d a. α (apply d a) ⊑ apply (α d) (α a)| \Arrow{Unfold $(\cong)$} \\
-      \Longleftrightarrow{} &
-                              \Arrow{Refold} \\
-      \Longleftrightarrow{} & |forall d a. α (apply d a) ⊑ apply (α d) (α a)|
-    \end{DispWithArrows*}
+    and we show these by löb induction on |d|.
+    \begin{itemize}
+      \item \textbf{Case} |Step e d|:
+        \begin{DispWithArrows*}[fleqn,mathindent=6em]
+              & |ι (Step e d >>= \case Fun f -> f a; _ -> stuck)|
+              \Arrow{Unfold |ι|} \\
+          ={} & |step e (ι (d >>= \case Fun f -> f a; _ -> stuck))|
+              \Arrow{Monotonicity of |step|, IH} \\
+          ⊑{} & |step e (manify (ι a) >> ι d)|
+              \Arrow{|step| commutes with |>>|} \\
+          ={} & |manify (ι a) >> step e (ι d)|
+              \Arrow{Refold |ι|} \\
+          ={} & |manify (ι a) >> ι (Step e d)|
+        \end{DispWithArrows*}
+      \item \textbf{Case} |Ret v|:
+        When |v /= Fun f|, |ι (d >> stuck) = ι d ⊑ manify (ι a) >> ι d|.
+        Otherwise |v = Fun f| for some |f| and the goal is to prove
+        \[
+          |ι (Ret (Fun f) >>= \case Fun f -> f a; _ -> stuck)| ⊑ |apply (ι (Ret (Fun f))) (ι a)|
+        \]
+        By the definition of Galois connections, this is equivalent to
+        \[
+          \{|Ret (Fun f) >>= \case Fun f -> f a; _ -> stuck)|\} ⊆  |γ (apply (ι (Ret (Fun f))) (ι a))|
+        \]
+        \begin{DispWithArrows*}[fleqn,mathindent=6em]
+              & |ι (Ret (Fun f) >>= \case Fun f -> f a; _ -> stuck)|
+              \Arrow{Simplify} \\
+          ={} & |ι (f a)|
+              \Arrow{|f a| is of the form |step App2 (eval e (ext ρ x a))|} \\
+          ={} & |ι (step App2 (eval e (ext ρ x a)))|
+              \Arrow{Unfold |ι|, |step|} \\
+          ={} & |ι (eval e (ext ρ x a))|
+              \Arrow{Apply \Cref{thm:usage-squeezing}} \\
+          ⊑{} & |ι (step App2 (eval e (ext ρ x a)))|
+              \Arrow{Monotonicity of |step|, IH} \\
+          ⊑{} & |step e (ι d >> ...)|
+              \Arrow{|step| associates with |>>|} \\
+          ={} & |step e (ι d) >> ...|
+        \end{DispWithArrows*}
+    \end{itemize}
 \end{enumerate}
 \end{proofsketch}
