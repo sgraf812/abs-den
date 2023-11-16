@@ -1079,6 +1079,31 @@ sound abstract interpretation of by-name traces:
 \]
 \end{theoremrep}
 \begin{proofsketch}
+Need the following lemma:
+\begin{lemma}
+If whenever |eval e ρ = Step _ (... eval v ρ' ...)|
+we have |α (eval v ρ') ⊑ eval v (α `mapMap` ρ')|,
+then |α (eval e ρ) ⊑ eval e (α `mapMap` ρ)|.
+\end{lemma}
+\begin{proof}
+By Löb induction and cases on |e|.
+\begin{itemize}
+  \item \textbf{Case} |Var x|: By assumption on |ρ|. \sg{Urgh, these are all very implicit, relying on non-proven full abstraction}
+  \item \textbf{Case} |Lam|,|ConApp|: By assumption.
+  \item \textbf{Case} |App e x|:
+    By cases on the characteristic of the trace |eval e ρ|.
+    If ultimately stuck, then
+\end{itemize}
+\end{proof}
+
+\[
+  |α (f a) ⊑ apply (fun (α f)) (α a)| \\
+  |forall f a. α (f a) ⊑ apply (fun (α . f . γ)) (α a)| \\
+  \mathit{is the same as (because |a ⊑ γ (α a)|)} \\
+  |forall (hat f) (hat a). (α f ⊑ hat f, α a ⊑ hat a).  (hat f) (hat a) ⊑ apply (fun (hat f)) (hat a)| \\
+  \mathit{but show the above for any |hat f| of the required form and |hat a|, I think} \\
+\]
+
 By Löb induction and cases on |e|, also maintaining the invariant that if the
 returned trace ends in |Fun f|, it satisfies
 $φ(f) \triangleq |exists e' ρ' y. forall d. f d = eval e' (ext ρ' y d)|$.
@@ -1107,7 +1132,7 @@ This is also an assumption we make on |ρ|.
     Otherwise, our proof obligation can be simplified as follows
     \begin{DispWithArrows*}[fleqn,mathindent=4em]
           & |α (eval (App e x) ρ)|
-          \Arrow{Unfold |eval|, |>>=|} \\
+          \Arrow{Unfold |eval|, |apply|, |>>=|} \\
       ={} & |α (eval e ρ >>= \case Fun f -> f (ρ ! x); _ -> stuck)|
           \Arrow{The argument below for |τ := eval e ρ|} \\
       ⊑{} & |apply (eval e (α `mapMap` ρ)) ((α `mapMap` ρ) ! x)|
@@ -1118,7 +1143,7 @@ This is also an assumption we make on |ρ|.
     We will show the approximation step above by Löb induction on the trace |τ|
     with induction hypothesis 2
     \[
-      |forall τ. exists (hat τ) ⊒ α τ. α (d >>= \case Fun f -> f (ρ ! x); _ -> stuck) ⊑ apply (hat τ)|
+%      |forall τ. exists (hat τ) ⊒ α τ. α (d >>= \case Fun f -> f (ρ ! x); _ -> stuck) ⊑ apply (hat τ)|
     \]
     We proceed by cases on |τ|.
     When |τ| is of the form |Step e d|, we have
@@ -1146,14 +1171,16 @@ This is also an assumption we make on |ρ|.
       ={} & |α (f (ρ ! x))|
           \Arrow{$φ(|f|)$} \\
       ={} & |α (Step App2 (eval e' (ext ρ' y (ρ ! x))))|
-          \Arrow{Unfold |α|} \\
-      ={} & |step App2 (α (eval e' (ext ρ' y (ρ ! x))))|
-          \Arrow{Induction hypothesis 1} \\
-      ⊑{} & |step App2 (eval e' (ext (α `mapMap` ρ') y ((α `mapMap` ρ) ! x))))|
-          \Arrow{Assumption} \\
-      ⊑{} & |apply (fun (\(hat d) -> step App2 (eval e' (ext (α `mapMap` ρ') y (hat d))))) ((α `mapMap` ρ) ! x)|
+          \Arrow{Assumption + IH, see below} \\
+      ⊑{} & |apply (fun (\(hat d) -> α (Step App2 (eval e' (ext ρ' y (γ (hat d))))))) ((α `mapMap` ρ) ! x)|
           \Arrow{Refold |τ|} \\
       ={} & |apply (eval e (α `mapMap` ρ)) ((α `mapMap` ρ) ! x)|
+    \end{DispWithArrows*}
+    Because |α (γ a) ⊑ |
+    \begin{DispWithArrows*}[fleqn,mathindent=4em]
+          & |step App2 (eval e' (ext (α `mapMap` ρ') y ((α `mapMap` ρ) ! x)))|
+          \Arrow{Assumption} \\
+      ⊑{} & |apply (fun (\(hat d) -> step App2 (eval e' (ext (α `mapMap` ρ') y (hat d))))) ((α `mapMap` ρ) ! x)|
     \end{DispWithArrows*}
   \item \textbf{Case} |ConApp k ds|:
     \begin{DispWithArrows*}[fleqn,mathindent=4em]
@@ -1216,7 +1243,7 @@ It is customary to write |ι = α . set|, which is equal to the trace embedding 
         \]
         By the definition of Galois connections, this is equivalent to
         \[
-          \{|Ret (Fun f) >>= \case Fun f -> f a; _ -> stuck)|\} ⊆  |γ (apply (ι (Ret (Fun f))) (ι a))|
+          \{|Ret (Fun f) >>= \case Fun f -> f a; _ -> stuck|\} ⊆  |γ (apply (ι (Ret (Fun f))) (ι a))|
         \]
         \begin{DispWithArrows*}[fleqn,mathindent=6em]
               & |ι (Ret (Fun f) >>= \case Fun f -> f a; _ -> stuck)|
