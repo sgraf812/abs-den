@@ -10,7 +10,6 @@
 %format com = "--"
 %format Lub(a) = "undefined"
 %format setundef(a) = "undefined"
-%format gal(a) = a
 
 %else
 
@@ -29,6 +28,7 @@
 %format τ1 = "\varid{\ensuremath{\tau}}_1"
 %format τ2 = "\varid{\ensuremath{\tau}}_2"
 %format ρ = "\varid{\ensuremath{\rho}}"
+%format ρ' = "\varid{\ensuremath{\rho'}}"
 %format ρ1 = "\varid{\ensuremath{\rho}}_1"
 %format ρ2 = "\varid{\ensuremath{\rho}}_2"
 %format φ = "\varid{\ensuremath{\varphi}}"
@@ -38,8 +38,10 @@
 %format α = "\varid{\ensuremath{\alpha}}"
 %format αdot = "\dot{\varid{\ensuremath{\alpha}}}"
 %format αup = "\varid{\ensuremath{\alpha}}^{*}"
+%format αd = "\varid{\ensuremath{\alpha}}_d"
 %format γ = "\varid{\ensuremath{\gamma}}"
 %format γdot = "\dot{\varid{\ensuremath{\gamma}}}"
+%format γd = "\varid{\ensuremath{\gamma}}_d"
 %format θ = "\varid{\ensuremath{\theta}}"
 %format θ1 = "\varid{\ensuremath{\theta_1}}"
 %format θ2 = "\varid{\ensuremath{\theta_2}}"
@@ -63,6 +65,7 @@
 %format <|> = "\mathbin{<\mspace{-6mu}|\mspace{-6mu}>}"
 %format com = "\text{-}\text{-}"
 %format pow(a) = "\pow{" a "}"
+%format ==> = "\Longrightarrow"
 
 %format bottom = "\bot"
 %format d1

@@ -794,8 +794,8 @@ it goes just by the type and thus can't consider how the type class methods are
 used.
 The soundness criterion yielded by parametricity is a good starting point when
 adjusting writing a denotational interpreter for a different language, though.
-\sg{Clean up this bit about parametricity; since we no longer really depend on
-it, why mention it? A short para should be enough.}
+\sg{Clean up this bit about parametricity; what's it worth if we end up needing
+a stronger lemma? A short para should be enough.}
 Our soundness criterion can be stated as follows, using notation |eval3 c| to
 indicate the invisible application of |eval| to the type class dictionary
 |c :: C d|:
@@ -806,12 +806,11 @@ Let |D1|, |D2| be two domains such that there are instances |c1 :: C D1|,|c2 ::
 C D2| for the constraint tuple |C d := (Trace d, Domain d, HasBind d)|,
 and $(|D1|,≤) \galois{|α|}{|γ|} (|D2|,⊑)$ a Galois connection.
 If the following soundness lemmas relating |c1| and |c2| hold,
-assuming that $|forall d f a. d = fun f| \Longrightarrow |exists e ρ x. f a = step App2 (eval e (ext ρ x a))|$,
 \begin{itemize}
   \item |forall (e :: Event) (d :: D1). α (at step c1 e d) ⊑ at step c2 e (α d)|
   \item |α (at stuck c1) ⊑ at stuck c2|
   \item |forall (f :: D1 -> D1). α (at fun c1 f) ⊑ at fun c2 (α . f . γ)|
-  \item |forall (d :: D1) (a :: D1). (exists e ρ x. fun (α f) α (at apply c1 d a) ⊑ at apply c2 (α d) (α a)|
+  \item |forall (d :: D1) (a :: D1). α (at apply c1 d a) ⊑ at apply c2 (α d) (α a)|
   \item |forall (k :: Tag) (ds :: [D1]). α (at con c1 k ds) ⊑ at con c2 k (map α ds)|
   \item |forall (d :: D1) (fs :: [(Tag, [D1] -> D1)]). α (sel d f) ⊑ sel (α d) [ (k, α . f . map γ) || (k, f) <- fs ]|
   \item |forall (rhs :: D1 -> D1) (body :: D1 -> D1). α (at bind c1 rhs body) ⊑ at bind c2 (α . rhs . γ) (α . body . γ)|%
@@ -986,6 +985,9 @@ trace properties from it, all the while leaving |D2| abstract.
 Following \citet[page 253]{Nielson:99}, every embedding |ι :: a -> b| into a
 partial order yields a Galois connection between $(|Pow a|,⊆)$ and $(|b|,⊑)$:
 \begin{code}
+instance Trace τ => Trace (Pow τ) where step e (P ts) = P (set (step e τ | τ <- ts))
+-- instance Domain τ => Domain (Pow τ) where ...
+-- instance HasBind τ => HasBind (Pow τ) where ...
 data Galois a b = (a -> b) :<->: (b -> a)
 embed :: Lat b => (a -> b) -> Galois (Pow a) b
 embed ι = α :<->: γ where α (P as) = Lub (ι a | a <- as); γ b = P (setundef (a | ι a ⊑ b))
@@ -999,7 +1001,7 @@ constructors (we write |powMap f| to map |f| over |Pow|ersets):
 \begin{code}
 trace :: (Trace d, Domain d, Lat d) => Galois (Pow (D r)) d -> Galois (Pow (T (Value r))) d
 trace (α :<->: γ) = embed ι where  ι (Ret Stuck)       = stuck
-                                   ι (Ret (Fun f))     = fun {-"\iffalse"-}""{-"\fi"-} (α . (powMap f) . γ)
+                                   ι (Ret (Fun f))     = fun {-"\iffalse"-}""{-"\fi"-} (α . powMap f . γ)
                                    ι (Ret (Con k ds))  = con {-"\iffalse"-}""{-"\fi"-} k (map (α . set) ds)
                                    ι (Step e τ)        = step e (ι τ)
 
@@ -1008,22 +1010,168 @@ byName = (α . powMap unByName) :<->: (powMap ByName . γ) where α :<->: γ = t
 \end{code}
 A delightful consequence of fixing |byName| as the Galois connection in
 \Cref{thm:soundness-abs-int} is that we rid ourselves of 4 trivial soundness
-lemmas (proven by unfolding |byName|), leaving just 3 lemmas in place:
+lemmas (proven by unfolding |byName|), and decomposing the remaining 3 lemmas
+further:
 \[
 \inferrule
   {%
-   |α :<->: γ = byName| \\ |ι = α . set| \\\\
-   |forall d a. ι (apply d a) ⊑ apply (ι d) (ι a)|\\\\
-   |forall d fs. ι (select d f) ⊑ select (ι d) [ (k, α . powMap f . map γ) || (k, f) <- fs ]|\\\\
-   |forall rhs body. ι (bind rhs body) ⊑ bind (α . powMap rhs . γ) (α . powMap body . γ)|%
+   |α :<->: γ = byName|\\\\
+   |forall a. stuck ⊑ apply stuck (α a)|\\ |forall fs. stuck ⊑ sel stuck fs|\\\\
+   |forall k ds. stuck ⊑ apply (con ds) (α a)|\\ |forall f fs. stuck ⊑ sel (fun f) fs|\\\\
+   |forall f a. α (f a) ⊑ apply (fun (α . f . γ)) (α a)|\\\\
+   |forall k ds fs. head [ f || (k',f) <- fs, k == k'] ds ⊑ select (con k ds) fs|\\\\
+   |forall rhs body. α (body (fix rhs)) ⊑ bind (α . powMap rhs . γ) (α . powMap body . γ)|%
   }
-  {|ι (eval e ρ :: D (ByName T)) ⊑ (eval e (ι `mapMap` ρ) :: D2)|}
+  {|α (eval e ρ :: Pow (D (ByName T))) ⊑ (eval e (α `mapMap` ρ) :: D2)|}
 \]
-The reading is as follows: The first two soundness lemmas prove correct the
-summary mechanism implemented in |apply| and |select|, while |bind| implements a
-particular fixpointing strategy each of which needs a separate correctness proof.
+The reading is as follows: The first four lemmas check that |stuck| is considered appropriately,
+the next two soundness lemmas prove correct the summary mechanism implemented in
+|apply| and |select|, and |bind| implements a particular fixpointing strategy
+each of which needs a separate correctness proof.
 (We decided not to inline the instance methods of |C (D (ByName T))|, because
 they don't meaningfully simplify any further with |α|.)
+
+Unfortunately, we suffer from a lack of full abstraction~\citet{Plotkin:77}:
+Proving |ι (apply (fun f) a) ⊑ apply (ι (fun f)) (ι a)|
+is quite hard, because |f :: D -> D| might be \emph{any} function, introspecting
+its argument in all sorts of ways.
+But we are only ever using it on an |f| that satisfies $φ(f) \triangleq |exists
+e ρ x. forall a. f a = step App2 (eval e (ext ρ x a))|$, and furthermore we may
+assume |α (eval e (ext x a)) ⊑ eval e (α `mapMap` (ext ρ x a))| by Löb induction.
+It turns out that this characterisation is crucial for proving the
+summary mechanism of usage analysis correct, as it allows us to apply
+\Cref{thm:usage-squeezing}.
+
+These assumptions could perhaps be encoded in a dependently-typed language
+by formulating |eval| as an open recursive function, refining the type of
+|fun| to |fun :: Σ (D -> D) φ -> D| (we did something similar in
+\Cref{sec:totality} for the Agda encoding) and deriving the free theorem for
+that function.
+The recursion could then be closed with guarded/Löb |fix| after the fact.
+In general, we could do this refinement for all type class operations,
+reflecting ever more information from the definition of |eval| into its type;
+the |φ| would thus enumerate all syntactic use sites of |fun|.
+At this point, the use of parametricity to conclude the soundness proof is not
+too different from writing a custom tactic for a theorem prover.
+Alas, parametricity is hard to use without a tool verifying correct extraction
+of theorems, so we prove the below lemma by hand.
+However, parametricity is a strong argument that our approach can easily be
+generalised to other denotational interpreters.
+
+\begin{theoremrep}[Sound By-name Interpretation]
+Let |hat D| be a domain such that there are instances |Trace (hat D)|, |Domain
+(hat D)|, |HasBind (hat D)|.
+Then the following inference rule applies, proving |eval e (hat ρ) :: hat D| a
+sound abstract interpretation of by-name traces:
+\[
+\inferrule
+  {%
+   |α :<->: γ = byName|\\\\
+   |forall a. stuck ⊑ apply stuck (α a)|\\ |forall fs. stuck ⊑ sel stuck fs|\\\\
+   |forall k ds. stuck ⊑ apply (con ds) (α a)|\\ |forall f fs. stuck ⊑ sel (fun f) fs|\\\\
+   |forall e d a. step e (apply d a) ⊑ apply (step e d) a|\\\\
+   |forall e (hat ρ) x (hat a). step App2 (eval e (ext (hat ρ) x (hat a))) ⊑ apply (fun (\(hat d) -> step App2 (eval e (ext (hat ρ) x (hat d))))) (hat a)|\\\\
+   |forall e d fs. step e (select d fs) ⊑ select (step e d) fs|\\\\
+   |forall k ds fs. head [ f || (k',f) <- fs, k == k'] ds ⊑ select (con k ds) fs|\\\\
+   |forall rhs body. α (body (fix rhs)) ⊑ bind (α . powMap rhs . γ) (α . powMap body . γ)|%
+  }
+  {|α (eval e ρ :: Pow (D (ByName T))) ⊑ (eval e (α `mapMap` ρ) :: hat D)|}
+\]
+\end{theoremrep}
+\begin{proofsketch}
+By Löb induction and cases on |e|, also maintaining the invariant that if the
+returned trace ends in |Fun f|, it satisfies
+$φ(f) \triangleq |exists e' ρ' y. forall d. f d = eval e' (ext ρ' y d)|$.
+This is also an assumption we make on |ρ|.
+\begin{itemize}
+  \item \textbf{Case} |Var x|:
+    The stuck case follows by unfolding |α|; the regular case follows by assumption.
+    (If |ρ ! x| ends in |Fun f|, we also have $φ(|f|)$ by assumption.)
+  \item \textbf{Case} |Lam x e|:
+    \begin{DispWithArrows*}[fleqn,mathindent=4em]
+          & |α (eval (Lam x e') ρ)|
+          \Arrow{Unfold |eval|, |D (ByName T)| instances} \\
+      ={} & |α (Ret (Fun (\d -> Step App2 (eval e' (ext ρ x d)))))|
+          \Arrow{Unfold |α|} \\
+      ={} & |fun (\(hat d) -> step App2 (α (eval e' (ext ρ x (γ (hat d))))))|
+          \Arrow{Induction hypothesis} \\
+      ⊑{} & |fun (\(hat d) -> step App2 (eval e' (α `mapMap` (ext ρ x (γ (hat d))))))|
+          \Arrow{|α (γ (hat d)) ⊑ hat d|} \\
+      ⊑{} & |fun (\(hat d) -> step App2 (eval e' (ext (α `mapMap` ρ) x (hat d))))|
+          \Arrow{Refold |eval|} \\
+      ={} & |eval (Lam x e') (α `mapMap` ρ)|
+    \end{DispWithArrows*}
+    Clearly, |eval (Lam x e) ρ| ends in |Fun f| for an |f| that satisfies $φ(|f|)$.
+  \item \textbf{Case} |App e x|:
+    The stuck case follows by unfolding |α|.
+    Otherwise, our proof obligation can be simplified as follows
+    \begin{DispWithArrows*}[fleqn,mathindent=4em]
+          & |α (eval (App e x) ρ)|
+          \Arrow{Unfold |eval|, |>>=|} \\
+      ={} & |α (eval e ρ >>= \case Fun f -> f (ρ ! x); _ -> stuck)|
+          \Arrow{The argument below for |τ := eval e ρ|} \\
+      ⊑{} & |apply (eval e (α `mapMap` ρ)) ((α `mapMap` ρ) ! x)|
+          \Arrow{Refold |eval|} \\
+      ={} & |eval (App e x) (α `mapMap` ρ)|
+    \end{DispWithArrows*}
+
+    We will show the approximation step above by Löb induction on the trace |τ|
+    with induction hypothesis 2
+    \[
+      |forall τ. exists (hat τ) ⊒ α τ. α (d >>= \case Fun f -> f (ρ ! x); _ -> stuck) ⊑ apply (hat τ)|
+    \]
+    We proceed by cases on |τ|.
+    When |τ| is of the form |Step e d|, we have
+    \begin{DispWithArrows*}[fleqn,mathindent=4em]
+          & |α (Step e d >>= \case Fun f -> f (ρ ! x); _ -> stuck)|
+          \Arrow{Unfold |α|, |D (ByName T)| instances} \\
+      ={} & |step e (α (d >>= \case Fun f -> f (ρ ! x); _ -> stuck))|
+          \Arrow{Induction hypothesis 2} \\
+      ⊑{} & |step e (apply (α d) ((α `mapMap` ρ) ! x))|
+          \Arrow{Assumption} \\
+      ⊑{} & |apply (step e (α d)) ((α `mapMap` ρ) ! x)|
+          \Arrow{Refold |α|} \\
+      ={} & |apply (α (Step e d)) ((α `mapMap` ρ) ! x)|
+    \end{DispWithArrows*}
+    Otherwise, the |τ| is of the form |Ret v|.
+    When |v /= Fun _|, we unfold |α| and apply one of the
+    |stuck ⊑ apply ...| assumptions.
+    In the remaining case, we have |τ = Ret (Fun f)| for some |f|.
+    By our additional invariant $φ(|f|)$, we know that
+    |f (ρ ! x) = Step App2 (eval e' (ext ρ' y (ρ ! x)))| for some |e',ρ',y|
+    below.
+    \begin{DispWithArrows*}[fleqn,mathindent=4em]
+          & |α (Ret (Fun f) >>= \case Fun f -> f (ρ ! x); _ -> stuck)|
+          \Arrow{|return v >>= f = f v|} \\
+      ={} & |α (f (ρ ! x))|
+          \Arrow{$φ(|f|)$} \\
+      ={} & |α (Step App2 (eval e' (ext ρ' y (ρ ! x))))|
+          \Arrow{Unfold |α|} \\
+      ={} & |step App2 (α (eval e' (ext ρ' y (ρ ! x))))|
+          \Arrow{Induction hypothesis 1} \\
+      ⊑{} & |step App2 (eval e' (ext (α `mapMap` ρ') y ((α `mapMap` ρ) ! x))))|
+          \Arrow{Assumption} \\
+      ⊑{} & |apply (fun (\(hat d) -> step App2 (eval e' (ext (α `mapMap` ρ') y (hat d))))) ((α `mapMap` ρ) ! x)|
+          \Arrow{Refold |τ|} \\
+      ={} & |apply (eval e (α `mapMap` ρ)) ((α `mapMap` ρ) ! x)|
+    \end{DispWithArrows*}
+  \item \textbf{Case} |ConApp k ds|:
+    \begin{DispWithArrows*}[fleqn,mathindent=4em]
+          & |α (eval (ConApp k xs) ρ)|
+          \Arrow{Unfold |eval|, |D (ByName T)| instances} \\
+      ={} & |α (Ret (Con k (map (ρ !) xs)))|
+          \Arrow{Unfold |α|} \\
+      ={} & |con k (map ((α `mapMap` ρ) !)) xs|
+          \Arrow{Refold |eval|} \\
+      ={} & |eval (ConApp k ds) (α `mapMap` ρ)|
+    \end{DispWithArrows*}
+    Clearly, |eval (ConApp k xs) ρ| does not end in |Fun _|, so there is no
+    further invariant to show.
+  \item \textbf{Case} |Case e alts|:
+  \item \textbf{Case} |Let x e1 e2|:
+    Per unfolding |eval|, |bind| and the assumption.
+\end{itemize}
+\end{proofsketch}
 
 It is clear that we can't decompose our proof obligations any further without
 fixing a particular instance |C D2|, so we will now prove usage analysis
