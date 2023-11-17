@@ -1068,9 +1068,8 @@ sound abstract interpretation of by-name traces:
   {%
    |α :<->: γ = byName|\\\\
    |forall a. stuck ⊑ apply stuck (α a)|\\ |forall fs. stuck ⊑ sel stuck fs|\\\\
-   |forall k ds. stuck ⊑ apply (con ds) (α a)|\\ |forall f fs. stuck ⊑ sel (fun f) fs|\\\\
+   |forall v ρ a. α (apply (eval v ρ) a) ⊑ apply (eval v (α `mapMap` ρ)) (α a)|\\\\
    |forall e d a. step e (apply d a) ⊑ apply (step e d) a|\\\\
-   |forall e (hat ρ) x (hat a). step App2 (eval e (ext (hat ρ) x (hat a))) ⊑ apply (fun (\(hat d) -> step App2 (eval e (ext (hat ρ) x (hat d))))) (hat a)|\\\\
    |forall e d fs. step e (select d fs) ⊑ select (step e d) fs|\\\\
    |forall k ds fs. head [ f || (k',f) <- fs, k == k'] ds ⊑ select (con k ds) fs|\\\\
    |forall rhs body. α (body (fix rhs)) ⊑ bind (α . powMap rhs . γ) (α . powMap body . γ)|%
@@ -1093,6 +1092,12 @@ sound abstract interpretation of by-name traces:
   |eval e ρ1 = many (Step ev) (eval v ρ2)|.
 \end{definition}
 
+We need as assumption about |hat D|:
+
+\begin{lemma}
+  If |eval e ρ = many (Step ev) (eval v ρ2)|, then |α (eval e ρ) ⊑ what|
+\end{lemma}
+
 \begin{lemma}[Trace abstraction preserves reduction]
   Let |hat D| be an arbitrary domain with instances for |Trace|,
   |Domain| and |Lat| such that
@@ -1109,7 +1114,9 @@ By Löb induction with the induction hypothesis
         \forall |e|,|v|,|ρ1|,|ρ2|.\
         (|(e,ρ1)| \leadsto |(v,ρ2)| \Longrightarrow
 %            |α (eval v ρ2) ⊑ eval v (α `mapMap` ρ2)|)
-            |α (apply (eval v ρ2) a) ⊑ apply (eval v (α `mapMap` ρ2)) (α a)|)
+             |step App1 (eval e (ext ρ x (hat d))) ⊑ apply (\(hat d) -> step App1 (eval e (ext ρ x (hat d)))) (hat d)|
+%            |α (eval (App v x) (ext ρ2 x a)) ⊑ eval (App x) (α `mapMap` (ext ρ2 x a))|)
+%            |α (eval (Case v alts) ρ2) ⊑ eval (Case v alts) (α `mapMap` ρ2)|)
         \Longrightarrow
         |α (eval e ρ1) ⊑ eval e (α `mapMap` ρ1)|
       ))
@@ -1161,21 +1168,6 @@ Introduce some |e|,|v|,|ρ1|,|ρ2| and proceed by cases on |e|.
           & |α (Step App1 (eval e ρ1) >>= \case Fun f -> f (ρ1 ! x); _ -> stuck)|
           \Arrow{Unfold |α|} \\
       ={} & |step App1 (many (step ev) stuck)|
-    \end{DispWithArrows*}
-
-    |α (Step App1 (eval e ρ1) >>= \case or during evaluation of |e1|.
-
-
-    Suppose that $|(e,ρ1)| \leadsto |(v,ρ2)|$.
-    Then $|(App e x, ρ1) \leadsto |(e,ρ1)|$ and we may apply the induction
-    hypothesis,
-    by transitivity evaluates we have
-    \begin{DispWithArrows*}[fleqn,mathindent=4em]
-          & |α (Step App1 (eval e ρ1) >>= \case Fun f -> f (ρ1 ! x); _ -> stuck)|
-          \Arrow{$|(e,ρ1)| \leadsto |(v,ρ2)|$, apply IH} \\
-      ⊑{} & |step App1 (α (eval e ρ1 >>= \case Fun f -> f (ρ ! x); _ -> stuck))|
-          \Arrow{$|(e,ρ1)| \leadsto |(v,ρ2)|$, apply IH} \\
-      ={} & |apply (eval e (α `mapMap` ρ)) ((α `mapMap` ρ) ! x)|
     \end{DispWithArrows*}
 \end{itemize}
 \end{proofsketch}
@@ -1311,43 +1303,6 @@ It is clear that we can't decompose our proof obligations any further without
 fixing a particular instance |C D2|, so we will now prove usage analysis
 (|UD| from \Cref{fig:abs-usg}) correct \wrt by-name semantics, by showing the
 above three lemmas.
-
-\begin{lemmarep}[Usage squeezing, concretely]
-\label{thm:usage-squeezing-concrete}
-|forall e ρ x d. α (eval e (ext ρ x d)) ⊑ manify (α d) >> α (eval e (ext ρ x (γ nopD)))|.
-\end{lemmarep}
-\begin{proof}
-By Löb induction and cases on |e|.
-\begin{itemize}
-  \item \textbf{Case} |Var y|:
-    Simple to see, except when |x == y|.
-    Then we have |α d ⊑ manify (α d) >> ...|, and |hat d ⊑ hat d + hat d|.
-  \item \textbf{Case} |Lam|: By induction hypothesis.
-  \item \textbf{Case} |App e y|:
-    The case |x /= y| is a simple application of the induction hypothesis.
-    Otherwise, we might evaluate |x| both as part of evaluating |e| and in the
-    lambda body it produces.
-    Fortunately, we may collapse |manify d >> manify d = manify d| as often as
-    needed, and |manify nopD >>| is the identity function.
-    Thus we can show
-    \begin{DispWithArrows*}[fleqn,mathindent=5em]
-         & |α (eval (App e x) (ext ρ x d))| \Arrow{Definition} \\
-      ={}& |α (apply (eval e (ext ρ x d)) d)| \Arrow{Definition} \\
-      ={}& |α (eval e (ext ρ x d) >>= \case (Fun f) -> f d; _ -> stuck)| \Arrow{Definition} \\
-
-      ={}& |manify d >> eval e (ext ρ x d)| \Arrow{IH} \\
-      ⊑{}& |manify d >> manify d >> eval e (ext ρ x nopD)| \Arrow{Collapse |manify d|, expand |d = manify nopD >> d|} \\
-      ={}& |manify nopD >> manify (α d) >> eval e (ext ρ x nopD)| \Arrow{Definition} \\
-
-      ={}& |manify (α d) >> α (eval e (ext ρ x (γ nopD)) >>= \case Fun f -> f (γ nopD); _ -> stuck)| \Arrow{Definition} \\
-      ={}& |manify (α d) >> α (apply (eval e (ext ρ x (γ nopD))) (γ nopD))| \Arrow{Definition} \\
-      ={}& |manify (α d) >> α (eval (App e x) (ext ρ x (γ nopD)))|
-    \end{DispWithArrows*}
-  \item \textbf{Case} |Con|, |Case|:
-    Similar; need to collapse |manify d| after applying the induction
-    hypothesis.
-\end{itemize}
-\end{proof}
 
 \begin{theoremrep} Usage Analysis as implemented by |UD| in \Cref{fig:abs-usg}
 is sound \wrt |D (ByName T)|, that is,
