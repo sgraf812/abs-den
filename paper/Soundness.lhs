@@ -985,7 +985,7 @@ trace properties from it, all the while leaving |D2| abstract.
 Following \citet[page 253]{Nielson:99}, every embedding |ι :: a -> b| into a
 partial order yields a Galois connection between $(|Pow a|,⊆)$ and $(|b|,⊑)$:
 \begin{code}
-instance Trace τ => Trace (Pow τ) where step e (P ts) = P (set (step e τ | τ <- ts))
+instance Trace τ => Trace (Pow τ) where step e (P ts) = P (setundef (step e τ | τ <- ts))
 -- instance Domain τ => Domain (Pow τ) where ...
 -- instance HasBind τ => HasBind (Pow τ) where ...
 data Galois a b = (a -> b) :<->: (b -> a)
@@ -1079,30 +1079,126 @@ sound abstract interpretation of by-name traces:
 \]
 \end{theoremrep}
 \begin{proofsketch}
-Need the following lemma:
-\begin{lemma}
-If whenever |eval e ρ = Step _ (... eval v ρ' ...)|
-we have |α (eval v ρ') ⊑ eval v (α `mapMap` ρ')|,
-then |α (eval e ρ) ⊑ eval e (α `mapMap` ρ)|.
-\end{lemma}
-\begin{proof}
-By Löb induction and cases on |e|.
-\begin{itemize}
-  \item \textbf{Case} |Var x|: By assumption on |ρ|. \sg{Urgh, these are all very implicit, relying on non-proven full abstraction}
-  \item \textbf{Case} |Lam|,|ConApp|: By assumption.
-  \item \textbf{Case} |App e x|:
-    By cases on the characteristic of the trace |eval e ρ|.
-    If ultimately stuck, then
-\end{itemize}
-\end{proof}
 
+\begin{definition}
+  We write $\vDash |ρ|$ to say that the codomain of a by-name environment
+  |ρ| is of the form |Lookup x (eval e ρ')| for some |x|,|e| and $\vDash |ρ'|$
+  \emph{later}.
+\end{definition}
+
+\begin{definition}
+  We say that |(e,ρ1)| \emph{evaluates to} |(v,ρ2)|,
+  written $|(e,ρ1)| \leadsto |(v,ρ2)|$,
+  if $\vDash |ρ1|$, $\vDash |ρ2|$ and
+  |eval e ρ1 = many (Step ev) (eval v ρ2)|.
+\end{definition}
+
+\begin{lemma}[Trace abstraction preserves reduction]
+  Let |hat D| be an arbitrary domain with instances for |Trace|,
+  |Domain| and |Lat| such that
+  |(α :: Pow (D (ByName T)) -> hat D) :<->: _ = byName| exists.
+
+  If |α (eval v ρ2) ⊑ eval v (α `mapMap` ρ2)|
+  whenever $|(e,ρ1)| \leadsto |(v,ρ2)|$,
+  then |α (eval e ρ1) ⊑ eval e (α `mapMap` ρ1)|.
+\end{lemma}
+\begin{proofsketch}
+By Löb induction with the induction hypothesis
 \[
+    IH ∈ (\later P \triangleq \later (
+        \forall |e|,|v|,|ρ1|,|ρ2|.\
+        (|(e,ρ1)| \leadsto |(v,ρ2)| \Longrightarrow
+%            |α (eval v ρ2) ⊑ eval v (α `mapMap` ρ2)|)
+            |α (apply (eval v ρ2) a) ⊑ apply (eval v (α `mapMap` ρ2)) (α a)|)
+        \Longrightarrow
+        |α (eval e ρ1) ⊑ eval e (α `mapMap` ρ1)|
+      ))
+\]
+Introduce some |e|,|v|,|ρ1|,|ρ2| and proceed by cases on |e|.
+\begin{itemize}
+  \item \textbf{Case} |Lam|,|ConApp|:
+    Then $|(e,ρ1)| \leadsto |(e,ρ1)|$ and the equivalence follows by assumption.
+  \item \textbf{Case} |Var x|:
+    In the stuck case, the statement that |e| does evaluate is equivalent
+    to the assumption |α stuck ⊑ stuck| (\eg, constantly true).
+    Otherwise, we have |α (ρ1 ! x) = (α `mapMap` ρ1) ! x|.
+  \item \textbf{Case} |App e x|:
+    Let us first assume that $|(App e x,ρ1)| \leadsto |(v,ρ2)|$, hence
+    |α (eval v ρ2) ⊑ eval v (α `mapMap` ρ2)|.
+
+    Then |(e,ρ1)| must evaluate as well, to a lambda |(Lam y e1,ρ3)|, otherwise
+    the application would get stuck.
+    \begin{DispWithArrows*}[fleqn,mathindent=4em]
+          & |α (Step App1 (eval e ρ1) >>= \case Fun f -> f (ρ1 ! x); _ -> stuck)|
+          \Arrow{Unfold |α|} \\
+      ={} & |step App1 (α (eval e ρ1 >>= \case Fun f -> f (ρ1 ! x); _ -> stuck))|
+          \Arrow{$|(e,ρ1)| \leadsto |(Lam y e1,ρ3)|$, unfold |α|} \\
+      ={} & |step App1 (many (step ev) (α (eval (Lam y e1) ρ3 >>= \case Fun f -> f (ρ1 ! x); _ -> stuck)))|
+          \Arrow{Inline |eval|,|fun|,|>>=|,simplify} \\
+      ={} & |step App1 (many (step ev) (α (eval e1 (ext ρ3 y (ρ1 ! x)))))|
+          \Arrow{Assumption} \\
+      ={} & |step App1 (many (step ev) (α (eval (Lam y e1) (ext ρ3 y (ρ1 ! x)))))|
+          \Arrow{IH applied to |e1|,|v|,|(ext ρ3 y (ρ1 ! x))|,|ρ2|} \\
+      ⊑{} & |step App1 (many (step ev) (eval e1 (α `mapMap` (ext ρ3 y (ρ1 ! x)))))|
+          \Arrow{Assumption} \\
+      ⊑{} & |step App1 (many (step ev) (apply (fun (\(hat d) -> eval e1 (α `mapMap` (ext ρ3 y (hat d))))) (ρ1 ! x)))|
+          \Arrow{Assumption} \\
+      ={} & |step App1 (many (step ev) (apply (eval (Lam y e1) (α `mapMap` ρ3)) (ρ1 ! x)))|
+          \Arrow{Assumption} \\
+      ={} & |step App1 (many (step ev) (apply (eval (Lam y e1) (α `mapMap` ρ3)) (ρ1 ! x)))|
+    \end{DispWithArrows*}
+    Now, $|(e1,ext ρ3 y (ρ1 ! x))| \leadsto |(v,ρ2)|$,
+    so by the induction hypothesis (which is applicable under a |step|) we have
+    |α (eval e1 (ext ρ3 y (ρ1 ! x))) ⊑ eval e1 (α `mapMap` (ext ρ3 y (ρ1 ! x)))|
+    because |α (eval v ρ2) ⊑ eval v (α `mapMap` ρ2)|.
+    The goal follows by monotonicity of |step|.
+
+    When |(App e x, ρ1)| does not evaluate, either |e| or |e1| diverges, leading
+    to an infinite chain |step App1 (many (step ev) ...)|
+    evaluation gets stuck, produces a |Con| or diverges during evaluation of |e|,
+    in which case we have
+    \begin{DispWithArrows*}[fleqn,mathindent=4em]
+          & |α (Step App1 (eval e ρ1) >>= \case Fun f -> f (ρ1 ! x); _ -> stuck)|
+          \Arrow{Unfold |α|} \\
+      ={} & |step App1 (many (step ev) stuck)|
+    \end{DispWithArrows*}
+
+    |α (Step App1 (eval e ρ1) >>= \case or during evaluation of |e1|.
+
+
+    Suppose that $|(e,ρ1)| \leadsto |(v,ρ2)|$.
+    Then $|(App e x, ρ1) \leadsto |(e,ρ1)|$ and we may apply the induction
+    hypothesis,
+    by transitivity evaluates we have
+    \begin{DispWithArrows*}[fleqn,mathindent=4em]
+          & |α (Step App1 (eval e ρ1) >>= \case Fun f -> f (ρ1 ! x); _ -> stuck)|
+          \Arrow{$|(e,ρ1)| \leadsto |(v,ρ2)|$, apply IH} \\
+      ⊑{} & |step App1 (α (eval e ρ1 >>= \case Fun f -> f (ρ ! x); _ -> stuck))|
+          \Arrow{$|(e,ρ1)| \leadsto |(v,ρ2)|$, apply IH} \\
+      ={} & |apply (eval e (α `mapMap` ρ)) ((α `mapMap` ρ) ! x)|
+    \end{DispWithArrows*}
+\end{itemize}
+\end{proofsketch}
+
+\[\begin{array}{l}
   |α (f a) ⊑ apply (fun (α f)) (α a)| \\
   |forall f a. α (f a) ⊑ apply (fun (α . f . γ)) (α a)| \\
-  \mathit{is the same as (because |a ⊑ γ (α a)|)} \\
+  \text{is the same as (because |a ⊑ γ (α a)|)} \\
   |forall (hat f) (hat a). (α f ⊑ hat f, α a ⊑ hat a).  (hat f) (hat a) ⊑ apply (fun (hat f)) (hat a)| \\
-  \mathit{but show the above for any |hat f| of the required form and |hat a|, I think} \\
-\]
+  \text{but show the above for any |hat f| of the required form and |hat a|, I think} \\
+\end{array}\]
+
+Other way round. WE can show, for a specific |hat f|,
+
+\[\begin{array}{l}
+  |forall (hat a). (hat f) (hat a) ⊑ apply (fun (hat f)) (hat a)| \\
+  \text{|α . γ ⊑ id|} \\
+  |forall a. (hat f . α) (γ (α a)) ⊑ apply (fun (hat f . α . γ)) (α a)| \\
+  \text{Induction Hypothesis} \\
+  |forall a. (α . f) (γ (α a)) ⊑ apply (fun (α . f . γ)) (α a)| \\
+  \text{|id ⊑ γ . α|} \\
+  |forall a. α (f a) ⊑ apply (fun (α . f . γ)) (α a)| \\
+\end{array}\]
 
 By Löb induction and cases on |e|, also maintaining the invariant that if the
 returned trace ends in |Fun f|, it satisfies
@@ -1171,17 +1267,28 @@ This is also an assumption we make on |ρ|.
       ={} & |α (f (ρ ! x))|
           \Arrow{$φ(|f|)$} \\
       ={} & |α (Step App2 (eval e' (ext ρ' y (ρ ! x))))|
-          \Arrow{Assumption + IH, see below} \\
-      ⊑{} & |apply (fun (\(hat d) -> α (Step App2 (eval e' (ext ρ' y (γ (hat d))))))) ((α `mapMap` ρ) ! x)|
+          \Arrow{unfold |α|; IH 1} \\
+      ⊑{} & |step App2 (eval e' (α `mapMap` (ext ρ' y (ρ ! x))))|
+          \Arrow{Assumption} \\
+      ⊑{} & |apply (fun (\(hat d) -> step App2 (eval e' (ext ρ' y (γ (hat d)))))) ((α `mapMap` ρ) ! x)|
           \Arrow{Refold |τ|} \\
       ={} & |apply (eval e (α `mapMap` ρ)) ((α `mapMap` ρ) ! x)|
     \end{DispWithArrows*}
-    Because |α (γ a) ⊑ |
+    Because |id ⊑ γ . α| and |α . γ ⊑ id|, we can rewrite the assumption as
+    follows, abbreviating |hat f := \(hat d) -> step App2 (eval e (ext (hat ρ) x (hat d)))|
+    and similarly for |f|:
     \begin{DispWithArrows*}[fleqn,mathindent=4em]
-          & |step App2 (eval e' (ext (α `mapMap` ρ') y ((α `mapMap` ρ) ! x)))|
-          \Arrow{Assumption} \\
-      ⊑{} & |apply (fun (\(hat d) -> step App2 (eval e' (ext (α `mapMap` ρ') y (hat d))))) ((α `mapMap` ρ) ! x)|
+                            & |forall (hat a). hat f (hat a) ^^ ⊑  apply (fun (hat f) (hat a))|
+                            \Arrow{Choose |hat a := α a| for some |a|} \\
+      \Longrightarrow{}     & |forall a. hat f (α a) ⊑  apply (fun (hat f) (α a))|
+                            \Arrow{|α . γ ⊑ id|} \\
+      \Longrightarrow{}     & |forall a. (hat f . α) (γ (α a)) ⊑ apply (fun (hat f . α . γ)) (α a)|
+                            \Arrow{Induction Hypothesis: |α . f ⊑ hat f . α|. But actually NONONO} \\
+      \Longrightarrow{}     & |forall a. (α . f) (γ (α a)) ⊑ apply (fun (α . f . γ)) (α a)|
+                            \Arrow{|id ⊑ γ . α|} \\
+      \Longleftrightarrow{} & |forall a. α (f a) ⊑ apply (fun (α . f . γ)) (α a)|
     \end{DispWithArrows*}
+
   \item \textbf{Case} |ConApp k ds|:
     \begin{DispWithArrows*}[fleqn,mathindent=4em]
           & |α (eval (ConApp k xs) ρ)|
@@ -1204,6 +1311,43 @@ It is clear that we can't decompose our proof obligations any further without
 fixing a particular instance |C D2|, so we will now prove usage analysis
 (|UD| from \Cref{fig:abs-usg}) correct \wrt by-name semantics, by showing the
 above three lemmas.
+
+\begin{lemmarep}[Usage squeezing, concretely]
+\label{thm:usage-squeezing-concrete}
+|forall e ρ x d. α (eval e (ext ρ x d)) ⊑ manify (α d) >> α (eval e (ext ρ x (γ nopD)))|.
+\end{lemmarep}
+\begin{proof}
+By Löb induction and cases on |e|.
+\begin{itemize}
+  \item \textbf{Case} |Var y|:
+    Simple to see, except when |x == y|.
+    Then we have |α d ⊑ manify (α d) >> ...|, and |hat d ⊑ hat d + hat d|.
+  \item \textbf{Case} |Lam|: By induction hypothesis.
+  \item \textbf{Case} |App e y|:
+    The case |x /= y| is a simple application of the induction hypothesis.
+    Otherwise, we might evaluate |x| both as part of evaluating |e| and in the
+    lambda body it produces.
+    Fortunately, we may collapse |manify d >> manify d = manify d| as often as
+    needed, and |manify nopD >>| is the identity function.
+    Thus we can show
+    \begin{DispWithArrows*}[fleqn,mathindent=5em]
+         & |α (eval (App e x) (ext ρ x d))| \Arrow{Definition} \\
+      ={}& |α (apply (eval e (ext ρ x d)) d)| \Arrow{Definition} \\
+      ={}& |α (eval e (ext ρ x d) >>= \case (Fun f) -> f d; _ -> stuck)| \Arrow{Definition} \\
+
+      ={}& |manify d >> eval e (ext ρ x d)| \Arrow{IH} \\
+      ⊑{}& |manify d >> manify d >> eval e (ext ρ x nopD)| \Arrow{Collapse |manify d|, expand |d = manify nopD >> d|} \\
+      ={}& |manify nopD >> manify (α d) >> eval e (ext ρ x nopD)| \Arrow{Definition} \\
+
+      ={}& |manify (α d) >> α (eval e (ext ρ x (γ nopD)) >>= \case Fun f -> f (γ nopD); _ -> stuck)| \Arrow{Definition} \\
+      ={}& |manify (α d) >> α (apply (eval e (ext ρ x (γ nopD))) (γ nopD))| \Arrow{Definition} \\
+      ={}& |manify (α d) >> α (eval (App e x) (ext ρ x (γ nopD)))|
+    \end{DispWithArrows*}
+  \item \textbf{Case} |Con|, |Case|:
+    Similar; need to collapse |manify d| after applying the induction
+    hypothesis.
+\end{itemize}
+\end{proof}
 
 \begin{theoremrep} Usage Analysis as implemented by |UD| in \Cref{fig:abs-usg}
 is sound \wrt |D (ByName T)|, that is,

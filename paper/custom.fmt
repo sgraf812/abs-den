@@ -9,7 +9,8 @@
 %format ^^^ = "^"
 %format com = "--"
 %format Lub(a) = "undefined"
-%format setundef(a) = "undefined"
+%format setundef(a) = "(undefined::forall a. Set a)"
+%format (hat a) = a
 
 %else
 
@@ -31,6 +32,7 @@
 %format ρ' = "\varid{\ensuremath{\rho'}}"
 %format ρ1 = "\varid{\ensuremath{\rho}}_1"
 %format ρ2 = "\varid{\ensuremath{\rho}}_2"
+%format ρ3 = "\varid{\ensuremath{\rho}}_3"
 %format φ = "\varid{\ensuremath{\varphi}}"
 %format φ1 = "\varid{\ensuremath{\varphi}}_1"
 %format φ2 = "\varid{\ensuremath{\varphi}}_2"
@@ -66,6 +68,7 @@
 %format com = "\text{-}\text{-}"
 %format pow(a) = "\pow{" a "}"
 %format ==> = "\Longrightarrow"
+%format many(a) = "\many{" a "}"
 
 %format bottom = "\bot"
 %format d1
