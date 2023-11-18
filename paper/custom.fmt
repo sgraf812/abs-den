@@ -69,6 +69,7 @@
 %format pow(a) = "\pow{" a "}"
 %format ==> = "\Longrightarrow"
 %format many(a) = "\many{" a "}"
+%format (many a) = "\many{" a "}"
 
 %format bottom = "\bot"
 %format d1
@@ -82,6 +83,8 @@
 %format c2
 %format us1
 %format us2
+%format ev1
+%format ev2
 %format App1
 %format App2
 %format Case1
