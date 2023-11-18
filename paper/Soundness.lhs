@@ -504,8 +504,8 @@ We do so by cases over $\pe$, abbreviating |tm := αHeap μ| and |tr := αEnv ρ
     |τ = Ret Stuck| and the goal follows from
     \Cref{thm:abs-max-trace}.
 
-    Otherwise, $σ_1 \triangleq (\pe', ρ', μ, \UpdateF(\pa) \pushF κ), σ_0 \smallstep σ_1$
-    via $\LookupT$, and $ρ(\px) = \pa_{\py,i}, μ(\pa) = (ρ', \pe')$.
+    Otherwise, $σ_1 \triangleq (\pe', ρ1, μ, \UpdateF(\pa) \pushF κ), σ_0 \smallstep σ_1$
+    via $\LookupT$, and $ρ(\px) = \pa_{\py,i}, μ(\pa) = (ρ1, \pe')$.
     This matches the head of the action of |tr x|, which is of the form
     |step (Lookup y) (fetch a_yi)|.
 
@@ -593,8 +593,8 @@ We do so by cases over $\pe$, abbreviating |tm := αHeap μ| and |tr := αEnv ρ
 
   \item \textbf{Case $\Let{\px}{\pe_1}{\pe_2}$}:
     Let $σ_0 = (\Let{\px}{\pe_1}{\pe_2},ρ,μ,κ)$.
-    Then $σ_1 = (\pe_2, ρ', μ',κ)$ by $\LetIT$, where $ρ' = ρ[\px↦\pa_{\px,i}],
-    μ' = μ[\pa_{\px,i}↦(ρ',\pe_1)]$.
+    Then $σ_1 = (\pe_2, ρ1, μ',κ)$ by $\LetIT$, where $ρ1 = ρ[\px↦\pa_{\px,i}],
+    μ' = μ[\pa_{\px,i}↦(ρ1,\pe_1)]$.
     Since the stack does not grow, maximality from the tail $(σ_{i+1})_{i∈\overline{n-1}}$
     transfers to $(σ_{i})_{i∈\overline{n}}$.
     Straightforward application of the induction hypothesis to
@@ -1058,32 +1058,25 @@ of theorems, so we prove the below lemma by hand.
 However, parametricity is a strong argument that our approach can easily be
 generalised to other denotational interpreters.
 
-\begin{theoremrep}[Sound By-name Interpretation]
-Let |hat D| be a domain such that there are instances |Trace (hat D)|, |Domain
-(hat D)|, |HasBind (hat D)|.
-Then the following inference rule applies, proving |eval e (hat ρ) :: hat D| a
-sound abstract interpretation of by-name traces:
-\[
-\inferrule
-  {%
-   |α :<->: γ = byName|\\\\
-   |forall a. stuck ⊑ apply stuck (α a)|\\ |forall fs. stuck ⊑ sel stuck fs|\\\\
-   |forall v ρ a. α (apply (eval v ρ) a) ⊑ apply (eval v (α `mapMap` ρ)) (α a)|\\\\
-   |forall e d a. step e (apply d a) ⊑ apply (step e d) a|\\\\
-   |forall e d fs. step e (select d fs) ⊑ select (step e d) fs|\\\\
-   |forall k ds fs. head [ f || (k',f) <- fs, k == k'] ds ⊑ select (con k ds) fs|\\\\
-   |forall rhs body. α (body (fix rhs)) ⊑ bind (α . powMap rhs . γ) (α . powMap body . γ)|%
-  }
-  {|α (eval e ρ :: Pow (D (ByName T))) ⊑ (eval e (α `mapMap` ρ) :: hat D)|}
-\]
-\end{theoremrep}
-\begin{proofsketch}
-
-\begin{definition}[Syntac environments]
-  We write $\vDash |ρ|$ to say that the codomain of a by-name environment
-  |ρ| is of the form |Lookup x (eval e ρ')| for some |x|,|e| and $\vDash |ρ'|$
-  \emph{later}.
+\begin{toappendix}
+\begin{definition}[Syntactic environments]
+  We write $\vDash |ρ|$ to say that the range of a by-name environment
+  |ρ| is of the form |set (Lookup x (eval e ρ1) || Later ({-" \vDash "-} ρ1))|.
 \end{definition}
+
+\begin{lemma}
+  \label{thm:eval-preserve-syntactic}
+  If $\vDash |ρ|$, then |eval e ρ| preserves this property during evaluation.
+\end{lemma}
+\begin{proof}
+By Löb induction and cases on |e|.
+The only interesting case is |Let x e1 e2|; there, |ρ| is actually extended
+with an entry that doesn't come from an environment (or function parameter).
+
+But every extension of |ρ| is of the form |Step (Lookup x) d|, so it suffices to
+show that |d| is of the form |eval e' ρ2|. By Löb induction, we may assume that
+this is the case \emph{later}, and \emph{later} is exactly what we need.
+\end{proof}
 
 % SG: The below idea about making EvalCtx a data type is too much fuzz about
 %     nothing for my taste
@@ -1121,19 +1114,22 @@ sound abstract interpretation of by-name traces:
 We will treat |many ev| like a list of type |[Event]|.
 
 \begin{lemma}[Evaluation improves trace abstraction]
+  \label{thm:eval-improves}
   % Assumptions:
-  % - Abstraction and apply (fun ) ...
   % - step e (apply d a) ⊑ apply (step e d) a
+  % - f d ⊑ apply (fun f) d (for the appropriate f)
+  % - alt ds ⊑ select (con k ds) alts (for the appropriate alts and (k,alt) ∈ alts)
+  % - body (α (fix (γ . rhs . α)) ⊑ bind rhs body, where rhs d = eval e3 (α `mapMap` (ext ρ1 x (Step (Lookup x) d)))
   Let |hat D| be an arbitrary domain with instances for |Trace|,
   |Domain| and |Lat| such that
   |(α :: Pow (D (ByName T)) -> hat D) :<->: _ = byName| exists.
-  Furthermore, assume that |forall v ρ. α (eval v ρ) ⊑ eval v (α `mapMap` ρ)|.
+  \sg{Other 3 assumptions in comments above}
 
   If \reducesto{|(e1, ρ1)|}{|(many ev, many c, e2, ρ2)|}
   and |α (eval e2 ρ2) ⊑ eval e2 (α `mapMap` ρ2)|,
   then |many (step ev) (many c (eval e2 (α `mapMap` ρ2))) ⊑ eval e1 (α `mapMap` ρ1)|.
 \end{lemma}
-\begin{proofsketch}
+\begin{proof}
 By induction on the length of |many ev|.
 When |length (many ev) = 0|, we also have |length (many c) = 0|, because the
 reduction of any |c| would induce an |App2| or |Case2| step.
@@ -1142,17 +1138,17 @@ of any |many c| would need to make a step) and the goal follows by assumption
 |α (eval e2 ρ2) ⊑ eval e2 (α `mapMap` ρ2)|.
 
 Otherwise |length (many ev) > 0|.
-Whenever \reducesto{|(e',ρ')|}{|(many ev1,many c1,e2,ρ2)|}
+Whenever \reducesto{|(e',ρ3)|}{|(many ev1,many c1,e2,ρ2)|}
 has |length (many ev1) < length (many ev)|,
 we can apply the induction hypothesis to get
-|α (eval e' ρ') ⊑ eval e' (α `mapMap` ρ')| for free:
-\begin{DispWithArrows*}[fleqn,mathindent=4em]
-      & |α (eval e' ρ')|
-      \Arrow{\reducesto{|(e',ρ')|}{|(many ev1,many c,e2,ρ2)|}} \\
-  ={} & |α (many (step ev1) (many c1 (eval e2 (α `mapMap` ρ2))))|
-      \Arrow{IH at \reducesto{|(e',ρ')|}{|(many ev1,many c1,e2,ρ2)|} and the assumption} \\
-  ⊑{} & |eval e' (α `mapMap` ρ')|
-\end{DispWithArrows*}
+|α (eval e' ρ3) ⊑ eval e' (α `mapMap` ρ3)| for free:
+\begin{spec}
+  α (eval e' ρ3)
+= {- \reducesto{|(e',ρ3)|}{|(many ev1,many c,e2,ρ2)|} -}
+  α (many (step ev1) (many c1 (eval e2 (α `mapMap` ρ2))))
+⊑ {- IH at \reducesto{|(e',ρ3)|}{|(many ev1,many c1,e2,ρ2)|} and the assumption -}
+  eval e' (α `mapMap` ρ3)
+\end{spec}
 We'll say ``gift at \reducesto{...}{...}'' when we use this identity below
 and proceed by cases on |e1|.
 \begin{itemize}
@@ -1161,69 +1157,175 @@ and proceed by cases on |e1|.
   \item \textbf{Case} |Var x|:
     The stuck case contradicts with the fact that |many ev| is non-empty.
     Otherwise, by $\vDash |ρ1|$
-    we have |ρ1 ! x = Step (Lookup y) (eval e' ρ')| for some |y|,|e'|,|ρ'|,
+    we have |ρ1 ! x = Step (Lookup y) (eval e' ρ3)| for some |y|,|e'|,|ρ3|,
     so |many ev = Lookup y : many ev1| for some |many ev1|,
-    hence \reducesto{|(x,ρ1)|}{|([Lookup y],[],e',ρ')|}
-    and \reducesto{|(e',ρ')|}{|(many ev1,many c,e2,ρ2)|}, both reductions of
+    hence \reducesto{|(x,ρ1)|}{|([Lookup y],[],e',ρ3)|}
+    and \reducesto{|(e',ρ3)|}{|(many ev1,many c,e2,ρ2)|}, both reductions of
     length smaller than |length (many ev)|.
-    \begin{DispWithArrows*}[fleqn,mathindent=4em]
-          & |many (step ev) (many c (eval e2 (α `mapMap` ρ2)))|
-          \Arrow{|head (many ev) = Lookup y|} \\
-      ={} & |step (Lookup y) (many (step ev1) (many c (eval e2 (α `mapMap` ρ2))))|
-          \Arrow{IH at \reducesto{|(e',ρ')|}{|(many ev1,many c,e2,ρ2)|}} \\
-      ⊑{} & |step (Lookup y) (eval e' (α `mapMap` ρ'))|
-          \Arrow{gift at \reducesto{|(e',ρ')|}{|(many ev1,many c,e2,ρ2)|}, \\ IH at \reducesto{|(x,ρ1)|}{|([Lookup y],e',ρ')|}} \\
-      ⊑{} & |eval x (α `mapMap` ρ1)|
-    \end{DispWithArrows*}
+    \begin{spec}
+      many (step ev) (many c (eval e2 (α `mapMap` ρ2)))
+    = {- |head (many ev) = Lookup y| -}
+      step (Lookup y) (many (step ev1) (many c (eval e2 (α `mapMap` ρ2))))
+    ⊑ {- IH at \reducesto{|(e',ρ3)|}{|(many ev1,many c,e2,ρ2)|} -}
+      step (Lookup y) (eval e' (α `mapMap` ρ3))
+    ⊑ {- gift at \reducesto{|(e',ρ3)|}{|(many ev1,many c,e2,ρ2)|}, -}
+      {- IH at \reducesto{|(x,ρ1)|}{|([Lookup y],e',ρ3)|} -}
+      eval x (α `mapMap` ρ1)
+    \end{spec}
   \item \textbf{Case} |App e x|:
     Either |(many ev, many c, e2, ρ2)| is reached when evaluating |e| or when
     evaluating the lambda body of the returned value.
 
     When |e2| is reached during evaluation of |e|,
-    we have |many ev = App1 : many ev1| and |many c = (\d -> apply d (ρ1!x)) : many c1|,
+    we have |many ev = App1 : many ev1| and |many c = (`apply` (ρ1!x)) : many c1|,
     as well as the (strict) subsequence
     \reducesto{|(e, ρ1)|}{|(many ev1, many c1, e2, ρ2)|}.
-    \begin{DispWithArrows*}[fleqn,mathindent=4em]
-          & |many (step ev) (many c (eval e2 (α `mapMap` ρ2)))|
-          \Arrow{|head (many ev) = App1|, |head (many c) = \d -> apply d (ρ1 ! x)|} \\
-      ⊑{} & |step App1 (apply (step (many (step ev1) (many c1 (eval e2 (α `mapMap` ρ2)))) ((α `mapMap` ρ1) ! x))|
-          \Arrow{IH at \reducesto{|(e, ρ1)|}{|(many ev1, many c1, e2, ρ2)|}} \\
-      ⊑{} & |step App1 (apply (eval e (α `mapMap` ρ1)) ((α `mapMap` ρ1) ! x))|
-          \Arrow{gift at \reducesto{|(e, ρ1)|}{|(many ev1, many c1, e2, ρ2)|}, \\ IH at \reducesto{|(App e x,ρ1)|}{|([App1],`apply` _ (ρ1 ! x),e,ρ1)|}} \\
-      ⊑{} & |eval (App e x) (α `mapMap` ρ1)|
-    \end{DispWithArrows*}
+    \begin{spec}
+      many (step ev) (many c (eval e2 (α `mapMap` ρ2)))
+    ⊑ {- |head (many ev) = App1|, |head (many c) = `apply` (ρ1 ! x)| -}
+      step App1 (apply (step (many (step ev1) (many c1 (eval e2 (α `mapMap` ρ2)))) ((α `mapMap` ρ1) ! x)))
+    ⊑ {- IH at \reducesto{|(e, ρ1)|}{|(many ev1, many c1, e2, ρ2)|} -}
+      step App1 (apply (eval e (α `mapMap` ρ1)) ((α `mapMap` ρ1) ! x))
+    ⊑ {- gift at \reducesto{|(e, ρ1)|}{|(many ev1, many c1, e2, ρ2)|}, -}
+      {- IH at \reducesto{|(App e x,ρ1)|}{|([App1],`apply` (ρ1 ! x),e,ρ1)|} -}
+      eval (App e x) (α `mapMap` ρ1)
+    \end{spec}
 
     Otherwise, we have
-    \reducesto{|(e,ρ1)|}{|(many ev1, [], Lam x e,ρ')|}
-    for some |Lam x e'| and |ρ'| and |e2| is reached during evaluation of |e'|.
+    \reducesto{|(e,ρ1)|}{|(many ev1, [], Lam x e,ρ3)|}
+    for some |Lam x e'| and |ρ3| and |e2| is reached during evaluation of |e'|.
     Furthermore, |many ev = [App1] ++ many ev1 ++ [App2] ++ many ev2|
     and another strict subsequence
-    \reducesto{|(e',ext ρ' y (ρ1 ! x))|}{|(many ev2,many c,e2,ρ2)|}.
-    \begin{DispWithArrows*}[fleqn,mathindent=4em]
-          & |many (step ev) (many c (eval e2 (α `mapMap` ρ2)))|
-          \Arrow{|many ev = ...|, |many c = ...|} \\
-      ⊑{} & |step App1 (many (step ev1) (step App2 (many (step ev2) (many c (eval e2 (α `mapMap` ρ2))))))|
-          \Arrow{IH at \reducesto{|(e',ext ρ' y (ρ1 ! x))|}{|(many ev2,many c,e2,ρ2)|}} \\
-      ⊑{} & |step App1 (many (step ev1) (step App2 (eval e' (α `mapMap` (ext ρ' y (ρ1 ! x))))))|
-          \Arrow{Rearrange} \\
-      ={} & |step App1 (many (step ev1) (step App2 (eval e' (ext (α `mapMap` ρ') y (α (ρ1 ! x))))))|
-          \Arrow{Assumption about abstraction} \\
-      ⊑{} & |step App1 (many (step ev1) (apply (fun ... (α (ρ1 ! x))))|
-          \Arrow{Definition of |eval (Lam x e') (α `mapMap` ρ')|} \\
-      ⊑{} & |step App1 (many (step ev1) (apply (eval (Lam x e') (α `mapMap` ρ')) (α (ρ1 ! x))))|
-          \Arrow{Assumption about |step|} \\
-      ⊑{} & |step App1 (apply (many (step ev1) (eval (Lam x e') (α `mapMap` ρ')) (α (ρ1 ! x))))|
-          \Arrow{IH at \reducesto{|(e,ρ1)|}{|(many ev1, [], Lam x e,ρ')|}} \\
-      ⊑{} & |step App1 (apply (eval e (α `mapMap` ρ1)) (α (ρ1 ! x)))|
-          \Arrow{gift at \reducesto{|(e, ρ1)|}{|(many ev1, [], Lam x e,ρ')|}, \\ IH at \reducesto{|(App e x,ρ1)|}{|([App1],`apply` _ (ρ1 ! x),e,ρ1)|}} \\
-      ⊑{} & |eval (App e x) (α `mapMap` ρ1)|
-    \end{DispWithArrows*}
-\end{itemize}
-\end{proofsketch}
+    \reducesto{|(e',ext ρ3 y (ρ1 ! x))|}{|(many ev2,many c,e2,ρ2)|}.
+    \begin{spec}
+      many (step ev) (many c (eval e2 (α `mapMap` ρ2)))
+    ⊑ {- |many ev = ...|, |many c = ...| -}
+      step App1 (many (step ev1) (step App2 (many (step ev2) (many c (eval e2 (α `mapMap` ρ2))))))
+    ⊑ {- IH at \reducesto{|(e',ext ρ3 y (ρ1 ! x))|}{|(many ev2,many c,e2,ρ2)|} -}
+      step App1 (many (step ev1) (step App2 (eval e' (α `mapMap` (ext ρ3 y (ρ1 ! x))))))
+    = {- Rearrange -}
+      step App1 (many (step ev1) (step App2 (eval e' (ext (α `mapMap` ρ3) y (α (ρ1 ! x))))))
+    ⊑ {- Assumption about abstraction -}
+      step App1 (many (step ev1) (apply (fun ... (α (ρ1 ! x)))))
+    ⊑ {- Definition of |eval (Lam x e') (α `mapMap` ρ3)| -}
+      step App1 (many (step ev1) (apply (eval (Lam x e') (α `mapMap` ρ3)) (α (ρ1 ! x))))
+    ⊑ {- Assumption about |step| -}
+      step App1 (apply (many (step ev1) (eval (Lam x e') (α `mapMap` ρ3)) (α (ρ1 ! x))))
+    ⊑ {- IH at \reducesto{|(e,ρ1)|}{|(many ev1, [], Lam x e,ρ3)|} -}
+      step App1 (apply (eval e (α `mapMap` ρ1)) (α (ρ1 ! x)))
+    ⊑ {- gift at \reducesto{|(e, ρ1)|}{|(many ev1, [], Lam x e,ρ3)|}, -}
+      {- IH at \reducesto{|(App e x,ρ1)|}{|([App1],`apply` (ρ1 ! x),e,ρ1)|} -}
+      eval (App e x) (α `mapMap` ρ1)
+    \end{spec}
 
+  \item \textbf{Case} |Case e alts|:
+    Very similar to the |App|lication case.
+
+    Either |(many ev, many c, e2, ρ2)| is reached when evaluating |e| or when
+    evaluating the alternative that matches its value.
+
+    When |e2| is reached during evaluation of |e|,
+    we have |many ev = Case1 : many ev1| and |many c = (`select` fs) : many c1|,
+    for the suitable |fs|, as well as the (strict) subsequence
+    \reducesto{|(e, ρ1)|}{|(many ev1, many c1, e2, ρ2)|}.
+    \begin{spec}
+      many (step ev) (many c (eval e2 (α `mapMap` ρ2)))
+    ⊑ {- |head (many ev) = Case1|, |head (many c) = `select` fs| -}
+      step Case1 (select (step (many (step ev1) (many c1 (eval e2 (α `mapMap` ρ2))))) fs)
+    ⊑ {- IH at \reducesto{|(e, ρ1)|}{|(many ev1, many c1, e2, ρ2)|} -}
+      step Case1 (select (eval e (α `mapMap` ρ1)) fs)
+    ⊑ {- gift at \reducesto{|(e, ρ1)|}{|(many ev1, many c1, e2, ρ2)|}, -}
+      {- IH at \reducesto{|(Case e fs,ρ1)|}{|([Case1],`select` fs,e,ρ1)|} -}
+      eval (App e x) (α `mapMap` ρ1)
+    \end{spec}
+
+    Otherwise, we have
+    \reducesto{|(e,ρ1)|}{|(many ev1, [], ConApp k xs,ρ3)|}
+    for some |ConApp k xs| and |ρ3| and |e2| is reached during evaluation of |e'|.
+    Let |alt = (k,ys,er)| be the matching alternative in |alts|.
+    Then we have |many ev = [Case1] ++ many ev1 ++ [Case2] ++ many ev2|
+    and another strict subsequence
+    \reducesto{|(er,exts ρ1 ys (map (ρ3 !) xs))|}{|(many ev2,many c,e2,ρ2)|}.
+    \begin{spec}
+      many (step ev) (many c (eval e2 (α `mapMap` ρ2)))
+    ⊑ {- |many ev = ...|, |many c = ...| -}
+      step Case1 (many (step ev1) (step Case2 (many (step ev2) (many c (eval e2 (α `mapMap` ρ2))))))
+    ⊑ {- IH at \reducesto{|(er,exts ρ1 ys _)|}{|(many ev2,many c,e2,ρ2)|} -}
+      step Case1 (many (step ev1) (step Case2 (eval er (α `mapMap` (exts ρ1 ys (map (ρ3 !) xs))))))
+    = {- Rearrange -}
+      step Case1 (many (step ev1) (step Case2 (eval er (exts (α `mapMap` ρ1) ys (map ((α `mapMap` ρ3) !) xs)))))
+    ⊑ {- Assumption about abstraction -}
+      step Case1 (many (step ev1) (select (con k (map ((α `mapMap` ρ3) !) xs)) fs))
+    ⊑ {- Definition of |eval (ConApp k xs) (α `mapMap` ρ3)| -}
+      step Case1 (many (step ev1) (select (eval (ConApp k xs) (α `mapMap` ρ3)) fs))
+    ⊑ {- Assumption about |step| -}
+      step Case1 (select (many (step ev1) (eval (ConApp k xs) (α `mapMap` ρ3)) fs))
+    ⊑ {- IH at \reducesto{|(e,ρ1)|}{|(many ev1, [], ConApp k xs,ρ3)|} -}
+      step Case1 (select (eval e (α `mapMap` ρ1)) (α (ρ1 ! x)))
+    ⊑ {- gift at \reducesto{|(e,ρ1)|}{|(many ev1, [], ConApp k xs,ρ3)|}, IH at \reducesto{|(Case e alts,ρ1)|}{|([Case1],`select` fs,e,ρ1)|} -}
+      eval (Case e alts) (α `mapMap` ρ1)
+    \end{spec}
+
+  \item \textbf{Case} |Let x e3 e4|:
+    |e2| is reached during evaluation of |e4|, and the definition of |eval|
+    gives us that |many ev = Let1 : many ev1|.
+    (Note that by \Cref{thm:eval-preserve-syntactic}, we have that the extension
+    |ext ρ1 x (Step (Lookup x) (fix (\d -> ...)))| preserves $\vDash$.)
+    We get \reducesto{|(e1,ρ1)|}{|[Let1],[],(e4,ext ρ1 x _)|}
+    as well as\reducesto{|(e4,ext ρ1 x _)|}{|many ev1,many c,(e4,ext ρ1 x _)|}.
+
+    % - body (α (fix (γ . rhs . α))) ⊑ bind rhs body
+    \begin{spec}
+      many (step ev) (many c (eval e2 (α `mapMap` ρ2)))
+    ⊑ {- |head (many ev) = Let1| -}
+      step Let1 (many (step ev1) (many c (eval e2 (α `mapMap` ρ2))))
+    ⊑ {- IH at \reducesto{|(e4,ext ρ1 x _)|}{|many ev1,many c,(e4,ext ρ1 x _)|} -}
+      step Let1 (eval e4 (α `mapMap` (ext ρ1 x (Step (Lookup x) (fix (\d -> eval e3 (ext ρ1 x (Step (Lookup x) d))))))))
+    = {- Rearrange -}
+      step Let1 (eval e4 (ext (α `mapMap` ρ1) x (step (Lookup x) (α (fix (\d -> eval e3 (ext ρ1 x (Step (Lookup x) d))))))))
+    ⊑ {- |id ⊑ γ . α| -}
+      step Let1 (eval e4 (ext (α `mapMap` ρ1) x (step (Lookup x) (α (fix (\d -> γ (α (eval e3 (ext ρ1 x (Step (Lookup x) d))))))))))
+    \end{spec}
+    Here, we have to make a case analysis on whether or not |eval e4| is constant
+    in its argument (\eg, whether |e3| is ever evaluated URG)
+    during reduction to |e2|.
+    If it is not, we could just as well have started with  apply our assumption
+    \begin{spec}
+    ⊑ {- TODO: Can't justify this step when |e3| is never evaluated?? Perhaps by cases -}
+      step Let1 (eval e4 (ext (α `mapMap` ρ1) x (step (Lookup x) (α (fix (\d -> γ (eval e3 (α `mapMap` (ext ρ1 x (Step (Lookup x) d))))))))))
+    ⊑ {- Assumption about |bind| -}
+      bind  (\d1 -> eval e3 (ext (α `mapMap` ρ1) x (Step (Lookup x) d1)))
+            (\d1 -> step Let1 (eval e4 (ext (α `mapMap` ρ1) x (Step (Lookup x) d1))))
+    = {- Definition -}
+      eval (Let x e3 e4) (α `mapMap` ρ1)
+    \end{spec}
+\end{itemize}
+\end{proof}
+\end{toappendix}
+
+\begin{theoremrep}[Sound By-name Interpretation]
+Let |hat D| be a domain such that there are instances |Trace (hat D)|, |Domain
+(hat D)|, |HasBind (hat D)|.
+Then the following inference rule applies, proving |eval e (hat ρ) :: hat D| a
+sound abstract interpretation of by-name traces:
+\[
+\inferrule
+  {%
+   |α :<->: γ = byName|\\\\
+   |forall a. stuck ⊑ apply stuck (α a)|\\ |forall fs. stuck ⊑ sel stuck fs|\\\\
+   |forall v ρ a. α (apply (eval v ρ) a) ⊑ apply (eval v (α `mapMap` ρ)) (α a)|\\\\
+   |forall e d a. step e (apply d a) ⊑ apply (step e d) a|\\\\
+   |forall e d fs. step e (select d fs) ⊑ select (step e d) fs|\\\\
+   |forall k ds fs. head [ f || (k',f) <- fs, k == k'] ds ⊑ select (con k ds) fs|\\\\
+   |forall rhs body. α (body (fix rhs)) ⊑ bind (α . powMap rhs . γ) (α . powMap body . γ)|%
+  }
+  {|α (eval e ρ :: Pow (D (ByName T))) ⊑ (eval e (α `mapMap` ρ) :: hat D)|}
+\]
+\end{theoremrep}
+\begin{proofsketch}
 By Löb induction and cases on |e|, also maintaining the invariant that if the
 returned trace ends in |Fun f|, it satisfies
-$φ(f) \triangleq |exists e' ρ' y. forall d. f d = eval e' (ext ρ' y d)|$.
+$φ(f) \triangleq |exists e' ρ3 y. forall d. f d = eval e' (ext ρ3 y d)|$.
 This is also an assumption we make on |ρ|.
 \begin{itemize}
   \item \textbf{Case} |Var x|:
@@ -1280,18 +1382,18 @@ This is also an assumption we make on |ρ|.
     |stuck ⊑ apply ...| assumptions.
     In the remaining case, we have |τ = Ret (Fun f)| for some |f|.
     By our additional invariant $φ(|f|)$, we know that
-    |f (ρ ! x) = Step App2 (eval e' (ext ρ' y (ρ ! x)))| for some |e',ρ',y|
+    |f (ρ ! x) = Step App2 (eval e' (ext ρ3 y (ρ ! x)))| for some |e',ρ3,y|
     below.
     \begin{DispWithArrows*}[fleqn,mathindent=4em]
           & |α (Ret (Fun f) >>= \case Fun f -> f (ρ ! x); _ -> stuck)|
           \Arrow{|return v >>= f = f v|} \\
       ={} & |α (f (ρ ! x))|
           \Arrow{$φ(|f|)$} \\
-      ={} & |α (Step App2 (eval e' (ext ρ' y (ρ ! x))))|
+      ={} & |α (Step App2 (eval e' (ext ρ3 y (ρ ! x))))|
           \Arrow{unfold |α|; IH 1} \\
-      ⊑{} & |step App2 (eval e' (α `mapMap` (ext ρ' y (ρ ! x))))|
+      ⊑{} & |step App2 (eval e' (α `mapMap` (ext ρ3 y (ρ ! x))))|
           \Arrow{Assumption} \\
-      ⊑{} & |apply (fun (\(hat d) -> step App2 (eval e' (ext ρ' y (γ (hat d)))))) ((α `mapMap` ρ) ! x)|
+      ⊑{} & |apply (fun (\(hat d) -> step App2 (eval e' (ext ρ3 y (γ (hat d)))))) ((α `mapMap` ρ) ! x)|
           \Arrow{Refold |τ|} \\
       ={} & |apply (eval e (α `mapMap` ρ)) ((α `mapMap` ρ) ! x)|
     \end{DispWithArrows*}

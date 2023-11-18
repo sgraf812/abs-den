@@ -106,6 +106,8 @@
 \newcommand{\conid}[1]{\textcolor{OliveGreen}{\id{#1}}}
 %\newcommand{\tick}{\text{\textquoteright}}
 \newcommand{\package}[1]{\textsf{#1}}
+\renewcommand{\commentbegin}{\ensuremath{\quad\Lbag\ }}
+\renewcommand{\commentend}{\ensuremath{\Rbag}}
 
 % Tables should have the caption above
 \floatstyle{plaintop}
