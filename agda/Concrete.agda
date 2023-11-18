@@ -20,18 +20,24 @@ open import Cubical.Core.Everything hiding (_[_↦_])
 open import Cubical.Relation.Nullary.Base
 open import Semantics
 
+record Monad (M : Set → Set) : Set₁ where
+  field
+    return : ∀ {A} → A → M A
+    _>>=_ : ∀ {A} {B} → M A → (A → M B) → M B
+  _>>_ : ∀ {A} {B} → M A → M B → M B
+  l >> r = l >>= (λ _ → r)
+
+open Monad {{...}} public
+
 data T (A : Set) : Set where
   ret-T : A → T A
   step-T : Event → ▹ T A → T A
 
 data Value (τ : Set → Set) : Set
 
-D : (Set → Set) → Set
-D τ = τ (Value τ)
-
 {-# NO_POSITIVITY_CHECK #-}
-data LookupD (τ : Set → Set) : Set where
-  stepLookup : Var → ▹(D τ) → LookupD τ
+data LookupD (D : Set) : Set where
+  stepLookup : Var → ▹ D → LookupD D
   -- An LookupD is effectively a subtype of D.
   -- Think of `stepLookup x d' : LookupD` as a `d : D`
   -- such that `d = step (lookup x) d'`.
@@ -39,16 +45,20 @@ data LookupD (τ : Set → Set) : Set where
   -- hence this weird encoding.
   -- Here is the corresponding bijection:
 
-toSubtype : ∀ {τ} {{trc : Trace τ}} → LookupD τ → Σ (D τ) is-look
-toSubtype {{trc}} (stepLookup x d▹) = (Trace.step trc (lookup x) d▹ , x , d▹ , refl)
+toSubtype : ∀ {D} {{_ : Trace D}} → LookupD D → Σ D is-look
+toSubtype {{_}} (stepLookup x d▹) = (step (lookup x) d▹ , x , d▹ , refl)
 
-fromSubtype : ∀ {τ} {{trc : Trace τ}} → Σ (D τ) is-look → LookupD τ
-fromSubtype {{trc}} (_ , x , d▹ , _) = stepLookup x d▹
+fromSubtype : ∀ {D} {{_ : Trace D}} → Σ D is-look → LookupD D
+fromSubtype {{_}} (_ , x , d▹ , _) = stepLookup x d▹
 
-data Value τ where
-  stuck-V : Value τ
-  fun-V : (LookupD τ → D τ) → Value τ
-  con-V : Con → List (LookupD τ) → Value τ
+-- The concrete D
+D : (Set → Set) → Set
+D τ = τ (Value τ)
+
+data Value T where
+  stuck-V : Value T
+  fun-V : (LookupD (D T) → D T) → Value T
+  con-V : Con → List (LookupD (D T)) → Value T
 
 return-T : ∀ {A} → A → T A
 return-T = ret-T
@@ -62,26 +72,26 @@ instance
   monad-T = record { return = ret-T; _>>=_ = _>>=-T_ }
 
 instance
-  trace-T : Trace T
+  trace-T : ∀ {V} → Trace (T V)
   trace-T = record { step = step-T }
 
-stuck-Value : ∀ {τ} {{trc : Trace τ}} → D τ
+stuck-Value : ∀ {τ} {{_ : Monad τ}} → D τ
 stuck-Value = return stuck-V
 
-fun-Value : ∀ {τ} {{trc : Trace τ}} → (Σ (D τ) is-look → D τ) → D τ
+fun-Value : ∀ {τ} {{_ : Monad τ}} {{_ : Trace (D τ)}} → (Σ (D τ) is-look → D τ) → D τ
 fun-Value f = return (fun-V (f ∘ toSubtype))
 
-apply-Value : ∀ {τ} {{trc : Trace τ}} → D τ → Σ (D τ) is-look → D τ
-apply-Value {τ} {{_}} dv da = dv >>= aux
+apply-Value : ∀ {τ} {{_ : Monad τ}} {{_ : Trace (D τ)}} → D τ → Σ (D τ) is-look → D τ
+apply-Value {τ} dv da = dv >>= aux
   where
     aux : Value τ → D τ
     aux (fun-V f) = f (fromSubtype da)
     aux _         = stuck-Value
 
-con-Value : ∀ {τ} {{trc : Trace τ}} → Con → List (Σ (D τ) is-look) → D τ
+con-Value : ∀ {τ} {{_ : Monad τ}} {{_ : Trace (D τ)}} → Con → List (Σ (D τ) is-look) → D τ
 con-Value K ds = return (con-V K (List.map fromSubtype ds))
 
-select-Value : ∀ {τ} {{trc : Trace τ}} → D τ → List (Con × (List (Σ (D τ) is-look) → D τ)) → D τ
+select-Value : ∀ {τ} {{_ : Monad τ}} {{_ : Trace (D τ)}} → D τ → List (Con × (List (Σ (D τ) is-look) → D τ)) → D τ
 select-Value {τ} dv alts = dv >>= aux alts
   where
     aux : List (Con × (List (Σ (D τ) is-look) → D τ)) → Value τ → D τ
@@ -91,19 +101,20 @@ select-Value {τ} dv alts = dv >>= aux alts
     aux _ _ = stuck-Value
 
 instance
-  domain-Value : ∀ {τ} {{trc : Trace τ}} → Domain (D τ) is-look
+  domain-Value : ∀ {τ} {{_ : Monad τ}} {{_ : Trace (D τ)}} → Domain (D τ) is-look
   domain-Value = record { stuck = stuck-Value; fun = fun-Value; apply = apply-Value; con = con-Value; select = select-Value }
 
 record ByName (τ : Set → Set) (v : Set) : Set where
   constructor mkByName
   field get : τ v
 
-monad-ByName : ∀ {τ} {{_ : Monad τ}} → Monad (ByName τ)
-monad-ByName = record { return = mkByName ∘ return; _>>=_ = λ m k → mkByName (ByName.get m >>= (ByName.get ∘ k)) }
+instance
+  monad-ByName : ∀ {τ} {{_ : Monad τ}} → Monad (ByName τ)
+  monad-ByName = record { return = mkByName ∘ return; _>>=_ = λ m k → mkByName (ByName.get m >>= (ByName.get ∘ k)) }
 
 instance
-  trace-ByName : ∀ {τ} {{_ : Trace τ}} → Trace (ByName τ)
-  trace-ByName = record { monad = monad-ByName; step = λ e τ → mkByName (step e (λ α → ByName.get (τ α))) }
+  trace-ByName : ∀ {τ} {{_ : ∀ {V} → Trace (τ V)}} {V} → Trace (ByName τ V)
+  trace-ByName = record { step = λ e τ → mkByName (step e (λ α → ByName.get (τ α))) }
 
 instance
   has-bind-ByName : ∀ {τ} {v} → HasBind (ByName τ v)
@@ -143,7 +154,7 @@ instance
   monad-ByNeed : ∀ {τ} {{_ : Monad τ}} → Monad (ByNeed τ)
   monad-ByNeed = record { return = return-ByNeed; _>>=_ = _>>=-ByNeed_ }
 
-step-ByNeed : ∀ {τ} {{_ : Trace τ}} {v} → Event → ▹(ByNeed τ v) → ByNeed τ v
+step-ByNeed : ∀ {τ} {v} {{_ : ∀ {V} → Trace (τ V)}} → Event → ▹(ByNeed τ v) → ByNeed τ v
 step-ByNeed {τ} {v} e m = mkByNeed (λ μ → step e (λ α → ByNeed.get (m α) μ))
   -- NB: If we were able to switch the order of λ μ and λ α this code would still compile
   --     and we would not need the postulate no-α-in-μ.
@@ -151,7 +162,7 @@ step-ByNeed {τ} {v} e m = mkByNeed (λ μ → step e (λ α → ByNeed.get (m �
   --     We can't push the λ α into the surrounding ByNeed.
 
 instance
-  trace-ByNeed : ∀ {τ} {{_ : Trace τ}} → Trace (ByNeed τ)
+  trace-ByNeed : ∀ {τ} {v} {{_ : ∀ {V} → Trace (τ V)}} → Trace (ByNeed τ v)
   trace-ByNeed = record { step = step-ByNeed  }
 
 -- | See step-ByNeed why this postulate is OK.
@@ -165,7 +176,7 @@ fetch {τ} a = fst (no-α-in-μ (λ μ → aux μ (fst (well-addressed μ a))))
     aux : Heap (ByNeed τ) → HeapD (ByNeed τ) → ▹(τ (Value (ByNeed τ) × Heap (ByNeed τ)))
     aux μ (heapD d▹) α = ByNeed.get (d▹ α) μ
 
-memo : ∀ {τ} {{_ : Trace τ}} → Addr → ▹(D (ByNeed τ)) → ▹(D (ByNeed τ))
+memo : ∀ {τ} {{_ : Monad τ}} {{_ : ∀ {V} → Trace (τ V)}} → Addr → ▹(D (ByNeed τ)) → ▹(D (ByNeed τ))
 memo {τ} a d▹ = fix memo' d▹
   where
     memo' : ▹(▹(D (ByNeed τ)) → ▹(D (ByNeed τ)))
@@ -174,14 +185,14 @@ memo {τ} a d▹ = fix memo' d▹
       v ← d▹ α₁
       step update (λ _α₂ → mkByNeed (λ μ → return (v , μ [ a ↦ heapD (rec▹ α₁ (λ _ → return v)) ])))
 
-bind-ByNeed : ∀ {τ} {{_ : Trace τ}} → ▹(▹(D (ByNeed τ)) → D (ByNeed τ)) → (▹(D (ByNeed τ)) → D (ByNeed τ)) → D (ByNeed τ)
+bind-ByNeed : ∀ {τ} {{_ : Monad τ}} {{_ : ∀ {V} → Trace (τ V)}} → ▹(▹(D (ByNeed τ)) → D (ByNeed τ)) → (▹(D (ByNeed τ)) → D (ByNeed τ)) → D (ByNeed τ)
 bind-ByNeed {τ} rhs body = do
   a ← mkByNeed (λ μ → return (nextFree μ , μ))
   mkByNeed (λ μ → return (42 , μ [ a ↦ heapD (memo a (λ α → rhs α (fetch a))) ]))
   step let1 (λ _α → body (fetch a))
 
 instance
-  has-bind-ByNeed : ∀ {τ} {{_ : Trace τ}} → HasBind (D (ByNeed τ))
+  has-bind-ByNeed : ∀ {τ} {{_ : Monad τ}} {{_ : ∀ {V} → Trace (τ V)}} → HasBind (D (ByNeed τ))
   has-bind-ByNeed = record { bind = bind-ByNeed }
 
 eval-by-need : Exp → T (Value (ByNeed T) × Heap (ByNeed T))

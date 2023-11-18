@@ -28,18 +28,9 @@ data Event : Set where
   case2 : Event
   let1 : Event
 
-record Monad (M : Set → Set) : Set₁ where
+record Trace (T : Set) : Set where
   field
-    return : ∀ {A} → A → M A
-    _>>=_ : ∀ {A} {B} → M A → (A → M B) → M B
-  _>>_ : ∀ {A} {B} → M A → M B → M B
-  l >> r = l >>= (λ _ → r)
-open Monad {{...}} public
-
-record Trace (T : Set → Set) : Set₁ where
-  field
-    {{monad}} : Monad T
-    step : ∀ {V} → Event → ▹ (T V) → T V
+    step : Event → ▹ T → T
 open Trace {{...}} public
 
 record Domain (D : Set) (p : D → Set) : Set where
@@ -56,15 +47,15 @@ record HasBind (D : Set) : Set where
     bind : ▹(▹ D → D) → (▹ D → D) → D
 open HasBind {{...}} public
 
--- | This characterises the subtype of `τ v` that we pass around in `fun` and `apply`
-is-look : ∀ {τ} {v} {{trc : Trace τ}} → τ v → Set
-is-look {τ} d = ∃[ x ] ∃[ d▹ ] (d ≡ step {τ} (lookup x) d▹)
+-- | This characterises the subtype of `τ` that we pass around in `fun` and `apply`
+is-look : ∀ {D} {{trc : Trace D}} → D → Set
+is-look {D} d = ∃[ x ] ∃[ d▹ ] (d ≡ step {D} (lookup x) d▹)
 
-S⟦_⟧_ : ∀ {τ} {v} {{_ : Trace τ}} {{_ : Domain (τ v) is-look}} {{_ : HasBind (τ v)}}
-      → Exp → (Var ⇀ Σ (τ v) is-look) → τ v
-S⟦_⟧_ {τ} {v} e ρ = fix sem' e ρ
+S⟦_⟧_ : ∀ {D} {{_ : Trace D}} {{_ : Domain D is-look}} {{_ : HasBind D}}
+      → Exp → (Var ⇀ Σ D is-look) → D
+S⟦_⟧_ {D} e ρ = fix sem' e ρ
   where
-    sem' : ▹(Exp → (Var ⇀ Σ (τ v) is-look) → τ v) → Exp → (Var ⇀ Σ (τ v) is-look) → τ v
+    sem' : ▹(Exp → (Var ⇀ Σ D is-look) → D) → Exp → (Var ⇀ Σ D is-look) → D
     sem' recurse▹ (ref x) ρ with ρ x
     ... | nothing      = stuck
     ... | just (d , _) = d
@@ -81,5 +72,6 @@ S⟦_⟧_ {τ} {v} e ρ = fix sem' e ρ
     sem' recurse▹ (case' eₛ alts) ρ =
       step case1 (λ α → select (recurse▹ α eₛ ρ) (List.map alt alts))
         where
-          alt : Con × List Var × Exp → Con × (List (Σ (τ v) is-look) → τ v)
+          alt : Con × List Var × Exp → Con × (List (Σ D is-look) → D)
           alt (k , xs , eᵣ) = (k , (λ ds → step case2 (λ α → recurse▹ α eᵣ (ρ [ xs ↦* ds ]))))
+ 
