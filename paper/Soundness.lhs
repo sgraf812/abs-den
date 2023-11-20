@@ -1016,23 +1016,21 @@ further:
 \inferrule
   {%
    |α :<->: γ = byName|\\\\
-   |forall a. stuck ⊑ apply stuck (α a)|\\ |forall fs. stuck ⊑ sel stuck fs|\\\\
-   |forall k ds. stuck ⊑ apply (con ds) (α a)|\\ |forall f fs. stuck ⊑ sel (fun f) fs|\\\\
-   |forall f a. α (f a) ⊑ apply (fun (α . f . γ)) (α a)|\\\\
-   |forall k ds fs. head [ f || (k',f) <- fs, k == k'] ds ⊑ select (con k ds) fs|\\\\
+   |forall d a. α (apply d a) ⊑ apply (α d) (α a)|\\\\
+   |forall d fs. α (sel d fs) ⊑ sel (α d) [ (k, α . f . map γ) || (k, f) <- fs ]|\\\\
    |forall rhs body. α (body (fix rhs)) ⊑ bind (α . powMap rhs . γ) (α . powMap body . γ)|%
   }
   {|α (eval e ρ :: Pow (D (ByName T))) ⊑ (eval e (α `mapMap` ρ) :: D2)|}
 \]
-The reading is as follows: The first four lemmas check that |stuck| is considered appropriately,
-the next two soundness lemmas prove correct the summary mechanism implemented in
-|apply| and |select|, and |bind| implements a particular fixpointing strategy
-each of which needs a separate correctness proof.
+The reading is as follows: The first two lemmas prove correct the summary
+mechanism that comes to fruition in |apply| and |select|, and |bind| implements
+a particular fixpointing strategy each of which needs a separate correctness
+proof.
 (We decided not to inline the instance methods of |C (D (ByName T))|, because
 they don't meaningfully simplify any further with |α|.)
 
 Unfortunately, we suffer from a lack of full abstraction~\citet{Plotkin:77}:
-Proving |ι (apply (fun f) a) ⊑ apply (ι (fun f)) (ι a)|
+Proving |α (apply d a) ⊑ apply (α d) (α a)|
 is quite hard, because |f :: D -> D| might be \emph{any} function, introspecting
 its argument in all sorts of ways.
 But we are only ever using it on an |f| that satisfies $φ(f) \triangleq |exists
@@ -1058,26 +1056,7 @@ of theorems, so we prove the below lemma by hand.
 However, parametricity is a strong argument that our approach can easily be
 generalised to other denotational interpreters.
 
-\begin{toappendix}
-\begin{definition}[Syntactic environments]
-  We write $\vDash |ρ|$ to say that the range of a by-name environment
-  |ρ| is of the form |set (Lookup x (eval e ρ1) || Later ({-" \vDash "-} ρ1))|.
-\end{definition}
-
-\begin{lemma}
-  \label{thm:eval-preserve-syntactic}
-  If $\vDash |ρ|$, then |eval e ρ| preserves this property during evaluation.
-\end{lemma}
-\begin{proof}
-By Löb induction and cases on |e|.
-The only interesting case is |Let x e1 e2|; there, |ρ| is actually extended
-with an entry that doesn't come from an environment (or function parameter).
-
-But every extension of |ρ| is of the form |Step (Lookup x) d|, so it suffices to
-show that |d| is of the form |eval e' ρ2|. By Löb induction, we may assume that
-this is the case \emph{later}, and \emph{later} is exactly what we need.
-\end{proof}
-
+\begin{comment}
 % SG: The below idea about making EvalCtx a data type is too much fuzz about
 %     nothing for my taste
 %
@@ -1319,19 +1298,129 @@ We proceed by cases on |e1|.
     \end{spec}
 \end{itemize}
 \end{proof}
-\end{toappendix}
+\end{comment}
 
-\begin{theoremrep}[Sound By-name Interpretation]
-Let |hat D| be a domain such that there are instances |Trace (hat D)|, |Domain
-(hat D)|, |HasBind (hat D)|.
+\begin{definition}[Syntactic environments]
+  We write $\vDash |ρ|$ to say that the range of a by-name environment
+  |ρ| is of the form |set (Lookup x (eval e ρ1) || Later ({-" \vDash "-} ρ1))|.
+\end{definition}
+
+\begin{lemma}
+  \label{thm:eval-preserve-syntactic}
+  If $\vDash |ρ|$, then |eval e ρ| preserves this property during evaluation.
+\end{lemma}
+\begin{proof}
+By Löb induction and cases on |e|.
+The only interesting case is |Let x e1 e2|; there, |ρ| is actually extended
+with an entry that doesn't come from an environment (or function parameter).
+
+But every extension of |ρ| is of the form |Step (Lookup x) d|, so it suffices to
+show that |d| is of the form |eval e' ρ2|. By Löb induction, we may assume that
+this is the case \emph{later}, and \emph{later} is exactly what we need.
+\end{proof}
+
+Henceforth, we assume that all environments |ρ| are syntactic, \eg, that $\vDash
+|ρ|$.
+
+\begin{theoremrep}[Sound Monadic By-name Interpretation]
+Let |hat D := hat T (hat Value)| be a domain such that there are instances
+|Trace (hat T (hat Value))|, |Domain (hat T (hat Value))|,
+|HasBind (hat T (hat Value))|, |Monad (hat T)| and |Lat (hat T (hat Value))|.
 Then the following inference rule applies, proving |eval e (hat ρ) :: hat D| a
-sound abstract interpretation of by-name traces:
+sound abstract by-name interpreter:
+\[
+\inferrule
+  {%
+   |α :<->: γ = byName|\\ IH = |forall e1 ρ1. α (eval e1 ρ1) ⊑ eval e1 (α `mapMap` ρ1)| \\\\
+   IH \Longrightarrow |forall e ρ a. α (apply (eval e ρ) a) ⊑ apply (eval e (α `mapMap` ρ)) (α a)| \\\\
+   IH \Longrightarrow |forall e ρ fs. α (sel (eval e ρ) fs) ⊑ sel (α (eval e ρ)) [ (k, α . f . map γ) || (k, f) <- fs ]| \\\\
+   IH \Longrightarrow |forall rhs body. α (bind  (\d1 -> eval e1 (ext ρ x (step (Lookup x) d1)))
+                                                 (\d1 -> step Let1 (eval e2 (ext ρ x (step (Lookup x) d1))))) ⊑ bind (α . rhs . γ) (α . body . γ)|%
+  }
+  {|α (eval e ρ :: Pow (D (ByName T))) ⊑ (eval e (α `mapMap` ρ) :: hat D)|}
+\]
+\end{theoremrep}
+\begin{proofsketch}
+By Löb induction and cases on |e|.
+\begin{itemize}
+  \item \textbf{Case} |Var x|:
+    The stuck case follows by unfolding |α|; the regular case follows by assumption.
+  \item \textbf{Case} |Lam x body|:
+    \begin{spec}
+       α (eval (Lam x body) ρ)
+    =  {- Unfold |eval|, |α| -}
+       fun (\(hat d) -> step App2 (α (eval body (ext ρ x (γ (hat d))))))
+    ⊑  {- Induction hypothesis -}
+       fun (\(hat d) -> step App2 (eval body (α `mapMap` (ext ρ x (γ (hat d))))))
+    ⊑  {- |α . γ ⊑ id| -}
+       fun (\(hat d) -> step App2 (eval body (ext (α `mapMap` ρ) x (hat d))))
+    =  {- Refold |eval| -}
+       eval (Lam x body) (α `mapMap` ρ)
+    \end{spec}
+
+  \item \textbf{Case} |ConApp k ds|:
+    \begin{spec}
+      α (eval (ConApp k xs) ρ)
+    = {- Unfold |eval|, |α| -}
+      con k (map ((α `mapMap` ρ) !) xs)
+    = {- Refold |eval| -}
+      eval (Lam x body) (α `mapMap` ρ)
+    \end{spec}
+
+  \item \textbf{Case} |App e x|:
+    The stuck case follows by unfolding |α|.
+    Otherwise, our proof obligation can be simplified as follows
+    \begin{spec}
+       α (eval (App e x) ρ)
+    =  {- Unfold |eval| -}
+       α (apply (eval e ρ) (ρ ! x))
+    ⊑  {- Assumption about |apply| -}
+       apply (eval e (α `mapMap` ρ)) ((α `mapMap` ρ) ! x)
+    =  {- Refold |eval| -}
+       eval (App e x) (α `mapMap` ρ)
+    \end{spec}
+
+  \item \textbf{Case} |Case e alts|:
+    The stuck case follows by unfolding |α|.
+    Otherwise, our proof obligation can be simplified as follows
+    \begin{spec}
+       α (eval (Case e alts) ρ)
+    =  {- Unfold |eval| -}
+       α (select (eval e ρ) fs)
+    ⊑  {- Assumption about |select| -}
+       select (eval e (α `mapMap` ρ)) [ (k, α . f . map γ) || (k, f) <- fs ]
+    ⊑  {- Induction hypothesis -}
+       select (eval e (α `mapMap` ρ)) [ (k, hat f . map (α . γ)) || (k, f) <- fs ]
+    ⊑  {- |α . γ ⊑ id| -}
+       select (eval e (α `mapMap` ρ)) [ (k, hat f . map (α . γ)) || (k, f) <- fs ]
+    =  {- Refold |eval| -}
+       eval (Case e alts) (α `mapMap` ρ)
+    \end{spec}
+  \item \textbf{Case} |Let x e1 e2|:
+    \begin{spec}
+       α (eval (Let x e1 e2) ρ)
+    =  {- Unfold |eval| -}
+       α (bind  (\d1 -> eval e1 (ext ρ x (step (Lookup x) d1)))
+                (\d1 -> step Let1 (eval e2 (ext ρ x (step (Lookup x) d1)))))
+    =  {- Unfold |bind|, |α| -}
+       step Let1 (α (eval e2 (ext ρ x (step (Lookup x) (fix (\d1 -> eval e1 (ext ρ x (step (Lookup x) d1))))))))
+    ⊑  {- Assumption about |bind| -}
+       bind  (\d1 -> eval e1 (ext ρ x (step (Lookup x) d1)))
+             (\d1 -> step Let1 (eval e2 (ext ρ x (step (Lookup x) d1)))))
+    =  {- Rearrange -}
+       step Let1 (eval e2 (ext (α `mapMap` ρ) x (step (Lookup x) (α (fix (\d -> eval e1 (ext ρ x (Step (Lookup x) d))))))))
+    ⊑  {- |id ⊑ γ . α| -}
+       step Let1 (eval e2 (ext (α `mapMap` ρ) x (step (Lookup x) (α (fix (\d -> γ (α (eval e1 (ext ρ x (Step (Lookup x) d))))))))))
+    \end{spec}
+\end{itemize}
+\end{proofsketch}
+
 \[
 \inferrule
   {%
    |α :<->: γ = byName|\\\\
    |forall a. stuck ⊑ apply stuck (α a)|\\ |forall fs. stuck ⊑ sel stuck fs|\\\\
-   |forall v ρ a. α (apply (eval v ρ) a) ⊑ apply (eval v (α `mapMap` ρ)) (α a)|\\\\
+   |forall v ρ a. α (apply (eval e ρ) a) ⊑ apply (eval v (α `mapMap` ρ)) (α a)|\\\\
    |forall e d a. step e (apply d a) ⊑ apply (step e d) a|\\\\
    |forall e d fs. step e (select d fs) ⊑ select (step e d) fs|\\\\
    |forall k ds fs. head [ f || (k',f) <- fs, k == k'] ds ⊑ select (con k ds) fs|\\\\
@@ -1339,114 +1428,6 @@ sound abstract interpretation of by-name traces:
   }
   {|α (eval e ρ :: Pow (D (ByName T))) ⊑ (eval e (α `mapMap` ρ) :: hat D)|}
 \]
-\end{theoremrep}
-\begin{proofsketch}
-By Löb induction and cases on |e|, also maintaining the invariant that if the
-returned trace ends in |Fun f|, it satisfies
-$φ(f) \triangleq |exists e' ρ3 y. forall d. f d = eval e' (ext ρ3 y d)|$.
-This is also an assumption we make on |ρ|.
-\begin{itemize}
-  \item \textbf{Case} |Var x|:
-    The stuck case follows by unfolding |α|; the regular case follows by assumption.
-    (If |ρ ! x| ends in |Fun f|, we also have $φ(|f|)$ by assumption.)
-  \item \textbf{Case} |Lam x e|:
-    \begin{DispWithArrows*}[fleqn,mathindent=4em]
-          & |α (eval (Lam x e') ρ)|
-          \Arrow{Unfold |eval|, |D (ByName T)| instances} \\
-      ={} & |α (Ret (Fun (\d -> Step App2 (eval e' (ext ρ x d)))))|
-          \Arrow{Unfold |α|} \\
-      ={} & |fun (\(hat d) -> step App2 (α (eval e' (ext ρ x (γ (hat d))))))|
-          \Arrow{Induction hypothesis} \\
-      ⊑{} & |fun (\(hat d) -> step App2 (eval e' (α `mapMap` (ext ρ x (γ (hat d))))))|
-          \Arrow{|α (γ (hat d)) ⊑ hat d|} \\
-      ⊑{} & |fun (\(hat d) -> step App2 (eval e' (ext (α `mapMap` ρ) x (hat d))))|
-          \Arrow{Refold |eval|} \\
-      ={} & |eval (Lam x e') (α `mapMap` ρ)|
-    \end{DispWithArrows*}
-    Clearly, |eval (Lam x e) ρ| ends in |Fun f| for an |f| that satisfies $φ(|f|)$.
-  \item \textbf{Case} |App e x|:
-    The stuck case follows by unfolding |α|.
-    Otherwise, our proof obligation can be simplified as follows
-    \begin{DispWithArrows*}[fleqn,mathindent=4em]
-          & |α (eval (App e x) ρ)|
-          \Arrow{Unfold |eval|, |apply|, |>>=|} \\
-      ={} & |α (eval e ρ >>= \case Fun f -> f (ρ ! x); _ -> stuck)|
-          \Arrow{The argument below for |τ := eval e ρ|} \\
-      ⊑{} & |apply (eval e (α `mapMap` ρ)) ((α `mapMap` ρ) ! x)|
-          \Arrow{Refold |eval|} \\
-      ={} & |eval (App e x) (α `mapMap` ρ)|
-    \end{DispWithArrows*}
-
-    We will show the approximation step above by Löb induction on the trace |τ|
-    with induction hypothesis 2
-    \[
-%      |forall τ. exists (hat τ) ⊒ α τ. α (d >>= \case Fun f -> f (ρ ! x); _ -> stuck) ⊑ apply (hat τ)|
-    \]
-    We proceed by cases on |τ|.
-    When |τ| is of the form |Step e d|, we have
-    \begin{DispWithArrows*}[fleqn,mathindent=4em]
-          & |α (Step e d >>= \case Fun f -> f (ρ ! x); _ -> stuck)|
-          \Arrow{Unfold |α|, |D (ByName T)| instances} \\
-      ={} & |step e (α (d >>= \case Fun f -> f (ρ ! x); _ -> stuck))|
-          \Arrow{Induction hypothesis 2} \\
-      ⊑{} & |step e (apply (α d) ((α `mapMap` ρ) ! x))|
-          \Arrow{Assumption} \\
-      ⊑{} & |apply (step e (α d)) ((α `mapMap` ρ) ! x)|
-          \Arrow{Refold |α|} \\
-      ={} & |apply (α (Step e d)) ((α `mapMap` ρ) ! x)|
-    \end{DispWithArrows*}
-    Otherwise, the |τ| is of the form |Ret v|.
-    When |v /= Fun _|, we unfold |α| and apply one of the
-    |stuck ⊑ apply ...| assumptions.
-    In the remaining case, we have |τ = Ret (Fun f)| for some |f|.
-    By our additional invariant $φ(|f|)$, we know that
-    |f (ρ ! x) = Step App2 (eval e' (ext ρ3 y (ρ ! x)))| for some |e',ρ3,y|
-    below.
-    \begin{DispWithArrows*}[fleqn,mathindent=4em]
-          & |α (Ret (Fun f) >>= \case Fun f -> f (ρ ! x); _ -> stuck)|
-          \Arrow{|return v >>= f = f v|} \\
-      ={} & |α (f (ρ ! x))|
-          \Arrow{$φ(|f|)$} \\
-      ={} & |α (Step App2 (eval e' (ext ρ3 y (ρ ! x))))|
-          \Arrow{unfold |α|; IH 1} \\
-      ⊑{} & |step App2 (eval e' (α `mapMap` (ext ρ3 y (ρ ! x))))|
-          \Arrow{Assumption} \\
-      ⊑{} & |apply (fun (\(hat d) -> step App2 (eval e' (ext ρ3 y (γ (hat d)))))) ((α `mapMap` ρ) ! x)|
-          \Arrow{Refold |τ|} \\
-      ={} & |apply (eval e (α `mapMap` ρ)) ((α `mapMap` ρ) ! x)|
-    \end{DispWithArrows*}
-    Because |id ⊑ γ . α| and |α . γ ⊑ id|, we can rewrite the assumption as
-    follows, abbreviating |hat f := \(hat d) -> step App2 (eval e (ext (hat ρ) x (hat d)))|
-    and similarly for |f|:
-    \begin{DispWithArrows*}[fleqn,mathindent=4em]
-                            & |forall (hat a). hat f (hat a) ^^ ⊑  apply (fun (hat f) (hat a))|
-                            \Arrow{Choose |hat a := α a| for some |a|} \\
-      \Longrightarrow{}     & |forall a. hat f (α a) ⊑  apply (fun (hat f) (α a))|
-                            \Arrow{|α . γ ⊑ id|} \\
-      \Longrightarrow{}     & |forall a. (hat f . α) (γ (α a)) ⊑ apply (fun (hat f . α . γ)) (α a)|
-                            \Arrow{Induction Hypothesis: |α . f ⊑ hat f . α|. But actually NONONO} \\
-      \Longrightarrow{}     & |forall a. (α . f) (γ (α a)) ⊑ apply (fun (α . f . γ)) (α a)|
-                            \Arrow{|id ⊑ γ . α|} \\
-      \Longleftrightarrow{} & |forall a. α (f a) ⊑ apply (fun (α . f . γ)) (α a)|
-    \end{DispWithArrows*}
-
-  \item \textbf{Case} |ConApp k ds|:
-    \begin{DispWithArrows*}[fleqn,mathindent=4em]
-          & |α (eval (ConApp k xs) ρ)|
-          \Arrow{Unfold |eval|, |D (ByName T)| instances} \\
-      ={} & |α (Ret (Con k (map (ρ !) xs)))|
-          \Arrow{Unfold |α|} \\
-      ={} & |con k (map ((α `mapMap` ρ) !)) xs|
-          \Arrow{Refold |eval|} \\
-      ={} & |eval (ConApp k ds) (α `mapMap` ρ)|
-    \end{DispWithArrows*}
-    Clearly, |eval (ConApp k xs) ρ| does not end in |Fun _|, so there is no
-    further invariant to show.
-  \item \textbf{Case} |Case e alts|:
-  \item \textbf{Case} |Let x e1 e2|:
-    Per unfolding |eval|, |bind| and the assumption.
-\end{itemize}
-\end{proofsketch}
 
 It is clear that we can't decompose our proof obligations any further without
 fixing a particular instance |C D2|, so we will now prove usage analysis
