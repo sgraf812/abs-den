@@ -1,4 +1,4 @@
-module Expr where
+module Exp where
 
 import Control.Monad
 import Data.Foldable
@@ -32,16 +32,16 @@ conArity Some = 1
 conArity S = 1
 conArity _ = 0
 
-data Expr
+data Exp
   = Var Name
-  | App Expr Name
-  | Lam Name Expr
-  | Let Name Expr Expr
+  | App Exp Name
+  | Lam Name Exp
+  | Let Name Exp Exp
   | ConApp Tag [Name]
-  | Case Expr [Alt]
-type Alt = (Tag,[Name],Expr)
+  | Case Exp [Alt]
+type Alt = (Tag,[Name],Exp)
 
-instance Eq Expr where
+instance Eq Exp where
   e1 == e2 = go Map.empty Map.empty e1 e2
     where
       bind x benv = Map.insert x (Map.size benv) benv
@@ -67,13 +67,13 @@ instance Eq Expr where
         _                      -> False
 
 type Label = String
-label :: Expr -> Label
+label :: Exp -> Label
 label e = case e of
   Lam x _     -> "\\lambda " ++ x ++ ".."
   ConApp k xs -> show k ++ "(" ++ showSep (showString ",") (map showString xs) [] ++ ")"
   _           -> undefined
 
-isVal :: Expr -> Bool
+isVal :: Exp -> Bool
 isVal Lam{}    = True
 isVal ConApp{} = True
 isVal _        = False
@@ -83,7 +83,7 @@ lamPrec = Read.minPrec
 appPrec = lamPrec+1
 
 -- | Example output: @F (λa. G) (H I) (λb. J b)@
-instance Show Expr where
+instance Show Exp where
   showsPrec _ (Var v)      = showString v
   showsPrec p (App f arg)  = showParen (p > appPrec) $
     showsPrec appPrec f . showString " " . showString arg
@@ -123,27 +123,27 @@ greedyMany1 p = (:) <$> p <*> greedyMany p
 -- Accepts syntax like
 -- @let x = λa. g z in (λb. j b) x@
 --
--- >>> read "g z" :: Expr
+-- >>> read "g z" :: Exp
 -- g z
 --
--- >>> read "λx.x" :: Expr
+-- >>> read "λx.x" :: Exp
 -- λx. x
 --
--- >>> read "let x = x in x" :: Expr
+-- >>> read "let x = x in x" :: Exp
 -- let x = x in x
 --
--- >>> read "let x = λa. g z in (λb. j b) x" :: Expr
+-- >>> read "let x = λa. g z in (λb. j b) x" :: Exp
 -- let x = λa. g z in (λb. j b) x
 --
--- >>> read "let x = λa. let y = y in a in g z" :: Expr
+-- >>> read "let x = λa. let y = y in a in g z" :: Exp
 -- let x = λa. let y = y in a in g z
 --
--- >>> read "case λa.x of { Pair( x , y ) -> λa. let y = Pair(y,y) in g z }" :: Expr
+-- >>> read "case λa.x of { Pair( x , y ) -> λa. let y = Pair(y,y) in g z }" :: Exp
 -- case λa. x of { Pair(x, y) -> λa. let y = Pair(y, y) in g z }
 --
--- >>> read "let x = T() in let o = Some(x) in case o of { None() -> F(); Some(y) -> y }" :: Expr
+-- >>> read "let x = T() in let o = Some(x) in case o of { None() -> F(); Some(y) -> y }" :: Exp
 -- let x = T() in let o = Some(x) in case o of { None() -> F(); Some(y) -> y }
-instance Read Expr where
+instance Read Exp where
   readPrec = Read.parens $ Read.choice
     [ Var <$> readName
     , Read.prec appPrec $ do

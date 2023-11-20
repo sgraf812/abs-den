@@ -1,6 +1,6 @@
 module Sergey14 where
 
-import Expr
+import Exp
 import Interpreter
 import Data.Set (Set)
 

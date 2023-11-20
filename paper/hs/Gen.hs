@@ -13,7 +13,7 @@ import Control.Monad
 import Control.Monad.Trans.State
 import Abstractions hiding ((+))
 
-import Expr hiding (Env)
+import Exp hiding (Env)
 import GHC.Stack
 
 newtype Env = Env { nextFree :: Int }
@@ -37,10 +37,10 @@ emptyEnv = mkEnvWithNVars 0
 env :: Gen Env
 env = Gen.sized $ \size -> Gen.element (map mkEnvWithNVars [0..max 0 (unSize size)])
 
-closedExpr :: Gen Expr
+closedExpr :: Gen Exp
 closedExpr = openExpr emptyEnv
 
-openExpr :: Env -> Gen Expr
+openExpr :: Env -> Gen Exp
 openExpr env = uniqify <$> openExprShadow env
   where
     uniqify e = evalState (go Map.empty e) emptyEnv
@@ -69,7 +69,7 @@ openExpr env = uniqify <$> openExprShadow env
     fresh = state $ \env -> (idx2Name $ nextFree env, env{nextFree = nextFree env + 1})
 
 -- | May cause shadowing. Will be cleaned up in openExpr
-openExprShadow :: Env -> Gen Expr
+openExprShadow :: Env -> Gen Exp
 -- TODO: Try Gen.recursive
 openExprShadow env = Gen.sized $ \size ->
   Gen.frequency $ concat
@@ -86,7 +86,7 @@ openExprShadow env = Gen.sized $ \size ->
 myElement :: HasCallStack => [a] -> Gen a
 myElement = Gen.element
 
-boundName, app, lam, let_, conApp, case_ :: Env -> Gen Expr
+boundName, app, lam, let_, conApp, case_ :: Env -> Gen Exp
 boundName env = Gen.element (map Var (boundVars env))
 app       env =
   App <$> Gen.scale (max 0 . subtract 1) (openExprShadow env)
@@ -125,13 +125,13 @@ withNBoundNames n env f = go n [] env
     go 0 vs env = f vs env
     go n vs env = withBoundName env $ \v env' -> go (n-1) (v:vs) env'
 
---exprDepth :: Expr -> Int
+--exprDepth :: Exp -> Int
 --exprDepth (Fix (Var _)) = 0
 --exprDepth (Fix (App f a)) = 1 + exprDepth f
 --exprDepth (Fix (Lam _ e)) = 1 + exprDepth e
 --exprDepth (Fix (Let _ e1 e2)) = 1 + max (exprDepth e1) (exprDepth e2)
 
---exprSize :: Expr -> Int
+--exprSize :: Exp -> Int
 --exprSize (Fix (Var _)) = 1
 --exprSize (Fix (App f a)) = 1 + exprSize f
 --exprSize (Fix (Lam _ e)) = 1 + exprSize e

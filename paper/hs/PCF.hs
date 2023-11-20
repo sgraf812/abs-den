@@ -34,26 +34,26 @@ data ExprF r
   | IfZero r r r
   deriving (Show, Functor)
 
-data Expr = Expr { lbl :: Label, expr :: ExprF Expr }
+data Exp = Exp { lbl :: Label, expr :: ExprF Exp }
 
 appPrec, lamPrec :: Read.Prec
 lamPrec = Read.minPrec
 appPrec = lamPrec+1
 
 -- | Example output: @F (λa. G) (H I) (λb. J b)@
-instance Show Expr where
-  showsPrec _ (Expr l (Var v))      = showString v
-  showsPrec _ (Expr l (App f arg))  = shows l . showString "@" . (showParen True $
+instance Show Exp where
+  showsPrec _ (Exp l (Var v))      = showString v
+  showsPrec _ (Exp l (App f arg))  = shows l . showString "@" . (showParen True $
     showsPrec appPrec f . showString " " . showsPrec appPrec arg)
-  showsPrec _ (Expr l (Lam b body)) = shows l . showString "@" . (showParen True $
+  showsPrec _ (Exp l (Lam b body)) = shows l . showString "@" . (showParen True $
     showString "λ" . showString b . showString ". " . showsPrec lamPrec body)
-  showsPrec p (Expr l (Y x e)) = showParen (p > lamPrec) $
+  showsPrec p (Exp l (Y x e)) = showParen (p > lamPrec) $
     showString "rec " . showString x
     . showString ". " . showsPrec lamPrec e
-  showsPrec _ (Expr l Zero) = showString "0"
-  showsPrec _ (Expr l (Succ e)) = showString "succ(" . showsPrec lamPrec e . showString ")"
-  showsPrec _ (Expr l (Pred e)) = showString "pred(" . showsPrec lamPrec e . showString ")"
-  showsPrec p (Expr l (IfZero c t e)) = showParen (p > lamPrec) $
+  showsPrec _ (Exp l Zero) = showString "0"
+  showsPrec _ (Exp l (Succ e)) = showString "succ(" . showsPrec lamPrec e . showString ")"
+  showsPrec _ (Exp l (Pred e)) = showString "pred(" . showsPrec lamPrec e . showString ")"
+  showsPrec p (Exp l (IfZero c t e)) = showParen (p > lamPrec) $
     showString "if0(" .
     showsPrec lamPrec c . showString "; " .
     showsPrec lamPrec t . showString "; " .
@@ -70,59 +70,59 @@ greedyMany1 p = (:) <$> p <*> greedyMany p
 -- Accepts syntax like
 -- @let x = λa. g z in (λb. j b) x@
 --
--- >>> read "g z" :: Expr
+-- >>> read "g z" :: Exp
 -- 1@(g z)
 --
--- >>> read "λx.x" :: Expr
+-- >>> read "λx.x" :: Exp
 -- 1@(λx. x)
 --
--- >>> read "λ x . rec y . x y" :: Expr
+-- >>> read "λ x . rec y . x y" :: Exp
 -- 1@(λx. rec y. 3@(x y))
 --
--- >>> read "f (if0 ( 0 ; succ( 0 ); pred( 0 ) ))" :: Expr
+-- >>> read "f (if0 ( 0 ; succ( 0 ); pred( 0 ) ))" :: Exp
 -- 1@(f (if0(0; succ(0); pred(0))))
 --
--- >>> read "(if0 ( 0 ; succ( 0 ); pred( 0 ) )) a" :: Expr
+-- >>> read "(if0 ( 0 ; succ( 0 ); pred( 0 ) )) a" :: Exp
 -- 1@((if0(0; succ(0); pred(0))) a)
-instance Read Expr where
+instance Read Exp where
   readPrec = fmap label . Read.parens $ Read.choice
-    [ Expr 0 . Var <$> readName
+    [ Exp 0 . Var <$> readName
     , Read.prec appPrec $ do
         -- Urgh. Just ignore the code here as long as it works
         let spaces1 = greedyMany1 (ReadP.satisfy isSpace)
         (f:args) <- Read.readP_to_Prec $ \prec ->
           ReadP.sepBy1 (Read.readPrec_to_P Read.readPrec (prec+1)) spaces1
         guard $ not $ null args
-        pure (foldl' (\l r -> Expr 0 (App l r)) f args)
+        pure (foldl' (\l r -> Exp 0 (App l r)) f args)
     , Read.prec lamPrec $ do
         c <- Read.get
         guard (c `elem` "λΛ@#%\\") -- multiple short-hands for Lam
-        Expr _ (Var v) <- Read.readPrec
+        Exp _ (Var v) <- Read.readPrec
         Read.Symbol "." <- Read.lexP
-        Expr 0 . Lam v <$> Read.readPrec
+        Exp 0 . Lam v <$> Read.readPrec
     , Read.prec lamPrec $ do
         Read.Ident "rec" <- Read.lexP
         x <- readName
         Read.Symbol "." <- Read.lexP
         e <- Read.readPrec
-        pure (Expr 0 $ Y x e)
+        pure (Exp 0 $ Y x e)
     , do
         Read.Number n <- Read.lexP
         Just m <- pure (Lex.numberToInteger n)
         guard $ m >= 0
-        pure (iterate (Expr 0 . Succ) (Expr 0 Zero) !! fromIntegral m)
+        pure (iterate (Exp 0 . Succ) (Exp 0 Zero) !! fromIntegral m)
     , Read.prec appPrec $ do
         Read.Ident "succ" <- Read.lexP
         Read.Punc "(" <- Read.lexP
         e <- Read.readPrec
         Read.Punc ")" <- Read.lexP
-        pure (Expr 0 $ Succ e)
+        pure (Exp 0 $ Succ e)
     , Read.prec appPrec $ do
         Read.Ident "pred" <- Read.lexP
         Read.Punc "(" <- Read.lexP
         e <- Read.readPrec
         Read.Punc ")" <- Read.lexP
-        pure (Expr 0 $ Pred e)
+        pure (Exp 0 $ Pred e)
     , Read.prec appPrec $ do
         Read.Ident "if0" <- Read.lexP
         Read.Punc "(" <- Read.lexP
@@ -132,7 +132,7 @@ instance Read Expr where
         Read.Punc ";" <- Read.lexP
         e <- Read.readPrec
         Read.Punc ")" <- Read.lexP
-        pure (Expr 0 $ IfZero c t e)
+        pure (Exp 0 $ IfZero c t e)
     ]
     where
       readName = do
@@ -141,12 +141,12 @@ instance Read Expr where
         guard (all isAlphaNum v)
         pure v
 
-label :: Expr -> Expr
+label :: Exp -> Exp
 label e = evalState (lab e) 1
   where
     next :: State Label Label
     next = state (\(!l) -> (l, l + 1))
-    lab :: Expr -> State Label Expr
+    lab :: Exp -> State Label Exp
     lab e = do
       l <- next
       e' <- case e.expr of
@@ -159,7 +159,7 @@ label e = evalState (lab e) 1
         Succ e -> Succ <$> lab e
         Pred e -> Pred <$> lab e
         IfZero c t e -> IfZero <$> lab c <*> lab t <*> lab e
-      return (Expr l e')
+      return (Exp l e')
 
 type Env = Map.Map Name
 
@@ -179,7 +179,7 @@ class HasAlloc τ v | v -> τ where
     -- Could also have chosen to return τ v instead of τ (τ v); then this would
     -- be literally `fix`
 
-eval :: forall τ v. (IsTrace τ, IsValue τ v, HasAlloc τ v) => Expr -> Env (τ v) -> τ v
+eval :: forall τ v. (IsTrace τ, IsValue τ v, HasAlloc τ v) => Exp -> Env (τ v) -> τ v
 eval e env = case e.expr of
   Var x -> step Lookup (Map.findWithDefault retStuck x env)
   App f a -> do
@@ -245,7 +245,7 @@ instance IsTrace τ => HasAlloc (Concrete τ) (Value (Concrete τ)) where
 instance Show (Concrete τ v) where
   show _ = "_"
 
-evalConc :: IsTrace τ => Expr -> τ (Value (Concrete τ))
+evalConc :: IsTrace τ => Exp -> τ (Value (Concrete τ))
 evalConc e = unConcrete $ eval e Map.empty
 
 --------------------

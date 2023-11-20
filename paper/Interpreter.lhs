@@ -23,7 +23,7 @@ import Control.Applicative
 import Control.Monad
 import Control.Monad.Fix
 import Control.Monad.Trans.State
-import Expr
+import Exp
 
 instance {-# OVERLAPPING #-} Show (Maybe (Value τ)) where
   show Nothing = "\\bot"
@@ -96,11 +96,11 @@ higher-order language such as OCaml, ML or Scheme with explicit suspension
 \begin{spec}
 type Name = String
 data Tag = ...; conArity :: Tag -> Int
-data Expr
-  =  Var Name | Let Name Expr Expr
-  |  Lam Name Expr | App Expr Name
-  |  ConApp Tag [Name] | Case Expr [Alt]
-type Alt = (Tag,[Name],Expr)
+data Exp
+  =  Var Name | Let Name Exp Exp
+  |  Lam Name Exp | App Exp Name
+  |  ConApp Tag [Name] | Case Exp [Alt]
+type Alt = (Tag,[Name],Exp)
 \end{spec}
 \caption{Syntax}
 \label{fig:syntax}
@@ -211,7 +211,7 @@ of any syntax.
 \begin{minipage}{0.55\textwidth}
 \begin{code}
 eval  ::  (Trace d, Domain d, HasBind d)
-      =>  Expr -> (Name :-> d) -> d
+      =>  Exp -> (Name :-> d) -> d
 eval e ρ = case e of
   Var x  | x ∈ dom ρ  -> ρ ! x
          | otherwise  -> stuck
@@ -300,7 +300,7 @@ instance Monad τ => Domain (D τ) where
 \subsection{The Interpreter}
 
 We will now use |D| to give meaning to an expression |e| via an interpreter
-function |eval :: Expr -> (Name :-> D) -> D|, where the variable environment
+function |eval :: Exp -> (Name :-> D) -> D|, where the variable environment
 |ρ :: Name :-> D| is a finite mapping from free variables of |e| to their meaning in
 |D|.
 We summarise the API of environments and sets in \Cref{fig:map}.
@@ -321,7 +321,7 @@ Traces |T| and denotations |D| are instances of these type classes via
 to |D|.
 For example, we can evaluate the expression $\Let{i}{\Lam{x}{x}}{i~i}$ like
 this:%
-\footnote{We use |read :: String -> Expr| as a parsing function.}
+\footnote{We use |read :: String -> Exp| as a parsing function.}
 
 < ghci> eval (read "let i = λx.x in i i") emp :: D
 $\perform{eval (read "let i = λx.x in i i") emp :: D (ByName T)}$
@@ -493,7 +493,7 @@ instance (Monad τ, forall v. Trace (τ v)) => HasBind (D (ByNeed τ)) where
 \label{sec:evaluation-strategies}
 
 By varying the |HasBind| instance of our type |D|, we can endow our language
-|Expr| with different evaluation strategies.
+|Exp| with different evaluation strategies.
 With a bit of generalisation, variations become as simple as switching out a
 monad transformer, a common phenomenon in abstract definitional
 interpreters~\citep{adi}.
@@ -534,7 +534,7 @@ We have proven this semantics adequate \wrt to the LK transition system in
 does not match the currently applicable LK transition for $σ$.}
 
 It is worth stressing how simple it was to carry out this extension.
-Furthermore, nothing in our approach is particularly specific to |Expr| or
+Furthermore, nothing in our approach is particularly specific to |Exp| or
 |Value|!
 We have built similar interpreters for PCF, where the @rec@, @let@ and
 non-atomic argument constructs can simply reuse |bind| to recover a
@@ -634,7 +634,7 @@ instance (Monad τ, forall v. Trace (τ v)) => HasBind (D (ByVInit τ)) where
 \subsubsection{Call-by-value}
 
 By defining a |MonadFix| instance for |T| and defining |bind| in terms
-of this instance, we can give a by-value semantics to |Expr|, as shown in
+of this instance, we can give a by-value semantics to |Exp|, as shown in
 \Cref{fig:by-value}.
 Let us unpack the definition of |bind|.
 As its first action, it yields a brand new |Let0| event, indicating in the

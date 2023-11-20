@@ -20,7 +20,7 @@ import Control.Monad
 import Control.Monad.Trans.State
 import Data.Foldable
 import qualified Data.List as List
-import Expr
+import Exp
 import Order
 import Interpreter
 import {-# SOURCE #-} Sergey14
@@ -760,7 +760,7 @@ expression
 The definition of |f| is a complicated way to define the identity function.
 Nevertheless, it is evident that |i| is evaluated at most once, and
 $\semusg{\wild}$ would infer this fact if we were to desugar and ANFise this
-expression into an |Expr|.
+expression into an |Exp|.
 On the other hand, $k$-CFA (for $k < 42$) would confuse different recursive
 activations of |i|, thus conservatively attributing evaluations multiple times,
 to the effect that |i| is not inferred as used at most once.

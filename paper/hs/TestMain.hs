@@ -22,7 +22,7 @@ import           Control.Concurrent
 import           Control.Concurrent.Async.Lifted (race)
 import           Control.Exception
 
-import           Expr hiding (assert)
+import           Exp hiding (assert)
 import           Interpreter
 import           Abstractions
 

@@ -22,7 +22,7 @@ import Control.Monad
 import Control.Monad.Trans.State
 import Data.Foldable
 import qualified Data.List as List
-import Expr
+import Exp
 import Order
 import Interpreter
 import Abstractions
@@ -816,18 +816,18 @@ If the following soundness lemmas relating |c1| and |c2| hold,
   \item |forall (rhs :: D1 -> D1) (body :: D1 -> D1). α (at bind c1 rhs body) ⊑ at bind c2 (α . rhs . γ) (α . body . γ)|%
 \end{itemize}
 then |eval3 c2 e (α `mapMap` ρ)| is a sound abstract interpretation of |eval3 c1
-e ρ| for all |e :: Expr| and |ρ :: Name :-> D1|, written
+e ρ| for all |e :: Exp| and |ρ :: Name :-> D1|, written
 \[
-  |forall (e :: Expr) (ρ :: Name :-> D1). α (eval3 c1 e ρ :: D1) ⊑ (eval3 c2 e (α `mapMap` ρ) :: D2)|,
+  |forall (e :: Exp) (ρ :: Name :-> D1). α (eval3 c1 e ρ :: D1) ⊑ (eval3 c2 e (α `mapMap` ρ) :: D2)|,
 \]
 if |αup c1 ⊑ c2|, that is, all methods of |c2| are sound abstractions of |c1|
 according to |α|.
 \end{theoremrep}
 \begin{proof}
 The Identity Extension Lemma applied to the type
-|C d => Expr -> (Name :-> d) -> d| yields
+|C d => Exp -> (Name :-> d) -> d| yields
 \[
-  (|eval3|,|eval3|) ∈ \denot{|forall d. C d => Expr -> (Name :-> d) -> d|}_r
+  (|eval3|,|eval3|) ∈ \denot{|forall d. C d => Exp -> (Name :-> d) -> d|}_r
 \]
 This simplifies to the following inference rule (note that $\mathcal{D}$ is just
 universally quantified like any other variable):
@@ -873,15 +873,15 @@ Input of https://free-theorems.nomeata.de/:
 
 ---
 
-(Trace d, Domain d, HasBind d, Lat d) => Expr -> (Name -> d) -> d
+(Trace d, Domain d, HasBind d, Lat d) => Exp -> (Name -> d) -> d
 
 ---
 
 type Name = String
 type Tag = Int
 
-data Expr = Var Name | App Expr Name | Lam Name Expr  |  ConApp Tag [Name] | Case Expr [Alt]
-type Alt = (Tag,[Name],Expr)
+data Exp = Var Name | App Exp Name | Lam Name Exp  |  ConApp Tag [Name] | Case Exp [Alt]
+type Alt = (Tag,[Name],Exp)
 
 data Event  =  Lookup Name | Update | App1 | App2
             |  Let1 | Case1 | Case2 | Let0
@@ -909,7 +909,7 @@ Output:
 
 forall t1,t2 in TYPES(Trace, Domain, HasBind, Lat), R in
 REL(t1,t2), R respects (Trace, Domain, HasBind, Lat).
- forall x :: Expr.
+ forall x :: Exp.
   forall p :: [Char] -> t1.
    forall q :: [Char] -> t2.
     (forall y :: [Char]. (p y, q y) in R)
