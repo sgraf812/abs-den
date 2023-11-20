@@ -148,8 +148,8 @@ data Value τ = Stuck | Fun (D τ -> D τ) | Con Tag [D τ]
 \begin{spec}
 type D = T Value
 data T a = Step Event (T a) | Ret a
-data Event  = Lookup Name | Update | App1 | App2
-            | Let1 | Case1 | Case2
+data Event  =  Lookup Name | Update | App1 | App2
+            |  Let1 | Case1 | Case2
 data Value = Stuck | Fun (D -> D) | Con Tag [D]
 \end{spec}
 \end{minipage}
@@ -266,8 +266,9 @@ instance Trace (T v) where
 instance Domain D where
   stuck = return Stuck
   fun {-" \iffalse "-}_{-" \fi "-} f = return (Fun f)
+  apply  d a = d >>= \case
+    Fun f -> f a; _ -> stuck
   con {-" \iffalse "-}_{-" \fi "-} k ds = return (Con k ds)
-  apply  d a = d >>= \case Fun f -> f a; _ -> stuck
   select d alts = ...
 
 instance HasBind D where
