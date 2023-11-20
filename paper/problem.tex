@@ -95,12 +95,12 @@ on how often the expression bound to $\px$ evaluates $\py$.
 \begin{minipage}{0.49\textwidth}
 \arraycolsep=0pt
 \[\begin{array}{rcl}
-  \multicolumn{3}{c}{ \ruleform{ \semscott{\wild} \colon \Exp → (\Var \to \ScottD) → \ScottD } } \\
+  \multicolumn{3}{c}{ \ruleform{ \semscott{\wild}_{\wild} \colon \Exp → (\Var \to \ScottD) → \ScottD } } \\
   \\[-0.5em]
   \semscott{\px}_ρ & {}={} & ρ(\px) \\
   \semscott{\Lam{\px}{\pe}}_ρ & {}={} & \fn{d}{\semscott{\pe}_{ρ[\px ↦ d]}} \\
   \semscott{\pe~\px}_ρ & {}={} & \begin{cases}
-     f(ρ(\px)) & \text{if $\semscott{\pe} = f$}  \\
+     f(ρ(\px)) & \text{if $\semscott{\pe}_ρ = f$}  \\
      \bot      & \text{otherwise}  \\
    \end{cases} \\
   \semscott{\Letsmall{\px}{\pe_1}{\pe_2}}_ρ & {}={} &
@@ -117,13 +117,13 @@ on how often the expression bound to $\px$ evaluates $\py$.
 \begin{minipage}{0.56\textwidth}
 \arraycolsep=0pt
 \[\begin{array}{rcl}
-  \multicolumn{3}{c}{ \ruleform{ \semusg{\wild} \colon \Exp → (\Var → \UsgD) → \UsgD } } \\
+  \multicolumn{3}{c}{ \ruleform{ \semusg{\wild}_{\wild} \colon \Exp → (\Var → \UsgD) → \UsgD } } \\
   \\[-0.5em]
   \semusg{\px}_ρ & {}={} & ρ(\px) \\
   \semusg{\Lam{\px}{\pe}}_ρ & {}={} & ω*\semusg{\pe}_{ρ[\px ↦ \bot]} \\
-  \semusg{\pe~\px}_ρ & {}={} & \semusg{\pe} + ω*ρ(\px)
+  \semusg{\pe~\px}_ρ & {}={} & \semusg{\pe}_ρ + ω*ρ(\px)
     \phantom{\begin{cases}
-       f(ρ(\px)) & \text{if $\semscott{\pe} = f$}  \\
+       f(ρ(\px)) & \text{if $\semusg{\pe}_ρ = f$}  \\
        \bot      & \text{otherwise}  \\
      \end{cases}} \\
   \semusg{\Letsmall{\px}{\pe_1}{\pe_2}}_ρ& {}={} & \begin{letarray}
