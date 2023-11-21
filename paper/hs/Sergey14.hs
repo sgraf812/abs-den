@@ -282,8 +282,8 @@ instance HasBind DmdD where
 runDmd :: SubDemand -> DmdD -> (DmdVal, DmdEnv)
 runDmd sd (DT d) = d Set.empty sd
 
-many :: String -> (DmdVal, DmdEnv)
-many s = runDmd Top $ eval (read s) emp
+anyCtx :: String -> (DmdVal, DmdEnv)
+anyCtx s = runDmd Top $ eval (read s) emp
 
 call :: Int -> String -> (DmdVal, DmdEnv)
 call n s = runDmd (callSd n) $ eval (read s) emp

@@ -27,6 +27,6 @@ instance Show DmdVal
 
 runDmd :: SubDemand -> DmdD -> (DmdVal, DmdEnv)
 
-many :: String -> (DmdVal, DmdEnv)
+anyCtx :: String -> (DmdVal, DmdEnv)
 
 call :: Int -> String -> (DmdVal, DmdEnv)

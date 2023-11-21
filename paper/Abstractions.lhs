@@ -25,7 +25,7 @@ import Order
 import Interpreter
 import {-# SOURCE #-} Sergey14
 
-root = call `seq` many -- Suppress redundant import warning
+root = call `seq` anyCtx -- Suppress redundant import warning
 \end{code}
 %endif
 
@@ -779,10 +779,10 @@ that the implementation of |Domain| can be synthesised using the approach of
 
 TODO flesh out
 
-< ghci> many "let i = λx.x in let j = λy.y in i j j"
-$\perform{many "let i = λx.x in let j = λy.y in i j j"}$
-< ghci> many "let i = λx.x in let j = λy.y in i j"
-$\perform{many "let i = λx.x in let j = λy.y in i j"}$
+< ghci> anyCtx "let i = λx.x in let j = λy.y in i j j"
+$\perform{anyCtx "let i = λx.x in let j = λy.y in i j j"}$
+< ghci> anyCtx "let i = λx.x in let j = λy.y in i j"
+$\perform{anyCtx "let i = λx.x in let j = λy.y in i j"}$
 < ghci> call 2 "let i = λx.x in i"
 $\perform{call 2 "let i = λx.x in i"}$
 < ghci> call 2 "let const = λx.λy.y in const"
@@ -791,5 +791,5 @@ $\perform{call 2 "let const = λx.λy.y in const"}$
 $\perform{call 2 "let wurble2 = λa. λg. let t = g a in t t in wurble2"}$
 < ghci> call 2 "let wurble2 = λa. λg. let t = g a in t t in wurble2"
 $\perform{call 2 "let wurble2 = λa. λg. let t = g a in t t in wurble2"}$
-< ghci> many "let z = Z() in let o = S(z) in let plus = λa.λb. case a of { Z() -> b; S(n) -> let plusn = plus n b in S(plusn) } in plus z o"
-$\perform{many "let z = Z() in let o = S(z) in let plus = λa.λb. case a of { Z() -> b; S(n) -> let plusn = plus n b in S(plusn) } in plus z o"}$
+< ghci> anyCtx "let z = Z() in let o = S(z) in let plus = λa.λb. case a of { Z() -> b; S(n) -> let plusn = plus n b in S(plusn) } in plus z o"
+$\perform{anyCtx "let z = Z() in let o = S(z) in let plus = λa.λb. case a of { Z() -> b; S(n) -> let plusn = plus n b in S(plusn) } in plus z o"}$
