@@ -1347,37 +1347,93 @@ By Löb induction and cases on |e|.
     The stuck case follows by unfolding |α|; the regular case follows by assumption.
   \item \textbf{Case} |Lam x body|:
     \begin{spec}
-       α (eval (Lam x body) ρ)
-    =  {- Unfold |eval|, |α| -}
-       fun (\(hat d) -> step App2 (α (eval body (ext ρ x (γ (hat d))))))
-    ⊑  {- Induction hypothesis -}
-       fun (\(hat d) -> step App2 (eval body (α `mapMap` (ext ρ x (γ (hat d))))))
-    ⊑  {- |α . γ ⊑ id| -}
-       fun (\(hat d) -> step App2 (eval body (ext (α `mapMap` ρ) x (hat d))))
-    =  {- Refold |eval| -}
-       eval (Lam x body) (α `mapMap` ρ)
+        α (eval (Lam x body) ρ)
+    =   {- Unfold |eval|, |α| -}
+        fun (\(hat d) -> step App2 (α (eval body (ext ρ x (γ (hat d))))))
+    ⊑   {- Induction hypothesis -}
+        fun (\(hat d) -> step App2 (eval body (α `mapMap` (ext ρ x (γ (hat d))))))
+    ⊑   {- |α . γ ⊑ id| -}
+        fun (\(hat d) -> step App2 (eval body (ext (α `mapMap` ρ) x (hat d))))
+    =   {- Refold |eval| -}
+        eval (Lam x body) (α `mapMap` ρ)
     \end{spec}
 
   \item \textbf{Case} |ConApp k ds|:
     \begin{spec}
-      α (eval (ConApp k xs) ρ)
-    = {- Unfold |eval|, |α| -}
-      con k (map ((α `mapMap` ρ) !) xs)
-    = {- Refold |eval| -}
-      eval (Lam x body) (α `mapMap` ρ)
+        α (eval (ConApp k xs) ρ)
+    =   {- Unfold |eval|, |α| -}
+        con k (map ((α `mapMap` ρ) !) xs)
+    =   {- Refold |eval| -}
+        eval (Lam x body) (α `mapMap` ρ)
     \end{spec}
 
   \item \textbf{Case} |App e x|:
     The stuck case follows by unfolding |α|.
     Otherwise, our proof obligation can be simplified as follows
     \begin{spec}
-       α (eval (App e x) ρ)
-    =  {- Unfold |eval| -}
-       α (apply (eval e ρ) (ρ ! x))
-    ⊑  {- Assumption about |apply| -}
-       apply (eval e (α `mapMap` ρ)) ((α `mapMap` ρ) ! x)
-    =  {- Refold |eval| -}
-       eval (App e x) (α `mapMap` ρ)
+        α (eval (App e x) ρ)
+    =   {- Unfold |eval| -}
+        α (apply (eval e ρ) (ρ ! x))
+    =   {- Unfold |apply| -}
+        α (eval e ρ >>= \case Fun f -> f (ρ ! x); _ -> stuck)
+    \end{spec}
+    If |eval e ρ| diverges, then we have
+    \begin{spec}
+    =   {- |eval e ρ| diverges, unfold |α| -}
+        step ev1 (step ev2 (...))
+    ⊑   {- Assumption |step ev (apply d a) ⊑ apply (step ev d) a| -}
+        apply (step ev1 (step ev2 (...))) ((α `mapMap` ρ) ! x)
+    =   {- Refold |α|, |eval e ρ| -}
+        apply (α (eval e ρ)) ((α `mapMap` ρ) ! x)
+    ⊑   {- Induction hypothesis -}
+        apply (eval e (α `mapMap` ρ)) ((α `mapMap` ρ) ! x)
+    =   {- Refold |eval| -}
+        eval (App e x) (α `mapMap` ρ)
+    \end{spec}
+    Otherwise, |eval e ρ| must produce a value.
+    If that value is |Stuck| or |Con k ds|, we have
+    \begin{spec}
+        α (eval e ρ >>= \case Fun f -> f (ρ ! x); _ -> stuck)
+    =   {- |eval e ρ = many (step ev) (return v)|, unfold |α| -}
+        many (step ev) (α (return v >>= \case Fun f -> f (ρ ! x); _ -> stuck))
+    =   {- |v| not |Fun|, unfold |α| -}
+        many (step ev) stuck
+    ⊑   {- Assumption |stuck ⊑ apply stuck a|/|stuck ⊑ apply (con k ds) a)| -}
+        many (step ev) (apply stuck a)
+    ⊑   {- Assumption |step ev (apply d a) ⊑ apply (step ev d) a| -}
+        apply (many (step ev) stuck) ((α `mapMap` ρ) ! x)
+    =   {- Refold |α|, |eval e ρ| -}
+        apply (α (eval e ρ)) ((α `mapMap` ρ) ! x)
+    ⊑   {- Induction hypothesis -}
+        apply (eval e (α `mapMap` ρ)) ((α `mapMap` ρ) ! x)
+    =   {- Refold |eval| -}
+        eval (App e x) (α `mapMap` ρ)
+    \end{spec}
+    In the final case, we have |eval e ρ = eval (Lam x body) ρ'|
+    Otherwise, |eval e ρ| must evaluate to a |hat Value|, \eg,
+    |eval e ρ = many (step ev) (eval v ρ)|.
+    If that value is |con ...|, we have
+    \begin{spec}
+    =   {- |eval e ρ| is ultimately stuck, unfold |α| -}
+        many (step ev) stuck
+    ⊑   {- Assumption |stuck ⊑ apply stuck a| -}
+        many (step ev) (apply stuck a)
+    ⊑   {- Assumption |step ev (apply d a) ⊑ apply (step ev d) a| -}
+        apply (many (step ev) stuck) ((α `mapMap` ρ) ! x)
+    =   {- Refold |α|, |eval e ρ| -}
+        apply (α (eval e ρ)) ((α `mapMap` ρ) ! x)
+    ⊑   {- Induction hypothesis -}
+        apply (eval e (α `mapMap` ρ)) ((α `mapMap` ρ) ! x)
+    =   {- Refold |eval| -}
+        eval (App e x) (α `mapMap` ρ)
+    \end{spec}
+    \begin{spec}
+    =   {- Unfold |apply| -}
+        α (eval e ρ >> eval v ρ >>= \case Fun f -> f (ρ ! x); _ -> stuck)
+    ⊑   {- Assumption about |apply| -}
+        apply (eval e (α `mapMap` ρ)) ((α `mapMap` ρ) ! x)
+    =   {- Refold |eval| -}
+        eval (App e x) (α `mapMap` ρ)
     \end{spec}
 
   \item \textbf{Case} |Case e alts|:
