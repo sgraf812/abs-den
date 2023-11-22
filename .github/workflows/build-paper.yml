@@ -21,6 +21,7 @@ jobs:
           branches: main
           tag_name: "Latest"
           overwrite: true
+          draft: false
       - name: Run tests
         run: |
           cd paper/
