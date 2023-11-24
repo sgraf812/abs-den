@@ -1201,19 +1201,26 @@ By Löb induction and cases on |e|.
 \end{proof}
 
 \begin{lemma}
+  \label{thm:syntactic-approx}
   Let |hat D| be a domain with instances for |Trace|,|Domain|,
   |HasBind| and |Lat|, and |α :<->: γ = byNeed| the corresponding by-name trace
   abstraction.
 
-  Furthermore, let |π| map from |syn (D (ByName T))| to |syn (hat D)|, such that
+  Furthermore, let |π*| map from |syn (Pow (D (ByName T)))| to |syn (hat D)|, such that
   \begin{spec}
-    (π ρ) ! x = Lub (step (Lookup y) (eval e' (π ρ1) :: hat D2) | step (Lookup y) (eval e' ρ1) ∈ ρ ! x)
+    π d = Lub (step (Lookup y) (eval e' (π ρ1) :: hat D) | step (Lookup y) (eval e' ρ1) ∈ d)
   \end{spec}
 
-  Then |α << ρ ⊑ π ρ| if |Later (forall e ρ1. α (eval e ρ1) ⊑ eval e (π ρ1))|.
+  Then |α << ρ ⊑ π << ρ| if |Later (forall e ρ1. α (eval e ρ1) ⊑ eval e (π << ρ1))|.
 \end{lemma}
 \begin{proof}
-It suffices to show that |(α << ρ ! x) ⊑ (π ρ ! x)| for every element of |ρ ! x|.
+\begin{spec}
+    α (ρ ! x)
+=   Lub (α (step (Lookup y) (eval e' ρ1))  | step (Lookup y) (eval e' ρ1) ∈ ρ ! x)
+=   Lub (step (Lookup y) (α (eval e' ρ1))  | step (Lookup y) (eval e' ρ1) ∈ ρ ! x)
+⊑   Lub (step (Lookup y) (eval e' (π ρ1))  | step (Lookup y) (eval e' ρ1) ∈ ρ ! x)
+=   π (ρ ! x)
+\end{spec}
 \end{proof}
 
 \begin{theoremrep}[Sound Monadic By-name Interpretation]
@@ -1242,9 +1249,8 @@ sound abstract by-name interpreter
 By Löb induction and cases on |e|.
 \begin{itemize}
   \item \textbf{Case} |Var x|:
-    The stuck case follows by unfolding |α|; the regular case needs
-    |α (ρ ! x) ⊑ π (ρ ! x)| which follows by |syn (Pow (D (ByName T)))| and the
-    induction hypothesis.
+    The stuck case follows by unfolding |α|; the regular case follows
+    from \Cref{thm:syntactic-approx}.
   \item \textbf{Case} |Lam x body|:
     \begin{spec}
         α (eval (Lam x body) ρ)
@@ -1252,7 +1258,7 @@ By Löb induction and cases on |e|.
         fun (\(hat d) -> step App2 (α (eval body (ext ρ x (γ (hat d))))))
     ⊑   {- Induction hypothesis -}
         fun (\(hat d) -> step App2 (eval body (π (ext ρ x (γ (hat d))))))
-    ⊑   {- |α . γ ⊑ id|, |(α <<) ⊑ π| -}
+    ⊑   {- |α . γ ⊑ id|, \Cref{thm:syntactic-approx} -}
         fun (\(hat d) -> step App2 (eval body (ext ((π ρ)) x (hat d))))
     =   {- Refold |eval| -}
         eval (Lam x body) (π ρ)
