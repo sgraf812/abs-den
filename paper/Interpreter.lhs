@@ -100,7 +100,7 @@ data Exp
   =  Var Name | Let Name Exp Exp
   |  Lam Name Exp | App Exp Name
   |  ConApp Tag [Name] | Case Exp [Alt]
-type Alt = (Tag,[Name],Exp)
+type Alt = Tag :-> ([Name],Exp)
 \end{spec}
 \caption{Syntax}
 \label{fig:syntax}
@@ -113,13 +113,16 @@ exts :: Ord k  => (k :-> v) -> [k] -> [v]
                -> (k :-> v)
 (!) :: Ord k => (k :-> v) -> k -> v
 dom :: Ord k => (k :-> v) -> Set k
-(∈) :: Name -> Set Name -> Bool
+(∈) :: Ord k => k -> Set k -> Bool
+(<<) :: (b -> c) -> (a :-> b) -> (a :-> c)
 \end{code}
 %if style == newcode
 \begin{code}
 emp = Map.empty
 ext ρ x d = Map.insert x d ρ
 exts ρ xs ds = foldl' (uncurry . ext) ρ (zip xs ds)
+(<<) = Map.map
+infixr 9 <<
 (!) = (Map.!)
 dom = Map.keysSet
 (∈) = Set.member
@@ -229,17 +232,13 @@ eval e ρ = case e of
     | otherwise
     -> stuck
   Case e alts -> step Case1 $
-    select (eval e ρ) [ (k, cont er xs) | (k,xs,er) <- alts ]
+    select (eval e ρ) (cont << alts)
     where
-       cont er xs ds  |  length xs == length ds
-                      =  step Case2 (eval er (exts ρ xs ds))
-                      |  otherwise
-                      =  stuck
+       cont (xs, er) ds  |  length xs == length ds
+                         =  step Case2 (eval er (exts ρ xs ds))
+                         |  otherwise
+                         =  stuck
 \end{code}
-%  ConApp k xs  | all (∈ dom ρ) xs  -> con k (map (ρ !) xs)
-%               | otherwise         -> stuck
-%  Case e alts -> step Case1 (eval e ρ >>= \v ->
-%    select v [ (k, step Case2 . eval er . exts ρ xs) | (k,xs,er) <- alts ])
 \end{minipage}%
 \begin{minipage}{0.44\textwidth}
 \begin{code}
@@ -251,7 +250,7 @@ class Domain d where
   fun :: {-" \iffalse "-}Label -> {-" \fi "-}(d -> d) -> d
   apply :: d -> d -> d
   con :: {-" \iffalse "-}Label -> {-" \fi "-}Tag -> [d] -> d
-  select :: d -> [(Tag, [d] -> d)] ->  d
+  select :: d -> (Tag :-> ([d] -> d)) ->  d
 
 class HasBind d where
   bind :: (d -> d) -> (d -> d) -> d
@@ -269,7 +268,9 @@ instance Domain D where
   apply  d a = d >>= \case
     Fun f -> f a; _ -> stuck
   con {-" \iffalse "-}_{-" \fi "-} k ds = return (Con k ds)
-  select d alts = ...
+  select dv alts = dv >>= \case
+    Con k ds | k ∈ dom alts  -> (alts ! k) ds
+    _                        -> stuck
 
 instance HasBind D where
   bind rhs body = body (fix rhs)
@@ -285,10 +286,8 @@ instance Monad τ => Domain (D τ) where
   con {-" \iffalse "-}_{-" \fi "-} k ds = return (Con k ds)
   apply  dv da = dv >>= \case Fun f -> f da; _ -> stuck
   select dv alts = dv >>= \case
-    Con k ds
-      | Just (_,alt) <- find (\(k',_) -> k' == k) alts
-      -> alt ds
-    _ -> stuck
+    Con k ds | k ∈ dom alts  -> (alts ! k) ds
+    _                        -> stuck
 \end{code}
 %endif
 \subcaption{Concrete by-name semantics for |D|}

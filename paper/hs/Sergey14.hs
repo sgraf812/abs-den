@@ -181,24 +181,25 @@ instance Domain (DmdT DmdVal) where
       (DmdFun dmd v', φ) -> (v',     φ + squeezeDmd ns arg dmd)
       (DmdNop       , φ) -> (DmdNop, φ + squeezeDmd ns arg topDmd)
       (DmdBot       , φ) -> (DmdBot, φ + emp)
-  select (DT scrut) [(k,f)] | k == Pair = DT $ \ns sd ->
-    let (xs,ns')  = freshs (conArity k) ns in
-    let sentinels = map (\x -> step (Lookup x) (pure DmdNop)) xs in
-    let (v,φ)     = unDT (f sentinels) ns' sd in
-    let (ds,φ')   = (map (\x -> Map.findWithDefault absDmd x φ) xs,foldr Map.delete φ xs) in
-    case scrut ns (mkProd ds) of
-      (_v,φ'') -> (v,φ''+φ')
-  select (DT scrut) fs = DT $ \ns sd ->
-    let (_v,φ) = scrut ns Top in
-    let (v,φ') = lub (map (alt ns sd) fs) in
-    (v, φ+φ')
-    where
-      alt ns sd (k,f) =
-        let (xs,ns')  = freshs (conArity k) ns in
-        let sentinels = map (\_ -> pure DmdNop) xs in
-        let (v,φ)     = unDT (f sentinels) ns' sd in
-        let φ'        = foldr Map.delete φ xs in
-        (v,φ')
+  select (DT scrut) fs = DT $ \ns sd -> case Map.assocs fs of
+    [(k,f)] | k == Pair ->
+      let (xs,ns')  = freshs (conArity k) ns in
+      let sentinels = map (\x -> step (Lookup x) (pure DmdNop)) xs in
+      let (v,φ)     = unDT (f sentinels) ns' sd in
+      let (ds,φ')   = (map (\x -> Map.findWithDefault absDmd x φ) xs,foldr Map.delete φ xs) in
+      case scrut ns (mkProd ds) of
+        (_v,φ'') -> (v,φ''+φ')
+    fs ->
+      let (_v,φ) = scrut ns Top in
+      let (v,φ') = lub (map (alt ns sd) fs) in
+      (v, φ+φ')
+      where
+        alt ns sd (k,f) =
+          let (xs,ns')  = freshs (conArity k) ns in
+          let sentinels = map (\_ -> pure DmdNop) xs in
+          let (v,φ)     = unDT (f sentinels) ns' sd in
+          let φ'        = foldr Map.delete φ xs in
+          (v,φ')
 
 -- | Very hacky way to see the arity of a function
 arity :: Set Name -> DmdD -> Int

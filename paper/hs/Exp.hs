@@ -9,6 +9,7 @@ import qualified Text.Read as Read
 import qualified Data.Map as Map
 import Data.Char
 import GHC.Stack
+import Data.Functor.Classes (Eq2 (liftEq2))
 
 assert :: HasCallStack => Bool -> a -> a
 assert True  x = x
@@ -38,8 +39,8 @@ data Exp
   | Lam Name Exp
   | Let Name Exp Exp
   | ConApp Tag [Name]
-  | Case Exp [Alt]
-type Alt = (Tag,[Name],Exp)
+  | Case Exp Alts
+type Alts = Map.Map Tag ([Name],Exp)
 
 instance Eq Exp where
   e1 == e2 = go Map.empty Map.empty e1 e2
@@ -58,12 +59,12 @@ instance Eq Exp where
                                      e1' e2'
         (ConApp k1 xs, ConApp k2 ys) -> k1 == k2 && all (\(x,y) ->occ benv1 x == occ benv2 y) (zip xs ys)
         (Case e1 alts1, Case e2 alts2) -> go benv1 benv2 e1 e2
-           && all (uncurry alt) (zip alts1 alts2)
+           && liftEq2 (==) alt alts1 alts2
            where
-             alt (k1,xs1,rhs1) (k2,xs2,rhs2)
+             alt (xs1,rhs1) (xs2,rhs2)
                | let benv1' = foldr bind benv1 xs1
                , let benv2' = foldr bind benv2 xs2
-               = k1 == k2 && go benv1' benv2' rhs1 rhs2
+               = go benv1' benv2' rhs1 rhs2
         _                      -> False
 
 type Label = String
@@ -101,11 +102,11 @@ instance Show Exp where
   showsPrec p (Case e alts) = showParen (p > appPrec) $
     showString "case " . showsPrec lamPrec e
     . showString " of { "
-    . showSep (showString ";") (map showAlt alts)
+    . showSep (showString ";") (map showAlt (Map.assocs alts))
     . showString " }"
 
-showAlt :: Alt -> ShowS
-showAlt (k,xs,rhs) = shows (ConApp k xs) . showString " -> " . showsPrec lamPrec rhs
+showAlt :: (Tag,([Name],Exp)) -> ShowS
+showAlt (k,(xs,rhs)) = shows (ConApp k xs) . showString " -> " . showsPrec lamPrec rhs
 
 showSep :: ShowS -> [ShowS] -> ShowS
 showSep _   [] = id
@@ -183,8 +184,8 @@ instance Read Exp where
         Read.Ident "of" <- Read.lexP
         Read.Punc "{" <- Read.lexP
         let semi = ReadP.skipSpaces >> ReadP.char ';' >> ReadP.skipSpaces
-        alts <- Read.readP_to_Prec $ \_ ->
-          ReadP.sepBy (Read.readPrec_to_P readAlt lamPrec) semi
+        alts <- (Map.fromList . map (\(k,xs,e) -> (k, (xs,e)))) <$>
+          Read.readP_to_Prec (\_ -> ReadP.sepBy (Read.readPrec_to_P readAlt lamPrec) semi)
         Read.Punc "}" <- Read.lexP
         pure (Case e alts)
     ]

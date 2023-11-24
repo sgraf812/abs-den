@@ -88,7 +88,7 @@ instance Domain UD where
   fun {-" \iffalse "-}_{-" \fi "-} f     = manify (f nopD)
   con {-" \iffalse "-}_{-" \fi "-} _ ds  = manify (foldr (>>) nopD ds)
   apply d a                              = manify a >> d
-  select d fs                            = d >> lub [ f (replicate (conArity k) nopD) | (k,f) <- fs ]
+  select d fs                            = d >> lub [ f (replicate (conArity k) nopD) | (k,f) <- Map.assocs fs ]
 
 instance Lat UD where
   bottom = nopD
@@ -276,20 +276,21 @@ instance Domain (Cts PolyType) where {-" ... \iffalse "-}
     res_ty <- freshTyVar
     emitCt (fun_ty, arg_ty :->: res_ty)
     return (PT [] res_ty)
-  select _  [] = stuck
-  select dv fs@((k,_):_) = do
-    con_ty <- dv >>= instantiatePolyTy
-    res_ty <- snd . splitFunTys <$> instantiateCon k
-    let TyConApp tc tc_args = res_ty
-    emitCt (con_ty, res_ty)
-    ks_tys <- enumerateCons tc tc_args
-    tys <- forM ks_tys $ \(k,tys) ->
-      case List.find (\(k',_) -> k' == k) fs of
-        Just (_,f) -> f (map (fmap (PT [])) tys)
-        _          -> stuck
-    traverse instantiatePolyTy tys >>= \case
-      []      -> stuck
-      ty:tys' -> traverse (\ty' -> emitCt (ty,ty')) tys' >> return (PT [] ty)
+  select dv fs = case Map.assocs fs of
+    []            -> stuck
+    fs@((k,_):_)  -> do
+      con_ty <- dv >>= instantiatePolyTy
+      res_ty <- snd . splitFunTys <$> instantiateCon k
+      let TyConApp tc tc_args = res_ty
+      emitCt (con_ty, res_ty)
+      ks_tys <- enumerateCons tc tc_args
+      tys <- forM ks_tys $ \(k,tys) ->
+        case List.find (\(k',_) -> k' == k) fs of
+          Just (_,f) -> f (map (fmap (PT [])) tys)
+          _          -> stuck
+      traverse instantiatePolyTy tys >>= \case
+        []      -> stuck
+        ty:tys' -> traverse (\ty' -> emitCt (ty,ty')) tys' >> return (PT [] ty)
 
 {-" \fi "-}
 instance HasBind (Cts PolyType) where
@@ -513,7 +514,7 @@ instance Domain CD where
     P ells <- dv
     cache <- CT get
     vals <- sequence [ f (map return vs) | ell <- Set.toList ells, Just (k',vs) <- [Map.lookup ell (cCons cache)]
-                     , (k,f) <- fs, k == k' ]
+                     , (k,f) <- Map.assocs fs, k == k' ]
     return (lub vals)
 {-" \fi "-}
 
