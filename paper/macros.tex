@@ -204,6 +204,13 @@
 \newcommand{\stepm}[3]{\lceil #1 \act{#2} #3\trend \rceil}
 \newcommand{\step}[2]{\stepm{\wild}{#1}{#2}}
 \newcommand{\tell}[1]{\lceil #1 \rceil}
+\newcommand{\pcirc}{%
+  \mathchoice
+    {\mathbin{\ooalign{\hidewidth$\circ$\hidewidth\cr$\rightharpoonup$}}}% \displaystyle
+    {\mathbin{\ooalign{\hidewidth$\circ$\hidewidth\cr$\rightharpoonup$}}}% \textstyle
+    {\mathbin{\ooalign{\hidewidth$\scriptstyle\circ$\hidewidth\cr$\scriptstyle\rightharpoonup$}}}% \scriptstyle
+    {\mathbin{\ooalign{\hidewidth$\scriptscriptstyle\circ$\hidewidth\cr$\scriptscriptstyle\rightharpoonup$}}}% \scriptscriptstyle
+}
 
 %% Domains
 \newcommand{\FunV}{\mathsf{Fun}}

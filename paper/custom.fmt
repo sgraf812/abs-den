@@ -56,7 +56,7 @@
 %format eval3(d)(a)(b) = "\mathcal{S}_{\{" d "\}}\denot{" a "}_{" b "}"
 %format ext(rho)(x)(d) = rho "[" x "\mapsto" d "]"
 %format exts(rho)(xs)(ds) = rho "[\many{" xs "\mapsto" ds "}]"
-%format << = "\mathbin{\ooalign{$\circ$\cr\hidewidth$\rightharpoonup$\hidewidth}}"
+%format << = "\pcirc"
 %format emptyP = "\varid{\ensuremath{\varnothing}}"
 %format ell = "\varid{\ensuremath{\ell}}"
 %format ells = "\varid{\ensuremath{\many{\ell}}}"
