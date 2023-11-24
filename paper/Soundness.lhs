@@ -1332,6 +1332,9 @@ sound abstract by-name interpreter:
 \inferrule
   {%
    |α :<->: γ = byName|\\ IH = |forall e1 ρ1. α (eval e1 ρ1) ⊑ eval e1 (α `mapMap` ρ1)| \\\\
+   |forall d f. α (d >>= f) ⊑ α d >>= α . f . γ|\\\\
+   |forall ev d a. step ev (apply d a) ⊑ apply (step ev d) a|\\\\
+   |forall a. stuck ⊑ apply stuck (α a)|\\ |forall fs. stuck ⊑ sel stuck fs|\\\\
    IH \Longrightarrow |forall e ρ a. α (apply (eval e ρ) a) ⊑ apply (eval e (α `mapMap` ρ)) (α a)| \\\\
    IH \Longrightarrow |forall e ρ fs. α (sel (eval e ρ) fs) ⊑ sel (α (eval e ρ)) [ (k, α . f . map γ) || (k, f) <- fs ]| \\\\
    IH \Longrightarrow |forall rhs body. α (bind  (\d1 -> eval e1 (ext ρ x (step (Lookup x) d1)))
@@ -1390,18 +1393,19 @@ By Löb induction and cases on |e|.
     =   {- Refold |eval| -}
         eval (App e x) (α `mapMap` ρ)
     \end{spec}
-    Otherwise, |eval e ρ| must produce a value.
-    If that value is |Stuck| or |Con k ds|, we have
+    Otherwise, |eval e ρ| must produce a value |v|.
+    If |v=Stuck| or |v=Con k ds|, we set |d := stuck|
+    (resp.\xspace |d := con k (map α ds)|) and have
     \begin{spec}
         α (eval e ρ >>= \case Fun f -> f (ρ ! x); _ -> stuck)
     =   {- |eval e ρ = many (step ev) (return v)|, unfold |α| -}
         many (step ev) (α (return v >>= \case Fun f -> f (ρ ! x); _ -> stuck))
     =   {- |v| not |Fun|, unfold |α| -}
         many (step ev) stuck
-    ⊑   {- Assumption |stuck ⊑ apply stuck a|/|stuck ⊑ apply (con k ds) a)| -}
-        many (step ev) (apply stuck a)
+    ⊑   {- Assumption |stuck ⊑ apply d a| where |d := stuck| or |d := con k (map α ds)| -}
+        many (step ev) (apply d a)
     ⊑   {- Assumption |step ev (apply d a) ⊑ apply (step ev d) a| -}
-        apply (many (step ev) stuck) ((α `mapMap` ρ) ! x)
+        apply (many (step ev) d) ((α `mapMap` ρ) ! x)
     =   {- Refold |α|, |eval e ρ| -}
         apply (α (eval e ρ)) ((α `mapMap` ρ) ! x)
     ⊑   {- Induction hypothesis -}
@@ -1409,31 +1413,34 @@ By Löb induction and cases on |e|.
     =   {- Refold |eval| -}
         eval (App e x) (α `mapMap` ρ)
     \end{spec}
-    In the final case, we have |eval e ρ = eval (Lam x body) ρ'|
-    Otherwise, |eval e ρ| must evaluate to a |hat Value|, \eg,
-    |eval e ρ = many (step ev) (eval v ρ)|.
-    If that value is |con ...|, we have
+    In the final case, we have |v = Fun f|, which must be the result of some
+    call |eval (Lam y body) ρ'|; hence
+    |f := \d -> step App2 (eval body (ext ρ1 y d))|.
     \begin{spec}
-    =   {- |eval e ρ| is ultimately stuck, unfold |α| -}
-        many (step ev) stuck
-    ⊑   {- Assumption |stuck ⊑ apply stuck a| -}
-        many (step ev) (apply stuck a)
-    ⊑   {- Assumption |step ev (apply d a) ⊑ apply (step ev d) a| -}
-        apply (many (step ev) stuck) ((α `mapMap` ρ) ! x)
-    =   {- Refold |α|, |eval e ρ| -}
-        apply (α (eval e ρ)) ((α `mapMap` ρ) ! x)
+        α (eval e ρ >>= \case Fun f -> f (ρ ! x); _ -> stuck)
+    =   {- |eval e ρ = many (step ev) (return (Fun f))|, unfold |α| -}
+        many (step ev) (α (return v >>= \case Fun f -> f (ρ ! x); _ -> stuck))
+    =   {- |v=Fun f|, with |f| as above; unfold |α| -}
+        many (step ev) (step App2 (α (eval body (ext ρ1 y (ρ ! x)))))
     ⊑   {- Induction hypothesis -}
+        many (step ev) (step App2 (eval body (α (ext ρ1 y (ρ ! x)))))
+    ⊑   {- Assumption |forall e (hat ρ) x (hat d). eval e (ext (hat ρ) x (hat d)) ⊑ apply (fun (\(hat d) -> eval e (hat ρ))) (hat d)| -}
+        many (step ev) (step App2 (apply (fun (\(hat d) -> eval e (ext (α `mapMap` ρ1) x (hat d)))) ((α `mapMap` ρ) ! x)))
+    ⊑   {- Assumption |forall ev d a. step ev (apply (fun f) a) ⊑ apply (fun (step ev . f)) a| -}
+        many (step ev) (apply (fun (\(hat d) -> step App2 (eval e (ext (α `mapMap` ρ1) x (hat d))))) ((α `mapMap` ρ) ! x))
+    ⊑   {- Assumption |step ev (apply d a) ⊑ apply (step ev d) a| -}
+        apply (many (step ev) (fun (\(hat d) -> step App2 (eval e (ext (α `mapMap` ρ1) x (hat d)))))) ((α `mapMap` ρ) ! x)
+    =   {- TODO Refold |eval| -}
+        apply (α (eval e ρ) >> (fun (\(hat d) -> step App2 (eval e (ext (α `mapMap` ρ1) x (hat d)))))) ((α `mapMap` ρ) ! x)
+    =   {- TODO Refold |eval| -}
         apply (eval e (α `mapMap` ρ)) ((α `mapMap` ρ) ! x)
     =   {- Refold |eval| -}
         eval (App e x) (α `mapMap` ρ)
     \end{spec}
     \begin{spec}
-    =   {- Unfold |apply| -}
-        α (eval e ρ >> eval v ρ >>= \case Fun f -> f (ρ ! x); _ -> stuck)
-    ⊑   {- Assumption about |apply| -}
-        apply (eval e (α `mapMap` ρ)) ((α `mapMap` ρ) ! x)
-    =   {- Refold |eval| -}
-        eval (App e x) (α `mapMap` ρ)
+        (α (eval e ρ) >> (fun (\(hat d) -> step App2 (eval e (ext (α `mapMap` ρ1) x (hat d))))))
+    ⊑
+        eval e (α `mapMap` ρ)
     \end{spec}
 
   \item \textbf{Case} |Case e alts|:
