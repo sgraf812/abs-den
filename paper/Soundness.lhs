@@ -1200,12 +1200,29 @@ By Löb induction and cases on |e|.
 \end{itemize}
 \end{proof}
 
+\begin{lemma}
+  Let |hat D| be a domain with instances for |Trace|,|Domain|,
+  |HasBind| and |Lat|, and |α :<->: γ = byNeed| the corresponding by-name trace
+  abstraction.
+
+  Furthermore, let |π| map from |syn (D (ByName T))| to |syn (hat D)|, such that
+  \begin{spec}
+    (π ρ) ! x = Lub (step (Lookup y) (eval e' (π ρ1) :: hat D2) | step (Lookup y) (eval e' ρ1) ∈ ρ ! x)
+  \end{spec}
+
+  Then |α << ρ ⊑ π ρ| if |Later (forall e ρ1. α (eval e ρ1) ⊑ eval e (π ρ1))|.
+\end{lemma}
+\begin{proof}
+It suffices to show that |(α << ρ ! x) ⊑ (π ρ ! x)| for every element of |ρ ! x|.
+\end{proof}
+
 \begin{theoremrep}[Sound Monadic By-name Interpretation]
-Let |hat D := hat T (hat Value)| be a domain such that there are instances
-|Trace (hat T (hat Value))|, |Domain (hat T (hat Value))|,
-|HasBind (hat T (hat Value))|, |Monad (hat T)| and |Lat (hat T (hat Value))|.
+Let |hat D := hat D| be a domain such that there are instances
+|Trace (hat D)|, |Domain (hat D)|,
+|HasBind (hat D)| and |Lat (hat D)|.
 Then the following inference rule applies, proving |eval e (hat ρ) :: hat D| a
-sound abstract by-name interpreter:
+sound abstract by-name interpreter
+\sg{TODO update, mention that |π ⊑ (α <<)| by induction}:
 \[
 \inferrule
   {%
@@ -1218,25 +1235,27 @@ sound abstract by-name interpreter:
    IH \Longrightarrow |forall rhs body. α (bind  (\d1 -> eval e1 (ext ρ x (step (Lookup x) d1)))
                                                  (\d1 -> step Let1 (eval e2 (ext ρ x (step (Lookup x) d1))))) ⊑ bind (α . rhs . γ) (α . body . γ)|%
   }
-  {|α (eval e ρ :: Pow (D (ByName T))) ⊑ (eval e (α << ρ) :: hat D)|}
+  {|α (eval e ρ :: Pow (D (ByName T))) ⊑ (eval e (π ρ) :: hat D)|}
 \]
 \end{theoremrep}
 \begin{proofsketch}
 By Löb induction and cases on |e|.
 \begin{itemize}
   \item \textbf{Case} |Var x|:
-    The stuck case follows by unfolding |α|; the regular case follows by assumption.
+    The stuck case follows by unfolding |α|; the regular case needs
+    |α (ρ ! x) ⊑ π (ρ ! x)| which follows by |syn (Pow (D (ByName T)))| and the
+    induction hypothesis.
   \item \textbf{Case} |Lam x body|:
     \begin{spec}
         α (eval (Lam x body) ρ)
     =   {- Unfold |eval|, |α| -}
         fun (\(hat d) -> step App2 (α (eval body (ext ρ x (γ (hat d))))))
     ⊑   {- Induction hypothesis -}
-        fun (\(hat d) -> step App2 (eval body (α << (ext ρ x (γ (hat d))))))
-    ⊑   {- |α . γ ⊑ id| -}
-        fun (\(hat d) -> step App2 (eval body (ext (α << ρ) x (hat d))))
+        fun (\(hat d) -> step App2 (eval body (π (ext ρ x (γ (hat d))))))
+    ⊑   {- |α . γ ⊑ id|, |(α <<) ⊑ π| -}
+        fun (\(hat d) -> step App2 (eval body (ext ((π ρ)) x (hat d))))
     =   {- Refold |eval| -}
-        eval (Lam x body) (α << ρ)
+        eval (Lam x body) (π ρ)
     \end{spec}
 
   \item \textbf{Case} |ConApp k ds|:
