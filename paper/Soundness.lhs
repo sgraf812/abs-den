@@ -987,8 +987,8 @@ instance Trace τ => Trace (Pow τ) where step e (P ts) = P (setundef (step e τ
 -- instance Domain τ => Domain (Pow τ) where ...
 -- instance HasBind τ => HasBind (Pow τ) where ...
 data Galois a b = (a -> b) :<->: (b -> a)
-embed :: Lat b => (a -> b) -> Galois (Pow a) b
-embed ι = α :<->: γ where α (P as) = Lub (ι a | a <- as); γ b = P (setundef (a | ι a ⊑ b))
+repr :: Lat b => (a -> b) -> Galois (Pow a) b
+repr ι = α :<->: γ where α (P as) = Lub (ι a | a <- as); γ b = P (setundef (a | ι a ⊑ b))
 \end{code}
 (While the concretisation function exists as a mathematical function, it is in
 general impossible to compute.)
@@ -998,7 +998,7 @@ and the |byName| abstraction is the fixpoint of that Galois connection modulo
 |ByName| constructors (we write |powMap f| to map |f| over |Pow|ersets):
 \begin{code}
 trace :: (Trace d, Domain d, Lat d) => Galois (Pow (D r)) d -> Galois (Pow (T (Value r))) d
-trace (α :<->: γ) = embed ι where  ι (Ret Stuck)       = stuck
+trace (α :<->: γ) = repr ι where  ι (Ret Stuck)       = stuck
                                    ι (Ret (Fun f))     = fun {-"\iffalse"-}""{-"\fi"-} (α . powMap f . γ)
                                    ι (Ret (Con k ds))  = con {-"\iffalse"-}""{-"\fi"-} k (map (α . set) ds)
                                    ι (Step e τ)        = step e (ι τ)
@@ -1090,6 +1090,8 @@ We will treat |many ev| like a list of type |[Event]|.
 
   We write |syn D ρ| to say that the range of a |D|-valued environment
   |ρ| is of the form |set (step (Lookup x) (eval e ρ1 :: D) || Later (syn (D (ByNeed T)) ρ1))|.
+  Furthermore, we take |syn D| to abbreviate the set of environments |ρ|
+  satisfying |syn D ρ|. Hence |ρ ∈ syn D| if and only if |syn D ρ|.
 \end{definition}
 
 \begin{lemma}
@@ -1202,34 +1204,48 @@ By Löb induction and cases on |e|.
 
 \begin{lemma}
   \label{thm:syntactic-approx}
-  Let |hat D| be a domain with instances for |Trace|,|Domain|,
-  |HasBind| and |Lat|, and |α :<->: γ = byNeed| the corresponding by-name trace
-  abstraction.
+  Let |hat D| be a domain with instances for |Trace|,|Domain|, |HasBind| and
+  |Lat|, and let |ι| be the corresponding representation function of by-name
+  trace abstraction.
 
-  Furthermore, let |π*| map from |syn (Pow (D (ByName T)))| to |syn (hat D)|, such that
+  Furthermore, let |π| be the map from |syn (D (ByName T))| to |syn (hat D)|,
+  defined as
   \begin{spec}
-    π d = Lub (step (Lookup y) (eval e' (π ρ1) :: hat D) | step (Lookup y) (eval e' ρ1) ∈ d)
+    π (Step (Lookup y) (eval e' ρ1)) = step (Lookup y) (eval e' (π ρ1) :: hat D)
   \end{spec}
 
-  Then |α << ρ ⊑ π << ρ| if |Later (forall e ρ1. α (eval e ρ1) ⊑ eval e (π << ρ1))|.
+  Then |ι << ρ ⊑ π << ρ| if |Later (forall e ρ1. ι (eval e ρ1) ⊑ eval e (π << ρ1))|.
+
+  Also, |forall (hat d) ∈ syn (hat D). π (γ (hat d))|. REALLY?
 \end{lemma}
 \begin{proof}
+It suffices to show the approximation |ι d ⊑ π d| pointwise for
+|d := Step (Lookup y) (eval e' ρ1)|.
 \begin{spec}
-    α (ρ ! x)
-=   Lub (α (step (Lookup y) (eval e' ρ1))  | step (Lookup y) (eval e' ρ1) ∈ ρ ! x)
-=   Lub (step (Lookup y) (α (eval e' ρ1))  | step (Lookup y) (eval e' ρ1) ∈ ρ ! x)
-⊑   Lub (step (Lookup y) (eval e' (π ρ1))  | step (Lookup y) (eval e' ρ1) ∈ ρ ! x)
-=   π (ρ ! x)
+    ι (Step (Lookup y) (eval e' ρ1))
+=   step (Lookup y) (ι (eval e' ρ1))
+⊑   step (Lookup y) (eval e' (π ρ1))
+=   π (Step (Lookup y) (eval e' ρ1))
 \end{spec}
+For |forall (hat d) ∈ syn (hat D). π (γ (hat d))|, consider
+\begin{spec}
+    π (γ (hat d))
+=   Lub (π d | ι d ⊑ hat d)
+⊑   Lub (π d | ι d ⊑ hat d)
+
+    π (γ (π d))
+=   Lub (π d' | ι d' ⊑ π d)
+=   π d
+\end{spec}
+
 \end{proof}
 
 \begin{theoremrep}[Sound Monadic By-name Interpretation]
-Let |hat D := hat D| be a domain such that there are instances
-|Trace (hat D)|, |Domain (hat D)|,
-|HasBind (hat D)| and |Lat (hat D)|.
+Let |hat D| be a domain with instances for |Trace|, |Domain|, |HasBind| and
+|Lat|.
 Then the following inference rule applies, proving |eval e (hat ρ) :: hat D| a
 sound abstract by-name interpreter
-\sg{TODO update, mention that |π ⊑ (α <<)| by induction}:
+\sg{TODO update, taking care of annoying repr vs. abs issue with π}:
 \[
 \inferrule
   {%
@@ -1252,6 +1268,12 @@ By Löb induction and cases on |e|.
     The stuck case follows by unfolding |α|; the regular case follows
     from \Cref{thm:syntactic-approx}.
   \item \textbf{Case} |Lam x body|:
+    \begin{spec}
+      π (γ (hat d))
+    = Lub (π d | ι d ⊑ hat d)
+    = Lub (step L (eval e (π ρ1)) | step L (ι (eval e ρ1)) ⊑ step L (eval e (π ρ1)))
+
+    \end{spec}
     \begin{spec}
         α (eval (Lam x body) ρ)
     =   {- Unfold |eval|, |α| -}

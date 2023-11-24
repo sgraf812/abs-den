@@ -69,7 +69,7 @@
 %format pow(a) = "\pow{" a "}"
 %format ==> = "\Longrightarrow"
 %format many(a) = "\many{" a "}"
-%format syn(d)(env) = "{" d " \vdash " env "}"
+%format syn(d)(env) = "{\vdash_{" d "} " env "}"
 
 %format bottom = "\bot"
 %format d1
