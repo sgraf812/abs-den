@@ -258,8 +258,8 @@ emitCt :: Constraint -> Cts ();                   freshTyVar :: Cts Type
 instantiatePolyTy :: PolyType -> Cts Type; ^^ ^^  generaliseTy :: Cts Type -> Cts PolyType
 
 instance Trace (Cts v) where step _ = id
-instance Domain (Cts PolyType) where {-" ... \iffalse "-}
-  stuck = return (PT [] Wrong)
+instance Domain (Cts PolyType) where
+  stuck = return (PT [] Wrong); {-" ... \iffalse "-}
   fun {-" \iffalse "-}_{-" \fi "-} f = do
     arg <- freshTyVar
     res <- f (return (PT [] arg)) >>= instantiatePolyTy
@@ -491,7 +491,6 @@ $\perform{closedType $ eval (read "λx. let y = x in y x") emp}$
 $\perform{closedType $ eval (read "let i = λx.x in let o = Some(i) in o") emp}$
 < ghci> closedType $ eval (read "let x = x in x") emp
 $\perform{closedType $ eval (read "let x = x in x") emp}$
-
 
 \begin{figure}
 \begin{code}
