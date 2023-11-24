@@ -32,6 +32,7 @@
 %format ρ1 = "\varid{\ensuremath{\rho}}_1"
 %format ρ2 = "\varid{\ensuremath{\rho}}_2"
 %format ρ3 = "\varid{\ensuremath{\rho}}_3"
+%format π = "\varid{\ensuremath{\pi}}"
 %format φ = "\varid{\ensuremath{\varphi}}"
 %format φ1 = "\varid{\ensuremath{\varphi}}_1"
 %format φ2 = "\varid{\ensuremath{\varphi}}_2"
@@ -68,6 +69,7 @@
 %format pow(a) = "\pow{" a "}"
 %format ==> = "\Longrightarrow"
 %format many(a) = "\many{" a "}"
+%format syn(d)(env) = "{" d " \vdash " env "}"
 
 %format bottom = "\bot"
 %format d1

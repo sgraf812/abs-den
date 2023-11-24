@@ -980,7 +980,7 @@ We now put the soundness result to bear by instantiating the concrete |D1| to
 by-name semantics |D (ByName T)| and deriving an abstraction function capturing
 trace properties from it, all the while leaving |D2| abstract.
 
-Following \citet[page 253]{Nielson:99}, every embedding |ι :: a -> b| into a
+Following \citet[page 253]{Nielson:99}, every representation function |ι :: a -> b| into a
 partial order yields a Galois connection between $(|Pow a|,⊆)$ and $(|b|,⊑)$:
 \begin{code}
 instance Trace τ => Trace (Pow τ) where step e (P ts) = P (setundef (step e τ | τ <- ts))
@@ -993,9 +993,9 @@ embed ι = α :<->: γ where α (P as) = Lub (ι a | a <- as); γ b = P (setunde
 (While the concretisation function exists as a mathematical function, it is in
 general impossible to compute.)
 Every domain |D2| with instances |(Trace D2, Domain D2, Lat D2)| induces a
-\emph{trace abstraction} |trace| via the following embedding, and the |byName|
-abstraction is the fixpoint of that Galois connection modulo |ByName|
-constructors (we write |powMap f| to map |f| over |Pow|ersets):
+\emph{trace abstraction} |trace| via the following representation function,
+and the |byName| abstraction is the fixpoint of that Galois connection modulo
+|ByName| constructors (we write |powMap f| to map |f| over |Pow|ersets):
 \begin{code}
 trace :: (Trace d, Domain d, Lat d) => Galois (Pow (D r)) d -> Galois (Pow (T (Value r))) d
 trace (α :<->: γ) = embed ι where  ι (Ret Stuck)       = stuck
@@ -1054,7 +1054,6 @@ of theorems, so we prove the below lemma by hand.
 However, parametricity is a strong argument that our approach can easily be
 generalised to other denotational interpreters.
 
-\begin{comment}
 % SG: The below idea about making EvalCtx a data type is too much fuzz about
 %     nothing for my taste
 %
@@ -1079,233 +1078,23 @@ generalised to other denotational interpreters.
 %|Step'| constructors at the outside.
 
 \begin{definition}
-  We say that |d1| \emph{reduces to} |(many ev,many c,d2)|,
-  written \reducesto{|d1|}{|(many ev,many c,d2)|},
-  if |d = many (Step ev) (many c d2)|,
-  where each |c| is of the form
-  |\d -> apply d a| for some |a| or
-  |\d -> select d fs| for some |fs|.
-%  We say that |(e1,ρ1)| \emph{reduces to} |(many ev,many c,e2,ρ2)|,
-%  written \reducesto{|(e1,ρ1)|}{|(many ev,many c,e2,ρ2)|},
-%  if $\vDash |ρ1|$, $\vDash |ρ2|$ and
-%  |eval e ρ1 = many (Step ev) (many c (eval e2 ρ2))|,
-%  where each |c| is of the form
-%  |\d -> apply d a| for some |a| or
-%  |\d -> select d fs| for some |fs|.
+  We say that |e| \emph{evaluates to} |(many ev,v)|,
+  written \reducesto{|e|}{|(many ev,v)|},
+  if |eval e ρ1 = many (Step ev) (eval v ρ2)|.
 \end{definition}
 
-We will treat |many ev| like a list of type |[Event]| and likewise for |many c|.
-
-\begin{lemma}[Evaluation improves trace abstraction]
-  \label{thm:eval-improves}
-  % Assumptions:
-  % - step e (apply d a) ⊑ apply (step e d) a
-  % - f d ⊑ apply (fun f) d (for the appropriate f)
-  % - alt ds ⊑ select (con k ds) alts (for the appropriate alts and (k,alt) ∈ alts)
-  % - body (α (fix (γ . rhs . α))) ⊑ bind rhs body, where rhs d = eval e3 (α << (ext ρ1 x (Step (Lookup x) d)))
-  Let |hat D| be an arbitrary domain with instances for |Trace|,
-  |Domain| and |Lat| such that
-  |(α :: Pow (D (ByName T)) -> hat D) :<->: _ = byName| exists.
-  \sg{Other 3 assumptions in comments above}
-
-  If \reducesto{|eval e1 ρ1|}{|(many ev, many c, eval e2 ρ2)|}
-  and |α (eval e2 ρ2) ⊑ eval e2 (α << ρ2)|,
-  then |α (eval e1 ρ1) ⊑ eval e1 (α << ρ1)|.
-\end{lemma}
-\begin{proof}
-By Löb induction (only relevant in the |Let| case) and
-induction on the length of |many ev|.
-
-When |length (many ev) = 0|, we also have |length (many c) = 0|, because the
-reduction of any |c| would induce an |App2| or |Case2| step.
-Hence in this case we have |e1 = e2|, |ρ1 = ρ2| (note that the action
-of any |many c| would need to make a step) and the goal follows by assumption
-|α (eval e2 ρ2) ⊑ eval e2 (α << ρ2)|.
-
-Otherwise |length (many ev) > 0|.
-We proceed by cases on |e1|.
-\begin{itemize}
-  \item \textbf{Case} |Lam|,|ConApp|:
-    Contradiction to the fact that |many ev| is non-empty.
-  \item \textbf{Case} |Var x|:
-    The stuck case contradicts with the fact that |many ev| is non-empty.
-    Otherwise |α (eval (Var x) ρ1) = α (ρ1 ! x) = eval (Var x) (α << ρ1)|.
-  \item \textbf{Case} |App e x|:
-    Either |e2| is reached when evaluating |e| or when evaluating the lambda
-    body of the returned value.
-
-    When |e2| is reached during evaluation of |e|,
-    we have |many ev = App1 : many ev1| and |many c = (`apply` (ρ1!x)) : many c1|,
-    as well as the (strict) subsequence
-    \reducesto{|eval e ρ1|}{|(many ev1, many c1, eval e2 ρ2)|}.
-    \begin{spec}
-      α (eval (App e x) ρ1)
-    = {- \reducesto{|eval e1 ρ1|}{|([App1], [`apply` (ρ1 ! x)], eval e ρ1)|}, unfold |α| -}
-      step App1 (apply (α (eval e ρ1)) (α (ρ1 ! x)))
-    ⊑ {- IH at \reducesto{|eval e ρ1|}{|(many ev1, many c1, eval e2 ρ2)|} -}
-      step App1 (apply (eval e (α << ρ1)) ((α << ρ1) ! x))
-    = {- Definition of |eval (App e x)| -}
-      eval (App e x) (α << ρ1)
-    \end{spec}
-
-    Otherwise, we have
-    \reducesto{|eval e ρ1|}{|(many ev1, [], eval (Lam y e') ρ3)|}
-    for some |Lam y e'| and |ρ3| and |e2| is reached during evaluation of |e'|.
-    Furthermore, |many ev = [App1] ++ many ev1 ++ [App2] ++ many ev2|
-    and another strict subsequence
-    \reducesto{|eval e' (ext ρ3 y (ρ1 ! x))|}{|(many ev2,many c,eval e2 ρ2)|}.
-    When |many ev2| is non-empty, we have split our main reduction sequence into
-    two proper parts and can apply the induction hypothesis twice to show the
-    goal.
-    Otherwise, |many ev2 = []| and |e' = e2| as well as |ρ2 = ext ρ3 y (ρ1 ! x)|.
-
-    The first step is to reverse the beta reduction:
-    \begin{spec}
-      α (apply (eval (Lam y e') ρ3) (ρ1 ! x))
-    ⊑ α (step App2 (eval e' (ext ρ3 y (ρ1 ! x))))
-    ⊑ {- IH at \reducesto{|(e',ext ρ3 y (ρ1 ! x))|}{|(many ev2,many c,e2,ρ2)|} -}
-      step App2 (eval e' (α << (ext ρ3 y (ρ1 ! x))))
-    ⊑ {- Assumption about abstraction -}
-      apply (fun (\(hat d) -> step App2 (eval e' (ext (α << ρ3) y (hat d)))) (α (ρ1 ! x)))
-    = {- Definition of |eval (Lam y e')| -}
-      apply (eval (Lam y e') (α << ρ3)) ((α << ρ1) ! x)
-    \end{spec}
-    But |Lam y e'| is a value, and for those we have
-    |α (eval (Lam y e') ρ3) ⊑ eval (Lam y e') (α << ρ3)|.
-    Hence we have
-    Now we apply the induction hypothesis to
-    \reducesto{|(e,ρ1)|}{|(many ev1, [], Lam x e,ρ3)|}
-    to get
-
-    We can apply the induction hypothesis to the latter and get
-    |α (eval e' ext ρ3 y (ρ1 ! x)) ⊑ eval e' (α << (ext ρ3 y (ρ1 ! x)))|.
-    \begin{spec}
-      α (eval e' ext ρ3 y (ρ1 ! x))
-    = {- \reducesto{|(e1,ρ1)|}{|([App1] : many ev1, [`apply` (ρ1!x)], Lam x e,ρ3)|}, unfold |α| -}
-    \end{spec}
-    \begin{spec}
-      α (eval (App e x) ρ1)
-    = {- \reducesto{|(e1,ρ1)|}{|([App1] : many ev1, [`apply` (ρ1!x)], Lam x e,ρ3)|}, unfold |α| -}
-      step App1 (many (step ev1) (apply (α (eval (Lam x e') ρ3)) (α (ρ1 ! x))))
-
-      many (step ev) (many c (eval e2 (α << ρ2)))
-    ⊑ {- |many ev = ...|, |many c = ...| -}
-      step App1 (many (step ev1) (step App2 (many (step ev2) (many c (eval e2 (α << ρ2))))))
-    ⊑ {- IH at \reducesto{|(e',ext ρ3 y (ρ1 ! x))|}{|(many ev2,many c,e2,ρ2)|} -}
-      step App1 (many (step ev1) (step App2 (eval e' (α << (ext ρ3 y (ρ1 ! x))))))
-    = {- Rearrange -}
-      step App1 (many (step ev1) (step App2 (eval e' (ext (α << ρ3) y (α (ρ1 ! x))))))
-    ⊑ {- Assumption about abstraction -}
-      step App1 (many (step ev1) (apply (fun ... (α (ρ1 ! x)))))
-    ⊑ {- Definition of |eval (Lam x e') (α << ρ3)| -}
-      step App1 (many (step ev1) (apply (eval (Lam x e') (α << ρ3)) (α (ρ1 ! x))))
-    ⊑ {- Assumption about |step| -}
-      step App1 (apply (many (step ev1) (eval (Lam x e') (α << ρ3)) (α (ρ1 ! x))))
-    ⊑ {- IH at \reducesto{|(e,ρ1)|}{|(many ev1, [], Lam x e,ρ3)|} -}
-      step App1 (apply (eval e (α << ρ1)) (α (ρ1 ! x)))
-    = {- Definition of |eval (App e x)| -}
-      eval (App e x) (α << ρ1)
-    \end{spec}
-
-  \item \textbf{Case} |Case e alts|:
-    Very similar to the |App|lication case.
-
-    Either |(many ev, many c, e2, ρ2)| is reached when evaluating |e| or when
-    evaluating the alternative that matches its value.
-
-    When |e2| is reached during evaluation of |e|,
-    we have |many ev = Case1 : many ev1| and |many c = (`select` fs) : many c1|,
-    for the suitable |fs|, as well as the (strict) subsequence
-    \reducesto{|(e, ρ1)|}{|(many ev1, many c1, e2, ρ2)|}.
-    \begin{spec}
-      many (step ev) (many c (eval e2 (α << ρ2)))
-    ⊑ {- |head (many ev) = Case1|, |head (many c) = `select` fs| -}
-      step Case1 (select (step (many (step ev1) (many c1 (eval e2 (α << ρ2))))) fs)
-    ⊑ {- IH at \reducesto{|(e, ρ1)|}{|(many ev1, many c1, e2, ρ2)|} -}
-      step Case1 (select (eval e (α << ρ1)) fs)
-    = {- Definition of |eval (Case e alts)| -}
-      eval (Case e alts) (α << ρ1)
-    \end{spec}
-
-    Otherwise, we have
-    \reducesto{|(e,ρ1)|}{|(many ev1, [], ConApp k xs,ρ3)|}
-    for some |ConApp k xs| and |ρ3| and |e2| is reached during evaluation of |e'|.
-    Let |alt = (k,ys,er)| be the matching alternative in |alts|.
-    Then we have |many ev = [Case1] ++ many ev1 ++ [Case2] ++ many ev2|
-    and another strict subsequence
-    \reducesto{|(er,exts ρ1 ys (map (ρ3 !) xs))|}{|(many ev2,many c,e2,ρ2)|}.
-    \begin{spec}
-      many (step ev) (many c (eval e2 (α << ρ2)))
-    ⊑ {- |many ev = ...|, |many c = ...| -}
-      step Case1 (many (step ev1) (step Case2 (many (step ev2) (many c (eval e2 (α << ρ2))))))
-    ⊑ {- IH at \reducesto{|(er,exts ρ1 ys _)|}{|(many ev2,many c,e2,ρ2)|} -}
-      step Case1 (many (step ev1) (step Case2 (eval er (α << (exts ρ1 ys (map (ρ3 !) xs))))))
-    = {- Rearrange -}
-      step Case1 (many (step ev1) (step Case2 (eval er (exts (α << ρ1) ys (map ((α << ρ3) !) xs)))))
-    ⊑ {- Assumption about abstraction -}
-      step Case1 (many (step ev1) (select (con k (map ((α << ρ3) !) xs)) fs))
-    ⊑ {- Definition of |eval (ConApp k xs) (α << ρ3)| -}
-      step Case1 (many (step ev1) (select (eval (ConApp k xs) (α << ρ3)) fs))
-    ⊑ {- Assumption about |step| -}
-      step Case1 (select (many (step ev1) (eval (ConApp k xs) (α << ρ3)) fs))
-    ⊑ {- IH at \reducesto{|(e,ρ1)|}{|(many ev1, [], ConApp k xs,ρ3)|} -}
-      step Case1 (select (eval e (α << ρ1)) (α (ρ1 ! x)))
-    = {- Definition of |eval (Case e alts)| -}
-      eval (Case e alts) (α << ρ1)
-    \end{spec}
-
-  \item \textbf{Case} |Let x e3 e4|:
-    |e2| is reached during evaluation of |e4|, and the definition of |eval|
-    gives us that |many ev = Let1 : many ev1|.
-    (Note that by \Cref{thm:eval-preserve-syntactic}, we have that the extension
-    |ext ρ1 x (Step (Lookup x) (fix (\d -> ...)))| preserves $\vDash$.)
-    We get \reducesto{|(e1,ρ1)|}{|([Let1],[],e4,ext ρ1 x _)|}
-    as well as\reducesto{|(e4,ext ρ1 x _)|}{|(many ev1,many c,e2,ρ2)|}.
-
-    % - body (α (fix (γ . rhs . α))) ⊑ bind rhs body
-    \begin{spec}
-      many (step ev) (many c (eval e2 (α << ρ2)))
-    ⊑ {- |head (many ev) = Let1| -}
-      step Let1 (many (step ev1) (many c (eval e2 (α << ρ2))))
-    ⊑ {- IH at \reducesto{|(e4,ext ρ1 x _)|}{|(many ev1,many c,e2,ρ2)|} -}
-      step Let1 (eval e4 (α << (ext ρ1 x (Step (Lookup x) (fix (\d -> eval e3 (ext ρ1 x (Step (Lookup x) d))))))))
-    = {- Rearrange -}
-      step Let1 (eval e4 (ext (α << ρ1) x (step (Lookup x) (α (fix (\d -> eval e3 (ext ρ1 x (Step (Lookup x) d))))))))
-    ⊑ {- |id ⊑ γ . α| -}
-      step Let1 (eval e4 (ext (α << ρ1) x (step (Lookup x) (α (fix (\d -> γ (α (eval e3 (ext ρ1 x (Step (Lookup x) d))))))))))
-    \end{spec}
-    Here, we have to make a case analysis on whether or not |eval e4 (ext (α
-    << ρ1) x d)| is invariant in the choice of |d|.
-
-    If it is invariant, we may replace |d| with a |d1| of our choosing.
-    Otherwise, |d| must be live and for our particular |d| above this means that
-    there exists \reducesto{|(e1,ρ1)|}{|(many ev2,many c2,e3,ext ρ1 x _)|}.
-    Since every variable access goes through the |Var| case of |eval|,
-    this reduction sequence must have a suffix of
-    \reducesto{|(y,ρ3)|}{|([Lookup x],[],e3,ext ρ1 x _)|}.
-    By Löb induction, we can apply the proposition to this situation We apply
-    If it is not, we could just as well have started with  apply our assumption
-    \begin{spec}
-    ⊑ {- TODO: Can't justify this step when |e3| is never evaluated?? Perhaps by cases -}
-      step Let1 (eval e4 (ext (α << ρ1) x (step (Lookup x) (α (fix (\d -> γ (eval e3 (α << (ext ρ1 x (Step (Lookup x) d))))))))))
-    ⊑ {- Assumption about |bind| -}
-      bind  (\d1 -> eval e3 (ext (α << ρ1) x (Step (Lookup x) d1)))
-            (\d1 -> step Let1 (eval e4 (ext (α << ρ1) x (Step (Lookup x) d1))))
-    = {- Definition of |eval (Let x e3 e4)| -}
-      eval (Let x e3 e4) (α << ρ1)
-    \end{spec}
-\end{itemize}
-\end{proof}
-\end{comment}
+We will treat |many ev| like a list of type |[Event]|.
 
 \begin{definition}[Syntactic environments]
-  We write $\vDash |ρ|$ to say that the range of a by-name environment
-  |ρ| is of the form |set (Lookup x (eval e ρ1) || Later ({-" \vDash "-} ρ1))|.
+  Let |D| be a domain satisfying |Trace|,|Domain| and |HasBind|.
+
+  We write |syn D ρ| to say that the range of a |D|-valued environment
+  |ρ| is of the form |set (step (Lookup x) (eval e ρ1 :: D) || Later (syn (D (ByNeed T)) ρ1))|.
 \end{definition}
 
 \begin{lemma}
   \label{thm:eval-preserve-syntactic}
-  If $\vDash |ρ|$, then |eval e ρ| preserves this property during evaluation.
+  If |syn D ρ|, then |eval e ρ| preserves this property during evaluation.
 \end{lemma}
 \begin{proof}
 By Löb induction and cases on |e|.
@@ -1317,8 +1106,99 @@ show that |d| is of the form |eval e' ρ2|. By Löb induction, we may assume tha
 this is the case \emph{later}, and \emph{later} is exactly what we need.
 \end{proof}
 
-Henceforth, we assume that all environments |ρ| are syntactic, \eg, that $\vDash
-|ρ|$.
+Henceforth, we assume that all environments |ρ| are syntactic, \eg, that
+|syn D ρ| for a |D| inferred from context.
+
+\begin{lemma}[By-name evaluation improves trace abstraction]
+  \label{thm:eval-improves}
+  Let |hat D| be a domain with instances for |Trace|, |Domain|, |HasBind| and
+  |Lat|, satisfying the following properties:
+  \begin{itemize}
+    \item \textup{\textsc{Step-App}} |forall ev d a. step ev (apply d a) ⊑ apply (step ev d) a|
+    \item \textup{\textsc{Step-Sel}} |forall ev d a. step ev (select d a) ⊑ select (step ev d) a|
+    \item \textup{\textsc{Beta-App}} |forall e (hat ρ) x (hat a). step App2 (eval e (ext (hat ρ) x (hat a))) ⊑ apply (eval (Lam x e) (hat ρ)) (hat a)|
+    \item \textup{\textsc{Beta-Sel}} |forall k xs (hat ρ) alts. cont (alts ! k) (map (hat ρ !) xs) ⊑ sel (eval (ConApp k xs) (hat ρ)) (cont << alts)|
+    \item \textup{\textsc{Name-Bind}} For all |x|,|e1|,|e2|,|hat ρ|, it is
+      \begin{spec}
+          step Let1 (eval e2 (ext (hat ρ) x (step (Lookup x) (fix (\d1 -> eval e1 (ext (hat ρ) x (step (Lookup x) d1)))))))
+      ⊑   bind  (\(hat d1) -> eval e1 (ext ((π ρ1)) x (step (Lookup x) (hat d1)))) (\(hat d1) -> step Let1 (eval e2 (ext ((π ρ1)) x (hat d1))))
+      \end{spec}
+  \end{itemize}
+
+  Furthermore, let |π| map from |syn (D (ByName T)) ρ| to |syn (hat D) ρ| such that
+  \begin{spec}
+    (π ρ) ! x =  step (Lookup y) (eval e' (π ρ3) :: hat D)
+                 where Step (Lookup y) (eval e' ρ3 :: D (ByName T)) = ρ ! x
+  \end{spec}
+
+  If \reducesto{|eval e ρ1|}{|(many ev, eval v ρ2)|},
+  then |many (step ev) (eval v (π ρ2)) ⊑ eval e (π ρ1)|.
+\end{lemma}
+\begin{proof}
+By Löb induction and cases on |e|.
+\begin{itemize}
+  \item \textbf{Case} |Var x|:
+    |syn (hat D) (π ρ1)| implies |π ρ1 ! x = step (Lookup y) (eval e' (π ρ3))|
+    for some |y|,|e'|,|ρ3| and
+    thus |many ev = Lookup y : many ev1| for some |ev1|.
+    We get
+    \begin{spec}
+        many (step ev) (eval v (π ρ2))
+    =   {- |many ev = Lookup y : many ev1| -}
+        step (Lookup y) (many (step ev1) (eval v (π ρ2)))
+    ⊑   {- Induction hypothesis at |ev1| -}
+        step (Lookup y) (eval e' ρ3)
+    =   {- |syn (hat D) (π ρ1)| -}
+        π ρ1 ! x
+    =   {- Refold |eval x (π ρ1)| -}
+        eval x (π ρ1)
+    \end{spec}
+  \item \textbf{Case} |Lam|,|ConApp|: By assumption.
+  \item \textbf{Case} |App e x|:
+    Then |e| must reduce to a lambda |Lam y e'| in environment |ρ3|.
+    \begin{spec}
+        many (step ev) (eval v (π ρ2))
+    ⊑   {- |many ev = [App1] ++ many ev1 ++ [App2] ++ ev2|, IH at |ev2| -}
+        step App1 (many (step ev1) (step App2 (eval e' (π (ext ρ3 y (ρ1 ! x))))))
+    ⊑   {- Assumption \textsc{Beta-App} -}
+        step App1 (many (step ev1) (apply (eval (Lam y e') (π ρ3)) (π ρ1 ! x)))
+    ⊑   {- Assumption \textsc{Step-App} -}
+        step App1 (apply (step ev1 (eval (Lam y e') (π ρ3))) (π ρ1 ! x))
+    ⊑   {- Induction hypothesis at |ev1| -}
+        step App1 (apply (eval e (π ρ1)) (π ρ1 ! x))
+    =   {- Refold |eval (App e x) (π ρ1)| -}
+        eval (App e x) (π ρ1)
+    \end{spec}
+  \item \textbf{Case} |Case e alts|:
+    Then |e| must reduce to |ConApp k ys| in environment |ρ3|.
+    \begin{spec}
+        many (step ev) (eval v (π ρ2))
+    ⊑   {- |many ev = [Case1] ++ many ev1 ++ [Case2] ++ ev2|, IH at |ev2| -}
+        step Case1 (many (step ev1) (step Case2 (eval er (π (exts ρ1 xs (map (ρ3 !) ys))))))
+    ⊑   {- Assumption \textsc{Beta-Sel} -}
+        step Case1 (many (step ev1) (select (eval (ConApp k ys) (π ρ3)) (cont << alts)))
+    ⊑   {- Assumption \textsc{Step-Sel} -}
+        step Case1 (select (step ev1 (eval (ConApp k ys) (π ρ3))) (cont << alts))
+    ⊑   {- Induction hypothesis at |ev1| -}
+        step Case1 (select (eval e (π ρ1)) (cont << alts))
+    =   {- Refold |eval (Case e alts) (π ρ1)| -}
+        eval (Case e alts) (π ρ1)
+    \end{spec}
+  \item \textbf{Case} |Let x e1 e2|:
+    \begin{spec}
+        many (step ev) (eval v (π ρ2))
+    =   {- |many ev = Let1 : many ev1| -}
+        step Let1 (many (step ev1) (eval v (π ρ2)))
+    ⊑   {- Induction hypothesis at |ev1| -}
+        step Let1 (eval e2 (π (ext ρ1 x (step (Lookup x) (fix (\d1 -> eval e1 (ext ρ1 x (step (Lookup x) d1))))))))
+    ⊑   {- Assumption \textsc{Name-Bind} -}
+        bind  (\(hat d1) -> eval e1 (ext ((π ρ1)) x (step (Lookup x) (hat d1))))
+              (\(hat d1) -> step Let1 (eval e2 (ext ((π ρ1)) x (hat d1))))
+    =   {- Refold |eval (Let x e1 e2) (π ρ1)| -}
+        eval (Let x e1 e2) (π ρ1)
+    \end{spec}
+\end{itemize}
+\end{proof}
 
 \begin{theoremrep}[Sound Monadic By-name Interpretation]
 Let |hat D := hat T (hat Value)| be a domain such that there are instances
@@ -1467,7 +1347,7 @@ By Löb induction and cases on |e|.
        step Let1 (α (eval e2 (ext ρ x (step (Lookup x) (fix (\d1 -> eval e1 (ext ρ x (step (Lookup x) d1))))))))
     ⊑  {- Assumption about |bind| -}
        bind  (\d1 -> eval e1 (ext ρ x (step (Lookup x) d1)))
-             (\d1 -> step Let1 (eval e2 (ext ρ x (step (Lookup x) d1)))))
+             (\d1 -> step Let1 (eval e2 (ext ρ x (step (Lookup x) d1))))
     =  {- Rearrange -}
        step Let1 (eval e2 (ext (α << ρ) x (step (Lookup x) (α (fix (\d -> eval e1 (ext ρ x (Step (Lookup x) d))))))))
     ⊑  {- |id ⊑ γ . α| -}
@@ -1503,8 +1383,8 @@ is sound \wrt |D (ByName T)|, that is,
 \end{theoremrep}
 \begin{proofsketch}
 It suffices to show the three soundness lemmas above.
-It is customary to write |ι = α . set|, which is equal to the trace embedding in
-|trace|.
+It is customary to write |ι = α . set|, which is equal to the representation
+function in |trace|.
 \begin{enumerate}
   \item |forall d a. ι (apply d a) ⊑ apply (ι d) (ι a)|: \\
     By unfolding both definitions, we get the goal
