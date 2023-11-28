@@ -1018,15 +1018,20 @@ Every domain |D2| with instances |(Trace D2, Domain D2, Lat D2)| induces a
 and the |byName| abstraction is the fixpoint of that Galois connection modulo
 |ByName| constructors (we write |powMap f| to map |f| over |Pow|ersets):
 \begin{code}
-trace :: (Trace d, Domain d, Lat d) => Galois (Pow (D r)) d -> Galois (Pow (T (Value r))) d
-trace (α :<->: γ) = repr β where
+type EnvD d = d
+trace  ::  (Trace d, Domain d, Lat d)
+       =>  Galois (Pow (D r)) d -> Galois (Pow (EnvD (D r))) d -> Galois (Pow (T (Value r))) d
+trace (αD :<->: γD) (αE :<->: γE) = repr β where
   β (Ret Stuck)       = stuck
-  β (Ret (Fun f))     = fun {-"\iffalse"-}""{-"\fi"-} (α . powMap f . γ)
-  β (Ret (Con k ds))  = con {-"\iffalse"-}""{-"\fi"-} k (map (α . set) ds)
+  β (Ret (Fun f))     = fun {-"\iffalse"-}""{-"\fi"-} (αD . powMap f . γE)
+  β (Ret (Con k ds))  = con {-"\iffalse"-}""{-"\fi"-} k (map (αE . set) ds)
   β (Step e d)        = step e (β d)
 
-byName :: (Trace d, Domain d, Lat d) => Galois (Pow (D (ByName T))) d
-byName = (α . powMap unByName) :<->: (powMap ByName . γ) where α :<->: γ = trace byName
+env :: (Trace d, Domain d, HasBind d, Lat d) => Galois (Pow (EnvD (D (ByName T)))) d
+env = untyped (repr β where β (Step (Lookup x) (eval e ρ)) = step (Lookup x) (eval e (β << ρ)))
+
+byName :: (Trace d, Domain d, HasBind d, Lat d) => Galois (Pow (D (ByName T))) d
+byName = (α . powMap unByName) :<->: (powMap ByName . γ) where α :<->: γ = trace byName env
 \end{code}
 A delightful consequence of fixing |byName| as the Galois connection in
 \Cref{thm:soundness-abs-int} is that we rid ourselves of 4 trivial soundness
@@ -1035,12 +1040,12 @@ further:
 \[
 \inferrule
   {%
-   |α :<->: γ = byName|\\\\
-   |forall d a. α (apply d a) ⊑ apply (α d) (α a)|\\\\
-   |forall d fs. α (sel d fs) ⊑ sel (α d) (α << (. map γ) << fs)|\\\\
-   |forall rhs body. α (body (fix rhs)) ⊑ bind (α . powMap rhs . γ) (α . powMap body . γ)|%
+   |αD :<->: γ = byName|\\\\
+   |forall d a. αD (apply d a) ⊑ apply (αD d) (αD a)|\\\\
+   |forall d fs. αD (sel d fs) ⊑ sel (αD d) (αD << (. map γ) << fs)|\\\\
+   |forall rhs body. αD (body (fix rhs)) ⊑ bind (αD . powMap rhs . γ) (αD . powMap body . γ)|%
   }
-  {|α (eval e ρ :: Pow (D (ByName T))) ⊑ (eval e (α << ρ) :: D2)|}
+  {|αD (eval e ρ :: Pow (D (ByName T))) ⊑ (eval e (αD << ρ) :: D2)|}
 \]
 The reading is as follows: The first two lemmas prove correct the summary
 mechanism that comes to fruition in |apply| and |select|, and |bind| implements
@@ -1076,37 +1081,6 @@ of theorems, so we prove the below lemma by hand.
 However, parametricity is a strong argument that our approach can easily be
 generalised to other denotational interpreters.
 
-% SG: The below idea about making EvalCtx a data type is too much fuzz about
-%     nothing for my taste
-%
-%Futhermore, we need the following definition to capture abstract evaluation
-%contexts:
-%\begin{code}
-%data EvalCtx d
-%  = Hole
-%  | Step' Event (EvalCtx d)
-%  | Apply' (EvalCtx d) d
-%  | Select' (EvalCtx d) [(Tag, [d] -> d)]
-%
-%fill :: (Trace d, Domain d) => EvalCtx d -> d -> d
-%fill Hole              d = d
-%fill (Step' e ctx)     d = step e (fill ctx d)
-%fill (Apply' ctx a)    d = apply (fill ctx d) a
-%fill (Select' ctx fs)  d = select (fill ctx d) fs
-%\end{code}
-%We assume (and prove that assumption in a bit) that |Step'| commutes freely,
-%\eg, |fill (Step' e (Apply' ctx a)) d = fill (Apply' (Step' e ctx) a)|,
-%so that all |EvalCtx| are assumed to be in the canonical form that has all
-%|Step'| constructors at the outside.
-
-\begin{definition}
-  We say that |e| \emph{evaluates to} |(many ev,v)|,
-  written \reducesto{|e|}{|(many ev,v)|},
-  if |eval e ρ1 = many (Step ev) (eval v ρ2)|.
-\end{definition}
-
-We will treat |many ev| like a list of type |[Event]|.
-
 \begin{definition}[Syntactic by-name environments]
   Let |D| be a domain satisfying |Trace|,|Domain|,|HasBind| and |Lat|.
   We write |syn D d| (resp. |syne D ρ|) to say that the denotation |d| (resp.
@@ -1137,134 +1111,93 @@ invocations.
     \item \textup{\textsc{Name-Bind}} For all |x|,|e1|,|e2|,|hat ρ|, it is
       \begin{spec}
           step Let1 (eval e2 (ext (hat ρ) x (step (Lookup x) (kleeneFix (\d1 -> eval e1 (ext (hat ρ) x (step (Lookup x) d1)))))))
-      ⊑   bind  (\(hat d1) -> eval e1 (ext ((π ρ1)) x (step (Lookup x) (hat d1)))) (\(hat d1) -> step Let1 (eval e2 (ext ((π ρ1)) x (hat d1))))
+      ⊑   bind  (\(hat d1) -> eval e1 (ext (hat ρ) x (step (Lookup x) (hat d1)))) (\(hat d1) -> step Let1 (eval e2 (ext (hat ρ) x (hat d1))))
       \end{spec}
   \end{itemize}
 
-  Furthermore, let |α :<->: γ = byName| and
-  assume that |forall e (hat ρ). α (eval e (γ << hat ρ)) ⊑ eval e (hat ρ)|.
-  If \reducesto{|eval e ρ1|}{|(many ev, eval v ρ2)|}
-  and |α << set << ρ1 ⊑ hat ρ1|,
-  then |many (step ev) (eval v (β << ρ2)) ⊑ eval e (hat ρ1)|.
+  If |eval e ρ1 = many (step ev) (eval v ρ2)|,
+  then |many (step ev) (eval v (αE << set << ρ2)) ⊑ eval e (αE << set << ρ1)|,
+  where |αE :<->: γE = env|.
 \end{lemma}
 \begin{proof}
 By Löb induction and cases on |e|, using the representation function
-|β := α . set|.
+|βE := αE . set|.
 \begin{itemize}
   \item \textbf{Case} |Var x|:
-    Note that it is key that |syne (hat D) (hat ρ1)|.
-
-    This can be facilitated by following the homomorphism between |syn (hat D)|
-    and |syn (Pow (D (ByName T)))|:
-    \begin{spec}
-      γ (hat d) = Cup (step (Lookup x) (eval e (γ << hat ρ1)) | step (Lookup x) (eval e (hat ρ1)) ⊑ hat d)
-      α d = Lub (step (Lookup x) (eval e (α << ρ1)) | step (Lookup x) (eval e ρ1) ⊆ d)
-    \end{spec}
-    TODO
-    |syn (hat D) (hat ρ1)| implies that |hat ρ1 ! x ⊒ step (Lookup y) (eval e' (hat ρ3))|
-    for some |y|,|e'|,|hat ρ3|.
-    We pick |ρ1|, |ρ3| such that |β << ρ1 ⊑ hat ρ1| and |β << ρ3 ⊑ hat ρ3|,
-    as follows (NB: So far, there might be candidates for |ρ1| and |ρ3| that are
-    not of this form):
-    \begin{spec}
-        hat ρ1 ! x
-    ⊒   {- |syn (hat D) (hat ρ1)| -}
-        step (Lookup y) (eval e' (hat ρ3))
-    ⊒   {- Sound abstraction assumption about |eval| -}
-        step (Lookup y) (α (eval e' (γ << hat ρ3)))
-    ⊒   {- Single element of powerset |eval e' (γ << hat ρ3)| -}
-        step (Lookup y) (β (eval e' ρ3))
-    =   {- Refold |β| -}
-        β (step (Lookup y) (eval e' ρ3))
-    :=  {- Definition -}
-        β (ρ1 ! x)
-    \end{spec}
-    By assumption, we know that \reducesto{|eval x ρ1|}{|(many ev, eval v ρ2|}
-    for some |ρ2| and that this decomposes over
-    \reducesto{|eval x ρ1|}{|([Lookup y],eval e' ρ3)|},
+    By assumption, we know that
+    |eval x ρ1 = step (Lookup y) (eval e' ρ3) = many (step ev) (eval v ρ2)|
+    for some |y|,|e'|,|ρ3|,
     so that |many ev = Lookup y : many ev1| for some |ev1| by determinism.
-    Let |hat ρ2| such that |hat ρ2 ⊑ β << ρ2|.
     \begin{spec}
-        many (step ev) (eval v (hat ρ2))
+        many (step ev) (eval v (βE << ρ2))
     =   {- |many ev = Lookup y : many ev1| -}
-        step (Lookup y) (many (step ev1) (eval v (hat ρ2)))
-    ⊑   {- Induction hypothesis at |ev1|, |ρ3|,|hat ρ3| as above -}
-        step (Lookup y) (eval e' (hat ρ3))
-    ⊑   {- |β (ρ1 ! x) ⊑ hat ρ1| and |syn (hat D) (hat ρ1)| as above -}
-        hat ρ1 ! x
-    =   {- Refold |eval x (hat ρ1)| -}
-        eval x (hat ρ1)
+        step (Lookup y) (many (step ev1) (eval v (βE << ρ2)))
+    ⊑   {- Induction hypothesis at |ev1|, |ρ3| as above -}
+        step (Lookup y) (eval e' (βE << ρ3))
+    =   {- Refold |βE|, |ρ3 ! x| -}
+        βE (ρ1 ! x)
+    =   {- Refold |eval x (βE << ρ1)| -}
+        eval x (βE << ρ1)
     \end{spec}
   \item \textbf{Case} |Lam|,|ConApp|: By reflexivity of $⊑$.
   \item \textbf{Case} |App e x|:
-    Then |e| must reduce to a lambda |Lam y e'| in environment |ρ3|,|hat ρ3|
-    such that |β << ρ3 ⊑ hat ρ3|.
+    Then |eval e ρ1 = many (step ev1) (eval (Lam y body) ρ3)|,
+    |eval body (ext ρ3 y (ρ1 ! x)) = many (step ev1) (eval v ρ2)|.
     \begin{spec}
-        many (step ev) (eval v (hat ρ2))
-    ⊑   {- |many ev = [App1] ++ many ev1 ++ [App2] ++ ev2|, IH at |ev2| -}
-        step App1 (many (step ev1) (step App2 (eval e' (ext (hat ρ3) y (hat ρ1 ! x)))))
+        many (step ev) (eval v (βE << ρ2))
+    ⊑   {- |many ev = [App1] ++ many ev1 ++ [App2] ++ many ev2|, IH at |ev2| -}
+        step App1 (many (step ev1) (step App2 (eval body (ext (βE << ρ3) y (βE << ρ1 ! x)))))
     ⊑   {- Assumption \textsc{Beta-App} -}
-        step App1 (many (step ev1) (apply (eval (Lam y e') (hat ρ3)) (hat ρ1 ! x)))
+        step App1 (many (step ev1) (apply (eval (Lam y body) (βE << ρ3)) (βE << ρ1 ! x)))
     ⊑   {- Assumption \textsc{Step-App} -}
-        step App1 (apply (step ev1 (eval (Lam y e') (hat ρ3))) (hat ρ1 ! x))
+        step App1 (apply (many (step ev1) (eval (Lam y body) (βE << ρ3))) (βE << ρ1 ! x))
     ⊑   {- Induction hypothesis at |ev1| -}
-        step App1 (apply (eval e (hat ρ1)) (hat ρ1 ! x))
-    =   {- Refold |eval (App e x) (hat ρ1)| -}
-        eval (App e x) (hat ρ1)
+        step App1 (apply (eval e (βE << ρ1)) (βE << ρ1 ! x))
+    =   {- Refold |eval (App e x) (βE << ρ1)| -}
+        eval (App e x) (βE << ρ1)
     \end{spec}
   \item \textbf{Case} |Case e alts|:
-    Then |e| must reduce to |ConApp k ys| in environment |ρ3|,|hat ρ3|
-    such that |β << ρ3 ⊑ hat ρ3|.
+    Then |eval e ρ1 = many (step ev1) (eval (ConApp k ys) ρ3)|,
+    |eval er (exts ρ1 xs (map (ρ3 !) ys)) = many (step ev2) (eval v ρ2)|,
+    where |alts ! k = (xs,er)| is the matching RHS.
     \begin{spec}
-        many (step ev) (eval v (hat ρ2))
+        many (step ev) (eval v (βE << ρ2))
     ⊑   {- |many ev = [Case1] ++ many ev1 ++ [Case2] ++ ev2|, IH at |ev2| -}
-        step Case1 (many (step ev1) (step Case2 (eval er (hat (exts ρ1 xs (map (hat ρ3 !) ys))))))
+        step Case1 (many (step ev1) (step Case2 (eval er (βE << (exts ρ1 xs (map (hat ρ3 !) ys))))))
     ⊑   {- Assumption \textsc{Beta-Sel} -}
-        step Case1 (many (step ev1) (select (eval (ConApp k ys) (hat ρ3)) (cont << alts)))
+        step Case1 (many (step ev1) (select (eval (ConApp k ys) (βE << ρ3)) (cont << alts)))
     ⊑   {- Assumption \textsc{Step-Sel} -}
-        step Case1 (select (step ev1 (eval (ConApp k ys) (hat ρ3))) (cont << alts))
+        step Case1 (select (step ev1 (eval (ConApp k ys) (βE << ρ3))) (cont << alts))
     ⊑   {- Induction hypothesis at |ev1| -}
-        step Case1 (select (eval e (hat ρ1)) (cont << alts))
-    =   {- Refold |eval (Case e alts) (hat ρ1)| -}
-        eval (Case e alts) (hat ρ1)
+        step Case1 (select (eval e (βE << ρ1)) (cont << alts))
+    =   {- Refold |eval (Case e alts) (βE << ρ1)| -}
+        eval (Case e alts) (βE << ρ1)
     \end{spec}
   \item \textbf{Case} |Let x e1 e2|:
     First note the following fixpoint abstraction property provable by Löb induction:
     \begin{spec}
-        α (powMap fix (powMap f))
-    =   {- |powMap fix (powMap f) = powMap f (powMap fix (powMap f))| -}
-        α (powMap f (powMap fix (powMap f)))
-    ⊑   {- |id ⊑ γ . α| -}
-        α (powMap f (γ (α (powMap fix (powMap f)))))
-    ⊑   {- Assumption |Later (α (powMap fix (powMap f)) ⊑ kleeneFix (α . powMap f . γ))| -}
-        α (powMap f (γ (kleeneFix (α . powMap f . γ))))
-    =   {- |kleeneFix (hat f) = hat f (kleeneFix (hat f))| -}
-        kleeneFix (α . powMap f . γ)
+        βE (step (Lookup x) (fix (\d1 -> eval e1 (ext ρ1 x (step (Lookup x) d1)))))
+    ⊑   {- |fix f = f (fix f)|, unfold |βE| -}
+        step (Lookup x) (eval e1 (ext (βE << ρ1) x (βE (step (Lookup x) (fix (\d1 -> ...))))))
+    ⊑   {- Property of least fixpoint -}
+        step (Lookup x) (kleeneFix (\(hat d1) -> eval e1 (ext (βE << ρ1) x (βE (step (Lookup x) (hat d1))))))
     \end{spec}
     So every fixpoint in the concrete can be approximated by a least fixpoint in
     the abstract.
-    Using this fact, we can justify
+    We use this fact below:
     \begin{spec}
-        β (step (Lookup x) (fix (\d1 -> eval e1 (ext ρ1 x (step (Lookup x) d1)))))
-    ⊑   {- Fixpoint abstraction -}
-        step (Lookup x) (kleeneFix (\(hat d1) -> α (eval e1 (ext (set << ρ1) x (step (Lookup x) (γ (hat d1))))))
-    ⊑   {- |forall e (hat ρ). α (eval e (γ << hat ρ)) ⊑ eval e (hat ρ)|  -}
-        step (Lookup x) (kleeneFix (\(hat d1) -> eval e1 (ext (ι << ρ1) x (step (Lookup x) (hat d1)))))
-    ⊑   {- |ι ρ1 ⊑ hat ρ1| -}
-        step (Lookup x) (kleeneFix (\(hat d1) -> eval e1 (ext (hat ρ1) x (step (Lookup x) (hat d1)))))
-    \end{spec}
-    which we use below to apply the induction hypothesis at |ev1|:
-    \begin{spec}
-        many (step ev) (eval v (hat ρ2))
+        many (step ev) (eval v (βE << ρ2))
     =   {- |many ev = Let1 : many ev1| -}
-        step Let1 (many (step ev1) (eval v (hat ρ2)))
-    ⊑   {- Induction hypothesis at |ev1|, property about |kleeneFix| above -}
-        step Let1 (eval e2 (ext (hat ρ1) x (step (Lookup x) (kleeneFix (\(hat d1) -> eval e1 (ext (hat ρ1) x (step (Lookup x) (hat d1))))))))
+        step Let1 (many (step ev1) (eval v (βE << ρ2)))
+    ⊑   {- Induction hypothesis at |ev1| -}
+        step Let1 (eval e2 (ext (βE << ρ1) x (βE (step (Lookup x) (fix (\d1 -> eval e1 (ext ρ1 x (step (Lookup x) d1))))))))
+    ⊑   {- Property of least fixpoint -}
+        step Let1 (eval e2 (ext (βE << ρ1) x (step (Lookup x) (kleeneFix (\(hat d1) -> eval e1 (ext (βE << ρ1) x (step (Lookup x) (hat d1))))))))
     ⊑   {- Assumption \textsc{Name-Bind} -}
-        bind  (\(hat d1) -> eval e1 (ext ((hat ρ1)) x (step (Lookup x) (hat d1))))
-              (\(hat d1) -> step Let1 (eval e2 (ext ((hat ρ1)) x (hat d1))))
-    =   {- Refold |eval (Let x e1 e2) (hat ρ1)| -}
-        eval (Let x e1 e2) (hat ρ1)
+        bind  (\(hat d1) -> eval e1 (ext ((βE << ρ1)) x (step (Lookup x) (hat d1))))
+              (\(hat d1) -> step Let1 (eval e2 (ext ((βE << ρ1)) x (hat d1))))
+    =   {- Refold |eval (Let x e1 e2) (βE << ρ1)| -}
+        eval (Let x e1 e2) (βE << ρ1)
     \end{spec}
 \end{itemize}
 \end{proof}

@@ -11,7 +11,7 @@
 %format Lub(a) = "undefined"
 %format setundef(a) = "(undefined::forall a. Set a)"
 %format (hat a) = a
-
+%format untyped(a) = "(undefined :: forall a. a)"
 %else
 
 %format qquad = "\qquad"
@@ -40,12 +40,15 @@
 %format α = "\varid{\ensuremath{\alpha}}"
 %format αdot = "\dot{\varid{\ensuremath{\alpha}}}"
 %format αup = "\varid{\ensuremath{\alpha}}^{*}"
-%format αd = "\varid{\ensuremath{\alpha}}_d"
+%format αD = "\varid{\ensuremath{\alpha_\Domain{}}}"
+%format αE = "\varid{\ensuremath{\alpha_\Environments}}"
 %format ι = "\varid{$\iota$}"
 %format β = "\varid{$\beta$}"
+%format βE = "\varid{\ensuremath{\beta_\Environments}}"
 %format γ = "\varid{\ensuremath{\gamma}}"
 %format γdot = "\dot{\varid{\ensuremath{\gamma}}}"
-%format γd = "\varid{\ensuremath{\gamma}}_d"
+%format γD = "\varid{\ensuremath{\gamma_\Domain{}}}"
+%format γE = "\varid{\ensuremath{\gamma_\Environments}}"
 %format θ = "\varid{\ensuremath{\theta}}"
 %format θ1 = "\varid{\ensuremath{\theta_1}}"
 %format θ2 = "\varid{\ensuremath{\theta_2}}"
@@ -55,7 +58,7 @@
 %format ∈ = "\in"
 %format emp = "\varid{\ensuremath{\epsilon}}"
 %format ! = "\mathop{!}"
-%format eval(a)(b) = "\mathcal{S}\denot{" a "}_{" b "}"
+%format (eval(a)(b)) = "\mathcal{S}\denot{" a "}_{" b "}"
 %format eval3(d)(a)(b) = "\mathcal{S}_{\{" d "\}}\denot{" a "}_{" b "}"
 %format ext(rho)(x)(d) = rho "[" x "\mapsto" d "]"
 %format exts(rho)(xs)(ds) = rho "[\many{" xs "\mapsto" ds "}]"
@@ -139,6 +142,7 @@
 %format :<->: = "\rightleftharpoons"
 %format (set(a)) = "\{" a "\}"
 %format (setundef(a)) = "\{" a "\}"
+%format untyped(a) = a
 %format Cup(a) = "\bigcup\{" a "\}"
 %format Lub(a) = "\Lub\{" a "\}"
 %format powMap(f) = "{" f "}^{*}"
