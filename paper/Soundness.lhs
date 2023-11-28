@@ -1376,7 +1376,7 @@ By Löb induction and cases on |e|.
         many (step ev) (β (return v >>= \case Fun f -> f (ρ ! x); _ -> stuck))
     =   {- |v=Fun f|, with |f| as above; unfold |β| -}
         many (step ev) (step App2 (β (eval body (ext ρ1 y (ρ ! x)))))
-    ⊑   {- |γ . α = id| -}
+    ⊑   {- |id ⊑ γ . α| -}
         many (step ev) (step App2 (α (eval body (γ << β (ext ρ1 y (ρ ! x))))))
     ⊑   {- Induction hypothesis, with |hat ρ1 := β << (ext ρ1 y (ρ ! x))| -}
         many (step ev) (step App2 (eval body (β << (ext ρ1 y (ρ ! x)))))
