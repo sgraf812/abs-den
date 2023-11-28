@@ -1144,22 +1144,21 @@ invocations.
   Furthermore, let |α :<->: γ = byName| and
   assume that |forall e (hat ρ). α (eval e (γ << hat ρ)) ⊑ eval e (hat ρ)|.
   If \reducesto{|eval e ρ1|}{|(many ev, eval v ρ2)|}
-  for all |ρ1|,|ρ2| such that |α << set << ρ1 ⊑ hat ρ1| and |α << set << ρ2 ⊑ hat ρ2|,
-  then |many (step ev) (eval v (hat ρ2)) ⊑ eval e (hat ρ1)|.
+  and |α << set << ρ1 ⊑ hat ρ1|,
+  then |many (step ev) (eval v (β << ρ2)) ⊑ eval e (hat ρ1)|.
 \end{lemma}
 \begin{proof}
 By Löb induction and cases on |e|, using the representation function
 |β := α . set|.
 \begin{itemize}
   \item \textbf{Case} |Var x|:
-    Although this case seems intuitively true, we have to take care in how we
-    choose |ρ1|, |ρ2|.
-    In particular, we want to choose such that their structure coincides with
-    |hat ρ1|, |hat ρ2|.
+    Note that it is key that |syne (hat D) (hat ρ1)|.
+
     This can be facilitated by following the homomorphism between |syn (hat D)|
-    and |syn (Pow (D (ByName T)))|, defined as follows:
+    and |syn (Pow (D (ByName T)))|:
     \begin{spec}
-      φ (hat d) = Cup (step (Lookup x) (α (eval e (γ << ρ1))) || step (Lookup x) (eval e ρ1) ⊑ hat d)
+      γ (hat d) = Cup (step (Lookup x) (eval e (γ << hat ρ1)) | step (Lookup x) (eval e (hat ρ1)) ⊑ hat d)
+      α d = Lub (step (Lookup x) (eval e (α << ρ1)) | step (Lookup x) (eval e ρ1) ⊆ d)
     \end{spec}
     TODO
     |syn (hat D) (hat ρ1)| implies that |hat ρ1 ! x ⊒ step (Lookup y) (eval e' (hat ρ3))|
@@ -1176,8 +1175,8 @@ By Löb induction and cases on |e|, using the representation function
     ⊒   {- Single element of powerset |eval e' (γ << hat ρ3)| -}
         step (Lookup y) (β (eval e' ρ3))
     =   {- Refold |β| -}
-        β (step (Lookup y) (eval e' ρ3)
-    =   {- Definition -}
+        β (step (Lookup y) (eval e' ρ3))
+    :=  {- Definition -}
         β (ρ1 ! x)
     \end{spec}
     By assumption, we know that \reducesto{|eval x ρ1|}{|(many ev, eval v ρ2|}
@@ -1377,14 +1376,18 @@ By Löb induction and cases on |e|.
         many (step ev) (β (return v >>= \case Fun f -> f (ρ ! x); _ -> stuck))
     =   {- |v=Fun f|, with |f| as above; unfold |β| -}
         many (step ev) (step App2 (β (eval body (ext ρ1 y (ρ ! x)))))
-    ⊑   {- Induction hypothesis, with |hat ρ1 := β << ρ1| -}
+    ⊑   {- |γ . α = id| -}
+        many (step ev) (step App2 (α (eval body (γ << β (ext ρ1 y (ρ ! x))))))
+    ⊑   {- Induction hypothesis, with |hat ρ1 := β << (ext ρ1 y (ρ ! x))| -}
+        many (step ev) (step App2 (eval body (β << (ext ρ1 y (ρ ! x)))))
+    =   {- |β << ρ ⊑ hat ρ| -}
         many (step ev) (step App2 (eval body (ext (β << ρ1) y (hat ρ ! x))))
     ⊑   {- Assumption |forall e (hat ρ) x (hat d). step App2 (eval e (ext (hat ρ) x (hat d))) ⊑ apply (eval (Lam x e) (hat ρ)) (hat d)| -}
         many (step ev) (apply (eval (Lam y body) (β << ρ1)) (hat ρ ! x))
     ⊑   {- Assumption |step ev (apply d a) ⊑ apply (step ev d) a| -}
         apply (many (step ev) (eval (Lam y body) (β << ρ1))) (hat ρ ! x)
-    =   {- \Cref{thm:eval-improves} TODO -}
-        apply (eval e (hat ρ ! x)) (hat ρ ! x)
+    =   {- \Cref{thm:eval-improves} applied to |hat ρ|,|ρ|,|ρ1| -}
+        apply (eval e (hat ρ)) (hat ρ ! x)
     =   {- Refold |eval| -}
         eval (App e x) (hat ρ ! x)
     \end{spec}

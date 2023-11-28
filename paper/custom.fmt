@@ -139,7 +139,7 @@
 %format :<->: = "\rightleftharpoons"
 %format (set(a)) = "\{" a "\}"
 %format (setundef(a)) = "\{" a "\}"
-%format Cup(a) = "\Cup\{" a "\}"
+%format Cup(a) = "\bigcup\{" a "\}"
 %format Lub(a) = "\Lub\{" a "\}"
 %format powMap(f) = "{" f "}^{*}"
 %format AT = "\varid{$\widehat{T}$}"
