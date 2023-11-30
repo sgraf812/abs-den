@@ -947,6 +947,81 @@ correct, and we never need to concern ourselves with the actual definition of
 occurs).
 
 %endif
+
+\subsection{Sound Abstraction of Safety Properties}
+Suppose for a second that we are only interested in the trace component of our
+semantic domain, thus effectively restricting ourselves to
+$\Traces \triangleq |T ()|$, and that we were expressing properties about such
+traces.
+
+A |Trace| instance in our framework can soundly approximate such a property
+$P ⊆ \Traces^{+}$ of \emph{finite} traces, via the following Galois connection:
+
+\begin{code}
+absTrace  ::  (Trace d, Lat d) =>  Galois (Pow (T ())) d
+absTrace  =   repr β where  β (Ret ())     =  bottom
+                            β (Step ev τ)  =  step ev (β τ)
+\end{code}
+
+Alas, for infinite traces (in $\Traces^{\infty}$) this abstraction function
+is not computable unless |step| guards evaluation of its argument, which is
+infeasible for a \emph{static} analysis.
+Usually this is resolved by expressing the trace as a fixpoint, which can often
+be computed by Kleene iteration rather than by folding over the infinite
+concrete trace.
+For this to yield sound results, it is important that sound approximation of the
+infinite trace follows from sound approximation of all its finite prefixes.
+A classic counterexample is the property
+$P \triangleq \{ |τ| \mid |τ|\text{ terminates} \}$;
+if $P$ is restricted to finite traces $\Traces^{+}$, the analysis that
+constantly says ``terminates'' is correct; however this result doesn't carry over
+``to the limit'', when |τ| may also range over infinite traces in
+$\Traces^{\infty}$.
+Hence it is impossible to soundly approximate $P$ via Kleene iteration.
+
+Rather than making the common assumption that infinite traces are soundly
+approximated by $\bot$, thus effectively assuming that all executions are
+finite, our framework assumes that the properties of interest are \emph{safety
+properties}:
+\begin{definition}[Safety property]
+A trace property $P ⊆ |T a|$ is a \emph{safety property} if and only if,
+whenever |τ1| violates $P$ (so $|τ1| \not∈ P$), then there exists some proper
+prefix $|τ2|$ (written $|τ2| \lessdot |τ1|$) such that $|τ2| \not∈ P$.
+\end{definition}
+\begin{lemma}[Safety completion]
+Let |hat D| be a domain with instances for |Trace| and |Lat|,
+|α :<->: γ := absTrace| and $P ⊆ \Traces{}$ a safety property.
+Then any domain element |hat d| that soundly approximates $P$ via |γ| on finite
+traces soundly approximates $P$ on infinite traces as well:
+\[
+  \forall |hat d|.\ P ∩ \Traces^{+} ⊆ |γ|(|hat d|) \Longrightarrow P ∩ \Traces^{\infty} ⊆ |γinf|(|hat d|),
+\]
+where the \emph{completion} |αinf :<->: γinf = absTrace βinf| of
+|α :<->: γ = absTrace β| is defined by the representation function
+\begin{spec}
+βinf :: {-" \Traces^{\infty} "-} -> hat D
+βinf τ1 = Lub (β τ2 | τ2 {-" \lessdot "-} τ1)
+\end{spec}
+\end{lemma}
+\begin{proof}
+Let $|τ| ∈ P ∩ \Traces^{\infty}$.
+The goal is to show that $|τ| ∈ |γinf|(|hat d|)$, which we rewrite as follows:
+\begin{spec}
+      τ ∈ γinf (hat d)
+<==>  {- Galois -}
+      βinf τ ⊑ hat d
+<==>  {- Definition of |βinf| -}
+      Lub (β τ2 | τ2 {-" \lessdot "-} τ) ⊑ hat d
+<==>  {- Definition of least upper bound -}
+      forall τ2. τ2 {-" \lessdot "-} τ ==> β τ2 ⊑ hat d
+<==>  {- Galois -}
+      forall τ2. τ2 {-" \lessdot "-} τ ==> τ2 ∈ γ (hat d)
+\end{spec}
+On the other hand, $P$ is a safety property, so for any such prefix |τ2| we have
+$|τ2| ∈ P ∩ \Traces^{+}$ and hence the goal follows by assumption that
+$P ∩ \Traces^{+} ⊆ |γ|(|hat d|)$.
+\end{proof}
+
 \subsection{Soundness \wrt |D (ByName T)|}
 
 Gist:
