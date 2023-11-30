@@ -46,6 +46,7 @@
 %format ι = "\varid{$\iota$}"
 %format β = "\varid{$\beta$}"
 %format βinf = "\varid{\ensuremath{\beta}}^{\infty}"
+%format βD = "\varid{\ensuremath{\beta_\Domain{}}}"
 %format βE = "\varid{\ensuremath{\beta_\Environments}}"
 %format γ = "\varid{\ensuremath{\gamma}}"
 %format γinf = "\varid{\ensuremath{\gamma}}^{\infty}"
