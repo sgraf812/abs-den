@@ -688,7 +688,7 @@ cached result |v2| straight away.
 Otherwise, the transformer stored for the label is evaluated at |v| and the
 result is cached as the new summary.
 An allocation site might be re-analysed multiple times with monotonically increasing
-environment due to fixed-point iteration in |bind|.
+environment due to fixpoint iteration in |bind|.
 Whenever that happens, the point that has been cached for that allocation
 site is cleared, because the function might have increased its result.
 Then re-evaluating the function at the next |cachedCall| is mandatory.

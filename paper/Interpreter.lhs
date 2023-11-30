@@ -648,7 +648,7 @@ the |Ret| constructor.
 The effect is that the trace |τ| is yielded \emph{while executing |mfix|}, and
 the value |v| is then passed |return|ed to |body|.
 Notably, |body (step Let0 ...)| would have different semantics, deferring the
-effect of evaluating |rhs| to its fixed-point at use sites; hence the
+effect of evaluating |rhs| to its fixpoint at use sites; hence the
 |(>>= body . return)| idiom that forces the effects (\eg, yields the trace) of
 its argument eagerly.
 Subsequent evaluations of |return v| will not have to yield the |Step|s of |τ|

@@ -37,7 +37,7 @@ We give a standard call-by-name denotational semantics $\semscott{\wild}$ in
 \Cref{fig:denotational} \citep{ScottStrachey:71}, assigning meaning to our
 syntax by means of the Scott domain $\ScottD$ defined in
 \Cref{fig:dom-syntax}.%
-\footnote{The Scott domain $\ScottD$ is the least fixed-point of the functional $F(X)
+\footnote{The Scott domain $\ScottD$ is the least fixpoint of the functional $F(X)
 = [X \to_c X]_\bot$, where $[X \to_c X]_\bot$ is
 the topology of Scott-continuous endofunctions on $X$ together with a distinct least
 element $\bot$.}
@@ -381,7 +381,7 @@ contributed great arguments in favor of operational semantics.
 
 %We can try to apply that same trick to diverging programs and assign them a
 %total domain element $\mathsf{div}$ distinct from all other elements.
-%But then when would we go from $\bot$ to $\mathsf{div}$ in the least fixed-point in
+%But then when would we go from $\bot$ to $\mathsf{div}$ in the least fixpoint in
 %$\semscott{\Let{\wild}{\wild}{\wild}}$?
 %There is no way to introduce $\mathsf{div}$ unless we make it a partial element
 %that approximates every total element; but then we could have just chosen $\bot$
