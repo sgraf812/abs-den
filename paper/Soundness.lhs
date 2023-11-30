@@ -1056,7 +1056,7 @@ that |fix f| is finite; otherwise there is no point to the rambling above
 and we can prove the property by simple Löb induction.}
 
 \begin{lemma}[Guarded fixpoint abstraction for safety completions]
-\label{thm:fixpoint-abstraction}
+\label{thm:guarded-fixpoint-abstraction}
 Let |hat D| be a domain with instances for |Trace| and
 |Lat|, and let $(\pow{\Traces},⊆) \galois{α}{γ} (|hat D|, ⊑)$ a Galois
 connection extended to infinite traces via safety completion.
@@ -1072,7 +1072,7 @@ Let us assume that |τ = fix f| is finite and proceed by Löb induction.
     α (set (f (fix f)))
 =   {- Commute |f| and |set| -}
     α (powMap f (set (fix f)))
-⊑   {- |γ . α ⊑ id| -}
+⊑   {- |id ⊑ γ . α| -}
     α (powMap f (γ (α (set (fix f)))))
 ⊑   {- Induction hypothesis -}
     α (powMap f (γ (lfp (α . powMap f . γ))))
@@ -1235,41 +1235,54 @@ expects |syn D| where we pass around denotations that end up in an environment.
 It is then easy to see that |eval e ρ| preserves |syne D| in recursive
 invocations.
 
-\begin{lemma}[By-name fixpoint abstraction]
-Let |hat D| be a domain with instances for |Trace|, |Domain|, |HasBind| and
-|Lat|, and let |f :: D (ByName T) -> hat D|.
-Then the following fixpoint abstraction property holds:
-\begin{spec}
-    fix (\d -> g (f d))
-⊑   step (Lookup x) (kleeneFix (\(hat d1) -> eval e1 (ext (βE << ρ1) x (βE (step (Lookup x) (hat d1))))))
-\end{spec}
+\begin{figure}
+  \[\begin{array}{c}
+    \inferrule[\textsc{Mono}]{|hat d1 ⊑ hat d2| \\ |hat f1 ⊑ hat f2|}{%
+      |apply (hat f1) (hat d1) ⊑ apply (hat f2) (hat d2)|%
+      \textit{ and so on, for all methods of |Trace|, |Domain|, |HasBind|...}} \\
+    \\[-0.5em]
+    \inferrule[\textsc{Step-App}]{}{%
+      |step ev (apply (hat d) (hat a)) ⊑ apply (step ev (hat d)) (hat a)|} \qquad
+    \inferrule[\textsc{Step-Sel}]{}{%
+      |step ev (select (hat d) (hat alts)) ⊑ select (step ev (hat d)) (hat alts)|} \\
+    \\[-0.5em]
+    \inferrule[\textsc{Unwind-Stuck}]{}{%
+      \textstyle|stuck ⊑ Lub (apply stuck (hat a), select stuck (hat alts))|} \hspace{1.5em}
+    \inferrule[\textsc{Intro-Stuck}]{}{%
+      \textstyle|stuck ⊑ Lub (apply (con k (hat ds)) (hat a), select (fun (hat f)) (hat alts))|} \\
+    \\[-0.5em]
+    \inferrule[\textsc{Beta-App}]{%
+      |hat f (hat d) = step App2 (eval e (ext (hat ρ) x (hat d)))|}{%
+      |hat f (hat a) ⊑ apply (fun (hat f)) (hat a)|} \qquad
+    \inferrule[\textsc{Beta-Sel}]{\begin{minipage}[c]{0.6\textwidth}{%
+      \begin{spec}
+        (hat alts ! k) (hat ds)  |  len (hat ds) /= len (xs)  = stuck
+                                 |  otherwise                 = step Case2 (eval er (exts (hat ρ) xs (hat ds)))
+      \end{spec}}\end{minipage}}{%
+      |(hat alts ! k) (map (hat ρ1 !) ys) ⊑ select (con k (map (hat ρ1 !) ys)) (hat alts)|} \\
+    \\[-0.5em]
+    \inferrule[\textsc{Bind-ByName}]{|hat rhs (hat d1) = eval e1 (ext (hat ρ) x (step (Lookup x) (hat d1)))|\\ |hat body (hat d1) = step Let1 (eval e2 (ext (hat ρ) x (hat d1)))|}{|(hat body) (lfp (hat rhs)) ⊑ bind (hat rhs) (hat body)|}
+  \end{array}\]
+  \caption{By-name soundness lemmas}
+  \label{fig:by-name-soundness-lemmas}
+\end{figure}
+
+\begin{lemma}[Monotonicity]
+  Let |hat D| be a domain with instances for |Trace|, |Domain|, |HasBind| and
+  |Lat|, satisfying property \textsc{Mono} in
+  \Cref{fig:by-name-soundness-lemmas}.
+  Then |eval e :: (Name :-> hat D) -> hat D| is a monotone function.
 \end{lemma}
-\begin{proof}
-By Löb induction.
-\begin{spec}
-    βE (step (Lookup x) (fix (\d1 -> eval e1 (ext ρ1 x (step (Lookup x) d1)))))
-⊑   {- |fix f = f (fix f)|, unfold |βE| -}
-    step (Lookup x) (eval e1 (ext (βE << ρ1) x (βE (step (Lookup x) (fix (\d1 -> ...))))))
-⊑   {- Property of least fixpoint -}
-    step (Lookup x) (kleeneFix (\(hat d1) -> eval e1 (ext (βE << ρ1) x (βE (step (Lookup x) (hat d1))))))
-\end{spec}
-\end{proof}
+\begin{proofsketch}
+  Follows by parametricity.
+\end{proofsketch}
 
 \begin{lemma}[By-name evaluation improves trace abstraction]
   \label{thm:eval-improves}
   Let |hat D| be a domain with instances for |Trace|, |Domain|, |HasBind| and
-  |Lat|, satisfying the following properties:
-  \begin{itemize}
-    \item \textup{\textsc{Step-App}} |forall ev d a. step ev (apply d a) ⊑ apply (step ev d) a|
-    \item \textup{\textsc{Step-Sel}} |forall ev d a. step ev (select d a) ⊑ select (step ev d) a|
-    \item \textup{\textsc{Beta-App}} |forall e (hat ρ) x (hat a). step App2 (eval e (ext (hat ρ) x (hat a))) ⊑ apply (eval (Lam x e) (hat ρ)) (hat a)|
-    \item \textup{\textsc{Beta-Sel}} |forall k xs (hat ρ) alts. cont (alts ! k) (map (hat ρ !) xs) ⊑ sel (eval (ConApp k xs) (hat ρ)) (cont << alts)|
-    \item \textup{\textsc{Name-Bind}} For all |x|,|e1|,|e2|,|hat ρ|, it is
-      \begin{spec}
-          step Let1 (eval e2 (ext (hat ρ) x (step (Lookup x) (kleeneFix (\d1 -> eval e1 (ext (hat ρ) x (step (Lookup x) d1)))))))
-      ⊑   bind  (\(hat d1) -> eval e1 (ext (hat ρ) x (step (Lookup x) (hat d1)))) (\(hat d1) -> step Let1 (eval e2 (ext (hat ρ) x (hat d1))))
-      \end{spec}
-  \end{itemize}
+  |Lat|, satisfying the soundness properties \textsc{Step-App},
+  \textsc{Step-Sel}, \textsc{Beta-App}, \textsc{Beta-Sel}, \textsc{Bind-ByName}
+  in \Cref{fig:by-name-soundness-lemmas}.
 
   If |eval e ρ1 = many (step ev) (eval v ρ2)|,
   then |many (step ev) (eval v (αE << set << ρ2)) ⊑ eval e (αE << set << ρ1)|,
@@ -1301,7 +1314,7 @@ By Löb induction and cases on |e|, using the representation function
     |eval body (ext ρ3 y (ρ1 ! x)) = many (step ev1) (eval v ρ2)|.
     \begin{spec}
         many (step ev) (eval v (βE << ρ2))
-    ⊑   {- |many ev = [App1] ++ many ev1 ++ [App2] ++ many ev2|, IH at |ev2| -}
+    =   {- |many ev = [App1] ++ many ev1 ++ [App2] ++ many ev2|, IH at |ev2| -}
         step App1 (many (step ev1) (step App2 (eval body (ext (βE << ρ3) y (βE << ρ1 ! x)))))
     ⊑   {- Assumption \textsc{Beta-App} -}
         step App1 (many (step ev1) (apply (eval (Lam y body) (βE << ρ3)) (βE << ρ1 ! x)))
@@ -1330,26 +1343,22 @@ By Löb induction and cases on |e|, using the representation function
         eval (Case e alts) (βE << ρ1)
     \end{spec}
   \item \textbf{Case} |Let x e1 e2|:
-    First note the following fixpoint abstraction property provable by Löb induction:
-    \begin{spec}
-        βE (step (Lookup x) (fix (\d1 -> eval e1 (ext ρ1 x (step (Lookup x) d1)))))
-    ⊑   {- |fix f = f (fix f)|, unfold |βE| -}
-        step (Lookup x) (eval e1 (ext (βE << ρ1) x (βE (step (Lookup x) (fix (\d1 -> ...))))))
-    ⊑   {- Property of least fixpoint -}
-        step (Lookup x) (kleeneFix (\(hat d1) -> eval e1 (ext (βE << ρ1) x (βE (step (Lookup x) (hat d1))))))
-    \end{spec}
-    So every fixpoint in the concrete can be approximated by a least fixpoint in
-    the abstract.
-    We use this fact below:
+    We make good use of \Cref{thm:guarded-fixpoint-abstraction} below:
     \begin{spec}
         many (step ev) (eval v (βE << ρ2))
     =   {- |many ev = Let1 : many ev1| -}
         step Let1 (many (step ev1) (eval v (βE << ρ2)))
     ⊑   {- Induction hypothesis at |ev1| -}
         step Let1 (eval e2 (ext (βE << ρ1) x (βE (step (Lookup x) (fix (\d1 -> eval e1 (ext ρ1 x (step (Lookup x) d1))))))))
-    ⊑   {- Property of least fixpoint -}
-        step Let1 (eval e2 (ext (βE << ρ1) x (step (Lookup x) (kleeneFix (\(hat d1) -> eval e1 (ext (βE << ρ1) x (step (Lookup x) (hat d1))))))))
-    ⊑   {- Assumption \textsc{Name-Bind} -}
+    =   {- Partially roll |fix| -}
+        step Let1 (eval e2 (ext (βE << ρ1) x (βE (fix (\d1 -> step (Lookup x) (eval e1 (ext ρ1 x d1)))))))
+    ⊑   {- \Cref{thm:guarded-fixpoint-abstraction} -}
+        step Let1 (eval e2 (ext (βE << ρ1) x (lfp (\(hat d1) -> step (Lookup x) (eval e1 (ext (βE << ρ1) x (αE (γE (hat d1)))))))))
+    ⊑   {- |αE . γE ⊑ id| -}
+        step Let1 (eval e2 (ext (βE << ρ1) x (lfp (\(hat d1) -> step (Lookup x) (eval e1 (ext (βE << ρ1) x (hat d1)))))))
+    =   {- Partially unroll |lfp| -}
+        step Let1 (eval e2 (ext (βE << ρ1) x (step (Lookup x) (lfp (\(hat d1) -> eval e1 (ext (βE << ρ1) x (step (Lookup x) (hat d1))))))))
+    ⊑   {- Assumption \textsc{Bind-ByName} -}
         bind  (\(hat d1) -> eval e1 (ext ((βE << ρ1)) x (step (Lookup x) (hat d1))))
               (\(hat d1) -> step Let1 (eval e2 (ext ((βE << ρ1)) x (hat d1))))
     =   {- Refold |eval (Let x e1 e2) (βE << ρ1)| -}
@@ -1360,22 +1369,12 @@ By Löb induction and cases on |e|, using the representation function
 
 \begin{theoremrep}[Sound By-name Interpretation]
 Let |hat D| be a domain with instances for |Trace|, |Domain|, |HasBind| and
-|Lat|.
-Then the following inference rule applies, proving |eval e ((αE << ρ)) :: hat D| a
-sound abstract by-name interpreter
+|Lat|, and let |αD :<->: γD = byName|, |αE :<->: γE = env|.
+If the soundness lemmas in \Cref{fig:by-name-soundness-lemmas} hold,
+then |eval| instantiates at |hat D| to an abstract interpreter that is sound
+\wrt |γE -> αD|, that is,
 \[
-\inferrule
-  {%
-   |αD :<->: γD = byName|\\ |αE :<->: γE = env| IH = |forall e1 ρ1. αD (eval e1 ρ1) ⊑ eval e1 (αD << ρ1)| \\\\
-   |forall d f. αD (d >>= f) ⊑ αD d >>= αD . f . γD|\\\\
-   |forall ev d a. step ev (apply d a) ⊑ apply (step ev d) a|\\\\
-   |forall a. stuck ⊑ apply stuck (αD a)|\\ |forall fs. stuck ⊑ sel stuck fs|\\\\
-   IH \Longrightarrow |forall e ρ a. αD (apply (eval e ρ) a) ⊑ apply (eval e (αD << ρ)) (αD a)| \\\\
-   IH \Longrightarrow |forall e ρ fs. αD (sel (eval e ρ) fs) ⊑ sel (αD (eval e ρ)) [ (k, αD . f . map γD) || (k, f) <- fs ]| \\\\
-   IH \Longrightarrow |forall rhs body. αD (bind  (\d1 -> eval e1 (ext ρ x (step (Lookup x) d1)))
-                                                 (\d1 -> step Let1 (eval e2 (ext ρ x (step (Lookup x) d1))))) ⊑ bind (αD . rhs . γD) (αD . body . γD)|%
-  }
-  {|αD (eval e ρ :: Pow (D (ByName T))) ⊑ (eval e (αE << ρ) :: hat D)|}
+  |αD (eval e ρ :: Pow (D (ByName T))) ⊑ (eval e (αE << ρ) :: hat D)|
 \]
 \end{theoremrep}
 \begin{proof}
@@ -1453,7 +1452,7 @@ By Löb induction and cases on |e|.
         many (step ev) (αD (return v >>= \case Fun f -> f (ρ ! x); _ -> stuck))
     =   {- |v| not |Fun|, unfold |αD| -}
         many (step ev) stuck
-    ⊑   {- Assumption |stuck ⊑ apply d a| where |d := stuck| or |d := con k (map αD ds)| -}
+    ⊑   {- Assumptions \textsc{Unwind-Stuck}, \textsc{Intro-Stuck} where |d := stuck| or |d := con k (map αD ds)| -}
         many (step ev) (apply d a)
     ⊑   {- Assumption \textsc{Step-App} -}
         apply (many (step ev) d) ((αE << ρ) ! x)
@@ -1506,7 +1505,7 @@ By Löb induction and cases on |e|.
     =   {- Unfold |αD| -}
         many (step ev) (step Case2 (αD (eval er (exts ρ xs (map (ρ1 !) ys)))))
     ⊑   {- Induction hypothesis -}
-        many (step ev) (step Case2 (eval er (exts (αE << ρ) xs (map ((αE << ρ1) !) ys)))))
+        many (step ev) (step Case2 (eval er (exts (αE << ρ) xs (map ((αE << ρ1) !) ys))))
     =   {- Refold |cont| -}
         cont (alts ! k) (map ((αE << ρ1) !) xs)
     ⊑   {- Assumption \textsc{Beta-Sel} -}
@@ -1521,99 +1520,56 @@ By Löb induction and cases on |e|.
 
   \item \textbf{Case} |Let x e1 e2|:
     \begin{spec}
-       αD (eval (Let x e1 e2) ρ)
-    =  {- Unfold |eval| -}
-       αD (bind  (\d1 -> eval e1 (ext ρ x (step (Lookup x) d1)))
-                 (\d1 -> step Let1 (eval e2 (ext ρ x (step (Lookup x) d1)))))
-    =  {- Unfold |bind|, |αD| -}
-       step Let1 (αD (eval e2 (ext ρ x (step (Lookup x) (fix (\d1 -> eval e1 (ext ρ x (step (Lookup x) d1))))))))
-    ⊑  {- Assumption about |bind| -}
-       bind  (\d1 -> eval e1 (ext ρ x (step (Lookup x) d1)))
-             (\d1 -> step Let1 (eval e2 (ext ρ x (step (Lookup x) d1))))
-    =  {- Rearrange -}
-       step Let1 (eval e2 (ext (αD << ρ) x (step (Lookup x) (αD (fix (\d -> eval e1 (ext ρ x (Step (Lookup x) d))))))))
-    ⊑  {- |id ⊑ γD . αD| -}
-       step Let1 (eval e2 (ext (αD << ρ) x (step (Lookup x) (αD (fix (\d -> γD (αD (eval e1 (ext ρ x (Step (Lookup x) d))))))))))
+        αD (eval (Let x e1 e2) ρ)
+    =   {- Unfold |eval| -}
+        αD (bind  (\d1 -> eval e1 (ext ρ x (step (Lookup x) d1)))
+                  (\d1 -> step Let1 (eval e2 (ext ρ x (step (Lookup x) d1)))))
+    =   {- Unfold |bind|, |αD| -}
+        step Let1 (αD (eval e2 (ext ρ x (step (Lookup x) (fix (\d1 -> eval e1 (ext ρ x (step (Lookup x) d1))))))))
+    ⊑   {- Induction hypothesis -}
+        step Let1 (eval e2 (ext (αE << ρ) x (αE (step (Lookup x) (fix (\d1 -> eval e1 (ext ρ x (step (Lookup x) d1))))))))
+    \end{spec}
+    And from hereon, the proof is identical to the |Let| case of
+    \Cref{thm:eval-improves}:
+    \begin{spec}
+    ⊑   {- By \Cref{thm:guarded-fixpoint-abstraction}, as in the proof for \Cref{thm:eval-improves} -}
+        step Let1 (eval e2 (ext (αE << ρ) x (step (Lookup x) (lfp (\(hat d1) -> eval e1 (ext (αE << ρ) x (αE (step (Lookup x) (hat d1)))))))))
+    =   {- Induction hypothesis -}
+        step Let1 (eval e2 (ext (αE << ρ) x (step (Lookup x) (lfp (\(hat d1) -> eval e1 (αE << (ext ρ x (step (Lookup x) (hat d1)))))))))
+    ⊑   {- Assumption \textsc{Bind-ByName}, with |hat ρ = αE << ρ| -}
+        bind  (\d1 -> eval e1 (ext (αE << ρ) x (step (Lookup x) d1)))
+              (\d1 -> step Let1 (eval e2 (ext (αE << ρ) x (step (Lookup x) d1))))
+    =   {- Refold |eval (Let x e1 e2) (αE << ρ)| -}
+        eval (Let x e1 e2) (αE << ρ)
     \end{spec}
 \end{itemize}
 \end{proof}
 
-\[
-\inferrule
-  {%
-   |α :<->: γ = byName|\\\\
-   |forall a. stuck ⊑ apply stuck (α a)|\\ |forall fs. stuck ⊑ sel stuck fs|\\\\
-   |forall v ρ a. α (apply (eval e ρ) a) ⊑ apply (eval v (α << ρ)) (α a)|\\\\
-   |forall e d a. step e (apply d a) ⊑ apply (step e d) a|\\\\
-   |forall e d fs. step e (select d fs) ⊑ select (step e d) fs|\\\\
-   |forall k ds fs. head [ f || (k',f) <- fs, k == k'] ds ⊑ select (con k ds) fs|\\\\
-   |forall rhs body. α (body (fix rhs)) ⊑ bind (α . powMap rhs . γ) (α . powMap body . γ)|%
-  }
-  {|α (eval e ρ :: Pow (D (ByName T))) ⊑ (eval e (α << ρ) :: hat D)|}
-\]
-
-It is clear that we can't decompose our proof obligations any further without
-fixing a particular instance |C D2|, so we will now prove usage analysis
-(|UD| from \Cref{fig:abs-usg}) correct \wrt by-name semantics, by showing the
-above three lemmas.
-
-\begin{theoremrep} Usage Analysis as implemented by |UD| in \Cref{fig:abs-usg}
+\begin{theorem} Usage Analysis as implemented by |UD| in \Cref{fig:abs-usg}
 is sound \wrt |D (ByName T)|, that is,
 \[
-  |forall e ρ. α (set (eval e ρ :: D (ByName T))) ⊑ (eval e (α << set << ρ) :: UD) where α :<->: _ = byName|
+  |αD (eval e ρ :: Pow (D (ByName T))) ⊑ (eval e (αE << ρ) :: UD) where αD :<->: _ = byName; αE :<->: _ = env|
 \]
-\end{theoremrep}
-\begin{proofsketch}
-It suffices to show the three soundness lemmas above.
+\end{theorem}
+\begin{proof}
+This proof is short enough to bring it in full.
+It suffices to show the soundness lemmas in \Cref{fig:by-name-soundness-lemmas}.
 It is customary to write |β = α . set|, which is equal to the representation
-function in |trace|.
-\begin{enumerate}
-  \item |forall d a. β (apply d a) ⊑ apply (β d) (β a)|: \\
-    By unfolding both definitions, we get the goal
-    \[
-      |forall d a. β (d >>= \case Fun f -> f a; _ -> stuck) ⊑ β d >> manify (β a)|
-    \]
-    and we show these by löb induction on |d|.
-    \begin{itemize}
-      \item \textbf{Case} |Step e d|:
-        \begin{DispWithArrows*}[fleqn,mathindent=6em]
-              & |β (Step e d >>= \case Fun f -> f a; _ -> stuck)|
-              \Arrow{Unfold |β|} \\
-          ={} & |step e (β (d >>= \case Fun f -> f a; _ -> stuck))|
-              \Arrow{Monotonicity of |step|, IH} \\
-          ⊑{} & |step e (manify (β a) >> β d)|
-              \Arrow{|step| commutes with |>>|} \\
-          ={} & |manify (β a) >> step e (β d)|
-              \Arrow{Refold |β|} \\
-          ={} & |manify (β a) >> β (Step e d)|
-        \end{DispWithArrows*}
-      \item \textbf{Case} |Ret v|:
-        When |v /= Fun f|, |β (d >> stuck) = β d ⊑ manify (β a) >> β d|.
-        Otherwise |v = Fun f| for some |f| and the goal is to prove
-        \[
-          |β (Ret (Fun f) >>= \case Fun f -> f a; _ -> stuck)| ⊑ |apply (β (Ret (Fun f))) (β a)|
-        \]
-        By the definition of Galois connections, this is equivalent to
-        \[
-          \{|Ret (Fun f) >>= \case Fun f -> f a; _ -> stuck|\} ⊆  |γ (apply (β (Ret (Fun f))) (β a))|
-        \]
-        \begin{DispWithArrows*}[fleqn,mathindent=6em]
-              & |β (Ret (Fun f) >>= \case Fun f -> f a; _ -> stuck)|
-              \Arrow{Simplify} \\
-          ={} & |β (f a)|
-              \Arrow{Galois} \\
-          ⊑{} & |α (powMap f a)| \\
-%              \Arrow{|f a| is of the form |step App2 (eval e (ext ρ x a))|} \\
-%          ={} & |β (step App2 (eval e (ext ρ x a)))|
-%              \Arrow{Unfold |β|, |step|} \\
-%          ={} & |β (eval e (ext ρ x a))|
-%              \Arrow{Apply \Cref{thm:usage-squeezing}} \\
-%          ⊑{} & |β (step App2 (eval e (ext ρ x a)))|
-%              \Arrow{Monotonicity of |step|, IH} \\
-%          ⊑{} & |step e (β d >> ...)|
-%              \Arrow{|step| associates with |>>|} \\
-          ={} & |step e (β d) >> ...|
-        \end{DispWithArrows*}
-    \end{itemize}
-\end{enumerate}
-\end{proofsketch}
+function in |absTrcDom|.
+\begin{itemize}
+  \item \textsc{Mono}:
+    Always immediate, since only |⊔| and |+| are the only functions matching on
+    |U|, and these are monotonic.
+  \item \textsc{Unwind-Stuck}, \textsc{Intro-Stuck}:
+    Trivial, since |stuck = bottom|.
+  \item \textsc{Step-App}, \textsc{Step-Sel}:
+    Follows by unfolding |step|,|apply|,|select|,|>>| and associativity of |+|.
+  \item \textsc{Beta-App}:
+    Follows by unfolding |apply| and |fun| and \Cref{thm:usage-squeezing}.
+  \item \textsc{Beta-Sel}:
+    Follows by unfolding |select| and |con| and applying
+    \Cref{thm:usage-squeezing} multiple times.
+  \item \textsc{Bind-ByName}:
+    |kleeneFix| approximates the least fixpoint |lfp|; the rest follows by monotonicity.
+\end{itemize}
+\end{proof}

@@ -43,6 +43,7 @@
 %format αinf = "\varid{\ensuremath{\alpha}}^{\infty}"
 %format αD = "\varid{\ensuremath{\alpha_\Domain{}}}"
 %format αE = "\varid{\ensuremath{\alpha_\Environments}}"
+%format αS = "\varid{\ensuremath{\alpha_\mathcal{S}}}"
 %format ι = "\varid{$\iota$}"
 %format β = "\varid{$\beta$}"
 %format βinf = "\varid{\ensuremath{\beta}}^{\infty}"
@@ -53,6 +54,8 @@
 %format γdot = "\dot{\varid{\ensuremath{\gamma}}}"
 %format γD = "\varid{\ensuremath{\gamma_\Domain{}}}"
 %format γE = "\varid{\ensuremath{\gamma_\Environments}}"
+%format γS = "\varid{\ensuremath{\gamma_\mathcal{S}}}"
+%format sss = "\varid{S}"
 %format θ = "\varid{\ensuremath{\theta}}"
 %format θ1 = "\varid{\ensuremath{\theta_1}}"
 %format θ2 = "\varid{\ensuremath{\theta_2}}"
@@ -91,6 +94,8 @@
 %format e3
 %format e4
 %format er = "\varid{\ensuremath{e_r}}"
+%format f1
+%format f2
 %format v1
 %format v2
 %format c1
