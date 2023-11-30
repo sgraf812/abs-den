@@ -949,20 +949,30 @@ occurs).
 %endif
 
 \subsection{Sound Abstraction of Safety Properties}
-Suppose for a second that we are only interested in the trace component of our
+\sg{Urgh, clean this up. First introduce the GC, then talk about infinite traces
+and the need for approximation through least fixpoints, then introduce
+Safety}
+\sg{Also reconcile with the Transfinite Iris approach, where Step-indexing is
+extended to show liveness properties. \eg, löb only supports safety}
+
+Suppose for a second that we were only interested in the trace component of our
 semantic domain, thus effectively restricting ourselves to
-$\Traces \triangleq |T ()|$, and that we were expressing properties about such
-traces.
+$\Traces \triangleq |T ()|$, and that we were to express properties $P ∈
+\pow{\Traces}$ about such traces.
 
-A |Trace| instance in our framework can soundly approximate such a property
-$P ⊆ \Traces^{+}$ of \emph{finite} traces, via the following Galois connection:
-
+Such properties can be interpreted abstractly by a Galois connection
+$(\pow{\Traces},⊆) \galois{α}{γ} (|hat D|, ⊑)$.%
+\footnote{
+Of course, the goal is to construct a useful analysis,
+So the abstract domain |hat D| and the Galois connection is designed such that a
+few identified key properties $\mathcal{P} ⊆ \pow{\Traces}$ lie in the range of
+$γ$. Then $\mathcal{P} = γ(\mathcal{D}) = γ(α(γ(\mathcal{D}))) = γ(α(\mathcal{P}))$.
+}
+Any |Trace (hat D)| instance in our framework induces the following Galois connection:
 \begin{code}
-absTrace  ::  (Trace d, Lat d) =>  Galois (Pow (T ())) d
-absTrace  =   repr β where  β (Ret ())     =  bottom
-                            β (Step ev τ)  =  step ev (β τ)
+absTrace  ::  (Trace d, Lat d) =>  Galois (Pow (T v)) d
+absTrace  =   repr β where  β (Ret _) = bottom; β (Step ev τ) = step ev (β τ)
 \end{code}
-
 Alas, for infinite traces (in $\Traces^{\infty}$) this abstraction function
 is not computable unless |step| guards evaluation of its argument, which is
 infeasible for a \emph{static} analysis.
@@ -997,18 +1007,20 @@ The contraposition of the above definition is
 and we can exploit this property in the abstract by \emph{completing} a Galois
 connection on finite traces to infinite ones:
 \begin{lemma}[Safety completion]
+\label{thm:safety-completion}
 Let |hat D| be a domain with instances for |Trace| and |Lat|,
-|α :<->: γ := absTrace| and $P ⊆ \Traces{}$ a safety property.
+$(\pow{\Traces},⊆) \galois{α}{γ} (|hat D|, ⊑)$ a Galois connection and
+$P ∈ \pow{\Traces}$ a safety property.
 Then any domain element |hat d| that soundly approximates $P$ via |γ| on finite
 traces soundly approximates $P$ on infinite traces as well:
 \[
   \forall |hat d|.\ P ∩ \Traces^{+} ⊆ |γ|(|hat d|) \Longrightarrow P ∩ \Traces^{\infty} ⊆ |γinf|(|hat d|),
 \]
-where the \emph{completion} |αinf :<->: γinf = absTrace βinf| of
-|α :<->: γ = absTrace β| is defined by the representation function
+where the \emph{completion} |αinf :<->: γinf = repr βinf| of
+|α :<->: γ| is defined by the representation function
 \begin{spec}
 βinf :: {-" \Traces^{\infty} "-} -> hat D
-βinf τ1 = Lub (β τ2 | τ2 {-" \lessdot "-} τ1)
+βinf τ1 = α (Cup (τ2 | τ2 <. τ1))
 \end{spec}
 \end{lemma}
 \begin{proof}
@@ -1019,42 +1031,57 @@ The goal is to show that $|τ| ∈ |γinf|(|hat d|)$, which we rewrite as follow
 <==>  {- Galois -}
       βinf τ ⊑ hat d
 <==>  {- Definition of |βinf| -}
-      Lub (β τ2 | τ2 {-" \lessdot "-} τ) ⊑ hat d
-<==>  {- Definition of least upper bound -}
-      forall τ2. τ2 {-" \lessdot "-} τ ==> β τ2 ⊑ hat d
+      α (Cup (τ2 | τ2 <. τ1)) ⊑ hat d
 <==>  {- Galois -}
-      forall τ2. τ2 {-" \lessdot "-} τ ==> τ2 ∈ γ (hat d)
+      Cup (τ2 | τ2 <. τ1) ⊆ γ (hat d)
+<==>  {- Definition of Union -}
+      forall τ2. τ2 <. τ ==> τ2 ∈ γ (hat d)
 \end{spec}
-On the other hand, $P$ is a safety property, so for any such prefix |τ2| we have
-$|τ2| ∈ P ∩ \Traces^{+}$ and hence the goal follows by assumption that
+On the other hand, $P$ is a safety property, so for any such prefix |τ2| of |τ|
+we have $|τ2| ∈ P ∩ \Traces^{+}$ and hence the goal follows by assumption that
 $P ∩ \Traces^{+} ⊆ |γ|(|hat d|)$.
 \end{proof}
 
-This lemma is significant because it gives a compatible mathematical meaning
-to abstractions of infinite traces even though we can compute said meaning for
-finite prefixes only.
-Nevertheless, we can exploit safety by fixpoint abstraction:
+In other words:
+Prove that |hat d| is a sound approximation via |γ| for finite traces and
+get the proof for infinite traces for free by appealing to completion and
+\Cref{thm:safety-completion}.
 
-\begin{lemma}[Fixpoint abstraction]
+From now on, we tacitcly assume that any Galois connection defined in Haskell
+has been extended to infinite traces via safety completion, and that all
+trace properties of interest are safety properties.
+
+\sg{Make clear that saying |α (fix f)| is not even defined unless we require
+that |fix f| is finite; otherwise there is no point to the rambling above
+and we can prove the property by simple Löb induction.}
+
+\begin{lemma}[Guarded fixpoint abstraction for safety completions]
+\label{thm:fixpoint-abstraction}
 Let |hat D| be a domain with instances for |Trace| and
-|Lat|, and let |α :<->: γ = absTrace| be the Galois connection.
-Then the following fixpoint abstraction property holds:
-\begin{spec}
-    fix (\d -> g (f d))
-⊑   step (Lookup x) (kleeneFix (\(hat d1) -> eval e1 (ext (βE << ρ1) x (βE (step (Lookup x) (hat d1))))))
-\end{spec}
+|Lat|, and let $(\pow{\Traces},⊆) \galois{α}{γ} (|hat D|, ⊑)$ a Galois
+connection extended to infinite traces via safety completion.
+Then, for any guarded recursive
+iteratee |f|, |α (set (fix f)) ⊑ lfp (α . powMap f . γ)|, where |lfp (hat f)|
+denotes (the least) fixpoint of |hat f|.
 \end{lemma}
 \begin{proof}
-By Löb induction.
+Let us assume that |τ = fix f| is finite and proceed by Löb induction.
 \begin{spec}
-    βE (step (Lookup x) (fix (\d1 -> eval e1 (ext ρ1 x (step (Lookup x) d1)))))
-⊑   {- |fix f = f (fix f)|, unfold |βE| -}
-    step (Lookup x) (eval e1 (ext (βE << ρ1) x (βE (step (Lookup x) (fix (\d1 -> ...))))))
-⊑   {- Property of least fixpoint -}
-    step (Lookup x) (kleeneFix (\(hat d1) -> eval e1 (ext (βE << ρ1) x (βE (step (Lookup x) (hat d1))))))
+    α (set (fix f)) ⊑ lfp (α . powMap f . γ)
+=   {- |fix f = f (fix f)| -}
+    α (set (f (fix f)))
+=   {- Commute |f| and |set| -}
+    α (powMap f (set (fix f)))
+⊑   {- |γ . α ⊑ id| -}
+    α (powMap f (γ (α (set (fix f)))))
+⊑   {- Induction hypothesis -}
+    α (powMap f (γ (lfp (α . powMap f . γ))))
+⊑   {- |lfp (hat f) = hat f (lfp (hat f))| -}
+    lfp (α . powMap f . γ)
 \end{spec}
+When |τ| is infinite, the result follows by \Cref{thm:safety-completion}
+and the fact that all properties of interest are safety properties.
 \end{proof}
-
 
 \subsection{Soundness \wrt |D (ByName T)|}
 

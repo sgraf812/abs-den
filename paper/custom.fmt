@@ -78,6 +78,7 @@
 %format pow(a) = "\pow{" a "}"
 %format ==> = "\Longrightarrow"
 %format <==> = "\Longleftrightarrow"
+%format <. = "\lessdot"
 %format many(a) = "\many{" a "}"
 %format syn(dom)(d) = "{" dom " \mathbin{\vdash} " d "}"
 %format syne(dom)(env) = "{" dom " \mathbin{\dot{\vdash}} " env "}"
