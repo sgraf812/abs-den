@@ -988,6 +988,14 @@ A trace property $P ⊆ |T a|$ is a \emph{safety property} if and only if,
 whenever |τ1| violates $P$ (so $|τ1| \not∈ P$), then there exists some proper
 prefix $|τ2|$ (written $|τ2| \lessdot |τ1|$) such that $|τ2| \not∈ P$.
 \end{definition}
+Note that both well-typedness (``|τ| does not go wrong'') and usage cardinality
+abstract safety properties.
+The contraposition of the above definition is
+\[
+  \forall |τ1|.\ (\forall |τ2|.\ |τ2| \lessdot |τ1| \Longrightarrow |τ2| ∈ P ∩ \Traces^{+}) \Longrightarrow |τ1| ∈ P ∩ \Traces^{\infty},
+\]
+and we can exploit this property in the abstract by \emph{completing} a Galois
+connection on finite traces to infinite ones:
 \begin{lemma}[Safety completion]
 Let |hat D| be a domain with instances for |Trace| and |Lat|,
 |α :<->: γ := absTrace| and $P ⊆ \Traces{}$ a safety property.
@@ -1021,6 +1029,32 @@ On the other hand, $P$ is a safety property, so for any such prefix |τ2| we hav
 $|τ2| ∈ P ∩ \Traces^{+}$ and hence the goal follows by assumption that
 $P ∩ \Traces^{+} ⊆ |γ|(|hat d|)$.
 \end{proof}
+
+This lemma is significant because it gives a compatible mathematical meaning
+to abstractions of infinite traces even though we can compute said meaning for
+finite prefixes only.
+Nevertheless, we can exploit safety by fixpoint abstraction:
+
+\begin{lemma}[Fixpoint abstraction]
+Let |hat D| be a domain with instances for |Trace| and
+|Lat|, and let |α :<->: γ = absTrace| be the Galois connection.
+Then the following fixpoint abstraction property holds:
+\begin{spec}
+    fix (\d -> g (f d))
+⊑   step (Lookup x) (kleeneFix (\(hat d1) -> eval e1 (ext (βE << ρ1) x (βE (step (Lookup x) (hat d1))))))
+\end{spec}
+\end{lemma}
+\begin{proof}
+By Löb induction.
+\begin{spec}
+    βE (step (Lookup x) (fix (\d1 -> eval e1 (ext ρ1 x (step (Lookup x) d1)))))
+⊑   {- |fix f = f (fix f)|, unfold |βE| -}
+    step (Lookup x) (eval e1 (ext (βE << ρ1) x (βE (step (Lookup x) (fix (\d1 -> ...))))))
+⊑   {- Property of least fixpoint -}
+    step (Lookup x) (kleeneFix (\(hat d1) -> eval e1 (ext (βE << ρ1) x (βE (step (Lookup x) (hat d1))))))
+\end{spec}
+\end{proof}
+
 
 \subsection{Soundness \wrt |D (ByName T)|}
 
