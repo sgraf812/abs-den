@@ -157,7 +157,7 @@
 %% 2012 ACM Computing Classification System (CSS) concepts
 %% Generate at 'http://dl.acm.org/ccs/ccs.cfm'.
 \begin{CCSXML}
-<ccs2012>
+ <ccs2012>
    <concept>
        <concept_id>10011007.10011006.10011041</concept_id>
        <concept_desc>Software and its engineering~Compilers</concept_desc>
