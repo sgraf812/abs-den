@@ -1500,15 +1500,21 @@ function in |absTrcDom|.
 
 \subsection{Sound By-Need Abstraction}
 
+Need new |αD|.
 
-\begin{theoremrep}[Sound By-name Interpretation]
+\begin{code}
+byNeed :: (Trace d, Domain d, HasBind d, Lat d) => Galois (Pow (D (ByName T))) d
+byNeed = (α . powMap unByName) :<->: (powMap ByName . γ) where α :<->: γ = absTrcDom byName env
+\end{code}
+
+\begin{theoremrep}[Sound By-need Interpretation]
 Let |hat D| be a domain with instances for |Trace|, |Domain|, |HasBind| and
-|Lat|, and let |αD :<->: γD = byName|, |αE :<->: γE = env|.
-If the soundness lemmas in \Cref{fig:by-name-soundness-lemmas} hold,
+|Lat|, and let |αD :<->: γD = byNeed|, |αE :<->: γE = env|.
+If the soundness lemmas in \Cref{fig:by-need-soundness-lemmas} hold,
 then |eval| instantiates at |hat D| to an abstract interpreter that is sound
 \wrt |γE -> αD|, that is,
 \[
-  |αD (eval e ρ :: Pow (D (ByName T))) ⊑ (eval e (αE << ρ) :: hat D)|
+  |αD (eval e ρ :: Pow (D (ByNeed T))) ⊑ (eval e (αE << ρ) :: hat D)|
 \]
 \end{theoremrep}
 \begin{proofsketch}
