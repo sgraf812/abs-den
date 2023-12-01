@@ -21,17 +21,20 @@ abs-den.hs: *.lhs *.fmt
 	LANG=C.UTF-8 lhs2TeX --newcode -o $@ abs-den.lhs
 
 %.pdf: %.tex macros.tex references.bib
-	$(PDFLATEX) $*
+	$(PDFLATEX) -draftmode $*
 	bibtex $*
-	$(PDFLATEX) $*
+	$(PDFLATEX) -draftmode $*
 	$(PDFLATEX) $*
 
-quick: abs-den.tex macros.tex
+once: abs-den.tex macros.tex
 	$(PDFLATEX) abs-den
+
+quick: abs-den.tex macros.tex
+	$(PDFLATEX) -draftmode abs-den
 	$(PDFLATEX) abs-den
 
 quick-ext: abs-den-ext.tex macros.tex
-	$(PDFLATEX) abs-den-ext
+	$(PDFLATEX) -draftmode abs-den-ext
 	$(PDFLATEX) abs-den-ext
 
 test: [A-Z]*.lhs
