@@ -21,21 +21,28 @@ abs-den.hs: *.lhs *.fmt
 	LANG=C.UTF-8 lhs2TeX --newcode -o $@ abs-den.lhs
 
 %.pdf: %.tex macros.tex references.bib
+	sed -e 's/^%\\RequirePackage{microtype}/\\RequirePackage{microtype}/g' -i acmart.cls # make it correct
 	$(PDFLATEX) -draftmode $*
 	bibtex $*
 	$(PDFLATEX) -draftmode $*
 	$(PDFLATEX) $*
 
 once: abs-den.tex macros.tex
+	sed -e 's/^\\RequirePackage{microtype}/%\\RequirePackage{microtype}/g' -i acmart.cls # make it fast
 	$(PDFLATEX) abs-den
+	sed -e 's/^%\\RequirePackage{microtype}/\\RequirePackage{microtype}/g' -i acmart.cls # make it correct
 
 quick: abs-den.tex macros.tex
+	sed -e 's/^\\RequirePackage{microtype}/%\\RequirePackage{microtype}/g' -i acmart.cls # make it fast
 	$(PDFLATEX) -draftmode abs-den
 	$(PDFLATEX) abs-den
+	sed -e 's/^%\\RequirePackage{microtype}/\\RequirePackage{microtype}/g' -i acmart.cls # make it correct
 
 quick-ext: abs-den-ext.tex macros.tex
+	sed -e 's/^\\RequirePackage{microtype}/%\\RequirePackage{microtype}/g' -i acmart.cls # make it fast
 	$(PDFLATEX) -draftmode abs-den-ext
 	$(PDFLATEX) abs-den-ext
+	sed -e 's/^%\\RequirePackage{microtype}/\\RequirePackage{microtype}/g' -i acmart.cls # make it correct
 
 test: [A-Z]*.lhs
 	LANG=C.UTF-8 ghc -ihs -pgmL lhs2TeX -optL--pre -fno-code -freverse-errors -W $?
