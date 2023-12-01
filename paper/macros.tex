@@ -68,13 +68,9 @@
 }
 \makeatother
 \newenvironment{letarray}{\begin{array}{@{}l@{\hspace{1ex}}l}}{\end{array}}
-\newcommand{\noleftdelimiter}{\left.\kern-\nulldelimiterspace}
 \newcommand{\later}{{\mathop{\vcenter{\hbox{$\scriptscriptstyle\blacktriangleright$}}}}}
 \newcommand{\purelater}{\mathop{\mathsf{next}}}
 \newcommand{\aplater}{\mathbin{\circledast}}
-\newcommand{\lBrace}{{\{\hspace{-0.22em}\mid}}
-\newcommand{\rBrace}{{\mid\hspace{-0.22em}\}}}
-\DeclarePairedDelimiter\idiom{\lBrace}{\rBrace}
 \newcommand{\formgoal}[2]{%
 \vspace{0.5\baselineskip}
 \noindent
@@ -88,7 +84,6 @@
 %% LC
 \newcommand{\Con}{\mathsf{Con}}
 \newcommand{\Var}{\mathsf{Var}}
-\newcommand{\Lab}{\mathsf{Lab}}
 \newcommand{\Exp}{\mathsf{Exp}}
 \newcommand{\Ctx}{\mathsf{Ctx}}
 \newcommand{\Val}{\mathsf{Val}}
@@ -98,112 +93,30 @@
 \newcommand{\pz}{\mathsf{z}}
 \newcommand{\pv}{\mathsf{v}}
 \newcommand{\pe}{\mathsf{e}}
-\newcommand{\pc}{\mathsf{c}}
-\newcommand{\pp}{\dot{\mathsf{e}}}
 \newcommand{\pC}{\mathsf{C}}
 \newcommand{\pE}{\mathsf{E}}
 \newcommand{\Lam}[2]{\mathbf{\bar{\lambdaup}} #1. #2}
-\newcommand{\LLam}[3]{\lambda_{#1} #2. #3}
-\newcommand{\Lit}[1]{\llparenthesis #1 \rrparenthesis}
 \newcommand{\Let}[3]{\mathbf{let}~{#1}\nobreak=\nobreak{#2}~\mathbf{in}~{#3}}
 \newcommand{\Letn}[3]{\mathbf{let1}~{#1}\nobreak=\nobreak{#2}~\mathbf{in}~{#3}}
 \newcommand{\Letsmall}[3]{\mathbf{let}\,{#1}\!\!=\!\!{#2}\,\mathbf{in}\,{#3}}
-\newcommand{\Ifz}[3]{\mathbf{ifz}(#1,#2,#3)}
-\newcommand{\Ite}[3]{\mathbf{if}~#1~\mathbf{then}~#2~\mathbf{else}~#3)}
-\newcommand{\LLet}[4]{\mathbf{let}_{#1}~{#2}={#3}~\mathbf{in}~{#4}}
 \newcommand{\Case}[2]{\mathbf{case}~{#1}~\mathbf{of}~{#2}}
 \newcommand{\Sel}[1][]{\many{K~\many{\px} \rightarrow \pe_{#1}}}
 \newcommand{\SelArity}{\many{K~\many{\px}^{α_K} \rightarrow \pe}}
 \newcommand{\hole}{\square}
-\newcommand{\adom}{\mathop{\mathsf{adom}}}
 \newcommand{\dom}{\mathop{\mathsf{dom}}}
 \newcommand{\rng}{\mathop\mathsf{rng}}
 \newcommand{\fv}{\mathop\mathsf{fv}}
-\newcommand{\fa}{\mathop\mathsf{fa}}
-\newcommand{\bv}{\mathop\mathsf{bv}}
 \newcommand{\disjoint}{\mathbin{\#}}
 \newcommand{\delvar}[1]{{\setminus_{#1}}}
-\newcommand{\notfound}{\lightning}
 \newcommand{\bool}{\mathtt{bool}}
 \newcommand{\ttrue}{\mathtt{tt}}
 \newcommand{\ffalse}{\mathtt{ff}}
 \newcommand{\tick}{\checkmark}
-%% Events
-\newcommand{\Events}{\mathbb{Ev}}
-\newcommand{\ValueA}{\mathsf{val}}
-\newcommand{\BindE}{\mathsf{bind}}
-\newcommand{\BindOE}{\mathsf{bind1}}
-\newcommand{\LookupE}{\mathsf{look}}
-\newcommand{\UpdateE}{\mathsf{upd}}
-\newcommand{\AppIE}{\mathsf{app}_1}
-\newcommand{\AppEE}{\mathsf{app}_2}
-\newcommand{\CaseIE}{\mathsf{case}_1}
-\newcommand{\CaseEE}{\mathsf{case}_2}
-\newcommand{\TickE}{\mathsf{tick}}
-%% Labels
-\newcommand{\Labels}{\mathsf{Lab}}
-\newcommand{\lbl}{\ensuremath{\ell}}
-\newcommand{\lbln}[1]{\ensuremath{\ell_{#1}}}
-\newcommand{\slbl}{\raisebox{0.08em}{$\scriptstyle{\ell}$\;}}
-\newcommand{\slbln}[1]{\raisebox{0.1em}{$\;\scriptstyle{\ell_{#1}}\;$}}
-\newcommand{\atlbl}[1]{at(#1)}
 %% Traces
-\newcommand{\return}{\rotatebox[origin=c]{180}{$\hspace{0.7pt}\Rsh$}}
-\newcommand{\ITraces}{{\mathbb{T}^*}}
 \newcommand{\Traces}{\mathbb{T}}
-\newcommand{\act}[1]{\xrightarrow{#1}}
-\newcommand{\someend}[1]{\langle #1 \rangle}
-\newcommand{\goodend}[1]{\someend{#1}_{\checkmark}}
-\newcommand{\stuckend}{\lightning}
-\newcommand{\makestuck}[1]{\lightning(#1)}
-\newcommand{\cons}{\mathbin{::}}
-\newcommand{\lcons}{\mathbin{:>}}
-\newcommand{\laterC}{\mathop{\mathsf{L}}}
-\newcommand{\trend}{\raisebox{-0.8pt}{\scalebox{0.3}{$\square$}}}
-\newcommand{\betastep}{\mathbin{>\hspace{-0.40em}>\hspace{-0.48em}\text{β}\hspace{-0.40em}=}}
-\newcommand{\cont}{\mathit{cont}}
 \newcommand{\ctrl}{\mathit{ctrl}}
-\newcommand{\ret}{\mathit{ret}}
-\newcommand{\memo}{\mathit{memo}}
-\newcommand{\deref}{\mathit{deref}}
-\newcommand{\derefn}{\textit{deref-name}}
-\newcommand{\apply}{\mathit{apply}}
-\newcommand{\select}{\mathit{select}}
-\newcommand{\alts}{\mathit{alts}}
-\newcommand{\len}{\mathit{len}}
-\newcommand{\obs}{\mathit{obs}}
-\newcommand{\fin}{\mathsf{fin}}
-\newcommand{\dead}{\mathsf{dead}}
-\newcommand{\noalias}{\mathsf{noalias}}
-\newcommand{\ok}{\mathsf{ok}}
-\newcommand{\diverges}{\mathsf{div}}
-\newcommand{\replace}{\mathit{replace}}
 \newcommand{\inj}{\mathit{inj}}
-\newcommand{\card}{\mathit{card}}
 \newcommand{\usg}{\mathit{usg}}
-\newcommand{\byname}{\textit{by-name}}
-\newcommand{\intra}{\mathit{intra}}
-\newcommand{\ctx}{\mathit{ctx}}
-% https://latex.org/forum/viewtopic.php?p=62177&sid=26890ac77d076f3338384a47a2ffd4bc#p62177
-\makeatletter
-\newcommand{\concatop}[1]{%
-  \mathbin{\mathop{#1}\limits^{\vbox to -1\ex@{\kern-\tw@\ex@
-   \hbox{$\smallfrown$}\vss}}}}
-\makeatother
-\makeatletter
-\newcommand{\compop}[1]{%
-  \mathbin{\vec{\ooalign{$\circ$\cr\hidewidth$#1$\hidewidth}}}}
-\makeatother
-\newcommand{\concat}{\concatop{\cdot}}
-\newcommand{\fcomp}{\compop{\cdot}}
-\newcommand{\fcons}{\mathbin{\vec{::}}}
-\newcommand{\getval}[2]{#1 \Downarrow #2}
-\newcommand{\subtrceq}{\superimpose[\mathrel]{\clipbox{0pt 0pt {0.3\width} 0pt}{${\subset}$}}{\hspace{0.6ex}\cdot}}
-\newcommand{\rightsubtrceq}{\subtrceq_r}
-\newcommand{\leftsubtrceq}{\subtrceq_l}
-\newcommand{\stepm}[3]{\lceil #1 \act{#2} #3\trend \rceil}
-\newcommand{\step}[2]{\stepm{\wild}{#1}{#2}}
-\newcommand{\tell}[1]{\lceil #1 \rceil}
 \newcommand{\pcirc}{%
   \mathchoice
     {\mathbin{\ooalign{\hidewidth$\circ$\hidewidth\cr$\rightharpoonup$}}}% \displaystyle
@@ -213,34 +126,12 @@
 }
 
 %% Domains
-\newcommand{\FunV}{\mathsf{Fun}}
-\newcommand{\unFunV}{\mathsf{unFun}}
-\newcommand{\ConV}{\mathsf{Con}}
 \newcommand{\Environments}{\mathbb{E}}
-\newcommand{\Controls}{\mathbb{C}}
-\newcommand{\ProgramPoints}{\mathbb{P}}
 \newcommand{\Heaps}{\mathbb{H}}
 \newcommand{\Continuations}{\mathbb{K}}
 \newcommand{\Domain}[1]{{\mathbb{D}^{#1}}}
-\newcommand{\Values}[1]{{\mathbb{V}^{#1}}}
-\newcommand{\Base}[1]{\mathbf{#1}}
-\newcommand{\ApproxMap}[2]{\mathsf{Map}(#1,#2)}
-\newcommand{\FinStepMap}[2]{#1 \Rightarrow #2}
-\newcommand{\PrefD}{\Domain{*}}
-\newcommand{\EventD}{\Domain{ε}}
-\newcommand{\EventV}{\Values{ε}}
 \newcommand{\ScottD}{\Domain{\bot}}
-\newcommand{\AbsD}{\Domain{\raisebox{0.1em}{\scalebox{0.4}{$\square$}}}}
-\newcommand{\AbsCD}{\Domain{\raisebox{0.1em}{\scalebox{0.4}{c$\square$}}}}
-\newcommand{\StateD}{\Domain{σ}}
-\newcommand{\StateV}{\Values{\States}}
-\newcommand{\VanD}{\Domain{\laterC}}
-\newcommand{\VanV}{\Values{\laterC}}
 \newcommand{\UsgD}{\Domain{u}}
-\newcommand{\Look}{{\lceil \LookupE \rceil}}
-\newcommand{\LookD}{\Domain{\Look}}
-\newcommand{\LookTraces}{{\mathbb{T}^{\Look}}}
-\newcommand{\LookValues}{\Values{\Look}}
 \newcommand{\tr}{{\ensuremath{\tilde{ρ}}}}
 \newcommand{\tm}{{\ensuremath{\tilde{μ}}}}
 \newcommand{\ttau}{{\ensuremath{\tilde{τ}}}}
@@ -253,30 +144,6 @@
 \newcommand{\forcesto}{\ensuremath{\rightsquigarrow}}
 \newcommand{\forcessym}{\ensuremath{\leftrightsquigarrow}}
 \newcommand{\correct}{\mathcal{C}}
-\newcommand{\fincons}{\textsc{Fin-$\cons$}}
-\newcommand{\fingood}{\textsc{Fin-$\checkmark$}}
-\newcommand{\finstuck}{\textsc{Fin-$\stuckend$}}
-\newcommand{\eqlrcons}{\textsc{Eq-LR-$\cons$}}
-\newcommand{\eqlcons}{\textsc{Eq-L-$\cons$}}
-\newcommand{\eqrcons}{\textsc{Eq-R-$\cons$}}
-\newcommand{\eqstuck}{\textsc{Eq-$\stuckend{}$}}
-\newcommand{\eqfun}{\textsc{Eq-$\FunV$}}
-\newcommand{\eqcon}{\textsc{Eq-$\ConV$}}
-\newcommand{\eqheap}{\textsc{Eq-$\Heaps$}}
-\newcommand{\eqdenot}{\textsc{Eq-$\EventD$}}
-\newcommand{\implrcons}{\textsc{Imp-LR-$\cons$}}
-\newcommand{\implcons}{\textsc{Imp-L-$\cons$}}
-\newcommand{\imprcons}{\textsc{Imp-R-$\cons$}}
-\newcommand{\impstuck}{\textsc{Imp-$\stuckend{}$}}
-\newcommand{\impfun}{\textsc{Imp-$\FunV$}}
-\newcommand{\impcon}{\textsc{Imp-$\ConV$}}
-\newcommand{\impval}{\textsc{Imp-$\Values{}$}}
-\newcommand{\impheap}{\textsc{Imp-$\Heaps$}}
-\newcommand{\impdenot}{\textsc{Imp-$\Domain{}$}}
-\newcommand{\corcons}{\textsc{$\correct$-$\cons$}}
-\newcommand{\corstuck}{\textsc{$\correct$-$\stuckend{}$}}
-\newcommand{\corfun}{\textsc{$\correct$-$\FunV$}}
-\newcommand{\reducesto}[2]{\ensuremath{{#1} \leadsto {#2}}}
 
 % Math
 \newcommand{\pow}[1]{\wp(#1)}
@@ -285,7 +152,6 @@
 \DeclareMathSymbol{\bbquestionmark}{\mathpunct}{bbold}{"3F}
 \DeclareMathSymbol{\bblparen}{\mathpunct}{bbold}{"28}
 \DeclareMathSymbol{\bbrparen}{\mathpunct}{bbold}{"29}
-\DeclareMathSymbol{\bbpipe}{\mathpunct}{bbold}{"7C}
 \newcommand{\ternary}[3]{\mathop{\bblparen} #1 \mathrel{\bbquestionmark} #2 \mathrel{\bbcolon} #3 \mathop{\bbrparen}}
 
 % Order theory
@@ -301,20 +167,10 @@
 \newcommand{\denot}[1]{\llbracket {#1} \rrbracket}
 \newcommand{\semscott}[1]{\mathcal{S}_{\bot}\denot{#1}}
 \newcommand{\semsmall}[1]{\mathcal{S}_{\smallstep[\!]}\denot{#1}}
-\newcommand{\semevt}[1]{\mathcal{S}_{ε}\denot{#1}}
-\newcommand{\semst}[1]{\mathcal{S}_{σ}\denot{#1}}
-\newcommand{\semvan}[1]{\mathcal{S}_{\laterC}\denot{#1}}
-\newcommand{\semss}[1]{\mathcal{S}_{Σ}\denot{#1}}
 \newcommand{\semusg}[1]{\mathcal{S}_{u}\denot{#1}}
-\newcommand{\semcoll}[1]{\mathcal{S}_{\mathbb{C}}\denot{#1}}
-\newcommand{\sem}[1]{\mathcal{S}\denot{#1}}
 
 % Stateful
 \newcommand{\States}{\mathbb{S}}
-\newcommand{\VTraces}{{\mathbb{T}^{\laterC}}}
-\newcommand{\STraces}{\mathbb{S}^{\infty}}
-\newcommand{\sconcat}{\concatop{\hspace{0.04ex}\scalebox{0.5}{$\States$}}}
-\newcommand{\sfcomp}{\compop{\scalebox{0.25}{\raisebox{0.7em}{$\States$}}}}
 \newcommand{\pushF}{\cdot}
 \newcommand{\StopF}{\mathbf{stop}}
 \newcommand{\ApplyF}{\mathbf{ap}}
@@ -325,7 +181,6 @@
 \newcommand{\Addresses}{\mathsf{Addr}}
 \newcommand{\pa}{\mathsf{a}}
 \newcommand{\smallstep}[1][\hspace{1.5ex}]{\xhookrightarrow{#1}}
-\newcommand{\ssconcat}{\concatop{\hspace{0.04ex}\scalebox{0.5}{\Sigma}}}
 \newcommand{\AppIT}{\textsc{App}_1}
 \newcommand{\AppET}{\textsc{App}_2}
 \newcommand{\ValueT}{\textsc{Val}}
@@ -337,52 +192,3 @@
 \newcommand{\LetOT}{\textsc{Let}_0}
 \newcommand{\LetIT}{\textsc{Let}_1}
 \newcommand{\UnrollT}{\textsc{Unroll}}
-\newcommand{\validtrace}[1]{#1\,\mathsf{ok\text{-}}τ}
-\newcommand{\validtraceTriv}{\textsc{ok}_1}
-\newcommand{\validtraceTrans}{\textsc{ok}_2}
-\newcommand{\deep}[2]{#1\,\mathsf{deep}\,#2}
-\newcommand{\deepn}[3]{#2\,\mathsf{deep}^{#1}\,#3}
-\newcommand{\interior}[1]{#1\,\mathsf{inter}}
-\newcommand{\interiorn}[2]{#2\,\mathsf{inter}^{#1}}
-\newcommand{\maxtrace}[1]{#1\,\mathsf{max}}
-\newcommand{\maxtracen}[2]{#2\,\mathsf{max}^{#1}}
-\newcommand{\elabstate}[1]{#1\,\mathsf{elab}_σ}
-\newcommand{\elabtrace}[1]{#1\,\mathsf{elab}_τ}
-\newcommand{\elabtracen}[2]{#2\,\mathsf{elab}_τ^{#1}}
-\newcommand{\contextendsflipped}{⊑_\Continuations}
-\newcommand{\contextends}{⊒_\Continuations}
-\newcommand{\contextendsstrict}{⊐_\Continuations}
-
-% Liveness
-\newcommand{\lStacks}{\Stacks^l}
-\newcommand{\lLiveness}{\mathsf{Live}}
-\newcommand{\lS}{\pS^l}
-\newcommand{\lSBot}{\texttt{Seq}}
-\newcommand{\lSAp}[1]{\texttt{\$[$#1$]}}
-\newcommand{\lSTop}{\texttt{Deep}}
-\newcommand{\lAbs}{\texttt{Abs}}
-\newcommand{\lUsed}[1]{\texttt{Used[$#1$]}}
-\newcommand{\SVar}{\mathsf{SVar}}
-\newcommand{\SCall}{\mathsf{SCall}}
-
-% Types
-\newcommand{\TyCon}{\mathsf{TyCon}}
-\newcommand{\Type}{\mathsf{Type}}
-\newcommand{\ArrowTy}{\Rightarrow}
-
-% Side braces in a matrix, https://tex.stackexchange.com/q/443407
-\pgfkeys{tikz/mymatrixenv/.style={decoration={brace},every left delimiter/.style={xshift=8pt},every right delimiter/.style={xshift=-8pt}}}
-\pgfkeys{tikz/mymatrix/.style={matrix of math nodes,nodes in empty cells,column sep=2pt,row sep=2pt,nodes={minimum width=10pt,minimum height=10pt,anchor=west,inner sep=0pt,outer sep=0pt}}}
-\pgfkeys{tikz/mymatrixbrace/.style={decorate,thick}}
-\newcommand*\mymatrixbraceright[4][m]{
-    \draw[mymatrixbrace] (#1.west|-#1-#3-1.south west) -- node[left=2pt] {#4} (#1.west|-#1-#2-1.north west);
-}
-\newcommand*\mymatrixbraceleft[5]{
-    \draw[mymatrixbrace] (#1.east|-#2-#3-1.east) -- node[right=2pt] (#1) {#5} (#1.east|-#2-#4-1.east);
-}
-\newcommand*\mymatrixbracetop[4][m]{
-    \draw[mymatrixbrace] (#1.north-|#1-1-#2.north west) -- node[above=2pt] {#4} (#1.north-|#1-1-#3.north east);
-}
-\newcommand*\mymatrixbracebottom[4][m]{
-    \draw[mymatrixbrace] (#1.south-|#1-1-#2.north east) -- node[below=2pt] {#4} (#1.south-|#1-1-#3.north west);
-}

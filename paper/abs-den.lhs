@@ -63,14 +63,14 @@
 \else
 \usepackage[appendix=strip]{apxproof}
 \fi
-\usepackage{array} % \newcolumntype
+%\usepackage{array} % \newcolumntype
 \usepackage{ifdraft}
 \usepackage{cleveref}
 \usepackage{xspace}
 \usepackage{url}
 \usepackage{varwidth}
 \usepackage{galois}
-\usepackage{hsyl-listing} % listing style, hsyl-style
+%\usepackage{hsyl-listing} % listing style, hsyl-style
 %\usepackage{scalerel}
 %\usepackage[all]{xy}
 \usepackage{relsize} % relscale
@@ -81,17 +81,18 @@
 \usepackage{mathpartir} % inference rules
 \usepackage{subcaption}
 \usepackage{mathbbol} % \bbcolon and \bbquestionmark
-\usepackage{stmaryrd} % \lightning
-\usepackage{tikz}
-\usepackage{witharrows}
-\usetikzlibrary{cd} % commutative diagrams
-\usetikzlibrary{calc}
-\usetikzlibrary{fit}
-\usetikzlibrary{patterns}
-\usetikzlibrary{matrix}
-\usetikzlibrary{decorations.pathreplacing}
-\usetikzlibrary{decorations.pathmorphing}
-\usepackage{placeins} % flush floats with \FloatBarrier
+%\usepackage{stmaryrd} % \lightning
+%\usepackage{tikz}
+%\usepackage{witharrows}
+%\usetikzlibrary{cd} % commutative diagrams
+%\usetikzlibrary{calc}
+%\usetikzlibrary{fit}
+%\usetikzlibrary{patterns}
+%\usetikzlibrary{matrix}
+%\usetikzlibrary{decorations.pathreplacing}
+%\usetikzlibrary{decorations.pathmorphing}
+%\usetikzlibrary{profiler}
+%\usepackage{placeins} % flush floats with \FloatBarrier
 \usepackage[T1]{fontenc} % https://tex.stackexchange.com/a/181119
 
 \usepackage{utf8-symbols}
@@ -110,6 +111,8 @@
 \newcommand{\package}[1]{\textsf{#1}}
 \renewcommand{\commentbegin}{\ensuremath{\quad\Lbag\ }}
 \renewcommand{\commentend}{\ensuremath{\Rbag}}
+
+%\pgfprofilenewforenvironment{hscode}
 
 % Tables should have the caption above
 \floatstyle{plaintop}
