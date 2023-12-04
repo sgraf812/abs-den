@@ -16,7 +16,7 @@ import Data.Map (Map)
 import qualified Data.Map as Map
 import Data.Set (Set)
 import qualified Data.Set as Set
-import Data.List (find, foldl')
+import Data.List (foldl')
 import Text.Show (showListWith)
 import Data.Functor.Identity
 import Control.Applicative
