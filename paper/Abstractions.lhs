@@ -777,7 +777,8 @@ that the implementation of |Domain| can be synthesised using the approach of
 
 \subsection{Bonus: Higher-order Cardinality Analysis}
 
-TODO flesh out
+In the style of \citet{cardinality-ext}.
+\sg{Flesh out, move to Appendix or remove}
 
 < ghci> anyCtx "let i = λx.x in let j = λy.y in i j j"
 $\perform{anyCtx "let i = λx.x in let j = λy.y in i j j"}$
