@@ -66,7 +66,8 @@
 %format emp = "\varcolor{\epsilon}"
 %format ! = "\mathop{!}"
 %format (eval(a)(b)) = "\mathcal{S}\denot{" a "}_{" b "}"
-%format eval3(d)(a)(b) = "\mathcal{S}_{\{" d "\}}\denot{" a "}_{" b "}"
+%format (evalC(a)(b)) = "\mathcal{S}_{\mathcal{C}}\denot{" a "}_{" b "}"
+%format eval3(d)(a)(b) = "\mathcal{S}_{" d "}\denot{" a "}_{" b "}"
 %format ext(rho)(x)(d) = rho "[" x "\mapsto" d "]"
 %format exts(rho)(xs)(ds) = rho "[\many{" xs "\mapsto" ds "}]"
 %format << = "\pcirc"
@@ -85,6 +86,8 @@
 %format many(a) = "\many{" a "}"
 %format syn(dom)(d) = "{" dom " \mathbin{\vdash} " d "}"
 %format syne(dom)(env) = "{" dom " \mathbin{\dot{\vdash}} " env "}"
+%format Traces = "\Traces"
+%format Collecting = "\mathbb{C}"
 
 %format bottom = "\bot"
 %format d1
@@ -163,6 +166,7 @@
 %format av = "\varcolor{\widehat{v}}"
 %format ADict = "\widehat{\varid{Dict}}"
 %format (hat(a)) = "\widehat{" a "}"
+%format (dot(a)) = "\dot{" a "}"
 
 %%format ~ = "\,\sim\,"
 %%format bang = "!"

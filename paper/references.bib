@@ -983,3 +983,41 @@
   numpages = {30},
   keywords = {types, Haskell, functional programming, type classes}
 }
+
+@inproceedings{Spies:21,
+  author = {Spies, Simon and G\"{a}her, Lennard and Gratzer, Daniel and Tassarotti, Joseph and Krebbers, Robbert and Dreyer, Derek and Birkedal, Lars},
+  title = {Transfinite Iris: Resolving an Existential Dilemma of Step-Indexed Separation Logic},
+  year = {2021},
+  isbn = {9781450383912},
+  publisher = {Association for Computing Machinery},
+  address = {New York, NY, USA},
+  url = {https://doi.org/10.1145/3453483.3454031},
+  doi = {10.1145/3453483.3454031},
+  abstract = {Step-indexed separation logic has proven to be a powerful tool for modular reasoning about higher-order stateful programs. However, it has only been used to reason about safety properties, never liveness properties. In this paper, we observe that the inability of step-indexed separation logic to support liveness properties stems fundamentally from its failure to validate the existential property, connecting the meaning of existential quantification inside and outside the logic. We show how to validate the existential property—and thus enable liveness reasoning—by moving from finite step-indices (natural numbers) to transfinite step-indices (ordinals). Concretely, we transform the Coq-based step-indexed logic Iris to Transfinite Iris, and demonstrate its effectiveness in proving termination and termination-preserving refinement for higher-order stateful programs.},
+  booktitle = {Proceedings of the 42nd ACM SIGPLAN International Conference on Programming Language Design and Implementation},
+  pages = {80–95},
+  numpages = {16},
+  keywords = {Iris, step-indexing, transfinite, ordinals, liveness properties, Separation logic},
+  location = {Virtual, Canada},
+  series = {PLDI 2021}
+}
+
+@manual{iris-lecture-notes,
+  title = {Lecture Notes on Iris: Higher-Order Concurrent Separation Logic},
+  author = {Lars Birkedal and Aleš Bizjak},
+  year = {2023},
+  month = {August},
+  organization = {Aarhus University},
+  address = {Aarhus, Denmark},
+  note = {\url{https://iris-project.org/tutorial-pdfs/iris-lecture-notes.pdf}},
+}
+
+@article{Lamport:77,
+  author={Lamport, L.},
+  journal={IEEE Transactions on Software Engineering},
+  title={Proving the Correctness of Multiprocess Programs},
+  year={1977},
+  volume={SE-3},
+  number={2},
+  pages={125-143},
+  doi={10.1109/TSE.1977.229904}}

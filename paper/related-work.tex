@@ -113,6 +113,23 @@ such as $\semusg{\wild}$ viz-à-viz abstractions of reachabe states. Of course,
 this work has not provided a tunable abstraction recipe like AAM, so such a
 comparison is presently impossible.
 
+
+% These assumptions could perhaps be encoded in a dependently-typed language
+% by formulating |eval| as an open recursive function, refining the type of
+% |fun| to |fun :: Σ (D -> D) φ -> D| (we did something similar in
+% \Cref{sec:totality} for the Agda encoding) and deriving the free theorem for
+% that function.
+% The recursion could then be closed with guarded/Löb |fix| after the fact.
+% In general, we could do this refinement for all type class operations,
+% reflecting ever more information from the definition of |eval| into its type;
+% the |φ| would thus enumerate all syntactic use sites of |fun|.
+% At this point, the use of parametricity to conclude the soundness proof is not
+% too different from writing a custom tactic for a theorem prover.
+% Alas, parametricity is hard to use without a tool verifying correct extraction
+% of theorems, so we prove the below lemma by hand.
+% However, parametricity is a strong argument that our approach can easily be
+% generalised to other denotational interpreters.
+
 % TODO: Compare the Speculate and Postpone properties to the frame rule of
 % separation logic
 

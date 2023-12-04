@@ -214,6 +214,7 @@
 %\input{problem.tex}
 %include Interpreter.lhs
 %include Abstractions.lhs
+%include Adequacy.lhs
 %include Soundness.lhs
 %\input{vanilla.tex}
 %\input{essence.tex}
