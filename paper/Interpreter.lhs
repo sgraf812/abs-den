@@ -353,13 +353,9 @@ We will revisit this curious generalisation in \Cref{fig:abstractions} where we
 consider abstract interpretations that \emph{summarise} a |D| in different ways
 depending on the |Domain| instance.
 
-\todo{Discuss laws; for concrete instances we have |stuck >>= _ = stuck| (a zero
-of the monad) and of course (more interestingly) |apply (fun f) d = fun f >> f d|,
-|apply (con k ds) d = con k ds >> stuck|, etc.}
-
-The omitted definition for |select| finds the |alt| in |alts| that matches the
-|Tag| of the |Con| value |v| and applies said |alt| to the field denotations of
-|v|; failure to perform any of these steps results in |stuck|.%
+The definition for |select| finds the |alt| in |alts| that matches the |Tag|
+of the |Con| value |v| and applies said |alt| to the field denotations of |v|;
+failure to perform any of these steps results in |stuck|.%
 \footnote{We extract from this document a runnable Haskell file which we add as
 a Supplement, containing the complete definitions.
 Furthermore, the (terminating) interpreter outputs are directly generated from
