@@ -79,7 +79,7 @@ Proving such a statement is the goal of the following subsections, although we
 deviate from the above in the following ways:
 (1) |eval3 Traces| and |eval3 (hat D)| are in fact different type class
 instantiations of the same denotational interpreter |eval| from
-\Cref{sec:interpreter}, thus both functions share a lot of common structure.
+\Cref{sec:interp}, thus both functions share a lot of common structure.
 (2) The Galois connection is completely determined by type class instances, even
 for infinite traces.
 (3) It turns out that we need to syntactically restrict the kind
@@ -96,8 +96,6 @@ The soundness proof for usage analysis \wrt by-name semantics thus fits on the
 back of an envelope.
 
 \subsection{Guarded Fixpoints, Safety Properties and Safety Extension of a Galois Connection}
-\sg{Also reconcile with the Transfinite Iris approach, where Step-indexing is
-extended to show liveness properties. \eg, löb only supports safety}
 
 Suppose for a second that we were only interested in the trace component of our
 semantic domain, thus effectively restricting ourselves to
@@ -105,13 +103,13 @@ $\Traces \triangleq |T ()|$, and that we were to approximate properties $P ∈
 \pow{\Traces}$ about such traces by a Galois connection
 $(\pow{\Traces},⊆) \galois{α}{γ} (|hat D|, ⊑)$.
 Alas, although the abstraction function |α| is well-defined as a mathematical
-function, it most certainly is \emph{not} computable at infinitary inputs (in
+function, it most certainly is \emph{not} computable at infinite inputs (in
 $\Traces^{\infty}$), for example at
 |fix (Step (Lookup x)) = Step (Lookup x) (Step (Lookup x) ...)|!
 
-Computing such |α| is of course inacceptable for a \emph{static} analysis.
-Usually this is resolved by approximating the fixpoint in the abstract by
-the least fixpoint of the abstracted iteratee, \eg, |lfp (α  . Step (Lookup x) . γ)|.
+Computing with such an |α| is of course inacceptable for a \emph{static} analysis.
+Usually this is resolved by approximating the fixpoint by the least fixpoint of
+the abstracted iteratee, \eg, |lfp (α . Step (Lookup x) . γ)|.
 It is however not the case that this yields a sound approximation of infinite
 traces for \emph{arbitrary} trace properties.
 A classic counterexample is the property
@@ -194,10 +192,12 @@ least fixpoints:
 \label{thm:guarded-fixpoint-abstraction}
 Let |hat D| be a domain with instances for |Trace| and
 |Lat|, and let $(\pow{\Traces},⊆) \galois{α}{γ} (|hat D|, ⊑)$ a Galois
-connection extended to infinite traces via safety extension.
+connection extended to infinite traces via \Cref{thm:safety-extension}.
 Then, for any guarded iteratee |f :: Later Traces -> Traces|,
-$|α|(\{ |fix f| \}) ⊑ |lfp (α . powMap f . γ)|$, where |lfp (hat f)| denotes
-(the least) fixpoint of |hat f| and |powMap f :: pow (Later Traces) -> pow
+\[
+  |α|(\{ |fix f| \}) ⊑ |lfp (α . powMap f . γ)|,
+\]
+where |lfp (hat f)| denotes (the least) fixpoint of |hat f| and |powMap f :: pow (Later Traces) -> pow
 Traces| is the lifting of |f| to powersets.
 \end{lemmarep}
 \begin{proof}
@@ -232,8 +232,8 @@ for clients to be able to conduct their proofs.
 
 As we are getting closer to the point where we reason about idealised,
 total Haskell code, it is important to nail down how Galois connections are
-represented ``in code'', and how we construct them.
-Following \citet[Section 4.3]{Nielson:99}, every representation function
+represented ``in Haskell'', and how we construct them.
+Following \citet[Section 4.3]{Nielson:99}, every \emph{representation function}
 |β :: a -> b| into a partial order yields a Galois connection between $(|Pow
 a|,⊆)$ and $(|b|,⊑)$:
 \begin{code}
@@ -262,13 +262,14 @@ in the ``recursive case'' and the second one applies to (the powerset over)
 Every |d :: EnvD (ByName T)| is of the form |Step (Lookup x) (eval e ρ)| for
 some |x|, |e|, |ρ|, characterising domain elements that end up in an
 environment or are passed around as arguments or in fields.
-We have seen similar characterisations in \Cref{sec:adequacy} in the Agda
-encoding and |αEnv|.
+We have seen a similar characterisation in the Agda encoding of
+\Cref{sec:adequacy}.
 The distinction between |αD| and |αE| will be important for proving that
-evaluation improves trace abstraction.
+evaluation improves trace abstraction, a necessary auxiliary lemma for
+\Cref{thm:soundness-by-name}.
 
-We utilise this trace abstraction combinator to define |byName| abstraction as
-its fixpoint:
+We utilise the |trace| combinator to define |byName| abstraction as its
+(guarded) fixpoint:
 \begin{code}
 env :: (Trace d, Domain d, HasBind d, Lat d) => GC (Pow (EnvD (D (ByName T)))) (EnvD d)
 env = untyped (repr β where β (Step (Lookup x) (eval e ρ)) = step (Lookup x) (eval e (β << ρ)))
@@ -279,7 +280,7 @@ byName = (α . powMap unByName) :<->: (powMap ByName . γ) where α :<->: γ = t
 There is a need to clear up the domain and range of |env|.
 Since its domain is sets of elements from |EnvD (D (ByName T))|, its range
 |EnvD d| looks like the (possibly infinite) join over abstracted elements that
-|look like step (Lookup x) (eval e (β << ρ))| for some |x|,|e|,|ρ|.
+look like |step (Lookup x) (eval e (β << ρ))| for some |x|,|e|,|ρ|.
 Although we have ``sworn off'' operational semantics for abstraction, we still
 rely on syntax to structure the vast semantic domain in this way, thus working
 around matters of full abstraction~\citep{Plotkin:77}.
@@ -438,6 +439,7 @@ By Löb induction and cases on |e|, using the representation function
 We can finally prove the following soundness theorem:
 
 \begin{theoremrep}[Sound By-name Interpretation]
+\label{thm:soundness-by-name}
 Let |hat D| be a domain with instances for |Trace|, |Domain|, |HasBind| and
 |Lat|, and let |αD :<->: γD := byName|, |αE :<->: γE := env|.
 If the soundness lemmas in \Cref{fig:by-name-soundness-lemmas} hold,
@@ -620,10 +622,10 @@ soundness statement is that many soundness lemmas, such as
 |αD (step ev d) ⊑ step ev (αD d)| or |αD (fun f) ⊑ fun (αD . f . γE)|
 follow by definition.
 
-To show that this decomposition into 11 remaining lemmas is useful, we will now
-bring the soundness proof for Usage Analysis \emph{in full}:
+To show that the decomposition into 11 remaining lemmas is useful, we will now
+bring the soundness proof for usage analysis, \emph{in full}:
 
-\begin{theorem} Usage Analysis as implemented by |UD| in \Cref{fig:abs-usg}
+\begin{theorem} Usage analysis as specified by |UD| in \Cref{fig:abs-usg}
 is sound \wrt |D (ByName T)|, that is,
 \[
   |αD (eval e ρ :: Pow (D (ByName T))) ⊑ (eval e (αE << ρ) :: UD) where αD :<->: _ = byName; αE :<->: _ = env|
