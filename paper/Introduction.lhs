@@ -1,3 +1,7 @@
+%if style == newcode
+> module Introduction where
+%endif
+
 \section{Introduction}
 \label{sec:introduction}
 
