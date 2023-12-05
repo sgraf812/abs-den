@@ -61,7 +61,7 @@
 \ifappendix
 \usepackage[appendix=inline]{apxproof}
 \else
-\usepackage[appendix=strip]{apxproof}
+\usepackage[appendix=append]{apxproof}
 \fi
 %\usepackage{array} % \newcolumntype
 \usepackage{ifdraft}
