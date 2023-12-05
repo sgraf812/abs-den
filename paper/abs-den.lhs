@@ -210,7 +210,7 @@
 
 \maketitle
 
-\input{intro.tex}
+%include Introduction.lhs
 \input{problem.tex}
 %include Interpreter.lhs
 %include Abstractions.lhs
