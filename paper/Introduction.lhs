@@ -6,23 +6,23 @@ as ``this program is well-typed'', ``this higher-order function is always called
 with argument $\Lam{x}{x+1}$'' or ``this program never evaluates $x$''.
 In a functional-language setting, such static analyses are
 often defined by \emph{structural recursion} on the input term.
-In the application case, this recursion must produce a \emph{summary}
-for the function to be applied (\ie, |Int -> Bool|), and then apply that
-summary to produce an abstraction (|Bool|) that is sound for the particular
-argument (of type |Int|).
+In the application case (\ie, ``is |even 42| well-typed?''), this
+recursion must produce a \emph{summary} for the function to be applied
+(|even :: Int -> Bool|), and then apply that summary to produce an abstraction
+that is sound for the particular argument (|42 :: Int|).
 Function summaries play a crucial role in achieving modular higher-order
 analyses, because it is much more efficient to apply the summary of a function
-instead of reanalysing its definition across modules.
+instead of reanalysing its definition at use sites in other modules.
 
-To prove the analysis correct with respect to the language semantics,
-it is much easier if the semantics is also defined by structural recursion,
-as is the case for a \emph{denotational semantics}~\citep{ScottStrachey:71};
-then the denotational semantics and the static analysis
-``line up'' and the correctness proof is relatively straightforward.
+To prove the analysis correct, it is favorable to pick a language semantics that
+is also defined by structural recursion, as is the case for a \emph{denotational
+semantics}~\citep{ScottStrachey:71}; then the denotational semantics and the
+static analysis ``line up'' and the correctness proof is relatively
+straightforward.
 Indeed, one can often break up the proof into manageable subgoals by regarding
 the analysis as an \emph{abstract interpretation} of the denotational
-semantics~\citep{Cousot:21}, particularly when the analysis shares structure
-with the semantics.
+semantics~\citep{Cousot:21}, particularly when the abstract operations of the
+analysis correspond to concrete operations in the semantics.
 
 Alas, traditional denotational semantics does not model operational details --
 but those details might be the whole point of the analysis.
@@ -40,8 +40,9 @@ Now we have two unappealing alternatives:
   reachable states of an operational semantics.
   This is the essence of \emph{Abstracting Abstract Machines} (AAM) \cite{aam}
   recipe.
-  A very fruitful approach, but one that is not summary-based and thus
-  non-modular; in contrast to a type analysis.
+  A very fruitful approach, but one that is not summary-based, hence
+  non-modular, possibly less efficient and less precise; in contrast to type
+  analysis.
 \end{itemize}
 
 Recent years have seen successful applications of the AAM recipe to big-step
@@ -65,14 +66,13 @@ We make the following contributions:
   between the semantics and the analysis (\Cref{sec:problem}).
 \item \Cref{sec:interp} walks through the structural definition of our shared
   denotational interpreter and its type class algebra in Haskell.
-  Since our object language is in A-normal form, we illustrate the ease with
-  which it is possible to endow it with call-by-name, variants of call-by-need,
-  and even variants of call-by-value evaluation strategies via different type
-  class instances, in most cases leading to a definition producing abstractions
-  of small-step traces.
-\item In the AAM spirit, our denotational interpreter can also be
-  instantiated at more \emph{abstract} semantic domains.
-  \Cref{sec:abstractions} gives three examples, covering a wide range of
+  We demonstrate the ease with which different instances of our interpreter
+  endow our object language with call-by-name, variants of call-by-need, and
+  variants of call-by-value evaluation strategies, producing (abstractions of)
+  small-step traces.
+\item In the AAM spirit, our denotational interpreter can also be instantiated
+  at more \emph{abstract} semantic domains.
+  \Cref{sec:abstractions} gives three examples, covering a wide span of
   applications: Type analysis, usage analysis and 0CFA control-flow analysis.
   The former two have interesting summary mechanisms that our framework
   expresses in a natural way.
