@@ -26,7 +26,7 @@
 %\acmSubmissionID{popl24main-p11-p}
 \acmJournal{PACMPL}
 \acmVolume{1}
-\acmNumber{POPL}
+\acmNumber{ICFP}
 \acmArticle{1}
 \acmMonth{1}
 
@@ -125,7 +125,7 @@
 \setlength{\pdfpagewidth}{\paperwidth}
 
 \title{Abstracting Denotational Interpreters}
-%\subtitle{Or: Denotational Interpreters}
+\subtitle{A Pattern for Sound, Modular and Higher-order Program Analysis}
 
 \author{Sebastian Graf}
 \affiliation{%
