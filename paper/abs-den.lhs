@@ -80,10 +80,10 @@
 \usepackage{trimclip} % clipbox
 \usepackage{mathpartir} % inference rules
 \usepackage{subcaption}
+\usepackage{witharrows}
 \usepackage{mathbbol} % \bbcolon and \bbquestionmark
 %\usepackage{stmaryrd} % \lightning
 %\usepackage{tikz}
-%\usepackage{witharrows}
 %\usetikzlibrary{cd} % commutative diagrams
 %\usetikzlibrary{calc}
 %\usetikzlibrary{fit}

@@ -414,7 +414,7 @@ Let us warm up by defining a length function on traces:
       to |Z| under |len|.
     \item \textbf{Case |S (idiom m)|}: Then the
       first case of $α_\States$ applies, hence $τ = σ \cons τ^{\later}$ for some
-      $σ∈\States, τ^{\later}∈\later \VTraces$.
+      $σ∈\States, τ^{\later}∈\later \STraces$.
       Now we apply the inductive hypothesis, as follows:
       Let $(σ_{i+1})_{i∈\overline{m}} ∈ \later \STraces$ be the guarded
       tail of the LK trace $(σ_i)_{i∈\overline{n}}$.

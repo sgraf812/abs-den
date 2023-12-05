@@ -71,6 +71,9 @@
 \newcommand{\later}{{\mathop{\vcenter{\hbox{$\scriptscriptstyle\blacktriangleright$}}}}}
 \newcommand{\purelater}{\mathop{\mathsf{next}}}
 \newcommand{\aplater}{\mathbin{\circledast}}
+\newcommand{\lBrace}{{\{\hspace{-0.22em}\mid}}
+\newcommand{\rBrace}{{\mid\hspace{-0.22em}\}}}
+\DeclarePairedDelimiter\idiom{\lBrace}{\rBrace}
 \newcommand{\formgoal}[2]{%
 \vspace{0.5\baselineskip}
 \noindent
@@ -112,8 +115,11 @@
 \newcommand{\ttrue}{\mathtt{tt}}
 \newcommand{\ffalse}{\mathtt{ff}}
 \newcommand{\tick}{\checkmark}
+%% Events
+\newcommand{\Events}{\mathbb{Ev}}
 %% Traces
 \newcommand{\Traces}{\mathbb{T}}
+\newcommand{\cons}{\mathbin{::}}
 \newcommand{\ctrl}{\mathit{ctrl}}
 \newcommand{\cont}{\mathit{cont}}
 \newcommand{\inj}{\mathit{inj}}
