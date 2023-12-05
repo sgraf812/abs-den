@@ -1,3 +1,7 @@
+%if style == newcode
+> module Problem where
+%endif
+
 \section{Problem Statement}
 \label{sec:problem}
 
@@ -430,7 +434,7 @@ usage cardinality.}
 
 \begin{figure}
 \[\begin{array}{c}
- \begin{array}{rrclcl@{\hspace{1.5em}}rrcrclcl}
+ \begin{array}{rrclcl@@{\hspace{1.5em}}rrcrclcl}
   \text{Addresses}     & \pa & ∈ & \Addresses     & \simeq & ℕ
   &
   \text{States}        & σ   & ∈ & \States        & =      & \Exp \times \Environments \times \Heaps \times \Continuations
@@ -448,7 +452,7 @@ usage cardinality.}
 \newcolumntype{R}{>{$}r<{$}} % math-mode version of "r" column type
 \newcolumntype{C}{>{$}c<{$}} % math-mode version of "c" column type
 \resizebox{\textwidth}{!}{%
-\begin{tabular}{LR@{\hspace{0.4em}}C@{\hspace{0.4em}}LL}
+\begin{tabular}{LR@@{\hspace{0.4em}}C@@{\hspace{0.4em}}LL}
 \toprule
 \text{Rule} & σ_1 & \smallstep & σ_2 & \text{where} \\
 \midrule

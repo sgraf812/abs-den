@@ -211,7 +211,7 @@
 \maketitle
 
 %include Introduction.lhs
-\input{problem.tex}
+%include Problem.lhs
 %include Interpreter.lhs
 %include Abstractions.lhs
 %include Adequacy.lhs
