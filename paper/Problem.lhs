@@ -32,71 +32,13 @@ are restricted to be variables, so the difference between call-by-name and
 call-by-value manifests purely in the semantics of $\mathbf{let}$.
 Note that $\Lam{x}{x}$ denotes syntax, whereas $\fn{x}{x+1}$ denotes a function
 in math.
-In this section, only the highlighted parts are relevant; we will
-discuss data types in \Cref{sec:vanilla}.
+In this section, only the highlighted parts are relevant, but the interpreter
+definition in \Cref{sec:interp} supports data types as well.
 From hereon throughout, we assume that all bound program variables
 are distinct.
 
-We give a standard call-by-name denotational semantics $\semscott{\wild}$ in
-\Cref{fig:denotational} \citep{ScottStrachey:71}, assigning meaning to our
-syntax by means of the Scott domain $\ScottD$ defined in
-\Cref{fig:dom-syntax}.%
-\footnote{The Scott domain $\ScottD$ is the least fixpoint of the functional $F(X)
-= [X \to_c X]_\bot$, where $[X \to_c X]_\bot$ is
-the topology of Scott-continuous endofunctions on $X$ together with a distinct least
-element $\bot$.}
-
-\Cref{fig:usage} defines a static \emph{usage analysis}.
-The idea is that $\semusg{\pe}_{ρ}$ is a function $d ∈ \UsgD$ whose domain
-is the free variables of $\pe$; this function maps each free variable $\px$ of
-$\pe$ to its \emph{usage cardinality} $u ∈ \Usg$, an upper bound on the
-number of times that $\px$ will be evaluated when $\pe$ is evaluated (regardless
-of context).
-Thus, $\Usg$ is equipped with a total order that corresponds to the inclusion
-relation of the denoted interval of cardinalities:
-$\bot = 0 ⊏ 1 ⊏ ω = \top$, where $ω$ denotes \emph{any} number of evaluations.
-This order extends pointwise to a partial ordering on $\UsgD$, so $d_1 ⊑
-d_2$ whenever $d_1(\px) ⊑ d_2(\px)$, for all $\px$ and $\bot_{\UsgD} =
-\constfn{\bot_\Usg}$.
-We will often leave off the subscript of, \eg, $\bot_\UsgD$ when it can be
-inferred from context.
-
-So, for example $\semusg{x+1}_{ρ}$ is a function mapping $x$ to 1
-and all other variables to 0 (for a suitable $ρ$ that we discuss in due course).
-Any number of uses beyond $1$, such as $2$ for $x$ in $\semusg{x+x}_{ρ}$, are
-collapsed to $d(x) = ω$.
-Similarly $\semusg{\Lam{v}{v+z}}_{\rho}$
-maps $z$ to $\omega$, since the lambda might be called many times.
-
-For open expressions, we need a way to describe the denotations of its
-free variables with a \emph{usage environment}\footnote{
-Note that we will occassionally adorn with \textasciitilde{} to disambiguate
-elements of the analysis domain from the semantic domain.}
-$\tr ∈ \Var \to \UsgD$.
-Given a usage environment $\tr$, $\tr(\px)(\py)$ models an upper bound
-on how often the expression bound to $\px$ evaluates $\py$.
-
 \begin{figure}
-\begin{minipage}{\textwidth}
-\[\begin{array}{c}
- \arraycolsep=3pt
- \begin{array}{rrclcl}
-  \text{Scott Domain}      &  d & ∈ & \ScottD & =   & [\ScottD \to_c \ScottD]_\bot \\
-  \text{Usage cardinality} &  u & ∈ & \Usg & =   & \{ 0, 1, ω \} \\
-  \text{Usage Domain}      &  d & ∈ & \UsgD & =   & \Var \to \Usg \\
- \end{array} \quad
- \begin{array}{rcl}
-   (ρ_1 ⊔ ρ_2)(\px) & = & ρ_1(\px) ⊔ ρ_2(\px) \\
-   (ρ_1 + ρ_2)(\px) & = & ρ_1(\px) + ρ_2(\px) \\
-   (u * ρ_1)(\px)   & = & u * ρ_1(\px) \\
- \end{array}
- \\[-0.5em]
-\end{array}\]
-\subcaption{Syntax of semantic domains}
-  \label{fig:dom-syntax}
-\newcommand{\scalefactordenot}{0.92}
-\scalebox{\scalefactordenot}{%
-\begin{minipage}{0.49\textwidth}
+\begin{minipage}[t]{0.48\textwidth}
 \arraycolsep=0pt
 \[\begin{array}{rcl}
   \multicolumn{3}{c}{ \ruleform{ \semscott{\wild}_{\wild} \colon \Exp → (\Var \to \ScottD) → \ScottD } } \\
@@ -114,70 +56,181 @@ on how often the expression bound to $\px$ evaluates $\py$.
       \text{in}         & \semscott{\pe_2}_{ρ'}
     \end{letarray} \\
 \end{array}\]
-\subcaption{\relscale{\fpeval{1/\scalefactordenot}} Denotational semantics after Scott}
+\caption{Denotational semantics after Scott}
   \label{fig:denotational}
 \end{minipage}%
 \quad
-\begin{minipage}{0.56\textwidth}
+\begin{minipage}[t]{0.48\textwidth}
 \arraycolsep=0pt
-\[\begin{array}{rcl}
-  \multicolumn{3}{c}{ \ruleform{ \semusg{\wild}_{\wild} \colon \Exp → (\Var → \UsgD) → \UsgD } } \\
+\[\begin{array}{c}
+  \ruleform{ \dead{Γ}{\pe} }
+  \\ \\[-0.5em]
+  \inferrule[\textsc{Var}]{\px ∈ Γ}{\dead{Γ}{\px}}
+  \quad
+  \inferrule[\textsc{App}]{\dead{Γ}{\pe \quad \px ∈ Γ}}{\dead{Γ}{\pe~\px}}
+  \quad
+  \inferrule[\textsc{Lam}]{\dead{Γ, \px}{\pe}}{\dead{Γ}{\Lam{\px}{\pe}}}
+  \\ \\[-0.5em]
+  \inferrule[$\textsc{Let}_1$]{\dead{Γ, \py}{\pe_1} \quad \dead{Γ, \py}{\pe_2}}{\dead{Γ}{\Let{\py}{\pe_1}{\pe_2}}}
+  \quad
+  \inferrule[$\textsc{Let}_2$]{\dead{Γ}{\pe_2}}{\dead{Γ}{\Let{\py}{\pe_1}{\pe_2}}}
   \\[-0.5em]
-  \semusg{\px}_ρ & {}={} & ρ(\px) \\
-  \semusg{\Lam{\px}{\pe}}_ρ & {}={} & ω*\semusg{\pe}_{ρ[\px ↦ \bot]} \\
-  \semusg{\pe~\px}_ρ & {}={} & \semusg{\pe}_ρ + ω*ρ(\px)
-    \phantom{\begin{cases}
-       f(ρ(\px)) & \text{if $\semusg{\pe}_ρ = f$}  \\
-       \bot      & \text{otherwise}  \\
-     \end{cases}} \\
-  \semusg{\Letsmall{\px}{\pe_1}{\pe_2}}_ρ& {}={} & \begin{letarray}
-      \text{letrec}~ρ'. & ρ' = ρ \mathord{⊔} [\px \mathord{↦} d_1] \\
-                        & d_1 = [\px\mathord{↦}1] \mathord{+} \semusg{\pe_1}_{ρ'} \\
-      \text{in}         & \semusg{\pe_2}_{ρ'}
-    \end{letarray}
 \end{array}\]
-\subcaption{\relscale{\fpeval{1/\scalefactordenot}} Naïve usage analysis}
-  \label{fig:usage}
+\caption{Modular deadness analysis}
+  \label{fig:deadness}
 \end{minipage}
-}
-\end{minipage}
-  \label{fig:intro}
-\vspace{-0.75em}
-\caption{Connecting usage analysis to denotational semantics}
 \end{figure}
 
-We say that $\px$ is \emph{dead} in an element $d ∈ \UsgD$ whenever
-$d(\px) = 0$, and otherwise that $\px$ is \emph{potentially live} in $d$.
-Let us call
+We give a standard call-by-name denotational semantics $\semscott{\wild}$ in
+\Cref{fig:denotational} \citep{ScottStrachey:71}, assigning meaning to our
+syntax by means of the Scott domain $\ScottD$ defined as
 \[
-  \tr_Δ(\px) \triangleq \fn{\py}{\ternary{\px = \py}{1}{0}}
+ \arraycolsep=3pt
+ \begin{array}{rrclcl}
+  \text{Scott Domain}      &  d & ∈ & \ScottD & =   & [\ScottD \to_c \ScottD]_\bot, \\
+ \end{array}
 \]
-the ``diagonal'' usage environment, assigning each free variable $\px$ a unique
-meaning in terms of a denotation that evaluates $\px$ once and nothing else.
-Then we will say that $\px$ is dead in $\pe$ whenever it is
-dead in $\semusg{\pe}_{\tr_Δ}$, \ie, $\semusg{\pe}_{\tr_Δ}(\px) = 0$.
-In this way, $\semusg{\wild}$ can be used to infer facts of the form ``$\pe$
-never evaluates $\px$'' from the introduction.
-When $d(\px) ⊐ 0$ we say that $\px$ is \emph{potentially live} in $\pe$.
+where $[X \to_c X]_\bot$ is
+the topology of Scott-continuous endofunctions on $X$ together with a distinct
+least element $\bot$, and the equation is to be interpreted as the least
+fixpoint of the implied functional.
 
-Note that the usage analysis is naïve in its treatment of function application:
-It assumes that that every function deeply evaluates its argument.
-Whenever $x$ is potentially live in $\tr(y)$,
-%(which is encoded as $\tr(x) ⊑
-%\tr(y)$ in the $\mathbf{let}$ case of $\semusg{\wild}$),
-the analysis will report that $x$ is potentially live in $(f~y)$,
-regardless of whether $f$ evaluates its argument \emph{at all}.
-In turn, the analysis assumes in the lambda case that liveness of the argument
-has been accounted for in the application case,
-hence the lambda-bound variable is dead in any variable and denoted by $\bot$ in
-the extended $\tr$.
-The result is that $\semusg{x + \Lam{y}{y}~z}_{\tr_Δ}(x) = 1$, because $x$ is never
-passed as an argument to the lambda.
+\Cref{fig:deadness} defines a static \emph{deadness analysis}.
+Inuitively, when $\dead{Γ}{\pe}$ is derivable and no variable in $Γ$ evaluates
+$\px$, then $\px$ is dead in $\pe$, \eg, what value is bound to $\px$ is
+irrelevant to the value of $\pe$.
+The context $Γ$ can be thought of as the set of assumptions (variables
+that $\px$ is assumed dead in); the larger $Γ$ is, the more statements are
+derivable.
+Thus, a decision algorithm would always pick the largest permissible $Γ$,
+which is used in the \textsc{Var} case to prove deadness of open terms.
+Rules $\textsc{Let}_1$ and $\textsc{Let}_2$ handle the case where $\px$ can
+be proven dead in $\pe_1$ or not, respectively; in the former case,
+the let-bound variable $\py$ may be added to the context when analysing $\pe_2$.
+Otherwise, evaluating $\py$ might transitively evaluate $\px$ and hence $\py$ is
+not added to the context in $\textsc{Let}_2$.
 
-You might be convinced now that although the definition of this analysis is
-rather simple and the results it finds are rather imprecise, it is already
-quite tricky in detail.
-A proof of its correctness is in order.
+Note that although the formulation of deadness analysis is so simple, it is
+\emph{not} entirely naïve:
+Because it is defined by structural recursion, its treatment of function
+application makes use of a summary mechanism, with the hidden assumption
+that every function deeply evaluates its argument.
+Whenever $x \not∈ Γ$, $\dead{Γ}{f~x}$ is not derivable by the \textsc{App}
+rule, even though $f$ might be dead in its argument.
+On the other hand, rule \textsc{Lam} may in turn assume that any argument it
+receives is dead, hence it adds the lambda-bound variable to the context.
+We can formalise the summary mechanism with the following \emph{substitution
+lemma} (where context extension $Γ[\px↦Γ(\py)]$ adds $\px$ to $Γ$ if and
+only if $\py ∈ Γ$):%
+\footnote{All proofs can be found in the Appendix; in case of the extended
+version via clickable links.}
+
+\begin{lemmarep}[Substitution]
+If $\dead{Γ}{(\Lam{\px}{\pe})~\py}$ then $\dead{Γ[\px↦Γ(\py)]}{\pe}$.
+\end{lemmarep}
+\begin{proof}
+  By cases on whether $\py ∈ Γ$.
+  \begin{itemize}
+    \item \textbf{Case }$\py ∈ Γ$:
+      Then the assumption has a sub-derivation for $\dead{Γ,\px}{\pe}$, showing
+      the goal.
+    \item \textbf{Case }$\py \not∈ Γ$:
+      The last applicable rule must have been \textsc{App},
+      so we have $\py ∈ Γ$, contradiction.
+  \end{itemize}
+\end{proof}
+
+The substitution lemma is instrumental in proving deadness analysis correct in
+terms of semantic irrelevance, as in the following theorem:
+
+\sg{TODO: Update the proof}
+\begin{theoremrep}[Correct deadness analysis]
+  \label{thm:deadness-correct}
+  If $\dead{Γ}{\pe}$ and $\px \not∈ Γ$,
+  then $\semscott{\pe}_{ρ[\px↦d_1]} = \semscott{\pe}_{ρ[\px↦d_2]}$.
+\end{theoremrep}
+\begin{proof}
+  By induction on $\pe$, generalising $\tr_Δ$ in the assumption
+  $\semusg{\pe}_{\tr_Δ}(\px) = 0$ to ``there exists a $\tr$
+  such that $\tr(\px) \not⊑ \semusg{\pe}_{\tr}$''.
+ \slpj{That is indeed a tricky statement.  What is the intuition?  Do you mean
+    that this has to be true for \emph{every} $\tr$?  Or that $\px$ is dead if I can find \emph{some} $\tr$ for which
+    the statement holds? It is surely not true in general because $\px$ might have bindings for variables nothing to do with $e$.}
+ \sg{The ``some'' version is the correct notion. The $\tr$ becomes a witness of
+     deadness. I don't understand your comment \wrt not being true in general. }
+
+  It is $\tr_Δ(\px) \not⊑ \semusg{\pe}_{\tr_Δ}$:
+  Let us assume $\semusg{\pe}_{\tr_Δ}(\px) = 0$.
+  We know, by definition of $\tr_Δ$ that ${\tr_Δ(\px)(\px) = 1}$.
+  Hence $\tr_Δ(\px)(\px) \not⊑ \semusg{\pe}_{\tr_Δ}(\px)$; and hence $\tr_Δ(\px) \not⊑ \semusg{\pe}_{\tr_Δ}$.
+  \sg{I suppose we can be a little more explicit here, as you suggested.
+  Ultimately I don't think that hand-written proofs will carry us very far
+  and I'll try formalise the more important proofs in Agda.}
+
+  We fix $\pe$, $\px$ and $\tr$ such that $\tr(\px) \not⊑ \semusg{\pe}_{\tr}$.
+  The goal is to show that $\px$ is dead in $\pe$,
+  so we are given an arbitrary $ρ$, $d_1$ and $d_2$ and have to show that
+  $\semscott{\pe}_{ρ[\px↦d_1]} = \semscott{\pe}_{ρ[\px↦d_2]}$.
+  By cases on $\pe$:
+  \begin{itemize}
+    \item \textbf{Case $\pe = \py$}: If $\px=\py$, then
+      $\tr(\px) \not⊑ \semusg{\py}_{\tr} = \tr(\py) = \tr(\px)$, a contradiction.
+      If $\px \not= \py$, then varying the entry for $\px$ won't matter; hence
+      $\px$ is dead in $\py$.
+    \item \textbf{Case $\pe = \Lam{\py}{\pe'}$}: The equality follows from
+      pointwise equality on functions, so we pick an arbitrary $d$ to show
+      $\semscott{\pe'}_{ρ[\px↦d_1][\py↦d]} = \semscott{\pe'}_{ρ[\px↦d_2][\py↦d]}$.
+
+      This is simple to see if $\px=\py$. Otherwise, $\tr[\py↦\bot]$ witnesses the fact that
+      \[
+        \tr[\py↦\bot](\px) = \tr(\px) \not⊑
+        \semusg{\Lam{\py}{\pe'}}_{\tr} = \semusg{\pe'}_{\tr[\py↦\bot]}
+      \]
+      so we can apply the induction hypothesis to see that $\px$ must be dead in
+      $\pe'$, hence the equality on $\semscott{\pe'}$ holds.
+    \item \textbf{Case $\pe = \pe'~\py$}:
+      From $\tr(\px) \not⊑ \semusg{\pe'}_{\tr} + ω*\tr(\py)$ we can see that
+      $\tr(\px) \not⊑ \semusg{\pe'}_{\tr}$ and $\tr(\px) \not⊑ \tr(\py)$ by
+      monotonicity of $+$ and $*$.
+      If $\px=\py$ then the latter inequality leads to a contradiction.
+      Otherwise, $\px$ must be dead in $\pe'$, hence both cases of
+      $\semscott{\pe'~\py}$ evaluate equally, differing only in
+      the environment. It remains to be shown that
+      $ρ[\px↦d_1](\py) = ρ[\px↦d_2](\py)$, and that is easy to see since
+      $\px \not= \py$.
+    \item \textbf{Case $\pe = \Let{\py}{\pe_1}{\pe_2}$}:
+      We have to show that
+      \[
+        \semscott{\pe_2}_{ρ[\px↦d_1][\py↦d'_1]} = \semscott{\pe_2}_{ρ[\px↦d_2][\py↦d'_2]}
+      \]
+      where $d'_i$ satisfy $d'_i = \semscott{\pe_1}_{ρ[\px↦d_i][\py↦d'_i]}$.
+      The case $\px = \py$ is simple to see, because $ρ[\px↦d_i](\px)$ is never
+      looked at.
+      So we assume $\px \not= \py$ and see that $\tr(\px) = \tr'(\px)$, where
+      $\tr' = \operatorname{fix}(\fn{\tr'}{\tr ⊔ [\py ↦ [\py↦1]+\semusg{\pe_1}_{\tr'}]})$.
+
+      We know that
+      \[
+        \tr'(\px) = \tr(\px) \not⊑ \semusg{\pe}_{\tr} = \semusg{\pe_2}_{\tr'}
+      \]
+      So by the induction hypothesis, $\px$ is dead in $\pe_2$.
+
+      We proceed by cases over $\tr(\px) = \tr'(\px) ⊑ \semusg{\pe_1}_{\tr'}$.
+      \begin{itemize}
+        \item \textbf{Case $\tr'(\px) ⊑ \semusg{\pe_1}_{\tr'}$}: Then
+          $\tr'(\px) ⊑ \tr'(\py)$ and $\py$ is also dead in $\pe_2$ by the above
+          inequality.
+          Both deadness facts together allow us to rewrite
+          \[
+            \semscott{\pe_2}_{ρ[\px↦d_1][\py↦d'_1]} = \semscott{\pe_2}_{ρ[\px↦d_1][\py↦d'_2]} = \semscott{\pe_2}_{ρ[\px↦d_2][\py↦d'_2]}
+          \]
+          as requested.
+        \item \textbf{Case $\tr'(\px) \not⊑ \semusg{\pe_1}_{\tr'}$}:
+          Then $\px$ is dead in $\pe_1$ and $d'_1 = d'_2$. The goal follows
+          from the fact that $\px$ is dead in $\pe_2$.
+      \end{itemize}
+  \end{itemize}
+\end{proof}
 
 \subsection{Usage Analysis Infers Denotational Deadness}
 
@@ -208,8 +261,6 @@ exploit.
 
 We can now prove our usage analysis correct as a deadness analysis in
 terms of this notion: \\
-(All proofs can be found in the Appendix; in case of the extended version via
-clickable links.)\,
 
 \begin{theoremrep}[$\semusg{\wild}$ is a correct deadness analysis]
   \label{thm:semusg-correct-live}
@@ -764,3 +815,107 @@ statements such as \Cref{thm:never-dead}.
 %The appeal is to piggy-back traditional and well-explored intraprocedural
 %analysis techniques on the result of an interprocedural flow
 %analysis~\citep{Shivers:91}.
+
+\begin{comment}
+\Cref{fig:usage} defines a static \emph{usage analysis}.
+The idea is that $\semusg{\pe}_{ρ}$ is a function $d ∈ \UsgD$ whose domain
+is the free variables of $\pe$; this function maps each free variable $\px$ of
+$\pe$ to its \emph{usage cardinality} $u ∈ \Usg$, an upper bound on the
+number of times that $\px$ will be evaluated when $\pe$ is evaluated (regardless
+of context).
+Thus, $\Usg$ is equipped with a total order that corresponds to the inclusion
+relation of the denoted interval of cardinalities:
+$\bot = 0 ⊏ 1 ⊏ ω = \top$, where $ω$ denotes \emph{any} number of evaluations.
+This order extends pointwise to a partial ordering on $\UsgD$, so $d_1 ⊑
+d_2$ whenever $d_1(\px) ⊑ d_2(\px)$, for all $\px$ and $\bot_{\UsgD} =
+\constfn{\bot_\Usg}$.
+We will often leave off the subscript of, \eg, $\bot_\UsgD$ when it can be
+inferred from context.
+
+So, for example $\semusg{x+1}_{ρ}$ is a function mapping $x$ to 1
+and all other variables to 0 (for a suitable $ρ$ that we discuss in due course).
+Any number of uses beyond $1$, such as $2$ for $x$ in $\semusg{x+x}_{ρ}$, are
+collapsed to $d(x) = ω$.
+Similarly $\semusg{\Lam{v}{v+z}}_{\rho}$
+maps $z$ to $\omega$, since the lambda might be called many times.
+
+For open expressions, we need a way to describe the denotations of its
+free variables with a \emph{usage environment}\footnote{
+Note that we will occassionally adorn with \textasciitilde{} to disambiguate
+elements of the analysis domain from the semantic domain.}
+$\tr ∈ \Var \to \UsgD$.
+Given a usage environment $\tr$, $\tr(\px)(\py)$ models an upper bound
+on how often the expression bound to $\px$ evaluates $\py$.
+
+\begin{figure}
+\begin{minipage}{\textwidth}
+\[\begin{array}{c}
+ \arraycolsep=3pt
+ \begin{array}{rrclcl}
+  \text{Scott Domain}      &  d & ∈ & \ScottD & =   & [\ScottD \to_c \ScottD]_\bot \\
+  \text{Usage cardinality} &  u & ∈ & \Usg & =   & \{ 0, 1, ω \} \\
+  \text{Usage Domain}      &  d & ∈ & \UsgD & =   & \Var \to \Usg \\
+ \end{array} \quad
+ \begin{array}{rcl}
+   (ρ_1 ⊔ ρ_2)(\px) & = & ρ_1(\px) ⊔ ρ_2(\px) \\
+   (ρ_1 + ρ_2)(\px) & = & ρ_1(\px) + ρ_2(\px) \\
+   (u * ρ_1)(\px)   & = & u * ρ_1(\px) \\
+ \end{array}
+ \\[-0.5em]
+\end{array}\]
+\subcaption{Syntax of semantic domains}
+  \label{fig:dom-syntax}
+\newcommand{\scalefactordenot}{0.92}
+\scalebox{\scalefactordenot}{%
+\begin{minipage}{0.49\textwidth}
+\arraycolsep=0pt
+\[\begin{array}{rcl}
+  \multicolumn{3}{c}{ \ruleform{ \semscott{\wild}_{\wild} \colon \Exp → (\Var \to \ScottD) → \ScottD } } \\
+  \\[-0.5em]
+  \semscott{\px}_ρ & {}={} & ρ(\px) \\
+  \semscott{\Lam{\px}{\pe}}_ρ & {}={} & \fn{d}{\semscott{\pe}_{ρ[\px ↦ d]}} \\
+  \semscott{\pe~\px}_ρ & {}={} & \begin{cases}
+     f(ρ(\px)) & \text{if $\semscott{\pe}_ρ = f$}  \\
+     \bot      & \text{otherwise}  \\
+   \end{cases} \\
+  \semscott{\Letsmall{\px}{\pe_1}{\pe_2}}_ρ & {}={} &
+    \begin{letarray}
+      \text{letrec}~ρ'. & ρ' = ρ \mathord{⊔} [\px \mathord{↦} d_1] \\
+                        & d_1 = \semscott{\pe_1}_{ρ'} \\
+      \text{in}         & \semscott{\pe_2}_{ρ'}
+    \end{letarray} \\
+\end{array}\]
+\subcaption{\relscale{\fpeval{1/\scalefactordenot}} Denotational semantics after Scott}
+  \label{fig:denotational}
+\end{minipage}%
+\quad
+\begin{minipage}{0.56\textwidth}
+\arraycolsep=0pt
+\[\begin{array}{rcl}
+  \multicolumn{3}{c}{ \ruleform{ \semusg{\wild}_{\wild} \colon \Exp → (\Var → \UsgD) → \UsgD } } \\
+  \\[-0.5em]
+  \semusg{\px}_ρ & {}={} & ρ(\px) \\
+  \semusg{\Lam{\px}{\pe}}_ρ & {}={} & ω*\semusg{\pe}_{ρ[\px ↦ \bot]} \\
+  \semusg{\pe~\px}_ρ & {}={} & \semusg{\pe}_ρ + ω*ρ(\px)
+    \phantom{\begin{cases}
+       f(ρ(\px)) & \text{if $\semusg{\pe}_ρ = f$}  \\
+       \bot      & \text{otherwise}  \\
+     \end{cases}} \\
+  \semusg{\Letsmall{\px}{\pe_1}{\pe_2}}_ρ& {}={} & \begin{letarray}
+      \text{letrec}~ρ'. & ρ' = ρ \mathord{⊔} [\px \mathord{↦} d_1] \\
+                        & d_1 = [\px\mathord{↦}1] \mathord{+} \semusg{\pe_1}_{ρ'} \\
+      \text{in}         & \semusg{\pe_2}_{ρ'}
+    \end{letarray}
+\end{array}\]
+\subcaption{\relscale{\fpeval{1/\scalefactordenot}} Naïve usage analysis}
+  \label{fig:usage}
+\end{minipage}
+}
+\end{minipage}
+  \label{fig:intro}
+\vspace{-0.75em}
+\caption{Connecting usage analysis to denotational semantics}
+\end{figure}
+
+\end{comment}
+
