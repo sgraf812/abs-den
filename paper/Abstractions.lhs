@@ -4,11 +4,7 @@
 %include custom.fmt
 \begin{code}
 {-# OPTIONS_GHC -Wno-noncanonical-monad-instances #-}
-{-# LANGUAGE FunctionalDependencies #-}
-{-# LANGUAGE DerivingStrategies #-}
-{-# LANGUAGE PartialTypeSignatures #-}
 {-# LANGUAGE LambdaCase #-}
-{-# LANGUAGE QuantifiedConstraints #-}
 
 module Abstractions where
 

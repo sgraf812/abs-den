@@ -3,26 +3,13 @@
 %if style == newcode
 %include custom.fmt
 \begin{code}
-{-# OPTIONS_GHC -Wno-noncanonical-monad-instances #-}
-{-# LANGUAGE FunctionalDependencies #-}
-{-# LANGUAGE DerivingStrategies #-}
-{-# LANGUAGE PartialTypeSignatures #-}
-{-# LANGUAGE LambdaCase #-}
-{-# LANGUAGE ScopedTypeVariables #-}
-{-# LANGUAGE AllowAmbiguousTypes #-}
-{-# LANGUAGE QuantifiedConstraints #-}
+{-# OPTIONS_GHC -Wno-unused-matches #-}
 
 module Soundness where
 
 import Prelude hiding ((+), (*))
-import qualified Data.Map as Map
 import Data.Set (Set)
 import qualified Data.Set as Set
-import Control.Monad
-import Control.Monad.Trans.State
-import Data.Foldable
-import qualified Data.List as List
-import Exp
 import Order
 import Interpreter
 import Abstractions

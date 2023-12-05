@@ -3,7 +3,6 @@
 
 %if style == newcode
 \begin{code}
-{-# LANGUAGE FunctionalDependencies #-}
 {-# LANGUAGE DerivingStrategies #-}
 {-# LANGUAGE PartialTypeSignatures #-}
 {-# LANGUAGE LambdaCase #-}
