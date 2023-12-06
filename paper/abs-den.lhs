@@ -212,6 +212,7 @@
 
 %include Introduction.lhs
 %include Deadness.lhs
+%include OpSem.lhs
 %include Interpreter.lhs
 %include Abstractions.lhs
 %include Adequacy.lhs
