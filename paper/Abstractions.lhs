@@ -34,7 +34,7 @@ class Eq a => Lat a where bottom :: a; (⊔) :: a -> a -> a;
 lub :: Lat a => [a] -> a; kleeneFix :: Lat a => (a -> a) -> a
 instance (Ord k, Lat v) => Lat (k :-> v) where bottom = emp; (⊔) = Map.unionWith (⊔)
 \end{spec}
-%kleeneFix f = go (f bottom) where go x = let x' = f x in if x' ⊑ x then x' else go x'
+%kleeneFix f = go bottom where go x = let x' = f x in if x' ⊑ x then x' else go x'
 \caption{Order theory and Kleene fixpoint}
 \label{fig:lat}
 \end{figure}
@@ -130,6 +130,7 @@ instance Show UValue where
 \end{figure}
 
 \subsection{Usage analysis}
+\label{sec:usage-analysis}
 
 The gist of usage analysis is that it collects upper bounds for the number of
 $\LookupT$ transitions per variable.
