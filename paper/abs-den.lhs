@@ -216,9 +216,6 @@
 %include Abstractions.lhs
 %include Adequacy.lhs
 %include Soundness.lhs
-%\input{vanilla.tex}
-%\input{essence.tex}
-%\input{abstractions-old.tex}
 %\input{related-work.tex}
 
 %\begin{acks}
