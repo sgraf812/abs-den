@@ -10,7 +10,7 @@ as ``this program is well-typed'', ``this higher-order function is always called
 with argument $\Lam{x}{x+1}$'' or ``this program never evaluates $x$''.
 In a functional-language setting, such static analyses are
 often defined by \emph{structural recursion} on the input term.
-In the application case (\ie, ``is |even 42| well-typed?''), this
+In the application case (\ie, ``is |(even 42)| well-typed?''), this
 recursion must produce a \emph{summary} for the function to be applied
 (|even :: Int -> Bool|), and then apply that summary to produce an abstraction
 that is sound for the particular argument (|42 :: Int|).
@@ -19,10 +19,9 @@ analyses, because it is much more efficient to apply the summary of a function
 instead of reanalysing its definition at use sites in other modules.
 
 To prove the analysis correct, it is favorable to pick a language semantics that
-is also defined by structural recursion, as is the case for a \emph{denotational
-semantics}~\citep{ScottStrachey:71}; then the denotational semantics and the
-static analysis ``line up'' and the correctness proof is relatively
-straightforward.
+is also defined by structural recursion, such as a \emph{denotational
+semantics}~\citep{ScottStrachey:71}; then the semantics and the analysis ``line
+up'' and the correctness proof is relatively straightforward.
 Indeed, one can often break up the proof into manageable subgoals by regarding
 the analysis as an \emph{abstract interpretation} of the denotational
 semantics~\citep{Cousot:21}, particularly when the abstract operations of the
@@ -31,7 +30,7 @@ analysis correspond to concrete operations in the semantics.
 Alas, traditional denotational semantics does not model operational details --
 but those details might be the whole point of the analysis.
 For example, we might want to ask ``How often does $\pe$ evaluate its free
-variable $x$?''; but a standard denotational semantics simply does not express
+variable $x$?'', but a standard denotational semantics simply does not express
 the concept of ``evaluating a variable''.
 So we are typically driven to use an \emph{operational
 semantics}~\citep{Plotkin:81}, which directly models operational details like
@@ -64,10 +63,11 @@ languages.
 
 We make the following contributions:
 \begin{itemize}
-\item \sg{Update}
-  We use a concrete example (usage analysis) to explain the problems we sketched
-  above: the lack of operational detail in denotational semantics, and the structural mismatch
-  between the semantics and the analysis (\Cref{sec:problem}).
+\item
+  We use a concrete example (usage analysis) to explain the problems we
+  sketched above: the lack of operational detail and other shortcomings of
+  denotational semantics, and the structural mismatch between the semantics and
+  the analysis (\Cref{sec:problem}).
 \item \Cref{sec:interp} walks through the structural definition of our shared
   denotational interpreter and its type class algebra in Haskell.
   We demonstrate the ease with which different instances of our interpreter
@@ -94,8 +94,7 @@ We make the following contributions:
   conditions mention the concrete semantics or the Galois connection either!
   This enables us to finally prove usage analysis correct \wrt the by-name
   semantics in a third of a page, because all reasoning happens in the abstract.
-\item
-  \sg{Write more here once I revisited Related Work}
-  We elaborate this claim in \Cref{sec:related-work}, where we compare to
-  Related Work.
+%\item
+%  \sg{Write more here once I revisited Related Work}
+%  \Cref{sec:related-work}, Related Work.
 \end{itemize}
