@@ -103,7 +103,8 @@ The context $Γ$ can be thought of as the set of assumptions (variables
 that $\px$ is assumed dead in); the larger $Γ$ is, the more statements are
 derivable.
 Thus, a decision algorithm would always pick the largest permissible $Γ$,
-which is used in the \textsc{Var} case to prove deadness of open terms.
+which is used in the \textsc{Var} and \textsc{App} cases to prove deadness of
+open terms.
 Rules $\textsc{Let}_1$ and $\textsc{Let}_2$ handle the case where $\px$ can
 be proven dead in $\pe_1$ or not, respectively; in the former case,
 the let-bound variable $\py$ may be added to the context when analysing $\pe_2$.
@@ -113,91 +114,76 @@ not added to the context in $\textsc{Let}_2$.
 Note that although the formulation of deadness analysis is so simple, it is
 \emph{not} entirely naïve:
 Because it is defined by structural recursion, its treatment of function
-application makes use of a summary mechanism, with the hidden assumption
-that every function deeply evaluates its argument.
-Whenever $x \not∈ Γ$, $\dead{Γ}{f~x}$ is not derivable by the \textsc{App}
-rule, even though $f$ might be dead in its argument.
-On the other hand, rule \textsc{Lam} may in turn assume that any argument it
+application makes use of a \emph{summary mechanism}, assuming that every
+function deeply evaluates its argument.
+For example, when $f$ never evaluates its argument, $x$ might never be evaluated
+when evaluating $(f~x)$.
+But our deadness analysis errs on the safe side and says ``not dead'', in that
+$\dead{Γ}{f~x}$ is not derivable by the \textsc{App} rule when $x$ is presumed
+live, $x \not∈ Γ$.
+On the other hand, rule \textsc{Lam} is free to assume that any argument it
 receives is dead, hence it adds the lambda-bound variable to the context.
-We can formalise the summary mechanism with the following \emph{substitution
-lemma} (where context extension $Γ[\px↦Γ(\py)]$ adds $\px$ to $Γ$ if and
-only if $\py ∈ Γ$):%
+
+This summary contract enables modularity:
+Let us assume that the function $f$ is defined in a different module than its
+use site $(f~x)$, perhaps as $f \triangleq \Lam{y}{\Lam{z}{z}}$.
+Its original definition is never looked at by the analysis when we apply it at
+the use site; what matters is its easily persisted summary in the form of
+the fact $f ∈ Γ$, presumably populated by a top-level equivalent of the
+$\textsc{Let}_1$ rule for exported/imported bindings.
+
+We can formalise correctness of the summary mechanism with the following
+\emph{substitution lemma}:%
 \footnote{All proofs can be found in the Appendix; in case of the extended
 version via clickable links.}
 
 \begin{lemmarep}[Substitution]
-If $\dead{Γ}{(\Lam{\px}{\pe})~\py}$ then $\dead{Γ[\px↦Γ(\py)]}{\pe}$.
+\label{thm:subst-deadness}
+If $\dead{Γ,\py}{(\Lam{\px}{\pe})~\py}$, then $\dead{Γ,\px}{\pe}$.
 \end{lemmarep}
 \begin{proof}
-  By cases on whether $\py ∈ Γ$.
-  \begin{itemize}
-    \item \textbf{Case }$\py ∈ Γ$:
-      Then the assumption has a sub-derivation for $\dead{Γ,\px}{\pe}$, showing
-      the goal.
-    \item \textbf{Case }$\py \not∈ Γ$:
-      The last applicable rule must have been \textsc{App},
-      so we have $\py ∈ Γ$, contradiction.
-  \end{itemize}
+The assumption has a sub-derivation for $\dead{Γ,\px}{\pe}$ in the premise of
+\textsc{Lam}, showing the goal.
 \end{proof}
 
-The substitution lemma is instrumental in proving deadness analysis correct in
-terms of semantic irrelevance, as in the following theorem:
+A similar lemma can be derived for $\mathbf{let}$.
+The substitution lemma is often instrumental in correctness proofs, although in
+this case it is so simple (the proof is right there, in the premise of
+\textsc{Lam}) that it can be inlined when proving deadness analysis correct in
+terms of semantic irrelevance below:
 
-\sg{TODO: Update the proof}
 \begin{theoremrep}[Correct deadness analysis]
   \label{thm:deadness-correct}
   If $\dead{Γ}{\pe}$ and $\px \not∈ Γ$,
   then $\semscott{\pe}_{ρ[\px↦d_1]} = \semscott{\pe}_{ρ[\px↦d_2]}$.
 \end{theoremrep}
 \begin{proof}
-  By induction on $\pe$, generalising $\tr_Δ$ in the assumption
-  $\semusg{\pe}_{\tr_Δ}(\px) = 0$ to ``there exists a $\tr$
-  such that $\tr(\px) \not⊑ \semusg{\pe}_{\tr}$''.
- \slpj{That is indeed a tricky statement.  What is the intuition?  Do you mean
-    that this has to be true for \emph{every} $\tr$?  Or that $\px$ is dead if I can find \emph{some} $\tr$ for which
-    the statement holds? It is surely not true in general because $\px$ might have bindings for variables nothing to do with $e$.}
- \sg{The ``some'' version is the correct notion. The $\tr$ becomes a witness of
-     deadness. I don't understand your comment \wrt not being true in general. }
-
-  It is $\tr_Δ(\px) \not⊑ \semusg{\pe}_{\tr_Δ}$:
-  Let us assume $\semusg{\pe}_{\tr_Δ}(\px) = 0$.
-  We know, by definition of $\tr_Δ$ that ${\tr_Δ(\px)(\px) = 1}$.
-  Hence $\tr_Δ(\px)(\px) \not⊑ \semusg{\pe}_{\tr_Δ}(\px)$; and hence $\tr_Δ(\px) \not⊑ \semusg{\pe}_{\tr_Δ}$.
-  \sg{I suppose we can be a little more explicit here, as you suggested.
-  Ultimately I don't think that hand-written proofs will carry us very far
-  and I'll try formalise the more important proofs in Agda.}
-
-  We fix $\pe$, $\px$ and $\tr$ such that $\tr(\px) \not⊑ \semusg{\pe}_{\tr}$.
-  The goal is to show that $\px$ is dead in $\pe$,
-  so we are given an arbitrary $ρ$, $d_1$ and $d_2$ and have to show that
-  $\semscott{\pe}_{ρ[\px↦d_1]} = \semscott{\pe}_{ρ[\px↦d_2]}$.
-  By cases on $\pe$:
+  By induction on $\pe$.
   \begin{itemize}
-    \item \textbf{Case $\pe = \py$}: If $\px=\py$, then
-      $\tr(\px) \not⊑ \semusg{\py}_{\tr} = \tr(\py) = \tr(\px)$, a contradiction.
-      If $\px \not= \py$, then varying the entry for $\px$ won't matter; hence
-      $\px$ is dead in $\py$.
+    \item \textbf{Case $\pe = \py$}: If $\px=\py$, then by rule \textsc{Var} we
+      have $\px ∈ Γ$, a contradiction.
+      If $\px \not= \py$, then $ρ[\px↦d_1](\py) = ρ(\py) = ρ[\px↦d_2](\py)$.
+
     \item \textbf{Case $\pe = \Lam{\py}{\pe'}$}: The equality follows from
       pointwise equality on functions, so we pick an arbitrary $d$ to show
       $\semscott{\pe'}_{ρ[\px↦d_1][\py↦d]} = \semscott{\pe'}_{ρ[\px↦d_2][\py↦d]}$.
 
-      This is simple to see if $\px=\py$. Otherwise, $\tr[\py↦\bot]$ witnesses the fact that
-      \[
-        \tr[\py↦\bot](\px) = \tr(\px) \not⊑
-        \semusg{\Lam{\py}{\pe'}}_{\tr} = \semusg{\pe'}_{\tr[\py↦\bot]}
-      \]
-      so we can apply the induction hypothesis to see that $\px$ must be dead in
-      $\pe'$, hence the equality on $\semscott{\pe'}$ holds.
+      By rule \textsc{Lam}, we have $\dead{Γ,\py}{\pe'}$, and since
+      $\px \not∈ Γ$ we may apply the induction hypothesis to get
+      $\semscott{\pe'}_{ρ[\py↦d][\px↦d_1]} = \semscott{\pe'}_{ρ[\py↦d][\px↦d_2]}$,
+      and commuting the extension of $ρ$ shows the goal.
+
     \item \textbf{Case $\pe = \pe'~\py$}:
-      From $\tr(\px) \not⊑ \semusg{\pe'}_{\tr} + ω*\tr(\py)$ we can see that
-      $\tr(\px) \not⊑ \semusg{\pe'}_{\tr}$ and $\tr(\px) \not⊑ \tr(\py)$ by
-      monotonicity of $+$ and $*$.
-      If $\px=\py$ then the latter inequality leads to a contradiction.
-      Otherwise, $\px$ must be dead in $\pe'$, hence both cases of
-      $\semscott{\pe'~\py}$ evaluate equally, differing only in
-      the environment. It remains to be shown that
-      $ρ[\px↦d_1](\py) = ρ[\px↦d_2](\py)$, and that is easy to see since
-      $\px \not= \py$.
+      By rule \textsc{App}, we have $\dead{Γ}{\pe'}$ and $\py ∈ Γ$.
+      We apply the induction hypothesis to get
+      $\semscott{\pe'}_{ρ[\px↦d_1]} = \semscott{\pe'}_{ρ[\px↦d_2]}$, which
+      either is $\bot$ or some function $f$.
+
+      In the former case, both applications evaluate to $\bot$.
+      In the latter case, we have to prove that $f(ρ[\px↦d_1](\py)) =
+      f(ρ[\px↦d_2](\py))$, but that is easy to see as well,
+      because $\px \not∈ Γ$ while $\py ∈ Γ$ implies that $\px \not= \py$.
+
     \item \textbf{Case $\pe = \Let{\py}{\pe_1}{\pe_2}$}:
       We have to show that
       \[
@@ -206,28 +192,21 @@ terms of semantic irrelevance, as in the following theorem:
       where $d'_i$ satisfy $d'_i = \semscott{\pe_1}_{ρ[\px↦d_i][\py↦d'_i]}$.
       The case $\px = \py$ is simple to see, because $ρ[\px↦d_i](\px)$ is never
       looked at.
-      So we assume $\px \not= \py$ and see that $\tr(\px) = \tr'(\px)$, where
-      $\tr' = \operatorname{fix}(\fn{\tr'}{\tr ⊔ [\py ↦ [\py↦1]+\semusg{\pe_1}_{\tr'}]})$.
 
-      We know that
-      \[
-        \tr'(\px) = \tr(\px) \not⊑ \semusg{\pe}_{\tr} = \semusg{\pe_2}_{\tr'}
-      \]
-      So by the induction hypothesis, $\px$ is dead in $\pe_2$.
-
-      We proceed by cases over $\tr(\px) = \tr'(\px) ⊑ \semusg{\pe_1}_{\tr'}$.
+      We proceed by rule inversion on $\dead{Γ}{\Let{\py}{\pe_1}{\pe_2}}$:
       \begin{itemize}
-        \item \textbf{Case $\tr'(\px) ⊑ \semusg{\pe_1}_{\tr'}$}: Then
-          $\tr'(\px) ⊑ \tr'(\py)$ and $\py$ is also dead in $\pe_2$ by the above
-          inequality.
-          Both deadness facts together allow us to rewrite
+        \item \textbf{Case $\textsc{Let}_1$}: Then $\dead{Γ,\py}{\pe_1}$ and by
+          the induction hypothesis and commuting extensions of $ρ$ we have
+          $d'_1 = d'_2$.
+          We apply the induction hypothesis once more to $\dead{Γ,\py}{\pe_2}$
+          and commute the extensions once more to show the goal.
+        \item \textbf{Case $\textsc{Let}_2$}: Then $\dead{Γ}{\pe_2}$ and both
+          $\px$ and $\py$ are dead in $\pe_2$; hence we may apply the induction
+          hypothesis to rewrite the extensions $[\px↦d_i]$, $[\py↦d'_i]$
+          independently and however we want to show the goal:
           \[
             \semscott{\pe_2}_{ρ[\px↦d_1][\py↦d'_1]} = \semscott{\pe_2}_{ρ[\px↦d_1][\py↦d'_2]} = \semscott{\pe_2}_{ρ[\px↦d_2][\py↦d'_2]}
           \]
-          as requested.
-        \item \textbf{Case $\tr'(\px) \not⊑ \semusg{\pe_1}_{\tr'}$}:
-          Then $\px$ is dead in $\pe_1$ and $d'_1 = d'_2$. The goal follows
-          from the fact that $\px$ is dead in $\pe_2$.
       \end{itemize}
   \end{itemize}
 \end{proof}
