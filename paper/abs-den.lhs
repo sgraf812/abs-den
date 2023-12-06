@@ -80,7 +80,7 @@
 \usepackage{trimclip} % clipbox
 \usepackage{mathpartir} % inference rules
 \usepackage{subcaption}
-\usepackage{witharrows}
+%\usepackage{witharrows}
 \usepackage{mathbbol} % \bbcolon and \bbquestionmark
 %\usepackage{stmaryrd} % \lightning
 %\usepackage{tikz}

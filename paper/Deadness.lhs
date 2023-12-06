@@ -2,7 +2,7 @@
 > module Problem where
 %endif
 
-\section{Case Study: Deadness Analysis, Denotationally}
+\section{Demo: Deadness Analysis, Denotationally}
 \label{sec:problem}
 
 %By way of the poster child example of a compositional definition of \emph{usage

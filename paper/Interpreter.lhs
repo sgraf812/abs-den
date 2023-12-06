@@ -39,7 +39,7 @@ instance Show Event where
   show Let1 = "\\LetIT"
   show Update = "\\UpdateT"
 instance Show a => Show (T a) where
-  show (Step e t) = show e ++ "\\rightarrow" ++ show t
+  show (Step e t) = show e ++ "\\xhookrightarrow{\\hspace{1.1ex}}" ++ show t
   show (Ret a) = "\\langle "++show a++"\\rangle "
 --   show (collect -> (es, a)) = case es of
 --     [] -> "\\langle "++show a++"\\rangle "
@@ -83,12 +83,16 @@ takeName n (ByName τ) = takeT n τ
 \label{sec:interp}
 
 We will now define a denotational interpreter in Haskell.
-It is worth stressing that we picked Haskell out of convenience and familiarity,
-rather than out of necessity:
+It is worth stressing that we picked Haskell out of convenience rather than out
+of necessity:
 We make use of thunks in only one key position that does not require
 memoisation, and thus could just as well have been defined in a strict
-higher-order language such as OCaml, ML or Scheme with explicit suspension
-@fun () -> _@.
+higher-order language such as OCaml, Scheme or Java with explicit thunks
+@fun () -> _@.%
+\footnote{We extract from this document a runnable Haskell file which we add as
+a Supplement, containing the complete definitions.
+Furthermore, the (terminating) interpreter outputs are directly generated from
+this extract.}
 
 \begin{figure}
 \begin{minipage}{0.49\textwidth}
@@ -98,8 +102,8 @@ data Tag = ...; conArity :: Tag -> Int
 data Exp
   =  Var Name | Let Name Exp Exp
   |  Lam Name Exp | App Exp Name
-  |  ConApp Tag [Name] | Case Exp [Alt]
-type Alt = Tag :-> ([Name],Exp)
+  |  ConApp Tag [Name] | Case Exp Alts
+type Alts = Tag :-> ([Name],Exp)
 \end{spec}
 \caption{Syntax}
 \label{fig:syntax}
@@ -190,15 +194,15 @@ The reason for this decision will become clear later on; just note that the
 choice of |Event| suggests a spectrum of intensionality, with |data Event =
 Unit| corresponding to the ``delay monad'' popularised by \citet{Capretta:05} on
 the more abstract end of the spectrum and arbitrary syntactic detail attached to
-each of |Event|'s constructors at the other end of the spectrum.
+each of |Event|'s constructors at the intensional end of the spectrum.
 If our language had facilities for input/output and more general side-effects,
 we could have started from a more elaborate construction such as (guarded)
 interaction trees~\citep{interaction-trees,gi-trees}.
 
 The coinductive nature of |T|'s definition in Haskell is crucial to our
-approach because diverging traces can be expressed as an infinite, productive
-nesting of |Step|s; in a strict language, we would have introduced an explicit
-thunk in the definition of |Step|, \eg, @Step of event * (unit -> 'a t)@.
+approach, because diverging traces can be expressed as an infinite, productive
+nesting of |Step|s; in a strict language, we would have introduced a thunk in
+the definition of |Step|, \eg, @Step of event * (unit -> 'a t)@.
 The |Monad| instance of |T| implements the monadic bind operator |(>>=)| by
 forwarding |Step|s, thus guarding the recursion~\citep{Capretta:05}.
 
@@ -254,7 +258,7 @@ class Domain d where
 class HasBind d where
   bind :: (d -> d) -> (d -> d) -> d
 \end{code}
-\subcaption{Final encoding of traces and values}
+\subcaption{Interface of traces and values}
   \label{fig:trace-classes}
 %if style /= newcode
 \begin{code}
@@ -298,26 +302,26 @@ instance Monad τ => Domain (D τ) where
 
 \subsection{The Interpreter}
 
-We will now use |D| to give meaning to an expression |e| via an interpreter
-function |eval :: Exp -> (Name :-> D) -> D|, where the variable environment
-|ρ :: Name :-> D| is a finite mapping from free variables of |e| to their meaning in
-|D|.
-We summarise the API of environments and sets in \Cref{fig:map}.
+We use |D| to give meaning to an expression |e| via the interpreter
+|eval :: Exp -> (Name :-> D) -> D|, where the variable environment |ρ :: Name
+:-> D| is a finite mapping from free variables of |e| to their meaning in |D|.
+We sketch the encoding of syntax in \Cref{fig:syntax} and the API of
+environments and sets in \Cref{fig:map}.
 
-We give a definition for |eval| in \Cref{fig:eval}, although in the spirit of
+|eval| is defined in \Cref{fig:eval}, although in the spirit of
 abstract definitional interpreters such as in \citet{Keidel:18}, its type is
 quite a bit more general than its instantiation at |D|.
 
 In particular, the interpreter maps expressions not into a concrete,
-\emph{initial} encoding of a trace as an algebraic data type, but into a
-fold-like \emph{final encoding}~\citep{Carette:07} thereof, in terms
-of three type classes |Trace|,|Domain| and |HasBind| depicted in
+\emph{initial} encoding of a trace as an algebraic data type, but into
+something close to a fold-like \emph{final encoding}~\citep{Carette:07} thereof,
+in terms of three type classes |Trace|,|Domain| and |HasBind| depicted in
 \Cref{fig:trace-classes}.
 
 Each of these offer knobs that we will tweak individually in later Sections.
 Traces |T| and denotations |D| are instances of these type classes via
-\Cref{fig:trace-instances}, so |τ v| in the type of |eval| can be instantiated
-to |D|.
+\Cref{fig:trace-instances}, so |d| in the type of |eval| can be instantiated to
+|D|.
 For example, we can evaluate the expression $\Let{i}{\Lam{x}{x}}{i~i}$ like
 this:%
 \footnote{We use |read :: String -> Exp| as a parsing function.}
@@ -341,30 +345,20 @@ Which is in direct correspondence to the call-by-name small-step trace
   \end{array}
 \end{array}\]
 \noindent
-While |Trace| is exactly a final encoding of |T|, |Domain| is a bit of a mixture
-between |Value| and |D = T Value|.
+While the |step| method of |Trace| is exactly the final encoding of |Step|,
+|Domain| is a bit of a mixture between |Value| and |D = T Value|.
 The method names of |Domain| bear resemblance to |Value|:
 There are ``injections'' |fun|, |con| and |stuck| as well as ``eliminators''
 |apply| and |select|.
 The \emph{types} are wrong, though, with |D|s where we would expect |Value|s
 and a non-standard encoding for |select|.
-We will revisit this curious generalisation in \Cref{fig:abstractions} where we
+We will revisit this curious generalisation in \Cref{sec:abstractions} where we
 consider abstract interpretations that \emph{summarise} a |D| in different ways
 depending on the |Domain| instance.
-
-The definition for |select| finds the |alt| in |alts| that matches the |Tag|
-of the |Con| value |v| and applies said |alt| to the field denotations of |v|;
-failure to perform any of these steps results in |stuck|.%
-\footnote{We extract from this document a runnable Haskell file which we add as
-a Supplement, containing the complete definitions.
-Furthermore, the (terminating) interpreter outputs are directly generated from
-this extract.}
 
 The third type class is |HasBind|, a most significant knob to our
 interpreter because it fixes a particular evaluation strategy.
 We will play with this knob in \Cref{sec:evaluation-strategies}.
-Like |Domain|, it is parameterised over the type of denotations.
-
 The |bind| method of |HasBind| is used to give meaning to recursive let
 bindings; as such its type is \emph{almost} an instance of the venerable
 fixpoint combinator |fix :: (a -> a) -> a|, but it takes two functionals
@@ -515,18 +509,18 @@ The trace transformer |ByNeed| in \Cref{fig:by-need} mixes in a call-by-need
 evaluation strategy by introducing a heap and memoisation to |τ|.
 Interestingly, |ByNeed T| denotes a \emph{stateful function returning a trace},
 thus it is the first time we compute with something different than a |T|.
-The |bind| implementation for |ByNeed| traces will tie the recursive know with
+The |bind| implementation for |ByNeed| traces will tie the recursive knot with
 a |D| that |fetch|es the bound action from a heap, under an address |a| that is
 not taken yet in the current heap |μ|.
-This newly heap-bound |D| in turn evaluates |f ...|, the result of which is
+This newly heap-bound |D| in turn evaluates |rhs|, the result of which is
 |memo|ised in an |Update| step, so that the heap-bound |D| is replaced by
 one that immediately |return|s the value.
-We have proven this semantics adequate \wrt to the LK transition system in
-\Cref{fig:lk-semantics} with the techniques we develop in \Cref{sec:adequacy}.
+We will prove this semantics adequate \wrt to the LK transition system in
+\Cref{fig:lk-semantics} in \Cref{sec:adequacy}.
 
-\todo{Mention that we could also have tested this result, with a type like
-|type ValidateT τ = StateT σ τ|, where the |step| action crashes if the |Event|
-does not match the currently applicable LK transition for $σ$.}
+%\todo{Mention that we could also have tested this result, with a type like
+%|type ValidateT τ = StateT σ τ|, where the |step| action crashes if the |Event|
+%does not match the currently applicable LK transition for $σ$.}
 
 It is worth stressing how simple it was to carry out this extension.
 Furthermore, nothing in our approach is particularly specific to |Exp| or
@@ -552,7 +546,7 @@ Finally note that it would be very simple to suppress $\UpdateT$ events for
 already evaluated heap bindings by tweaking |upd| to omit the |memo| wrapper,
 \eg, |upd v μ = return (v, ext μ a (return v))|.
 We decided against that because it obscures the simple correspondence to the LK
-transition system that we prove in \Cref{sec:adequacy}.
+transition system.
 
 \begin{figure}
 \begin{spec}
@@ -595,7 +589,7 @@ memo :: forall τ. (Monad τ, forall v. Trace (τ v)) => Addr -> D (ByVInit τ) 
 instance (Monad τ, forall v. Trace (τ v)) => HasBind (D (ByVInit τ)) where
   bind rhs body = do  a <- nextFree <$> ByVInit get
                       ByVInit $ modify (\μ -> ext μ a stuck)
-                      step Let0 (memo' a (rhs (fetch' a))) >>= body . return
+                      step Let0 (memo a (rhs (fetch a))) >>= body . return
 \end{spec}
 %if style == newcode
 \begin{code}
@@ -659,6 +653,9 @@ The beta reduction of $(\Lam{y}{\Lam{x}{x}})~i$ now happens once within the
 $\LetOT$/$\LetIT$ bracket; the two subsequent $\LookupT$ events immediately halt
 with a value.
 
+\sg{I consider the remaining text in this section bonus that could be moved to
+the Appendix if needed. Nevertheless, I find these findings quite exciting!}
+
 \subsubsection{Lazy Initialisation and Black-holing}
 
 Alas, this model of call-by-value does not yield a total interpreter!
@@ -666,7 +663,7 @@ Consider the case when the right-hand side accesses its value before yielding
 one, \eg,
 
 < ghci> takeT 5 $ eval (read "let x = x in x x") emp :: ByValue T (Maybe (Value (ByValue T)))
-$\LetOT\rightarrow\LookupT(x)\rightarrow\LetIT\rightarrow\AppIT\rightarrow\LookupT(x)\rightarrow\texttt{\textasciicircum{}CInterrupted}$
+$\LetOT\xhookrightarrow{\hspace{1.1ex}}\LookupT(x)\xhookrightarrow{\hspace{1.1ex}}\LetIT\xhookrightarrow{\hspace{1.1ex}}\AppIT\xhookrightarrow{\hspace{1.1ex}}\LookupT(x)\xhookrightarrow{\hspace{1.1ex}}\texttt{\textasciicircum{}CInterrupted}$
 \\[\belowdisplayskip]
 \noindent
 This loops forever unproductively, rendering the interpreter unfit as a
@@ -808,8 +805,8 @@ an infinite amount of time, as exemplified by
 The program diverges without producing even a prefix of a trace because the
 binding for $i$ might be needed at an unknown point in the future
 (a \emph{liveness property} and hence impossible to verify at runtime).
-This renders Clairvoyant call-by-value inadequate for verifying safety
-properties.
+This renders Clairvoyant call-by-value inadequate for verifying properties of
+infinite executions.
 
 \subsection{More Trace Types}
 
@@ -818,7 +815,7 @@ variety of total denotational interpreters for all major evaluation strategies
 (\eg, |ByName|, |ByNeed|, |ByVInit|).
 It is of course possible in Haskell to abandon totality, discard all events and
 use plain |data Identity a = Identity a| as the trace type accompanied by the
-one-line definition |instance Trace Identity where step _ ia = ia|.
+definition |instance Trace Identity where step _ = id|.
 The resulting interpreter diverges whenever the defined program diverges, as is
 typical for partial definitional interpreters:
 

@@ -32,9 +32,10 @@ root = call `seq` anyCtx -- Suppress redundant import warning
 \begin{spec}
 class Eq a => Lat a where bottom :: a; (⊔) :: a -> a -> a;
 lub :: Lat a => [a] -> a; kleeneFix :: Lat a => (a -> a) -> a
+kleeneFix f = go bottom where go x = let x' = f x in if x' ⊑ x then x' else go x'
+total :: Eq a => [a] -> a -> a -> a
 instance (Ord k, Lat v) => Lat (k :-> v) where bottom = emp; (⊔) = Map.unionWith (⊔)
 \end{spec}
-%kleeneFix f = go bottom where go x = let x' = f x in if x' ⊑ x then x' else go x'
 \caption{Order theory and Kleene fixpoint}
 \label{fig:lat}
 \end{figure}
@@ -136,17 +137,21 @@ The gist of usage analysis is that it collects upper bounds for the number of
 $\LookupT$ transitions per variable.
 We can encode this intuition in the custom trace type |UT| in \Cref{fig:usg-abs}
 that will take the place of |T|.
-|UT| collects the number of transitions per variable in a usage environment
-|Name :-> U|, with the matching |Monad| and |Trace| instances.
-Whenever we omit definitions for |(⊔)| and |(+)| (such as for |U| and
-|Name :-> U|), they follows straightforwardly from \Cref{fig:usage}.
+|UT| aggregates the number of |Lookup x| transitions per variable |x| in a usage
+environment |Name :-> U|, with the matching |Monad| and |Trace| instances.
+|UT| is a lattice via the total ordering |U0 ⊏ U1 ⊏ Uω|, and |(+)|
+on |UT| coincides with |(⊔)|, except for carrying over |U1 + U1 = Uω|.
+Both |(+)| and |(⊔)| are lifted pointwise to |Name :-> U|.
 
 If we had no interest in a terminating analysis, we could already make do
 with the induced \emph{semantic usage abstraction} |ByName UT|:
 
 < ghci> eval (read "let i = λx.x in let j = λy.y in i j j") emp :: D (ByName UT)
 $\perform{eval (read "let i = λx.x in let j = λy.y in i j j") emp :: D (ByName UT)}$
-
+\\[\belowdisplayskip]
+\noindent
+This analysis amounts to running the concrete semantics and then folding the
+trace into a |UT|; it is what the static analysis is supposed to approximate.
 Of course, this will diverge whenever the object program diverges.
 Perhaps interestingly, we have not needed any order theory so far, because the
 abstraction is a precise fold over the program trace, thanks to the concrete
@@ -156,21 +161,16 @@ If we want to assess usage cardinality statically, we have to find a more abstra
 representation of |Value|.
 \Cref{fig:abs-usg} gives one such candidate |UValue|, a type containing a single
 inhabitant |Nop|, so it is the crudest possible summary of a concrete |Value|.
-It is a matter of simple calculation to see that |eval e trD :: UD|
-indeed computes the same result as $\semusg{\pe}_{\tr_Δ}$ from \Cref{fig:usage}
-(given an appropriate encoding of $\tr_Δ$ as a |Name :-> UD| and an |e| without
-data types), once we have understood the type class instances at play.
+The |Domain| instance is reponsible for implementing the summary mechanism.
+|stuck|,|fun| and |con| map from values to summarised representation, and
+|apply| and |select| encode the concretisation of |Nop| in terms of the abstract
+domain |UD|.
 
-The |Domain| instance calculates a summary of a semantic usage value.
-|stuck|,|fun| and |con| map from values to summarised representation,
-and |apply| and |select| encode the concretisation of |Nop| in terms of the
-abstract domain |UD|.
-
-When a |Nop| is |apply|'d to an argument, the result is that of
-evaluating that argument many times (note that it is enough to evaluate twice in
-|U|), corresponding exactly to the $ω * d$ in the application case of
-\Cref{fig:usage}.
-When a |Nop| value is |select|ed, the result is that of evaluating the case
+When a |d| is |apply|'d to an argument |a|, the result is that of
+evaluating |a| many times (note that it is enough to evaluate twice in
+|U|, as in |manify|) as well as |d|, roughly corresponding to the $x ∈ Γ$
+premise of the \textsc{App} rule in \Cref{fig:deadness}.
+When a |d| is |select|ed, the result is that of evaluating the case
 alternatives |fs| with |nopD| for field denotations of the corresponding
 constructor, then returning the least upper bound |lub| of all alternatives.
 Such a |nopD| is simply an inert denotation that does not contribute any uses
@@ -186,12 +186,16 @@ Likewise, when returning a function in |fun|, that function is ``squeezed
 dry'' by passing it a |nopD| and |manify|ing the result, thus accounting for
 uses inside the function body at any potential call site.
 (Recall that uses of the argument at the call site is handled by |apply|.)
+This bears a strong resemblence to rule \textsc{Lam} of \Cref{fig:deadness},
+where analysis of the body assumes that the argument is dead in everything
+(``squeezed dry'') when adding $\px$ to $Γ$.
 
-The following lemma formalises this notion of ``sequeezing dry'' a |d|, and it
-is material in proving the summary mechanism correct in \Cref{sec:soundness}:
+The following ``substitution lemma'' formalises this notion of ``sequeezing
+dry'' a |d|, and it is material in proving the summary mechanism correct in
+\Cref{sec:soundness}:
 \begin{lemmarep}[Usage squeezing]
 \label{thm:usage-squeezing}
-|forall e ρ x d. eval e (ext ρ x d) ⊑ manify d >> eval e (ext ρ x nopD)|.
+|eval e (ext ρ x d) ⊑ manify d >> eval e (ext ρ x nopD)|.
 \end{lemmarep}
 \begin{proof}
 By induction on |e|.
@@ -205,15 +209,21 @@ By induction on |e|.
     Fortunately, we may collapse |manify d >> manify d = manify d| as often as
     needed, and |manify nopD >>| is the identity function.
     Thus we can show
-    \begin{DispWithArrows*}[fleqn,mathindent=5em]
-         & |eval (App e x) (ext ρ x d)| \Arrow{Definition} \\
-      ={}& |apply (eval e (ext ρ x d)) d| \Arrow{Definition} \\
-      ={}& |manify d >> eval e (ext ρ x d)| \Arrow{IH} \\
-      ⊑{}& |manify d >> manify d >> eval e (ext ρ x nopD)| \Arrow{Collapse |manify d|, expand |d = manify nopD >> d|} \\
-      ={}& |manify nopD >> manify d >> eval e (ext ρ x nopD)| \Arrow{Definition} \\
-      ={}& |manify d >> apply (eval e (ext ρ x nopD)) nopD| \Arrow{Definition} \\
-      ={}& |manify d >> eval (App e x) (ext ρ x nopD)|
-    \end{DispWithArrows*}
+    \begin{spec}
+      eval (App e x) (ext ρ x d)
+    = {- Definition of |eval| -}
+      apply (eval e (ext ρ x d)) d
+    = {- Definition of |apply| -}
+      manify d >> eval e (ext ρ x d)
+    ⊑ {- Induction hypothesis -}
+      manify d >> manify d >> eval e (ext ρ x nopD)
+    ⊑ {- Collapse |manify d|, expand |d = manify nopD >> d| -}
+      manify nopD >> manify d >> eval e (ext ρ x nopD)
+    = {- Definition of |apply| -}
+      manify d >> apply (eval e (ext ρ x nopD)) nopD
+    = {- Definition of |eval| -}
+      manify d >> eval (App e x) (ext ρ x nopD)
+    \end{spec}
   \item \textbf{Case} |Con|, |Case|:
     Similar; need to collapse |manify d| after applying the induction
     hypothesis.
@@ -223,8 +233,9 @@ By induction on |e|.
 The final key to a terminating definition is in swapping out the fixpoint
 combinator via the |HasBind| instance for |UValue| that computes an
 order-theoretic Kleene fixpoint (\cf. \Cref{fig:lat}) instead of |fix| (which
-only works for a corecursive |f|).
-The Kleene fixpoint exists by monotonicity and finiteness of |UD|.
+only works for a guarded recursive |f|).
+The Kleene fixpoint exists by monotonicity and finiteness of |UD|, as we will
+make formal in \Cref{sec:soundness}.
 
 \subsubsection*{Examples}
 Our naïve usage analysis yields the same result as the semantic usage
@@ -438,7 +449,7 @@ generaliseTy (Cts m) = Cts $ do
 
 To demonstrate the flexibility of our approach, we have implemented
 Hindley-Milner-style type analysis including Let generalisation as an
-insitance of our abstract denotational interpreter.
+instance of our abstract denotational interpreter.
 The gist is given in \Cref{fig:type-analysis}; we omitted large parts of the
 implementation and the |Domain| instance for space reasons.
 While the full implementation can be found in the extract generated from this
@@ -461,7 +472,7 @@ superset of $\fv(Γ)$ in |generaliseTy|.
 While the operational detail offered by |Trace| is ignored by |Cts|, all the
 pieces fall together in the implementation of |bind|, where we see yet another
 domain-specific fixpoint strategy:
-The knot is tied by calling the iteratee |f| with a fresh unification variable
+The knot is tied by calling the iteratee |rhs| with a fresh unification variable
 type |rhs_ty| of the shape $α_1$.
 The result of this call in turn is instantiated to a non-|PolyType| |rhs_ty'|,
 perhaps turning a type-scheme $\forall α_2.\ \mathtt{option}\;(α_2 \rightarrow
@@ -494,9 +505,9 @@ $\perform{closedType $ eval (read "let x = x in x") emp}$
 data Pow a = P (Set a); type CValue = Pow Label
 type ConCache = (Tag, [CValue]); data FunCache = FC (Maybe (CValue, CValue)) (CD -> CD)
 data Cache = Cache (Label :-> ConCache) (Label :-> FunCache)
-data CT a = CT (State Cache a); type CD = CT CValue
+data CT a = CT (State Cache a); type CD = CT CValue; runCFA :: CD -> CValue
 
-runCFA :: CD -> CValue; updFunCache :: Label -> (CD -> CD) -> CT ()
+updFunCache :: Label -> (CD -> CD) -> CT (); cachedCall :: Label -> CValue -> CD
 
 instance Trace (CT v) where step _ = id
 
@@ -619,7 +630,6 @@ updConCache ell k vs = CT $ modify $ overCons $ \cons ->
 updFunCache ell f = CT $ modify $ overFuns $ \funs ->
   Map.singleton ell (FC Nothing f) ⊔ funs
 
-cachedCall :: Label -> CValue -> CT CValue
 cachedCall ell v = CT $ do
   FC cache f <- gets (Map.findWithDefault bottom ell . cFuns)
   let call in_ out = do
@@ -695,8 +705,6 @@ introducing vicious cycles in negative position.
 This highlights a common challenge with instances of CFA: The obligation to
 prove that the analysis actually terminates on all inputs; an obligation that we
 will gloss over in this work.
-\sg{Surprisingly tricky due to mutual recursion; but I'm sure this has been done
-before in one form or another, hence boring.}
 
 \subsubsection*{Examples}
 The following two examples demonstrate a precise and an imprecise result,
@@ -720,31 +728,24 @@ $\perform{runCFA $ eval (read "let x = let y = S(x) in S(y) in x") emp}$
 By recovering usage analysis as an abstraction of |eval|, we have achieved our
 main goal:
 To derive a \emph{structurally-defined} static analysis approximating a property
-of a \emph{small-step trace} with a simple but useful \emph{summary} mechanism
-as an instance of an abstract definitional interpreter, thus sharing most of its
+of a \emph{small-step trace} with a simple but useful summary mechanism as an
+instance of an abstract definitional interpreter, thus sharing most of its
 structure with the concrete semantics.
 
 Our second example of type analysis, in which |PolyType|s serve as summaries
 that can be instantiated at call sites, demonstrates that our approach enjoys a
 broad range of applications that wouldn't be easily defined in terms of abstract
-big-step interpreters.
-We think that the ability to symbolically compute summaries of abstract
-transformers is an inherent advantage to our denotational approach, because it
-enables modular analyses; just like a type signature needs to be inferred once
-and subsequently can be instantiated in client modules without needing to
-re-analyse the original function.
-\sg{Perhaps move tangent to Problem statement}
+big-step interpreters due to their inherent lack of modularity.
 
 Finally, the example of 0CFA demonstrates that our framework can be instantiated
 to perform traditional, whole-program, higher-order analysis based on
-approximate call-strings.
+approximate call strings.
 
 We think that for any trace property (\ie, |Trace| instance), there is
 an analysis that can be built on 0CFA, without the need to define a custom
-summary mechanism encoded as an |Domain| instance.
+summary mechanism encoded as a |Domain| instance.
 For our usage analysis, that would mean less explanation of its |Nop| summary,
-but in some cases we'd lose out on precision due to the lack of modularity.
-
+but in some cases we'd lose out on precision due to the use of call strings.
 For example, it is trivial for modular usage analysis to determine that |i|
 in $\Let{i}{\Lam{y}{y}}{i~x~x}$ uses |i| only once, \emph{in any context this
 expression is ever embedded}.
@@ -756,12 +757,12 @@ expression
 
 The definition of |f| is a complicated way to define the identity function.
 Nevertheless, it is evident that |i| is evaluated at most once, and
-$\semusg{\wild}$ would infer this fact if we were to desugar and ANFise this
+usage analysis would infer this fact if we were to desugar and ANFise this
 expression into an |Exp|.
 On the other hand, $k$-CFA (for $k < 42$) would confuse different recursive
 activations of |i|, thus conservatively attributing evaluations multiple times,
 to the effect that |i| is not inferred as used at most once.
-So the very simple summary-based $\semusg{\wild}$ can yield more precise results
+So the very simple summary-based usage analysis can yield more precise results
 than any usage analysis based on $k$-CFA.
 
 We are not the first to realise this.
