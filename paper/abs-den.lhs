@@ -217,7 +217,7 @@
 %include Abstractions.lhs
 %include Adequacy.lhs
 %include Soundness.lhs
-%\input{related-work.tex}
+%include RelatedWork.lhs
 
 %\begin{acks}
 %We would like to thank the anonymous POPL reviewers for their feedback.

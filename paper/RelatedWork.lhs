@@ -1,3 +1,7 @@
+%if style == newcode
+> module RelatedWork where
+%endif
+
 \section{Related Work}
 \label{sec:related-work}
 
