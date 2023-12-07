@@ -245,8 +245,8 @@ eval e ρ = case e of
 \end{minipage}%
 \begin{minipage}{0.44\textwidth}
 \begin{code}
-class Trace τ where
-  step :: Event -> τ -> τ
+class Trace d where
+  step :: Event -> d -> d
 
 class Domain d where
   stuck :: d

@@ -139,8 +139,13 @@ We can encode this intuition in the custom trace type |UT| in \Cref{fig:usg-abs}
 that will take the place of |T|.
 |UT| aggregates the number of |Lookup x| transitions per variable |x| in a usage
 environment |Name :-> U|, with the matching |Monad| and |Trace| instances.
-|UT| is a lattice via the total ordering |U0 ⊏ U1 ⊏ Uω|, and |(+)|
-on |UT| coincides with |(⊔)|, except for carrying over |U1 + U1 = Uω|.
+An |U| abstracts an upper bound on the number of such |Lookup| transitions,
+where |U0| means ``at most 0 times'' (\ie, dead) and |U1| means ``at most 1 times''.
+|Uω| is the top element of the lattice defined by the total ordering |U0 ⊏ U1
+⊏ Uω| and can be read as ``at most ω times'', where $ω$ is the first limit
+ordinal.
+The definitioin of |(+)| on |U| coincides with |(⊔)|, except for carrying over
+|U1 + U1 = Uω|, so any number of lookups beyond $1$ goes straight to $ω$.
 Both |(+)| and |(⊔)| are lifted pointwise to |Name :-> U|.
 
 If we had no interest in a terminating analysis, we could already make do
@@ -776,7 +781,7 @@ that the implementation of |Domain| can be synthesised using the approach of
 \subsection{Bonus: Higher-order Cardinality Analysis}
 
 In the style of \citet{cardinality-ext}.
-\sg{Flesh out, move to Appendix or remove}
+\sg{Flesh out, move to Appendix or remove. I left this section in for Ilya to have a look.}
 
 < ghci> anyCtx "let i = λx.x in let j = λy.y in i j j"
 $\perform{anyCtx "let i = λx.x in let j = λy.y in i j j"}$

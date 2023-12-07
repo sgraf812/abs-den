@@ -31,7 +31,7 @@ Given a ``concrete'' (but perhaps undecidable, infinite or coinductive)
 semantics and a more ``abstract'' (but perhaps decidable, finite and inductive)
 semantics, when does the latter \emph{soundly approximate} properties of the former?
 This question is a prominent one in program analysis, and \emph{Abstract
-Interpretation}~\citet{Cousot:21} (AI) provides a generic framework to formalise
+Interpretation}~\citet{Cousot:21} provides a generic framework to formalise
 this question.
 
 Sound approximation is encoded by a Galois connection $(|D|, ≤) \galois{|α|}{|γ|}
@@ -51,7 +51,7 @@ In this setting, we extend the original Galois connection to the signature of
 theorem), to
 \[
   (|(Name :-> pow Traces) -> pow Traces|, |dot (⊆)|)
-  \galois{|\f -> α . f . (γ <<)|}{|\f -> γ . f . (<< α)|}
+  \galois{|\f -> α . f . (γ <<)|}{|\(hat f) -> γ . hat f . (α <<)|}
   (|(Name :-> hat D) -> hat D|, |dot (⊑)|)
 \]
 and state soundness of the abstract semantics |eval3 (hat D)| as
@@ -109,9 +109,9 @@ Hence it is impossible to soundly approximate $P$ with a least fixpoint in the
 abstract.
 
 Rather than making the common assumption that infinite traces are soundly
-approximated by $\bot$, thus effectively assuming that all executions are
-finite, our framework assumes that the properties of interest are \emph{safety
-properties}~\citep{Lamport:77}:
+approximated by $\bot$ (such as in strictness analysis), thus effectively
+assuming that all executions are finite, our framework assumes that the
+properties of interest are \emph{safety properties}~\citep{Lamport:77}:
 
 \begin{definition}[Safety property]
 A trace property $P ⊆ \Traces$ is a \emph{safety property} if and only if,

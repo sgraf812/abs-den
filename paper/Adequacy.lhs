@@ -37,18 +37,18 @@ our semantics is total by coinduction.
 We make this argument precise by encoding |eval| in Guarded Cubical Agda,
 implementing a total type theory with
 \emph{guarded recursive types}~\citet{tctt}.
-In contrast to traditional denotational semantics based on algebraic domain
-theory, guarded recursive type theory avoids issues of continuity and partiality
-discussed in \Cref{sec:continuity}, quite like programming in Rust ensures
-a sound stack and register discipline in the produced Assembler code compared
-to writing Assembler code directly.%
+In contrast to denotational semantics based on algebraic domain
+theory, use of guarded recursive types avoids issues of continuity and
+partiality of diverging computations, quite like programming in Rust ensures a
+sound stack and register discipline in the produced Assembler code compared to
+writing Assembler code directly.%
 \footnote{Of course, the underlying model of guarded recursive type
 theories is the topos of trees~\citep{gdtt}, which very much enjoys an
 approximation order and partiality; the point is that any type safe program
 (Rust) ``compiles'' to a well-defined topos model (Assembler) without needing to
 think about topology and approximation directly.
 In essence, we are using guarded type theory as a meta language in the sense of
-\citeauthor{Moggi:07}.}
+\citet{Moggi:07}.}
 
 Whereas traditional theories of coinduction require syntactic productivity
 checks~\citep{Coquand:94}, imposing tiresome constraints on the form of guarded
@@ -61,7 +61,7 @@ however perhaps sized types would work just as well.
 The fundamental innovation of guarded recursive type theory is the integration
 of the ``later'' modality $\later$ which allows to define coinductive data
 types with negative recursive occurrences such as in the data constructor |Fun
-:: (highlight (D τ) -> D τ) -> Value τ| (recall that |D τ = τ (Value τ)|), as
+:: (highlight (D τ) -> D τ) -> Value τ| (recall that |D τ = τ (highlight Value τ)|), as
 first realised by \citet{Nakano:00}.
 The way that is achieved is roughly as follows: The type $\later T$
 represents data of type $T$ that will become available after a finite amount
@@ -79,15 +79,14 @@ In particular, $Str$ is the fixpoint of a locally contractive functor $F(X) =
 ℕ \times \later X$.
 According to \citet{BirkedalMogelbergEjlers:13}, any type expression in simply
 typed lambda calculus defines a locally contractive functor as long as any
-occurrence of $X$ is under a $\later$, so we take that as the well-formedness
-criterion of coinductive types in this work.
+occurrence of $X$ is under a $\later$.
 The most exciting consequence is that changing the |Fun| data constructor to
 |Fun :: (Later (D τ) -> D τ) -> Value τ| makes |Value τ| a well-defined
 coinductive data type,%
 \footnote{The reason why the positive occurrence of |D τ| does not need to be
 guarded is that the type of |Fun| can more formally be encoded by a mixed
 inductive-coinductive type, \eg,
-$|Value τ| = \fix X.\ \lfp Y.\ ... || |Fun|~(X \to Y) || ...$ }
+$|Value τ| = \fix X.\ \lfp Y.\ ...~||~|Fun|~(X \to Y)~||~...$ }
 whereas syntactic approaches to coinduction reject any negative recursive
 occurrence.
 
@@ -141,6 +140,10 @@ The full, type-checked development is available in the Supplement.
     Expectedly, |HasBind| becomes more complicated because it encodes the
     fixpoint combinator.
     We settled on |bind :: Later (Later D → D) → (Later D → D) → D|.
+    (We tried rolling up |step (Lookup x) _| in the definition of |eval|
+    to get a simpler type |bind :: (Σ D p → D) → (Σ D p → D) → D|,
+    but then had trouble defining |ByNeed| heaps independently of the concrete
+    predicate |p|.)
   \item
     Higher-order mutable state is among the classic motivating examples for
     guarded recursive types.
@@ -166,7 +169,7 @@ concrete semantic instances such as |D (ByName T)| and |D (ByNeed T)| correspond
 one-to-one to the set of what we call the \emph{maximal} small-step traces of
 the corresponding (lazy) Krivine machine.
 We will show adequacy in this manner at |D (ByNeed T)|; adequacy at |D (ByName
-T)| should be simpler, and adequacy at |D (ByVInit T)| \wrt a by-value
+T)| is simpler, and adequacy at |D (ByVInit T)| \wrt a by-value
 small-step semantics should be similar to what we show.
 
 \citet{Sestoft:97} has shown a similar statement relating the derivations of
