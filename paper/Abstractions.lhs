@@ -746,38 +746,6 @@ Finally, the example of 0CFA demonstrates that our framework can be instantiated
 to perform traditional, whole-program, higher-order analysis based on
 approximate call strings.
 
-We think that for any trace property (\ie, |Trace| instance), there is
-an analysis that can be built on 0CFA, without the need to define a custom
-summary mechanism encoded as a |Domain| instance.
-For our usage analysis, that would mean less explanation of its |Nop| summary,
-but in some cases we'd lose out on precision due to the use of call strings.
-For example, it is trivial for modular usage analysis to determine that |i|
-in $\Let{i}{\Lam{y}{y}}{i~x~x}$ uses |i| only once, \emph{in any context this
-expression is ever embedded}.
-By contrast, an approach based on $k$-CFA will have trouble with recursions
-where multiple activations of |i| are live simultaneously, \ie, in the Haskell
-expression
-
-< let f n = let i y = y in if n == 0 then 0 else i (f (n-1) + 1) in f 42{-"."-}
-
-The definition of |f| is a complicated way to define the identity function.
-Nevertheless, it is evident that |i| is evaluated at most once, and
-usage analysis would infer this fact if we were to desugar and ANFise this
-expression into an |Exp|.
-On the other hand, $k$-CFA (for $k < 42$) would confuse different recursive
-activations of |i|, thus conservatively attributing evaluations multiple times,
-to the effect that |i| is not inferred as used at most once.
-So the very simple summary-based usage analysis can yield more precise results
-than any usage analysis based on $k$-CFA.
-
-We are not the first to realise this.
-\citep{Mangal:14} report that 2-CFA is less precise and slower than a
-summary-based approach to pointer analysis.
-That is why we would favour a summary-based approach where possible.
-Furthermore, given a semantic description of abstract values, it is likely
-that the implementation of |Domain| can be synthesised using the approach of
-\citet{Kalita:2022}.
-
 \subsection{Bonus: Higher-order Cardinality Analysis}
 
 In the style of \citet{cardinality-ext}.
