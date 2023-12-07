@@ -242,23 +242,27 @@ only works for a guarded recursive |f|).
 The Kleene fixpoint exists by monotonicity and finiteness of |UD|, as we will
 make formal in \Cref{sec:soundness}.
 
-\subsubsection*{Examples}
-Our naïve usage analysis yields the same result as the semantic usage
-abstraction in simple cases:
+\begin{table}
+\begin{tabular}{clll}
+\toprule
+\# & |d|             & |e|                                               & |eval e emp :: d| \\
+\midrule
+(1)        & |UD|            & $\Let{i}{\Lam{x}{x}}{\Let{j}{\Lam{y}{y}}{i~j~j}}$ & $\perform{eval (read "let i = λx.x in let j = λy.y in i j j") emp :: UD}$ \\
+(2)        & |D (ByName UT)| & $\Let{i}{\Lam{x}{x}}{\Let{j}{\Lam{y}{y}}{i~j}}$   & $\perform{eval (read "let i = λx.x in let j = λy.y in i j") emp :: D (ByName UT)}$ \\
+(3)        & |UD|            & $\Let{i}{\Lam{x}{x}}{\Let{j}{\Lam{y}{y}}{i~j}}$   & $\perform{eval (read "let i = λx.x in let j = λy.y in i j") emp :: UD}$ \\
+(4)        & |D (ByName UT)| & $\Let{z}{Z()}{\Case{Z()}{Z() → Z(); S(n) → z}}$   & $\perform{eval (read "let z = Z() in case Z() of { Z() -> Z(); S(n) -> z }") emp  :: D (ByName UT)}$ \\
+(5)        & |UD|            & $\Let{z}{Z()}{\Case{Z()}{Z() → Z(); S(n) → z}}$   & $\perform{eval (read "let z = Z() in case Z() of { Z() -> Z(); S(n) -> z }") emp :: UD}$ \\
+\bottomrule
+\end{tabular}
+\caption{Comparing usage analysis |UD| to the semantics usage abstraction |D (ByName UT)|.}
+\label{fig:usage-examples}
+\end{table}
 
-< ghci> eval (read "let i = λx.x in let j = λy.y in i j j") emp :: UD
-$\perform{eval (read "let i = λx.x in let j = λy.y in i j j") emp :: UD}$
-\\[\belowdisplayskip]
-\noindent
-However, there are many examples where the results are approximate:
-< ghci> eval (read "let i = λx.x in let j = λy.y in i j") emp :: D (ByName UT)
-$\perform{eval (read "let i = λx.x in let j = λy.y in i j") emp  :: D (ByName UT)}$
-< ghci> eval (read "let i = λx.x in let j = λy.y in i j") emp :: UD
-$\perform{eval (read "let i = λx.x in let j = λy.y in i j") emp  :: UD}$
-< ghci> eval (read "let z = Z() in case Z() of { Z() -> Z(); S(n) -> z }") emp :: D (ByName UT)
-$\perform{eval (read "let z = Z() in case Z() of { Z() -> Z(); S(n) -> z }") emp  :: D (ByName UT)}$
-< ghci> eval (read "let z = Z() in case Z() of { Z() -> Z(); S(n) -> z }") emp :: UD
-$\perform{eval (read "let z = Z() in case Z() of { Z() -> Z(); S(n) -> z }") emp  :: UD}$
+\subsubsection*{Examples}
+Our naïve usage analysis can yield the same result as the semantic usage
+abstraction, as can be seen for example (1) of \Cref{fig:usage-examples}.
+The results will be more approximate when summaries are involved, however, as
+the contrasting examples (2)-(5) point out.
 
 \begin{figure}
 \begin{code}
@@ -490,20 +494,29 @@ before the call to |generaliseTy| (and thus it couldn't have possibly leaked
 into the range of the ambient type context).
 The generalised |PolyType| is then used when analysing the |body|.
 
-\subsubsection*{Examples}
-%Since this is just intended as another example, we do not attempt a proof of
-%correctness.
-%Instead, we conclude with some example uses:
-Let us again conclude with some examples:
+\begin{table}
+\begin{tabular}{cll}
+\toprule
+\#  & |e|                                               & |closedType (eval e emp)| \\
+\midrule
+(1) & $\Let{i}{\Lam{x}{x}}{i~i~i~i~i~i}$                  & $\perform{closedType $ eval (read "let i = λx.x in i i i i i i") emp}$ \\
+(2) & $\Lam{x}{\Let{y}{x}{y~x}}$                          & $\perform{closedType $ eval (read "λx. let y = x in y x") emp}$ \\
+(3) & $\Let{i}{\Lam{x}{x}}{\Let{o}{\mathit{Some}(i)}{o}}$ & $\perform{closedType $ eval (read "let i = λx.x in let o = Some(i) in o") emp}$ \\
+(4) & $\Let{x}{x}{x}$                                     & $\perform{closedType $ eval (read "let x = x in x") emp}$ \\
+\bottomrule
+\end{tabular}
+\caption{Examples for type analysis.}
+\label{fig:type-examples}
+\end{table}
 
-< ghci> closedType $ eval (read "let i = λx.x in i i i i i i") emp
-$\perform{closedType $ eval (read "let i = λx.x in i i i i i i") emp}$
-< ghci> closedType $ eval (read "λx. let y = x in y x") emp
-$\perform{closedType $ eval (read "λx. let y = x in y x") emp}$
-< ghci> closedType $ eval (read "let i = λx.x in let o = Some(i) in o") emp
-$\perform{closedType $ eval (read "let i = λx.x in let o = Some(i) in o") emp}$
-< ghci> closedType $ eval (read "let x = x in x") emp
-$\perform{closedType $ eval (read "let x = x in x") emp}$
+\subsubsection*{Examples}
+Let us again conclude with some examples in \Cref{fig:type-examples}.
+Example (1) demonstrates repeated instantiation and generalisation.
+Example (2) shows that let generalisation does not accidentally generalise the
+type of |y|.
+Example (3) shows an example involving data types and the characteristic
+approximation to higher-rank types, and example (4) shows that type inference
+for diverging programs works as expected.
 
 \begin{figure}
 \begin{code}
@@ -711,22 +724,27 @@ This highlights a common challenge with instances of CFA: The obligation to
 prove that the analysis actually terminates on all inputs; an obligation that we
 will gloss over in this work.
 
-\subsubsection*{Examples}
-The following two examples demonstrate a precise and an imprecise result,
-respectively. The latter is due to the fact that both |i| and |j| flow into |x|.
+\begin{table}
+\begin{tabular}{cll}
+\toprule
+\#  & |e|                                               & |runCFA (eval e emp)| \\
+\midrule
+(1) & $\Let{i}{\Lam{x}{x}}{\Let{j}{\Lam{y}{y}}{i~j}}$   & $\perform{runCFA $ eval (read "let i = λx.x in let j = λy.y in i j") emp}$ \\
+(2) & $\Let{i}{\Lam{x}{x}}{\Let{j}{\Lam{y}{y}}{i~j~j}}$ & $\perform{runCFA $ eval (read "let i = λx.x in let j = λy.y in i i j") emp}$ \\
+(3) & $\Let{ω}{\Lam{x}{x~x}}{ω~ω}$                      & $\perform{runCFA $ eval (read "let ω = λx. x x in ω ω") emp}$ \\
+(4) & $\Let{x}{\Let{y}{S(x)}{S(y)}}{x}$                 & $\perform{runCFA $ eval (read "let x = let y = S(x) in S(y) in x") emp}$ \\
+\bottomrule
+\end{tabular}
+\caption{Examples for control-flow analysis.}
+\label{fig:cfa-examples}
+\end{table}
 
-< ghci> runCFA $ eval (read "let i = λx.x in let j = λy.y in i j") emp
-$\perform{runCFA $ eval (read "let i = λx.x in let j = λy.y in i j") emp}$
-< ghci> runCFA $ eval (read "let i = λx.x in let j = λy.y in i i j") emp
-$\perform{runCFA $ eval (read "let i = λx.x in let j = λy.y in i i j") emp}$
-\\[\belowdisplayskip]
-\noindent
-The |HasBind| instance guarantees termination for diverging programs and cyclic
-data:
-< ghci> runCFA $ eval (read "let ω = λx. x x in ω ω") emp
-$\perform{runCFA $ eval (read "let ω = λx. x x in ω ω") emp}$
-< ghci> runCFA $ eval (read "let x = let y = S(x) in S(y) in x") emp
-$\perform{runCFA $ eval (read "let x = let y = S(x) in S(y) in x") emp}$
+\subsubsection*{Examples}
+The first two examples of \Cref{cfa-examples} demonstrate a precise and an
+imprecise result, respectively. The latter is due to the fact that both |i| and
+|j| flow into |x|.
+Examples (3) and (4) show that the |HasBind| instance guarantees termination for
+diverging programs and cyclic data:
 
 \subsection{Discussion}
 
@@ -751,17 +769,16 @@ approximate call strings.
 In the style of \citet{cardinality-ext}.
 \sg{Flesh out, move to Appendix or remove. I left this section in for Ilya to have a look.}
 
-< ghci> anyCtx "let i = λx.x in let j = λy.y in i j j"
-$\perform{anyCtx "let i = λx.x in let j = λy.y in i j j"}$
-< ghci> anyCtx "let i = λx.x in let j = λy.y in i j"
-$\perform{anyCtx "let i = λx.x in let j = λy.y in i j"}$
-< ghci> call 2 "let i = λx.x in i"
-$\perform{call 2 "let i = λx.x in i"}$
-< ghci> call 2 "let const = λx.λy.y in const"
-$\perform{call 2 "let const = λx.λy.y in const"}$
-< ghci> call 2 "let wurble2 = λa. λg. let t = g a in t t in wurble2"
-$\perform{call 2 "let wurble2 = λa. λg. let t = g a in t t in wurble2"}$
-< ghci> call 2 "let wurble2 = λa. λg. let t = g a in t t in wurble2"
-$\perform{call 2 "let wurble2 = λa. λg. let t = g a in t t in wurble2"}$
-< ghci> anyCtx "let z = Z() in let o = S(z) in let plus = λa.λb. case a of { Z() -> b; S(n) -> let plusn = plus n b in S(plusn) } in plus z o"
-$\perform{anyCtx "let z = Z() in let o = S(z) in let plus = λa.λb. case a of { Z() -> b; S(n) -> let plusn = plus n b in S(plusn) } in plus z o"}$
+\begin{tabular}{clll}
+\toprule
+\#  & |f|      & |e|                                                                    & |f e| \\
+\midrule
+(1) & |anyCtx| & $\Let{i}{\Lam{x}{x}}{\Let{j}{\Lam{y}{y}}{i~j~j}}$                      & $\perform{anyCtx "let i = λx.x in let j = λy.y in i j j"}$ \\
+(2) & |anyCtx| & $\Let{i}{\Lam{x}{x}}{\Let{j}{\Lam{y}{y}}{i~j}}$                        & $\perform{anyCtx "let i = λx.x in let j = λy.y in i j"}$ \\
+(3) & |call 2| & $\Let{i}{\Lam{x}{x}}{i}$                                               & $\perform{call 2 "let i = λx.x in i"}$ \\
+(4) & |call 2| & $\Let{\mathit{const}}{\Lam{x}{\Lam{y}{y}}}{\mathit{const}}$            & $\perform{call 2 "let const = λx.λy.y in const"}$ \\
+(5) & |call 2| & $\Let{f}{\Lam{a}{\Lam{g}{\Let{t}{g~a}{t~t}}}}{\mathit{f}}$ & $\scriptstyle \perform{call 2 "let f = λa. λg. let t = g a in t t in f"}$ \\
+%(6) & |anyCtx| & $\Let{z}{Z()}{\Let{o}{S(z)}{\Let{\mathit{plus}}{\Lam{a}{\Lam{b}{...S(\mathit{plus}~(a-1)~b)...}}}{\mathit{plus}~z~o}}}$
+%               & $\perform{anyCtx "let z = Z() in let o = S(z) in let plus = λa.λb. case a of { Z() -> b; S(n) -> let plusn = plus n b in S(plusn) } in plus z o"}$ \\
+\bottomrule
+\end{tabular}
