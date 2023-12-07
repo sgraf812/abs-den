@@ -219,20 +219,20 @@ for clients to be able to conduct their proofs.
 
 As we are getting closer to the point where we reason about idealised,
 total Haskell code, it is important to nail down how Galois connections are
-represented ``in Haskell'', and how we construct them.
+represented in Haskell, and how we construct them.
 Following \citet[Section 4.3]{Nielson:99}, every \emph{representation function}
-|β :: a -> b| into a partial order yields a Galois connection between $(|Pow
-a|,⊆)$ and $(|b|,⊑)$:
+|β :: a -> b| into a partial order $(|b|,⊑)$ yields a Galois connection between
+|Pow|ersets of |a| $(|Pow a|,⊆)$ and $(|b|,⊑)$:
 \begin{code}
 data GC a b = (a -> b) :<->: (b -> a)
 repr :: Lat b => (a -> b) -> GC (Pow a) b
 repr β = α :<->: γ where α (P as) = Lub (β a | a <- as); γ b = P (setundef (a | β a ⊑ b))
 \end{code}
-(While the |γ| exists as a mathematical function, it is in general impossible
-to compute.)
+(While the |γ| exists as a mathematical function, it is in general impossible to
+compute even for finitary inputs.)
 Every domain |hat D| with instances |(Trace (hat D), Domain (hat D), Lat (hat D))|
 induces a \emph{trace abstraction} |trace| via the following representation
-function, writing |powMap f| to map |f| over |Pow|ersets
+function, writing |powMap f| to map |f| over |Pow|
 \begin{code}
 type EnvD d = d
 trace  ::  (Trace d, Domain d, Lat d)
@@ -622,8 +622,8 @@ is sound \wrt |D (ByName T)|, that is,
 It suffices to show the soundness lemmas in \Cref{fig:by-name-soundness-lemmas}.
 \begin{itemize}
   \item \textsc{Mono}:
-    Always immediate, since only |⊔| and |+| are the only functions matching on
-    |U|, and these are monotonic.
+    Always immediate, since |⊔| and |+| are the only functions matching on |U|,
+    and these are monotonic.
   \item \textsc{Unwind-Stuck}, \textsc{Intro-Stuck}:
     Trivial, since |stuck = bottom|.
   \item \textsc{Step-App}, \textsc{Step-Sel}:
@@ -639,10 +639,10 @@ It suffices to show the soundness lemmas in \Cref{fig:by-name-soundness-lemmas}.
 \end{itemize}
 \end{proof}
 
-Building on the ``substitution lemma'' \Cref{thm:usage-squeezing}, this proof is
+Building on the ``substitution'' \Cref{thm:usage-squeezing}, this proof is
 delightfully simple.
 The main lemmas \textsc{Beta-App} and \textsc{Beta-Sel} encode soundness of
-summary mechanism and hence appeal to \Cref{thm:usage-squeezing}, while the
+the summary mechanism and hence appeal to \Cref{thm:usage-squeezing}, while the
 proof for \textsc{Bind-ByName} governs sound fixpoint approximation.
 
 Note that in order to appeal to \Cref{thm:usage-squeezing}, we really need the
@@ -664,9 +664,11 @@ defines a monotone |hat f| that violates \textsc{Beta-App}
 \end{spec}
 \end{center}
 
-%if False
 \subsection{Sound By-Need Abstraction}
 
+\sg{TODO, abstract |StateT Heap v| into a separation logic proposition.}
+
+%if False
 Need new |αD|.
 
 \begin{code}
