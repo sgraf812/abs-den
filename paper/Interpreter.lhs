@@ -435,8 +435,8 @@ fetch a = ByNeed get >>= \μ -> μ ! a
 
 memo :: forall τ. (Monad τ, forall v. Trace (τ v)) => Addr -> D (ByNeed τ) -> D (ByNeed τ)
 memo a d = d >>= ByNeed . StateT . upd
-  where upd Stuck  μ = return (Stuck :: Value (ByNeed τ), μ)
-        upd v      μ = step Update (return (v, ext μ a (memo a (return v))))
+  where  upd Stuck  μ = return (Stuck :: Value (ByNeed τ), μ)
+         upd v      μ = step Update (return (v, ext μ a (memo a (return v))))
 
 instance (Monad τ, forall v. Trace (τ v)) => HasBind (D (ByNeed τ)) where
   bind rhs body = do  a <- nextFree <$> ByNeed get
