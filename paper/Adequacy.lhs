@@ -57,6 +57,9 @@ is instead proven semantically, in the type system.
 Compared to the alterntaive of \emph{sized types}~\citep{Hughes:96}, guarded
 types don't require complicated algebraic manipulations of size parameters;
 however perhaps sized types would work just as well.
+Any fuel-based (or step-indexed) approach is equivalent to our use of guarded
+type theory, but we find that the latter is a more direct (and thus preferable)
+encoding.
 
 The fundamental innovation of guarded recursive type theory is the integration
 of the ``later'' modality $\later$ which allows to define coinductive data

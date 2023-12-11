@@ -33,13 +33,29 @@
 %        as push/enter rather than eval/apply. Which is in contrast to what the Krivine
 %        paper says, which dubs return states as "apply" transitions
 
-\subsubsection*{Coinduction, Traces and Mechanisation}
-% TODO: Consider Capretta:05's argument for using the Delay monad to encode
-% partiality
+\subsubsection*{Definitional Big-Step Interpreters, Coinduction, Fuel, Step-indexing and Mechanisation}
+% TODO:
 \citet{LeroyGrall:09} show that a coinductive encoding of big-step semantics
 is able to encode diverging traces by proving it equivalent to a small-step
 semantics.
 Their Lemma 10 covers much the same ground as \Cref{thm:sem-adequate}.
+\citet{Owens:16} recognise the usefulness of a definitional interpreters for
+correctness proofs, albeit in big-step style and using a fuel-based encoding of
+infinite behaviors.
+\citet{AgerDanvyMidtgaard:04} show a principled way of how to derive a variant
+of the LK machine from a partial denotational interpreter, which could be
+applied to our formulation as well.
+In fact, the |syn| constraints of \Cref{sec:soundness} express the same
+information that closure conversion exploits when turning the denotational
+interpreter into a definitional big-step interpreter.
+\citet{Keidel:18} show that in abstracting big-step interpreters, correctness of
+shared code follows by parametricity~\citep{Wadler:89}.
+We found it quite elegant to utilise parametricity in this way, but
+unfortunately the free theorem for our interpreter is too weak because it
+would exclude the syntactic premises in \Cref{fig:by-name-soundness-lemmas}.
+Once the right correctness statement was established, the main proof became so
+simple that it could easily be automated.
+
 While our |T|race type is appropriate for tracking ``pure'' transition events,
 it is not up to the task of modelling user input, for example.
 It would be interesting to see whether use of guarded interaction
@@ -50,10 +66,11 @@ While working out how to embed |eval| in Guarded Cubical Agda and then
 attempting mechanised proofs about |D (ByNeed T)|, we very soon decided that
 this was not a task we were up to, due to lack of automation and the general
 perceived tediousness of Cubical types.
-It would be interesting to see if the Iris proof framework is a better fit for
-mechanisation.
-Certainly, we use both guarded recursion as well as separation logic in our
-proofs.
+It would be interesting to see if the Iris proof framework is a better fit
+for mechanisation, where guarded types in |eval| would need to be encoded via
+fuel/step-indexing.
+Certainly, we could use both guarded recursion as well as separation logic for
+by-need heaps in our proofs.
 
 \subsubsection*{Contextual Improvement}
 Abstract interpretation is useful to prove that an analysis approximates
