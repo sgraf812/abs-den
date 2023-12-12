@@ -451,7 +451,7 @@ nextFree h = case Map.lookupMax h of
   Nothing     -> 0
   Just (k,_)  -> k+1
 
-newtype ByNeed τ v = ByNeed (StateT (Heap (ByNeed τ)) τ v)
+newtype ByNeed τ v = ByNeed { unByNeed :: StateT (Heap (ByNeed τ)) τ v }
   deriving newtype (Functor,Applicative,Monad)
 
 runByNeed :: ByNeed τ a -> τ (a, Heap (ByNeed τ))
