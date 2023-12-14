@@ -35,6 +35,8 @@
 
 \subsubsection*{Definitional Big-Step Interpreters, Coinduction, Fuel, Step-indexing and Mechanisation}
 % TODO:
+% - HOAS
+% - Galois Transformers
 \citet{LeroyGrall:09} show that a coinductive encoding of big-step semantics
 is able to encode diverging traces by proving it equivalent to a small-step
 semantics.
