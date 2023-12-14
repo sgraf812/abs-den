@@ -753,8 +753,15 @@ entry = untyped (repr β where β (Later (eval e ρ)) = Later (eval e (α << set
 pap :: b -> GC (a, b) (hat a, hat b) -> GC a (hat a)
 pap b (α :<->: β) = (\a -> fst (α (a,b))) :<->: (\(hat a) -> Lub (set (a1 | α(a1,b) ⊑ α(a,b))))
 
+-- Obs:
+--  1. We have `Domain d`, but not `Domain (StateD d)`. The latter is not derivable from the former
+--  2. Concretely, we need to abstract `StateD d` into `d` for use in `fun :: (d -> d) -> d`.
+--     (For that, it is enough to be able to abstract `State (Addr :-> d) d` into `d`.)
+--     But this needs least evaluated heap in which the `StateD` is defined.
+--     Actually, a `StateD d` does not encode the same info as a `d` at all; it's rather `(StateD d, Heap) :<->: d`
+--     So perhaps we need `(StateD d, Addr :-> StateD d) :<->: d`.
 byNeed  ::  forall d. (Trace d, Domain d, Lat d)
-        =>  GC (StateD d, Addr :-> HeapD (StateD d)) (d, Addr :-> HeapD (StateD d))
+        =>  GC (State (Addr :-> HeapD d) d) d
         ->  GC (Addr :-> HeapD (StateD d)) (Addr :-> HeapD d)
         ->  GC (Pow (D (ByNeed T))) d
 byNeed (hat runState) (hat freeze) = undefined -- (α . powMap (\d -> (coerce d, emp))) :<->: (powMap (ByNeed . fst) . γ) where
