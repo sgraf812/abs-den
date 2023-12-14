@@ -15,6 +15,7 @@ import Interpreter
 import Abstractions
 import Control.Monad.Trans.State
 import Data.Coerce
+import Data.Functor.Identity
 
 instance Eq (D (ByName T)) where
   (==) = undefined
@@ -712,44 +713,79 @@ value (αD :<->: γD) (αE :<->: γE) = repr β where
   β (Fun f)     = fun {-"\iffalse"-}""{-"\fi"-} (αD . powMap f . γE)
   β (Con k ds)  = con {-"\iffalse"-}""{-"\fi"-} k (map (αE . set) ds)
 
+-- better decomposition of byName:
+byName2 :: (Trace d, Domain d, HasBind d, Lat d) => GC (Pow (D (ByName T))) d
+byName2 = (α . powMap unByName) :<->: (powMap ByName . γ) where α :<->: γ = trace2 (value byName2 env)
+
 type HeapD d = d
 
-trace3  ::  (Trace d, Lat d)
-        =>  GC (Pow v) (StateD d)
-        ->  GC (Pow (Addr :-> HeapD h)) (Addr :-> StateD d)
-        ->  GC (Pow (T (v, Addr :-> HeapD h))) (d, Addr :-> StateD d)
-trace3 (αV :<->: γV) (α :<->: γ) = repr β where
-  β (Ret (v, μ))  =  case αV (set v) of StateD f -> f (α (set μ))
-  β (Step e d)    |  (hat d,hat a) <- β d = (step e d, hat a)
+newtype StateD d = StateD { unStateD :: State (Addr :-> HeapD (StateD d)) d }
+  deriving (Eq, Lat)
 
-instance Eq d => Eq (StateD d)
-instance Lat d => Lat (StateD d)
+-- but we need a more specific version of trace2 now
+trace3  ::  (Trace d, Lat d, Lat (hat h))
+        =>  GC (Pow (v,h)) (d,hat h)
+        ->  GC (Pow (T (v, h))) (d, (hat h))
+trace3 (α :<->: γ) = repr β where
+  β (Ret (v, μ))  =  α (set (v, μ))
+  β (Step e d)    |  (hat d,hat μ) <- β d = (step e (hat d), hat μ)
 
-newtype StateD d = StateD { unStateD :: (Addr :-> HeapD (StateD d)) -> (d, Addr :-> HeapD (StateD d)) }
+instance (Eq d, Eq h) => Eq (State h d)
+instance (Lat d, Lat h) => Lat (State h d)
 
-stateful  ::  forall d h v. (Lat d, Trace d)
-          =>  GC (Pow v) (StateD d)
-          ->  GC (Pow (HeapD h)) (HeapD (StateD d))
-          ->  GC (Pow (StateT (Addr :-> HeapD h) T v)) (StateD d)
-stateful val (αE :<->: γE) = repr β where
-  heap :: GC (Pow (Addr :-> HeapD h)) (Addr :-> HeapD (StateD d))
-  heap@(αH :<->: γH) = repr ((αE . set) <<)
-  trc :: GC (Pow (T (v, Addr :-> HeapD h))) (d, Addr :-> HeapD (StateD d))
-  trc@(αD :<->: γD) = trace3 val heap
-  β :: StateT (Addr :-> HeapD h) T v -> StateD d
-  β (StateT f) = StateD (αD . powMap f . γH)
+stateT  ::  forall d (hat h) h v. (Lat d, Trace d, Lat (hat h))
+          =>  GC (Pow (v, h)) (d,hat h)
+          ->  GC (Pow h) (hat h)
+          ->  GC (Pow (StateT h T v, h)) (StateT (hat h) Identity d, hat h)
+stateT val (αH :<->: γH) = repr β where
+  trc :: GC (Pow (T (v, h))) (d, hat h)
+  trc@(αD :<->: γD) = trace3 val
+  β :: (StateT h T v, h) -> (State (hat h) d, hat h)
+  β (StateT f, μ) = (state (αD . powMap f . γH), αH (set μ))
 
-env' :: (Trace d, Lat d) => GC (Pow (EnvD (D (ByNeed T)))) (EnvD d)
+env' :: (Trace d, Lat d) => GC (Pow (EnvD (D (ByNeed T)))) (EnvD (StateD d))
 env' = untyped (repr β where β (Step (Lookup x) (fetch a)) = step (Lookup x) (fetch a))
 
 entry :: (Trace d, Domain d, HasBind d, Lat d) => GC (Pow (HeapD (D (ByNeed T)))) (HeapD (StateD d))
 entry = untyped (repr β where β (Later (eval e ρ)) = Later (eval e (α << set << ρ)) where
   α :<->: _ = env')
 
+pap :: b -> GC (a, b) (hat a, hat b) -> GC a (hat a)
+pap b (α :<->: β) = (\a -> fst (α (a,b))) :<->: (\(hat a) -> Lub (set (a1 | α(a1,b) ⊑ α(a,b))))
+
+byNeed  ::  forall d. (Trace d, Domain d, Lat d)
+        =>  GC (StateD d, Addr :-> HeapD (StateD d)) (d, Addr :-> HeapD (StateD d))
+        ->  GC (Addr :-> HeapD (StateD d)) (Addr :-> HeapD d)
+        ->  GC (Pow (D (ByNeed T))) d
+byNeed (hat runState) (hat freeze) = undefined -- (α . powMap (\d -> (coerce d, emp))) :<->: (powMap (ByNeed . fst) . γ) where
+  where
+  t :: GC (Pow (StateT (Heap (ByNeed T)) T (Value (ByNeed T)), Heap (ByNeed T))) (StateT (Addr :-> HeapD d) Identity d, Addr :-> HeapD d)
+  t@(α :<->: γ) = stateT val (hat freeze)
+  val :: GC (Pow (Value (ByNeed T), Heap (ByNeed T))) (d, Addr :-> HeapD d)
+  val = repr β where
+    β (v, μ) = _ (f (set v))
+      where
+        f :<->: _ = value (pap μ t) env'
+  αE :<->: _ = entry
+
+noupdate :: GC (StateD d, Addr :-> HeapD (StateD d)) d
+noupdate = α :<->: γ where
+  α (StateD s, μ) = case runState s μ of (d, μ') -> (d, αH μ)
+  γ (d, μ) = (StateD (state (\_μ -> (d, γH μ))), γH μ)
+  αH μ = (\s -> fst (α (s,μ))) << μ
+  γH μ = (\d -> fst (γ (d,μ))) << μ
+
+noupdateHeap :: GC (StateD d, Addr :-> HeapD (StateD d)) d
+noupdateHeap = αH :<->: γH where
+  α (s, μ) = case runState s μ of (d, μ') -> (d, αH μ)
+  γ (d, μ) = (StateD (state (\_μ -> (d, γH μ))), γH μ)
+  αH μ = (\s -> fst (α (s,μ))) << μ
+  γH μ = (\d -> fst (γ (d,μ))) << μ
+
 nameNeed :: GC (StateD d, Addr :-> HeapD (StateD d)) (d, Addr :-> HeapD d)
 nameNeed = α :<->: γ where
-  α (StateD s, μ) = case s μ of (d, μ') -> (d, αH μ)
-  γ (d, μ) = (StateD (\_μ -> (d, γH μ)), γH μ)
+  α (StateD s, μ) = case runState s μ of (d, μ') -> (d, αH μ)
+  γ (d, μ) = (StateD (state (\_μ -> (d, γH μ))), γH μ)
   αH μ = (\s -> fst (α (s,μ))) << μ
   γH μ = (\d -> fst (γ (d,μ))) << μ
   --   (s, μ)
@@ -775,23 +811,18 @@ nameNeed = α :<->: γ where
   -- = α (\_μ -> (d, γH μ), γH μ)
   -- = α (\_μ -> (d, γH μ), γH μ)
   -- = case (d, γH μ) of (d, μ') -> (d, αH (γH μ))
-  -- = (d, αH (γH μ))
+  -- = (d, αH (γH μ)) -- proven below
   -- = (d, μ)  -- NB: Exact ==> Galois insertion
   --
   --   αH (γH μ)   where μ = [many (a↦d)]
   -- = (\s -> fst (α (s,γH μ))) << γH μ
   -- = (\s -> fst (α (s,γH μ))) << [many (a ↦ fst (γ (d,μ)))]
   -- = [many (a ↦ fst (α (fst (γ (d,μ)), γH μ)))]
-  -- = [many (a ↦ fst (α (γ (d,μ))))]
+  -- = [many (a ↦ fst (α (γ (d,μ))))] -- Löb IH
   -- = [many (a ↦ fst (d,μ))]
   -- = [many (a ↦ d)]
   -- = μ
 
--- byNeed :: forall d. (Trace d, Domain d, Lat d) => GC (StateD d) d -> GC (Pow (D (ByNeed T))) d
--- byNeed st = (α . powMap coerce) :<->: (powMap ByNeed . γ) where
---   (α :<->: γ) = stateful val entry
---   val :: GC (Pow (Value (ByNeed T))) (StateD d)
---   val = value byNeed env'
 \end{code}
 %endif
 
