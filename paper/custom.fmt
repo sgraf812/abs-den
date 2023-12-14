@@ -10,7 +10,7 @@
 %format com = "--"
 %format Lub(a) = "undefined"
 %format setundef(a) = "(undefined::forall a. Set a)"
-%format (hat a) = a
+%format (hat (a)) = a "__hat"
 %format untyped(a) = "(undefined :: forall a. a)"
 %else
 
