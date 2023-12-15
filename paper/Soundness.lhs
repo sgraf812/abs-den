@@ -850,4 +850,178 @@ then |eval| instantiates at |hat D| to an abstract interpreter that is sound
   |αT (set (eval e ρ μ) :: Pow (T (Value (ByNeed T), Heap (ByNeed T)))) ⊑ (eval e (αE μ << ρ) :: hat D)|
 \]
 \end{theoremrep}
+\begin{proof}
+ρ(x) = step (Lookup y) (fetch a)
+αE ([a↦eval e ρ'], (step (Lookup y) (fetch a))) = step (Lookup y) (eval e (αE μ << ρ'))
+defined via least fixed point? Or perhaps via fixpoint abstraction lemma?
+
+αE :<->: γE :: GC (Pow (Heap, EnvD (D (ByNeed T)))) (EnvD (hat d))
+
+βT :: T (Value (ByNeed T), Heap (ByNeed T)) -> hat D
+βT (Step e d) = step e (βD d)
+βT (Ret (Stuck,μ)) = stuck
+βT (Ret (Fun f,μ)) = fun (\(hat d) -> Lub (βD (f d μ') | (d,μ') `elem` γE μ, μ ~> μ'))
+βT (Ret (Con k ds,μ)) = con k (map (αE μ !) ds)
+αE :: Heap (ByNeed T) -> (EnvD (D (ByNeed T)) -> EnvD (hat D))
+
+μ is index, so
+
+αE μ d, γE μ (hat d)
+
+Then |γE μ (hat d) = Cup (d | αE μ' d ⊑ hat d, μ ~> μ')|.
+
+and μ ~> μ' ==> αE μ' ⊑ αE μ'[μ] (perhaps even `αE μ`? No, the latter is more general. When d is defined on both μ and μ', then `αE μ` follows)
+    μ ~> μ' ==> γE μ' ⊆ γE μ'[μ]
+
+and GC can be generalised as follows (assuming μ ~> μ'):
+    αE μ'[μ] . γE μ ⊑ id
+    id              ⊑ γE μ'[μ] . αE μ
+regular definition is when dom(μ') = dom(μ)
+
+Another lemma: If rng(ρ) ⊆ dom(μ), then
+    αE μ'[μ] << ρ = αE μ << ρ
+
+\begin{itemize}
+  \item \textbf{Case} |Var x|:
+    The stuck case follows by unfolding |αT|.
+    Otherwise,
+    \begin{spec}
+        αT ((ρ ! x) μ)
+    =   {- |syne (Pow (D (ByNeed T))) ρ|, Unfold |αT| -}
+        step (Lookup y) (αT (fetch a μ))
+    =   {- Unfold |fetch| -}
+        step (Lookup y) (αT ((μ ! ρ(x)) μ))
+    =   {- |synh (Pow (D (ByNeed T))) μ|  TODO define |synh| -}
+        step (Lookup y) (αT (eval e ρ' μ))
+    ⊑   {- Induction hypothesis -}
+        step (Lookup y) (eval e' (αE μ << ρ'))
+    =   {- Refold |αE| -}
+        αE μ (ρ ! x)
+    \end{spec}
+    TODO: Consider |memo|, which I forgot above
+  \item \textbf{Case} |Lam x body|:
+    \begin{spec}
+        αT (eval (Lam x body) ρ μ)
+    =   {- Unfold |eval|, |αT| -}
+        αV (Fun (\d μ' -> step App2 (eval body (ext ρ x d) μ')), µ)
+    =   {- Definition of |αV| TODO check this, in particular the currying going on.
+           How do we know $μ ~> μ'$??
+           Perhaps integrate into αV/γE/attach upper bound to (hat d) or Fun. -}
+        fun (\(hat d) -> αT (Cup (step App2 (eval e (ext ρ x d) μ') | (d,μ') `elem` γE μ (hat d), μ ~> μ')))
+    =   {- |αT| Preserves Lubs, Unfold |αT|  -}
+        fun (\(hat d) -> Lub (step App2 αT (eval e (ext ρ x d) μ') | (d,μ') `elem` γE μ (hat d), μ ~> μ'))
+    ⊑   {- |step| is monotonic  -}
+        fun (\(hat d) -> step App2 (Lub (αT (eval e (ext ρ x d) μ') | (d,μ') `elem` γE μ (hat d), μ ~> μ')))
+    ⊑   {- |μ ~> μ' ==> αT (eval e ρ μ') ⊑ αT (eval e ρ μ'[μ])| -}
+        fun (\(hat d) -> step App2 (Lub (αT (eval e (ext ρ x d) μ'[μ]) | (d,μ') `elem` γE μ (hat d), μ ~> μ')))
+    ⊑   {- Induction hypothesis -}
+        fun (\(hat d) -> step App2 (Lub (eval body (αE μ'[μ] << (ext ρ x d)) | (d,μ') `elem` γE μ (hat d), μ ~> μ')))
+    ⊑   {- |αE μ'[μ] . γE μ ⊑ id| -}
+        fun (\(hat d) -> step App2 (eval body (ext (αE μ'[μ] << ρ) x (hat d))))
+    =   {- |dom μ ⊆ rng ρ ==> αE μ'[μ] << ρ = αE μ << ρ| -}
+        fun (\(hat d) -> step App2 (eval body (ext (αE μ << ρ) x (hat d))))
+    =   {- Refold |eval| -}
+        eval (Lam x body) (αE << ρ)
+    \end{spec}
+
+  \item \textbf{Case} |App e x|:
+    The stuck case follows by unfolding |αT|.
+
+    Our proof obligation can be simplified as follows
+    \begin{spec}
+        αT (eval (App e x) ρ μ)
+    =   {- Unfold |eval| -}
+        αT (apply (eval e ρ) (ρ ! x) μ)
+    =   {- Unfold |apply| -}
+        αT (eval e ρ μ >>= \case (Fun f, μ') -> f (ρ ! x) μ'; _ -> stuck)
+    \end{spec}
+
+    By determinism, it is sufficient to consider one class of traces
+    at a time.
+    (More formally, we'd argue on the representation function |βD|;
+    the argument would be identical.)
+    When |eval e ρ μ| diverges, we have
+    \begin{spec}
+    =   {- |eval e ρ μ| diverges, unfold |αT| -}
+        step ev1 (step ev2 (...))
+    ⊑   {- Assumption \textsc{Step-App} -}
+        apply (step ev1 (step ev2 (...))) ((αE μ << ρ) ! x)
+    =   {- Refold |αT|, |eval e ρ μ| -}
+        apply (αT (eval e ρ μ)) ((αE μ << ρ) ! x)
+    ⊑   {- Induction hypothesis -}
+        apply (eval e (αE μ << ρ)) ((αE μ << ρ) ! x)
+    =   {- Refold |eval| -}
+        eval (App e x) (αE μ << ρ)
+    \end{spec}
+    Otherwise, |eval e ρ μ| must produce a value |(v, μ')|.
+    If |v=Stuck| or |v=Con k ds|, we set |d := stuck|
+    (resp. |d := con k (map (αE μ') ds)|) and have
+    \begin{spec}
+        αT (eval e ρ μ >>= \case (Fun f, μ') -> f (ρ ! x) μ'; _ -> stuck μ')
+    =   {- |eval e ρ μ = many (Step ev) (return (v,μ'))|, unfold |αT| -}
+        many (step ev) (αT (return (v, μ') >>= \case (Fun f, μ') -> f (ρ ! x) μ'; _ -> stuck μ'))
+    =   {- |v| not |Fun|, unfold |αT|, TODO: Check that indeed |αT (stuck μ') = stuck| -}
+        many (step ev) stuck
+    ⊑   {- Assumptions \textsc{Unwind-Stuck}, \textsc{Intro-Stuck} where |d := stuck| or |d := con k (map (αE μ') ds)| -}
+        many (step ev) (apply d ((αE μ << ρ) ! x))
+    ⊑   {- Assumption \textsc{Step-App} -}
+        apply (many (step ev) d) ((αE μ << ρ) ! x)
+    =   {- Refold |αT|, |eval e ρ μ| -}
+        apply (αT (eval e ρ μ)) ((αE μ << ρ) ! x)
+    ⊑   {- Induction hypothesis -}
+        apply (eval e (αE μ << ρ)) ((αE μ << ρ) ! x)
+    =   {- Refold |eval| -}
+        eval (App e x) (αE μ << ρ)
+    \end{spec}
+    In the final case, we have |v = Fun f|, which must be the result of some
+    call |eval (Lam y body) ρ1 μ1|; hence
+    |f := \d μ2 -> step App2 (eval body (ext ρ1 y d) μ2)|.
+    TODO: Attach constraint |μ1 ~> μ2| somehow
+    \begin{spec}
+        αT (eval e ρ μ >>= \case (Fun f, μ') -> f (ρ ! x) μ'; _ -> stuck μ')
+    =   {- |eval e ρ μ = many (step ev) (return (v, μ'))|, unfold |αT| -}
+        many (step ev) (αT (return (v, μ') >>= \case (Fun f, μ') -> f (ρ ! x) μ'; _ -> stuck μ'))
+    =   {- |v=Fun f|, with |f| as above; unfold |αT| -}
+        many (step ev) (step App2 (αT (eval body (ext ρ1 y (ρ ! x)) μ')))
+    ⊑   {- Induction hypothesis -}
+        many (step ev) (step App2 (eval body (αE μ' << (ext ρ1 y (ρ ! x)))))
+    =   {- Rearrange -}
+        many (step ev) (step App2 (eval body (ext (αE μ' << ρ1) y ((αE μ' << ρ) ! x))))
+    ⊑   {- Assumption \textsc{Beta-App} -}
+        many (step ev) (apply (eval (Lam y body) (αE μ' << ρ1)) ((αE μ' << ρ) ! x))
+    ⊑   {- Assumption \textsc{Step-App} -}
+        apply (many (step ev) (eval (Lam y body) (αE μ' << ρ1))) ((αE μ' << ρ) ! x)
+    ⊑   {- \Cref{thm:eval-improves} applied to |many ev| TODO: Check whether it holds for by-need as well -}
+        apply (eval e (αE μ' << ρ)) ((αE μ' << ρ) ! x)
+    ⊑   {- |μ ~> μ' ==> αE μ' ⊑ αE μ'[μ]|, |rng(ρ) ⊆ dom(μ) ==> αE μ'[μ] << ρ = αE μ| -}
+        apply (eval e (αE μ << ρ)) ((αE μ << ρ) ! x)
+    =   {- Refold |eval| -}
+        eval (App e x) (αE μ' << ρ)
+    \end{spec}
+
+  \item \textbf{Case} |Let x e1 e2|:
+    \begin{spec}
+        αT (eval (Let x e1 e2) ρ μ)
+    =   {- Unfold |eval| -}
+        αT (bind  (\d1 -> eval e1 (ext ρ x (step (Lookup x) d1)))
+                  (\d1 -> step Let1 (eval e2 (ext ρ x (step (Lookup x) d1))))
+                  μ)
+    =   {- Unfold |bind|, $|a| \not\in |dom μ|$, unfold |αT| -}
+        step Let1 (αT (eval e2 (ext ρ x (step (Lookup x) (fetch a))) (ext μ a (memo a (eval e1 (ext ρ x (step (Lookup x) (fetch a))))))))
+    ⊑   {- Induction hypothesis, setting |μ1 := ext μ a (memo a (eval e1 (ext ρ x (step (Lookup x) (fetch a)))))| -}
+        step Let1 (eval e2 (ext (αE μ1 << ρ) x (αE μ1 (step (Lookup x) (fetch a)))))
+    ⊑   {- By \Cref{thm:guarded-fixpoint-abstraction} applied to the guarded definition of |αE| -}
+        step Let1 (eval e2 (ext (αE μ1 << ρ) x (lfp (\(hat d1) -> step (Lookup x) (eval e1 (ext (αE μ1 << ρ) x (hat d1)))))))
+    =   {- Partially unroll fixpoint -}
+        step Let1 (eval e2 (ext (αE μ1 << ρ) x (step (Lookup x) (lfp (\(hat d1) -> eval e1 (ext (αE μ1 << ρ) x (step (Lookup x) (hat d1))))))))
+    ⊑   {- |μ ~> μ' ==> αE μ' ⊑ αE μ'[μ]|, |rng(ρ) ⊆ dom(μ) ==> αE μ'[μ] << ρ = αE μ| -}
+        step Let1 (eval e2 (ext (αE μ << ρ) x (step (Lookup x) (lfp (\(hat d1) -> eval e1 (ext (αE μ << ρ) x (step (Lookup x) (hat d1))))))))
+    ⊑   {- Assumption \textsc{Bind-ByName}, with |hat ρ = αE μ1 << ρ| -}
+        bind  (\d1 -> eval e1 (ext (αE μ << ρ) x (step (Lookup x) d1)))
+              (\d1 -> step Let1 (eval e2 (ext (αE μ << ρ) x (step (Lookup x) d1))))
+    =   {- Refold |eval (Let x e1 e2) (αE μ << ρ)| -}
+        eval (Let x e1 e2) (αE μ << ρ)
+    \end{spec}
+\end{itemize}
+\end{proof}
 %endif
