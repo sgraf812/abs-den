@@ -667,9 +667,9 @@ defines a monotone |hat f| that violates \textsc{Beta-App}
 
 \subsection{Sound By-Need Abstraction}
 
-\sg{TODO, abstract |StateT Heap v| into a separation logic proposition.}
+\sg{Here be dragons. This is work-in-progress, don't expect to understand anything of it.}
 
-%if style == newcode
+%if False
 \begin{comment}
 Γ ⊦ { P } d { v.Q }
 := Γ => ∀μ μ_f. μ # μ_f => [[P]] μ => d μ = ...(v,μ') => μ' # μ_f /\ [[Q v]] μ'
@@ -832,12 +832,26 @@ nameNeed = α :<->: γ where
 \end{code}
 %endif
 
-%if False
 Need new |αT|.
 
 \begin{code}
-byNeed :: (Trace d, Domain d, HasBind d, Lat d) => GC (Pow (D (ByName T))) d
-byNeed = (α . powMap unByName) :<->: (powMap ByName . γ) where α :<->: γ = trace byName env
+stTrace  ::  (Trace d, Domain d, Lat d)
+         =>  (Heap (ByNeed T) -> GC (Pow (D (ByNeed T))) d)
+         ->  (Heap (ByNeed T) -> GC (Pow (EnvD (D (ByNeed T)))) (EnvD d))
+         ->  GC (Pow (T (Value (ByNeed T), Heap (ByNeed T)))) d
+stTrace _ envs = repr β where
+  (αE,γE) = (\μ -> case envs μ of αE :<->: _ -> αE, \μ -> case envs μ of _ :<->: γE -> γE)
+  β (Step e d)           = step e (β d)
+  β (Ret (Stuck, μ))     = stuck
+  β (Ret (Fun f, μ))     = fun {-"\iffalse"-}""{-"\fi"-} (\(hat d) -> Lub (β (f d μ') | (d,μ') `elem` γE μ, μ ~> μ'))
+  β (Ret (Con k ds, μ))  = con {-"\iffalse"-}""{-"\fi"-} k (map (αE μ . set) ds)
+
+freezeEnv :: (Trace d, Domain d, HasBind d, Lat d) => Heap (ByNeed T) -> GC (Pow (EnvD (D (ByNeed T)))) (EnvD d)
+freezeEnv μ = untyped (repr β where
+  β (Step (Lookup x) (fetch a)) | memo a (eval e ρ) <- μ ! a = step (Lookup x) (eval e (β << ρ)))
+
+byNeed :: (Trace d, Domain d, HasBind d, Lat d) => GC (Pow (T (Value (ByNeed T), Heap (ByNeed T)))) d
+byNeed = (α) :<->: (γ) where α :<->: γ = stTrace undefined freezeEnv
 \end{code}
 
 \begin{theoremrep}[Sound By-need Interpretation]
@@ -851,6 +865,7 @@ then |eval| instantiates at |hat D| to an abstract interpreter that is sound
 \]
 \end{theoremrep}
 \begin{proof}
+%if False
 ρ(x) = step (Lookup y) (fetch a)
 αE ([a↦eval e ρ'], (step (Lookup y) (fetch a))) = step (Lookup y) (eval e (αE μ << ρ'))
 defined via least fixed point? Or perhaps via fixpoint abstraction lemma?
@@ -880,7 +895,7 @@ regular definition is when dom(μ') = dom(μ)
 
 Another lemma: If rng(ρ) ⊆ dom(μ), then
     αE μ'[μ] << ρ = αE μ << ρ
-
+%endif
 \begin{itemize}
   \item \textbf{Case} |Var x|:
     The stuck case follows by unfolding |αT|.
@@ -1024,4 +1039,3 @@ Another lemma: If rng(ρ) ⊆ dom(μ), then
     \end{spec}
 \end{itemize}
 \end{proof}
-%endif

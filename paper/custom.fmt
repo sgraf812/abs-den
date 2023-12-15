@@ -9,6 +9,7 @@
 %format ^^^ = "^"
 %format com = "--"
 %format Lub(a) = "undefined"
+%format Cup(a) = "undefined"
 %format setundef(a) = "(undefined::forall a. Set a)"
 %format (hat (a)) = a "__hat"
 %format untyped(a) = "(undefined :: forall a. a)"
