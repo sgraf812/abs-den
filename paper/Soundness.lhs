@@ -240,9 +240,9 @@ function, writing |powMap f| to map |f| over |Pow|
 type EnvD d = d
 trace  ::  (Trace d, Domain d, Lat d)
        =>  GC (Pow (D r)) d -> GC (Pow (EnvD (D r))) (EnvD d) -> GC (Pow (T (Value r))) d
-trace (αD :<->: γD) (αE :<->: γE) = repr β where
+trace (αT :<->: γT) (αE :<->: γE) = repr β where
   β (Ret Stuck)       = stuck
-  β (Ret (Fun f))     = fun {-"\iffalse"-}""{-"\fi"-} (αD . powMap f . γE)
+  β (Ret (Fun f))     = fun {-"\iffalse"-}""{-"\fi"-} (αT . powMap f . γE)
   β (Ret (Con k ds))  = con {-"\iffalse"-}""{-"\fi"-} k (map (αE . set) ds)
   β (Step e d)        = step e (β d)
 \end{code}
@@ -254,7 +254,7 @@ some |x|, |e|, |ρ|, characterising domain elements that end up in an
 environment or are passed around as arguments or in fields.
 We have seen a similar characterisation in the Agda encoding of
 \Cref{sec:adequacy}.
-The distinction between |αD| and |αE| will be important for proving that
+The distinction between |αT| and |αE| will be important for proving that
 evaluation improves trace abstraction, a necessary auxiliary lemma for
 \Cref{thm:soundness-by-name}.
 
@@ -431,24 +431,24 @@ We can finally prove the following soundness theorem:
 \begin{theoremrep}[Sound By-name Interpretation]
 \label{thm:soundness-by-name}
 Let |hat D| be a domain with instances for |Trace|, |Domain|, |HasBind| and
-|Lat|, and let |αD :<->: γD := byName|, |αE :<->: γE := env|.
+|Lat|, and let |αT :<->: γT := byName|, |αE :<->: γE := env|.
 If the soundness lemmas in \Cref{fig:by-name-soundness-lemmas} hold,
 then |eval| instantiates at |hat D| to an abstract interpreter that is sound
-\wrt |γE -> αD|, that is,
+\wrt |γE -> αT|, that is,
 \[
-  |αD (eval e ρ :: Pow (D (ByName T))) ⊑ (eval e (αE << ρ) :: hat D)|.
+  |αT (eval e ρ :: Pow (D (ByName T))) ⊑ (eval e (αE << ρ) :: hat D)|.
 \]
 \end{theoremrep}
 \begin{proof}
 By Löb induction and cases on |e|.
 \begin{itemize}
   \item \textbf{Case} |Var x|:
-    The stuck case follows by unfolding |αD|.
+    The stuck case follows by unfolding |αT|.
     Otherwise,
     \begin{spec}
-        αD (ρ ! x)
-    =   {- |syne (Pow (D (ByName T))) ρ|, Unfold |αD| -}
-        step (Lookup y) (αD (eval e' ρ'))
+        αT (ρ ! x)
+    =   {- |syne (Pow (D (ByName T))) ρ|, Unfold |αT| -}
+        step (Lookup y) (αT (eval e' ρ'))
     ⊑   {- Induction hypothesis -}
         step (Lookup y) (eval e' (αE << ρ'))
     =   {- Refold |αE| -}
@@ -456,9 +456,9 @@ By Löb induction and cases on |e|.
     \end{spec}
   \item \textbf{Case} |Lam x body|:
     \begin{spec}
-        αD (eval (Lam x body) ρ)
-    =   {- Unfold |eval|, |αD| -}
-        fun (\(hat d) -> step App2 (αD (eval body (ext ρ x (γE (hat d))))))
+        αT (eval (Lam x body) ρ)
+    =   {- Unfold |eval|, |αT| -}
+        fun (\(hat d) -> step App2 (αT (eval body (ext ρ x (γE (hat d))))))
     ⊑   {- Induction hypothesis -}
         fun (\(hat d) -> step App2 (eval body (αE (ext ρ x (γE (hat d))))))
     ⊑   {- |αE . γE ⊑ id| -}
@@ -469,23 +469,23 @@ By Löb induction and cases on |e|.
 
   \item \textbf{Case} |ConApp k ds|:
     \begin{spec}
-        αD (eval (ConApp k xs) ρ)
-    =   {- Unfold |eval|, |αD| -}
-        con k (map ((αD << ρ) !) xs)
+        αT (eval (ConApp k xs) ρ)
+    =   {- Unfold |eval|, |αT| -}
+        con k (map ((αT << ρ) !) xs)
     =   {- Refold |eval| -}
-        eval (Lam x body) (αD << ρ)
+        eval (Lam x body) (αT << ρ)
     \end{spec}
 
   \item \textbf{Case} |App e x|:
-    The stuck case follows by unfolding |αD|.
+    The stuck case follows by unfolding |αT|.
 
     Our proof obligation can be simplified as follows
     \begin{spec}
-        αD (eval (App e x) ρ)
+        αT (eval (App e x) ρ)
     =   {- Unfold |eval| -}
-        αD (apply (eval e ρ) (ρ ! x))
+        αT (apply (eval e ρ) (ρ ! x))
     =   {- Unfold |apply| -}
-        αD (eval e ρ >>= \case Fun f -> f (ρ ! x); _ -> stuck)
+        αT (eval e ρ >>= \case Fun f -> f (ρ ! x); _ -> stuck)
     \end{spec}
 
     By determinism, it is sufficient to consider one class of traces
@@ -494,12 +494,12 @@ By Löb induction and cases on |e|.
     the argument would be identical.)
     When |eval e ρ| diverges, we have
     \begin{spec}
-    =   {- |eval e ρ| diverges, unfold |αD| -}
+    =   {- |eval e ρ| diverges, unfold |αT| -}
         step ev1 (step ev2 (...))
     ⊑   {- Assumption \textsc{Step-App} -}
         apply (step ev1 (step ev2 (...))) ((αE << ρ) ! x)
-    =   {- Refold |αD|, |eval e ρ| -}
-        apply (αD (eval e ρ)) ((αE << ρ) ! x)
+    =   {- Refold |αT|, |eval e ρ| -}
+        apply (αT (eval e ρ)) ((αE << ρ) ! x)
     ⊑   {- Induction hypothesis -}
         apply (eval e (αE << ρ)) ((αE << ρ) ! x)
     =   {- Refold |eval| -}
@@ -509,17 +509,17 @@ By Löb induction and cases on |e|.
     If |v=Stuck| or |v=Con k ds|, we set |d := stuck|
     (resp. |d := con k (map αE ds)|) and have
     \begin{spec}
-        αD (eval e ρ >>= \case Fun f -> f (ρ ! x); _ -> stuck)
-    =   {- |eval e ρ = many (step ev) (return v)|, unfold |αD| -}
-        many (step ev) (αD (return v >>= \case Fun f -> f (ρ ! x); _ -> stuck))
-    =   {- |v| not |Fun|, unfold |αD| -}
+        αT (eval e ρ >>= \case Fun f -> f (ρ ! x); _ -> stuck)
+    =   {- |eval e ρ = many (step ev) (return v)|, unfold |αT| -}
+        many (step ev) (αT (return v >>= \case Fun f -> f (ρ ! x); _ -> stuck))
+    =   {- |v| not |Fun|, unfold |αT| -}
         many (step ev) stuck
-    ⊑   {- Assumptions \textsc{Unwind-Stuck}, \textsc{Intro-Stuck} where |d := stuck| or |d := con k (map αD ds)| -}
+    ⊑   {- Assumptions \textsc{Unwind-Stuck}, \textsc{Intro-Stuck} where |d := stuck| or |d := con k (map αT ds)| -}
         many (step ev) (apply d a)
     ⊑   {- Assumption \textsc{Step-App} -}
         apply (many (step ev) d) ((αE << ρ) ! x)
-    =   {- Refold |αD|, |eval e ρ| -}
-        apply (αD (eval e ρ)) ((αE << ρ) ! x)
+    =   {- Refold |αT|, |eval e ρ| -}
+        apply (αT (eval e ρ)) ((αE << ρ) ! x)
     ⊑   {- Induction hypothesis -}
         apply (eval e (αE << ρ)) ((αE << ρ) ! x)
     =   {- Refold |eval| -}
@@ -529,11 +529,11 @@ By Löb induction and cases on |e|.
     call |eval (Lam y body) ρ1|; hence
     |f := \d -> step App2 (eval body (ext ρ1 y d))|.
     \begin{spec}
-        αD (eval e ρ >>= \case Fun f -> f (ρ ! x); _ -> stuck)
-    =   {- |eval e ρ = many (step ev) (return v)|, unfold |αD| -}
-        many (step ev) (αD (return v >>= \case Fun f -> f (ρ ! x); _ -> stuck))
-    =   {- |v=Fun f|, with |f| as above; unfold |αD| -}
-        many (step ev) (step App2 (αD (eval body (ext ρ1 y (ρ ! x)))))
+        αT (eval e ρ >>= \case Fun f -> f (ρ ! x); _ -> stuck)
+    =   {- |eval e ρ = many (step ev) (return v)|, unfold |αT| -}
+        many (step ev) (αT (return v >>= \case Fun f -> f (ρ ! x); _ -> stuck))
+    =   {- |v=Fun f|, with |f| as above; unfold |αT| -}
+        many (step ev) (step App2 (αT (eval body (ext ρ1 y (ρ ! x)))))
     ⊑   {- Induction hypothesis -}
         many (step ev) (step App2 (eval body (αE << (ext ρ1 y (ρ ! x)))))
     =   {- Rearrange -}
@@ -549,23 +549,23 @@ By Löb induction and cases on |e|.
     \end{spec}
 
   \item \textbf{Case} |Case e alts|:
-    The stuck case follows by unfolding |αD|.
+    The stuck case follows by unfolding |αT|.
     When |eval e ρ| diverges or does not evaluate to |eval (ConApp k ys) ρ1|,
     the reasoning is similar to |App e x|, but in a |select| context.
     So assume that |eval e ρ = many (step ev) (eval (ConApp k ys) ρ1)| and that
     there exists |((cont << alts) ! k) ds = step Case2 (eval er (exts ρ xs ds))|.
     \begin{spec}
-        αD (eval (Case e alts) ρ)
+        αT (eval (Case e alts) ρ)
     =   {- Unfold |eval| -}
-        αD (select (eval e ρ) (cont << alts))
+        αT (select (eval e ρ) (cont << alts))
     =   {- Unfold |select| -}
-        αD (eval e ρ >>= \case Con k ds | k ∈ dom alts -> ((cont << alts) ! k) ds)
-    =   {- |eval e ρ = many (step ev) (eval (ConApp k ys) ρ1)|, unfold |αD| -}
-        many (step ev) (αD (eval (ConApp k ys) ρ1) >>= \case Con k ds | k ∈ dom (cont << alts) -> ((cont << alts) ! k) ds)
+        αT (eval e ρ >>= \case Con k ds | k ∈ dom alts -> ((cont << alts) ! k) ds)
+    =   {- |eval e ρ = many (step ev) (eval (ConApp k ys) ρ1)|, unfold |αT| -}
+        many (step ev) (αT (eval (ConApp k ys) ρ1) >>= \case Con k ds | k ∈ dom (cont << alts) -> ((cont << alts) ! k) ds)
     =   {- Simplify |return (Con k ds) >>= f = f (Con k ds)|, |(cont << alts) ! k| as above -}
-        many (step ev) (αD (step Case2 (eval er (exts ρ xs (map (ρ1 !) ys)))))
-    =   {- Unfold |αD| -}
-        many (step ev) (step Case2 (αD (eval er (exts ρ xs (map (ρ1 !) ys)))))
+        many (step ev) (αT (step Case2 (eval er (exts ρ xs (map (ρ1 !) ys)))))
+    =   {- Unfold |αT| -}
+        many (step ev) (step Case2 (αT (eval er (exts ρ xs (map (ρ1 !) ys)))))
     ⊑   {- Induction hypothesis -}
         many (step ev) (step Case2 (eval er (exts (αE << ρ) xs (map ((αE << ρ1) !) ys))))
     =   {- Refold |cont| -}
@@ -575,19 +575,19 @@ By Löb induction and cases on |e|.
     ⊑   {- Assumption \textsc{Step-Sel} -}
         select (many (step ev) (eval (ConApp k ys) (αE << ρ1))) (cont << alts)
     ⊑   {- \Cref{thm:eval-improves} applied to |many ev| -}
-        select (eval e (αD << ρ)) (cont << alts)
+        select (eval e (αT << ρ)) (cont << alts)
     =   {- Refold |eval| -}
-        eval (Case e alts) (αD << ρ)
+        eval (Case e alts) (αT << ρ)
     \end{spec}
 
   \item \textbf{Case} |Let x e1 e2|:
     \begin{spec}
-        αD (eval (Let x e1 e2) ρ)
+        αT (eval (Let x e1 e2) ρ)
     =   {- Unfold |eval| -}
-        αD (bind  (\d1 -> eval e1 (ext ρ x (step (Lookup x) d1)))
+        αT (bind  (\d1 -> eval e1 (ext ρ x (step (Lookup x) d1)))
                   (\d1 -> step Let1 (eval e2 (ext ρ x (step (Lookup x) d1)))))
-    =   {- Unfold |bind|, |αD| -}
-        step Let1 (αD (eval e2 (ext ρ x (step (Lookup x) (fix (\d1 -> eval e1 (ext ρ x (step (Lookup x) d1))))))))
+    =   {- Unfold |bind|, |αT| -}
+        step Let1 (αT (eval e2 (ext ρ x (step (Lookup x) (fix (\d1 -> eval e1 (ext ρ x (step (Lookup x) d1))))))))
     ⊑   {- Induction hypothesis -}
         step Let1 (eval e2 (ext (αE << ρ) x (αE (step (Lookup x) (fix (\d1 -> eval e1 (ext ρ x (step (Lookup x) d1))))))))
     \end{spec}
@@ -595,9 +595,7 @@ By Löb induction and cases on |e|.
     \Cref{thm:eval-improves}:
     \begin{spec}
     ⊑   {- By \Cref{thm:guarded-fixpoint-abstraction}, as in the proof for \Cref{thm:eval-improves} -}
-        step Let1 (eval e2 (ext (αE << ρ) x (step (Lookup x) (lfp (\(hat d1) -> eval e1 (ext (αE << ρ) x (αE (step (Lookup x) (hat d1)))))))))
-    =   {- Induction hypothesis -}
-        step Let1 (eval e2 (ext (αE << ρ) x (step (Lookup x) (lfp (\(hat d1) -> eval e1 (αE << (ext ρ x (step (Lookup x) (hat d1)))))))))
+        step Let1 (eval e2 (ext (αE << ρ) x (step (Lookup x) (lfp (\(hat d1) -> eval e1 (ext (αE << ρ) x (step (Lookup x) (hat d1))))))))
     ⊑   {- Assumption \textsc{Bind-ByName}, with |hat ρ = αE << ρ| -}
         bind  (\d1 -> eval e1 (ext (αE << ρ) x (step (Lookup x) d1)))
               (\d1 -> step Let1 (eval e2 (ext (αE << ρ) x (step (Lookup x) d1))))
@@ -609,7 +607,7 @@ By Löb induction and cases on |e|.
 
 A delightful consequence of fixing |byName| as the Galois connection for the
 soundness statement is that many soundness lemmas, such as
-|αD (step ev d) ⊑ step ev (αD d)| or |αD (fun f) ⊑ fun (αD . f . γE)|
+|αT (step ev d) ⊑ step ev (αT d)| or |αT (fun f) ⊑ fun (αT . f . γE)|
 follow by definition.
 
 To show that the decomposition into 11 remaining lemmas is useful, we will now
@@ -618,7 +616,7 @@ bring the soundness proof for usage analysis, \emph{in full}:
 \begin{theorem} Usage analysis as specified by |UD| in \Cref{fig:abs-usg}
 is sound \wrt |D (ByName T)|, that is,
 \[
-  |αD (eval e ρ :: Pow (D (ByName T))) ⊑ (eval e (αE << ρ) :: UD) where αD :<->: _ = byName; αE :<->: _ = env|
+  |αT (eval e ρ :: Pow (D (ByName T))) ⊑ (eval e (αE << ρ) :: UD) where αT :<->: _ = byName; αE :<->: _ = env|
 \]
 \end{theorem}
 \begin{proof}
@@ -708,9 +706,9 @@ value  ::  (Domain d, Lat d)
        =>  GC (Pow (D τ)) d
        ->  GC (Pow (EnvD (D τ))) d
        ->  GC (Pow (Value τ)) d
-value (αD :<->: γD) (αE :<->: γE) = repr β where
+value (αT :<->: γT) (αE :<->: γE) = repr β where
   β Stuck       = stuck
-  β (Fun f)     = fun {-"\iffalse"-}""{-"\fi"-} (αD . powMap f . γE)
+  β (Fun f)     = fun {-"\iffalse"-}""{-"\fi"-} (αT . powMap f . γE)
   β (Con k ds)  = con {-"\iffalse"-}""{-"\fi"-} k (map (αE . set) ds)
 
 -- better decomposition of byName:
@@ -739,9 +737,9 @@ stateT  ::  forall d (hat h) h v. (Lat d, Trace d, Lat (hat h))
           ->  GC (Pow (StateT h T v, h)) (StateT (hat h) Identity d, hat h)
 stateT val (αH :<->: γH) = repr β where
   trc :: GC (Pow (T (v, h))) (d, hat h)
-  trc@(αD :<->: γD) = trace3 val
+  trc@(αT :<->: γT) = trace3 val
   β :: (StateT h T v, h) -> (State (hat h) d, hat h)
-  β (StateT f, μ) = (state (αD . powMap f . γH), αH (set μ))
+  β (StateT f, μ) = (state (αT . powMap f . γH), αH (set μ))
 
 env' :: (Trace d, Lat d) => GC (Pow (EnvD (D (ByNeed T)))) (EnvD (StateD d))
 env' = untyped (repr β where β (Step (Lookup x) (fetch a)) = step (Lookup x) (fetch a))
@@ -760,6 +758,7 @@ pap b (α :<->: β) = (\a -> fst (α (a,b))) :<->: (\(hat a) -> Lub (set (a1 | �
 --     But this needs least evaluated heap in which the `StateD` is defined.
 --     Actually, a `StateD d` does not encode the same info as a `d` at all; it's rather `(StateD d, Heap) :<->: d`
 --     So perhaps we need `(StateD d, Addr :-> StateD d) :<->: d`.
+--     Can we get by without the `StateD`? perhaps just `(State (Addr :-> d) d, Addr :-> d)`? worry later
 byNeed  ::  forall d. (Trace d, Domain d, Lat d)
         =>  GC (State (Addr :-> HeapD d) d) d
         ->  GC (Addr :-> HeapD (StateD d)) (Addr :-> HeapD d)
@@ -834,7 +833,7 @@ nameNeed = α :<->: γ where
 %endif
 
 %if False
-Need new |αD|.
+Need new |αT|.
 
 \begin{code}
 byNeed :: (Trace d, Domain d, HasBind d, Lat d) => GC (Pow (D (ByName T))) d
@@ -843,12 +842,12 @@ byNeed = (α . powMap unByName) :<->: (powMap ByName . γ) where α :<->: γ = t
 
 \begin{theoremrep}[Sound By-need Interpretation]
 Let |hat D| be a domain with instances for |Trace|, |Domain|, |HasBind| and
-|Lat|, and let |αD :<->: γD = byNeed|, |αE :<->: γE = env|.
+|Lat|, and let |αT :<->: γT = byNeed|, |αE :<->: γE = env|.
 If the soundness lemmas in \Cref{fig:by-need-soundness-lemmas} hold,
 then |eval| instantiates at |hat D| to an abstract interpreter that is sound
-\wrt |γE -> αD|, that is,
+\wrt |γE -> αT|, that is,
 \[
-  |αD (eval e ρ :: Pow (D (ByNeed T))) ⊑ (eval e (αE << ρ) :: hat D)|
+  |αT (set (eval e ρ μ) :: Pow (T (Value (ByNeed T), Heap (ByNeed T)))) ⊑ (eval e (αE μ << ρ) :: hat D)|
 \]
 \end{theoremrep}
 %endif
