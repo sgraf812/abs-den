@@ -125,7 +125,7 @@
 \setlength{\pdfpagewidth}{\paperwidth}
 
 \title{Abstracting Denotational Interpreters}
-\subtitle{A Pattern for Sound, Modular and Higher-order Static Program Analysis}
+\subtitle{A Pattern for Sound, Cartesian, Modular and Higher-order Static Program Analysis}
 
 \author{Sebastian Graf}
 \affiliation{%
