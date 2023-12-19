@@ -345,7 +345,7 @@ invocations, and |trace| does so as well.
   \textsc{Step-Sel}, \textsc{Beta-App}, \textsc{Beta-Sel}, \textsc{Bind-ByName}
   in \Cref{fig:by-name-soundness-lemmas}.
 
-  If |eval e ρ1 = many (step ev) (eval v ρ2)|,
+  If |eval e ρ1 = many (Step ev) (eval v ρ2)|,
   then |many (step ev) (eval v (αE << set << ρ2)) ⊑ eval e (αE << set << ρ1)|,
   where |αE :<->: γE = env|.
 \end{lemmarep}
@@ -355,7 +355,7 @@ By Löb induction and cases on |e|, using the representation function
 \begin{itemize}
   \item \textbf{Case} |Var x|:
     By assumption, we know that
-    |eval x ρ1 = step (Lookup y) (eval e' ρ3) = many (step ev) (eval v ρ2)|
+    |eval x ρ1 = Step (Lookup y) (eval e' ρ3) = many (Step ev) (eval v ρ2)|
     for some |y|,|e'|,|ρ3|,
     so that |many ev = Lookup y : many ev1| for some |ev1| by determinism.
     \begin{spec}
@@ -371,8 +371,8 @@ By Löb induction and cases on |e|, using the representation function
     \end{spec}
   \item \textbf{Case} |Lam|,|ConApp|: By reflexivity of $⊑$.
   \item \textbf{Case} |App e x|:
-    Then |eval e ρ1 = many (step ev1) (eval (Lam y body) ρ3)|,
-    |eval body (ext ρ3 y (ρ1 ! x)) = many (step ev1) (eval v ρ2)|.
+    Then |eval e ρ1 = many (Step ev1) (eval (Lam y body) ρ3)|,
+    |eval body (ext ρ3 y (ρ1 ! x)) = many (Step ev1) (eval v ρ2)|.
     \begin{spec}
         many (step ev) (eval v (βE << ρ2))
     =   {- |many ev = [App1] ++ many ev1 ++ [App2] ++ many ev2|, IH at |ev2| -}
@@ -387,8 +387,8 @@ By Löb induction and cases on |e|, using the representation function
         eval (App e x) (βE << ρ1)
     \end{spec}
   \item \textbf{Case} |Case e alts|:
-    Then |eval e ρ1 = many (step ev1) (eval (ConApp k ys) ρ3)|,
-    |eval er (exts ρ1 xs (map (ρ3 !) ys)) = many (step ev2) (eval v ρ2)|,
+    Then |eval e ρ1 = many (Step ev1) (eval (ConApp k ys) ρ3)|,
+    |eval er (exts ρ1 xs (map (ρ3 !) ys)) = many (Step ev2) (eval v ρ2)|,
     where |alts ! k = (xs,er)| is the matching RHS.
     \begin{spec}
         many (step ev) (eval v (βE << ρ2))
@@ -456,7 +456,7 @@ where |βT := αT . set| is the |repr|esentation function used to define |αT|.
 |eval e (αE << ρ1) :: hat D| is an upper bound to the left-hand side if and only
 if it is an upper bound on each element of the set on the right,
 \[
-  \forall |ρ|.\ |(set << ρ `subseteqdot` ρ1) ==> βT (eval e ρ) ⊑ eval e (αE << ρ1)|.
+  \forall |ρ|.\ |((set << ρ) `subseteqdot` ρ1) ==> βT (eval e ρ) ⊑ eval e (αE << ρ1)|.
 \]
 Clearly this is implied by the simplified correctness proposition
 \[
@@ -585,40 +585,40 @@ which we will prove by Löb induction and cases on |e|.
     =   {- Unfold |βT| -}
         many (step ev) (step Case2 (βT (eval er (exts ρ xs (map (ρ1 !) ys)))))
     ⊑   {- Induction hypothesis -}
-        many (step ev) (step Case2 (eval er (exts (αE << ρ) xs (map ((αE << ρ1) !) ys))))
+        many (step ev) (step Case2 (eval er (exts (βE << ρ) xs (map ((βE << ρ1) !) ys))))
     =   {- Refold |cont| -}
-        cont (alts ! k) (map ((αE << ρ1) !) xs)
+        cont (alts ! k) (map ((βE << ρ1) !) xs)
     ⊑   {- Assumption \textsc{Beta-Sel} -}
-        many (step ev) (select (eval (ConApp k ys) (αE << ρ1)) (cont << alts))
+        many (step ev) (select (eval (ConApp k ys) (βE << ρ1)) (cont << alts))
     ⊑   {- Assumption \textsc{Step-Sel} -}
-        select (many (step ev) (eval (ConApp k ys) (αE << ρ1))) (cont << alts)
+        select (many (step ev) (eval (ConApp k ys) (βE << ρ1))) (cont << alts)
     ⊑   {- \Cref{thm:eval-improves} applied to |many ev| -}
-        select (eval e (βT << ρ)) (cont << alts)
+        select (eval e (βE << ρ)) (cont << alts)
     =   {- Refold |eval| -}
-        eval (Case e alts) (βT << ρ)
+        eval (Case e alts) (βE << ρ)
     \end{spec}
 
   \item \textbf{Case} |Let x e1 e2|:
     \begin{spec}
         βT (eval (Let x e1 e2) ρ)
     =   {- Unfold |eval| -}
-        βT (bind  (\d1 -> eval e1 (ext ρ x (step (Lookup x) d1)))
-                  (\d1 -> step Let1 (eval e2 (ext ρ x (step (Lookup x) d1)))))
+        βT (bind  (\d1 -> eval e1 (ext ρ x (Step (Lookup x) d1)))
+                  (\d1 -> Step Let1 (eval e2 (ext ρ x (Step (Lookup x) d1)))))
     =   {- Unfold |bind|, |βT| -}
-        step Let1 (βT (eval e2 (ext ρ x (step (Lookup x) (fix (\d1 -> eval e1 (ext ρ x (step (Lookup x) d1))))))))
+        step Let1 (βT (eval e2 (ext ρ x (Step (Lookup x) (fix (\d1 -> eval e1 (ext ρ x (Step (Lookup x) d1))))))))
     ⊑   {- Induction hypothesis -}
-        step Let1 (eval e2 (ext (αE << ρ) x (αE (step (Lookup x) (fix (\d1 -> eval e1 (ext ρ x (step (Lookup x) d1))))))))
+        step Let1 (eval e2 (ext (βE << ρ) x (βE (Step (Lookup x) (fix (\d1 -> eval e1 (ext ρ x (Step (Lookup x) d1))))))))
     \end{spec}
     And from hereon, the proof is identical to the |Let| case of
     \Cref{thm:eval-improves}:
     \begin{spec}
     ⊑   {- By \Cref{thm:guarded-fixpoint-abstraction}, as in the proof for \Cref{thm:eval-improves} -}
-        step Let1 (eval e2 (ext (αE << ρ) x (step (Lookup x) (lfp (\(hat d1) -> eval e1 (ext (αE << ρ) x (step (Lookup x) (hat d1))))))))
-    ⊑   {- Assumption \textsc{Bind-ByName}, with |hat ρ = αE << ρ| -}
-        bind  (\d1 -> eval e1 (ext (αE << ρ) x (step (Lookup x) d1)))
-              (\d1 -> step Let1 (eval e2 (ext (αE << ρ) x (step (Lookup x) d1))))
-    =   {- Refold |eval (Let x e1 e2) (αE << ρ)| -}
-        eval (Let x e1 e2) (αE << ρ)
+        step Let1 (eval e2 (ext (βE << ρ) x (step (Lookup x) (lfp (\(hat d1) -> eval e1 (ext (βE << ρ) x (step (Lookup x) (hat d1))))))))
+    ⊑   {- Assumption \textsc{Bind-ByName}, with |hat ρ = βE << ρ| -}
+        bind  (\d1 -> eval e1 (ext (βE << ρ) x (step (Lookup x) d1)))
+              (\d1 -> step Let1 (eval e2 (ext (βE << ρ) x (step (Lookup x) d1))))
+    =   {- Refold |eval (Let x e1 e2) (βE << ρ)| -}
+        eval (Let x e1 e2) (βE << ρ)
     \end{spec}
 \end{itemize}
 \end{proof}
