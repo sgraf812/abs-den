@@ -443,133 +443,143 @@ then |eval| instantiates at |hat D| to an abstract interpreter that is sound
 \]
 \end{theoremrep}
 \begin{proof}
-By Löb induction and cases on |e|, using the representation function
-|βE := αE . set|.
+We first simplify our proof obligation by assuming that |ρ| only maps into
+singleton sets.
+This is not a significant restriction, as any other |ρ1| can be represented
+as the join over a (potentially infinite) set of such singleton |ρ|, in which
+case we have
+\[
+  |αT (eval e ρ1 :: Pow (D (ByName T))) = Lub (βT (eval e ρ :: D (ByName T)) | ρ subseteqdot ρ1)
+\]
+and |eval e (αE << ρ) :: hat D| is an upper bound if and only if
+it is an upper bound on each element of the set on the right.
+So we instead prove
+\[
+  |βT (eval e ρ :: D (ByName T)) ⊑ (eval e (βE << ρ) :: hat D)|.
+\]
+By Löb induction and cases on |e|, using the representation functions
+|βT := αT . set|, |βE := αE . set|.
 \begin{itemize}
   \item \textbf{Case} |Var x|:
     The stuck case follows by unfolding |αT|.
     Otherwise,
     \begin{spec}
-        αT (ρ ! x)
-    =   {- |syne (Pow (D (ByName T))) ρ|, Unfold |αT| -}
-        Lub (step (Lookup y) (αT (eval e' ρ')))
+        βT (ρ ! x)
+    =   {- |syne (Pow (D (ByName T))) (set << ρ)|, Unfold |βT| -}
+        step (Lookup y) (βT (eval e' ρ'))
     ⊑   {- Induction hypothesis -}
-        Lub (step (Lookup y) (eval e' (αE << ρ')))
-    =   {- Refold |αE| -}
-        αE (ρ ! x)
+        step (Lookup y) (eval e' (βE << ρ'))
+    =   {- Refold |βE| -}
+        βE (ρ ! x)
     \end{spec}
   \item \textbf{Case} |Lam x body|:
     \begin{spec}
-        αT (eval (Lam x body) ρ)
-    =   {- Unfold |eval|, |αT| -}
-        fun (\(hat d) -> step App2 (αT (eval body (ext ρ x (γE (hat d))))))
+        βT (eval (Lam x body) ρ)
+    =   {- Unfold |eval|, |βT| -}
+        fun (\(hat d) -> Lub (step App2 (βT (eval body (ext ρ x d))) | βE d ⊑ hat d))
     ⊑   {- Induction hypothesis -}
-        fun (\(hat d) -> step App2 (eval body (αE (ext ρ x (γE (hat d))))))
-    ⊑   {- |αE . γE ⊑ id| -}
-        fun (\(hat d) -> step App2 (eval body (ext (αE << ρ) x (hat d))))
+        fun (\(hat d) -> Lub (step App2 (eval body (βE << (ext ρ x d))) | βE d ⊑ hat d))
+    ⊑   {- Least upper bound -}
+        fun (\(hat d) -> step App2 (eval body (ext (βE << ρ) x (hat d))))
     =   {- Refold |eval| -}
-        eval (Lam x body) (αE << ρ)
+        eval (Lam x body) (βE << ρ)
     \end{spec}
 
   \item \textbf{Case} |ConApp k ds|:
     \begin{spec}
-        αT (eval (ConApp k xs) ρ)
-    =   {- Unfold |eval|, |αT| -}
-        con k (map ((αT << ρ) !) xs)
+        βT (eval (ConApp k xs) ρ)
+    =   {- Unfold |eval|, |βT| -}
+        con k (map ((βE << ρ) !) xs)
     =   {- Refold |eval| -}
-        eval (Lam x body) (αT << ρ)
+        eval (Lam x body) (βE << ρ)
     \end{spec}
 
   \item \textbf{Case} |App e x|:
-    The stuck case follows by unfolding |αT|.
+    The stuck case follows by unfolding |βT|.
 
     Our proof obligation can be simplified as follows
     \begin{spec}
-        αT (eval (App e x) ρ)
+        βT (eval (App e x) ρ)
     =   {- Unfold |eval| -}
-        αT (apply (eval e ρ) (ρ ! x))
+        βT (apply (eval e ρ) (ρ ! x))
     =   {- Unfold |apply| -}
-        αT (eval e ρ >>= \case Fun f -> f (ρ ! x); _ -> stuck)
+        βT (eval e ρ >>= \case Fun f -> f (ρ ! x); _ -> stuck)
     \end{spec}
 
-    By determinism, it is sufficient to consider one class of traces
-    at a time.
-    (More formally, we'd argue on the representation function |βD|;
-    the argument would be identical.)
     When |eval e ρ| diverges, we have
     \begin{spec}
-    =   {- |eval e ρ| diverges, unfold |αT| -}
+    =   {- |eval e ρ| diverges, unfold |βT| -}
         step ev1 (step ev2 (...))
     ⊑   {- Assumption \textsc{Step-App} -}
-        apply (step ev1 (step ev2 (...))) ((αE << ρ) ! x)
-    =   {- Refold |αT|, |eval e ρ| -}
-        apply (αT (eval e ρ)) ((αE << ρ) ! x)
+        apply (step ev1 (step ev2 (...))) ((βE << ρ) ! x)
+    =   {- Refold |βT|, |eval e ρ| -}
+        apply (βT (eval e ρ)) ((βE << ρ) ! x)
     ⊑   {- Induction hypothesis -}
-        apply (eval e (αE << ρ)) ((αE << ρ) ! x)
+        apply (eval e (βE << ρ)) ((βE << ρ) ! x)
     =   {- Refold |eval| -}
-        eval (App e x) (αE << ρ)
+        eval (App e x) (βE << ρ)
     \end{spec}
     Otherwise, |eval e ρ| must produce a value |v|.
     If |v=Stuck| or |v=Con k ds|, we set |d := stuck|
-    (resp. |d := con k (map αE ds)|) and have
+    (resp. |d := con k (map βE ds)|) and have
     \begin{spec}
-        αT (eval e ρ >>= \case Fun f -> f (ρ ! x); _ -> stuck)
-    =   {- |eval e ρ = many (step ev) (return v)|, unfold |αT| -}
-        many (step ev) (αT (return v >>= \case Fun f -> f (ρ ! x); _ -> stuck))
-    =   {- |v| not |Fun|, unfold |αT| -}
+        βT (eval e ρ >>= \case Fun f -> f (ρ ! x); _ -> stuck)
+    =   {- |eval e ρ = many (step ev) (return v)|, unfold |βT| -}
+        many (step ev) (βT (return v >>= \case Fun f -> f (ρ ! x); _ -> stuck))
+    =   {- |v| not |Fun|, unfold |βT| -}
         many (step ev) stuck
-    ⊑   {- Assumptions \textsc{Unwind-Stuck}, \textsc{Intro-Stuck} where |d := stuck| or |d := con k (map αT ds)| -}
+    ⊑   {- Assumptions \textsc{Unwind-Stuck}, \textsc{Intro-Stuck} where |d := stuck| or |d := con k (map βT ds)| -}
         many (step ev) (apply d a)
     ⊑   {- Assumption \textsc{Step-App} -}
-        apply (many (step ev) d) ((αE << ρ) ! x)
-    =   {- Refold |αT|, |eval e ρ| -}
-        apply (αT (eval e ρ)) ((αE << ρ) ! x)
+        apply (many (step ev) d) ((βE << ρ) ! x)
+    =   {- Refold |βT|, |eval e ρ| -}
+        apply (βT (eval e ρ)) ((βE << ρ) ! x)
     ⊑   {- Induction hypothesis -}
-        apply (eval e (αE << ρ)) ((αE << ρ) ! x)
+        apply (eval e (βE << ρ)) ((βE << ρ) ! x)
     =   {- Refold |eval| -}
-        eval (App e x) (αE << ρ)
+        eval (App e x) (βE << ρ)
     \end{spec}
     In the final case, we have |v = Fun f|, which must be the result of some
     call |eval (Lam y body) ρ1|; hence
     |f := \d -> step App2 (eval body (ext ρ1 y d))|.
     \begin{spec}
-        αT (eval e ρ >>= \case Fun f -> f (ρ ! x); _ -> stuck)
-    =   {- |eval e ρ = many (step ev) (return v)|, unfold |αT| -}
-        many (step ev) (αT (return v >>= \case Fun f -> f (ρ ! x); _ -> stuck))
-    =   {- |v=Fun f|, with |f| as above; unfold |αT| -}
-        many (step ev) (step App2 (αT (eval body (ext ρ1 y (ρ ! x)))))
+        βT (eval e ρ >>= \case Fun f -> f (ρ ! x); _ -> stuck)
+    =   {- |eval e ρ = many (step ev) (return v)|, unfold |βT| -}
+        many (step ev) (βT (return v >>= \case Fun f -> f (ρ ! x); _ -> stuck))
+    =   {- |v=Fun f|, with |f| as above; unfold |βT| -}
+        many (step ev) (step App2 (βT (eval body (ext ρ1 y (ρ ! x)))))
     ⊑   {- Induction hypothesis -}
-        many (step ev) (step App2 (eval body (αE << (ext ρ1 y (ρ ! x)))))
+        many (step ev) (step App2 (eval body (βE << (ext ρ1 y (ρ ! x)))))
     =   {- Rearrange -}
-        many (step ev) (step App2 (eval body (ext (αE << ρ1) y ((αE << ρ) ! x))))
+        many (step ev) (step App2 (eval body (ext (βE << ρ1) y ((βE << ρ) ! x))))
     ⊑   {- Assumption \textsc{Beta-App} -}
-        many (step ev) (apply (eval (Lam y body) (αE << ρ1)) ((αE << ρ) ! x))
+        many (step ev) (apply (eval (Lam y body) (βE << ρ1)) ((βE << ρ) ! x))
     ⊑   {- Assumption \textsc{Step-App} -}
-        apply (many (step ev) (eval (Lam y body) (αE << ρ1))) ((αE << ρ) ! x)
+        apply (many (step ev) (eval (Lam y body) (βE << ρ1))) ((βE << ρ) ! x)
     ⊑   {- \Cref{thm:eval-improves} applied to |many ev| -}
-        apply (eval e (αE << ρ)) ((αE << ρ) ! x)
+        apply (eval e (βE << ρ)) ((βE << ρ) ! x)
     =   {- Refold |eval| -}
-        eval (App e x) (αE << ρ)
+        eval (App e x) (βE << ρ)
     \end{spec}
 
   \item \textbf{Case} |Case e alts|:
-    The stuck case follows by unfolding |αT|.
+    The stuck case follows by unfolding |βT|.
     When |eval e ρ| diverges or does not evaluate to |eval (ConApp k ys) ρ1|,
     the reasoning is similar to |App e x|, but in a |select| context.
     So assume that |eval e ρ = many (step ev) (eval (ConApp k ys) ρ1)| and that
     there exists |((cont << alts) ! k) ds = step Case2 (eval er (exts ρ xs ds))|.
     \begin{spec}
-        αT (eval (Case e alts) ρ)
+        βT (eval (Case e alts) ρ)
     =   {- Unfold |eval| -}
-        αT (select (eval e ρ) (cont << alts))
+        βT (select (eval e ρ) (cont << alts))
     =   {- Unfold |select| -}
-        αT (eval e ρ >>= \case Con k ds | k ∈ dom alts -> ((cont << alts) ! k) ds)
-    =   {- |eval e ρ = many (step ev) (eval (ConApp k ys) ρ1)|, unfold |αT| -}
-        many (step ev) (αT (eval (ConApp k ys) ρ1) >>= \case Con k ds | k ∈ dom (cont << alts) -> ((cont << alts) ! k) ds)
+        βT (eval e ρ >>= \case Con k ds | k ∈ dom alts -> ((cont << alts) ! k) ds)
+    =   {- |eval e ρ = many (step ev) (eval (ConApp k ys) ρ1)|, unfold |βT| -}
+        many (step ev) (βT (eval (ConApp k ys) ρ1) >>= \case Con k ds | k ∈ dom (cont << alts) -> ((cont << alts) ! k) ds)
     =   {- Simplify |return (Con k ds) >>= f = f (Con k ds)|, |(cont << alts) ! k| as above -}
-        many (step ev) (αT (step Case2 (eval er (exts ρ xs (map (ρ1 !) ys)))))
-    =   {- Unfold |αT| -}
-        many (step ev) (step Case2 (αT (eval er (exts ρ xs (map (ρ1 !) ys)))))
+        many (step ev) (βT (step Case2 (eval er (exts ρ xs (map (ρ1 !) ys)))))
+    =   {- Unfold |βT| -}
+        many (step ev) (step Case2 (βT (eval er (exts ρ xs (map (ρ1 !) ys)))))
     ⊑   {- Induction hypothesis -}
         many (step ev) (step Case2 (eval er (exts (αE << ρ) xs (map ((αE << ρ1) !) ys))))
     =   {- Refold |cont| -}
@@ -579,19 +589,19 @@ By Löb induction and cases on |e|, using the representation function
     ⊑   {- Assumption \textsc{Step-Sel} -}
         select (many (step ev) (eval (ConApp k ys) (αE << ρ1))) (cont << alts)
     ⊑   {- \Cref{thm:eval-improves} applied to |many ev| -}
-        select (eval e (αT << ρ)) (cont << alts)
+        select (eval e (βT << ρ)) (cont << alts)
     =   {- Refold |eval| -}
-        eval (Case e alts) (αT << ρ)
+        eval (Case e alts) (βT << ρ)
     \end{spec}
 
   \item \textbf{Case} |Let x e1 e2|:
     \begin{spec}
-        αT (eval (Let x e1 e2) ρ)
+        βT (eval (Let x e1 e2) ρ)
     =   {- Unfold |eval| -}
-        αT (bind  (\d1 -> eval e1 (ext ρ x (step (Lookup x) d1)))
+        βT (bind  (\d1 -> eval e1 (ext ρ x (step (Lookup x) d1)))
                   (\d1 -> step Let1 (eval e2 (ext ρ x (step (Lookup x) d1)))))
-    =   {- Unfold |bind|, |αT| -}
-        step Let1 (αT (eval e2 (ext ρ x (step (Lookup x) (fix (\d1 -> eval e1 (ext ρ x (step (Lookup x) d1))))))))
+    =   {- Unfold |bind|, |βT| -}
+        step Let1 (βT (eval e2 (ext ρ x (step (Lookup x) (fix (\d1 -> eval e1 (ext ρ x (step (Lookup x) d1))))))))
     ⊑   {- Induction hypothesis -}
         step Let1 (eval e2 (ext (αE << ρ) x (αE (step (Lookup x) (fix (\d1 -> eval e1 (ext ρ x (step (Lookup x) d1))))))))
     \end{spec}
