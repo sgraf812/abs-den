@@ -443,22 +443,26 @@ then |eval| instantiates at |hat D| to an abstract interpreter that is sound
 \]
 \end{theoremrep}
 \begin{proof}
-We first simplify our proof obligation by assuming that |ρ| only maps into
-singleton sets.
-This is not a significant restriction, as any other |ρ1| can be represented
-as the join over a (potentially infinite) set of such singleton |ρ|, in which
-case we have
+We first simplify our proof obligation by assuming, without loss of generality,
+that |ρ| only maps into singleton sets, henceforth interpreting |ρ| in |Name :->
+D (ByName T)|.
+This is not losing generality as any other |ρ1| can be represented
+as the (pointwise) join over a potentially infinite set of such singleton |ρ|s,
+in which case we have
 \[
-  |αT (eval e ρ1 :: Pow (D (ByName T))) = Lub (βT (eval e ρ :: D (ByName T)) | ρ subseteqdot ρ1)
+  |αT (eval e ρ1 :: Pow (D (ByName T))) = Lub (βT (eval e ρ :: D (ByName T)) || (set << ρ) `subseteqdot` ρ1)|,
 \]
-and |eval e (αE << ρ) :: hat D| is an upper bound if and only if
-it is an upper bound on each element of the set on the right.
-So we instead prove
+where |βT := αT . set| is the |repr|esentation function used to define |αT|.
+|eval e (αE << ρ1) :: hat D| is an upper bound to the left-hand side if and only
+if it is an upper bound on each element of the set on the right,
 \[
-  |βT (eval e ρ :: D (ByName T)) ⊑ (eval e (βE << ρ) :: hat D)|.
+  \forall |ρ|.\ |(set << ρ `subseteqdot` ρ1) ==> βT (eval e ρ) ⊑ eval e (αE << ρ1)|.
 \]
-By Löb induction and cases on |e|, using the representation functions
-|βT := αT . set|, |βE := αE . set|.
+Clearly this is implied by the simplified correctness proposition
+\[
+  \forall |ρ|.\ |βT (eval e ρ :: D (ByName T)) ⊑ (eval e (βE << ρ) :: hat D)|,
+\]
+which we will prove by Löb induction and cases on |e|.
 \begin{itemize}
   \item \textbf{Case} |Var x|:
     The stuck case follows by unfolding |αT|.
@@ -479,8 +483,8 @@ By Löb induction and cases on |e|, using the representation functions
         fun (\(hat d) -> Lub (step App2 (βT (eval body (ext ρ x d))) | βE d ⊑ hat d))
     ⊑   {- Induction hypothesis -}
         fun (\(hat d) -> Lub (step App2 (eval body (βE << (ext ρ x d))) | βE d ⊑ hat d))
-    ⊑   {- Least upper bound -}
-        fun (\(hat d) -> step App2 (eval body (ext (βE << ρ) x (hat d))))
+    ⊑   {- Least upper bound / |αE . γE ⊑ id| -}
+        fun (\(hat d) -> step App2 (eval body (ext ((βE << ρ)) x (hat d))))
     =   {- Refold |eval| -}
         eval (Lam x body) (βE << ρ)
     \end{spec}
