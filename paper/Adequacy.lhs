@@ -138,6 +138,10 @@ The full, type-checked development is available in the Supplement.
         be recovered as |step (Lookup x) d|.
         This is in contrast to the original definition |Fun :: (D τ -> D τ) ->
         Value τ| which would \emph{not} type-check.
+        One can understand |Fun| as carrying the ``closure'' resulting from
+        \emph{defunctionalising}~\citep{Reynolds:72} a |Σ D p|, and that this
+        defunctionalisation is presently necessary in Agda to eliminate negative
+        cycles.
     \end{enumerate}
   \item
     Expectedly, |HasBind| becomes more complicated because it encodes the
