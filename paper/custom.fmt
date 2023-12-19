@@ -88,8 +88,9 @@
 %format <==> = "\Longleftrightarrow"
 %format <. = "\lessdot"
 %format many(a) = "\many{" a "}"
-%format syn(dom)(d) = "{" dom " \mathbin{\vdash} " d "}"
-%format syne(dom)(env) = "{" dom " \mathbin{\dot{\vdash}} " env "}"
+%format synd(dom)(d) = "{" dom " \mathbin{\vdash_{\Domain{}}} " d "}"
+%format syne(dom)(env) = "{" dom " \mathbin{\vdash_{\Environments}} " env "}"
+%format synh(dom)(heap) = "{" dom " \mathbin{\vdash_{\Heaps}} " heap "}"
 %format Traces = "\Traces"
 %format Collecting = "\mathbb{C}"
 
