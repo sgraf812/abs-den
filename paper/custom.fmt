@@ -89,9 +89,9 @@
 %format <. = "\lessdot"
 %format `subseteqdot` = "\mathbin{\dot{\subseteq}}"
 %format many(a) = "\many{" a "}"
-%format synd(dom)(d) = "{" dom " \mathbin{\vdash_{\Domain{}}} " d "}"
-%format syne(dom)(env) = "{" dom " \mathbin{\vdash_{\Environments}} " env "}"
-%format synh(dom)(heap) = "{" dom " \mathbin{\vdash_{\Heaps}} " heap "}"
+%format synd(dom)(d) = "{" dom " \mathbin{\vdash_{\Domain{}}} " d \,\mathbf{nm}"}"
+%format syne(dom)(env) = "{" dom " \mathbin{\vdash_{\Environments}} " env \,\mathbf{nm}"}"
+%format synh(dom)(heap) = "{" dom " \mathbin{\vdash_{\Heaps}} " heap \,\mathbf{nm}"}"
 %format Traces = "\Traces"
 %format Collecting = "\mathbb{C}"
 
