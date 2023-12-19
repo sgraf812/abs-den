@@ -1034,3 +1034,19 @@
   abstract="When doing an interactive proof about a piece of software, it is important that the underlying programming language's semantics does not make the proof unnecessarily difficult or unwieldy. Both small-step and big-step semantics are commonly used, and the latter is typically given by an inductively defined relation. In this paper, we consider an alternative: using a recursive function akin to an interpreter for the language. The advantages include a better induction theorem, less duplication, accessibility to ordinary functional programmers, and the ease of doing symbolic simulation in proofs via rewriting. We believe that this style of semantics is well suited for compiler verification, including proofs of divergence preservation. We do not claim the invention of this style of semantics: our contribution here is to clarify its value, and to explain how it supports several language features that might appear to require a relational or small-step approach. We illustrate the technique on a simple imperative language with C-like for-loops and a break statement, and compare it to a variety of other approaches. We also provide ML and lambda-calculus based examples to illustrate its generality.",
   isbn="978-3-662-49498-1"
 }
+
+@article{refun,
+  title = {Refunctionalization at work},
+  journal = {Science of Computer Programming},
+  volume = {74},
+  number = {8},
+  pages = {534-549},
+  year = {2009},
+  note = {Special Issue on Mathematics of Program Construction (MPC 2006)},
+  issn = {0167-6423},
+  doi = {https://doi.org/10.1016/j.scico.2007.10.007},
+  url = {https://www.sciencedirect.com/science/article/pii/S0167642309000227},
+  author = {Olivier Danvy and Kevin Millikin},
+  keywords = {Defunctionalization, Refunctionalization, Abstract machines, Continuations, Continuation-passing style (CPS), Shunting-yard algorithm},
+  abstract = {We present the left inverse of Reynolds’ defunctionalization and we show its relevance to programming and to programming languages. We propose two methods to transform a program that is almost in defunctionalized form into one that is actually in defunctionalized form, and we illustrate them with a recognizer for Dyck words and with Dijkstra’s shunting-yard algorithm.}
+}
