@@ -83,6 +83,7 @@
 %format <|> = "\mathbin{<\mspace{-6mu}|\mspace{-6mu}>}"
 %format com = "\text{-}\text{-}"
 %format pow(a) = "\pow{" a "}"
+%format ~> = "\forcesto"
 %format ==> = "\Longrightarrow"
 %format <==> = "\Longleftrightarrow"
 %format <. = "\lessdot"
