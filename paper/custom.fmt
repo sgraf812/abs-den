@@ -87,6 +87,7 @@
 %format ==> = "\Longrightarrow"
 %format <==> = "\Longleftrightarrow"
 %format <. = "\lessdot"
+%format subseteqdot = "\dot{\subseteq}"
 %format many(a) = "\many{" a "}"
 %format synd(dom)(d) = "{" dom " \mathbin{\vdash_{\Domain{}}} " d "}"
 %format syne(dom)(env) = "{" dom " \mathbin{\vdash_{\Environments}} " env "}"
