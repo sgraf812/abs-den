@@ -818,7 +818,23 @@ By Löb induction and cases on |e|.
   \item \textbf{Case} |Case e1 alts|:
     Similar to |App e1 x|.
   \item \textbf{Case} |Let x e1 e2|:
-    TODO
+    \begin{spec}
+        eval (Let x e1 e2) ρ1 μ1
+    =   {- Unfold |eval| -}
+        bind  (\d1 -> eval e1 (ext ρ1 x (step (Lookup x) d1)))
+              (\d1 -> step Let1 (eval e2 (ext ρ1 x (step (Lookup x) d1))))
+              μ1
+    =   {- Unfold |bind|, some $|a| \not\in |dom μ|$ -}
+        step Let1 (eval e2 (ext ρ1 x (step (Lookup x) (fetch a))) (ext μ1 a (memo a (eval e1 (ext ρ1 x (step (Lookup x) (fetch a)))))))
+    \end{spec}
+    At this point, we can apply the induction hypothesis to |eval e2 (ext ρ1 x
+    (step (Lookup x) (fetch a)))| to conclude that
+    |ext μ1 a (memo a (eval e1 (ext ρ1 x (step (Lookup x) (fetch a))))) ~> μ2|.
+
+    On the other hand, we have
+    |μ1 ~> ext μ1 a (memo a (eval e1 (ext ρ1 x (step (Lookup x) (fetch a)))))|
+    by rule \progresstoext (note that $|a| \not∈ |dom μ|$), so the goal follows
+    by \progresstotrans.
 \end{itemize}
 \end{proof}
 
