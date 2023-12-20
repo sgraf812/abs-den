@@ -13,6 +13,11 @@
 %format setundef(a) = "(undefined::forall a. Set a)"
 %format (hat (a)) = a "__hat"
 %format untyped(a) = "(undefined :: forall a. a)"
+%format named(dom)(d) = dom
+%format nameenv(dom)(env) = "Name :-> " dom
+%format needd(d) = "Pow (D (ByNeed T))"
+%format needenv(env) = "Pow (Name :-> D (ByNeed T))"
+%format needheap(heap) = "Pow (Heap (ByNeed T))"
 %else
 
 %format qquad = "\qquad"
@@ -33,7 +38,9 @@
 %format ρ1 = "\varcolor{\rho}_1"
 %format ρ2 = "\varcolor{\rho}_2"
 %format ρ3 = "\varcolor{\rho}_3"
+%format ρi = "\varcolor{\rho}_i"
 %format π = "\varcolor{\pi}"
+%format σ = "\varcolor{\sigma}"
 %format φ = "\varcolor{\varphi}"
 %format φ1 = "\varcolor{\varphi}_1"
 %format φ2 = "\varcolor{\varphi}_2"
@@ -41,6 +48,7 @@
 %format μ1 = "\varcolor{\mu}_1"
 %format μ2 = "\varcolor{\mu}_2"
 %format μ3 = "\varcolor{\mu}_3"
+%format μi = "\varcolor{\mu}_i"
 %format α = "\varcolor{\alpha}"
 %format αdot = "\dot{\varcolor{\alpha}}"
 %format αup = "\varcolor{\alpha}^{*}"
@@ -58,7 +66,7 @@
 %format γinf = "\varcolor{\gamma}^{\infty}"
 %format γdot = "\dot{\varcolor{\gamma}}"
 %format γD = "\varcolor{\gamma_\Domain{}}"
-%format γT = "\varcolor{\alpha_\Traces{}}"
+%format γT = "\varcolor{\gamma_\Traces{}}"
 %format γE = "\varcolor{\gamma_\Environments}"
 %format γS = "\varcolor{\gamma_\mathcal{S}}"
 %format sss = "\varid{S}"
@@ -74,8 +82,8 @@
 %format eval(a)(b) = "\mathcal{S}\denot{" a "}_{" b "}"
 %format evalC(a)(b) = "\mathcal{S}_{\mathcal{C}}\denot{" a "}_{" b "}"
 %format eval3(d)(a)(b) = "\mathcal{S}_{" d "}\denot{" a "}_{" b "}"
-%format ext(rho)(x)(d) = rho "[" x "\mapsto" d "]"
-%format exts(rho)(xs)(ds) = rho "[\many{" xs "\mapsto" ds "}]"
+%format (ext rho (x) (d)) = rho "[" x "\mapsto" d "]"
+%format (exts rho (xs) (ds)) = rho "[\many{" xs "\mapsto" ds "}]"
 %format << = "\pcirc"
 %format emptyP = "\varcolor{\varnothing}"
 %format ell = "\varcolor{\ell}"
@@ -107,7 +115,10 @@
 %format e2
 %format e3
 %format e4
-%format er = "\varcolor{e_r}"
+%format er = "\varcolor{e}_r"
+%format ei = "\varcolor{e}_i"
+%format a1
+%format a2
 %format f1
 %format f2
 %format v1

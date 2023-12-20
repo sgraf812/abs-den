@@ -38,6 +38,7 @@
 % - HOAS
 % - Galois Transformers
 % - Cousot and Compositionality
+% - Relational Analysis
 \citet{LeroyGrall:09} show that a coinductive encoding of big-step semantics
 is able to encode diverging traces by proving it equivalent to a small-step
 semantics.
