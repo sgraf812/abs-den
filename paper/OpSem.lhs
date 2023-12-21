@@ -48,8 +48,8 @@ Let us introduce the semantic ground truth of this work: The Mark II machine of
 semantics.
 (A close sibling for call-by-value would be a CESK machine \citep{Felleisen:87}.)
 It is a Lazy Krivine (LK) machine implementing call-by-need.
-A reasonable call-by-name semantics can be recovered by ignoring the rules
-$\CaseIT, \CaseET, \UpdateT$ and the pushing of update frames in $\LookupT$.
+A reasonable call-by-name semantics can be recovered by removing the $\UpdateT$
+rule and the pushing of update frames in $\LookupT$.
 
 The configurations $σ$ in this transition system resemble abstract machine
 states, consisting of a control expression $\pe$, an environment $ρ$ mapping

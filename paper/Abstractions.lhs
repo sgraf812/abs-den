@@ -149,7 +149,7 @@ The definitioin of |(+)| on |U| coincides with |(⊔)|, except for carrying over
 Both |(+)| and |(⊔)| are lifted pointwise to |Name :-> U|.
 
 If we had no interest in a terminating analysis, we could already make do
-with the induced \emph{semantic usage abstraction} |ByName UT|:
+with the induced \emph{semantic usage abstraction} |D (ByName UT)|:
 
 < ghci> eval (read "let i = λx.x in let j = λy.y in i j j") emp :: D (ByName UT)
 $\perform{eval (read "let i = λx.x in let j = λy.y in i j j") emp :: D (ByName UT)}$
