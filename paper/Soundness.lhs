@@ -722,7 +722,7 @@ Thus we proceed to define the following evaluation relation on (syntactic) heaps
   \qquad
   \inferrule[\progresstoext]{|a| \not∈ |dom μ| \quad |adom ρ ⊆ dom μ ∪ set a|}{|μ ~> ext μ a (memo a (eval e ρ))|}
   \\ \\[-0.5em]
-  \inferrule[\progresstomemo]{|μ1 ! a = μ2 ! a = memo a (eval e ρ1)| \quad |Later (eval e ρ1 μ1 = many (Step ev) (eval v ρ2 μ2))|}{|μ2 ~> ext μ2 a (memo a (eval v ρ2))|}
+  \inferrule[\progresstomemo]{|μ1 ! a = memo a (eval e ρ1)| \quad |Later (eval e ρ1 μ1 = many (Step ev) (eval v ρ2 μ2))|}{|μ1 ~> ext μ2 a (memo a (eval v ρ2))|}
   \\[-0.5em]
 \end{array}\]
 
@@ -736,7 +736,7 @@ So perhaps it's just antisymmetry modulo contextual equivalence; fair enough.)
 
 \begin{lemmarep}[Evaluation progresses the heap]
 \label{thm:eval-progression}
-If |eval e ρ1 μ1 = many (Step ev) (eval v ρ2) μ2|, then |μ1 ~> μ2|.
+If |eval e ρ1 μ1 = many (Step ev) (eval v ρ2 μ2)|, then |μ1 ~> μ2|.
 \end{lemmarep}
 \begin{proof}
 By Löb induction and cases on |e|.
@@ -760,7 +760,7 @@ By Löb induction and cases on |e|.
     \begin{spec}
     =   {- |eval v ρ2 μ3 = Ret (sv, μ3)| -}
         Step (Lookup y) (many (Step ev1) (Step Update (Ret (sv, ext μ3 a (memo a (return sv))))))
-    =   {- Refold |eval v ρ2| -}
+    =   {- Refold |eval v ρ2|, |many ev = [Lookup y] ++ many ev1 ++ [Update]| -}
         many (Step ev) (eval v ρ2 (ext μ3 a (memo a (eval v ρ2))))
     =   {- Determinism of |eval|, assumption -}
         many (Step ev) (eval v ρ2 μ2)
@@ -768,14 +768,12 @@ By Löb induction and cases on |e|.
     We have
     \begin{align}
       & |μ1 ! a = memo a (eval e ρ3)| \label{eqn:eval-progression-memo} \\
-      & |Later (eval e ρ3 μ1 = many (Step ev1) (eval v ρ2) μ3)| \label{eqn:eval-progression-eval} \\
+      & |Later (eval e ρ3 μ1 = many (Step ev1) (eval v ρ2 μ3))| \label{eqn:eval-progression-eval} \\
       & |μ2 = ext μ3 a (memo a (eval v ρ2))| \label{eqn:eval-progression-heaps}
     \end{align}
-    From \Cref{eqn:eval-progression-eval} and the induction hypothesis we have |μ1 ~> μ3|.
-    From \Cref{eqn:eval-progression-memo} and \Cref{eqn:eval-progression-eval}
-    we have |μ3 ~> ext μ3 a (memo a (eval v ρ2))| by rule \progresstomemo.
-    With \Cref{eqn:eval-progression-heaps} and rule \progresstotrans we get
-    |μ1 ~> μ3 ~> μ2|, hence we have shown the goal.
+    We can apply rule \progresstomemo to \Cref{eqn:eval-progression-memo} and \Cref{eqn:eval-progression-eval}
+    to get |μ1 ~> ext μ3 a (memo a (eval v ρ2))|, and rewriting along
+    \Cref{eqn:eval-progression-heaps} proves the goal.
   \item \textbf{Case} |Lam x body|, |ConApp k xs|:
     Then |μ1 = μ2| and the goal follows by \progresstorefl.
   \item \textbf{Case} |App e1 x|:
@@ -808,11 +806,10 @@ By Löb induction and cases on |e|.
 \end{proof}
 
 \Cref{thm:eval-progression} exposes in \progresstomemo nested structure:
-for example, if |μ2 ~> ext μ2 a (memo a (eval v ρ2))| is the result of applying
+for example, if |μ1 ~> ext μ2 a (memo a (eval v ρ2))| is the result of applying
 rule \progresstomemo, then we obtain a proof that the memoised expression
-|e| reduces to a value beginning in some heap |μ1|, |eval e ρ1 μ1 = many
-(Step ev) (eval v ρ2 μ2)|, and this evaluation in turn implies that |μ1 ~>
-μ2|.
+|eval e ρ1 μ1 = many (Step ev) (eval v ρ2 μ2)|, and this evaluation in turn
+implies that |μ1 ~> μ2|.
 
 TODO: See if we need the following lemma
 \begin{lemmarep}
@@ -944,6 +941,7 @@ Another lemma: If rng(ρ) ⊆ dom(μ), then
     αE μ'[μ] << ρ = αE μ << ρ
 %endif
 %
+
 \begin{lemmarep}[Heap progression and freezing]
 Let |hat D| be a domain with instances for |Trace|, |Domain|, |HasBind| and
 |Lat|, and let |αE μ :<->: γE μ = freezeHeap μ| for all |μ|.
@@ -989,27 +987,22 @@ Now we finally proceed by induction on |μ1 ~> μ2|.
     |Later (eval e1 (βE μ2 << ρ1) ⊑ eval e1 (βE μ1 << ρ1))|.
     We can apply \Cref{eqn:heap-prog-freeze-ih} to get |Later (βE μ2 ⊑ βE
     μ1)|, and the goal follows by monotonicity and reflexivity.
-  \item \textbf{Case} $\inferrule*[vcenter,left=\progresstomemo]{|μ3 ! a1 = μ1 ! a1 = memo a1 (eval e ρ1)| \quad |Later (eval e ρ1 μ3 = many (Step ev) (eval v ρ2 μ1))|}{|μ1 ~> ext μ1 a1 (memo a1 (eval v ρ2))|}$:\\
+  \item \textbf{Case} $\inferrule*[vcenter,left=\progresstomemo]{|μ1 ! a1 = memo a1 (eval e ρ3)| \quad |Later (eval e ρ3 μ1 = many (Step ev) (eval v ρ2 μ1))|}{|μ1 ~> ext μ1 a1 (memo a1 (eval v ρ2))|}$:\\
     We get to refine |μ2 = ext μ1 a1 (memo a1 (eval v ρ2))|.
     When $|a1| \not= |a|$, we have |μ1 ! a = μ2 ! a| and the goal follows as in the \progresstoext case.
-    Otherwise, |a = a1|, |e1 = e|, |e2 = v| (the clashing choice of |ρi| is correct) and the goal is to show
-    \[
-      |eval v (βE μ2 << ρ2) ⊑ eval e (βE μ1 << ρ1)|.
-    \]
-    TODO: No, this is wrong. We can't apply \Cref{thm:eval-improves-need} here, because |eval e ρ1 μ1| does not necessarily evaluate to |eval v ρ2 μ2|.
-    But the RHS has a lower bound
-    |many (step ev) (eval v (βE μ2 << ρ2)) ⊑ eval e (βE μ1 << ρ1)| by
-    \Cref{thm:eval-improves-need} (here we need |step Update d = d|).
-    So really we want to show that
-    \[
-      |eval v (βE μ2 << ρ2) ⊑ many (step ev) (eval v (βE μ2 << ρ2))|.
-    \]
-    Which follows from |d ⊑ step ev d|.
-    In particular, this implies |step Update d = d| (wow).
+    Otherwise, |a = a1|, |e1 = e|, |ρ3 = ρ1|, |e2 = v| and we can show the goal
+    (everything under a |Later|):
+    \begin{spec}
+        eval v (βE μ2 << ρ2)
+    ⊑   {- Assumption |d ⊑ step ev d| -}
+        many (step ev) (eval v (βE μ2 << ρ2))
+    ⊑   {- \Cref{thm:eval-improves-need} applied to |Later (eval e ρ3 μ1 = many (Step ev) (eval v ρ2 μ1))| -}
+        eval e (βE μ1 << ρ1)
+    \end{spec}
 \end{itemize}
 \end{proof}
 
-\begin{lemmarep}[By-name evaluation improves trace abstraction]
+\begin{lemmarep}[By-need evaluation improves trace abstraction]
   \label{thm:eval-improves-need}
   Let |hat D| be a domain with instances for |Trace|, |Domain|, |HasBind| and
   |Lat|, satisfying the soundness properties \textsc{Step-App},
@@ -1019,7 +1012,7 @@ Now we finally proceed by induction on |μ1 ~> μ2|.
 
   If |eval e ρ1 μ1 = many (Step ev) (eval v ρ2 μ2)|,
   then |many (step ev) (eval v (αE μ1 << set << ρ2)) ⊑ eval e (αE μ2 << set << ρ1)|,
-  where |αE :<->: γE = env|.
+  where |αE μ :<->: γE μ = freezeHeap μ| for all |μ|.
 \end{lemmarep}
 \begin{proof}
 By Löb induction and cases on |e|, using the representation function
@@ -1027,19 +1020,37 @@ By Löb induction and cases on |e|, using the representation function
 \begin{itemize}
   \item \textbf{Case} |Var x|:
     By assumption, we know that
-    |eval x ρ1 = Step (Lookup y) (eval e' ρ3) = many (Step ev) (eval v ρ2)|
-    for some |y|, |e'|, |ρ3|,
-    so that |many ev = Lookup y : many ev1| for some |ev1| by determinism.
+    |eval x ρ1 μ1 = Step (Lookup y) (memo a (eval e1 ρ3 μ1)) = many (Step ev) (eval v ρ2 μ2)|
+    for some |y|, |a|, |e1|, |ρ3|,
+    such that |ρ1 = step (Lookup y) (fetch a)|, |μ1 ! a = memo a (eval e1 ρ3)| and
+    |many ev = [Lookup y] ++ many ev1 ++ [Update]| for some |ev1| by determinism.
     \begin{spec}
-        many (step ev) (eval v (βE << ρ2))
-    =   {- |many ev = Lookup y : many ev1| -}
-        step (Lookup y) (many (step ev1) (eval v (βE << ρ2)))
-    ⊑   {- Induction hypothesis at |ev1|, |ρ3| as above -}
-        step (Lookup y) (eval e' (βE << ρ3))
+        many (step ev) (eval v (βE μ2 << ρ2))
+    =   {- |many ev = [Lookup y] ++ many ev1 ++ [Update]| -}
+        step (Lookup y) (many (step ev1) (step Update (eval v (βE μ2 << ρ2))))
+    ⊑   {- Assumption |step Update d ⊑ d| -}
+        step (Lookup y) (many (step ev1) (eval v (βE μ2 << ρ2)))
+    \end{spec}
+    Here, we want to apply the induction hypothesis to |many ev1|, but that only
+    applies at |ext μ2 a (memo a (eval e1 ρ3))| and not the updated heap |μ2|
+    where |μ2 ! a = memo a (eval v ρ2)|.
+    Then goal then is to show that
+    \[
+      |(βE μ2 << ρ2) ⊑ (βE (ext μ2 a (memo a (eval e1 ρ3))) << ρ2)|
+    \]
+    This in turn follows from
+    \[
+      |eval v (βE μ2 << ρ2) ⊑ eval e1 (βE (ext μ2 a (memo a (eval e1 ρ3))) << ρ3)|
+    \]
+
+    need another auxiliary lemma
+    \begin{spec}
+    ⊑   {- Induction hypothesis at |ev1|, |ρ3| as above TODO wrong μ2 -}
+        step (Lookup y) (eval e1 (βE μ1 << ρ3))
     =   {- Refold |βE|, |ρ3 ! x| -}
         βE (ρ1 ! x)
-    =   {- Refold |eval x (βE << ρ1)| -}
-        eval x (βE << ρ1)
+    =   {- Refold |eval x (βE μ1 << ρ1)| -}
+        eval x (βE μ1 << ρ1)
     \end{spec}
   \item \textbf{Case} |Lam|, |ConApp|: By reflexivity of $⊑$.
   \item \textbf{Case} |App e x|:
