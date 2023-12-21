@@ -884,13 +884,13 @@ We now define the key abstraction function that allows us to use a by-name
 analysis for by-need:
 
 \begin{code}
-freezeEnv  ::  (Trace d, Domain d, HasBind d, Lat d)
+freezeHeap  ::  (Trace d, Domain d, HasBind d, Lat d)
            =>  Heap (ByNeed T) -> GC (needd ) (named d)
-freezeEnv μ = untyped (repr β where
+freezeHeap μ = untyped (repr β where
   β (step (Lookup x) (fetch a)) | memo a (eval e ρ) <- μ ! a = step (Lookup x) (eval e (β << ρ)))
 \end{code}
 
-|freezeEnv| takes as input a heap |μ| the contents of which are used to
+|freezeHeap| takes as input a heap |μ| the contents of which are used to
 ``freeze'' a by-need environment into an abstract by-name environment.
 For a by-name analysis to be re-used as a by-need analysis, we need this
 abstraction function to be antitone in the heap progression relation, \eg,
@@ -901,8 +901,8 @@ abstraction function to be antitone in the heap progression relation, \eg,
 byNeed  ::  (Trace d, Domain d, HasBind d, Lat d)
         =>  GC (Pow (T (Value (ByNeed T), Heap (ByNeed T)))) d
 byNeed = repr β where
-  αE μ = case freezeEnv μ of αE :<->: _ -> αE
-  γE μ = case freezeEnv μ of _ :<->: γE -> γE
+  αE μ = case freezeHeap μ of αE :<->: _ -> αE
+  γE μ = case freezeHeap μ of _ :<->: γE -> γE
   β (Step e d)           = step e (β d)
   β (Ret (Stuck, μ))     = stuck
   β (Ret (Fun f, μ))     = fun {-"\iffalse"-}""{-"\fi"-} (\(hat d) -> Lub (β (f d μ) | d ∈ γE μ (hat d)))
@@ -944,24 +944,24 @@ Another lemma: If rng(ρ) ⊆ dom(μ), then
     αE μ'[μ] << ρ = αE μ << ρ
 %endif
 %
-\begin{lemmarep}[By-name, by-need]
+\begin{lemmarep}[Heap progression and freezing]
 Let |hat D| be a domain with instances for |Trace|, |Domain|, |HasBind| and
-|Lat|, and let |αT :<->: γT = byNeed|, |αE :<->: γE = freezeEnv|.
-If |step Update d ⊑ d| for all |d|, then
+|Lat|, and let |αE μ :<->: γE μ = freezeHeap μ| for all |μ|.
+If |d ⊑ step ev d| for all |d| and |step Update d = d|, then
 \[
   |μ1 ~> μ2 && adom d ⊆ dom μ1 ==> αE μ2 d ⊑ αE μ1 d|.
 \]
 \end{lemmarep}
 \begin{proof}
-
 Since |needd d|, we have |d = Cup (step (Lookup y) (fetch a))|.
 Similar to \Cref{thm:soundness-by-name}, it suffices to show the goal for a
 single |d = step (Lookup y) (fetch a)| for some |y|, |a|.
 
 By Löb induction, we may assume that
-\[
-  |Later (forall μ1 μ2 d. μ1 ~> μ2 && adom d ⊆ dom μ1 ==> βE μ2 d ⊑ βE μ1 d)|.
-\]
+\begin{align}
+  |Later (forall μ1 μ2 d. μ1 ~> μ2 && adom d ⊆ dom μ1 ==> βE μ2 d ⊑ βE μ1 d)|, \label{eqn:heap-prog-freeze-ih}
+\end{align}
+where |βE := αE . set| is the representation function of |freezeHeap|.
 
 Now let us assume that |μ1 ~> μ2| and |a ∈ dom μ1|.
 Furthermore, let us abbreviate |memo a (eval ei ρi) := μi ! a|.
@@ -969,15 +969,9 @@ The goal is to show
 \[
   |step (Lookup y) (eval e2 (βE μ2 << ρ2)) ⊑ step (Lookup y) (eval e1 (βE μ1 << ρ1))|.
 \]
-We can apply the Löb induction hypothesis to the nested occurrence of |βE|
-(this is the only use of the Löb induction hypothesis TODO move this to
-\progresstoext case), simplifying |μ1| to |μ2| in the RHS
-\[
-  |step (Lookup y) (eval e2 (βE μ2 << ρ2)) ⊑ step (Lookup y) (eval e1 (βE μ2 << ρ1))|.
-\]
 Monotonicity allows us to drop the |step (Lookup x)| context
 \[
-  |eval e2 (βE μ2 << ρ2) ⊑ eval e1 (βE μ2 << ρ1)|.
+  |Later (eval e2 (βE μ2 << ρ2) ⊑ eval e1 (βE μ1 << ρ1))|.
 \]
 Now we finally proceed by induction on |μ1 ~> μ2|.
 \begin{itemize}
@@ -992,19 +986,20 @@ Now we finally proceed by induction on |μ1 ~> μ2|.
     we have $|a1| \not= |a|$
     and thus |μ1 ! a = μ2 ! a|, thus |e1=e2|, |ρ1=ρ2|.
     The goal can be simplified to
-    |eval e1 (βE μ2 << ρ1) ⊑ eval e1 (βE μ2 << ρ1)|,
-    which follows by reflexivity.
-  \item \textbf{Case} $\inferrule*[vcenter,left=\progresstomemo]{|μ3 ! a1 = μ2 ! a1 = memo a1 (eval e ρ1)| \quad |Later (eval e ρ1 μ3 = many (Step ev) (eval v ρ2 μ1))|}{|μ1 ~> ext μ1 a1 (memo a1 (eval v ρ2))|}$:\\
+    |Later (eval e1 (βE μ2 << ρ1) ⊑ eval e1 (βE μ1 << ρ1))|.
+    We can apply \Cref{eqn:heap-prog-freeze-ih} to get |Later (βE μ2 ⊑ βE
+    μ1)|, and the goal follows by monotonicity and reflexivity.
+  \item \textbf{Case} $\inferrule*[vcenter,left=\progresstomemo]{|μ3 ! a1 = μ1 ! a1 = memo a1 (eval e ρ1)| \quad |Later (eval e ρ1 μ3 = many (Step ev) (eval v ρ2 μ1))|}{|μ1 ~> ext μ1 a1 (memo a1 (eval v ρ2))|}$:\\
     We get to refine |μ2 = ext μ1 a1 (memo a1 (eval v ρ2))|.
-    When $|a1| \not= |a|$, we have $μ1 ! a = μ2 ! a$ and the goal again follows by reflexivity.
+    When $|a1| \not= |a|$, we have |μ1 ! a = μ2 ! a| and the goal follows as in the \progresstoext case.
     Otherwise, |a = a1|, |e1 = e|, |e2 = v| (the clashing choice of |ρi| is correct) and the goal is to show
-    TODO: Undo application of Löb induction hypothesis
     \[
       |eval v (βE μ2 << ρ2) ⊑ eval e (βE μ1 << ρ1)|.
     \]
+    TODO: No, this is wrong. We can't apply \Cref{thm:eval-improves-need} here, because |eval e ρ1 μ1| does not necessarily evaluate to |eval v ρ2 μ2|.
     But the RHS has a lower bound
     |many (step ev) (eval v (βE μ2 << ρ2)) ⊑ eval e (βE μ1 << ρ1)| by
-    \Cref{thm:eval-improves-need}.
+    \Cref{thm:eval-improves-need} (here we need |step Update d = d|).
     So really we want to show that
     \[
       |eval v (βE μ2 << ρ2) ⊑ many (step ev) (eval v (βE μ2 << ρ2))|.
@@ -1108,7 +1103,7 @@ By Löb induction and cases on |e|, using the representation function
 \begin{theoremrep}[Sound By-need Interpretation]
 \label{thm:soundness-by-need}
 Let |hat D| be a domain with instances for |Trace|, |Domain|, |HasBind| and
-|Lat|, and let |αT :<->: γT = byNeed|, |αE :<->: γE = freezeEnv|.
+|Lat|, and let |αT :<->: γT = byNeed|, |αE :<->: γE = freezeHeap|.
 If the soundness lemmas in \Cref{fig:by-need-soundness-lemmas} hold (TODO and ???),
 then |eval| instantiates at |hat D| to an abstract interpreter that is sound
 \wrt |γE -> αT|, that is,
