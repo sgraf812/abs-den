@@ -875,6 +875,46 @@ entries.
 %\noindent
 %Would be interesting to see. Perhaps we don't need it.
 
+\begin{lemmarep}[Update once]
+\label{thm:update-once}
+If   |μ1 ~> μ2| and |μ1 ! a = memo a (eval v ρ)|,
+then |μ2 ! a = memo a (eval v ρ)|.
+\end{lemmarep}
+\begin{proof}
+Simple proof by induction on |μ1 ~> μ2|.
+The only case updating a heap entry is \progresstomemo, and there we can see
+that |μ2 ! a = memo (eval v ρ)| because evaluating |v| in |μ1| does not make
+a step.
+\end{proof}
+
+\begin{lemmarep}
+If   |eval e ρ1 μ1 = many (Step ev1) (eval v ρ2 μ2)|,
+then |eval e ρ1 μ2 = many (Step ev2) (eval v ρ3 μ3)|
+and  |μ2 ! a = μ3 ! a| for all |a ∈ dom μ2|.
+\end{lemmarep}
+\begin{proof}
+By Löb induction. We only give the variable case, because in the other cases
+the heap is irrelevant.
+Similar to \Cref{thm:soundness-by-name}, it suffices to show the goal for a
+singleton |ρ|.
+
+\begin{itemize}
+  \item \textbf{Case} |Var x|:
+    Let |y|,|a|, such that |step (Lookup y) (fetch a) = ρ1 ! x|.
+    Then |μ2 ! a = memo a (eval v ρ2)|, because |μ1 ! a| is of the form
+    |memo a d| and heap update is the last action of |memo a|.
+    Hence |eval e ρ1 μ2 = step (Lookup y) (memo a (eval v ρ2))|, showing the
+    first goal (for |ρ2 = ρ2|, |μ2 = μ3|).
+
+    Likewise,
+    let |y2|,|a2|,
+    such that |step (Lookup y2) (fetch a2) = ρ2 ! x|.
+    Then |μ3 ! a = memo a (eval v ρ3)|, because |μ1 ! a| is of the form |memo
+    a d| heap update is the last action of |memo a|.
+
+\end{itemize}
+\end{proof}
+
 Need new |αT|.
 
 We now define the key abstraction function that allows us to use a by-name
@@ -894,6 +934,23 @@ abstraction function to be antitone in the heap progression relation, \eg,
 |μ1 ~> μ2 ==> α μ2 ρ ⊑ α μ1 ρ|.
 (TODO: Perhaps it even is a GC, but I don't think we need that. Besides, that would need asymmetry.)
 
+\begin{lemmarep}
+\label{thm:freeze-heap-eq}
+If |forall a ∈ adom d. μ1 ! a = μ2 ! a|,
+then |αE μ1 d = αE μ2 d|, where |αE μ :<->: γE μ = freezeHeap μ|.
+\end{lemmarep}
+\begin{proof}
+By Löb induction.
+
+Since |needd d|, we have |d = Cup (step (Lookup y) (fetch a))|.
+Let |memo a (eval e ρ) := μ1 ! a = μ2 ! a|.
+Then |adom ρ ⊆ dom μi| due to |needheap μi| and the goal follows by the
+induction hypothesis:
+\[
+  |αE μ1 d = Lub (step (Lookup y) (eval e (αE µ1 << ρ))) = Lub (step (Lookup y) (eval e (αE µ2 << ρ))) = αE μ2 d|
+\]
+\end{proof}
+
 \begin{code}
 byNeed  ::  (Trace d, Domain d, HasBind d, Lat d)
         =>  GC (Pow (T (Value (ByNeed T), Heap (ByNeed T)))) d
@@ -909,97 +966,133 @@ byNeed = repr β where
 TODO There is potential to extract useful Galois Connections from this large
 one, but it is far simpler for now to give it directly.
 
-%if False
-ρ(x) = step (Lookup y) (fetch a)
-αE ([a↦eval e ρ'], (step (Lookup y) (fetch a))) = step (Lookup y) (eval e (αE μ << ρ'))
-defined via least fixed point? Or perhaps via fixpoint abstraction lemma?
+\begin{figure}
+  \[\begin{array}{c}
+    \inferrule[\textsc{Step-Inc}]{}{|hat d ⊑ step ev (hat d)|}
+    \qquad
+    \inferrule[\textsc{Update}]{}{|step Update (hat d) = hat d|}
+  \end{array}\]
+  \caption{Additional by-need soundness lemmas for by-name analyses}
+  \label{fig:by-need-by-name-soundness-lemmas}
+\end{figure}
 
-αE :<->: γE :: GC (Pow (Heap, NeedEnvD (D (ByNeed T)))) (NeedEnvD (hat d))
-
-βT :: T (Value (ByNeed T), Heap (ByNeed T)) -> hat D
-βT (Step e d) = step e (βD d)
-βT (Ret (Stuck,μ)) = stuck
-βT (Ret (Fun f,μ)) = fun (\(hat d) -> Lub (βD (f d μ') | (d,μ') ∈ γE μ (hat d), μ ~> μ'))
-βT (Ret (Con k ds,μ)) = con k (map (αE μ !) ds)
-αE :: Heap (ByNeed T) -> (NeedEnvD (D (ByNeed T)) -> NeedEnvD (hat D))
-
-μ is index, so
-
-αE μ d, γE μ (hat d)
-
-Then |γE μ (hat d) = Cup (d | αE μ' d ⊑ hat d, μ ~> μ')|.
-
-and μ ~> μ' ==> αE μ' ⊑ αE μ'[μ] (perhaps even `αE μ`? No, the latter is more general. When d is defined on both μ and μ', then `αE μ` follows)
-    μ ~> μ' ==> γE μ' ⊆ γE μ'[μ]
-
-and GC can be generalised as follows (assuming μ ~> μ'):
-    αE μ'[μ] . γE μ ⊑ id
-    id              ⊑ γE μ'[μ] . αE μ
-regular definition is when dom(μ') = dom(μ)
-
-Another lemma: If rng(ρ) ⊆ dom(μ), then
-    αE μ'[μ] << ρ = αE μ << ρ
-%endif
-%
-
-\begin{lemmarep}[Heap progression and freezing]
-Let |hat D| be a domain with instances for |Trace|, |Domain|, |HasBind| and
-|Lat|, and let |αE μ :<->: γE μ = freezeHeap μ| for all |μ|.
-If |d ⊑ step ev d| for all |d| and |step Update d = d|, then
-\[
-  |μ1 ~> μ2 && adom d ⊆ dom μ1 ==> αE μ2 d ⊑ αE μ1 d|.
-\]
+\begin{lemmarep}[By-need evaluation improves by-name trace abstraction]
+  \label{thm:eval-improves-need}
+  Let |hat D| be a domain with instances for |Trace|, |Domain|, |HasBind| and
+  |Lat|, satisfying the soundness properties \textsc{Step-App},
+  \textsc{Step-Sel}, \textsc{Beta-App}, \textsc{Beta-Sel}, \textsc{Bind-ByName}
+  in \Cref{fig:by-name-soundness-lemmas} and \textsc{Step-Inc}, \textsc{Update}
+  from \Cref{fig:by-need-by-name-soundness-lemmas}.
+  Furthermore, let |αE μ :<->: γE μ = freezeHeap μ| for all |μ|.
+  \begin{enumerate}[label=(\alph*),ref=\thelemma.(\alph*)]
+    \item
+      If |μ1 ~> μ2| and |adom d ⊆ dom μ1|, then |αE μ2 d ⊑ αE μ1 d|.
+      \label{thm:heap-progress-freeze}
+    \item
+      % Exactly the premises of \progressstomemo...
+      % So would follow from applying that rule and then reasoning by
+      % heap-progress-freeze, but perhaps a standalone rule is more useful.
+      If |μ1 ! a = memo a (eval e ρ1)| and |eval e ρ1 μ1 = many (Step ev) (eval v ρ2 μ2)|, \\
+      then |eval v (βE (ext μ2 a (memo a (eval v ρ2))) << ρ2) ⊑ eval e (βE μ2 << ρ1)|.
+      \label{thm:memo-improves-name}
+    \item
+      If |eval e ρ1 μ1 = many (Step ev) (eval v ρ2 μ2)|,
+      then |many (step ev) (eval v (αE μ1 << set << ρ2)) ⊑ eval e (αE μ2 << set << ρ1)|.
+      \label{thm:eval-improves-need}
+  \end{enumerate}
 \end{lemmarep}
 \begin{proof}
-Since |needd d|, we have |d = Cup (step (Lookup y) (fetch a))|.
-Similar to \Cref{thm:soundness-by-name}, it suffices to show the goal for a
-single |d = step (Lookup y) (fetch a)| for some |y|, |a|.
+By Löb induction, we assume that all three properties hold \emph{later}.
 
-By Löb induction, we may assume that
-\begin{align}
-  |Later (forall μ1 μ2 d. μ1 ~> μ2 && adom d ⊆ dom μ1 ==> βE μ2 d ⊑ βE μ1 d)|, \label{eqn:heap-prog-freeze-ih}
-\end{align}
-where |βE := αE . set| is the representation function of |freezeHeap|.
-
-Now let us assume that |μ1 ~> μ2| and |a ∈ dom μ1|.
-Furthermore, let us abbreviate |memo a (eval ei ρi) := μi ! a|.
-The goal is to show
-\[
-  |step (Lookup y) (eval e2 (βE μ2 << ρ2)) ⊑ step (Lookup y) (eval e1 (βE μ1 << ρ1))|.
-\]
-Monotonicity allows us to drop the |step (Lookup x)| context
-\[
-  |Later (eval e2 (βE μ2 << ρ2) ⊑ eval e1 (βE μ1 << ρ1))|.
-\]
-Now we finally proceed by induction on |μ1 ~> μ2|.
 \begin{itemize}
-  \item \textbf{Case} \progresstorefl:
-    Then |μ1 = μ2| and hence |αE μ1 = αE μ2|.
-  \item \textbf{Case} \progresstotrans:
-    Apply the induction hypothesis to the sub-derivations and apply transitivity
-    of |⊑|.
-  \item \textbf{Case} $\inferrule*[vcenter,left=\progresstoext]{|a1| \not∈ |dom μ1| \quad |adom ρ ⊆ dom μ1 ∪ set a1|}{|μ ~> ext μ1 a1 (memo a1 (eval e ρ))|}$:\\
-    We get to refine |μ2 = ext μ1 a1 (memo a1 (eval e ρ))|.
-    Since |a ∈ dom μ1|,
-    we have $|a1| \not= |a|$
-    and thus |μ1 ! a = μ2 ! a|, thus |e1=e2|, |ρ1=ρ2|.
-    The goal can be simplified to
-    |Later (eval e1 (βE μ2 << ρ1) ⊑ eval e1 (βE μ1 << ρ1))|.
-    We can apply \Cref{eqn:heap-prog-freeze-ih} to get |Later (βE μ2 ⊑ βE
-    μ1)|, and the goal follows by monotonicity and reflexivity.
-  \item \textbf{Case} $\inferrule*[vcenter,left=\progresstomemo]{|μ1 ! a1 = memo a1 (eval e ρ3)| \quad |Later (eval e ρ3 μ1 = many (Step ev) (eval v ρ2 μ1))|}{|μ1 ~> ext μ1 a1 (memo a1 (eval v ρ2))|}$:\\
-    We get to refine |μ2 = ext μ1 a1 (memo a1 (eval v ρ2))|.
-    When $|a1| \not= |a|$, we have |μ1 ! a = μ2 ! a| and the goal follows as in the \progresstoext case.
-    Otherwise, |a = a1|, |e1 = e|, |ρ3 = ρ1|, |e2 = v| and we can show the goal
-    (everything under a |Later|):
-    \begin{spec}
-        eval v (βE μ2 << ρ2)
-    ⊑   {- Assumption |d ⊑ step ev d| -}
-        many (step ev) (eval v (βE μ2 << ρ2))
-    ⊑   {- \Cref{thm:eval-improves-need} applied to |Later (eval e ρ3 μ1 = many (Step ev) (eval v ρ2 μ1))| -}
-        eval e (βE μ1 << ρ1)
-    \end{spec}
+  \item \labelcref{thm:heap-progress-freeze} |μ1 ~> μ2 && adom d ⊆ dom μ1 ==> αE μ2 d ⊑ αE μ1 d|:
+
+    Now let us assume that |μ1 ~> μ2| and |adom d ⊆ dom μ1|.
+    Since |needd d|, we have |d = Cup (step (Lookup y) (fetch a))|.
+    Similar to \Cref{thm:soundness-by-name}, it suffices to show the goal for a
+    single |d = step (Lookup y) (fetch a)| for some |y|, |a|.
+
+    Furthermore, let us abbreviate |memo a (eval ei ρi) := μi ! a|.
+    The goal is to show
+    \[
+      |step (Lookup y) (eval e2 (βE μ2 << ρ2)) ⊑ step (Lookup y) (eval e1 (βE μ1 << ρ1))|,
+    \]
+    where |βE μ := αE μ . set| is the representation function of |freezeHeap|.
+    Monotonicity allows us to drop the |step (Lookup x)| context
+    \[
+      |Later (eval e2 (βE μ2 << ρ2) ⊑ eval e1 (βE μ1 << ρ1))|.
+    \]
+    Now we proceed by induction on |μ1 ~> μ2|.
+    \begin{itemize}
+      \item \textbf{Case} \progresstorefl:
+        Then |μ1 = μ2| and hence |αE μ1 = αE μ2|.
+      \item \textbf{Case} \progresstotrans:
+        Apply the induction hypothesis to the sub-derivations and apply transitivity
+        of |⊑|.
+      \item \textbf{Case} $\inferrule*[vcenter,left=\progresstoext]{|a1| \not∈ |dom μ1| \quad |adom ρ ⊆ dom μ1 ∪ set a1|}{|μ ~> ext μ1 a1 (memo a1 (eval e ρ))|}$:\\
+        We get to refine |μ2 = ext μ1 a1 (memo a1 (eval e ρ))|.
+        Since |a ∈ dom μ1|,
+        we have $|a1| \not= |a|$
+        and thus |μ1 ! a = μ2 ! a|, thus |e1=e2|, |ρ1=ρ2|.
+        The goal can be simplified to
+        |Later (eval e1 (βE μ2 << ρ1) ⊑ eval e1 (βE μ1 << ρ1))|.
+        We can apply the induction hypothesis
+        \labelcref{eqn:heap-progress-freeze} to get
+        |Later (βE μ2 ⊑ βE μ1)|, and the goal follows by monotonicity and
+        reflexivity.
+      \item \textbf{Case} $\inferrule*[vcenter,left=\progresstomemo]{|μ1 ! a1 = memo a1 (eval e ρ3)| \quad |Later (eval e ρ3 μ1 = many (Step ev) (eval v ρ2 μ3))|}{|μ1 ~> ext μ3 a1 (memo a1 (eval v ρ2))|}$:\\
+        We get to refine |μ2 = ext μ3 a1 (memo a1 (eval v ρ2))|.
+        When $|a1| \not= |a|$, we have |μ1 ! a = μ2 ! a| and the goal follows as in the \progresstoext case.
+        Otherwise, |a = a1|, |e1 = e|, |ρ3 = ρ1|, |e2 = v| and we can show the goal
+        (everything under a |Later|):
+        \begin{spec}
+            eval v (βE μ2 << ρ2)
+        ⊑   {- IH \labelcref{thm:memo-improves-name}, with |μ2 := μ3| -}
+            eval e (βE μ3 << ρ1)
+        ⊑   {- |μ1 ~> μ3| by \Cref{thm:eval-progression}, apply IH \labelcref{thm:heap-progress-freeze} -}
+            eval e (βE μ1 << ρ1)
+        \end{spec}
+    \end{itemize}
+
+  \item \labelcref{thm:memo-improves-name}:
+
+    Let us assume that |μ1 ! a = memo a (eval e ρ1)| and
+    |eval e ρ1 μ1 = many (Step ev) (eval v ρ2 μ2)|.
+    The goal is to show
+    \[
+      |eval v (βE (ext μ2 a (memo a (eval v ρ2))) << ρ2) ⊑ eval e (βE μ2 << ρ1)|.
+    \]
+    We prooceed by cases on |e|.
+    \begin{itemize}
+      \item \textbf{Case} |Var x|:
+        By assumption, we know that
+        |eval x ρ1 μ1 = Step (Lookup y) (memo a1 (eval e1 ρ3 μ1)) = many (Step ev) (eval v ρ2 μ2)|
+        for some |y|, |a1|, |e1|, |ρ3|,
+        such that |ρ1 = step (Lookup y) (fetch a1)|, |μ1 ! a1 = memo a1 (eval e1 ρ3)| and
+        |many ev = [Lookup y] ++ many ev1 ++ [Update]| for some |many ev1| by determinism.
+
+        Consider first the case that |a = a1|.
+        Then the |memo a1| action has updated |μ2 ! a| to |memo a (eval v ρ2)|, hence
+        |μ2 = ext μ2 a (memo a (eval v ρ2))|:
+        \begin{spec}
+            eval v (βE (ext μ2 a (memo a (eval v ρ2))) << ρ2)
+        =   {- |μ2 = ext μ2 a (memo a (eval v ρ2))| -}
+            eval v (βE μ2 << ρ2)
+        ⊑   {- Assumption \textsc{Step-Inc} -}
+            many (step ev) (eval v (βE μ2 << ρ2))
+        ⊑   {- IH \Cref{thm:eval-improves-need} -}
+            eval e (βE μ2 << ρ1)|.
+
+        \end{spec}
+        Then |e1 =
+
+        Since the last action executed was |memo a
+      \item \textbf{Case} |App e x|:
+    \end{itemize}
 \end{itemize}
+
+and
+proceed by cases on |e|, using the representation function |βE := αE . set|.
 \end{proof}
 
 \begin{lemmarep}[By-need evaluation improves trace abstraction]
@@ -1008,7 +1101,8 @@ Now we finally proceed by induction on |μ1 ~> μ2|.
   |Lat|, satisfying the soundness properties \textsc{Step-App},
   \textsc{Step-Sel}, \textsc{Beta-App}, \textsc{Beta-Sel}, \textsc{Bind-ByName}
   in \Cref{fig:by-name-soundness-lemmas}.
-  TODO: More? At least |step Update d ⊑ d|.
+
+  TODO: Also |step Update d ⊑ d|, |d ⊑ step ev d| when |ev /= Update|.
 
   If |eval e ρ1 μ1 = many (Step ev) (eval v ρ2 μ2)|,
   then |many (step ev) (eval v (αE μ1 << set << ρ2)) ⊑ eval e (αE μ2 << set << ρ1)|,
@@ -1107,6 +1201,66 @@ By Löb induction and cases on |e|, using the representation function
               (\(hat d1) -> step Let1 (eval e2 (ext ((βE << ρ1)) x (hat d1))))
     =   {- Refold |eval (Let x e1 e2) (βE << ρ1)| -}
         eval (Let x e1 e2) (βE << ρ1)
+    \end{spec}
+\end{itemize}
+\end{proof}
+
+\begin{lemmarep}[Heap progression and freezing]
+Let |hat D| be a domain with instances for |Trace|, |Domain|, |HasBind| and
+|Lat|, and let |αE μ :<->: γE μ = freezeHeap μ| for all |μ|.
+If |d ⊑ step ev d| for all |d| and |step Update d = d|, then
+\[
+  |μ1 ~> μ2 && adom d ⊆ dom μ1 ==> αE μ2 d ⊑ αE μ1 d|.
+\]
+\end{lemmarep}
+\begin{proof}
+Since |needd d|, we have |d = Cup (step (Lookup y) (fetch a))|.
+Similar to \Cref{thm:soundness-by-name}, it suffices to show the goal for a
+single |d = step (Lookup y) (fetch a)| for some |y|, |a|.
+
+By Löb induction, we may assume that
+\begin{align}
+  |Later (forall μ1 μ2 d. μ1 ~> μ2 && adom d ⊆ dom μ1 ==> βE μ2 d ⊑ βE μ1 d)|, \label{eqn:heap-prog-freeze-ih}
+\end{align}
+where |βE := αE . set| is the representation function of |freezeHeap|.
+
+Now let us assume that |μ1 ~> μ2| and |a ∈ dom μ1|.
+Furthermore, let us abbreviate |memo a (eval ei ρi) := μi ! a|.
+The goal is to show
+\[
+  |step (Lookup y) (eval e2 (βE μ2 << ρ2)) ⊑ step (Lookup y) (eval e1 (βE μ1 << ρ1))|.
+\]
+Monotonicity allows us to drop the |step (Lookup x)| context
+\[
+  |Later (eval e2 (βE μ2 << ρ2) ⊑ eval e1 (βE μ1 << ρ1))|.
+\]
+Now we finally proceed by induction on |μ1 ~> μ2|.
+\begin{itemize}
+  \item \textbf{Case} \progresstorefl:
+    Then |μ1 = μ2| and hence |αE μ1 = αE μ2|.
+  \item \textbf{Case} \progresstotrans:
+    Apply the induction hypothesis to the sub-derivations and apply transitivity
+    of |⊑|.
+  \item \textbf{Case} $\inferrule*[vcenter,left=\progresstoext]{|a1| \not∈ |dom μ1| \quad |adom ρ ⊆ dom μ1 ∪ set a1|}{|μ ~> ext μ1 a1 (memo a1 (eval e ρ))|}$:\\
+    We get to refine |μ2 = ext μ1 a1 (memo a1 (eval e ρ))|.
+    Since |a ∈ dom μ1|,
+    we have $|a1| \not= |a|$
+    and thus |μ1 ! a = μ2 ! a|, thus |e1=e2|, |ρ1=ρ2|.
+    The goal can be simplified to
+    |Later (eval e1 (βE μ2 << ρ1) ⊑ eval e1 (βE μ1 << ρ1))|.
+    We can apply \Cref{eqn:heap-prog-freeze-ih} to get |Later (βE μ2 ⊑ βE
+    μ1)|, and the goal follows by monotonicity and reflexivity.
+  \item \textbf{Case} $\inferrule*[vcenter,left=\progresstomemo]{|μ1 ! a1 = memo a1 (eval e ρ3)| \quad |Later (eval e ρ3 μ1 = many (Step ev) (eval v ρ2 μ1))|}{|μ1 ~> ext μ1 a1 (memo a1 (eval v ρ2))|}$:\\
+    We get to refine |μ2 = ext μ1 a1 (memo a1 (eval v ρ2))|.
+    When $|a1| \not= |a|$, we have |μ1 ! a = μ2 ! a| and the goal follows as in the \progresstoext case.
+    Otherwise, |a = a1|, |e1 = e|, |ρ3 = ρ1|, |e2 = v| and we can show the goal
+    (everything under a |Later|):
+    \begin{spec}
+        eval v (βE μ2 << ρ2)
+    ⊑   {- Assumption |d ⊑ step ev d| -}
+        many (step ev) (eval v (βE μ2 << ρ2))
+    ⊑   {- \Cref{thm:eval-improves-need} applied to |Later (eval e ρ3 μ1 = many (Step ev) (eval v ρ2 μ1))| -}
+        eval e (βE μ1 << ρ1)
     \end{spec}
 \end{itemize}
 \end{proof}

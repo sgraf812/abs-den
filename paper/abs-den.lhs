@@ -64,6 +64,7 @@
 \usepackage[appendix=append]{apxproof}
 \fi
 %\usepackage{array} % \newcolumntype
+\usepackage{enumitem} % label=(\alph*)
 \usepackage{ifdraft}
 \usepackage{cleveref}
 \usepackage{xspace}

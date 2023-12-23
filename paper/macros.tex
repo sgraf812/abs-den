@@ -8,7 +8,11 @@
 \newtheorem{definition}[theorem]{Definition}
 \newtheorem{axiom}[theorem]{Axiom}
 \newtheorem{abbreviation}[theorem]{Abbreviation}
-\crefname{proof}{Proof}{Proofs}
+% https://tex.stackexchange.com/a/543050/52414
+% Unfortunately, \label[sublemma]{} is incompatible with apxproofs
+%\crefalias{sublemma}{item}
+%\crefname{sublemma}{lemma}{lemmas}
+%\Crefname{sublemma}{Lemma}{Lemmas}
 
 % Abbrev
 \newcommand\ie{i.e.\xspace}
