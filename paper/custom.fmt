@@ -31,24 +31,31 @@
 %subst dummy = "\wild"
 
 %format τ = "\varcolor{\tau}"
-%format τ' = "\varcolor{\tau'}"
-%format τ1 = "\varcolor{\tau}_1"
-%format τ2 = "\varcolor{\tau}_2"
+%format τ'
+%format τ1
+%format τ2
 %format ρ = "\varcolor{\rho}"
-%format ρ1 = "\varcolor{\rho}_1"
-%format ρ2 = "\varcolor{\rho}_2"
-%format ρ3 = "\varcolor{\rho}_3"
+%format ρ1
+%format ρ2
+%format ρ3
+%format ρ4
 %format ρi = "\varcolor{\rho}_i"
+%format ρi'
 %format π = "\varcolor{\pi}"
 %format σ = "\varcolor{\sigma}"
+%format σ1
+%format σ2
 %format φ = "\varcolor{\varphi}"
-%format φ1 = "\varcolor{\varphi}_1"
-%format φ2 = "\varcolor{\varphi}_2"
+%format φ1
+%format φ2
 %format μ = "\varcolor{\mu}"
-%format μ1 = "\varcolor{\mu}_1"
-%format μ2 = "\varcolor{\mu}_2"
-%format μ3 = "\varcolor{\mu}_3"
+%format μ'
+%format μ1
+%format μ2
+%format μ3
+%format μ4
 %format μi = "\varcolor{\mu}_i"
+%format μi'
 %format α = "\varcolor{\alpha}"
 %format αdot = "\dot{\varcolor{\alpha}}"
 %format αup = "\varcolor{\alpha}^{*}"
@@ -71,8 +78,8 @@
 %format γS = "\varcolor{\gamma_\mathcal{S}}"
 %format sss = "\varid{S}"
 %format θ = "\varcolor{\theta}"
-%format θ1 = "\varcolor{\theta_1}"
-%format θ2 = "\varcolor{\theta_2}"
+%format θ1
+%format θ2
 %format ω = "\varcolor{\omega}"
 %format :-> = "\hspace{-0.15em}\rightharpoonup\hspace{-0.19em}"
 %format :->: = "\mathbin{:\rightarrow:}"
@@ -107,16 +114,20 @@
 %format needheap(heap) = "{\mathop{\vdash_{\Heaps}^{\mathsf{ne}}} " heap "}"
 %format Traces = "\Traces"
 %format Collecting = "\mathbb{C}"
+%format mod(thing) = "\lceil" thing "\rceil"
+%format `oplus` = "\oplus"
 
 %format bottom = "\bot"
 %format d1
 %format d2
+%format e'
 %format e1
 %format e2
 %format e3
 %format e4
 %format er = "\varcolor{e}_r"
 %format ei = "\varcolor{e}_i"
+%format ai = "\varcolor{a}_i"
 %format a1
 %format a2
 %format f1
