@@ -13,6 +13,7 @@
 %format setundef(a) = "(undefined::forall a. Set a)"
 %format (hat (a)) = a "__hat"
 %format untyped(a) = "(undefined :: forall a. a)"
+%format unused(a) = "_"
 %format named(dom)(d) = dom
 %format nameenv(dom)(env) = "Name :-> " dom
 %format needd(d) = "Pow (D (ByNeed T))"
@@ -49,12 +50,16 @@
 %format φ1
 %format φ2
 %format μ = "\varcolor{\mu}"
-%format μ'
 %format μ1
 %format μ2
 %format μ3
 %format μ4
 %format μi = "\varcolor{\mu}_i"
+%format μ'
+%format μ1'
+%format μ2'
+%format μ3'
+%format μ4'
 %format μi'
 %format α = "\varcolor{\alpha}"
 %format αdot = "\dot{\varcolor{\alpha}}"
@@ -106,6 +111,8 @@
 %format <==> = "\Longleftrightarrow"
 %format <. = "\lessdot"
 %format `subseteqdot` = "\mathbin{\dot{\subseteq}}"
+%format `oplus` = "\oplus"
+%format \\ = "\setminus"
 %format many(a) = "\many{" a "}"
 %format named(dom)(d) = "{" dom " \mathbin{\vdash_{\Domain{}}^{\mathsf{na}}} " d "}"
 %format nameenv(dom)(env) = "{" dom " \mathbin{\vdash_{\Environments}^{\mathsf{na}}} " env "}"
@@ -114,8 +121,6 @@
 %format needheap(heap) = "{\mathop{\vdash_{\Heaps}^{\mathsf{ne}}} " heap "}"
 %format Traces = "\Traces"
 %format Collecting = "\mathbb{C}"
-%format mod(thing) = "\lceil" thing "\rceil"
-%format `oplus` = "\oplus"
 
 %format bottom = "\bot"
 %format d1
@@ -190,6 +195,7 @@
 %format (set(a)) = "\{" a "\}"
 %format (setundef(a)) = "\{" a "\}"
 %format untyped(a) = a
+%format unused(a) = a
 %format (Cup(a)) = "\bigcup\{" a "\}"
 %format (Lub(a)) = "\Lub\{" a "\}"
 %format powMap(f) = "{" f "}^{*}"
