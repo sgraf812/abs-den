@@ -274,6 +274,7 @@ in this way, thus working around matters of full abstraction~\citep{Plotkin:77}.
 More formally,
 
 \begin{definition}[Syntactic by-name environments]
+  \label{defn:syn-name}
   Let |hat D| be a domain satisfying |Trace|, |Domain|, |HasBind| and |Lat|.
   We write |named (hat D) d| (resp. |nameenv (hat D) ρ|) to say that the
   denotation |d| (resp. environment |ρ|) is \emph{syntactic}, which we define
@@ -684,8 +685,46 @@ defines a monotone |hat f| that violates \textsc{Beta-App}
 
 \subsection{Sound By-Need Abstraction}
 
-\sg{Here be dragons. This is work-in-progress, don't expect to understand anything of it.}
+\begin{figure}
+  \[\begin{array}{c}
+    \inferrule[\textsc{Step-Inc}]{}{|hat d ⊑ step ev (hat d)|}
+    \qquad
+    \inferrule[\textsc{Update}]{}{|step Update (hat d) = hat d|}
+  \end{array}\]
+  \caption{Additional by-need soundness lemmas for by-name analyses}
+  \label{fig:by-need-by-name-soundness-lemmas}
+\end{figure}
 
+\Cref{thm:soundness-by-name} provides a sufficient condition for when an
+analysis is sound \wrt by-name semantics.
+But when is such an analysis also sound \wrt \emph{by-need} semantics?
+
+Other than inserting additional |Update| transitions, by-need evaluation makes
+strictly fewer |step|s than by-name evaluation.
+Hence, intuition suggests that soundness carries over when |step|s that are left
+out never \emph{improve} the analysis result.
+Furthermore, since a by-name analysis does not observe |Update| steps, we
+require that |step Update| does not \emph{worsen} analysis results either.
+It turns out that these two requirements, enshrined in
+\Cref{fig:by-need-by-name-soundness-lemmas}, are enough to prove a by-name
+analysis safe for by-need, in a sense to be elaborated.
+
+An important realisation is that a pair of by-need heap |μ| and environment |ρ|
+can be ``frozen'' into a corresponding by-name environment.
+This operation forms a Galois connection, as follows:
+
+\begin{code}
+freezeHeap :: (Trace (hat d), Domain (hat d), HasBind (hat d), Lat (hat d)) => needheap -> GC (needd ) (named (hat d))
+freezeHeap μ = untyped (repr β where
+  β (step (Lookup x) (fetch a)) | memo a (eval e ρ) <- μ ! a = step (Lookup x) (eval e (β << ρ)))
+\end{code}
+
+Where |needd| serves a similar purpose as |named (hat d)| from
+\Cref{defn:syn-name}, restricting environment entries to the syntactic by-need
+form |step (Lookup x) (fetch a)| and heap entries to |memo a (eval e ρ)|.
+The precise \Cref{defn:syn-heap} can be found in the Appendix.
+
+\begin{toappendix}
 \begin{definition}[Syntactic by-need heaps and environments, address domain]
   \label{defn:syn-heap}
   We write |needenv ρ| (resp. |needheap μ|) to say that the by-need
@@ -701,60 +740,78 @@ defines a monotone |hat f| that violates \textsc{Beta-App}
   We refer to |adom d| (resp. |adom ρ|) as the \emph{address domain} of |d| (resp. |ρ|).
 \end{definition}
 
-For an analysis that approximates lazy heaps in an interesting way, there might
-be merit in inlining |fetch a := \μ -> (μ ! a)(μ)| so as to parameterise
-\Cref{defn:syn-heap} over the domain, but for our by-name analyses that is
-unnecessary.
-
 As before, for the remainder of this Subsection we assume that all concrete
-environments and heaps satisfy |needenv| resp. |needheap|.
+environments |Name :-> D (ByNeed T)| and heaps |Heap (ByNeed T)| satisfy
+|needenv| resp. |needheap|.
 It is easy to see that syntacticness is preserved by |eval| whenever environment
 or heap is extended, assuming that |Domain| and |HasBind| are adjusted
 accordingly.
+\end{toappendix}
 
-Thus we proceed to define the following evaluation relation on (syntactic) heaps:
-\[\begin{array}{c}
-  \ruleform{ μ_1 \progressto μ_2 }
-  \\ \\[-0.5em]
-  \inferrule[\textsc{$\progressto$-Refl}]{|needheap μ|}{|μ ~> μ|}
-  \qquad
-  \inferrule[\progresstotrans]{|μ1 ~> μ2| \quad |μ2 ~> μ3|}{|μ1 ~> μ3|}
-  \qquad
-  \inferrule[\progresstoext]{|a| \not∈ |dom μ| \quad |adom ρ ⊆ dom μ ∪ set a|}{|μ ~> ext μ a (memo a (eval e ρ))|}
-  \\ \\[-0.5em]
-  \inferrule[\progresstomemo]{|μ1 ! a = memo a (eval e ρ1)| \quad |Later (eval e ρ1 μ1 = many (Step ev) (eval v ρ2 μ2))|}{|μ1 ~> ext μ2 a (memo a (eval v ρ2))|}
-  \\[-0.5em]
-\end{array}\]
+\begin{toappendix}
+The environment abstraction |αE μ :<->: _ = freezeHeap μ| improves the more
+``evaluated'' |μ| is.
+E.g.,\ when |μ1| \emph{progresses} into |μ2| during evaluation, written
+|μ1 ~> μ2|, it is |αE μ2 d ⊑ αE μ1 d| for all |d|.
+The heap progression relation is formally defined (on syntactic heaps
+|needheap|) in \Cref{fig:heap-progression}, and we will now work
+toward a proof for the approximation statement about |αE| in
+\Cref{thm:heap-progress-freeze}.
 
-Transitivity and reflexivity of $(\progressto)$ are definitional.
-Antisymmetry is not so simple to show for a lack of full abstraction.
+\begin{figure}
+  \[\begin{array}{c}
+    \ruleform{ μ_1 \progressto μ_2 }
+    \\ \\[-0.5em]
+    \inferrule[\textsc{$\progressto$-Refl}]{|needheap μ|}{|μ ~> μ|}
+    \qquad
+    \inferrule[\progresstotrans]{|μ1 ~> μ2| \quad |μ2 ~> μ3|}{|μ1 ~> μ3|}
+    \qquad
+    \inferrule[\progresstoext]{|a| \not∈ |dom μ| \quad |adom ρ ⊆ dom μ ∪ set a|}{|μ ~> ext μ a (memo a (eval e ρ))|}
+    \\ \\[-0.5em]
+    \inferrule[\progresstomemo]{|μ1 ! a = memo a (eval e ρ1)| \quad |Later (eval e ρ1 μ1 = many (Step ev) (eval v ρ2 μ2))|}{|μ1 ~> ext μ2 a (memo a (eval v ρ2))|}
+    \\[-0.5em]
+  \end{array}\]
+  \caption{Heap progression relation}
+  \label{fig:heap-progression}
+\end{figure}
 
-(TODO: Perhaps we could gain define a coarser equivalence relation on heaps that
-only compares heap entries on any more progressive entries, but that is still a
-far cry from being fully abstract. Don't want to go there!
-So perhaps it's just antisymmetry modulo contextual equivalence; fair enough.)
+% Currently dead:
+%\begin{lemmarep}
+%\label{thm:progression-allocates}
+%If |μ1 ~> μ2|, then |dom μ1 ⊆ dom μ2|.
+%\end{lemmarep}
+%\begin{proof}
+%Simple proof by induction after realising that |eval| never deletes heap
+%entries.
+%\end{proof}
 
-TODO: See if we need the following lemma
-\begin{lemmarep}
-\label{thm:progression-allocates}
-If |μ1 ~> μ2|, then |dom μ1 ⊆ dom μ2|.
-\end{lemmarep}
-\begin{proof}
-Simple proof by induction after realising that |eval| never deletes heap
-entries.
-\end{proof}
+Transitivity and reflexivity of $(\progressto)$ are definitional by rules
+\progresstorefl and \progresstotrans; antisymmetry is not so simple to show for
+a lack of full abstraction.
 
-\begin{lemmarep}[Update once]
-\label{thm:update-once}
-If   |μ1 ~> μ2| and |μ1 ! a = memo a (eval v ρ)|,
-then |μ2 ! a = memo a (eval v ρ)|.
-\end{lemmarep}
-\begin{proof}
-Simple proof by induction on |μ1 ~> μ2|.
-The only case updating a heap entry is \progresstomemo, and there we can see
-that |μ2 ! a = memo (eval v ρ)| because evaluating |v| in |μ1| does not make
-a step.
-\end{proof}
+\begin{corollary}
+  $(\progressto)$ is a preorder.
+\end{corollary}
+
+% Can't prove the following lemma:
+%\begin{lemmarep}
+%If |μ1 ~> μ2| by \progresstomemo,
+%then also |ext μ2 a (μ1 ! a) ~> μ2| for the updated |a ∈ dom μ1|.
+%\end{lemmarep}
+%\begin{proof}
+%By rule inversion, we have |μ1 ! a = memo a (eval e ρ1)|
+%and |eval e ρ1 μ1 = many (Step ev) (eval v ρ2 (ext μ2 a (memo a (eval e ρ1)))|
+%for some |e|, |ρ1|, |v|, |ρ2|.
+%Then
+%|eval x (ext emp x (step (Lookup x) (fetch a))) μ1 = step (Lookup x) (many (step ev) (step Update (eval v ρ2 μ2)))|,
+%hence by \Cref{thm:eval-progression} |μ1 ~> μ2|.
+%\end{proof}
+
+The remaining two rules express how a heap can be modified during by-need
+evaluation:
+Evaluation of a |Let| extends the heap via \progresstoext and evaluation
+of a |Var| will memoise the evaluated heap entry, progressing it along
+\progresstomemo.
 
 \begin{lemmarep}[Evaluation progresses the heap]
 \label{thm:eval-progression}
@@ -827,147 +884,26 @@ By Löb induction and cases on |e|.
 \end{itemize}
 \end{proof}
 
-\Cref{thm:eval-progression} exposes in \progresstomemo nested structure:
-for example, if |μ1 ~> ext μ2 a (memo a (eval v ρ2))| is the result of applying
+\Cref{thm:eval-progression} exposes nested structure in \progresstomemo.
+For example, if |μ1 ~> ext μ2 a (memo a (eval v ρ2))| is the result of applying
 rule \progresstomemo, then we obtain a proof that the memoised expression
 |eval e ρ1 μ1 = many (Step ev) (eval v ρ2 μ2)|, and this evaluation in turn
 implies that |μ1 ~> μ2|.
 
-% Can't prove the following lemma:
-%\begin{lemmarep}
-%If |μ1 ~> μ2| by \progresstomemo,
-%then also |ext μ2 a (μ1 ! a) ~> μ2| for the updated |a ∈ dom μ1|.
-%\end{lemmarep}
-%\begin{proof}
-%By rule inversion, we have |μ1 ! a = memo a (eval e ρ1)|
-%and |eval e ρ1 μ1 = many (Step ev) (eval v ρ2 (ext μ2 a (memo a (eval e ρ1)))|
-%for some |e|, |ρ1|, |v|, |ρ2|.
-%Then
-%|eval x (ext emp x (step (Lookup x) (fetch a))) μ1 = step (Lookup x) (many (step ev) (step Update (eval v ρ2 μ2)))|,
-%hence by \Cref{thm:eval-progression} |μ1 ~> μ2|.
-%\end{proof}
+Heap progression is useful to state a number of semantic properties, for example
+the ``update once'' property of memoisation and that a heap binding is
+semantically irrelevant when it is never updated:
 
-\begin{corollary}
-  $(\progressto)$ is a preorder.
-\end{corollary}
-
-For the next lemma, we need to identify heaps modulo $α$, \ie, \emph{readressing},
-in the following sense: $|μ1| =_α |μ2|$ iff there exists a permutation |σ ::
-Addr -> Addr| such that |heap σ μ1 = μ2|, where
-\begin{center}
-\begin{spec}
-  heap σ μ  = [ σ a ↦ memo (σ a) (eval e (env σ ρ)) | memo a (eval e ρ) <- μ ]
-  env σ ρ   = [ x ↦ step (Lookup y) (fetch (σ a)) | step (Lookup y) (fetch a) <- ρ ]
-\end{spec}
-\end{center}
-\noindent
-We will make use of the overloaded notation |σ μ := heap σ μ|, |σ ρ := env σ ρ|
-for convenience.
-
-\sg{I think we can show antisymmetry and confluence modulo readressing,
-compensating for the deterministic allocator that is |nextFree|. I don't plan
-to prove that, though.}
-
-\begin{lemmarep}[Congruence modulo readdressing]
-\label{thm:eval-perm}
-Let |σ1 :: dom μ1 -> dom μ1| be a permutation.
-If   |eval e ρ1 μ1 = many (Step ev) (eval v ρ2 μ2)|,
-then there exists a permutation |σ2 :: dom μ2 -> dom μ2|
-such that |forall a ∈ dom μ1. σ1 a = σ2 a|
-and |eval e (σ1 ρ1) (σ1 μ1) = many (Step (σ1 ev)) (eval v (σ2 ρ2) (σ2 μ2))|.
+\begin{lemmarep}[Update once]
+\label{thm:update-once}
+If   |μ1 ~> μ2| and |μ1 ! a = memo a (eval v ρ)|,
+then |μ2 ! a = memo a (eval v ρ)|.
 \end{lemmarep}
 \begin{proof}
-By Löb induction and cases on |e|.
-\begin{itemize}
-  \item \textbf{Case} |Var x|:
-    It is |σ1 ρ1 ! x = step (Lookup y) (fetch (σ1 a))|
-    and   |σ1 μ1 ! σ1 a = memo (σ1 a) (eval e1 (σ1 ρ3))|,
-    so |eval x (σ1 ρ1) (σ1 μ1) = Step (Lookup y) (memo (σ1 a) (eval e1 (σ1 ρ3)) (σ1 μ1))|.
-    We apply the induction hypothesis to |eval e1 ρ3|.
-    The subsequent update transition updates |σ1 a| with |memo (σ1 a) (eval v (σ2 ρ2))|,
-    which is exactly what |σ2 μ2 ! σ1 a = σ1 μ2 ! σ1 a| looks like.
-  \item \textbf{Case} |Lam x e|, |ConApp k xs|: Easy to see for |σ1 = σ2|.
-  \item \textbf{Case} |App e x|:
-    In the interesting case, the lambda body in the value of |e| is entered with
-    |ext (σ3 ρ3) y (σ1 ρ1 ! x) = ext (σ3 ρ3) y (σ3 ρ1 ! x)|,
-    where |σ3| is obtained from applying the induction hypothesis to |e|.
-    Since |σ3| is an extension of |σ1|, we can invoke the induction hypothesis
-    once more to show the goal.
-  \item \textbf{Case} |Case e alts|: Similar to |App|.
-  \item \textbf{Case} |Let x e1 e2|:
-    Set |ext σ1 (nextFree μ1) (nextFree (σ1 μ1))| and apply the induction hypothesis.
-    The returned |σ2| agrees with |σ1| on |dom μ1 ∪ set (nextFree μ1)|, so it
-    also agrees on |dom μ1|.
-\end{itemize}
-\end{proof}
-
-From now on we identify heaps and ambient environments modulo readressing.
-Furthermore, let |μ `oplus` μ'| denote the disjoint extension of |μ| with
-the bindings in |μ'| (each of which may scope over |μ| and thus |μ'| is not a
-realisable heap).
-
-\begin{lemmarep}[Frame rule]
-% Currently dead, but nevertheless interesting
-If   |adom ρ1 ⊆ dom μ1|,
-then |eval e ρ1 μ1 = many (Step ev) (eval v ρ2 μ2)|
-if and only if |eval e ρ1 (μ1 `oplus` μ') = many (Step ev) (eval v ρ2 (μ2 `oplus` μ'))|.
-\end{lemmarep}
-\begin{proof}
-By Löb induction and cases on |e|.
-\begin{itemize}
-  \item \textbf{Case} |Var x|:
-     It is |eval x ρ1 μ1 = Step (Lookup y) (memo a (eval e1 ρ3 μ1))| for the
-     suitable |a|,|y|.
-     We can apply the induction hypothesis to |e1|, since |adom ρ3 ⊆ dom μ1|
-     by |needheap μ1|.
-     Tracing the update step is routine.
-  \item \textbf{Case} |Lam x e|, |ConApp k xs|: Easy to see for |μ1 = μ2|.
-  \item \textbf{Case} |App e x|:
-    In the interesting case, the lambda body in the value of |e| is entered with
-    |ext ρ3 y (ρ1 ! x)| in a heap |μ3 `oplus` μ'|,
-    |adom (ext ρ3 y (ρ1 ! x)) ⊆ dom μ3|, which is the situation we invoke the
-    induction hypothesis at once more to show the goal.
-  \item \textbf{Case} |Case e alts|: Similar to |App|.
-  \item \textbf{Case} |Let x e1 e2|:
-    In case $|nextFree μ1| \not= |nextFree (μ1 `oplus` μ')|$, we permute |μ2|
-    after the fact, as justified by \Cref{thm:eval-perm}.
-
-    We apply the induction hypothesis to
-    |eval e2 (ext ρ1 x _) (ext μ1 (nextFree a) _ `oplus` μ')| to show the goal.
-\end{itemize}
-\end{proof}
-
-We now define the key abstraction function that allows us to use a by-name
-analysis for by-need:
-
-\begin{code}
-freezeHeap  ::  (Trace d, Domain d, HasBind d, Lat d)
-           =>  Heap (ByNeed T) -> GC (needd ) (named d)
-freezeHeap μ = untyped (repr β where
-  β (step (Lookup x) (fetch a)) | memo a (eval e ρ) <- μ ! a = step (Lookup x) (eval e (β << ρ)))
-\end{code}
-
-|freezeHeap| takes as input a heap |μ| the contents of which are used to
-``freeze'' a by-need environment into an abstract by-name environment.
-For a by-name analysis to be re-used as a by-need analysis, we need this
-abstraction function to be antitone in the heap progression relation, \eg,
-|μ1 ~> μ2 ==> α μ2 ρ ⊑ α μ1 ρ|.
-(TODO: Perhaps it even is a GC, but I don't think we need that. Besides, that would need asymmetry.)
-
-\begin{lemmarep}
-\label{thm:freeze-heap-eq}
-If |forall a ∈ adom d. μ1 ! a = μ2 ! a|,
-then |αE μ1 d = αE μ2 d|, where |αE μ :<->: γE μ = freezeHeap μ|.
-\end{lemmarep}
-\begin{proof}
-By Löb induction.
-Since |needd d|, we have |d = Cup (step (Lookup y) (fetch a))|.
-Let |memo a (eval e ρ) := μ1 ! a = μ2 ! a|.
-Then |adom ρ ⊆ dom μi| due to |needheap μi| and the goal follows by the
-induction hypothesis:
-\[
-  |αE μ1 d = Lub (step (Lookup y) (eval e (αE μ1 << ρ))) = Lub (step (Lookup y) (eval e (αE μ2 << ρ))) = αE μ2 d|
-\]
+Simple proof by induction on |μ1 ~> μ2|.
+The only case updating a heap entry is \progresstomemo, and there we can see
+that |μ2 ! a = memo (eval v ρ)| because evaluating |v| in |μ1| does not make
+a step.
 \end{proof}
 
 \begin{lemmarep}[No update implies semantic irrelevance]
@@ -1005,27 +941,25 @@ By Löb induction and cases on |e|.
 \end{itemize}
 \end{proof}
 
-\begin{code}
-byNeed  ::  (Trace d, Domain d, HasBind d, Lat d) =>  GC (Pow (T (Value (ByNeed T), Heap (ByNeed T)))) d
-byNeed = repr β where
-  β (Step e d)           = step e (β d)
-  β (Ret (Stuck, μ))     = stuck
-  β (Ret (Fun f, μ))     = fun {-"\iffalse"-}""{-"\fi"-} (\(hat d) -> Lub (β (f d μ) | d ∈ γE (hat d)))  where unused (  _   :<->: γE)  = untyped (freezeHeap μ)
-  β (Ret (Con k ds, μ))  = con {-"\iffalse"-}""{-"\fi"-} k (map (αE . set) ds)                           where           αE  :<->: _    = freezeHeap μ
-\end{code}
+\begin{lemmarep}
+\label{thm:freeze-heap-eq}
+If |forall a ∈ adom d. μ1 ! a = μ2 ! a|,
+then |αE μ1 d = αE μ2 d|, where |αE μ :<->: γE μ = freezeHeap μ|.
+\end{lemmarep}
+\begin{proof}
+By Löb induction.
+Since |needd d|, we have |d = Cup (step (Lookup y) (fetch a))|.
+Let |memo a (eval e ρ) := μ1 ! a = μ2 ! a|.
+Then |adom ρ ⊆ dom μi| due to |needheap μi| and the goal follows by the
+induction hypothesis:
+\[
+  |αE μ1 d = Lub (step (Lookup y) (eval e (αE μ1 << ρ))) = Lub (step (Lookup y) (eval e (αE μ2 << ρ))) = αE μ2 d|
+\]
+\end{proof}
 
-TODO There is potential to extract useful Galois Connections from this large
-one, but it is far simpler for now to give it directly.
-
-\begin{figure}
-  \[\begin{array}{c}
-    \inferrule[\textsc{Step-Inc}]{}{|hat d ⊑ step ev (hat d)|}
-    \qquad
-    \inferrule[\textsc{Update}]{}{|step Update (hat d) = hat d|}
-  \end{array}\]
-  \caption{Additional by-need soundness lemmas for by-name analyses}
-  \label{fig:by-need-by-name-soundness-lemmas}
-\end{figure}
+An by-name analysis that is sound \wrt by-need must improve when an expression
+reduces to a value, which in particular will happen after memoisation. The
+following lemma ensures compatibility:
 
 \begin{lemmarep}
   Let |hat D| be a domain with instances for |Trace|, |Domain|, |HasBind| and
@@ -1176,6 +1110,9 @@ By Löb induction, we assume that both properties hold \emph{later}.
     \end{itemize}
 \end{itemize}
 \end{proof}
+
+With that, we can finally prove that environment abstraction improves when
+the frozen heap progresses:
 
 \begin{lemmarep}[Heap progression improves abstraction]
   \label{thm:heap-progress-freeze}
@@ -1379,11 +1316,27 @@ By Löb induction and cases on |e|, using the representation function
     \end{spec}
 \end{itemize}
 \end{proof}
+\end{toappendix}
+
+Using |freezeHeap|, we can give a Galois connection expressing correctness of a
+by-name analysis \wrt by-need semantics:
+
+\begin{code}
+nameNeed  ::  (Trace (hat d), Domain (hat d), HasBind (hat d), Lat (hat d)) =>  GC (Pow (T (Value (ByNeed T), needheap))) (hat d)
+nameNeed = repr β where
+  β (Step e d)           = step e (β d)
+  β (Ret (Stuck, μ))     = stuck
+  β (Ret (Fun f, μ))     = fun {-"\iffalse"-}""{-"\fi"-} (\(hat d) -> Lub (β (f d μ) | d ∈ γE (hat d)))  where unused (  _   :<->: γE)  = untyped (freezeHeap μ)
+  β (Ret (Con k ds, μ))  = con {-"\iffalse"-}""{-"\fi"-} k (map (αE . set) ds)                           where           αE  :<->: _    = freezeHeap μ
+\end{code}
+
+% TODO There is potential to extract useful Galois Connections from this large
+% one, but it is far more succinct and comprehensible to give it directly.
 
 \begin{theoremrep}[Sound By-need Interpretation]
 \label{thm:soundness-by-need}
 Let |hat D| be a domain with instances for |Trace|, |Domain|, |HasBind| and
-|Lat|, and let |αT :<->: γT = byNeed|, |αE :<->: γE = freezeHeap|.
+|Lat|, and let |αT :<->: γT = nameNeed|, |αE :<->: γE = freezeHeap|.
 If the soundness lemmas in \Cref{fig:by-name-soundness-lemmas}
 and \Cref{fig:by-need-by-name-soundness-lemmas} hold,
 then |eval| instantiates at |hat D| to an abstract interpreter that is sound
@@ -1395,7 +1348,7 @@ then |eval| instantiates at |hat D| to an abstract interpreter that is sound
 \begin{proof}
 As in \Cref{thm:soundness-by-name}, we simplify our proof obligation to the single-trace case:
 \[
-  |βT (set (eval e ρ μ) :: T (Value (ByNeed T), Heap (ByNeed T))) ⊑ (eval e (βE μ << ρ) :: hat D)|,
+  |βT (eval e ρ μ :: T (Value (ByNeed T), Heap (ByNeed T))) ⊑ (eval e (βE μ << ρ) :: hat D)|,
 \]
 where |βT := αT . set| and |βE μ := αE μ . set| are the representation
 functions corresponding to |αT| and |αE|.
@@ -1555,3 +1508,107 @@ We proceed by cases over |e|.
 \end{itemize}
 \end{proof}
 
+It is evident that usage analysis as well as type and control-flow analysis
+satisfies the soundness lemmas in \Cref{fig:by-name-by-need-soundness-lemmas},
+hence we can conclude
+
+\begin{corollary}
+Usage analysis as specified by |UD| in \Cref{fig:abs-usg}
+is sound \wrt |D (ByNeed T)|, that is,
+\begin{spec}
+  αT (eval e ρ μ :: Pow (T (Value (ByNeed T), Heap (ByNeed T)))) ⊑ (eval e (αE << ρ) :: UD)
+    where αT :<->: _ = nameNeed; αE :<->: _ = freezeHeap μ
+\end{spec}
+\end{corollary}
+
+%if False
+% Here is an attempt to recover a frame rule for |eval|, but we didn't need it
+% so far. Perhaps the notion of equivalence modulo readdressing permutations
+% opens up possilibities for making ~> a partial order as well.
+% We don't seem to need it, though.
+For the next lemma, we need to identify heaps modulo $α$, \ie, \emph{readressing},
+in the following sense: $|μ1| =_α |μ2|$ iff there exists a permutation |σ ::
+Addr -> Addr| such that |heap σ μ1 = μ2|, where
+\begin{center}
+\begin{spec}
+  heap σ μ  = [ σ a ↦ memo (σ a) (eval e (env σ ρ)) | memo a (eval e ρ) <- μ ]
+  env σ ρ   = [ x ↦ step (Lookup y) (fetch (σ a)) | step (Lookup y) (fetch a) <- ρ ]
+\end{spec}
+\end{center}
+\noindent
+We will make use of the overloaded notation |σ μ := heap σ μ|, |σ ρ := env σ ρ|
+for convenience.
+
+\sg{I think we can show antisymmetry and confluence modulo readressing,
+compensating for the deterministic allocator that is |nextFree|. I don't plan
+to prove that, though.}
+
+\begin{lemmarep}[Congruence modulo readdressing]
+\label{thm:eval-perm}
+Let |σ1 :: dom μ1 -> dom μ1| be a permutation.
+If   |eval e ρ1 μ1 = many (Step ev) (eval v ρ2 μ2)|,
+then there exists a permutation |σ2 :: dom μ2 -> dom μ2|
+such that |forall a ∈ dom μ1. σ1 a = σ2 a|
+and |eval e (σ1 ρ1) (σ1 μ1) = many (Step (σ1 ev)) (eval v (σ2 ρ2) (σ2 μ2))|.
+\end{lemmarep}
+\begin{proof}
+By Löb induction and cases on |e|.
+\begin{itemize}
+  \item \textbf{Case} |Var x|:
+    It is |σ1 ρ1 ! x = step (Lookup y) (fetch (σ1 a))|
+    and   |σ1 μ1 ! σ1 a = memo (σ1 a) (eval e1 (σ1 ρ3))|,
+    so |eval x (σ1 ρ1) (σ1 μ1) = Step (Lookup y) (memo (σ1 a) (eval e1 (σ1 ρ3)) (σ1 μ1))|.
+    We apply the induction hypothesis to |eval e1 ρ3|.
+    The subsequent update transition updates |σ1 a| with |memo (σ1 a) (eval v (σ2 ρ2))|,
+    which is exactly what |σ2 μ2 ! σ1 a = σ1 μ2 ! σ1 a| looks like.
+  \item \textbf{Case} |Lam x e|, |ConApp k xs|: Easy to see for |σ1 = σ2|.
+  \item \textbf{Case} |App e x|:
+    In the interesting case, the lambda body in the value of |e| is entered with
+    |ext (σ3 ρ3) y (σ1 ρ1 ! x) = ext (σ3 ρ3) y (σ3 ρ1 ! x)|,
+    where |σ3| is obtained from applying the induction hypothesis to |e|.
+    Since |σ3| is an extension of |σ1|, we can invoke the induction hypothesis
+    once more to show the goal.
+  \item \textbf{Case} |Case e alts|: Similar to |App|.
+  \item \textbf{Case} |Let x e1 e2|:
+    Set |ext σ1 (nextFree μ1) (nextFree (σ1 μ1))| and apply the induction hypothesis.
+    The returned |σ2| agrees with |σ1| on |dom μ1 ∪ set (nextFree μ1)|, so it
+    also agrees on |dom μ1|.
+\end{itemize}
+\end{proof}
+
+From now on we identify heaps and ambient environments modulo readressing.
+Furthermore, let |μ `oplus` μ'| denote the disjoint extension of |μ| with
+the bindings in |μ'| (each of which may scope over |μ| and thus |μ'| is not a
+realisable heap).
+
+\begin{lemmarep}[Frame rule]
+% Currently dead, but nevertheless interesting
+If   |adom ρ1 ⊆ dom μ1|,
+then |eval e ρ1 μ1 = many (Step ev) (eval v ρ2 μ2)|
+if and only if |eval e ρ1 (μ1 `oplus` μ') = many (Step ev) (eval v ρ2 (μ2 `oplus` μ'))|.
+\end{lemmarep}
+\begin{proof}
+By Löb induction and cases on |e|.
+\begin{itemize}
+  \item \textbf{Case} |Var x|:
+     It is |eval x ρ1 μ1 = Step (Lookup y) (memo a (eval e1 ρ3 μ1))| for the
+     suitable |a|,|y|.
+     We can apply the induction hypothesis to |e1|, since |adom ρ3 ⊆ dom μ1|
+     by |needheap μ1|.
+     Tracing the update step is routine.
+  \item \textbf{Case} |Lam x e|, |ConApp k xs|: Easy to see for |μ1 = μ2|.
+  \item \textbf{Case} |App e x|:
+    In the interesting case, the lambda body in the value of |e| is entered with
+    |ext ρ3 y (ρ1 ! x)| in a heap |μ3 `oplus` μ'|,
+    |adom (ext ρ3 y (ρ1 ! x)) ⊆ dom μ3|, which is the situation we invoke the
+    induction hypothesis at once more to show the goal.
+  \item \textbf{Case} |Case e alts|: Similar to |App|.
+  \item \textbf{Case} |Let x e1 e2|:
+    In case $|nextFree μ1| \not= |nextFree (μ1 `oplus` μ')|$, we permute |μ2|
+    after the fact, as justified by \Cref{thm:eval-perm}.
+
+    We apply the induction hypothesis to
+    |eval e2 (ext ρ1 x _) (ext μ1 (nextFree a) _ `oplus` μ')| to show the goal.
+\end{itemize}
+\end{proof}
+%endif
