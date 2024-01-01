@@ -91,7 +91,7 @@ instance Lat UD where
   bottom = nopD
   Uses φ1 Nop ⊔ Uses φ2 Nop = Uses (φ1 ⊔ φ2) Nop
 
-instance HasBind UD where bind rhs body = body (kleeneFix rhs)
+instance HasBind UD where bind {-" \iffalse "-}_{-" \fi "-} rhs body = body (kleeneFix rhs)
 \end{code}
 %if style == newcode
 \begin{code}
@@ -311,7 +311,7 @@ instance Domain (Cts PolyType) where
 
 {-" \fi "-}
 instance HasBind (Cts PolyType) where
-  bind rhs body = body . return =<< generaliseTy (do
+  bind {-" \iffalse "-}_{-" \fi "-} rhs body = body . return =<< generaliseTy (do
     rhs_ty <- freshTyVar
     rhs_ty' <- rhs (return (PT [] rhs_ty)) >>= instantiatePolyTy
     emitCt (rhs_ty, rhs_ty')
@@ -544,7 +544,7 @@ instance Domain CD where
 {-" \fi "-}
 
 instance HasBind CD where{-" ... \iffalse "-}
-  bind rhs body = go bottom >>= body . return
+  bind {-" \iffalse "-}_{-" \fi "-} rhs body = go bottom >>= body . return
     where
       go :: CValue -> CT CValue
       go v = do

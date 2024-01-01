@@ -226,7 +226,7 @@ eval e ρ = case e of
   App e x  | x ∈ dom ρ  -> step App1 $
                apply (eval e ρ) (ρ ! x)
            | otherwise  -> stuck
-  Let x e1 e2 -> bind
+  Let x e1 e2 -> bind {-" \iffalse "-}x{-" \fi "-}
     (\d1 -> eval e1 (ext ρ x (step (Lookup x) d1)))
     (\d1 -> step Let1 (eval e2 (ext ρ x (step (Lookup x) d1))))
   ConApp k xs
@@ -256,7 +256,7 @@ class Domain d where
   select :: d -> (Tag :-> ([d] -> d)) ->  d
 
 class HasBind d where
-  bind :: (d -> d) -> (d -> d) -> d
+  bind :: {-" \iffalse "-}Name -> {-" \fi "-}(d -> d) -> (d -> d) -> d
 \end{code}
 \subcaption{Interface of traces and values}
   \label{fig:trace-classes}
@@ -413,7 +413,7 @@ instance Trace (τ v) => Trace (ByName τ v) where
   step e = ByName . step e . unByName
 
 instance HasBind (D (ByName τ)) where
-  bind rhs body = body (fix rhs)
+  bind _ rhs body = body (fix rhs)
 \end{code}%
 %endif
 \caption{Redefinition of call-by-name semantics from \Cref{fig:trace-instances}}
@@ -469,9 +469,9 @@ memo a d = d >>= ByNeed . StateT . upd
         upd v      μ = step Update (return (v, ext μ a (memo a (return v))))
 
 instance (Monad τ, forall v. Trace (τ v)) => HasBind (D (ByNeed τ)) where
-  bind rhs body = do  a <- nextFree <$> ByNeed get
-                      ByNeed $ modify (\μ -> ext μ a (memo a (rhs (fetch a))))
-                      body (fetch a)
+  bind _ rhs body = do  a <- nextFree <$> ByNeed get
+                        ByNeed $ modify (\μ -> ext μ a (memo a (rhs (fetch a))))
+                        body (fetch a)
 \end{code}
 %endif
 \caption{Call-by-need}
@@ -559,7 +559,7 @@ data Event = ... | Let0
 data ByValue τ v = ByValue { unByValue :: τ v }
 
 instance (Trace (D (ByValue τ)), MonadFix τ) => HasBind (D (ByValue τ)) where
-  bind rhs body = step Let0 (ByValue (mfix (unByValue . rhs . return))) >>= body . return
+  bind {-" \iffalse "-}_{-" \fi "-} rhs body = step Let0 (ByValue (mfix (unByValue . rhs . return))) >>= body . return
 \end{spec}
 %if style == newcode
 \begin{code}
@@ -574,7 +574,7 @@ instance Trace (τ v) => Trace (ByValue τ v) where
   step e (ByValue τ) = ByValue (step e τ)
 
 instance (Trace (D (ByValue τ)), MonadFix τ) => HasBind (D (ByValue τ)) where
-  bind rhs body = step Let0 (ByValue (mfix (unByValue . rhs . return))) >>= body . return
+  bind {-" \iffalse "-}_{-" \fi "-} rhs body = step Let0 (ByValue (mfix (unByValue . rhs . return))) >>= body . return
 \end{code}
 %endif
 \caption{Call-by-value}
@@ -587,9 +587,9 @@ data ByVInit τ v = ByVInit (StateT (Heap (ByVInit τ)) τ v)
 runByVInit :: Monad τ => ByVInit τ a -> τ a; fetch :: Monad τ => Addr -> D (ByVInit τ)
 memo :: forall τ. (Monad τ, forall v. Trace (τ v)) => Addr -> D (ByVInit τ) -> D (ByVInit τ)
 instance (Monad τ, forall v. Trace (τ v)) => HasBind (D (ByVInit τ)) where
-  bind rhs body = do  a <- nextFree <$> ByVInit get
-                      ByVInit $ modify (\μ -> ext μ a stuck)
-                      step Let0 (memo a (rhs (fetch a))) >>= body . return
+  bind _ rhs body = do  a <- nextFree <$> ByVInit get
+                        ByVInit $ modify (\μ -> ext μ a stuck)
+                        step Let0 (memo a (rhs (fetch a))) >>= body . return
 \end{spec}
 %if style == newcode
 \begin{code}
@@ -611,9 +611,9 @@ memo' a d = d >>= ByVInit . StateT . upd
         upd v      μ = return (v, ext μ a (return v))
 
 instance (Monad τ, forall v. Trace (τ v)) => HasBind (D (ByVInit τ)) where
-  bind rhs body = do  a <- nextFree <$> ByVInit get
-                      ByVInit $ modify (\μ -> ext μ a stuck)
-                      step Let0 (memo' a (rhs (fetch' a))) >>= body . return
+  bind _ rhs body = do  a <- nextFree <$> ByVInit get
+                        ByVInit $ modify (\μ -> ext μ a stuck)
+                        step Let0 (memo' a (rhs (fetch' a))) >>= body . return
 \end{code}
 %endif
 \caption{Call-by-value with lazy initialisation}
@@ -691,7 +691,7 @@ newtype Clairvoyant τ a = Clairvoyant (ParT τ a)
 runClair :: D (Clairvoyant T) -> T (Value (Clairvoyant T))
 
 instance (MonadFix τ, forall v. Trace (τ v)) => HasBind (D (Clairvoyant τ)) where
-  bind rhs body = Clairvoyant (skip <|> let') >>= body
+  bind {-" \iffalse "-}_{-" \fi "-} rhs body = Clairvoyant (skip <|> let') >>= body
     where  skip = return (Clairvoyant empty)
            let' = fmap return $ step Let0 $ ... ^^ mfix ... rhs . return ...
 \end{spec}
@@ -738,7 +738,7 @@ parFix f = ParT $ mfix (unParT . f) >>= \case
     Fork _ _ -> pure (Fork (parFix (leftT . f)) (parFix (rightT . f)))
 
 instance (MonadFix τ, forall v. Trace (τ v)) => HasBind (D (Clairvoyant τ)) where
-  bind rhs body = Clairvoyant (skip <|> let') >>= body
+  bind {-" \iffalse "-}_{-" \fi "-} rhs body = Clairvoyant (skip <|> let') >>= body
     where
       skip = return (Clairvoyant empty)
       let' = fmap return $ unClair $ step Let0 $ Clairvoyant $ parFix $ unClair . rhs . Clairvoyant . ParT . return
