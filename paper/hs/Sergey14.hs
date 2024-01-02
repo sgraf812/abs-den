@@ -256,7 +256,7 @@ absDmdSummary :: Int -> Set Name -> DmdD -> DmdSummary
 absDmdSummary arty ns (DT d) = d ns (callSd arty)
 
 instance HasBind DmdD where
-  bind rhs body = DT $ \ns sd ->
+  bind _x rhs body = DT $ \ns sd ->
     let arty = arity ns (rhs nopD') in
 --    if trace (show arty) arty == 0
     if arty == 0

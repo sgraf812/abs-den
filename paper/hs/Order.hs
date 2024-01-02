@@ -38,3 +38,7 @@ kleeneFixFrom bot f = stationary $ iterate f bot where stationary (a:b:r) = if b
 
 kleeneFix :: Lat a => (a -> a) -> a
 kleeneFix = kleeneFixFrom bottom
+
+kleeneFixFromM :: (Monad m, Lat a) => a -> (m a -> m a) -> m a
+kleeneFixFromM a f = f (return a) >>= \b -> if a ⊑ b then return a else kleeneFixFromM b f
+
