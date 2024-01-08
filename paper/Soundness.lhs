@@ -1514,7 +1514,7 @@ Usage analysis as specified by |UD| in \Cref{fig:abs-usg}
 is sound \wrt |D (ByNeed T)|, that is,
 \begin{spec}
   αT (eval e ρ μ :: Pow (T (Value (ByNeed T), Heap (ByNeed T)))) ⊑ (eval e (αE << ρ) :: UD)
-    where αT :<->: _ = nameNeed; αE :<->: _ = freezeHeap μ
+    where αT :<->: _ = nameNeed; αE μ :<->: _ = freezeHeap μ
 \end{spec}
 \end{corollary}
 
