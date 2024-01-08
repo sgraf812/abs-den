@@ -221,22 +221,23 @@ Alas, there are several reasons why this framework is not so useful in practice:
 \begin{itemize}
   \item
     Denotational semantics are fundamentally restricted in the way they
-    \textbf{represent diverging computations}, in that any such computation must
+    \textbf{\emph{represent diverging computations}}, in that any such computation must
     be denoted by $\bot$.
     Thus, a denotational semantics cannot be used to prove that an analysis
     yields safe results on diverging programs.
   \item
     \Cref{thm:deadness-correct} yields credible proof that the implied
     transformation is safe, but none whatsoever on whether it is
-    \textbf{contextually improving}~\citep{MoranSands:99}.
+    \textbf{\emph{contextually improving}}~\citep{MoranSands:99}.
     Proof for the latter would need to expose more operational detail in the
     semantics, such as in \citet{HackettHutton:19}.
   \item
     Suppose we were to extend our deadness analysis to infer more detailed
     upper bounds on \emph{evaluation cardinality}, \eg, how often some variable
     is evaluated.
-    Unfortunately, a denotational semantics does not allow us to \textbf{express
-    the operational property} ``$\pe$ evaluates $\px$ at most $u$ times''%
+    Unfortunately, a denotational semantics does not allow us to
+    \textbf{\emph{express the operational property}} ``$\pe$ evaluates $\px$ at
+    most $u$ times''%
     \footnote{A more useful application of the ``at most once'' cardinality is the
     identification of \emph{one-shot} lambdas~\citep{cardinality-ext} --- functions which are
     called at most once for every activation --- because it allows floating of heap
@@ -245,7 +246,7 @@ Alas, there are several reasons why this framework is not so useful in practice:
     update avoidance~\citep{Gustavsson:98}.
   \item
     While (small-step) operational semantics can be used to prove aforementioned
-    cardinality properties, the \textbf{mismatch in recursion structure}
+    cardinality properties, the \textbf{\emph{mismatch in recursion structure}}
     necessitates (1) extension of the analysis to whole machine configurations,
     (2) complex refinements of the correctness statement to strengthen the
     induction hypothesis, and possibly (3) fixpoint induction when the original
@@ -258,8 +259,8 @@ Alas, there are several reasons why this framework is not so useful in practice:
     analysis.
   \item
     Abstracting a small-step or big-step interpreter~\citep{aam,adi} bridges the
-    structural mismatch alright, but does so at the cost of \textbf{modularity}
-    and discards a perfectly good summary mechanism.
+    structural mismatch alright, but does so at the cost of
+    \textbf{\emph{modularity}} and discards a perfectly good summary mechanism.
     It is the modern-time equivalent of the classic functional \vs call string
     approach to interprocedural analysis~\citep{SharirPnueli:78}; summaries are
     symbolic approximations of the ``functional'' that is a function's abstract
