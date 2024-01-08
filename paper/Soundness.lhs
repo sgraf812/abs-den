@@ -231,7 +231,7 @@ repr β = α :<->: γ where α (P as) = Lub (β a | a <- as); γ b = P (setundef
 (While the |γ| exists as a mathematical function, it is in general impossible to
 compute even for finitary inputs.)
 Every domain |hat D| with instances |(Trace (hat D), Domain (hat D), Lat (hat D))|
-induces a \emph{trace abstraction} |trace| via the following representation
+induces a \emph{trace abstraction} via the following representation
 function, writing |powMap f| to map |f| over |Pow|
 \begin{code}
 type NameD d = d

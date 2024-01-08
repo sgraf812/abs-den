@@ -33,12 +33,14 @@ root = call `seq` anyCtx -- Suppress redundant import warning
 class Eq a => Lat a where bottom :: a; (⊔) :: a -> a -> a;
 lub :: Lat a => [a] -> a; kleeneFix :: Lat a => (a -> a) -> a
 kleeneFix f = go bottom where go x = let x' = f x in if x' ⊑ x then x' else go x'
-total :: Eq a => [a] -> a -> a -> a
 instance (Ord k, Lat v) => Lat (k :-> v) where bottom = emp; (⊔) = Map.unionWith (⊔)
 \end{spec}
 \caption{Order theory and Kleene fixpoint}
 \label{fig:lat}
 \end{figure}
+
+\subsection{Usage analysis}
+\label{sec:usage-analysis}
 
 \begin{figure}
 \begin{minipage}{0.65\textwidth}
@@ -71,6 +73,7 @@ instance Monad UT where
 \end{figure}
 
 \begin{figure}
+\begin{minipage}{0.51\textwidth}
 \begin{code}
 data UValue = Nop; type UD = UT UValue
 
@@ -80,19 +83,26 @@ nopD = Uses emp Nop
 manify :: UD -> UD
 manify (Uses φ Nop) = Uses (φ+φ) Nop
 
+instance Lat UD where
+  bottom = nopD
+  Uses φ1 _ ⊔ Uses φ2 _ = Uses (φ1 ⊔ φ2) Nop
+\end{code}
+\end{minipage}%
+\begin{minipage}{0.49\textwidth}
+\begin{code}
 instance Domain UD where
   stuck                                  = nopD
   fun {-" \iffalse "-}_{-" \fi "-} f     = manify (f nopD)
   con {-" \iffalse "-}_{-" \fi "-} _ ds  = manify (foldr (>>) nopD ds)
   apply d a                              = manify a >> d
-  select d fs                            = d >> lub [ f (replicate (conArity k) nopD) | (k,f) <- Map.assocs fs ]
+  select d fs                            =
+    d >> lub  [  f (replicate (conArity k) nopD)
+              |  (k,f) <- Map.assocs fs ]
 
-instance Lat UD where
-  bottom = nopD
-  Uses φ1 Nop ⊔ Uses φ2 Nop = Uses (φ1 ⊔ φ2) Nop
-
-instance HasBind UD where bind {-" \iffalse "-}_{-" \fi "-} rhs body = body (kleeneFix rhs)
+instance HasBind UD where
+  bind {-" \iffalse "-}_{-" \fi "-} rhs body = body (kleeneFix rhs)
 \end{code}
+\end{minipage}
 %if style == newcode
 \begin{code}
 deriving instance Eq U
@@ -129,9 +139,6 @@ instance Show UValue where
 \caption{Naïve usage analysis via |Domain| and |HasBind|}
 \label{fig:abs-usg}
 \end{figure}
-
-\subsection{Usage analysis}
-\label{sec:usage-analysis}
 
 The gist of usage analysis is that it collects upper bounds for the number of
 $\LookupT$ transitions per variable.
@@ -237,7 +244,7 @@ By induction on |e|.
 
 The final key to a terminating definition is in swapping out the fixpoint
 combinator via the |HasBind| instance for |UValue| that computes an
-order-theoretic Kleene fixpoint (\cf. \Cref{fig:lat}) instead of |fix| (which
+order-theoretic Kleene fixpoint (\cf \Cref{fig:lat}) instead of |fix| (which
 only works for a guarded recursive |f|).
 The Kleene fixpoint exists by monotonicity and finiteness of |UD|, as we will
 make formal in \Cref{sec:soundness}.
@@ -264,6 +271,8 @@ abstraction, as can be seen for example (1) of \Cref{fig:usage-examples}.
 The results will be more approximate when summaries are involved, however, as
 the contrasting examples (2)-(5) point out.
 
+\subsection{Type Analysis}
+
 \begin{figure}
 \begin{code}
 data Type = Type :->: Type | TyConApp TyCon [Type] | TyVar Name | Wrong
@@ -273,55 +282,52 @@ type Constraint = (Type, Type); type Subst = Name :-> Type
 data Cts a = Cts (StateT (Set Name,Subst) Maybe a)
 emitCt :: Constraint -> Cts ();                   freshTyVar :: Cts Type
 instantiatePolyTy :: PolyType -> Cts Type; ^^ ^^  generaliseTy :: Cts Type -> Cts PolyType
+closedType :: Cts PolyType -> PolyType {-" \iffalse "-}
+closedType d = runCts (generaliseTy $ d >>= instantiatePolyTy)
+{-" \fi "-}
 
 instance Trace (Cts v) where step _ = id
-instance Domain (Cts PolyType) where
-  stuck = return (PT [] Wrong); {-" ... \iffalse "-}
-  fun {-" \iffalse "-}_{-" \fi "-} f = do
-    arg <- freshTyVar
-    res <- f (return (PT [] arg)) >>= instantiatePolyTy
-    return (PT [] (arg :->: res))
-  con {-" \iffalse "-}_{-" \fi "-} k ds = do
-    con_app_ty <- instantiateCon k
-    arg_tys <- traverse (>>= instantiatePolyTy) ds
-    res_ty <- freshTyVar
-    emitCt (con_app_ty, foldr (:->:) res_ty arg_tys)
-    return (PT [] res_ty)
-  apply dv da = do
-    fun_ty <- dv >>= instantiatePolyTy
-    arg_ty <- da >>= instantiatePolyTy
-    res_ty <- freshTyVar
-    emitCt (fun_ty, arg_ty :->: res_ty)
-    return (PT [] res_ty)
-  select dv fs = case Map.assocs fs of
-    []            -> stuck
-    fs@((k,_):_)  -> do
-      con_ty <- dv >>= instantiatePolyTy
-      res_ty <- snd . splitFunTys <$> instantiateCon k
-      let TyConApp tc tc_args = res_ty
-      emitCt (con_ty, res_ty)
-      ks_tys <- enumerateCons tc tc_args
-      tys <- forM ks_tys $ \(k,tys) ->
-        case List.find (\(k',_) -> k' == k) fs of
-          Just (_,f) -> f (map (fmap (PT [])) tys)
-          _          -> stuck
-      traverse instantiatePolyTy tys >>= \case
-        []      -> stuck
-        ty:tys' -> traverse (\ty' -> emitCt (ty,ty')) tys' >> return (PT [] ty)
+instance Domain (Cts PolyType) where stuck = return (PT [] Wrong); {-" ... \iffalse "-}
+                                     fun {-" \iffalse "-}_{-" \fi "-} f = do
+                                       arg <- freshTyVar
+                                       res <- f (return (PT [] arg)) >>= instantiatePolyTy
+                                       return (PT [] (arg :->: res))
+                                     con {-" \iffalse "-}_{-" \fi "-} k ds = do
+                                       con_app_ty <- instantiateCon k
+                                       arg_tys <- traverse (>>= instantiatePolyTy) ds
+                                       res_ty <- freshTyVar
+                                       emitCt (con_app_ty, foldr (:->:) res_ty arg_tys)
+                                       return (PT [] res_ty)
+                                     apply dv da = do
+                                       fun_ty <- dv >>= instantiatePolyTy
+                                       arg_ty <- da >>= instantiatePolyTy
+                                       res_ty <- freshTyVar
+                                       emitCt (fun_ty, arg_ty :->: res_ty)
+                                       return (PT [] res_ty)
+                                     select dv fs = case Map.assocs fs of
+                                       []            -> stuck
+                                       fs@((k,_):_)  -> do
+                                         con_ty <- dv >>= instantiatePolyTy
+                                         res_ty <- snd . splitFunTys <$> instantiateCon k
+                                         let TyConApp tc tc_args = res_ty
+                                         emitCt (con_ty, res_ty)
+                                         ks_tys <- enumerateCons tc tc_args
+                                         tys <- forM ks_tys $ \(k,tys) ->
+                                           case List.find (\(k',_) -> k' == k) fs of
+                                             Just (_,f) -> f (map (fmap (PT [])) tys)
+                                             _          -> stuck
+                                         traverse instantiatePolyTy tys >>= \case
+                                           []      -> stuck
+                                           ty:tys' -> traverse (\ty' -> emitCt (ty,ty')) tys' >> return (PT [] ty)
 
 {-" \fi "-}
 instance HasBind (Cts PolyType) where
-  bind {-" \iffalse "-}_{-" \fi "-} rhs body = body . return =<< generaliseTy (do
+  bind {-" \iffalse "-}_{-" \fi "-} rhs body = generaliseTy (do
     rhs_ty <- freshTyVar
     rhs_ty' <- rhs (return (PT [] rhs_ty)) >>= instantiatePolyTy
     emitCt (rhs_ty, rhs_ty')
-    return rhs_ty)
+    return rhs_ty) >>= body . return
 
-runCts :: Cts PolyType -> PolyType
-runCts (Cts m) = case evalStateT m (Set.empty, emp) of Just ty -> ty; Nothing -> PT [] Wrong
-
-closedType :: Cts PolyType -> PolyType
-closedType d = runCts (generaliseTy $ d >>= instantiatePolyTy)
 \end{code}
 %if style == newcode
 \begin{code}
@@ -330,6 +336,9 @@ deriving instance Enum TyCon
 deriving instance Bounded TyCon
 deriving instance Eq Type
 deriving instance Functor Cts
+
+runCts :: Cts PolyType -> PolyType
+runCts (Cts m) = case evalStateT m (Set.empty, emp) of Just ty -> ty; Nothing -> PT [] Wrong
 
 instance Applicative Cts where
   pure = Cts . pure
@@ -454,8 +463,6 @@ generaliseTy (Cts m) = Cts $ do
 \label{fig:type-analysis}
 \end{figure}
 
-\subsection{Type Analysis}
-
 To demonstrate the flexibility of our approach, we have implemented
 Hindley-Milner-style type analysis including Let generalisation as an
 instance of our abstract denotational interpreter.
@@ -527,8 +534,16 @@ data CT a = CT (State Cache a); type CD = CT CValue; runCFA :: CD -> CValue
 
 updFunCache :: Label -> (CD -> CD) -> CT (); cachedCall :: Label -> CValue -> CD
 
-instance Trace (CT v) where step _ = id
-
+instance HasBind CD where{-" ... \iffalse "-}
+  bind {-" \iffalse "-}_{-" \fi "-} rhs body = go bottom >>= body . return
+    where
+      go :: CValue -> CT CValue
+      go v = do
+        cache <- CT get
+        v' <- rhs (return v)
+        cache' <- CT get
+        if v' ⊑ v && cache' ⊑ cache then do { v'' <- rhs (return v'); if v' /= v'' then error "blah" else return v' } else go v'
+{-" \fi "-}; instance Trace (CT v) where step _ = id
 instance Domain CD where
   fun ell f = do updFunCache ell f; return (P (Set.singleton ell))
   apply dv da = dv >>= \(P ells) -> da >>= \a -> lub <$> traverse (\ell -> cachedCall ell a) (Set.toList ells)
@@ -541,17 +556,6 @@ instance Domain CD where
     vals <- sequence [ f (map return vs) | ell <- Set.toList ells, Just (k',vs) <- [Map.lookup ell (cCons cache)]
                      , (k,f) <- Map.assocs fs, k == k' ]
     return (lub vals)
-{-" \fi "-}
-
-instance HasBind CD where{-" ... \iffalse "-}
-  bind {-" \iffalse "-}_{-" \fi "-} rhs body = go bottom >>= body . return
-    where
-      go :: CValue -> CT CValue
-      go v = do
-        cache <- CT get
-        v' <- rhs (return v)
-        cache' <- CT get
-        if v' ⊑ v && cache' ⊑ cache then do { v'' <- rhs (return v'); if v' /= v'' then error "blah" else return v' } else go v'
 {-" \fi "-}
 \end{code}
 
@@ -663,7 +667,7 @@ cachedCall ell v = CT $ do
     Nothing       -> call bottom bottom
 \end{code}
 %endif
-
+\vspace{-1.5em}
 \caption{0CFA}
 \label{fig:cfa}
 \end{figure}
@@ -767,7 +771,9 @@ approximate call strings.
 \subsection{Bonus: Higher-order Cardinality Analysis}
 
 In the style of \citet{cardinality-ext}.
-\sg{Flesh out, move to Appendix or remove. I left this section in for Ilya to have a look.}
+\sg{Flesh out, move to Appendix or remove. I left this section in for Ilya to
+have a look. |call 2| means ``assume an evaluation context that applies 2
+arguments'', |anyCtx| means ``evaluate in any evaluation context'' (top).}
 
 \begin{tabular}{clll}
 \toprule

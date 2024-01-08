@@ -66,7 +66,7 @@
 %\usepackage{array} % \newcolumntype
 \usepackage{enumitem} % label=(\alph*)
 \usepackage{ifdraft}
-\usepackage{cleveref}
+\usepackage[nameinlink]{cleveref}
 \usepackage{xspace}
 \usepackage{url}
 \usepackage{varwidth}
@@ -222,7 +222,7 @@
 
 %\begin{acks}
 %We would like to thank the anonymous POPL reviewers for their feedback.
-%, as well as Bohdan Liesnikov and Sebastian Ullrich.
+%, as well as Joachim Breitner, Bohdan Liesnikov, Anthony Travers and Sebastian Ullrich.
 %\end{acks}
 
 \clearpage

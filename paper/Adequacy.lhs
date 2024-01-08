@@ -620,8 +620,8 @@ strong version of adequacy for |eval|, where $σ$ is defined to be a
 \end{theoremrep}
 \begin{proofsketch}
 The main idea is to define an abstraction function $α_{\STraces}$ on maximal
-small-step traces and show by coinduction that it distributes over |eval|, \eg,
-the correctness relation
+small-step traces and show by Löb induction that it distributes over |eval|,
+\eg, the correctness relation
 \[
   \correct((σ_i)_{i∈\overline{n}}) = \maxtrace{(σ_i)_{i∈\overline{n}}} \Longrightarrow ∀((\pe,ρ,μ,κ) = σ_0).\ α_{\STraces}((σ_i)_{i∈\overline{n}},κ) = |eval e (αEnv ρ) (αHeap μ)| \\
 \]

@@ -426,12 +426,9 @@ type Addr = Int; type Heap τ = Addr :-> D τ; nextFree :: Heap τ -> Addr
 data ByNeed τ v = ByNeed (StateT (Heap (ByNeed τ)) τ v)
 runByNeed :: ByNeed τ a -> τ (a, Heap (ByNeed τ))
 instance Monad τ => Monad (ByNeed τ) where ...
+instance Trace (τ v) => Trace (ByNeed τ v) where ...
 
-instance Trace (τ v) => Trace (ByNeed τ v) where
-  step e (ByNeed (StateT m)) = ByNeed $ StateT $ \μ -> step e (m μ)
-
-fetch :: Monad τ => Addr -> D (ByNeed τ)
-fetch a = ByNeed get >>= \μ -> μ ! a
+fetch :: Monad τ => Addr -> D (ByNeed τ); fetch a = ByNeed get >>= \μ -> μ ! a
 
 memo :: forall τ. (Monad τ, forall v. Trace (τ v)) => Addr -> D (ByNeed τ) -> D (ByNeed τ)
 memo a d = d >>= ByNeed . StateT . upd
@@ -551,12 +548,10 @@ transition system.
 \begin{figure}
 \begin{spec}
 instance MonadFix T where
-  mfix f = τ where  (τ,v) = go (f v)
-                    go (Step e τ) | (τ', v) <- go τ  = (Step e τ', v)
-                    go (Ret v)                       = (Ret v, v)
+  mfix f = fst $ fix (\(τ, v) -> go (f v)) where  go (Step e τ) | (τ', v) <- go τ  = (Step e τ', v)
+                                                  go (Ret v)                       = (Ret v, v)
 
-data Event = ... | Let0
-data ByValue τ v = ByValue { unByValue :: τ v }
+data ByValue τ v = ByValue { unByValue :: τ v }; data Event = ... | Let0
 
 instance (Trace (D (ByValue τ)), MonadFix τ) => HasBind (D (ByValue τ)) where
   bind {-" \iffalse "-}_{-" \fi "-} rhs body = step Let0 (ByValue (mfix (unByValue . rhs . return))) >>= body . return
@@ -564,9 +559,8 @@ instance (Trace (D (ByValue τ)), MonadFix τ) => HasBind (D (ByValue τ)) where
 %if style == newcode
 \begin{code}
 instance MonadFix T where
-  mfix f = τ where  (τ,v) = go (f v)
-                    go (Step e τ) | (τ', v) <- go τ  = (Step e τ', v)
-                    go (Ret v)                       = (Ret v, v)
+  mfix f = fst $ fix (go . f . snd) where  go (Step e τ) | (τ', v) <- go τ  = (Step e τ', v)
+                                           go (Ret v)                       = (Ret v, v)
 
 newtype ByValue τ v = ByValue { unByValue :: τ v }
   deriving (Functor,Applicative,Monad)
@@ -584,8 +578,7 @@ instance (Trace (D (ByValue τ)), MonadFix τ) => HasBind (D (ByValue τ)) where
 \begin{figure}
 \begin{spec}
 data ByVInit τ v = ByVInit (StateT (Heap (ByVInit τ)) τ v)
-runByVInit :: Monad τ => ByVInit τ a -> τ a; fetch :: Monad τ => Addr -> D (ByVInit τ)
-memo :: forall τ. (Monad τ, forall v. Trace (τ v)) => Addr -> D (ByVInit τ) -> D (ByVInit τ)
+runByVInit :: Monad τ => ByVInit τ a -> τ (a, Heap (ByVInit τ))
 instance (Monad τ, forall v. Trace (τ v)) => HasBind (D (ByVInit τ)) where
   bind _ rhs body = do  a <- nextFree <$> ByVInit get
                         ByVInit $ modify (\μ -> ext μ a stuck)
@@ -596,8 +589,8 @@ instance (Monad τ, forall v. Trace (τ v)) => HasBind (D (ByVInit τ)) where
 newtype ByVInit τ v = ByVInit (StateT (Heap (ByVInit τ)) τ v)
   deriving (Functor,Applicative,Monad)
 
-runByVInit :: Monad τ => ByVInit τ a -> τ a
-runByVInit (ByVInit m) = evalStateT m emp
+runByVInit :: Monad τ => ByVInit τ a -> τ (a, Heap (ByVInit τ))
+runByVInit (ByVInit m) = runStateT m emp
 
 instance (forall v. Trace (τ v)) => Trace (ByVInit τ v) where
   step e (ByVInit (StateT m)) = ByVInit $ StateT $ \μ -> step e (m μ)
@@ -677,8 +670,8 @@ reusing the implementation from |ByNeed| and initialising the heap
 with a \emph{black hole}~\citep{stg} |stuck| in |bind| as in
 \Cref{fig:by-value-init}.
 
-< ghci> runByVInit $ eval (read "let x = x in x x") emp :: T (Value (ByVInit T))
-$\perform{runByVInit $ eval (read "let x = x in x x") emp :: T (Value (ByVInit T))}$
+< ghci> runByVInit $ eval (read "let x = x in x x") emp :: T (Value (ByVInit T), Heap (ByVInit T))
+$\perform{runByVInit $ eval (read "let x = x in x x") emp :: T (Value (ByVInit T), Heap (ByVInit T))}$
 
 
 \begin{figure}
