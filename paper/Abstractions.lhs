@@ -68,7 +68,7 @@ instance Monad UT where
     =  Uses (φ1+φ2) b
 \end{code}
 \end{minipage}
-\caption{|Trace| instance for semantic usage abstraction}
+\caption{|Trace| instance for usage analysis}
 \label{fig:usg-abs}
 \end{figure}
 
@@ -744,7 +744,7 @@ will gloss over in this work.
 \end{table}
 
 \subsubsection*{Examples}
-The first two examples of \Cref{cfa-examples} demonstrate a precise and an
+The first two examples of \Cref{fig:cfa-examples} demonstrate a precise and an
 imprecise result, respectively. The latter is due to the fact that both |i| and
 |j| flow into |x|.
 Examples (3) and (4) show that the |HasBind| instance guarantees termination for

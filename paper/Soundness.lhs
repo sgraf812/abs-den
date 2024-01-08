@@ -428,7 +428,7 @@ By Löb induction and cases on |e|, using the representation function
 \end{proof}
 \end{toappendix}
 
-We can finally prove the following soundness theorem:
+We can now prove the following soundness theorem:
 
 \begin{theoremrep}[Sound By-name Interpretation]
 \label{thm:soundness-by-name}
@@ -624,8 +624,6 @@ A delightful consequence of fixing |byName| as the Galois connection for the
 soundness statement is that many soundness lemmas, such as
 |αT (step ev d) ⊑ step ev (αT d)| or |αT (fun f) ⊑ fun (αT . f . γE)|
 follow by definition.
-\sg{We could connect |αT (eval e ρ1 :: Pow (D (ByName T)))| here to the
-semantic usage abstraction in \Cref{sec:abstractions}}
 
 To show that the decomposition into 11 remaining lemmas is useful, we will now
 bring the soundness proof for usage analysis, \emph{in full}:
@@ -657,7 +655,7 @@ It suffices to show the soundness lemmas in \Cref{fig:by-name-soundness-lemmas}.
 \end{itemize}
 \end{proof}
 
-Building on the ``substitution'' \Cref{thm:usage-squeezing}, this proof is
+Building on the substitution \Cref{thm:usage-squeezing}, this proof is
 delightfully simple.
 The main lemmas \textsc{Beta-App} and \textsc{Beta-Sel} encode soundness of
 the summary mechanism and hence appeal to \Cref{thm:usage-squeezing}, while the
@@ -720,7 +718,8 @@ freezeHeap μ = untyped (repr β where
 
 Where |needd| serves a similar purpose as |named (hat d)| from
 \Cref{defn:syn-name}, restricting environment entries to the syntactic by-need
-form |step (Lookup x) (fetch a)| and heap entries to |memo a (eval e ρ)|.
+form |step (Lookup x) (fetch a)| and heap entries in |needheap| to |memo a (eval
+e ρ)|.
 The precise \Cref{defn:syn-heap} can be found in the Appendix.
 
 \begin{toappendix}
@@ -1333,7 +1332,7 @@ nameNeed = repr β where
 \begin{theoremrep}[Sound By-need Interpretation]
 \label{thm:soundness-by-need}
 Let |hat D| be a domain with instances for |Trace|, |Domain|, |HasBind| and
-|Lat|, and let |αT :<->: γT = nameNeed|, |αE :<->: γE = freezeHeap|.
+|Lat|, and let |αT :<->: γT = nameNeed|, |αE μ :<->: γE μ = freezeHeap μ|.
 If the soundness lemmas in \Cref{fig:by-name-soundness-lemmas}
 and \Cref{fig:by-need-by-name-soundness-lemmas} hold,
 then |eval| instantiates at |hat D| to an abstract interpreter that is sound
@@ -1505,8 +1504,8 @@ We proceed by cases over |e|.
 \end{itemize}
 \end{proof}
 
-It is evident that usage analysis as well as type and control-flow analysis
-satisfies the soundness lemmas in \Cref{fig:by-name-by-need-soundness-lemmas},
+It is evident that usage analysis (as well as type and control-flow analysis)
+satisfies the soundness lemmas in \Cref{fig:by-need-by-name-soundness-lemmas},
 hence we can conclude
 
 \begin{corollary}

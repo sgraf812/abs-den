@@ -34,7 +34,7 @@
 %        paper says, which dubs return states as "apply" transitions
 
 \subsubsection*{Definitional Big-Step Interpreters, Coinduction, Fuel, Step-indexing and Mechanisation}
-% TODO:
+% Topics still worth discussing:
 % - HOAS
 % - Galois Transformers
 % - Cousot and Compositionality
