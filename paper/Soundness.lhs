@@ -337,7 +337,7 @@ invocations, and |trace| does so as well.
   Follows by parametricity.
 \end{proofsketch}
 
-\begin{lemmarep}[By-name evaluation improves trace abstraction]
+\begin{lemma}[By-name evaluation improves trace abstraction]
   \label{thm:eval-improves}
   Let |hat D| be a domain with instances for |Trace|, |Domain|, |HasBind| and
   |Lat|, satisfying the soundness properties \textsc{Step-App},
@@ -347,7 +347,7 @@ invocations, and |trace| does so as well.
   If |eval e ρ1 = many (Step ev) (eval v ρ2)|,
   then |many (step ev) (eval v (αE << set << ρ2)) ⊑ eval e (αE << set << ρ1)|,
   where |αE :<->: γE = env|.
-\end{lemmarep}
+\end{lemma}
 \begin{proof}
 By Löb induction and cases on |e|, using the representation function
 |βE := αE . set|.
@@ -668,7 +668,6 @@ syntactic premises in \Cref{fig:by-name-soundness-lemmas}.
 It would not be possible to show |hat f (hat a) ⊑ apply (fun (hat f)) (hat a)|
 for any monotone |hat f| due to the lack of full abstraction, and likewise for
 \textsc{Beta-Sel}.
-\sg{Bring this earlier! Perhaps even in \Cref{sec:abstractions}.}
 For example,
 \begin{center}
 \begin{spec}
@@ -746,9 +745,7 @@ environments |Name :-> D (ByNeed T)| and heaps |Heap (ByNeed T)| satisfy
 It is easy to see that syntacticness is preserved by |eval| whenever environment
 or heap is extended, assuming that |Domain| and |HasBind| are adjusted
 accordingly.
-\end{toappendix}
 
-\begin{toappendix}
 The environment abstraction |αE μ :<->: _ = freezeHeap μ| improves the more
 ``evaluated'' |μ| is.
 E.g.,\ when |μ1| \emph{progresses} into |μ2| during evaluation, written
@@ -813,10 +810,10 @@ Evaluation of a |Let| extends the heap via \progresstoext and evaluation
 of a |Var| will memoise the evaluated heap entry, progressing it along
 \progresstomemo.
 
-\begin{lemmarep}[Evaluation progresses the heap]
+\begin{lemma}[Evaluation progresses the heap]
 \label{thm:eval-progression}
 If |eval e ρ1 μ1 = many (Step ev) (eval v ρ2 μ2)|, then |μ1 ~> μ2|.
-\end{lemmarep}
+\end{lemma}
 \begin{proof}
 By Löb induction and cases on |e|.
 \begin{itemize}
@@ -894,11 +891,11 @@ Heap progression is useful to state a number of semantic properties, for example
 the ``update once'' property of memoisation and that a heap binding is
 semantically irrelevant when it is never updated:
 
-\begin{lemmarep}[Update once]
+\begin{lemma}[Update once]
 \label{thm:update-once}
 If   |μ1 ~> μ2| and |μ1 ! a = memo a (eval v ρ)|,
 then |μ2 ! a = memo a (eval v ρ)|.
-\end{lemmarep}
+\end{lemma}
 \begin{proof}
 Simple proof by induction on |μ1 ~> μ2|.
 The only case updating a heap entry is \progresstomemo, and there we can see
@@ -906,12 +903,12 @@ that |μ2 ! a = memo (eval v ρ)| because evaluating |v| in |μ1| does not make
 a step.
 \end{proof}
 
-\begin{lemmarep}[No update implies semantic irrelevance]
+\begin{lemma}[No update implies semantic irrelevance]
 \label{thm:no-update-irrelevance}
 If |eval e ρ1 μ1 = many (Step ev) (eval v ρ2 μ2)|
 and |μ1 ! a = μ2 ! a = memo a (eval e1 ρ3)|, |e1| not a value,
 then |eval e ρ1 (ext μ1 a d) = many (Step ev) (eval v ρ2 (ext μ2 a d))|.
-\end{lemmarep}
+\end{lemma}
 \begin{proof}
 By Löb induction and cases on |e|.
 \begin{itemize}
@@ -941,11 +938,11 @@ By Löb induction and cases on |e|.
 \end{itemize}
 \end{proof}
 
-\begin{lemmarep}
+\begin{lemma}
 \label{thm:freeze-heap-eq}
 If |forall a ∈ adom d. μ1 ! a = μ2 ! a|,
 then |αE μ1 d = αE μ2 d|, where |αE μ :<->: γE μ = freezeHeap μ|.
-\end{lemmarep}
+\end{lemma}
 \begin{proof}
 By Löb induction.
 Since |needd d|, we have |d = Cup (step (Lookup y) (fetch a))|.
@@ -961,7 +958,7 @@ An by-name analysis that is sound \wrt by-need must improve when an expression
 reduces to a value, which in particular will happen after memoisation. The
 following lemma ensures compatibility:
 
-\begin{lemmarep}
+\begin{lemma}
   Let |hat D| be a domain with instances for |Trace|, |Domain|, |HasBind| and
   |Lat|, satisfying the soundness properties
   \textsc{Beta-App}, \textsc{Beta-Sel}, \textsc{Bind-ByName} in \Cref{fig:by-name-soundness-lemmas}
@@ -980,7 +977,7 @@ following lemma ensures compatibility:
       then |eval v (βE μ3 << ρ2) ⊑ eval e (βE μ3 << ρ1)|.
       \label{thm:value-improves}
   \end{enumerate}
-\end{lemmarep}
+\end{lemma}
 \begin{proof}
 By Löb induction, we assume that both properties hold \emph{later}.
 \begin{itemize}
@@ -1114,7 +1111,7 @@ By Löb induction, we assume that both properties hold \emph{later}.
 With that, we can finally prove that environment abstraction improves when
 the frozen heap progresses:
 
-\begin{lemmarep}[Heap progression improves abstraction]
+\begin{lemma}[Heap progression improves abstraction]
   \label{thm:heap-progress-freeze}
   Let |hat D| be a domain with instances for |Trace|, |Domain|, |HasBind| and
   |Lat|, satisfying the soundness properties
@@ -1124,7 +1121,7 @@ the frozen heap progresses:
   Furthermore, let |αE μ :<->: γE μ = freezeHeap μ| for all |μ|.
 
   If |μ1 ~> μ2| and |adom d ⊆ dom μ1|, then |αE μ2 d ⊑ αE μ1 d|.
-\end{lemmarep}
+\end{lemma}
 \begin{proof}
 By Löb induction.
 Let us assume that |μ1 ~> μ2| and |adom d ⊆ dom μ1|.
@@ -1195,7 +1192,7 @@ induction hypothesis, which is freely applicable under the ambient |Later|.
 \end{itemize}
 \end{proof}
 
-\begin{lemmarep}[By-need evaluation improves by-name trace abstraction]
+\begin{lemma}[By-need evaluation improves by-name trace abstraction]
   \label{thm:eval-improves-need}
   Let |hat D| be a domain with instances for |Trace|, |Domain|, |HasBind| and
   |Lat|, satisfying the soundness properties \textsc{Step-App},
@@ -1206,7 +1203,7 @@ induction hypothesis, which is freely applicable under the ambient |Later|.
 
   If   |eval e ρ1 μ1 = many (Step ev) (eval v ρ2 μ2)|,
   then |many (step ev) (eval v (αE μ2 << set << ρ2)) ⊑ eval e (αE μ1 << set << ρ1)|.
-\end{lemmarep}
+\end{lemma}
 \begin{proof}
 By Löb induction and cases on |e|, using the representation function
 |βE := αE . set|.
