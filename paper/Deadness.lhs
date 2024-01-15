@@ -14,7 +14,7 @@
 %hypothesis for the correctness proof.
 
 Let us begin by defining the object language of this work, a lambda
-calculus with recursive let bindings and algebraic data types:
+calculus with \emph{recursive} let bindings and algebraic data types:
 \[
 \arraycolsep=3pt
 \begin{array}{rrclcrrclcl}
@@ -27,8 +27,8 @@ The form is reminiscent of \citet{Launchbury:93} and \citet{Sestoft:97} because
 it is factored into \emph{A-normal form}, that is, the arguments of applications
 are restricted to be variables, so the difference between call-by-name and
 call-by-value manifests purely in the semantics of $\mathbf{let}$.
-Note that $\Lam{x}{x}$ denotes syntax, whereas $\fn{x}{x+1}$ denotes a function
-in math.
+Note that $\Lam{x}{x}$ (with an overbar) denotes syntax, whereas $\fn{x}{x+1}$
+denotes a function in math.
 In this section, only the highlighted parts are relevant, but the interpreter
 definition in \Cref{sec:interp} supports data types as well.
 From hereon throughout, we assume that all bound program variables
@@ -46,12 +46,9 @@ are distinct.
      f(ρ(\px)) & \text{if $\semscott{\pe}_ρ = f$}  \\
      \bot      & \text{otherwise}  \\
    \end{cases} \\
-  \semscott{\Letsmall{\px}{\pe_1}{\pe_2}}_ρ & {}={} &
-    \begin{letarray}
-      \text{letrec}~ρ'. & ρ' = ρ \mathord{⊔} [\px \mathord{↦} d_1] \\
-                        & d_1 = \semscott{\pe_1}_{ρ'} \\
-      \text{in}         & \semscott{\pe_2}_{ρ'}
-    \end{letarray} \\
+  \semscott{\Letsmall{\px}{\pe_1}{\pe_2}}_ρ & {}={} & \semscott{\pe_2}_{ρ[\px ↦ \lfp (\fn{d}{\semscott{\pe_1}_{ρ[\px ↦ d]}})]}
+  \\
+  \\[-0.5em]
 \end{array}\]
 \caption{Denotational semantics after Scott}
   \label{fig:denotational}
@@ -93,15 +90,20 @@ least element $\bot$, and the equation is to be interpreted as the least
 fixpoint of the implied functional.
 
 \Cref{fig:deadness} defines a static \emph{deadness analysis}.
-Inuitively, when $\dead{Γ}{\pe}$ is derivable and no variable in $Γ$ evaluates
-$\px$, then $\px$ is dead in $\pe$, \eg, what value is bound to $\px$ is
-irrelevant to the value of $\pe$.
-The context $Γ$ can be thought of as the set of assumptions (variables
-that $\px$ is assumed dead in); the larger $Γ$ is, the more statements are
+We say that $\px$ is \emph{dead} in $\pe$ when the value bound to $\px$ is
+irrelevant to the value of $\pe$, that is, varying the value bound to $\px$ has
+no effect on the value of $\pe$.
+Intuitively, when $\dead{Γ}{\pe}$ is derivable and $Γ$ only contains variables
+that $\px$ is known to be dead in, then $\px$ is dead in $\pe$.
+For example, $\dead{\{f\}}{\Lam{y}{f~y~y}}$ is derivable and encodes
+that $x$ is dead in $\Lam{y}{f~y~y}$ as long as $x$ is dead in
+whatever value gets bound to $f$.
+
+Thus, the context $Γ$ can be thought of as the set of assumptions (variables
+that $\px$ is assumed dead in), and the larger $Γ$ is, the more statements are
 derivable.
-Thus, a decision algorithm would always pick the largest permissible $Γ$,
-which is used in the \textsc{Var} and \textsc{App} cases to prove deadness of
-open terms.
+A decision algorithm would always pick the largest permissible $Γ$, which is
+used in the \textsc{Var} and \textsc{App} cases to prove deadness of open terms.
 Rules $\textsc{Let}_1$ and $\textsc{Let}_2$ handle the case where $\px$ can
 be proven dead in $\pe_1$ or not, respectively; in the former case,
 the let-bound variable $\py$ may be added to the context when analysing $\pe_2$.
@@ -110,20 +112,19 @@ not added to the context in $\textsc{Let}_2$.
 
 Note that although the formulation of deadness analysis is so simple, it is
 \emph{not} entirely naïve:
-Because it is defined by structural recursion, its treatment of function
-application makes use of a \emph{summary mechanism}, assuming that every
-function deeply evaluates its argument.
-For example, when $f$ never evaluates its argument, $x$ might never be evaluated
-when evaluating $(f~x)$.
-But our deadness analysis errs on the safe side and says ``not dead'', in that
-$\dead{Γ}{f~x}$ is not derivable by the \textsc{App} rule when $x$ is presumed
-live, $x \not∈ Γ$.
+Because it is defined by structural recursion, the \textsc{App} rule employs
+a \emph{summary mechanism}, maintaining the conservative precondition that every
+application deeply evaluates the argument.
+For example, when $f \triangleq (\Lam{y}{\Lam{z}{z}})$, $x$ is never evaluated
+when evaluating $(f~x)$, but our deadness analysis errs on the safe side and
+says ``not dead'' (\eg, \emph{live}), in that $\dead{Γ}{f~x}$ is not derivable
+by the \textsc{App} rule when $x$ is presumed live, $x \not∈ Γ$.
 On the other hand, rule \textsc{Lam} is free to assume that any argument it
 receives is dead, hence it adds the lambda-bound variable to the context.
 
 This summary contract enables modularity:
-Let us assume that the function $f$ is defined in a different module than its
-use site $(f~x)$, perhaps as $f \triangleq \Lam{y}{\Lam{z}{z}}$.
+Let us assume that the function $f$ is defined as above in a different module
+than its use site $(f~x)$.
 Its original definition is never looked at by the analysis when we apply it at
 the use site; what matters is its easily persisted summary in the form of
 the fact $f ∈ Γ$, presumably populated by a top-level equivalent of the
@@ -219,18 +220,22 @@ Simple and direct, at barely over half a page in length.
 
 Alas, there are several reasons why this framework is not so useful in practice:
 \begin{itemize}
-  \item
-    Denotational semantics are fundamentally restricted in the way they
-    \textbf{\emph{represent diverging computations}}, in that any such computation must
-    be denoted by $\bot$.
-    Thus, a denotational semantics cannot be used to prove that an analysis
-    yields safe results on diverging programs.
+% Simon convinced me of his unconvincedness:
+%  \item
+%    Denotational semantics are fundamentally restricted in the way they
+%    \textbf{\emph{represent diverging computations}}, in that any such computation must
+%    be denoted by $\bot$.
+%    Thus, a denotational semantics cannot be used to prove that an analysis
+%    yields safe results on diverging programs.
   \item
     \Cref{thm:deadness-correct} yields credible proof that the implied
     transformation is safe, but none whatsoever on whether it is
     \textbf{\emph{contextually improving}}~\citep{MoranSands:99}.
     Proof for the latter would need to expose more operational detail in the
     semantics, such as in \citet{HackettHutton:19}.
+    For more complex analyses, it would be good to separate the semantic
+    property from the transformation it enables, such that improvement can be
+    shown separately.
   \item
     Suppose we were to extend our deadness analysis to infer more detailed
     upper bounds on \emph{evaluation cardinality}, \eg, how often some variable
@@ -250,8 +255,7 @@ Alas, there are several reasons why this framework is not so useful in practice:
     necessitates (1) extension of the analysis to whole machine configurations,
     (2) complex refinements of the correctness statement to strengthen the
     induction hypothesis, and possibly (3) fixpoint induction when the original
-    analysis definition is used without prior generalisation into a declarative
-    system.
+    analysis definition is used without prior generalisation into a declarative system.
 
     While recent years have made progress in grasping these proofs in terms of
     (step-indexed) logical relations and Galois connections, we found it quite

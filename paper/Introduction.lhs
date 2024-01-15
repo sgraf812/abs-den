@@ -55,15 +55,16 @@ Now we have two unappealing alternatives:
 In this paper, we resolve the tension by exploring \emph{Denotational
 Interpreters}~\citep{Might:10}: total, mathematical objects that
 live at the intersection of structurally-defined \emph{Definitional
-Interpreters}~\citep{Reynolds:72} and denotational semantics, enjoying a
-straightforward encoding in typical higher-order programming languages.
-
-While the AAM recipe has successfully been applied to big-step
-style definitional interpreters~\citep{adi}, we will show how
-denotational interpreters can be abstracted to yield static analyses
-that implement a wide range of summary mechanisms.
-As in \citet{Keidel:18,Bodin:19}, correctness of the shared interpreter skeleton
-comes for free and correctness proofs can focus on the semantic domain.
+Interpreters}~\citep{Reynolds:72} and denotational semantics.
+Our denotational interpreters generate small-step traces embellished with
+arbitrary operational detail and enjoy a straightforward encoding in typical
+higher-order programming languages.
+Static analyses arise as instantiations of the shared interpreter skeleton,
+enabling succinct correctness proofs just like for AAM or big-step definitional
+interpreters~\citep{adi,Keidel:18,Bodin:19}.
+However, the shared, compositional structure enables a wide range of summary
+mechanisms in static analyses that we think are beyond reach for reachable
+states abstractions.
 
 We make the following contributions:
 \begin{itemize}
@@ -75,7 +76,7 @@ We make the following contributions:
 \item \Cref{sec:interp} walks through the structural definition of our shared
   denotational interpreter and its type class algebra in Haskell.
   We demonstrate the ease with which different instances of our interpreter
-  endow our object language with call-by-name, variants of call-by-need, and
+  endow our object language with call-by-name, variants of call-by-need and
   variants of call-by-value evaluation strategies, producing (abstractions of)
   small-step traces.
 \item In \Cref{sec:abstractions} we give three examples of abstract
@@ -86,7 +87,7 @@ We make the following contributions:
 \item \Cref{sec:adequacy} delivers proof that denotational
   interpreters are actual semantics.
   Totality is demonstrated by embedding the shared interpreter and its by-name
-  and by-need instantiations in Guarded Cubical Agda~\citep{tctt}.
+  and by-need instantiations in Guarded Cubical Agda.
   Furthermore, the by-need instantiation is shown to adequately generate an
   abstraction of a lazy Krivine trace, preserving length as well as arbitrary
   information about each transition taken.
@@ -98,8 +99,7 @@ We make the following contributions:
   conditions mention the concrete semantics or the Galois connection either!
   This enables us to finally prove usage analysis correct \wrt the by-name
   semantics in a third of a page, because all reasoning happens in the abstract.
-%\item
-%  TODO
-%  \sg{Write more here once I revisited Related Work}
-%  \Cref{sec:related-work}, Related Work.
+\item
+  We compare to a variety of other related approaches in \Cref{sec:related-work}.
+  %TODO say more?
 \end{itemize}
