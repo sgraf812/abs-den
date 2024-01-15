@@ -41,27 +41,29 @@ Now we have two unappealing alternatives:
 \begin{itemize}
 \item Peform a difficult correctness proof, that links an operational semantics for the language
   with an analysis defined by structural recursion.
-\item Re-imagine and re-implement the analysis as an abstraction of the
+\item Reimagine and reimplement the analysis as an abstraction of the
   reachable states of an operational semantics.
   This is the essence of \emph{Abstracting Abstract Machines} (AAM) \cite{aam}
   recipe.
-  A very fruitful approach, but one that is not summary-based, hence
-  non-modular, possibly less efficient and less precise; in contrast to type
-  analysis.
+  A very fruitful framework, but one that follows the \emph{call strings}
+  approach~\citep{SharirPnueli:78}, reanalysing function bodies at call sites.
+  Hence the new analysis becomes non-modular, and possibly less efficient and
+  less precise than its summary-based variant.
 \end{itemize}
 
-Recent years have seen successful applications of the AAM recipe to big-step
-style \emph{Definitional Interpreters} as well \cite{Reynolds:72,adi,Keidel:18},
-however, the structural mismatch and resulting lack of modularity persists.
-Furthermore, big-step interpreters are no substitute for a formal semantics
-because they diverge when their input program diverges, thus providing no
-safety guarantees for infinite program behaviors.
-
-In this paper, we explore \emph{Denotational Interpreters}:
+In this paper, we explore \emph{Denotational Interpreters}~\citep{Might:10}:
 total, mathematical objects that live at the intersection of
-structurally-defined definitional interpreters and denotational semantics,
-enjoying a straightforward encoding in typical higher-order programming
-languages.
+structurally-defined
+\emph{Definitional Interpreters}~\citep{Reynolds:72,adi,Keidel:18} and
+denotational semantics, enjoying a straightforward encoding in typical
+higher-order programming languages.
+
+%Recent years have seen successful applications of the AAM recipe to big-step
+%style \emph{Definitional Interpreters} as well \cite{Reynolds:72,adi,Keidel:18},
+%however, the structural mismatch and resulting lack of modularity persists.
+%Furthermore, big-step interpreters are no substitute for a formal semantics
+%because they diverge when their input program diverges, thus providing no
+%safety guarantees for infinite program behaviors.
 
 We make the following contributions:
 \begin{itemize}
