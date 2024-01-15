@@ -39,8 +39,9 @@ semantics}~\citep{Plotkin:81}, which directly models operational details like
 the stack and heap, and sees program execution as a sequence of machine states.
 Now we have two unappealing alternatives:
 \begin{itemize}
-\item Peform a difficult correctness proof, that links an operational semantics for the language
-  with an analysis defined by structural recursion.
+\item Put up with \emph{structural mismatch} and peform a difficult correctness
+  proof, one that links an operational semantics for the language with an
+  analysis defined by structural recursion.
 \item Reimagine and reimplement the analysis as an abstraction of the
   reachable states of an operational semantics.
   This is the essence of \emph{Abstracting Abstract Machines} (AAM) \cite{aam}
@@ -51,24 +52,23 @@ Now we have two unappealing alternatives:
   less precise than its summary-based variant.
 \end{itemize}
 
-In this paper, we explore \emph{Denotational Interpreters}~\citep{Might:10}:
-total, mathematical objects that live at the intersection of
-structurally-defined
-\emph{Definitional Interpreters}~\citep{Reynolds:72,adi,Keidel:18} and
-denotational semantics, enjoying a straightforward encoding in typical
-higher-order programming languages.
+In this paper, we resolve the tension by exploring \emph{Denotational
+Interpreters}~\citep{Might:10}: total, mathematical objects that
+live at the intersection of structurally-defined \emph{Definitional
+Interpreters}~\citep{Reynolds:72} and denotational semantics, enjoying a
+straightforward encoding in typical higher-order programming languages.
 
-%Recent years have seen successful applications of the AAM recipe to big-step
-%style \emph{Definitional Interpreters} as well \cite{Reynolds:72,adi,Keidel:18},
-%however, the structural mismatch and resulting lack of modularity persists.
-%Furthermore, big-step interpreters are no substitute for a formal semantics
-%because they diverge when their input program diverges, thus providing no
-%safety guarantees for infinite program behaviors.
+While the AAM recipe has successfully been applied to big-step
+style definitional interpreters~\citep{adi}, we will show how
+denotational interpreters can be abstracted to yield static analyses
+that implement a wide range of summary mechanisms.
+As in \citet{Keidel:18,Bodin:19}, correctness of the shared interpreter skeleton
+comes for free and correctness proofs can focus on the semantic domain.
 
 We make the following contributions:
 \begin{itemize}
 \item
-  We use a concrete example (usage analysis) to explain the problems we
+  We use a concrete example (deadness analysis) to explain the problems we
   sketched above: the lack of operational detail and other shortcomings of
   denotational semantics, and the structural mismatch between the semantics and
   the analysis (\Cref{sec:problem}).
@@ -78,10 +78,9 @@ We make the following contributions:
   endow our object language with call-by-name, variants of call-by-need, and
   variants of call-by-value evaluation strategies, producing (abstractions of)
   small-step traces.
-\item In the AAM spirit, our denotational interpreter can also be instantiated
-  at more \emph{abstract} semantic domains.
-  \Cref{sec:abstractions} gives three examples, covering a wide span of
-  applications: Type analysis, usage analysis and 0CFA control-flow analysis.
+\item In \Cref{sec:abstractions} we give three examples of abstract
+  interpretations, covering a wide span of applications: Type analysis, usage
+  analysis and 0CFA control-flow analysis.
   The former two have interesting summary mechanisms that our framework
   expresses in a natural way.
 \item \Cref{sec:adequacy} delivers proof that denotational
@@ -93,12 +92,14 @@ We make the following contributions:
   information about each transition taken.
 \item In \Cref{sec:soundness}, we apply abstract interpretation to characterise
   a set of soundness conditions that the type class instances of an abstract
-  domain must satisfy in order to soundly approximate by-name interpretation.
+  domain must satisfy in order to soundly approximate by-name and by-need
+  interpretation.
   None of the conditions mention shared code, and, more remarkably, none of the
   conditions mention the concrete semantics or the Galois connection either!
   This enables us to finally prove usage analysis correct \wrt the by-name
   semantics in a third of a page, because all reasoning happens in the abstract.
 %\item
+%  TODO
 %  \sg{Write more here once I revisited Related Work}
 %  \Cref{sec:related-work}, Related Work.
 \end{itemize}
