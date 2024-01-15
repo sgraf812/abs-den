@@ -487,7 +487,7 @@ Thus we parameterise |D| and |Value| over the particular trace type |T|:
 \begin{spec}
 type D τ = τ (Value τ)
 data Value τ = Stuck | Fun (D τ -> D τ) | Con Tag [D τ]
-instance Trace (D τ) => Domain (D τ) where ...
+instance Monad τ => Domain (D τ) where ...
 \end{spec}
 
 \noindent
