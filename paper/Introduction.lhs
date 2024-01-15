@@ -10,13 +10,10 @@ as ``this program is well-typed'', ``this higher-order function is always called
 with argument $\Lam{x}{x+1}$'' or ``this program never evaluates $x$''.
 In a functional-language setting, such static analyses are
 often defined by \emph{structural recursion} on the input term.
-In the application case, this structural recursion must produce a \emph{summary}
-for the function to be applied, and then apply that summary to produce an
-abstraction that is sound for the particular argument.
 For example, consider the claim ``|(even 42)| is well-typed''.
-Type analysis asserts this claim by structural recursion, inferring
-|even :: Int -> Bool|, |42 :: Int|, and then applies the function type to the
-argument type to produce the result type |even 42 :: Bool|.
+Type analysis asserts that |even :: Int -> Bool|, |42 :: Int|, and then applies
+the function type to the argument type to produce the result type |even 42 ::
+Bool|.
 The function type |Int -> Bool| is a \emph{summary} of |even|:
 Whenever the argument has type |Int|, the result has type |Bool|.
 Function summaries play a crucial role in achieving modular higher-order
