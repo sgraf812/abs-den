@@ -40,7 +40,7 @@ the stack and heap, and sees program execution as a sequence of machine states.
 Now we have two unappealing alternatives:
 \begin{itemize}
 \item Put up with \emph{structural mismatch} and peform a difficult correctness
-  proof, one that links an operational semantics for the language with an
+  proof, one that links an non-compositional operational semantics with an
   analysis defined by structural recursion.
 \item Reimagine and reimplement the analysis as an abstraction of the
   reachable states of an operational semantics.
@@ -86,7 +86,7 @@ We make the following contributions:
   expresses in a natural way.
 \item A concrete instantiation of a denotational interpreter is \emph{total}
   if it coinductively yields a (possibly-infinite) trace for every input
-  program, including ones that loop.
+  program, including ones that diverge.
   \Cref{sec:totality} proves that the by-name and by-need instantiations are
   total by embedding the shared interpreter and its instances in Guarded Cubical
   Agda.

@@ -35,7 +35,7 @@ From hereon throughout, we assume that all bound program variables
 are distinct.
 
 \begin{figure}
-\begin{minipage}[t]{0.48\textwidth}
+\begin{minipage}[t]{0.43\textwidth}
 \arraycolsep=0pt
 \[\begin{array}{rcl}
   \multicolumn{3}{c}{ \ruleform{ \semscott{\wild}_{\wild} \colon \Exp → (\Var \to \ScottD) → \ScottD } } \\
@@ -47,32 +47,50 @@ are distinct.
      \bot      & \text{otherwise}  \\
    \end{cases} \\
   \semscott{\Letsmall{\px}{\pe_1}{\pe_2}}_ρ & {}={} & \semscott{\pe_2}_{ρ[\px ↦ \lfp (\fn{d}{\semscott{\pe_1}_{ρ[\px ↦ d]}})]}
-  \\
   \\[-0.5em]
 \end{array}\]
 \caption{Denotational semantics after Scott}
   \label{fig:denotational}
 \end{minipage}%
 \quad
-\begin{minipage}[t]{0.48\textwidth}
+\begin{minipage}[t]{0.53\textwidth}
 \arraycolsep=0pt
-\[\begin{array}{c}
-  \ruleform{ \dead{Γ}{\pe} }
-  \\ \\[-0.5em]
-  \inferrule[\textsc{Var}]{\px ∈ Γ}{\dead{Γ}{\px}}
-  \quad
-  \inferrule[\textsc{App}]{\dead{Γ}{\pe \quad \px ∈ Γ}}{\dead{Γ}{\pe~\px}}
-  \quad
-  \inferrule[\textsc{Lam}]{\dead{Γ, \px}{\pe}}{\dead{Γ}{\Lam{\px}{\pe}}}
-  \\ \\[-0.5em]
-  \inferrule[$\textsc{Let}_1$]{\dead{Γ, \py}{\pe_1} \quad \dead{Γ, \py}{\pe_2}}{\dead{Γ}{\Let{\py}{\pe_1}{\pe_2}}}
-  \quad
-  \inferrule[$\textsc{Let}_2$]{\dead{Γ}{\pe_2}}{\dead{Γ}{\Let{\py}{\pe_1}{\pe_2}}}
+\[\begin{array}{rcl}
+  \multicolumn{3}{c}{ \ruleform{ \semdead{\wild}_{\wild} \colon \Exp → (\Var → \pow{\Var}) → \pow{\Var} } } \\
+  \\[-0.5em]
+  \semdead{\px}_\tr & {}={} & \tr(\px) \\
+  \semdead{\Lam{\px}{\pe}}_\tr & {}={} & \semdead{\pe}_{\tr[\px ↦ \varnothing]} \\
+  \semdead{\pe~\px}_\tr & {}={} & \semdead{\pe}_\tr ∪ \tr(\px)
+    \vphantom{\begin{cases}
+     f(ρ(\px)) & \text{if $\semscott{\pe}_ρ = f$}  \\
+     \bot      & \text{otherwise}  \\
+   \end{cases}} \\
+  \semdead{\Letsmall{\px}{\pe_1}{\pe_2}}_\tr & {}={} & \semdead{\pe_2}_{\tr[\px ↦ \{\px\} ∪ \semdead{\pe_1}_{\tr[\px ↦ \varnothing]}]}
   \\[-0.5em]
 \end{array}\]
 \caption{Modular deadness analysis}
   \label{fig:deadness}
 \end{minipage}
+%
+%\begin{minipage}[t]{0.48\textwidth}
+%\arraycolsep=0pt
+%\[\begin{array}{c}
+%  \ruleform{ \dead{Γ}{\pe} }
+%  \\ \\[-0.5em]
+%  \inferrule[\textsc{Var}]{\px ∈ Γ}{\dead{Γ}{\px}}
+%  \quad
+%  \inferrule[\textsc{App}]{\dead{Γ}{\pe \quad \px ∈ Γ}}{\dead{Γ}{\pe~\px}}
+%  \quad
+%  \inferrule[\textsc{Lam}]{\dead{Γ, \px}{\pe}}{\dead{Γ}{\Lam{\px}{\pe}}}
+%  \\ \\[-0.5em]
+%  \inferrule[$\textsc{Let}_1$]{\dead{Γ, \py}{\pe_1} \quad \dead{Γ, \py}{\pe_2}}{\dead{Γ}{\Let{\py}{\pe_1}{\pe_2}}}
+%  \quad
+%  \inferrule[$\textsc{Let}_2$]{\dead{Γ}{\pe_2}}{\dead{Γ}{\Let{\py}{\pe_1}{\pe_2}}}
+%  \\[-0.5em]
+%\end{array}\]
+%\caption{Modular deadness analysis}
+%  \label{fig:deadness}
+%\end{minipage}
 \end{figure}
 
 We give a standard call-by-name denotational semantics $\semscott{\wild}$ in
@@ -93,52 +111,68 @@ fixpoint of the implied functional.
 We say that $\px$ is \emph{dead} in $\pe$ when the value bound to $\px$ is
 irrelevant to the value of $\pe$, that is, varying the value of $\px$ has
 no effect on the value of $\pe$.
-Intuitively, when $\dead{Γ}{\pe}$ is derivable and $Γ$ only contains variables
-that $\px$ is known to be dead in, then $\px$ is dead in $\pe$.
-For example, $\dead{\{f\}}{\Lam{y}{f~y~y}}$ is derivable and encodes
-that $x$ is dead in $\Lam{y}{f~y~y}$ as long as $x$ is dead in
-whatever value gets bound to $f$. \slpj{What does it mean to say that ``$x$ is dead in the value bound to $f$?  I'm struggling to understand the text.  And yet all the
+Otherwise, $\px$ is \emph{needed} in $\pe$.
+The idea for $\semdead{\pe}$ is to overapproximate the set of free variables of
+$\pe$ that are \emph{needed}.
+For example, $\semdead{f~x}_{\tr} = \tr(f) ∪ \tr(x)$, encoding that the
+expression $(f~x)$ needs whatever the free variable $f$ needs and possibly what
+$x$ needs, which the caller of the analysis supplies in $\tr(f)$ and $\tr(x)$,
+respectively.
+Another example is instructive to see how this is different to computing
+the free variables of an expression in a complicated way:
+Consider $\Let{z}{y}{(f~x)}$.
+Clearly, $y$ is a free variable of the expression, yet it is dead, because
+$y \not∈ \{f,x\} = \semdead{\Let{z}{y}{f~x}}_{[f ↦ \{f\},x ↦ \{x\},y ↦ \{y\}]}$.
+In general, $\px$ might be needed in $\pe$ when $\tr(\px) ⊆ \semdead{\pe}_{\tr}$
+for all $\tr$; otherwise, there exists some counterexample $\tr'$ in which case
+$\px$ is dead in $\pe$.
+
+\slpj{What does it mean to say that ``$x$ is dead in the value bound to $f$?  I'm struggling to understand the text.  And yet all the
 analysis does is find free variables, so we are making something simple seem complicated.
 And I still do not see a ``summary mechanism''.}
-
-\slpj{It's also puzzling that although we make a big deal that analysis and
-semantics are both compositional, yet we use entirely different notations to express the two; and moreover Fig 2 isn't even syntax-directed. It would be so much easier to
-define an analysis function by structural recursion, just like in Fig 1, which yields the set of variables that are relevant to the value of $e$.}
-$$
-D[e] :: Set \; Var \\
-$$
-
-Thus, the context $Γ$ can be thought of as the set of assumptions (variables
-that $\px$ is assumed dead in), and the larger $Γ$ is, the more statements are
-derivable.
-A decision algorithm would always pick the largest permissible $Γ$, which is
-used in the \textsc{Var} and \textsc{App} cases to prove deadness of open terms.
-Rules $\textsc{Let}_1$ and $\textsc{Let}_2$ handle the case where $\px$ can
-be proven dead in $\pe_1$ or not, respectively; in the former case,
-the let-bound variable $\py$ may be added to the context when analysing $\pe_2$.
-Otherwise, evaluating $\py$ might transitively evaluate $\px$ and hence $\py$ is
-not added to the context in $\textsc{Let}_2$.
+\sg{I adjusted. Is this better?}
 
 Note that although the formulation of deadness analysis is so simple, it is
-\emph{not} entirely naïve \slpj{in what way is it not-naive? being conservative on applications (no summary for functions) looks naive to me}:
-Because it is defined by structural recursion, the \textsc{App} rule employs
-a \emph{summary mechanism}, maintaining the conservative precondition that every
-application deeply evaluates the argument.
-For example, when $f \triangleq (\Lam{y}{\Lam{z}{z}})$, $x$ is never evaluated
-when evaluating $(f~x)$, but our deadness analysis errs on the safe side and
-says ``not dead'' (\eg, \emph{live}), in that $\dead{Γ}{f~x}$ is not derivable
-by the \textsc{App} rule when $x$ is presumed live, $x \not∈ Γ$.
-On the other hand, rule \textsc{Lam} is free to assume that any argument it
-receives is dead, hence it adds the lambda-bound variable to the context.
+\emph{not} entirely naïve:
+\slpj{in what way is it not-naive? being conservative on applications (no summary for functions) looks naive to me}
+\sg{That is not the most naïve analysis! The msot naïve one would return the top element $\Var$, the set of \emph{all} variables, whether they occur or not.}
+Because it is defined by structural recursion, the application case employs a
+\emph{summary mechanism}, maintaining the conservative precondition that every
+application only needs what the head of the application needs, plus what the
+argument \emph{might} need.
+This is \emph{not} the most conservative choice, which would be to return the
+top element of the implied powerset lattice, the set of \emph{all} program
+variables $\Var$.
+For example, when $f \triangleq (\Lam{y}{\Lam{z}{z}})$, $x$ is never needed
+by $(f~x)$, but our deadness analysis errs on the safe side and
+says ``might be needed'', in that $x ∈ \semdead{f~x}_{[f↦\{f\}, x↦\{x\}]}$.
+On the other hand, the lambda case is free to assume that the variable $\px$ it
+binds does not need \emph{any} variable, because the analysis has discharged the
+need for the argument at application sites.
 
 This summary contract enables modularity:
 Let us assume that the function $f$ is defined as above in a different module
 than its use site $(f~x)$.
 Its original definition is never looked at by the analysis when we apply it at
 the use site; what matters is its easily persisted summary in the form of
-the fact $f ∈ Γ$, presumably populated by a top-level equivalent of the
+the fact $\semdead{f}_\tr = \tr(f)$, presumably populated by a top-level equivalent of the
 $\textsc{Let}_1$ rule for exported/imported bindings.
 \slpj{I'm sorry I just don't get this.  If you had a summary for $f$ like ``f does not use its first argument'' I'd be with you.  But you don't.  To me the discussion of summaries is a big red herring. The point is: both semantics an analysis are compositional so we get an easy proof.}
+\sg{But the summary mechanism is crucial, because it enables modularity.
+If we didn't have the summary mechanism, we would have to reanalyse the body
+of $f$, $\Lam{y}{\Lam{z}{z}}$, at every call site! Now we can simply persist
+that $f$ is summarised by $ρ ↦ ρ(f)$.
+We will get back to summaries and substitution lemmas in Section 5, when we
+discuss usage analysis proper.
+And then we really need that substitution lemma when we prove usage analysis
+correct in Section 7.
+We should discuss. You grok'd an earlier version of this section with usage
+analysis; focusing just on deadness should be strictly simpler.
+Just because the summary mechanism is so simple that you don't think it is
+useful does not mean it isn't there!
+You can only learn by looking at simple examples, and this is as simple as it gets.
+Furthermore, if you think it's so simple, try proving the substitution lemma
+below, which ``obviously'' must be true.}
 
 We can formalise correctness of the summary mechanism with the following
 \emph{substitution lemma}:%
@@ -147,18 +181,22 @@ version via clickable links.}
 
 \begin{lemmarep}[Substitution]
 \label{thm:subst-deadness}
-If $\dead{Γ,\py}{(\Lam{\px}{\pe})~\py}$, then $\dead{Γ,\px}{\pe}$.
+$\semdead{\pe}_{\tr[\px↦\tr(\py)]} ⊆ \semdead{(\Lam{\px}{\pe})~\py}_{\tr}$.
 \end{lemmarep}
 \begin{proof}
-The assumption has a sub-derivation for $\dead{Γ,\px}{\pe}$ in the premise of
-\textsc{Lam}, showing the goal.
+After unfolding $\semdead{\Lam{\px}{\pe}}_\tr$, we need to prove
+\[
+  \semdead{\pe}_{\tr[\px↦\tr(\py)]} ⊆ \semdead{\pe}_{\tr[\px↦\varnothing]} ∪ \tr(\py),
+\]
+which follows by induction on $\pe$.
 \end{proof}
 
+That is, if $\pz ∈ \semdead{(\Lam{\px}{\pe})~\py}_{\tr}$, then $\pz ∈ \semdead{\pe}_{\tr[\px↦\tr(\py)]}$.
 A similar lemma can be derived for $\mathbf{let}$.
 The substitution lemma is often instrumental in correctness proofs, although in
 this case it is so simple (the proof is right in the premise of
 \textsc{Lam}) that it can be inlined when proving deadness analysis correct in
-terms of semantic irrelevance below:
+terms of semantic irrelevance below: \sg{Update this}
 
 \begin{theoremrep}[Correct deadness analysis]
   \label{thm:deadness-correct}
