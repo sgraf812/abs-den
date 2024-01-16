@@ -84,20 +84,16 @@ We make the following contributions:
   analysis and 0CFA control-flow analysis.
   The former two have interesting summary mechanisms that our framework
   expresses in a natural way.
-\item \Cref{sec:adequacy} delivers proof that denotational
-  interpreters are actual semantics. \slpj{We really do need to say what ``actual semantids'' connotes.  It must cover all cases, yes.  But a denotational semantics can have bottom as a result, so I'm not getting the totality bit.  I would rather say
-``A denotational interpreters is \emph{total} if it always yields a (possibly-infinite)
-trace for every input program, including ones that loop.  The interpreter itself
-never loops. We prove that our shared interpreter is total by embedding it,
-and its by-name and by-need instantiations, in Guarded Cubical Agda.}
-  Totality is demonstrated by embedding the shared interpreter and its by-name
-  and by-need instantiations in Guarded Cubical Agda.
-  Furthermore, the by-need instantiation is shown to adequately generate an
-  abstraction of a lazy Krivine trace, preserving length as well as arbitrary
-  information about each transition taken.
-\slpj{This is worht a separate, and earlier, point.  The shared interpreter
-generates the \emph{same} traces aas the Krivine machine!  Don't hide this
-as a second sentence in a bullet about totality. Has anyone done this before?}
+\item A concrete instantiation of a denotational interpreter is \emph{total}
+  if it coinductively yields a (possibly-infinite) trace for every input
+  program, including ones that loop.
+  \Cref{sec:totality} proves that the by-name and by-need instantiations are
+  total by embedding the shared interpreter and its instances in Guarded Cubical
+  Agda.
+\item \Cref{sec:adequacy} delivers proof that the by-need instantiation of our
+  denotational interpreter adequately generates an abstraction of a lazy Krivine
+  trace, preserving its length as well as arbitrary operational information
+  about each transition taken.
 \item In \Cref{sec:soundness}, we apply abstract interpretation to characterise
   a set of soundness conditions that the type class instances of an abstract
   domain must satisfy in order to soundly approximate by-name and by-need
