@@ -91,13 +91,22 @@ fixpoint of the implied functional.
 
 \Cref{fig:deadness} defines a static \emph{deadness analysis}.
 We say that $\px$ is \emph{dead} in $\pe$ when the value bound to $\px$ is
-irrelevant to the value of $\pe$, that is, varying the value bound to $\px$ has
+irrelevant to the value of $\pe$, that is, varying the value of $\px$ has
 no effect on the value of $\pe$.
 Intuitively, when $\dead{Γ}{\pe}$ is derivable and $Γ$ only contains variables
 that $\px$ is known to be dead in, then $\px$ is dead in $\pe$.
 For example, $\dead{\{f\}}{\Lam{y}{f~y~y}}$ is derivable and encodes
 that $x$ is dead in $\Lam{y}{f~y~y}$ as long as $x$ is dead in
-whatever value gets bound to $f$.
+whatever value gets bound to $f$. \slpj{What does it mean to say that ``$x$ is dead in the value bound to $f$?  I'm struggling to understand the text.  And yet all the
+analysis does is find free variables, so we are making something simple seem complicated.
+And I still do not see a ``summary mechanism''.}
+
+\slpj{It's also puzzling that although we make a big deal that analysis and
+semantics are both compositional, yet we use entirely different notations to express the two; and moreover Fig 2 isn't even syntax-directed. It would be so much easier to
+define an analysis function by structural recursion, just like in Fig 1, which yields the set of variables that are relevant to the value of $e$.}
+$$
+D[e] :: Set \; Var \\
+$$
 
 Thus, the context $Γ$ can be thought of as the set of assumptions (variables
 that $\px$ is assumed dead in), and the larger $Γ$ is, the more statements are
@@ -111,7 +120,7 @@ Otherwise, evaluating $\py$ might transitively evaluate $\px$ and hence $\py$ is
 not added to the context in $\textsc{Let}_2$.
 
 Note that although the formulation of deadness analysis is so simple, it is
-\emph{not} entirely naïve:
+\emph{not} entirely naïve \slpj{in what way is it not-naive? being conservative on applications (no summary for functions) looks naive to me}:
 Because it is defined by structural recursion, the \textsc{App} rule employs
 a \emph{summary mechanism}, maintaining the conservative precondition that every
 application deeply evaluates the argument.
@@ -129,6 +138,7 @@ Its original definition is never looked at by the analysis when we apply it at
 the use site; what matters is its easily persisted summary in the form of
 the fact $f ∈ Γ$, presumably populated by a top-level equivalent of the
 $\textsc{Let}_1$ rule for exported/imported bindings.
+\slpj{I'm sorry I just don't get this.  If you had a summary for $f$ like ``f does not use its first argument'' I'd be with you.  But you don't.  To me the discussion of summaries is a big red herring. The point is: both semantics an analysis are compositional so we get an easy proof.}
 
 We can formalise correctness of the summary mechanism with the following
 \emph{substitution lemma}:%
@@ -209,16 +219,23 @@ terms of semantic irrelevance below:
   \end{itemize}
 \end{proof}
 
-Since $\semscott{\wild}$ and $\dead{\wild}{\wild}$ are so similar in structure,
-a proof by induction on the program expression is possible, and leaning on
+
+The semantics $\semscott{\wild}$ and analysis $\dead{\wild}{\wild}$ are
+both defined by \emph{structural recursion} over the expression. In other words, they
+are both \emph{compositional} in the sense that the meaning of an expression
+is obtained by combining the meanings of its sub-expressions.
+Moreover, because the semantics and the analysis are so similar in structure,
+it is easy to prove the analysis sound by induction on the program expression.
+The proof is simple and direct, at barely over half a page in length.
+Indeed, leaning on
 the deep notion of equality in $\ScottD$,%
 \footnote{Thus we stay blissfully unaware of the lack of full
 abstraction~\citep{Plotkin:77}.}
 we don't even need to strengthen the induction hypothesis for the application
 case.
-Simple and direct, at barely over half a page in length.
 
 Alas, there are several reasons why this framework is not so useful in practice:
+\slpj{I took "this framework" to mean the compositional semantics + analysis.  But then the third bullet is about oprerational semantics -- very confusing.}
 \begin{itemize}
 % Simon convinced me of his unconvincedness:
 %  \item
@@ -238,7 +255,7 @@ Alas, there are several reasons why this framework is not so useful in practice:
     shown separately.
   \item
     Suppose we were to extend our deadness analysis to infer more detailed
-    upper bounds on \emph{evaluation cardinality}, \eg, how often some variable
+    upper bounds on \emph{evaluation cardinality}, \eg, how \emph{often} some variable
     is evaluated.
     Unfortunately, a denotational semantics does not allow us to
     \textbf{\emph{express the operational property}} ``$\pe$ evaluates $\px$ at
