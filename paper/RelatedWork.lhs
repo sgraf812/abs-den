@@ -33,12 +33,26 @@
 %        as push/enter rather than eval/apply. Which is in contrast to what the Krivine
 %        paper says, which dubs return states as "apply" transitions
 
-\subsubsection*{Definitional Big-Step Interpreters, Coinduction, Fuel, Step-indexing and Mechanisation}
+\subsubsection*{Definitional Interpreters, Coinduction, Fuel, Step-indexing and Mechanisation}
 % Topics still worth discussing:
 % - HOAS
-% - Galois Transformers
+% - Galois Transformers, Monadic Abstract Interpreters, etc. Prob same as AAM
 % - Cousot and Compositionality
 % - Relational Analysis
+Arguably, \citet{Josephs:89} described the first denotational by-need semantics,
+predating the work of \citeauthor{Launchbury:93} and \citeauthor{Sestoft:97}.
+We improve on this work in that our encoding is simpler, rigorously defined
+(\Cref{sec:totality}) and proven adequate \wrt \citeauthor{Sestoft:97}'s
+established by-need semantics (\Cref{sec:adequacy}).
+
+\citet{AgerDanvyMidtgaard:04} show a principled way of how to derive a variant
+of the LK machine, starting from a partial denotational interpreter in Section
+2.2 that corresponds to the |ByNeed Identity| instantiation of |eval| discussed
+in \Cref{sec:more-trace-types}.
+The |syn| constraints of \Cref{sec:soundness} express the same information that
+closure conversion exploits when turning the denotational interpreter into a
+definitional big-step interpreter in Section 2.3.
+
 \citet{LeroyGrall:09} show that a coinductive encoding of big-step semantics
 is able to encode diverging traces by proving it equivalent to a small-step
 semantics.
@@ -46,17 +60,11 @@ Their Lemma 10 covers much the same ground as \Cref{thm:sem-adequate}.
 \citet{Owens:16} recognise the usefulness of a definitional interpreters for
 correctness proofs, albeit in big-step style and using a fuel-based encoding of
 infinite behaviors.
-\citet{AgerDanvyMidtgaard:04} show a principled way of how to derive a variant
-of the LK machine from a partial denotational interpreter, which could be
-applied to our formulation as well.
-In fact, the |syn| constraints of \Cref{sec:soundness} express the same
-information that closure conversion exploits when turning the denotational
-interpreter into a definitional big-step interpreter.
 \citet{Keidel:18} show that in abstracting big-step interpreters, correctness of
 shared code follows by parametricity~\citep{Wadler:89}.
 We found it quite elegant to utilise parametricity in this way, but
 unfortunately the free theorem for our interpreter is too weak because it
-would exclude the syntactic premises in \Cref{fig:by-name-soundness-lemmas}.
+excludes the syntactic premises in \Cref{fig:by-name-soundness-lemmas}.
 Once the right correctness statement was established, the main proof became so
 simple that it could easily be automated.
 
