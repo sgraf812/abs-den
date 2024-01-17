@@ -200,24 +200,27 @@ terms of semantic irrelevance below: \sg{Update this}
 
 \begin{theoremrep}[Correct deadness analysis]
   \label{thm:deadness-correct}
-  If $\dead{Γ}{\pe}$ and $\px \not∈ Γ$,
+  If $\tr(\px) \not⊆ \semdead{\pe}_\tr$,
   then $\semscott{\pe}_{ρ[\px↦d_1]} = \semscott{\pe}_{ρ[\px↦d_2]}$.
 \end{theoremrep}
 \begin{proof}
   By induction on $\pe$.
   \begin{itemize}
-    \item \textbf{Case $\pe = \py$}: If $\px=\py$, then by rule \textsc{Var} we
-      have $\px ∈ Γ$, a contradiction.
+    \item \textbf{Case $\pe = \py$}: If $\px=\py$, then we have
+      $\tr(\px) = \semdead{\pe}_\tr$, a contradiction.
       If $\px \not= \py$, then $ρ[\px↦d_1](\py) = ρ(\py) = ρ[\px↦d_2](\py)$.
 
     \item \textbf{Case $\pe = \Lam{\py}{\pe'}$}: The equality follows from
       pointwise equality on functions, so we pick an arbitrary $d$ to show
       $\semscott{\pe'}_{ρ[\px↦d_1][\py↦d]} = \semscott{\pe'}_{ρ[\px↦d_2][\py↦d]}$.
 
-      By rule \textsc{Lam}, we have $\dead{Γ,\py}{\pe'}$, and since
-      $\px \not∈ Γ$ we may apply the induction hypothesis to get
-      $\semscott{\pe'}_{ρ[\py↦d][\px↦d_1]} = \semscott{\pe'}_{ρ[\py↦d][\px↦d_2]}$,
-      and commuting the extension of $ρ$ shows the goal.
+      This is simple to see if $\px=\py$. Otherwise, $\tr[\py↦\varnothing]$ witnesses the fact that
+      \[
+        \tr[\py↦\varnothing](\px) = \tr(\px) \not⊆
+        \semdead{\Lam{\py}{\pe'}}_{\tr} = \semdead{\pe'}_{\tr[\py↦\varnothing]}
+      \]
+      so we can apply the induction hypothesis to see that $\px$ must be dead in
+      $\pe'$, hence the equality on $\semscott{\pe'}$ holds.
 
     \item \textbf{Case $\pe = \pe'~\py$}:
       By rule \textsc{App}, we have $\dead{Γ}{\pe'}$ and $\py ∈ Γ$.
@@ -230,51 +233,65 @@ terms of semantic irrelevance below: \sg{Update this}
       f(ρ[\px↦d_2](\py))$, but that is easy to see as well,
       because $\px \not∈ Γ$ while $\py ∈ Γ$ implies that $\px \not= \py$.
 
+    \item \textbf{Case $\pe = \pe'~\py$}:
+      From $\tr(\px) \not⊆ \semdead{\pe'}_{\tr} ∪ \tr(\py)$ we can see that
+      $\tr(\px) \not⊆ \semdead{\pe'}_{\tr}$ and $\tr(\px) \not⊆ \tr(\py)$.
+
+      If $\px=\py$ then the latter inequality leads to a contradiction.
+      Otherwise, $\px$ must be dead in $\pe'$, and the induction hypothesis
+      yields
+      $\semscott{\pe'}_{ρ[\px↦d_1]} = \semscott{\pe'}_{ρ[\px↦d_2]}$, which
+      either is $\bot$ or some function $f$.
+
+      In the former case, both applications evaluate to $\bot$.
+      In the latter case, we have to prove that $f(ρ[\px↦d_1](\py)) =
+      f(ρ[\px↦d_2](\py))$, but that is easy to see as well,
+      because $\px \not= \py$.
+
     \item \textbf{Case $\pe = \Let{\py}{\pe_1}{\pe_2}$}:
       We have to show that
       \[
         \semscott{\pe_2}_{ρ[\px↦d_1][\py↦d'_1]} = \semscott{\pe_2}_{ρ[\px↦d_2][\py↦d'_2]}
       \]
       where $d'_i$ satisfy $d'_i = \semscott{\pe_1}_{ρ[\px↦d_i][\py↦d'_i]}$.
-      The case $\px = \py$ is simple to see, because $ρ[\px↦d_i](\px)$ is never
-      looked at.
+      The case $\px = \py$ is simple to see, because $ρ[\px↦d_i](\px)$ is
+      immediately overwritten, hence both environments equate.
 
-      We proceed by rule inversion on $\dead{Γ}{\Let{\py}{\pe_1}{\pe_2}}$:
+      Let $\tr' \triangleq \tr[\py ↦ \{\py\} ∪ \semdead{\pe_1}_{\tr[\py↦\varnothing]}]$.
+      We proceed by case on $\tr(\px) ⊆ \semdead{\pe_1}_{\tr[\py↦\varnothing]}$:
       \begin{itemize}
-        \item \textbf{Case $\textsc{Let}_1$}: Then $\dead{Γ,\py}{\pe_1}$ and by
-          the induction hypothesis and commuting extensions of $ρ$ we have
-          $d'_1 = d'_2$.
-          We apply the induction hypothesis once more to $\dead{Γ,\py}{\pe_2}$
-          and commute the extensions once more to show the goal.
-        \item \textbf{Case $\textsc{Let}_2$}: Then $\dead{Γ}{\pe_2}$ and both
-          $\px$ and $\py$ are dead in $\pe_2$; hence we may apply the induction
-          hypothesis to rewrite the extensions $[\px↦d_i]$, $[\py↦d'_i]$
-          independently and however we want to show the goal:
+        \item \textbf{Case $\tr(\px) ⊆ \semdead{\pe_1}_{\tr[\py↦\varnothing]}$}:
+          Then $\tr'(\px) ⊆ \tr'(\py)$ and $\py$ is also dead in $\pe_2$ by
+          the above inequality.
+          Both deadness facts together allow us to rewrite
           \[
             \semscott{\pe_2}_{ρ[\px↦d_1][\py↦d'_1]} = \semscott{\pe_2}_{ρ[\px↦d_1][\py↦d'_2]} = \semscott{\pe_2}_{ρ[\px↦d_2][\py↦d'_2]}
           \]
+          as requested.
+        \item \textbf{Case $\tr(\px) = \tr[\py↦\varnothing](\px) \not⊆ \semdead{\pe_1}_{\tr[\py↦\varnothing]}$}:
+          Then $\px$ is dead in $\pe_1$ and $d'_1 = d'_2$. The goal follows
+          from the fact that $\px$ is dead in $\pe_2$.
       \end{itemize}
   \end{itemize}
 \end{proof}
 
-
-The semantics $\semscott{\wild}$ and analysis $\dead{\wild}{\wild}$ are
+The semantics $\semscott{\wild}$ and analysis $\semdead{\wild}$ are
 both defined by \emph{structural recursion} over the expression. In other words, they
 are both \emph{compositional} in the sense that the meaning of an expression
 is obtained by combining the meanings of its sub-expressions.
 Moreover, because the semantics and the analysis are so similar in structure,
 it is easy to prove the analysis sound by induction on the program expression.
-The proof is simple and direct, at barely over half a page in length.
-Indeed, leaning on
-the deep notion of equality in $\ScottD$,%
+The proof is simple and direct, at barely a page in length.
+Indeed, leaning on the deep notion of equality in $\ScottD$,%
 \footnote{Thus we stay blissfully unaware of the lack of full
 abstraction~\citep{Plotkin:77}.}
 we don't even need to strengthen the induction hypothesis for the application
 case.
 
-Alas, there are several reasons why this framework is not so useful in practice:
+Alas, there are problems with this framework:
 \slpj{I took "this framework" to mean the compositional semantics + analysis.  But then the third bullet is about oprerational semantics -- very confusing.}
-\begin{itemize}
+\sg{I improved, by splitting the points in two. Do have another look.}
+\begin{enumerate}[label=(P\arabic*)]
 % Simon convinced me of his unconvincedness:
 %  \item
 %    Denotational semantics are fundamentally restricted in the way they
@@ -284,13 +301,31 @@ Alas, there are several reasons why this framework is not so useful in practice:
 %    yields safe results on diverging programs.
   \item
     \Cref{thm:deadness-correct} yields credible proof that the implied
-    transformation is safe, but none whatsoever on whether it is
-    \textbf{\emph{contextually improving}}~\citep{MoranSands:99}.
-    Proof for the latter would need to expose more operational detail in the
-    semantics, such as in \citet{HackettHutton:19}.
-    For more complex analyses, it would be good to separate the semantic
-    property from the transformation it enables, such that improvement can be
-    shown separately.
+    transformation is sound, but none whatsoever on whether it is
+    \textbf{\emph{contextually improving}}~\citep{MoranSands:99}, \ie, an
+    optimisation.
+    When attempting to prove the latter, it is preferable to proceed in two steps
+    in order not to lose one's head with more complicated analyses:
+    (1) The analysis is shown to imply a strong enough semantic property,
+    one mentioning the semantics but not the analysis.
+    (2) That semantic property is used to show improvement of the
+    transformation.
+
+    In our case, we would would hope that \Cref{thm:deadness-correct} could
+    provide step (1), taking
+    $\mathit{dead}(\px,\pe) \triangleq \forall ρ,d_1,d_2.\ \semscott{\pe}_{ρ[\px↦d_1]} = \semscott{\pe}_{ρ[\px↦d_2]}$
+    as the semantic definition of $\px$ being dead in $\pe$.
+    Unfortunately, definitional equality in $\ScottD$ does not consider how much
+    time $\semscott{\pe}_{ρ[\px↦d_i]}$ take to evaluate, hence $\mathit{dead}$
+    is too weak to show improvement in step (2).
+    A denotational cost semantics such as in \citet{HackettHutton:19} helps to
+    ``count the steps'', but then step (1) and (2) have to be done in the same
+    proof, requiring nested induction over $\pe$ as well as the context $\pC$.
+
+    Abstract interpretation~\citep{Cousot:21} is a successful theory to abstract
+    properties of (small-step) execution traces in order to make step (1).
+    We discuss in \Cref{sec:related-work} why our work would not improve on the
+    second step.
   \item
     Suppose we were to extend our deadness analysis to infer more detailed
     upper bounds on \emph{evaluation cardinality}, \eg, how \emph{often} some variable
@@ -304,6 +339,17 @@ Alas, there are several reasons why this framework is not so useful in practice:
     allocations from a hot code path into cold function bodies.},
     so we cannot prove that this so-called \emph{usage analysis} can be used for
     update avoidance~\citep{Gustavsson:98}.
+\end{enumerate}
+
+So let us address these points by proving $\semdead{\wild}$ correct \wrt a
+small-step operational semantics instead.
+
+\sg{TODO}
+
+These points could be addressed by relating the analysis to a small-step
+operational semantics instead of a denotational semantics.
+However, that comes with its own set of drawbacks:
+\begin{itemize}
   \item
     While (small-step) operational semantics can be used to prove aforementioned
     cardinality properties, the \textbf{\emph{mismatch in recursion structure}}
