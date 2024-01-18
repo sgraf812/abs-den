@@ -9,23 +9,23 @@ A \emph{static program analysis} infers facts about a program, such
 as ``this program is well-typed'', ``this higher-order function is always called
 with argument $\Lam{x}{x+1}$'' or ``this program never evaluates $x$''.
 In a functional-language setting, such static analyses are
-often defined by \emph{structural recursion} on the input term.
-For example, consider the claim ``|(even 42)| is well-typed''.
+often defined \emph{compositionally} on the input term.
+For example, consider the claim ``|(even 42)| has type |Bool|''.
 Type analysis asserts that |even :: Int -> Bool|, |42 :: Int|, and then applies
 the function type to the argument type to produce the result type |even 42 ::
 Bool|.
-The function type |Int -> Bool| is a \emph{summary} of |even|:
+The function type |Int -> Bool| is a \emph{summary} of the definition of |even|:
 Whenever the argument has type |Int|, the result has type |Bool|.
-Function summaries play a crucial role in achieving modular higher-order
-analyses, because it is much more efficient to apply the summary of a function
-instead of reanalysing its definition at use sites in other modules.
+Function summaries enable efficient modular higher-order analyses, because it is
+much faster to apply the summary of a function instead of reanalysing its
+definition at use sites in other modules.
 
 To prove the analysis correct, it is favorable to pick a language semantics that
-is also defined by structural recursion, such as a \emph{denotational
+is also compositional, such as a \emph{denotational
 semantics}~\citep{ScottStrachey:71}; then the semantics and the analysis ``line
 up'' and the correctness proof is relatively straightforward.
 Indeed, one can often break up the proof into manageable subgoals by regarding
-the analysis as an \emph{abstract interpretation} of the denotational
+the analysis as an \emph{abstract interpretation} of the compositional
 semantics~\citep{Cousot:21}, particularly when the abstract operations of the
 analysis correspond to concrete operations in the semantics.
 
@@ -39,17 +39,16 @@ semantics}~\citep{Plotkin:81}, which directly models operational details like
 the stack and heap, and sees program execution as a sequence of machine states.
 Now we have two unappealing alternatives:
 \begin{itemize}
-\item Put up with \emph{structural mismatch} and peform a difficult correctness
-  proof, one that links an non-compositional operational semantics with an
-  analysis defined by structural recursion.
+\item Put up with a difficult ad-hoc correctness proof, one that links an
+  non-compositional operational semantics with a compositional analysis.
 \item Reimagine and reimplement the analysis as an abstraction of the
   reachable states of an operational semantics.
-  This is the essence of \emph{Abstracting Abstract Machines} (AAM) \cite{aam}
-  recipe.
+  This is the essence of the \emph{Abstracting Abstract Machines} (AAM)
+  \cite{aam} recipe.
   A very fruitful framework, but one that follows the \emph{call strings}
   approach~\citep{SharirPnueli:78}, reanalysing function bodies at call sites.
   Hence the new analysis becomes non-modular, and possibly less efficient and
-  less precise than its summary-based variant.
+  less precise than its compositional, summary-based variant.
 \end{itemize}
 
 In this paper, we resolve the tension by exploring \emph{Denotational
@@ -63,16 +62,17 @@ Static analyses arise as instantiations of the shared interpreter skeleton,
 enabling succinct correctness proofs just like for AAM or big-step definitional
 interpreters~\citep{adi,Keidel:18,Bodin:19}.
 However, the shared, compositional structure enables a wide range of summary
-mechanisms in static analyses that we think are beyond reach for reachable
-states abstractions.
+mechanisms in static analyses that we think are beyond reach for
+non-compositional reachable states abstractions.
 
 We make the following contributions:
 \begin{itemize}
 \item
-  We use a concrete example (deadness analysis) to explain the problems we
-  sketched above: the lack of operational detail and other shortcomings of
-  denotational semantics, and the structural mismatch between the semantics and
-  the analysis (\Cref{sec:problem}).
+  We use a concrete example (a compositional deadness analysis) to argue for
+  the usefulness of correctness statements and scrutinise a summary mechanism
+  in \Cref{sec:problem}.
+  Finally, we demonstrate the straining experience of conducting an ad-hoc
+  correctness proof \wrt a non-compositional small-step operational semantics.
 \item \Cref{sec:interp} walks through the structural definition of our shared
   denotational interpreter and its type class algebra in Haskell.
   We demonstrate the ease with which different instances of our interpreter
@@ -101,7 +101,8 @@ We make the following contributions:
   None of the conditions mention shared code, and, more remarkably, none of the
   conditions mention the concrete semantics or the Galois connection either!
   This enables us to finally prove usage analysis correct \wrt the by-name
-  semantics in a third of a page, because all reasoning happens in the abstract.
+  and by-need semantics in a third of a page, building on reusable
+  semantics-specific theorems.
 \item
   We compare to a variety of other related approaches in \Cref{sec:related-work}.
   %TODO say more?

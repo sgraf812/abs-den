@@ -81,7 +81,7 @@
 \usepackage{trimclip} % clipbox
 \usepackage{mathpartir} % inference rules
 \usepackage{subcaption}
-%\usepackage{witharrows}
+\usepackage{witharrows}
 \usepackage{mathbbol} % \bbcolon and \bbquestionmark
 %\usepackage{stmaryrd} % \lightning
 %\usepackage{tikz}
@@ -126,7 +126,7 @@
 \setlength{\pdfpagewidth}{\paperwidth}
 
 \title{Abstracting Denotational Interpreters}
-\subtitle{A Pattern for Sound, Cartesian, Modular and Higher-order Static Program Analysis}
+\subtitle{A Pattern for Sound, Cartesian, Compositional and Higher-order Static Program Analysis}
 
 \author{Sebastian Graf}
 \affiliation{%
@@ -213,7 +213,6 @@
 
 %include Introduction.lhs
 %include Deadness.lhs
-%include OpSem.lhs
 %include Interpreter.lhs
 %include Abstractions.lhs
 %include Adequacy.lhs

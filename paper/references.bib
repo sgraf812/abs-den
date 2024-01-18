@@ -314,21 +314,6 @@
   abstract = {We present a new approach to proving type soundness for Hindley/Milner-style polymorphic type systems. The keys to our approach are (1) an adaptation of subject reduction theorems from combinatory logic to programming languages, and (2) the use of rewriting techniques for the specification of the language semantics. The approach easily extends from polymorphic functional languages to imperative languages that provide references, exceptions, continuations, and similar features. We illustrate the technique with a type soundness theorem for the core of Standard ML, which includes the first type soundness proof for polymorphic exceptions and continuations.}
 }
 
-@article{Cousot:02,
-  title = {Constructive design of a hierarchy of semantics of a transition system by abstract interpretation},
-  journal = {Theoretical Computer Science},
-  volume = {277},
-  number = {1},
-  pages = {47-103},
-  year = {2002},
-  note = {Static Analysis},
-  issn = {0304-3975},
-  doi = {https://doi.org/10.1016/S0304-3975(00)00313-3},
-  url = {https://www.sciencedirect.com/science/article/pii/S0304397500003133},
-  author = {Patrick Cousot},
-  abstract = {We construct a hierarchy of semantics by successive abstract interpretations. Starting from the maximal trace semantics of a transition system, we derive the big-step semantics, termination and nontermination semantics, Plotkin's natural, Smyth's demoniac and Hoare's angelic relational semantics and equivalent nondeterministic denotational semantics (with alternative powerdomains to the Egli–Milner and Smyth constructions), D. Scott's deterministic denotational semantics, the generalized and Dijkstra's conservative/liberal predicate transformer semantics, the generalized/total and Hoare's partial correctness axiomatic semantics and the corresponding proof methods. All the semantics are presented in a uniform fixpoint form and the correspondences between these semantics are established through composable Galois connections, each semantics being formally calculated by abstract interpretation of a more concrete one using Kleene and/or Tarski fixpoint approximation transfer theorems.}
-}
-
 @article{AppelMcAllester:01,
   author = {Appel, Andrew W. and McAllester, David},
   title = {An Indexed Model of Recursive Types for Foundational Proof-Carrying Code},
@@ -1092,3 +1077,18 @@
   author = {Mark B. Josephs},
   abstract = {A denotational semantics for the λ-calculus is described. The semantics is continuation-based, and so reflects the order in which expressions are evaluated. It provides a means by which lazy functional languages can be better understood.}
 }
+
+@InProceedings{Cousot:02,
+  author="Cousot, Patrick
+  and Cousot, Radhia",
+  editor="Horspool, R. Nigel",
+  title="Modular Static Program Analysis",
+  booktitle="Compiler Construction",
+  year="2002",
+  publisher="Springer Berlin Heidelberg",
+  address="Berlin, Heidelberg",
+  pages="159--179",
+  abstract="The purpose of this paper is to present four basic methods for compositional separate modular static analysis of programs by abstract interpretation: - simplification-based separate analysis; - worst-case separate analysis; - separate analysis with (user-provided) interfaces; - symbolic relational separate analysis; as well as a fifth category which is essentially obtained by composition of the above separate local analyses together with global analysis methods.",
+  isbn="978-3-540-45937-8"
+}
+

@@ -4,6 +4,20 @@
 
 \section{Related Work}
 \label{sec:related-work}
+% Topics still worth discussing:
+% - HOAS
+% - Galois Transformers, Monadic Abstract Interpreters, etc. Prob same as AAM
+% - Cousot and Compositionality
+% - Relational Analysis
+% - Contextual improvement, deadness analysis (which simply needs def equality
+%   in a cost sem.), usage analysis (which suffers from full abstraction and thus
+%   needs the whole deal with contexts etc.), as well as the 2 step factoring
+% - "Procedure Summary" can be traced as far back as '77 https://doi.org/10.1147/rd.216.0559
+%   which use it to characterise global read/write side-effects of procedures.
+%   That itself links to a paper by Rosen in '75 "Data flow analysis for
+%   recursive PL/I programs" that has been lost.
+%   We mean "summary" to denote finite abstractions of a function's abstract
+%   transformer (which is, w.r.t. a particular analysis)
 
 %\subsubsection*{Operational Semantics and Abstract Machines}
 %Plotkin's Aarhus lectures~\citep{Plotkin:81} in the late 70's systematically
@@ -34,11 +48,6 @@
 %        paper says, which dubs return states as "apply" transitions
 
 \subsubsection*{Definitional Interpreters, Coinduction, Fuel, Step-indexing and Mechanisation}
-% Topics still worth discussing:
-% - HOAS
-% - Galois Transformers, Monadic Abstract Interpreters, etc. Prob same as AAM
-% - Cousot and Compositionality
-% - Relational Analysis
 Arguably, \citet{Josephs:89} described the first denotational by-need semantics,
 predating the work of \citeauthor{Launchbury:93} and \citeauthor{Sestoft:97}.
 We improve on this work in that our encoding is simpler, rigorously defined
@@ -209,9 +218,6 @@ instantiation leads to partiality.
 % of theorems, so we prove the below lemma by hand.
 % However, parametricity is a strong argument that our approach can easily be
 % generalised to other denotational interpreters.
-
-% TODO: Compare the Speculate and Postpone properties to the frame rule of
-% separation logic
 
 % Other topics:
 % - Operational semantics: CESK Felleisen, Launchbury, Sestoft, Krivine

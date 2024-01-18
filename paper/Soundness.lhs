@@ -628,7 +628,9 @@ follow by definition.
 To show that the decomposition into 11 remaining lemmas is useful, we will now
 bring the soundness proof for usage analysis, \emph{in full}:
 
-\begin{theorem} Usage analysis as specified by |UD| in \Cref{fig:abs-usg}
+\begin{theorem}
+\label{thm:usage-correct}
+Usage analysis as specified by |UD| in \Cref{fig:abs-usg}
 is sound \wrt |D (ByName T)|, that is,
 \[
   |αT (eval e ρ :: Pow (D (ByName T))) ⊑ (eval e (αE << ρ) :: UD) where αT :<->: _ = byName; αE :<->: _ = env|
@@ -681,6 +683,7 @@ defines a monotone |hat f| that violates \textsc{Beta-App}
 \end{center}
 
 \subsection{Sound By-Need Abstraction}
+\label{sec:by-need-soundness}
 
 \begin{figure}
   \[\begin{array}{c}
