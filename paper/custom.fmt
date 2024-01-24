@@ -100,6 +100,7 @@
 %format ∈ = "\in"
 %format emp = "\varcolor{\epsilon}"
 %format ! = "\mathop{!}"
+%format DName = "\conid{D}_{\mathbf{na}}"
 %format eval(a)(b) = "\mathcal{S}\denot{" a "}_{" b "}"
 %format evalC(a)(b) = "\mathcal{S}_{\mathcal{C}}\denot{" a "}_{" b "}"
 %format eval3(d)(a)(b) = "\mathcal{S}_{" d "}\denot{" a "}_{" b "}"
@@ -162,7 +163,7 @@
 %format Let1
 %format trD = "\tr_Δ"
 %format ℕ_ω = "ℕ_ω"
-%format Sn = "\conid{S}^n"
+%format Sn = "\concolor{S}^n"
 %%format xs = "\overline{\varid{x}}"
 %%format ds = "\overline{\varid{d}}"
 %%format alts = "\overline{\varid{alt}}"

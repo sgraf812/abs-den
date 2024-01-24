@@ -82,17 +82,33 @@ takeName n (ByName τ) = takeT n τ
 \section{A Denotational Interpreter}
 \label{sec:interp}
 
-We will now define a denotational interpreter in Haskell.
-It is worth stressing that we picked Haskell out of convenience rather than out
-of necessity:
-We make use of thunks in only one key position that does not require
-memoisation, and thus could just as well have been defined in a strict
-higher-order language such as OCaml, Scheme or Java with explicit thunks
-@fun () -> _@.%
+Now we get to the main contribution of this work:
+A \emph{compositional semantics} for a functional language, the semantic
+domain of which can express sufficient \emph{operational detail} such that a
+\emph{summary-based} static analysis such as usage analysis can be derived as an
+\emph{abstract interpretation}.
+Following~\citet{Might:10}, we call this semantics a \emph{Denotational
+Interpreter} because it qualifies both as a denotational
+semantics~\citep{ScottStrachey:71} as well as a total definitional
+interpreter~\citep{Reynolds:72}.
+Such an interpreter can be implemented in any higher-order language such as
+OCaml, Scheme or Java with explicit thunks @fun () -> _@, but we picked Haskell
+out of convenience.%
 \footnote{We extract from this document a runnable Haskell file which we add as
 a Supplement, containing the complete definitions.
 Furthermore, the (terminating) interpreter outputs are directly generated from
 this extract.}
+
+Recall that a denotational semantics is expressed as a mathematical
+function |eval :: Exp -> (Name :-> D) -> D|.
+The expression |eval e ρ| \emph{gives meaning to}, or \emph{denotes}, the
+expression |e| in an environment |ρ| that in turn gives meaning to the free
+variables of |e|, in some \emph{semantic domain} |D|.
+This is exactly how the definition of |eval| in \Cref{fig:eval} is to be
+understood, however its definition in Haskell is abstracting over the concrete
+semantic domain |D|, which must be an instance of the three type classes
+|Trace|, |Domain| and |HasBind|.
+What is an example of such a domain?
 
 \begin{figure}
 \begin{minipage}{0.49\textwidth}
@@ -137,15 +153,13 @@ dom = Map.keysSet
 \end{figure}
 
 \subsection{Semantic Domain}
-A denotational interpreter is both a definitional interpreter as well as a
-denotational semantics.
-Then what is its \emph{semantic domain}?
-To a first approximation, we can think of it as a type |D|, defined as%
-\footnote{For a realistic implementation, we suggest to define |D| as a data
-type to keep type class resolution decidable and non-overlapping.
-We will however stick to a |type| synonym in this presentation in order to elide
-noisy wrapping and unwrapping of constructors.}
-
+One example of a concrete semantic domain is the domain of call-by-name traces |DName|.
+One of our major contributions is that, when |eval| is told to denote in
+|DName|, it will produce traces of the by-name variant of the Krivine machine in
+\Cref{fig:lk-semantics}!
+In \Cref{sec:evaluation-strategies} we will give semantic domains for by-value
+and by-need semantics as well, and in \Cref{sec:abstractions} we obtain static
+analyses as instances.
 \begin{minipage}{0.65\textwidth}
 %if style == newcode
 \begin{code}
@@ -157,11 +171,11 @@ data Value τ = Stuck | Fun (D τ -> D τ) | Con Tag [D τ]
 \end{code}
 %endif
 \begin{spec}
-type D = T Value
+type DName = T Value
 data T a = Step Event (T a) | Ret a
 data Event  =  Lookup Name | Update | App1 | App2
             |  Let1 | Case1 | Case2
-data Value = Stuck | Fun (D -> D) | Con Tag [D]
+data Value = Stuck | Fun (DName -> DName) | Con Tag [DName]
 \end{spec}
 \end{minipage}
 \begin{minipage}{0.35\textwidth}
@@ -186,34 +200,39 @@ instance Monad T where
 %endif
 \end{minipage}
 \noindent
-Every such |D| corresponds to a program trace |T| that ends with a concrete
-|Value|.
-A trace |T| can either |Ret|urn or it can make another |Step|,
-indicating that the program makes another small-step transition before reaching
-a terminal state.
+Every |DName| corresponds to a \emph{program trace} |T| that ends with a
+concrete |Value|.%
+\footnote{For a realistic implementation, we suggest to define |DName| as a data
+type to keep type class resolution decidable and non-overlapping.
+We will however stick to a |type| synonym in this presentation in order to elide
+noisy wrapping and unwrapping of constructors.}
+A trace |T| can either |Ret|urn or it can make a |Step|, indicating that the
+program makes another small-step transition before reaching a terminal state.
 
 We embellished each |Step| with intensional information about the particular
 type of small-step |Event|, for example we attach the |Name| of the let-bound
 variable to |Lookup|.
-The reason for this decision will become clear later on; just note that the
-choice of |Event| suggests a spectrum of intensionality, with |data Event =
-Unit| corresponding to the ``delay monad'' popularised by \citet{Capretta:05} on
-the more abstract end of the spectrum and arbitrary syntactic detail attached to
-each of |Event|'s constructors at the intensional end of the spectrum.
+The reason for this decision will become clear in \Cref{sec:abstractions};
+just note that the choice of |Event| suggests a spectrum of intensionality,
+with |data Event = Unit| corresponding to the ``delay monad'' popularised by
+\citet{Capretta:05} on the more abstract end of the spectrum and arbitrary
+syntactic detail attached to each of |Event|'s constructors at the intensional
+end of the spectrum.
 If our language had facilities for input/output and more general side-effects,
 we could have started from a more elaborate construction such as (guarded)
-interaction trees~\citep{interaction-trees,gi-trees}.
+interaction trees~\citep{interaction-trees,gitrees}.
 
 The coinductive nature of |T|'s definition in Haskell is crucial to our
 approach, because diverging traces can be expressed as an infinite, productive
-nesting of |Step|s; in a strict language, we would have introduced a thunk in
+nesting of |Step|s.
+In a strict language, we would have introduced a thunk in
 the definition of |Step|, \eg, @Step of event * (unit -> 'a t)@.
 The |Monad| instance of |T| implements the monadic bind operator |(>>=)| by
 forwarding |Step|s, thus guarding the recursion~\citep{Capretta:05}.
 
-A semantic element |D| eventually terminates with a |Value| that is either
-|Stuck|, a |Fun|ction waiting to be applied to an argument |D| to yield another
-|D|, or a |Con|structor application giving the denotations of its fields.
+A domain element |DName| eventually terminates with a |Value| that is either
+|Stuck|, a |Fun|ction waiting to be applied to an argument |DName| to yield another
+|DName|, or a |Con|structor application giving the denotations of its fields.
 |Value| is a standard denotational encoding of its syntactic counterpart, devoid
 of any syntax.
 (We postpone worries about well-definedness and totality to \Cref{sec:adequacy}.)
@@ -269,7 +288,7 @@ class HasBind d where
 instance Trace (T v) where
   step = Step
 
-instance ifCodeElse (Monad τ => Domain (D τ)) (Domain D) where
+instance ifCodeElse (Monad τ => Domain (D τ)) (Domain DName) where
   stuck = return Stuck
   fun {-" \iffalse "-}_{-" \fi "-} f = return (Fun f)
   apply  d a = d >>= \case
@@ -279,10 +298,10 @@ instance ifCodeElse (Monad τ => Domain (D τ)) (Domain D) where
     Con k ds | k ∈ dom alts  -> (alts ! k) ds
     _                        -> stuck
 
-ifPoly (instance HasBind D where
+ifPoly (instance HasBind DName where
   bind rhs body = body (fix rhs))
 \end{code}
-\subcaption{Concrete by-name semantics for |D|}
+\subcaption{Concrete by-name semantics for |DName|}
   \label{fig:trace-instances}
 \end{minipage}%
 \caption{Abstract Denotational Interpreter}
@@ -291,15 +310,15 @@ ifPoly (instance HasBind D where
 
 \subsection{The Interpreter}
 
-We use |D| to give meaning to an expression |e| via the interpreter
-|eval :: Exp -> (Name :-> D) -> D|, where the variable environment |ρ :: Name
-:-> D| is a finite mapping from free variables of |e| to their meaning in |D|.
+We use |DName| to give meaning to an expression |e| via the interpreter
+|eval :: Exp -> (Name :-> DNam) -> DName|, where the variable environment |ρ :: Name
+:-> DName| is a finite mapping from free variables of |e| to their meaning in |DName|.
 We sketch the encoding of syntax in \Cref{fig:syntax} and the API of
 environments and sets in \Cref{fig:map}.
 
 |eval| is defined in \Cref{fig:eval}, although in the spirit of
 abstract definitional interpreters such as in \citet{Keidel:18}, its type is
-quite a bit more general than its instantiation at |D|.
+quite a bit more general than its instantiation at |DName|.
 
 In particular, the interpreter maps expressions not into a concrete,
 \emph{initial} encoding of a trace as an algebraic data type, but into
@@ -308,14 +327,14 @@ in terms of three type classes |Trace|,|Domain| and |HasBind| depicted in
 \Cref{fig:trace-classes}.
 
 Each of these offer knobs that we will tweak individually in later Sections.
-Traces |T| and denotations |D| are instances of these type classes via
+Traces |T| and denotations |DName| are instances of these type classes via
 \Cref{fig:trace-instances}, so |d| in the type of |eval| can be instantiated to
-|D|.
+|DName|.
 For example, we can evaluate the expression $\Let{i}{\Lam{x}{x}}{i~i}$ like
 this:%
 \footnote{We use |read :: String -> Exp| as a parsing function.}
 
-< ghci> eval (read "let i = λx.x in i i") emp :: D
+< ghci> eval (read "let i = λx.x in i i") emp :: DName
 $\perform{eval (read "let i = λx.x in i i") emp :: D (ByName T)}$
 \\[\belowdisplayskip]
 \noindent
@@ -335,14 +354,14 @@ Which is in direct correspondence to the call-by-name small-step trace
 \end{array}\]
 \noindent
 While the |step| method of |Trace| is exactly the final encoding of |Step|,
-|Domain| is a bit of a mixture between |Value| and |D = T Value|.
+|Domain| is a bit of a mixture between |Value| and |DName = T Value|.
 The method names of |Domain| bear resemblance to |Value|:
 There are ``injections'' |fun|, |con| and |stuck| as well as ``eliminators''
 |apply| and |select|.
-The \emph{types} are wrong, though, with |D|s where we would expect |Value|s
+The \emph{types} are wrong, though, with |DName|s where we would expect |Value|s
 and a non-standard encoding for |select|.
 We will revisit this curious generalisation in \Cref{sec:abstractions} where we
-consider abstract interpretations that \emph{summarise} a |D| in different ways
+consider abstract interpretations that \emph{summarise} a |DName| in different ways
 depending on the |Domain| instance.
 
 The third type class is |HasBind|, a most significant knob to our
@@ -353,7 +372,7 @@ bindings; as such its type is \emph{almost} an instance of the venerable
 fixpoint combinator |fix :: (a -> a) -> a|, but it takes two functionals
 for building the denotation of the right-hand side and that of the let body,
 given a denotation for the right-hand side.
-The concrete implementation for |D| given in \Cref{fig:trace-instances} simply
+The concrete implementation for |DName| given in \Cref{fig:trace-instances} simply
 hands over the fixpoint of the right-hand side to the body, yielding a
 call-by-name evaluation strategy.
 We will shortly see examples of eager evaluation strategies that will make some
@@ -380,10 +399,10 @@ $\perform{takeName 3 $ eval (read "let w = λy. y y in w w") emp :: T (Maybe (Va
 And data types work as well, allowing for interesting ways (type errors) to get
 stuck:
 
-< ghci> eval (read "let zero = Z() in let one = S(zero) in case one of { S(z) -> z }") emp :: D
+< ghci> eval (read "let zero = Z() in let one = S(zero) in case one of { S(z) -> z }") emp :: DName
 $\perform{eval (read "let zero = Z() in let one = S(zero) in case one of { S(zz) -> zz }") emp :: D (ByName T)}$
 
-< ghci> eval (read "let zero = Z() in zero zero") emp :: D
+< ghci> eval (read "let zero = Z() in zero zero") emp :: DName
 $\perform{eval (read "let zero = Z() in zero zero") emp :: D (ByName T)}$
 
 \begin{figure}
@@ -467,12 +486,12 @@ instance (Monad τ, forall v. Trace (τ v)) => HasBind (D (ByNeed τ)) where
 \subsection{More Evaluation Strategies}
 \label{sec:evaluation-strategies}
 
-By varying the |HasBind| instance of our type |D|, we can endow our language
+By varying the |HasBind| instance of our type |DName|, we can endow our language
 |Exp| with different evaluation strategies.
 With a bit of generalisation, variations become as simple as switching out a
 monad transformer, a common phenomenon in abstract definitional
 interpreters~\citep{adi}.
-Thus we parameterise |D| and |Value| over the particular trace type |T|:
+Thus we parameterise |DName| and |Value| over the particular trace type |T|:
 \begin{spec}
 type D τ = τ (Value τ)
 data Value τ = Stuck | Fun (D τ -> D τ) | Con Tag [D τ]
@@ -487,7 +506,7 @@ in \Cref{fig:by-name}%
 \footnote{The Supplement defines these datatypes as |newtype|s.},
 so called because |ByName τ| inherits its |Monad| and |Trace|
 instance from |τ| (busywork we omit).
-Our old |D| can be recovered as |D (ByName T)|.
+Our old |DName| can be recovered as |D (ByName T)|.
 
 \subsubsection{Call-by-need}
 
