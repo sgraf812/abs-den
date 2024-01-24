@@ -657,7 +657,7 @@ Since both semantics and analysis are derived from the same compositional
 interpreter skeleton, the correctness proof for usage analysis in
 \Cref{thm:usage-correct} takes no more than a substitution lemma and a bit of
 plumbing.
-Hence our \emph{denotational interpreter} does not only enjoy useful
+Hence our \emph{Denotational Interpreter} does not only enjoy useful
 compositional semantics and analyses as instances, the soundness proofs become
 compositional as well, building on reusable evaluation-order-specific theorems
 such as \Cref{thm:soundness-by-name}.
@@ -981,13 +981,11 @@ in terms of a small-step operational semantics such as the Mark II machine of
 \citet{Sestoft:97} given in \Cref{fig:lk-semantics}, the semantic ground truth
 for this work. (A close sibling for call-by-value would be a CESK machine
 \citep{Felleisen:87} or a simpler derivative thereof.)
-It is a Lazy Krivine (LK) machine implementing call-by-need, so for a meaningful
-comparison to the call-by-name semantics $\semscott{\wild}$, we ignore rules
-$\CaseIT, \CaseET, \UpdateT$ and the pushing of update frames in $\LookupT$ for
-now to recover a call-by-name Krivine machine with explicit heap.
+It is a Lazy Krivine (LK) machine implementing call-by-need, but the usual
+call-by-name Krivine machine is easily recovered by ignoring the $\UpdateT$ rule
+and pushing of $\UpdateF$ frames in $\LookupT$.
+Furthermore, we will ignore rules $\CaseIT$ and $\CaseET$ in this section.
 
-\sg{I would \emph{love} to say less here on boring explanations of the machine.
-Perhaps move closer to the proofs where the detail becomes relevant}
 The configurations $σ$ in this transition system resemble abstract machine
 states, consisting of a control expression $\pe$, an environment $ρ$ mapping
 lexically-scoped variables to their current heap address, a heap $μ$ listing a
