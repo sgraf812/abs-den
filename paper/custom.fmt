@@ -3,6 +3,10 @@
 
 %if style == newcode
 
+%format ifCodeElse(t)(e) = t
+%format ifCode(e) = e
+%format ifPoly(e) = " "
+
 %format qquad =
 %format ^ =
 %format ^^ = " "
@@ -19,7 +23,12 @@
 %format needd(d) = "Pow (D (ByNeed T))"
 %format needenv(env) = "Pow (Name :-> D (ByNeed T))"
 %format needheap(heap) = "Pow (Heap (ByNeed T))"
+
 %else
+
+%format ifCodeElse(t)(e) = e
+%format ifCode(e) = " "
+%format ifPoly(e) = e
 
 %format qquad = "\qquad"
 %format ^ = " "

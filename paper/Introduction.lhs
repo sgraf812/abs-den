@@ -59,8 +59,8 @@ Our denotational interpreters generate small-step traces embellished with
 arbitrary operational detail and enjoy a straightforward encoding in typical
 higher-order programming languages.
 Static analyses arise as instantiations of the shared interpreter skeleton,
-enabling succinct correctness proofs just like for AAM or big-step definitional
-interpreters~\citep{adi,Keidel:18,Bodin:19}.
+enabling succinct, shared correctness proofs just like for AAM or big-step
+definitional interpreters~\citep{adi,Keidel:18,Bodin:19}.
 However, the shared, compositional structure enables a wide range of summary
 mechanisms in static analyses that we think are beyond reach for
 non-compositional reachable states abstractions.

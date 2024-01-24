@@ -1,6 +1,6 @@
 %options ghci -ihs -pgmL lhs2TeX -optL--pre -XPartialTypeSignatures
 % Need the -XPartialTypeSignatures for the CbNeed example, for some weird reason
-
+%include custom.fmt
 %if style == newcode
 \begin{code}
 {-# LANGUAGE DerivingStrategies #-}
@@ -140,7 +140,12 @@ dom = Map.keysSet
 A denotational interpreter is both a definitional interpreter as well as a
 denotational semantics.
 Then what is its \emph{semantic domain}?
-To a first approximation, we can think of it as a type |D|, defined as
+To a first approximation, we can think of it as a type |D|, defined as%
+\footnote{For a realistic implementation, we suggest to define |D| as a data
+type to keep type class resolution decidable and non-overlapping.
+We will however stick to a |type| synonym in this presentation in order to elide
+noisy wrapping and unwrapping of constructors.}
+
 \begin{minipage}{0.65\textwidth}
 %if style == newcode
 \begin{code}
@@ -260,12 +265,11 @@ class HasBind d where
 \end{code}
 \subcaption{Interface of traces and values}
   \label{fig:trace-classes}
-%if style /= newcode
 \begin{code}
 instance Trace (T v) where
   step = Step
 
-instance Domain D where
+instance ifCodeElse (Monad τ => Domain (D τ)) (Domain D) where
   stuck = return Stuck
   fun {-" \iffalse "-}_{-" \fi "-} f = return (Fun f)
   apply  d a = d >>= \case
@@ -275,24 +279,9 @@ instance Domain D where
     Con k ds | k ∈ dom alts  -> (alts ! k) ds
     _                        -> stuck
 
-instance HasBind D where
-  bind rhs body = body (fix rhs)
+ifPoly (instance HasBind D where
+  bind rhs body = body (fix rhs))
 \end{code}
-%else
-\begin{code}
-instance Trace (T v) where
-  step = Step
-
-instance Monad τ => Domain (D τ) where
-  stuck = return Stuck
-  fun {-" \iffalse "-}_{-" \fi "-} f = return (Fun f)
-  con {-" \iffalse "-}_{-" \fi "-} k ds = return (Con k ds)
-  apply  dv da = dv >>= \case Fun f -> f da; _ -> stuck
-  select dv alts = dv >>= \case
-    Con k ds | k ∈ dom alts  -> (alts ! k) ds
-    _                        -> stuck
-\end{code}
-%endif
 \subcaption{Concrete by-name semantics for |D|}
   \label{fig:trace-instances}
 \end{minipage}%
