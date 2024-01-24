@@ -448,6 +448,27 @@ By cases on the transition.
       {}={}& \semdeadS{σ_2}
     \end{DispWithArrows*}
 
+  \item \textbf{Case }$\AppIT$:
+    Then $(\pe'~\py,ρ,μ,κ) \smallstep (\pe',ρ,μ,\ApplyF(ρ(\py)) \pushF κ)$.
+    \begin{DispWithArrows*}[fleqn,mathindent=3em]
+           & \semdeadS{σ_1} \Arrow{Unfold $\semdeadS{σ_1}$} \\
+      {}={}& \semdead{\pe'~\py}_{α(μ) \circ ρ} ∪ α(μ)(\mathit{args}(κ)) \Arrow{Unfold $\semdead{\pe'~\py}_{(α(μ) \circ ρ)}$} \\
+      {}={}& \semdead{\pe'}_{α(μ) \circ ρ} ∪ \{ α(μ)(ρ(\py)) \} ∪ α(μ)(\mathit{args}(κ)) \Arrow{Rearrange} \\
+      {}={}& \semdead{\pe'}_{α(μ) \circ ρ} ∪ α(μ)(\mathit{args}(\ApplyF(ρ(\py)) \pushF κ)) \Arrow{Refold $\semdeadS{σ_2}$} \\
+      {}={}& \semdeadS{σ_2}
+    \end{DispWithArrows*}
+
+  \item \textbf{Case }$\AppET$:
+    Then $(\Lam{\py}{\pe'},ρ,μ,\ApplyF(\pa) \pushF κ) \smallstep (\pe',ρ[\py↦\pa],μ,κ)$.
+    \begin{DispWithArrows*}[fleqn,mathindent=3em]
+           & \semdeadS{σ_1} \Arrow{Unfold $\semdeadS{σ_1}$} \\
+      {}={}& \semdead{\Lam{\py}{\pe'}}_{α(μ) \circ ρ} ∪ α(μ)(\pa) ∪ α(μ)(\mathit{args}(κ)) \Arrow{Unfold $\semdead{\Lam{\py}{\pe'}}_{(α(μ) \circ ρ)}$} \\
+      {}={}& \semdead{\pe'}_{(α(μ) \circ ρ)[\py↦\varnothing]} ∪ α(μ)(\pa) ∪ α(μ)(\mathit{args}(κ)) \Arrow{\Cref{thm:subst-deadness}} \\
+      {}\supseteq{}& \semdead{\pe'}_{(α(μ) \circ ρ)[\py↦α(μ)(\pa)]} ∪ α(μ)(\mathit{args}(κ)) \Arrow{Rearrange} \\
+      {}={}& \semdead{\pe'}_{(α(μ) \circ ρ[\py↦\pa])} ∪ α(μ)(\mathit{args}(κ)) \Arrow{Refold $\semdeadS{σ_2}$} \\
+      {}={}& \semdeadS{σ_2}
+    \end{DispWithArrows*}
+
   \item \textbf{Case }$\LookupT$:
     Then $\pe = \py$, $\pa \triangleq ρ(\py)$, $(\py,ρ',\pe') \triangleq μ(\pa)$ and
     $(\py,ρ,μ,κ) \smallstep (\pe',ρ',μ,\UpdateF(\pa) \pushF κ)$.
@@ -463,50 +484,59 @@ By cases on the transition.
   \item \textbf{Case }$\UpdateT$:
     Then $(\pv, ρ, μ[\pa↦(\py,ρ',\pe')], \UpdateF(\pa) \pushF κ) \smallstep (\pv,ρ,μ[\pa↦(\py,ρ,\pv)],κ)$.
 
-    This case is a bit hand-wavy and shows how heap update during by-need is quite complicated to handle.
+    This case is a bit hand-wavy and shows how heap update during by-need
+    evaluation is dreadfully complicated to handle, even though
+    $\semdead{\wild}$ is correct heap-less and otherwise correct \wrt by-name
+    evaluation.
+    The culprit is that in order to show $\semdeadS{σ_2} ⊆ \semdeadS{σ_1}$, we
+    have to show
+    \begin{equation}
+      \semdead{\pv}_{α(μ) \circ ρ} ⊆ \semdead{\pe'}_{α(μ') \circ ρ'}. \label{eqn:dead-upd}
+    \end{equation}
 
-    $\pv$ is the value of $\pe'$, in the sense that there exists $σ'=(\pe',ρ',μ',κ)$ such that $σ' \smallstep^* σ_1 \smallstep σ_2$.
-    Here, we'd need to rearrange the lemma we are about to prove so that it considers ever longer prefixes of
-    the implied trace; then we would be able to argue coinductively, by step indexing, that $\semdeadS{σ_1} ⊆ \semdeadS{σ'}$
-    and hence that $\semdead{\pv}_{α(μ) \circ ρ} ⊆ \semdead{\pe'}_{α(μ') \circ ρ'}$.
-    We will show a more general result in \Cref{thm:memo-improves}.
+    Intuitively, this is somewhat clear, because $μ$ ``evaluates to'' $μ'$ and
+    $\pv$ is the value of $\pe'$, in the sense that there exists
+    $σ'=(\pe',ρ',μ',κ)$ such that $σ' \smallstep^* σ_1 \smallstep σ_2$.
 
-    With that in mind, we can prove
+    Alas, who guarantees that such a $σ'$ actually exists?
+    We would need to rearrange the lemma for that and argue by step indexing
+    (a.k.a. coinduction) over prefixes of \emph{maximal traces} (to be
+    rigorously defined later).
+    That is, we presume that the statement
+    \[
+      \forall n.\ σ_0 \smallstep^n σ_2 \Longrightarrow \semdeadS{σ_2} ⊆ \semdeadS{σ_0}
+    \]
+    has been proven for all $n < k$ and proceed to prove it for $n = k$.
+    So we presume $σ_0 \smallstep^{k-1} σ_1 \smallstep σ_2$ and $\semdeadS{σ_1} ⊆ \semdeadS{σ_0}$
+    to arrive at a similar setup as before, only with a stronger assumption
+    about $σ_1$.
+    Specifically, due to the balanced stack discipline we know that
+    $σ_0 \smallstep^{k-1} σ_1$ factors over $σ'$ above.
+    We may proceed by induction over the balanced stack discipline (we will see
+    in \Cref{sec:adequacy} that this amounts to induction over the big-step
+    derivation) of the trace $σ' \smallstep^* σ_1$ to show \Cref{eqn:dead-upd}.
+
+    This reasoning was not specific to $\semdead{\wild}$ at all.
+    We will show a more general result in Lemma \labelcref{thm:memo-improves}
+    that can be reused across many more analyses.
+
+    Assuming \Cref{eqn:dead-upd} has been proven, we proceed
     \begin{DispWithArrows*}[fleqn,mathindent=3em]
            & \semdeadS{σ_1} \Arrow{Unfold $\semdeadS{σ_1}$} \\
       {}={}& \semdead{\pv}_{α(μ) \circ ρ} ∪ α(μ)(\mathit{args}(κ)) \Arrow{Above argument that $\semdead{\pv}_{α(μ) \circ ρ} ⊆ \semdead{\pe'}_{α(μ') \circ ρ'}$} \\
       {}\supseteq{}& \semdead{\pv}_{α(μ[\pa↦(\py,ρ,\pv)]) \circ ρ} ∪ α(μ)(\mathit{args}(κ)) \Arrow{Refold $\semdeadS{σ_2}$} \\
       {}={}& \semdeadS{σ_2}
     \end{DispWithArrows*}
-    NB: This result is doubly subtle in that heap update may change the data dependencies of the heap;
-    For example, $\Let{x}{\Let{y}{\texttt{Just}~x}{\texttt{Just}~y}}{x}$ will
-    evaluate to a mutually recursive heap
-    \[
-      [\pa_1↦([x↦\pa_1,y↦\pa_2],\texttt{Just}~y), \pa_2↦([x↦\pa_1,y↦\pa_2],\texttt{Just}~x)],
-    \]
-    whereas before the final heap update to $\pa_1$ we have
-    \[
-      [\pa_1↦([x↦\pa_1],\Let{y}{\texttt{Just}~x}{\texttt{Just}~y}),\pa_2↦([x↦\pa_1,y↦\pa_2],\texttt{Just}~x)].
-    \]
-  \item \textbf{Case }$\AppIT$:
-    Then $(\pe'~\py,ρ,μ,κ) \smallstep (\pe',ρ,μ,\ApplyF(ρ(\py)) \pushF κ)$.
-    \begin{DispWithArrows*}[fleqn,mathindent=3em]
-           & \semdeadS{σ_1} \Arrow{Unfold $\semdeadS{σ_1}$} \\
-      {}={}& \semdead{\pe'~\py}_{α(μ) \circ ρ} ∪ α(μ)(\mathit{args}(κ)) \Arrow{Unfold $\semdead{\pe'~\py}_{(α(μ) \circ ρ)}$} \\
-      {}={}& \semdead{\pe'}_{α(μ) \circ ρ} ∪ \{ α(μ)(ρ(\py)) \} ∪ α(μ)(\mathit{args}(κ)) \Arrow{Rearrange} \\
-      {}={}& \semdead{\pe'}_{α(μ) \circ ρ} ∪ α(μ)(\mathit{args}(\ApplyF(ρ(\py)) \pushF κ)) \Arrow{Refold $\semdeadS{σ_2}$} \\
-      {}={}& \semdeadS{σ_2}
-    \end{DispWithArrows*}
-  \item \textbf{Case }$\AppET$:
-    Then $(\Lam{\py}{\pe'},ρ,μ,\ApplyF(\pa) \pushF κ) \smallstep (\pe',ρ[\py↦\pa],μ,κ)$.
-    \begin{DispWithArrows*}[fleqn,mathindent=3em]
-           & \semdeadS{σ_1} \Arrow{Unfold $\semdeadS{σ_1}$} \\
-      {}={}& \semdead{\Lam{\py}{\pe'}}_{α(μ) \circ ρ} ∪ α(μ)(\pa) ∪ α(μ)(\mathit{args}(κ)) \Arrow{Unfold $\semdead{\Lam{\py}{\pe'}}_{(α(μ) \circ ρ)}$} \\
-      {}={}& \semdead{\pe'}_{(α(μ) \circ ρ)[\py↦\varnothing]} ∪ α(μ)(\pa) ∪ α(μ)(\mathit{args}(κ)) \Arrow{\Cref{thm:subst-deadness}} \\
-      {}\supseteq{}& \semdead{\pe'}_{(α(μ) \circ ρ)[\py↦α(μ)(\pa)]} ∪ α(μ)(\mathit{args}(κ)) \Arrow{Rearrange} \\
-      {}={}& \semdead{\pe'}_{(α(μ) \circ ρ[\py↦\pa])} ∪ α(μ)(\mathit{args}(κ)) \Arrow{Refold $\semdeadS{σ_2}$} \\
-      {}={}& \semdeadS{σ_2}
-    \end{DispWithArrows*}
+%    NB: This result is doubly subtle in that heap update may change the data dependencies of the heap;
+%    For example, $\Let{x}{\Let{y}{\texttt{Just}~x}{\texttt{Just}~y}}{x}$ will
+%    evaluate to a mutually recursive heap
+%    \[
+%      [\pa_1↦([x↦\pa_1,y↦\pa_2],\texttt{Just}~y), \pa_2↦([x↦\pa_1,y↦\pa_2],\texttt{Just}~x)],
+%    \]
+%    whereas before the final heap update to $\pa_1$ we have
+%    \[
+%      [\pa_1↦([x↦\pa_1],\Let{y}{\texttt{Just}~x}{\texttt{Just}~y}),\pa_2↦([x↦\pa_1,y↦\pa_2],\texttt{Just}~x)].
+%    \]
 \end{itemize}
 \end{proof}
 \end{toappendix}
