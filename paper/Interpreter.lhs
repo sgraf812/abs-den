@@ -108,7 +108,6 @@ This is exactly how the definition of |eval| in \Cref{fig:eval} is to be
 understood, however its definition in Haskell is abstracting over the concrete
 semantic domain |D|, which must be an instance of the three type classes
 |Trace|, |Domain| and |HasBind|.
-What is an example of such a domain?
 
 \begin{figure}
 \begin{minipage}{0.49\textwidth}
@@ -153,7 +152,8 @@ dom = Map.keysSet
 \end{figure}
 
 \subsection{Semantic Domain}
-One example of a concrete semantic domain is the domain of call-by-name traces |DName|.
+One example of such a concrete semantic domain is the domain of call-by-name
+traces |DName|.
 One of our major contributions is that, when |eval| is told to denote in
 |DName|, it will produce traces of the by-name variant of the Krivine machine in
 \Cref{fig:lk-semantics}!
