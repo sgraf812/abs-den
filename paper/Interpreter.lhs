@@ -104,6 +104,8 @@ function |eval :: Exp -> (Name :-> D) -> D|.
 The expression |eval e ρ| \emph{gives meaning to}, or \emph{denotes}, the
 expression |e| in an environment |ρ| that in turn gives meaning to the free
 variables of |e|, in some \emph{semantic domain} |D|.
+(We sketch the encoding of syntax in \Cref{fig:syntax} and the API of
+environments and sets in \Cref{fig:map}.)
 This is exactly how the definition of |eval| in \Cref{fig:eval} is to be
 understood, however its definition in Haskell is abstracting over the concrete
 semantic domain |D|, which must be an instance of the three type classes
@@ -201,15 +203,11 @@ instance Monad T where
 \end{minipage}
 \noindent
 Every |DName| corresponds to a \emph{program trace} |T| that ends with a
-concrete |Value|.%
-\footnote{For a realistic implementation, we suggest to define |DName| as a data
-type to keep type class resolution decidable and non-overlapping.
-We will however stick to a |type| synonym in this presentation in order to elide
-noisy wrapping and unwrapping of constructors.}
+concrete |Value|.
 A trace |T| can either |Ret|urn or it can make a |Step|, indicating that the
 program makes another small-step transition before reaching a terminal state.
 
-We embellished each |Step| with intensional information about the particular
+We embellished each |Step| with operational information about the particular
 type of small-step |Event|, for example we attach the |Name| of the let-bound
 variable to |Lookup|.
 The reason for this decision will become clear in \Cref{sec:abstractions};
@@ -310,26 +308,18 @@ ifPoly (instance HasBind DName where
 
 \subsection{The Interpreter}
 
-We use |DName| to give meaning to an expression |e| via the interpreter
-|eval :: Exp -> (Name :-> DNam) -> DName|, where the variable environment |ρ :: Name
-:-> DName| is a finite mapping from free variables of |e| to their meaning in |DName|.
-We sketch the encoding of syntax in \Cref{fig:syntax} and the API of
-environments and sets in \Cref{fig:map}.
+The domain |DName| is encoded as an algebraic datatype, \ie, an \emph{initial}
+encoding.
+The interpreter |eval| in \Cref{fig:eval}, however, maps into a fold-like
+\emph{final encoding}~\citep{Carette:07} of a domain, in terms of the three type
+classes |Trace|, |Domain| and |HasBind| depicted in \Cref{fig:trace-classes}.
+Thus, it is not the final \emph{structure} of the interpreter that is novel so
+much as the \emph{decomposition} of its semantic domain.
 
-|eval| is defined in \Cref{fig:eval}, although in the spirit of
-abstract definitional interpreters such as in \citet{Keidel:18}, its type is
-quite a bit more general than its instantiation at |DName|.
-
-In particular, the interpreter maps expressions not into a concrete,
-\emph{initial} encoding of a trace as an algebraic data type, but into
-something close to a fold-like \emph{final encoding}~\citep{Carette:07} thereof,
-in terms of three type classes |Trace|,|Domain| and |HasBind| depicted in
-\Cref{fig:trace-classes}.
-
-Each of these offer knobs that we will tweak individually in later Sections.
+Each of the three type classes offer knobs that we will tweak individually in
+later Sections.
 Traces |T| and denotations |DName| are instances of these type classes via
-\Cref{fig:trace-instances}, so |d| in the type of |eval| can be instantiated to
-|DName|.
+\Cref{fig:trace-instances}.
 For example, we can evaluate the expression $\Let{i}{\Lam{x}{x}}{i~i}$ like
 this:%
 \footnote{We use |read :: String -> Exp| as a parsing function.}
@@ -358,8 +348,8 @@ While the |step| method of |Trace| is exactly the final encoding of |Step|,
 The method names of |Domain| bear resemblance to |Value|:
 There are ``injections'' |fun|, |con| and |stuck| as well as ``eliminators''
 |apply| and |select|.
-The \emph{types} are wrong, though, with |DName|s where we would expect |Value|s
-and a non-standard encoding for |select|.
+The \emph{types} are wrong, though, with |DName| occurring where we would expect
+|Value|.
 We will revisit this curious generalisation in \Cref{sec:abstractions} where we
 consider abstract interpretations that \emph{summarise} a |DName| in different ways
 depending on the |Domain| instance.
@@ -375,19 +365,12 @@ given a denotation for the right-hand side.
 The concrete implementation for |DName| given in \Cref{fig:trace-instances} simply
 hands over the fixpoint of the right-hand side to the body, yielding a
 call-by-name evaluation strategy.
-We will shortly see examples of eager evaluation strategies that will make some
-|step|s in |bind| and eagerly emit from |fix rhs| instead of calling |body|
-immediately.
-
-%TODO: Move to later section?
-Evidently, |eval| is defined by recursion on the structure of |e|.
-But every recursive call is also guarded by a call to |step|, so it also
-corecursively generates what \Cref{sec:adequacy} will prove to be an adequate
-proxy for a small-step trace.
+We will shortly see examples of eager evaluation strategies that will yield from
+|fix rhs| inside |bind| instead of calling |body| immediately.
 
 We conclude this Subsection with a few examples, starting with two programs that
-diverge. The corecursive formulation allows us to observe finite prefixes of the
-trace:
+diverge. The lazy |step| implementation allows us to observe finite prefixes of
+the trace:
 
 < ghci> takeT 3 $ eval (read "let x = x in x") emp :: T (Maybe Value)
 $\perform{takeName 3 $ eval (read "let x = x in x") emp :: T (Maybe (Value (ByName T)))}$
@@ -491,7 +474,12 @@ By varying the |HasBind| instance of our type |DName|, we can endow our language
 With a bit of generalisation, variations become as simple as switching out a
 monad transformer, a common phenomenon in abstract definitional
 interpreters~\citep{adi}.
-Thus we parameterise |DName| and |Value| over the particular trace type |T|:
+Thus we parameterise the definition of |DName| and |Value| over the particular
+trace type |T|:%
+\footnote{For a realistic implementation, we suggest to define |D| as a data
+type to keep type class resolution decidable and non-overlapping.
+We will however stick to a |type| synonym in this presentation in order to elide
+noisy wrapping and unwrapping of constructors.}
 \begin{spec}
 type D τ = τ (Value τ)
 data Value τ = Stuck | Fun (D τ -> D τ) | Con Tag [D τ]
@@ -535,7 +523,7 @@ non-atomic argument constructs can simply reuse |bind| to recover a
 call-by-need semantics.
 (The |Event| type needs semantics- and use-case-specific adjustment, though.)
 
-Example evaluating $\Let{i}{(\Lam{y}{\Lam{x}{x}})~i}{i~i}$:
+Here is an example evaluating $\Let{i}{(\Lam{y}{\Lam{x}{x}})~i}{i~i}$:
 
 < ghci> runByNeed $ eval (read "let i = (λy.λx.x) i in i i") emp :: T (Value (ByNeed T), Heap _)
 $\perform{runByNeed $ eval (read "let i = (λy.λx.x) i in i i") emp :: T (Value (ByNeed T), Heap _)}$
@@ -653,9 +641,6 @@ $\perform{eval (read "let i = (λy.λx.x) i in i i") emp :: D (ByValue T)}$
 The beta reduction of $(\Lam{y}{\Lam{x}{x}})~i$ now happens once within the
 $\LetOT$/$\LetIT$ bracket; the two subsequent $\LookupT$ events immediately halt
 with a value.
-
-\sg{I consider the remaining text in this section bonus that could be moved to
-the Appendix if needed. Nevertheless, I find these findings quite exciting!}
 
 \subsubsection{Lazy Initialisation and Black-holing}
 
@@ -834,8 +819,8 @@ $\perform{eval (read "let i = λx.x in i i") emp :: D (ByName Identity)}$
 \texttt{\textasciicircum{}CInterrupted}
 \\[\belowdisplayskip]
 \noindent
-More generally, a total description of the \emph{dynamic semantics} of a
-language requires a coinductive domain.
+A total description of the \emph{dynamic semantics} of a language requires a
+coinductive domain.
 For \emph{static analysis} we need to find good abstractions that approximate
 the dynamics in an inductive domain.
 We will now consider examples of such abstract, inductive domains.
