@@ -141,18 +141,20 @@ instance Show UValue where
 \end{figure}
 
 The gist of usage analysis is that it collects upper bounds for the number of
-$\LookupT$ transitions per variable.
+$\LookupT$ transitions per let-bound variable.
 We can encode this intuition in the custom trace type |UT| in \Cref{fig:usg-abs}
 that will take the place of |T|.
 |UT| aggregates the number of |Lookup x| transitions per variable |x| in a usage
 environment |Name :-> U|, with the matching |Monad| and |Trace| instances.
-An |U| abstracts an upper bound on the number of such |Lookup| transitions,
-where |U0| means ``at most 0 times'' (\ie, dead) and |U1| means ``at most 1 times''.
+A \emph{usage cardinality} |U| abstracts an upper bound on the number of such
+|Lookup x| events, where |U0| means ``at most 0 times'' (\ie, dead) and |U1|
+means ``at most 1 times''.
 |Uω| is the top element of the lattice defined by the total ordering |U0 ⊏ U1
 ⊏ Uω| and can be read as ``at most ω times'', where $ω$ is the first limit
 ordinal.
-The definitioin of |(+)| on |U| coincides with |(⊔)|, except for carrying over
-|U1 + U1 = Uω|, so any number of lookups beyond $1$ goes straight to $ω$.
+The definition of |(+)| on |U| coincides with the least upper bound operator
+|(⊔)|, except for carrying over |U1 + U1 = Uω|, so any number of lookups
+beyond $1$ goes straight to $ω$.
 Both |(+)| and |(⊔)| are lifted pointwise to |Name :-> U|.
 
 If we had no interest in a terminating analysis, we could already make do
@@ -169,8 +171,10 @@ Perhaps interestingly, we have not needed any order theory so far, because the
 abstraction is a precise fold over the program trace, thanks to the concrete
 |Value|s manipulated.
 
-If we want to assess usage cardinality statically, we have to find a more abstract
-representation of |Value|.
+If we want to assess usage cardinality statically, we have to find a more
+abstract, inductive representation of |Value|.
+In particular, the negative recursive occurrence of |Value| in |Fun| is
+disqualifying.
 \Cref{fig:abs-usg} gives one such candidate |UValue|, a type containing a single
 inhabitant |Nop|, so it is the crudest possible summary of a concrete |Value|.
 The |Domain| instance is reponsible for implementing the summary mechanism.
@@ -180,8 +184,8 @@ domain |UD|.
 
 When a |d| is |apply|'d to an argument |a|, the result is that of
 evaluating |a| many times (note that it is enough to evaluate twice in
-|U|, as in |manify|) as well as |d|, roughly corresponding to the $x ∈ Γ$
-premise of the \textsc{App} rule in \Cref{fig:deadness}.
+|U|, as in |manify|) plus evaluating |d|, roughly corresponding to the
+application case in \Cref{fig:deadness}.
 When a |d| is |select|ed, the result is that of evaluating the case
 alternatives |fs| with |nopD| for field denotations of the corresponding
 constructor, then returning the least upper bound |lub| of all alternatives.
@@ -198,11 +202,12 @@ Likewise, when returning a function in |fun|, that function is ``squeezed
 dry'' by passing it a |nopD| and |manify|ing the result, thus accounting for
 uses inside the function body at any potential call site.
 (Recall that uses of the argument at the call site is handled by |apply|.)
-This bears a strong resemblence to rule \textsc{Lam} of \Cref{fig:deadness},
-where analysis of the body assumes that the argument is dead in everything
-(``squeezed dry'') when adding $\px$ to $Γ$.
+This bears a strong resemblence to the lambda case of \Cref{fig:deadness},
+where analysis of the body assumes that the argument does not need
+anything (\ie, has been ``squeezed dry'' at the call site) when adding
+$[\px↦\varnothing]$ to $ρ$.
 
-The following ``substitution lemma'' formalises this notion of ``sequeezing
+The following substitution lemma formalises this notion of ``sequeezing
 dry'' a |d|, and it is material in proving the summary mechanism correct in
 \Cref{sec:soundness}:
 \begin{lemmarep}[Usage squeezing]
@@ -243,11 +248,11 @@ By induction on |e|.
 \end{proof}
 
 The final key to a terminating definition is in swapping out the fixpoint
-combinator via the |HasBind| instance for |UValue| that computes an
-order-theoretic Kleene fixpoint (\cf \Cref{fig:lat}) instead of |fix| (which
-only works for a guarded recursive |f|).
-The Kleene fixpoint exists by monotonicity and finiteness of |UD|, as we will
-make formal in \Cref{sec:soundness}.
+combinator in |HasBind|.
+The |HasBind| instance for |UValue| computes an order-theoretic Kleene fixpoint
+(\cf \Cref{fig:lat}) instead of |fix| (which only works for a guarded recursive
+|f|).
+The Kleene fixpoint exists by monotonicity and finiteness of |UD|.
 
 \begin{table}
 \begin{tabular}{clll}
@@ -261,7 +266,7 @@ make formal in \Cref{sec:soundness}.
 (5)        & |UD|            & $\Let{z}{Z()}{\Case{Z()}{Z() → Z(); S(n) → z}}$   & $\perform{eval (read "let z = Z() in case Z() of { Z() -> Z(); S(n) -> z }") emp :: UD}$ \\
 \bottomrule
 \end{tabular}
-\caption{Comparing usage analysis |UD| to the semantics usage abstraction |D (ByName UT)|.}
+\caption{Comparing usage analysis |UD| to the semantic usage abstraction |D (ByName UT)|.}
 \label{fig:usage-examples}
 \end{table}
 
@@ -466,10 +471,10 @@ generaliseTy (Cts m) = Cts $ do
 To demonstrate the flexibility of our approach, we have implemented
 Hindley-Milner-style type analysis including Let generalisation as an
 instance of our abstract denotational interpreter.
-The gist is given in \Cref{fig:type-analysis}; we omitted large parts of the
+The gist is given in \Cref{fig:type-analysis}; we omit large parts of the
 implementation and the |Domain| instance for space reasons.
 While the full implementation can be found in the extract generated from this
-document, the |HasBind| instance is sufficiently exemplary of the approach.
+document, the |HasBind| instance is a sufficient exemplar of the approach.
 
 The analysis infers most general |PolyType|s of the
 form $\forall \many{\alpha}.\ θ$ for an expression, where $θ$ ranges over a
@@ -483,7 +488,7 @@ That is why the trace type |Cts| carries the current unifier as state, with the
 option of failure indicated by |Maybe| when the unifier does not exist.
 Additionally, |Cts| carries a set of used |Name|s with it to satisfy freshness
 constraints in |freshTyVar| and |instantiatePolyTy|, as well as to construct a
-superset of $\fv(Γ)$ in |generaliseTy|.
+superset of $\fv(ρ)$ in |generaliseTy|.
 
 While the operational detail offered by |Trace| is ignored by |Cts|, all the
 pieces fall together in the implementation of |bind|, where we see yet another
@@ -497,8 +502,8 @@ Then a constraint is emitted to unify $α_1$ with
 $\mathtt{option}\;(α_3 \rightarrow α_3)$.
 Ultimately, the type |rhs_ty| is returned and generalised to $\forall α_3.\
 \mathtt{option}\;(α_3 \rightarrow α_3)$, because $α_3$ is not a |Name| in use
-before the call to |generaliseTy| (and thus it couldn't have possibly leaked
-into the range of the ambient type context).
+before the call to |generaliseTy|, and thus it couldn't have possibly leaked
+into the range of the ambient type context.
 The generalised |PolyType| is then used when analysing the |body|.
 
 \begin{table}
@@ -677,7 +682,7 @@ cachedCall ell v = CT $ do
 In our last example, we will discuss a classic benchmark of abstract
 higher-order interpreters: Control-flow analysis (CFA).
 CFA calculates an approximation of which values an expression might evaluate to,
-so as to narrow down the control-flow edges at application sites.
+so as to narrow down the possible control-flow edges at application sites.
 The resulting control-flow graph conservatively approximates the control-flow of
 the whole program and can be used to apply classic intraprocedural analyses such
 as interval analysis in a higher-order setting.
@@ -723,7 +728,8 @@ site is cleared, because the function might have increased its result.
 Then re-evaluating the function at the next |cachedCall| is mandatory.
 
 Note that a |CD| transitively (through |Cache|) recurses into |CD -> CD|, thus
-introducing vicious cycles in negative position.
+introducing vicious cycles in negative position, rendering the encoding
+non-inductive.
 This highlights a common challenge with instances of CFA: The obligation to
 prove that the analysis actually terminates on all inputs; an obligation that we
 will gloss over in this work.
@@ -748,15 +754,15 @@ The first two examples of \Cref{fig:cfa-examples} demonstrate a precise and an
 imprecise result, respectively. The latter is due to the fact that both |i| and
 |j| flow into |x|.
 Examples (3) and (4) show that the |HasBind| instance guarantees termination for
-diverging programs and cyclic data:
+diverging programs and cyclic data.
 
 \subsection{Discussion}
 
 By recovering usage analysis as an abstraction of |eval|, we have achieved our
 main goal:
-To derive a \emph{structurally-defined} static analysis approximating a property
-of a \emph{small-step trace} with a simple but useful summary mechanism as an
-instance of an abstract definitional interpreter, thus sharing most of its
+To derive a \emph{compositional} static analysis approximating a property
+of a \emph{small-step trace}, with a simple but useful summary mechanism, as
+an instance of an abstract definitional interpreter, thus sharing most of its
 structure with the concrete semantics.
 
 Our second example of type analysis, in which |PolyType|s serve as summaries
