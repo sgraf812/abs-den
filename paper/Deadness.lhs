@@ -203,7 +203,7 @@ case, furthermore it aids coming up with viable hypotheses while
 
 A soundness statement becomes \emph{indispensable} for more complicated analyses
 than $\semdead{\wild}$.
-We argue that for analyses such as in \citet{Sergey:14}, there comes a point
+We argue that for analyses such as in \citet{cardinality-ext}, there comes a point
 where no paper-proper amount of examples can convince the reader that the rigorously
 described analysis produces correct results, for a perceived lack of
 understanding of all boundary conditions.
@@ -582,9 +582,12 @@ But since $\px ∈ \tr(\py)$ implies $\px = \py$, so we must have $\px ∈
 \semdead{\pe}_{\tr_Δ}$, as required.
 \end{proof}
 
-The proof follows an established preservation-style proof pattern that scales
-beyond simple analyses such as $\semdead{\wild}$ and is roughly structured as
-follows:
+The proof follows an established preservation-style proof technique%
+\footnote{A ``mundane approach`` according to \citet[Section
+4.1]{Nielson:99}, applicable to \emph{trace properties}, but not to
+\emph{hyperproperties}~\citep{ClarksonSchneider:10}.}
+that scales beyond simple analyses such as $\semdead{\wild}$ and is roughly
+structured as follows:
 
 \begin{itemize}
   \item Extend the analysis function $\semdead{\wild}$ to whole machine
@@ -650,9 +653,10 @@ $\semdead{\wild}$.
 For these reasons, we set out to find a \textbf{\emph{compositional semantics
 that exhibits operational detail}} just like the trace-generating semantics of
 \citet{Cousot:21}, and were successful.
-The example of usage analysis (generalising $\semdead{\wild}$, as suggested
-above) in \Cref{sec:abstractions} demonstrates that we can \textbf{\emph{derive
-summary-based analyses as an abstract interpretation}} from our semantics.
+The example of usage analysis in \Cref{sec:abstractions} (generalising
+$\semdead{\wild}$, as suggested above) demonstrates that we can
+\textbf{\emph{derive summary-based analyses as an abstract interpretation}} from
+our semantics.
 Since both semantics and analysis are derived from the same compositional
 interpreter skeleton, the correctness proof for usage analysis in
 \Cref{thm:usage-correct} takes no more than a substitution lemma and a bit of
