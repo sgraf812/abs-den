@@ -47,12 +47,12 @@ Traces|, defined as |eval3 Collecting e ρ := set (eval3 Traces e ρ)|, provides
 the strongest trace property that a given program |(e,ρ)| satisfies.
 In this setting, we extend the original Galois connection to the signature of
 |eval3 Traces e| \emph{parametrically} (in the sense of \citet{Backhouse:04},
-\eg, that the structural properties of a Galois connection follow as a free
+\ie, the structural properties of a Galois connection follow as a free
 theorem), to
 \[
   (|(Name :-> pow Traces) -> pow Traces|, |dot (⊆)|)
   \galois{|\f -> α . f . (γ <<)|}{|\(hat f) -> γ . hat f . (α <<)|}
-  (|(Name :-> hat D) -> hat D|, |dot (⊑)|)
+  (|(Name :-> hat D) -> hat D|, |dot (⊑)|),
 \]
 and state soundness of the abstract semantics |eval3 (hat D)| as
 \[
@@ -88,7 +88,7 @@ Suppose for a second that we were only interested in the trace component of our
 semantic domain, thus effectively restricting ourselves to
 $\Traces \triangleq |T ()|$, and that we were to approximate properties $P ∈
 \pow{\Traces}$ about such traces by a Galois connection
-$(\pow{\Traces},⊆) \galois{α}{γ} (|hat D|, ⊑)$.
+$(\pow{\Traces},⊆) \galois{|α|}{|γ|} (|hat D|, ⊑)$.
 Alas, although the abstraction function |α| is well-defined as a mathematical
 function, it most certainly is \emph{not} computable at infinite inputs (in
 $\Traces^{\infty}$), for example at
@@ -109,14 +109,15 @@ Hence it is impossible to soundly approximate $P$ with a least fixpoint in the
 abstract.
 
 Rather than making the common assumption that infinite traces are soundly
-approximated by $\bot$ (such as in strictness analysis), thus effectively
-assuming that all executions are finite, our framework assumes that the
-properties of interest are \emph{safety properties}~\citep{Lamport:77}:
+approximated by $\bot$ (such as in strictness
+analysis~\citep{Mycroft:80,Wadler:87}), thus effectively assuming that all
+executions are finite, our framework assumes that the properties of interest are
+\emph{safety properties}~\citep{Lamport:77}:
 
 \begin{definition}[Safety property]
 A trace property $P ⊆ \Traces$ is a \emph{safety property} iff,
-whenever |τ1| violates $P$ (so $|τ1| \not∈ P$), then there exists some proper
-prefix $|τ2|$ (written $|τ2| \lessdot |τ1|$) such that $|τ2| \not∈ P$.
+whenever $|τ1|∈\Traces^{\infty}$ violates $P$ (so $|τ1| \not∈ P$), then there exists some proper
+prefix $|τ2|∈\Traces^{*}$ (written $|τ2| \lessdot |τ1|$) such that $|τ2| \not∈ P$.
 \end{definition}
 
 Note that both well-typedness (``|τ| does not go wrong'') and usage cardinality
@@ -125,7 +126,7 @@ Conveniently, guarded recursive predicates (on traces) always describe safety
 properties~\citep{Spies:21,iris-lecture-notes}.
 The contraposition of the above definition is
 \[
-  \forall |τ1|.\ (\forall |τ2|.\ |τ2| \lessdot |τ1| \Longrightarrow |τ2| ∈ P ∩ \Traces^{*}) \Longrightarrow |τ1| ∈ P ∩ \Traces^{\infty},
+  \forall |τ1|∈\Traces^{\infty}.\ (\forall |τ2|∈\Traces^{*}.\ |τ2| \lessdot |τ1| \Longrightarrow |τ2| ∈ P) \Longrightarrow |τ1| ∈ P,
 \]
 and we can exploit safety to extend a finitary Galois connection to infinite
 inputs:
@@ -188,6 +189,17 @@ where |lfp (hat f)| denotes (the least) fixpoint of |hat f| and |powMap f :: pow
 Traces| is the lifting of |f| to powersets.
 \end{lemmarep}
 \begin{proof}
+We should note that the proposition is sloppy in the treatment of
+$\later$ and should rather have been
+\[
+  |α|(\{ |fix f| \}) ⊑ |lfp (α . powMap (f . next) . γ)|,
+\]
+where |next :: Later T -> T|.
+Since we have proven totality in \Cref{sec:totality}, the utility of being
+explicit in |next| is rather low (much more so since a pen and paper proof is
+not type checked) and we will admit ourselves this kind of sloppiness from now
+on.
+
 Let us assume that |τ = fix f| is finite and proceed by Löb induction.
 \begin{spec}
     α (set (fix f)) ⊑ lfp (α . powMap f . γ)
@@ -222,14 +234,14 @@ total Haskell code, it is important to nail down how Galois connections are
 represented in Haskell, and how we construct them.
 Following \citet[Section 4.3]{Nielson:99}, every \emph{representation function}
 |β :: a -> b| into a partial order $(|b|,⊑)$ yields a Galois connection between
-|Pow|ersets of |a| $(|Pow a|,⊆)$ and $(|b|,⊑)$:
+|Pow|ersets of |a| and $(|b|,⊑)$:
 \begin{code}
 data GC a b = (a -> b) :<->: (b -> a)
 repr :: Lat b => (a -> b) -> GC (Pow a) b
 repr β = α :<->: γ where α (P as) = Lub (β a | a <- as); γ b = P (setundef (a | β a ⊑ b))
 \end{code}
-(While the |γ| exists as a mathematical function, it is in general impossible to
-compute even for finitary inputs.)
+While the |γ| exists as a mathematical function, it is in general impossible to
+compute even for finitary inputs.
 Every domain |hat D| with instances |(Trace (hat D), Domain (hat D), Lat (hat D))|
 induces a \emph{trace abstraction} via the following representation
 function, writing |powMap f| to map |f| over |Pow|
@@ -623,7 +635,7 @@ which we will prove by Löb induction and cases on |e|.
 A delightful consequence of fixing |byName| as the Galois connection for the
 soundness statement is that many soundness lemmas, such as
 |αT (step ev d) ⊑ step ev (αT d)| or |αT (fun f) ⊑ fun (αT . f . γE)|
-follow by definition.
+follow by definition of |trace|.
 
 To show that the decomposition into 11 remaining lemmas is useful, we will now
 bring the soundness proof for usage analysis, \emph{in full}:
@@ -690,6 +702,7 @@ defines a monotone |hat f| that violates \textsc{Beta-App}
     \inferrule[\textsc{Step-Inc}]{}{|hat d ⊑ step ev (hat d)|}
     \qquad
     \inferrule[\textsc{Update}]{}{|step Update (hat d) = hat d|}
+    \\[-0.5em]
   \end{array}\]
   \caption{Additional by-need soundness lemmas for by-name analyses}
   \label{fig:by-need-by-name-soundness-lemmas}
@@ -702,7 +715,7 @@ But when is such an analysis also sound \wrt \emph{by-need} semantics?
 Other than inserting additional |Update| transitions, by-need evaluation makes
 strictly fewer |step|s than by-name evaluation.
 Hence, intuition suggests that soundness carries over when |step|s that are left
-out never \emph{improve} the analysis result.
+out \wrt by-name evluation never \emph{improve} the analysis result.
 Furthermore, since a by-name analysis does not observe |Update| steps, we
 require that |step Update| does not \emph{worsen} analysis results either.
 It turns out that these two requirements, enshrined in
@@ -715,8 +728,8 @@ This operation forms a Galois connection, as follows:
 
 \begin{code}
 freezeHeap :: (Trace (hat d), Domain (hat d), HasBind (hat d), Lat (hat d)) => needheap -> GC (needd ) (named (hat d))
-freezeHeap μ = untyped (repr β where
-  β (step (Lookup x) (fetch a)) | memo a (eval e ρ) <- μ ! a = step (Lookup x) (eval e (β << ρ)))
+freezeHeap μ = untyped (repr β where β (step (Lookup x) (fetch a))  |  memo a (eval e ρ) <- μ ! a
+                                                                    =  step (Lookup x) (eval e (β << ρ)))
 \end{code}
 
 Where |needd| serves a similar purpose as |named (hat d)| from
@@ -1514,10 +1527,10 @@ hence we can conclude
 \begin{corollary}
 Usage analysis as specified by |UD| in \Cref{fig:abs-usg}
 is sound \wrt |D (ByNeed T)|, that is,
-\begin{spec}
+{\rm\begin{spec}
   αT (eval e ρ μ :: Pow (T (Value (ByNeed T), Heap (ByNeed T)))) ⊑ (eval e (αE << ρ) :: UD)
     where αT :<->: _ = nameNeed; αE μ :<->: _ = freezeHeap μ
-\end{spec}
+\end{spec}}
 \end{corollary}
 
 %if False

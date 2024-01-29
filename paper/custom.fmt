@@ -125,7 +125,7 @@
 %format `oplus` = "\oplus"
 %format \\ = "\setminus"
 %format many(a) = "\many{" a "}"
-%format named(dom)(d) = "{" dom " \mathbin{\vdash_{\Domain{}}^{\mathsf{na}}} " d "}"
+%format named(dom) d = "{" dom " \mathbin{\vdash_{\Domain{}}^{\mathsf{na}}} " d "}"
 %format nameenv(dom)(env) = "{" dom " \mathbin{\vdash_{\Environments}^{\mathsf{na}}} " env "}"
 %format needd(d) = "{\mathop{\vdash_{\Domain{}}^{\mathsf{ne}}} " d "}"
 %format needenv(env) = "{\mathop{\vdash_{\Environments}^{\mathsf{ne}}} " env "}"
