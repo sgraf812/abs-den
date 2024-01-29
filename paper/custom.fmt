@@ -95,6 +95,7 @@
 %format θ1
 %format θ2
 %format ω = "\varcolor{\omega}"
+%format Σ = "\concolor{\Sigma}"
 %format :-> = "\hspace{-0.15em}\rightharpoonup\hspace{-0.19em}"
 %format :->: = "\mathbin{:\rightarrow:}"
 %format ∈ = "\in"

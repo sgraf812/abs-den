@@ -11,11 +11,13 @@ module Adequacy where
 We will now give two important meta-theoretic results about the concrete
 |ByName| and |ByNeed| instantiations of our denotational interpreter:
 The first is that |eval| instantiated at |D τ| is a total, coinductive function
-whenever the |step| method of |τ| suspends evaluation of its argument.
+whenever the |step| method of |D τ| suspends evaluation of its argument.
 Furthermore, we show that |D (ByNeed T)| is adequate \wrt the Lazy Krivine
 machine in \Cref{fig:lk-semantics}, that is, the produced traces are
-abstractions of small-step traces.
-We expect that similar adequacy results can be shown for the |ByName| and
+abstractions of small-step traces that preserve termination properties.
+To our knowledge, it is the first adequacy proof for a compositional
+call-by-need semantics.
+We expect that similar results can be shown for the |ByName| and
 |ByVInit| trace transformers%
 \footnote{And for |ByValue| as well if |Let| were split into a recursive,
 value-binding |LetRec| and a non-recursive |Let| construct.}%
@@ -132,7 +134,7 @@ The full, type-checked development is available in the Supplement.
         The reason why we need to encode this fact is that the guarded recursive
         data type |Value| has a constructor the type of which amounts to
         |Fun :: (Name times Later (D τ) -> D τ) -> Value τ|, breaking the
-        previously discussed negative recursive cycle by a $\later$ and
+        previously discussed negative recursive cycle by a $\later$, and
         expecting |x::Name|, |d::Later (D τ)| such that the original |D τ| can
         be recovered as |step (Lookup x) d|.
         This is in contrast to the original definition |Fun :: (D τ -> D τ) ->
@@ -146,10 +148,10 @@ The full, type-checked development is available in the Supplement.
     Expectedly, |HasBind| becomes more complicated because it encodes the
     fixpoint combinator.
     We settled on |bind :: Later (Later D → D) → (Later D → D) → D|.
-    (We tried rolling up |step (Lookup x) _| in the definition of |eval|
+    We tried rolling up |step (Lookup x) _| in the definition of |eval|
     to get a simpler type |bind :: (Σ D p → D) → (Σ D p → D) → D|,
     but then had trouble defining |ByNeed| heaps independently of the concrete
-    predicate |p|.)
+    predicate |p|.
   \item
     Higher-order mutable state is among the classic motivating examples for
     guarded recursive types.
@@ -162,11 +164,12 @@ The full, type-checked development is available in the Supplement.
     We find it remarkable how non-invasive these adjustment are!
 \end{itemize}
 
-Thus we have proven that |eval| is a total function, and fast and
-loose equational reasoning about |eval| is not only \emph{morally}
+Thus we have proven that |eval| is a total, mathematical function, and
+fast and loose equational reasoning about |eval| is not only \emph{morally}
 correct~\citep{Danielsson:06}, but simply \emph{correct}.
-Furthermore, since evaluation order doesn't matter for |eval|, we could have
-defined it in a strict language (lowering |Later a| as |() -> a|) just as well.
+Furthermore, since evaluation order doesn't matter in Agda and hence for |eval|,
+we could have defined it in a strict language (lowering |Later a| as |() -> a|)
+just as well.
 
 \subsection{Adequacy of |eval| at |D (ByNeed T)|}
 \label{sec:adequacy}
@@ -224,7 +227,7 @@ its source state:
   \[
      (x, ρ, μ, κ) \smallstep (\Lam{y}{y}, ρ, μ, \UpdateF(\pa_1) \pushF κ) \smallstep (\Lam{y}{y}, ρ, μ, κ)
   \]
-  is interior and balanced. Its prefixes are interior but not balanced.
+  is interior and balanced. Its proper prefixes are interior but not balanced.
   The trace suffix
   \[
      (\Lam{y}{y}, ρ, μ, \UpdateF(\pa_1) \pushF κ) \smallstep (\Lam{y}{y}, ρ, μ, κ)
@@ -236,10 +239,10 @@ its source state:
 %are interior, because the lifting into a trace is, whereas the returning
 %transitions $\UpdateT$, $\AppET$ and $\CaseET$ are not.
 
-As shown by \citeauthor{Sestoft:97}, a balanced trace starting at a control
+As shown by \citet{Sestoft:97}, a balanced trace starting at a control
 expression $\pe$ and ending with $\pv$ loosely corresponds to a derivation of
 $\pe \Downarrow \pv$ in a natural big-step semantics or a non-$⊥$ result in a
-traditional denotational semantics.
+Scott-style denotational semantics.
 It is when a derivation in a natural semantics does \emph{not} exist that a
 small-step semantics shows finesse, in that it differentiates two different
 kinds of \emph{maximally interior} (or, just \emph{maximal}) traces:
@@ -248,9 +251,9 @@ kinds of \emph{maximally interior} (or, just \emph{maximal}) traces:
   An LK trace $(σ_i)_{i∈\overline{n}}$ is \emph{maximal} if and only if it is
   interior and there is no $σ_{n+1}$ such that $(σ_i)_{i∈\overline{n+1}}$ is
   interior.
-  More formally (and without a negative occurrence of ``interior''),
+  More formally,
   \[
-    \maxtrace{(σ_i)_{i∈\overline{n}}} \triangleq \interior{(σ_i)_{i∈\overline{n}}} \wedge (\not\exists σ_{n+1}.\ σ_n \smallstep σ_{n+1} \wedge \cont(σ_{n+1}) = ...\cont(σ_0))
+    \maxtrace{(σ_i)_{i∈\overline{n}}} \triangleq \interior{(σ_i)_{i∈\overline{n}}} \wedge (\not\exists σ_{n+1}.\ σ_n \smallstep σ_{n+1} \wedge \cont(σ_{n+1}) = ...\cont(σ_0)).
   \]
   We notate maximal traces as $\maxtrace{(σ_i)_{i∈\overline{n}}}$.
   Infinite and interior traces are called \emph{diverging}.
@@ -265,10 +268,11 @@ That is not possible in our framework; the following example clarifies.
 Consider the interior trace
 \[
              (\ttrue~x, [x↦\pa_1], [\pa_1↦...], κ)
-  \smallstep (\ttrue, [x↦\pa_1], [\pa_1↦...], \ApplyF(\pa_1) \pushF κ)
+  \smallstep (\ttrue, [x↦\pa_1], [\pa_1↦...], \ApplyF(\pa_1) \pushF κ),
 \]
+where $\ttrue$ is a data constructor.
 It is stuck, but its singleton suffix is balanced.
-An example for a diverging trace where $ρ=[x↦\pa_1]$ and $μ=[\pa_1↦(ρ,x)]$ is
+An example for a diverging trace, where $ρ=[x↦\pa_1]$ and $μ=[\pa_1↦(ρ,x)]$, is
 \[
   (\Let{x}{x}{x}, [], [], κ) \smallstep (x, ρ, μ, κ) \smallstep (x, ρ, μ, \UpdateF(\pa_1) \pushF κ) \smallstep ...
 \]
@@ -300,8 +304,8 @@ One class of maximal traces is of particular interest:
 The maximal trace starting in $\inj(\pe)$!
 Whether it is infinite, stuck or balanced is the defining operational
 characteristic of $\pe$.
-If we can show that |eval e emp| distinguishes these behaviors of $\pe$, we
-have proven it an adequate replacement for the LK transition system.
+If we can show that |eval e emp| distinguishes these behaviors of |e|, we have
+proven it an adequate replacement for the LK transition system.
 
 \begin{toappendix}
 \Cref{fig:eval-correctness} shows the correctness predicate $\correct$ in
@@ -600,13 +604,13 @@ strong version of adequacy for |eval|, where $σ$ is defined to be a
 
 \begin{theoremrep}[Total adequacy of |eval|]
   \label{thm:sem-adequate}
-  Let |τ := fmap fst (runByNeed (eval e emp)) :: T (Value (ByNeed T))|.
+  Let |τ := runByNeed (eval e emp)|.
   \begin{itemize}
     \item
-      |τ| ends with |Ret (Fun _)| or |Ret (Con _ _)| (is balanced) iff there
+      |τ| ends with |Ret (Fun _, _)| or |Ret (Con _ _, _)| (is balanced) iff there
       exists a final state $σ$ such that $\inj(\pe) \smallstep^* σ$.
     \item
-      |τ| ends with |Ret Stuck| (is stuck) iff there exists a non-final
+      |τ| ends with |Ret (Stuck, _)| (is stuck) iff there exists a non-final
       state $σ$ such that $\inj(\pe) \smallstep^* σ$ and there exists no $σ'$
       such that $σ \smallstep σ'$.
     \item
