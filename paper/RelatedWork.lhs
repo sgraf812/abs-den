@@ -4,8 +4,6 @@
 
 \section{Related Work}
 \label{sec:related-work}
-% Topics still worth discussing:
-% - Cousot's Generic Abstract Interpreter, + Domain interface
 
 %\subsubsection*{Operational Semantics and Abstract Machines}
 %Plotkin's Aarhus lectures~\citep{Plotkin:81} in the late 70's systematically
@@ -176,6 +174,14 @@ Likewise, \citet{Keidel:23} discusses a sound, declarative approach to reuse
 fixpoint combinators which we hope to apply in implementations of our framework
 as well.
 
+%TODO: Process
+%Conversely, \citet{aam,adi,Keidel:18} have successfully applied abstract interpretation
+%to non-compositional (small-step or big-step) operational semantics to derive
+%interprocedural analyses based on reachable states abstractions.
+%The resulting analyses are likewise non-compositional, non-modular and generally
+%devoid of summary mechanisms, however, and thus likely much different to
+%$\semabs{\wild}$.
+
 \subsubsection*{Summaries of Functionals \vs Call Strings}
 \citet{Lomet:77} used procedure summaries to capture aliasing effects,
 crediting the approach to untraceable reports by \citet{Allen:74} and
@@ -189,10 +195,15 @@ induced by the intraprocedural analysis, and hence requires computing fixpoints
 over function-valued lattices barring subsequent abstraction.
 The latter is a predecessor to $k$-CFA and has a simpler operational reading.
 
-\citet{Mangal:14} have shown that the functional approach can be equivalent to
-$\infty$-CFA for arbitrary complete lattices.
-Moreover, they report that 2-CFA is less precise and slower than a comparable
-approach to pointer analysis based on finite function summaries.
+That is not to say that the approaches cannot be combined;
+inter-modular analysis led \citet[Section 3.8.2]{Shivers:91} to implement
+the $\mathit{xproc}$ summary mechanism.
+He also acknowledged the need for accurate intra-modular summary mechanisms for
+scalability reasons in Section 11.3.2.
+
+\citet{Mangal:14} seem to agree: They have shown that a summary-based analysis
+can be equivalent to $\infty$-CFA for arbitrary complete lattices and outperform
+2-CFA in both precision and speed.
 
 To illustrate this, usage analysis based on $k$-CFA would need less explanation
 of its |Nop| summary, but in turn it would lose modularity and precision due to
@@ -221,8 +232,8 @@ that the implementation of |Domain| can be synthesised using the approach of
 \citet{Kalita:2022}.
 
 More interesting cardinality analyses involve the inference of summaries called
-\emph{demand transformers}~\citep{cardinality-ext}.
-We have indeed been able to define a protoype of \citeauthor{cardinality-ext}'s
+\emph{demand transformers}~\citep{Sergey:14}.
+We have indeed been able to define a protoype of \citeauthor{Sergey:14}'s
 work as an instance of our denotational interpreter, however we omit discussion
 for space reasons.
 Its inner workings are most similar to Clairvoyant

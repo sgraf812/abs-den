@@ -20,8 +20,11 @@ Function summaries enable efficient modular higher-order analyses, because it is
 much faster to apply the summary of a function instead of reanalysing its
 definition at use sites in other modules.
 
-To prove the analysis correct, it is favorable to pick a language semantics that
-is also compositional, such as a \emph{denotational
+If the analysis is used in a compiler to inform optimisations, it is quite
+important to establish trust in its correctness, because lacking correctness
+can lead to miscompilation of safety-critical applications~\citep{Sun:16}.
+In order to prove the analysis correct, it is favorable to pick a language
+semantics that is also compositional, such as a \emph{denotational
 semantics}~\citep{ScottStrachey:71}; then the semantics and the analysis ``line
 up'' and the correctness proof is relatively straightforward.
 Indeed, one can often break up the proof into manageable subgoals by regarding
@@ -68,7 +71,7 @@ non-compositional reachable states abstractions.
 We make the following contributions:
 \begin{itemize}
 \item
-  We use a concrete example (a compositional deadness analysis) to argue for
+  We use a concrete example (absence analysis) to argue for
   the usefulness of correctness statements and scrutinise a summary mechanism
   in \Cref{sec:problem}.
   Finally, we demonstrate the straining experience of conducting an ad-hoc

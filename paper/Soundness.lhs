@@ -219,6 +219,7 @@ and the fact that all properties of interest are safety properties.
 \end{proof}
 
 \subsection{Soundness \wrt |D (ByName T)|}
+\label{sec:by-name-soundness}
 
 What is required of an abstract instantiation |hat D| of |eval| to prove it
 sound \wrt the by-name interpretation |D (ByName T)|?

@@ -776,7 +776,7 @@ approximate call strings.
 
 \subsection{Bonus: Higher-order Cardinality Analysis}
 
-In the style of \citet{cardinality-ext}.
+In the style of \citet{Sergey:14}.
 \sg{Flesh out, move to Appendix or remove. I left this section in for Ilya to
 have a look. |call 2| means ``assume an evaluation context that applies 2
 arguments'', |anyCtx| means ``evaluate in any evaluation context'' (top).}

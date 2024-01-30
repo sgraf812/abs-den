@@ -212,7 +212,8 @@
 \maketitle
 
 %include Introduction.lhs
-%include Deadness.lhs
+%include Absence.lhs
+%include OpSem.lhs
 %include Interpreter.lhs
 %include Abstractions.lhs
 %include Adequacy.lhs

@@ -186,7 +186,7 @@
   series = {POPL '87}
 }
 
-@article{cardinality-ext,
+@article{Sergey:14,
   title={Modular, higher order cardinality analysis in theory and practice},
   volume={27},
   DOI={10.1017/S0956796817000016},
@@ -684,6 +684,16 @@
   keywords = {lambda-calculus, control flow analysis, widening, program traces, abstract interpretation},
   location = {Virtual, Canada},
   series = {PLDI 2021}
+}
+
+@phdthesis{Breitner:16,
+  title = {Lazy Evaluation: From natural semantics to a machine-checked compiler transformation},
+  year = {2016},
+  month = apr,
+  author = {Joachim Breitner},
+  school = {Karlsruher Institut f{\"u}r Technologie, Fakult{\"a}t f{\"u}r Informatik},
+  url = {http://www.joachim-breitner.de/thesis/},
+  doi = {10.5445/IR/1000054251},
 }
 
 @article{Breitner:18,
@@ -1292,4 +1302,49 @@ series = {PLDI '88}
   pages={559-571},
   keywords={},
   doi={10.1147/rd.216.0559}
+}
+
+@Inbook{SPJ:94,
+  author="Peyton Jones, Simon
+  and Partain, Will",
+  editor="O'Donnell, John T.
+  and Hammond, Kevin",
+  title="Measuring the effectiveness of a simple strictness analyser",
+  bookTitle="Functional Programming, Glasgow 1993: Proceedings of the 1993 Glasgow Workshop on Functional Programming, Ayr, Scotland, 5--7 July 1993",
+  year="1994",
+  publisher="Springer London",
+  address="London",
+  pages="201--221",
+  abstract="We describe a simple strictness analyser for purely-functional programs, show how its results are used to improve programs, and provide measurements of the effects of these improvements. These measurements are given both in terms of overall run-time, and in terms of internal operations such as allocations, updates, etc.",
+  isbn="978-1-4471-3236-3",
+  doi="10.1007/978-1-4471-3236-3_17",
+  url="https://doi.org/10.1007/978-1-4471-3236-3_17"
+}
+
+@inproceedings{Sun:16,
+  author = {Sun, Chengnian and Le, Vu and Zhang, Qirun and Su, Zhendong},
+  title = {Toward understanding compiler bugs in GCC and LLVM},
+  year = {2016},
+  isbn = {9781450343909},
+  publisher = {Association for Computing Machinery},
+  address = {New York, NY, USA},
+  url = {https://doi.org/10.1145/2931037.2931074},
+  doi = {10.1145/2931037.2931074},
+  abstract = {Compilers are critical, widely-used complex software. Bugs in them have significant impact, and can cause serious damage when they silently miscompile a safety-critical application. An in-depth understanding of compiler bugs can help detect and fix them. To this end, we conduct the first empirical study on the characteristics of the bugs in two main-stream compilers, GCC and LLVM. Our study is significant in scale — it exhaustively examines about 50K bugs and 30K bug fix revisions over more than a decade’s span. This paper details our systematic study. Summary findings include: (1) In both compilers, C++ is the most buggy component, accounting for around 20\% of the total bugs and twice as many as the second most buggy component; (2) the bug revealing test cases are typically small, with 80\% having fewer than 45 lines of code; (3) most of the bug fixes touch a single source file with small modifications (43 lines for GCC and 38 for LLVM on average); (4) the average lifetime of GCC bugs is 200 days, and 111 days for LLVM; and (5) high priority tends to be assigned to optimizer bugs, most notably 30\% of the bugs in GCC’s inter-procedural analysis component are labeled P1 (the highest priority). This study deepens our understanding of compiler bugs. For application developers, it shows that even mature production compilers still have many bugs, which may affect development. For researchers and compiler developers, it sheds light on interesting characteristics of compiler bugs, and highlights challenges and opportunities to more effectively test and debug compilers.},
+  booktitle = {Proceedings of the 25th International Symposium on Software Testing and Analysis},
+  pages = {294–305},
+  numpages = {12},
+  keywords = {compiler bugs, compiler testing, empirical studies},
+  location = {Saarbr\"{u}cken, Germany},
+  series = {ISSTA 2016}
+}
+
+@book{tapl,
+  author = {Pierce, Benjamin C.},
+  title = {Types and Programming Languages},
+  year = {2002},
+  isbn = {0262162091},
+  publisher = {The MIT Press},
+  edition = {1st},
+  abstract = {A type system is a syntactic method for automatically checking the absence of certain erroneous behaviors by classifying program phrases according to the kinds of values they compute. The study of type systems -- and of programming languages from a type-theoretic perspective -- has important applications in software engineering, language design, high-performance compilers, and security.This text provides a comprehensive introduction both to type systems in computer science and to the basic theory of programming languages. The approach is pragmatic and operational; each new concept is motivated by programming examples and the more theoretical sections are driven by the needs of implementations. Each chapter is accompanied by numerous exercises and solutions, as well as a running implementation, available via the Web. Dependencies between chapters are explicitly identified, allowing readers to choose a variety of paths through the material.The core topics include the untyped lambda-calculus, simple type systems, type reconstruction, universal and existential polymorphism, subtyping, bounded quantification, recursive types, kinds, and type operators. Extended case studies develop a variety of approaches to modeling the features of object-oriented languages.}
 }

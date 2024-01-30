@@ -179,14 +179,23 @@
 \newcommand{\lfp}{\mathop\mathsf{lfp}}
 \newcommand{\gfp}{\mathop\mathsf{gfp}}
 
-% Semantics
+% Absence
+\newcommand{\Absence}{\mathsf{Abs}}
+\newcommand{\Uses}{\mathsf{Uses}}
+\newcommand{\Summaries}{\mathsf{Summary}}
+\newcommand{\sumcons}{\mathbin{\bbcolon}}
+\newcommand{\aA}{\mathsf{A}}
+\newcommand{\aU}{\mathrlap{\mathsf{U}}\hphantom{\aA}}
+\newcommand{\AbsTy}{\mathsf{AbsTy}}
 \newcommand{\denot}[1]{\llbracket {#1} \rrbracket}
-\newcommand{\semscott}[1]{\denot{#1}}
-\newcommand{\semdead}[1]{\mathcal{D}\denot{#1}}
-\newcommand{\semdeadK}[1]{\mathcal{K}\denot{#1}}
-\newcommand{\semdeadS}[1]{\mathcal{C}\denot{#1}}
+\newcommand{\semabs}[1]{\mathcal{A}\denot{#1}}
+\newcommand{\semabsK}[1]{\mathcal{K}\denot{#1}}
+\newcommand{\semabsS}[1]{\mathcal{C}\denot{#1}}
 
-% Stateful
+% Small-step
+\newcommand{\Addresses}{\mathsf{Addr}}
+\newcommand{\pa}{\mathsf{a}}
+\newcommand{\smallstep}[1][\hspace{1.5ex}]{\xhookrightarrow{#1}}
 \newcommand{\States}{\mathbb{S}}
 \newcommand{\STraces}{\mathbb{S}^{\infty}}
 \newcommand{\pushF}{\cdot}
@@ -194,11 +203,6 @@
 \newcommand{\ApplyF}{\mathbf{ap}}
 \newcommand{\SelF}{\mathbf{sel}}
 \newcommand{\UpdateF}{\mathbf{upd}}
-
-% Small-step
-\newcommand{\Addresses}{\mathsf{Addr}}
-\newcommand{\pa}{\mathsf{a}}
-\newcommand{\smallstep}[1][\hspace{1.5ex}]{\xhookrightarrow{#1}}
 \newcommand{\AppIT}{\textsc{App}_1}
 \newcommand{\AppET}{\textsc{App}_2}
 \newcommand{\ValueT}{\textsc{Val}}
