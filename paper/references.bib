@@ -98,6 +98,42 @@
   series = {ICFP '10}
 }
 
+@inproceedings{Sergey:13,
+  author = {Sergey, Ilya and Devriese, Dominique and Might, Matthew and Midtgaard, Jan and Darais, David and Clarke, Dave and Piessens, Frank},
+  title = {Monadic abstract interpreters},
+  year = {2013},
+  isbn = {9781450320146},
+  publisher = {Association for Computing Machinery},
+  address = {New York, NY, USA},
+  url = {https://doi.org/10.1145/2491956.2491979},
+  doi = {10.1145/2491956.2491979},
+  abstract = {Recent developments in the systematic construction of abstract interpreters hinted at the possibility of a broad unification of concepts in static analysis. We deliver that unification by showing context-sensitivity, polyvariance, flow-sensitivity, reachability-pruning, heap-cloning and cardinality-bounding to be independent of any particular semantics. Monads become the unifying agent between these concepts and between semantics. For instance, by plugging the same "context-insensitivity monad" into a monadically-parameterized semantics for Java or for the lambda calculus, it yields the expected context-insensitive analysis.To achieve this unification, we develop a systematic method for transforming a concrete semantics into a monadically-parameterized abstract machine. Changing the monad changes the behavior of the machine. By changing the monad, we recover a spectrum of machines---from the original concrete semantics to a monovariant, flow- and context-insensitive static analysis with a singly-threaded heap and weak updates.The monadic parameterization also suggests an abstraction over the ubiquitous monotone fixed-point computation found in static analysis. This abstraction makes it straightforward to instrument an analysis with high-level strategies for improving precision and performance, such as abstract garbage collection and widening.While the paper itself runs the development for continuation-passing style, our generic implementation replays it for direct-style lambda-calculus and Featherweight Java to support generality.},
+  booktitle = {Proceedings of the 34th ACM SIGPLAN Conference on Programming Language Design and Implementation},
+  pages = {399–410},
+  numpages = {12},
+  keywords = {abstract garbage collection, abstract interpretation, abstract machines, collecting semantics, interpreters, monads, operational semantics},
+  location = {Seattle, Washington, USA},
+  series = {PLDI '13}
+}
+
+@inproceedings{Darais:15,
+  author = {Darais, David and Might, Matthew and Van Horn, David},
+  title = {Galois transformers and modular abstract interpreters: reusable metatheory for program analysis},
+  year = {2015},
+  isbn = {9781450336895},
+  publisher = {Association for Computing Machinery},
+  address = {New York, NY, USA},
+  url = {https://doi.org/10.1145/2814270.2814308},
+  doi = {10.1145/2814270.2814308},
+  abstract = {The design and implementation of static analyzers has become increasingly systematic. Yet for a given language or analysis feature, it often requires tedious and error prone work to implement an analyzer and prove it sound. In short, static analysis features and their proofs of soundness do not compose well, causing a dearth of reuse in both implementation and metatheory. We solve the problem of systematically constructing static analyzers by introducing Galois transformers: monad transformers that transport Galois connection properties. In concert with a monadic interpreter, we define a library of monad transformers that implement building blocks for classic analysis parameters like context, path, and heap (in)sensitivity. Moreover, these can be composed together independent of the language being analyzed. Significantly, a Galois transformer can be proved sound once and for all, making it a reusable analysis component. As new analysis features and abstractions are developed and mixed in, soundness proofs need not be reconstructed, as the composition of a monad transformer stack is sound by virtue of its constituents. Galois transformers provide a viable foundation for reusable and composable metatheory for program analysis. Finally, these Galois transformers shift the level of abstraction in analysis design and implementation to a level where non-specialists have the ability to synthesize sound analyzers over a number of parameters.},
+  booktitle = {Proceedings of the 2015 ACM SIGPLAN International Conference on Object-Oriented Programming, Systems, Languages, and Applications},
+  pages = {552–571},
+  numpages = {20},
+  keywords = {Galois connections, abstract interpretation, monads, program analysis},
+  location = {Pittsburgh, PA, USA},
+  series = {OOPSLA 2015}
+}
+
 @article{adi,
   author = {Darais, David and Labich, Nicholas and Nguyen, Ph\'{u}c C. and Van Horn, David},
   title = {Abstracting Definitional Interpreters (Functional Pearl)},
@@ -194,6 +230,21 @@
   numpages = {11},
   location = {Charleston, South Carolina, USA},
   series = {POPL '93}
+}
+
+@article{Krivine:07,
+  author       = {Jean{-}Louis Krivine},
+  title        = {A call-by-name lambda-calculus machine},
+  journal      = {High. Order Symb. Comput.},
+  volume       = {20},
+  number       = {3},
+  pages        = {199--207},
+  year         = {2007},
+  url          = {https://doi.org/10.1007/s10990-007-9018-9},
+  doi          = {10.1007/S10990-007-9018-9},
+  timestamp    = {Thu, 05 Mar 2020 12:05:01 +0100},
+  biburl       = {https://dblp.org/rec/journals/lisp/Krivine07.bib},
+  bibsource    = {dblp computer science bibliography, https://dblp.org}
 }
 
 @article{AgerDanvyMidtgaard:04,
@@ -1078,6 +1129,18 @@
   abstract = {A denotational semantics for the λ-calculus is described. The semantics is continuation-based, and so reflects the order in which expressions are evaluated. It provides a means by which lazy functional languages can be better understood.}
 }
 
+@inproceedings{Cousot:94,
+  author={Cousot, P. and Cousot, R.},
+  booktitle={Proceedings of 1994 IEEE International Conference on Computer Languages (ICCL'94)},
+  title={Higher-order abstract interpretation (and application to comportment analysis generalizing strictness, termination, projection and PER analysis of functional languages)},
+  year={1994},
+  volume={},
+  number={},
+  pages={95-112},
+  keywords={Lattices;Concrete;Computer languages;Logic programming;Pressing;Joining processes},
+  doi={10.1109/ICCL.1994.288389}
+}
+
 @InProceedings{Cousot:02,
   author="Cousot, Patrick
   and Cousot, Radhia",
@@ -1122,4 +1185,54 @@
   pages = {385–407},
   numpages = {23},
   location = {Portland, Oregon, USA}
+}
+
+@inproceedings{Pfenning:88,
+author = {Pfenning, F. and Elliott, C.},
+title = {Higher-order abstract syntax},
+year = {1988},
+isbn = {0897912691},
+publisher = {Association for Computing Machinery},
+address = {New York, NY, USA},
+url = {https://doi.org/10.1145/53990.54010},
+doi = {10.1145/53990.54010},
+abstract = {We describe motivation, design, use, and implementation of higher-order abstract syntax as a central representation for programs, formulas, rules, and other syntactic objects in program manipulation and other formal systems where matching and substitution or unification are central operations. Higher-order abstract syntax incorporates name binding information in a uniform and language generic way. Thus it acts as a powerful link integrating diverse tools in such formal environments. We have implemented higher-order abstract syntax, a supporting matching and unification algorithm, and some clients in Common Lisp in the framework of the Ergo project at Carnegie Mellon University.},
+booktitle = {Proceedings of the ACM SIGPLAN 1988 Conference on Programming Language Design and Implementation},
+pages = {199–208},
+numpages = {10},
+location = {Atlanta, Georgia, USA},
+series = {PLDI '88}
+}
+
+@inproceedings{Allen:74,
+  author       = {Frances E. Allen},
+  editor       = {Jack L. Rosenfeld},
+  title        = {Interprocedural Data Flow Analysis},
+  booktitle    = {Information Processing, Proceedings of the 6th {IFIP} Congress 1974,
+                  Stockholm, Sweden, August 5-10, 1974},
+  pages        = {398--402},
+  publisher    = {North-Holland},
+  year         = {1974},
+  timestamp    = {Fri, 26 Jul 2019 22:58:51 +0200},
+  biburl       = {https://dblp.org/rec/conf/ifip/Allen74.bib},
+  bibsource    = {dblp computer science bibliography, https://dblp.org}
+}
+
+@book{Rosen:75,
+  title={Data flow analysis for recursive PL/I programs},
+  author={Rosen, Barry K},
+  year={1975},
+  publisher={IBM Thomas J. Watson Research Center}
+}
+
+@article{Lomet:77,
+  author={Lomet, D. B.},
+  journal={IBM Journal of Research and Development},
+  title={Data Flow Analysis in the Presence of Procedure Calls},
+  year={1977},
+  volume={21},
+  number={6},
+  pages={559-571},
+  keywords={},
+  doi={10.1147/rd.216.0559}
 }

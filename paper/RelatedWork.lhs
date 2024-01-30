@@ -5,19 +5,7 @@
 \section{Related Work}
 \label{sec:related-work}
 % Topics still worth discussing:
-% - HOAS
-% - Galois Transformers, Monadic Abstract Interpreters, etc. Prob same as AAM
-% - Cousot and Compositionality
-% - Relational Analysis
-% - Contextual improvement, deadness analysis (which simply needs def equality
-%   in a cost sem.), usage analysis (which suffers from full abstraction and thus
-%   needs the whole deal with contexts etc.), as well as the 2 step factoring
-% - "Procedure Summary" can be traced as far back as '77 https://doi.org/10.1147/rd.216.0559
-%   which use it to characterise global read/write side-effects of procedures.
-%   That itself links to a paper by Rosen in '75 "Data flow analysis for
-%   recursive PL/I programs" that has been lost.
-%   We mean "summary" to denote finite abstractions of a function's abstract
-%   transformer (which is, w.r.t. a particular analysis)
+% - Cousot's Generic Abstract Interpreter, + Domain interface
 
 %\subsubsection*{Operational Semantics and Abstract Machines}
 %Plotkin's Aarhus lectures~\citep{Plotkin:81} in the late 70's systematically
@@ -40,66 +28,75 @@
 %Launchbury's semantics, the metatheory of which was very influential for this
 %work.
 
-%        eval/apply or push/enter?
-%        Given an expr like $f x$, we first push $ρ(x)$ onto the stack and then
-%        evaluate $f$, which will look it up (pushing an udpate frame) and evaluate its
-%        RHS. Since we will never return to the "eval site" of $f$, IMO this qualifies
-%        as push/enter rather than eval/apply. Which is in contrast to what the Krivine
-%        paper says, which dubs return states as "apply" transitions
-
-\subsubsection*{Definitional Interpreters, Coinduction, Fuel, Step-indexing and Mechanisation}
+\subsubsection*{Call-by-need, Semantics}
 Arguably, \citet{Josephs:89} described the first denotational by-need semantics,
-predating the work of \citeauthor{Launchbury:93} and \citeauthor{Sestoft:97}.
-We improve on this work in that our encoding is simpler, rigorously defined
-(\Cref{sec:totality}) and proven adequate \wrt \citeauthor{Sestoft:97}'s
-established by-need semantics (\Cref{sec:adequacy}).
+predating the work of \citet{Launchbury:93} and \citet{Sestoft:97}, but not
+the more machine-centric (rather than transition system centric) work on the
+G-machine~\citep{Johnsson:84}.
+We improve on \citeauthor{Josephs:89}'s work in that our encoding is
+simpler, rigorously defined (\Cref{sec:totality}) and proven adequate \wrt
+\citeauthor{Sestoft:97}'s by-need semantics (\Cref{sec:adequacy}).
 
-\citet{AgerDanvyMidtgaard:04} show a principled way of how to derive a variant
-of the LK machine, starting from a partial denotational interpreter in Section
-2.2 that corresponds to the |ByNeed Identity| instantiation of |eval| discussed
-in \Cref{sec:more-trace-types}.
-The |syn| constraints of \Cref{sec:soundness} express the same information that
-closure conversion exploits when turning the denotational interpreter into a
+Our denotational interpreter bears strong resemblance to
+a denotational semantics~\citep{ScottStrachey:71},
+or a definitional interpreter~\citep{Reynolds:72}
+featuring a finally encoded domain~\citep{Carette:07}
+using higher-order abstract syntax~\citep{Pfenning:88}.
+The key distinction to these approaches is that we generate small-step traces,
+totally and adequately, observable by abstract interpreters.
+
+\subsubsection*{Definitional Interpreters}
+\citet{Reynolds:72} introduced ``definitional interpreter'' as an
+umbrella term to classify prevalent styles of interpreters for higher-order
+languages at the time.
+Chiefly, it differentiates compositional interpreters that necessarily use
+higher-order functions of the meta language from those that do not, and are
+therefore non-compositional.
+Among its key contributions is \emph{defunctionalisation}, a key transformation
+for turning a definition of the former into one of the latter.
+Today, we would recognise compositional interpreters as (partial) denotational
+interpreters, whereas big-step interpreters capture the non-compositional
+variant.
+
+\citet{AgerDanvyMidtgaard:04} pick up on Reynold's idea and successively
+transform a partial denotational interpreter into a variant of the LK machine.
+Their denotational interpreter in Section 2.2 corresponds to the |ByNeed Identity|
+instantiation of |eval| we discussed in \Cref{sec:more-trace-types}
+and the syntactic constraints of \Cref{defn:syn-name} express the same
+information that closure conversion (which they recognise as a form of
+defunctionalisation) exploits when they turn the denotational interpreter into a
 definitional big-step interpreter in Section 2.3.
 
+\subsubsection*{Coinduction, Fuel and Mechanisation}
 \citet{LeroyGrall:09} show that a coinductive encoding of big-step semantics
 is able to encode diverging traces by proving it equivalent to a small-step
 semantics.
-Their Lemma 10 covers much the same ground as \Cref{thm:sem-adequate}.
-\citet{Owens:16} recognise the usefulness of a definitional interpreters for
+Their Lemma 10 covers much the same ground as \Cref{thm:sem-adequate}, but
+for a non-compositional semantics.
+\citet{Owens:16} recognise the usefulness of definitional interpreters for
 correctness proofs, albeit in big-step style and using a fuel-based encoding of
 infinite behaviors.
-\citet{Keidel:18} show that in abstracting big-step interpreters, correctness of
-shared code follows by parametricity~\citep{Wadler:89}.
-We found it quite elegant to utilise parametricity in this way, but
-unfortunately the free theorem for our interpreter is too weak because it
-excludes the syntactic premises in \Cref{fig:by-name-soundness-lemmas}.
-Once the right correctness statement was established, the main proof became so
-simple that it could easily be automated.
 
-While our |T|race type is appropriate for tracking ``pure'' transition events,
-it is not up to the task of modelling user input, for example.
+Our |T|race type is appropriate for tracking ``pure'' transition events,
+but it is not up to the task of modelling user input, for example.
 It would be interesting to see whether use of guarded interaction
 trees~\citep{interaction-trees,gitrees} would be as simple to integrate into our
 framework as we expect them to.
 
 While working out how to embed |eval| in Guarded Cubical Agda and then
-attempting mechanised proofs about |D (ByNeed T)|, we very soon decided that
-this was not a task we were up to, due to lack of automation and the general
-perceived tediousness of Cubical types.
-It would be interesting to see if the Iris proof framework is a better fit
-for mechanisation, where guarded types in |eval| would need to be encoded via
-fuel/step-indexing.
-Certainly, we could use both guarded recursion as well as separation logic for
-by-need heaps in our proofs.
+attempting mechanised proofs about |D (ByNeed T)|, we very soon decided that we
+were not up to the task, due to lack of automation and the general perceived
+tediousness of Cubical types.
+Perhaps we shall try again with an encoding of guarded recursion rather than
+using a language where it is primitive.
 
 \subsubsection*{Contextual Improvement}
 Abstract interpretation is useful to prove that an analysis approximates
 the right trace property, but it does not make any claim on whether a
 transformation conditional on some trace property is actually sound, yet alone
 an \emph{improvement}~\citep{MoranSands:99}.
-If we were to prove update avoidance correct, would we use our denotational
-interpreter to do so?
+If we were to prove update avoidance~\citep{Gustavsson:98} correct, would we use
+our denotational interpreter to do so?
 We have spent some time on this issue and are torn:
 Defining a contextual improvement relation $\lessequiv$ on the
 semantic domain |D (ByNeed T)| invites all kinds of troubling concerns
@@ -108,16 +105,36 @@ were to define $\lessequiv$ on syntax, then what is the difference to
 \citet{MoranSands:99}, other than complicating matters?
 We think there is none, and hence we would stick to the established improvement
 relation $\lessequiv$.
-\Cref{thm:sem-adequate} can be used to translate trace properties from
-denotational interpreter to small-step semantics.
+\Cref{thm:sem-adequate} can be used to translate trace properties from the realm
+of denotational interpreter to small-step semantics.
+
+\subsubsection*{Abstract Interpretation and Relational Analysis}
+\citet{Cousot:21} recently condensed his seminal work rooted in \citet{Cousot:77}.
+The book advocates a compositional, trace-generating semantics and then derives
+compositional analyses by calculational design, and was a huge inspiration to
+this work, especially earlier drafts.
+However, while \citet{Cousot:02} presumes a higher-order language with compositional
+semantics and \citet{Cousot:94} starts from a denotational semantics for lambda
+calculus, it was unclear to us how to derive a compositional,
+trace-generating semantics for a \emph{higher-order} language.
+The required changes to the domain definitions seemed daunting, to say the
+least.
+Our solution delegates this complexity to the underlying theory of guarded
+recursive type theory.
+
+\citet{Cousot:21} discusses other topics as well, such cartesian \vs relational
+analysis.
+We deliberately tried to provide a simple framework and thus stuck to cartesian
+(\ie, pointwise) abstraction of environments, but we expect relational
+abstractions to work just as well.
 
 \subsubsection*{Control-Flow Analysis}
-\emph{Control-flow analysis}~\citep{Shivers:91} (CFA) computes a useful
-control-flow graph abstraction for higher-order programs.
+CFA~\citep{Shivers:91} computes a useful control-flow graph abstraction for
+higher-order programs.
 Such an approximation is useful to apply classic data-flow analyses such as
 constant propagation or dead code elimination to the interprocedural setting.
 The contour depth parameter $k$ allows to trade precision for performance,
-although practical applications never seem to go beyond $1$.
+although in practice it is often $k \leq 1$.
 
 \citet{MontaguJensen:21} derive CFA from small-step traces.
 Their chain of abstractions is inspiring and we think that a variant of our
@@ -128,35 +145,62 @@ interpreter, \Cref{thm:sem-adequate}.
 
 Abstracting Abstract Machines~\citep{aam} is an ingenious recipe to derive
 a computable \emph{reachable states semantics}~\citep{Cousot:21} from any
-small-step semantics.
-By bounding the size of the store, the freely choosably
-$\widehat{\mathit{alloc}}$ function embodies a precision-performance trade-off.
-Many analyses such as control-flow analysis (and usage analysis) arise as
-abstractions of reachable states.
+small-step semantics, by bounding the size of the store.
+%By bounding the size of the store, the freely choosably
+%$\widehat{\mathit{alloc}}$ function embodies a precision-performance trade-off.
+Many analyses such as control-flow analysis (and perhaps a variant of usage
+analysis) arise as abstractions of reachable states.
 In fact, we think that for any trace property (\ie, |Trace| instance), there
 is an analysis that can be built on CFA, without the need to define a custom
 summary mechanism encoded as a |Domain| instance.
 
+\citet{adi} and others apply the AAM recipe to big-step interpreter in the style
+of \citeauthor{Reynolds:72}, in order to share analysis code with the semantics.
+\citet{Backhouse:04} and \citet{Keidel:18} show that in doing so, correctness of
+shared code follows by parametricity~\citep{Wadler:89}.
+We found it quite elegant to utilise parametricity in this way, but
+unfortunately the free theorem for our interpreter is too weak because it
+excludes the syntactic premises in \Cref{fig:by-name-soundness-lemmas}.
+Once the right correctness statement was established, the main proof became so
+simple that it could easily be automated.
+
+Whenever AAM is involved, abstraction follows some monadic structure inherent to
+dynamic semantics~\citep{Sergey:13,adi}.
+In our work, this is apparent in the |Domain (D τ)| instance depending on
+|Monad τ|.
+Decomposing such structure into a layer of reusable monad transformers has been
+the subject of \citet{Darais:15} and \citet{Keidel:19}.
+We hinted at the possiblity of reusable \emph{trace transformers} in
+\Cref{sec:interpreter}.
+Likewise, \citet{Keidel:23} discusses a sound, declarative approach to reuse
+fixpoint combinators which we hope to apply in implementations of our framework
+as well.
+
 \subsubsection*{Summaries of Functionals \vs Call Strings}
 
-\citet{SharirPnueli:78} first brought up the distinction between the
-``functional approach'' to interprocedural program analysis and the ``call
-strings approach''.
-The former approach models the semantics of a function application as
-(higher-order) function in the meta language, inviting typical domain-theoretic
-concerns, the latter is a predecessor to $k$-CFA.
+\citet{Lomet:77} used procedure summaries to capture aliasing effects,
+crediting the approach to untraceable reports by \citet{Allen:74} and
+\citet{Rosen:75}.
+\citet{SharirPnueli:78} were aware of both \cite{Cousot:77} and \cite{Allen:74},
+and generalised aliasing summaries into the ``functional approach'' to
+interprocedural data flow analysis, distinguishing it from the ``call strings
+approach''.
+The former approach models a procedure call by the abstract transformer function
+induced by the intraprocedural analysis, and hence requires computing fixpoints
+over function-valued lattices barring subsequent abstraction.
+The latter is a predecessor to $k$-CFA and has a simpler operational reading.
+
 \citet{Mangal:14} have shown that the functional approach can be equivalent to
 $\infty$-CFA for arbitrary complete lattices.
 Moreover, they report that 2-CFA is less precise and slower than a comparable
-approach to pointer analysis based on function summaries (symbolic abstractions
-of the functional).
+approach to pointer analysis based on finite function summaries.
 
 To illustrate this, usage analysis based on $k$-CFA would need less explanation
-of its |Nop| summary, but in some cases we'd lose out on precision due to the
-use of call strings.
+of its |Nop| summary, but in turn it would lose modularity and precision due to
+the use of call strings.
 For example, it is trivial for modular usage analysis to determine that |i|
 in $\Let{i}{\Lam{y}{y}}{i~x~x}$ uses |i| only once, \emph{in any context this
-expression is ever embedded}.
+expression is ever embedded}; this is due to compositionality.
 By contrast, $k$-CFA will have trouble with recursions where multiple
 activations of |i| are live simultaneously, \ie, in the Haskell expression
 

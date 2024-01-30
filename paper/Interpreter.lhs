@@ -795,6 +795,7 @@ This renders Clairvoyant call-by-value inadequate for verifying properties of
 infinite executions.
 
 \subsection{More Trace Types}
+\label{sec:more-trace-types}
 
 Our simple trace type |T| has served us well so far, allowing us to study a
 variety of total denotational interpreters for all major evaluation strategies
