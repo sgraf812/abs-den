@@ -40,12 +40,17 @@ are distinct.
 \begin{figure}
 \arraycolsep=0pt
 \[\begin{array}{rcl}
-  \multicolumn{3}{c}{ \ruleform{ \semdead{\wild}_{\wild} \colon \Exp → (\Var → \pow{\Var}) → \pow{\Var} } } \\
+  \multicolumn{3}{c}{ \ruleform{ \semdead{\wild}_{\wild} \colon \Exp → (\Var → \pow{\Var} \times S) → \pow{\Var} \times S } } \\
+  \\[-0.5em]
+  S & {}::={} & \bullet \\
   \\[-0.5em]
   \semdead{\px}_\tr & {}={} & \tr(\px) \\
-  \semdead{\Lam{\px}{\pe}}_\tr & {}={} & \semdead{\pe}_{\tr[\px ↦ \varnothing]} \\
-  \semdead{\pe~\px}_\tr & {}={} & \semdead{\pe}_\tr ∪ \tr(\px) \\
-  \semdead{\Letsmall{\px}{\pe_1}{\pe_2}}_\tr & {}={} & \semdead{\pe_2}_{\tr[\px ↦ \{\px\} ∪ \semdead{\pe_1}_{\tr[\px ↦ \varnothing]}]}
+  \semdead{\Lam{\px}{\pe}}_\tr & {}={} & \mathit{summarise}(\fn{V}{\semdead{\pe}_{\tr[\px ↦ V]}}) \\
+  \semdead{\pe~\px}_\tr & {}={} & \mathit{apply}(\semdead{\pe}_{\tr}, \tr(\px)) \\
+  \semdead{\Letsmall{\px}{\pe_1}{\pe_2}}_\tr & {}={} & \semdead{\pe_2}_{\tr[\px ↦ \{\px\} ∪_1 \semdead{\pe_1}_{\tr[\px ↦ (\varnothing,\bullet)]}]} \\
+  V_1 ∪_1 (V_2,\bullet) & = & (V_1 ∪ V_2, \bullet) \\
+  \mathit{summarise}(f) & = & f((\varnothing, \bullet)) \\
+  \mathit{apply}((V_f,\bullet), (V_a,\bullet)) & = & (V_f ∪ V_a, \bullet)
   \\[-0.5em]
 \end{array}\]
 \caption{Compositional deadness analysis}
