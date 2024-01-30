@@ -122,11 +122,11 @@ least.
 Our solution delegates this complexity to the underlying theory of guarded
 recursive type theory.
 
-\citet{Cousot:21} discusses other topics as well, such cartesian \vs relational
-analysis.
 We deliberately tried to provide a simple framework and thus stuck to cartesian
-(\ie, pointwise) abstraction of environments, but we expect relational
-abstractions to work just as well.
+(\ie, pointwise) abstraction of environments as in \citet[Chapter
+27]{Cousot:21}, but we expect relational abstractions to work just as well.
+Our shared denotational interpreter plays a similar role as the generic abstract
+interpreter in \citet[Chapter 21]{Cousot:21}.
 
 \subsubsection*{Control-Flow Analysis}
 CFA~\citep{Shivers:91} computes a useful control-flow graph abstraction for
@@ -177,7 +177,6 @@ fixpoint combinators which we hope to apply in implementations of our framework
 as well.
 
 \subsubsection*{Summaries of Functionals \vs Call Strings}
-
 \citet{Lomet:77} used procedure summaries to capture aliasing effects,
 crediting the approach to untraceable reports by \citet{Allen:74} and
 \citet{Rosen:75}.
@@ -185,7 +184,7 @@ crediting the approach to untraceable reports by \citet{Allen:74} and
 and generalised aliasing summaries into the ``functional approach'' to
 interprocedural data flow analysis, distinguishing it from the ``call strings
 approach''.
-The former approach models a procedure call by the abstract transformer function
+The former models a procedure call by the abstract transformer function
 induced by the intraprocedural analysis, and hence requires computing fixpoints
 over function-valued lattices barring subsequent abstraction.
 The latter is a predecessor to $k$-CFA and has a simpler operational reading.
