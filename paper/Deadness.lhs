@@ -590,8 +590,8 @@ that scales beyond simple analyses such as $\semdead{\wild}$ and is roughly
 structured as follows:
 
 \begin{itemize}
-  \item Extend the analysis function $\semdead{\wild}$ to whole machine
-    configuration $σ$.
+  \item Extend the analysis function $\semdead{\pe}$ to a function
+    $\semdeadS{σ}$ on whole machine configurations $σ$.
     This process is tedious and non-trivial busywork that leads to
     substantial duplication of $\semdead{\wild}$.
     Fortunately it is \emph{derivative} as well, because any configuration
@@ -603,7 +603,7 @@ structured as follows:
     $σ_1 \smallstep σ_2 \Longrightarrow \semdeadS{σ_1} \supseteq \semdeadS{σ_2}$.
     The highlights are:
     (1) The $\AppET$ case needs \Cref{thm:subst-deadness}.
-    (2) The $\LetIT$ needs to reason about fixpoints to add the new binding to the
+    (2) The $\LetIT$ case needs to reason about fixpoints to add the new binding to the
     heap.
     (3) The by-need-specific $\UpdateT$ proof mutates the heap and is far harder
     than one would expect for a heap-less analysis such as $\semdead{\wild}$
@@ -613,7 +613,7 @@ structured as follows:
   \item The proof for \Cref{thm:deadness-correct} massages the statement into a
     form that it follows from the preservation lemma.
     Again, this step held more surprises than we thought possible, even
-    though we rewrote this section \emph{after} the considerably more general
+    as we rewrote this section \emph{after} the considerably more general
     proof in \Cref{sec:by-need-soundness} was finished.
 \end{itemize}
 
