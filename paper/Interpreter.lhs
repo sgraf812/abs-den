@@ -82,8 +82,8 @@ takeName n (ByName τ) = takeT n τ
 \section{A Denotational Interpreter}
 \label{sec:interp}
 
-Now we get to the main contribution of this work:
-A \emph{compositional semantics} for a functional language, the semantic
+Now we get to the main contribution of this work, namely
+a \emph{compositional semantics} for a functional language, the semantic
 domain of which can express sufficient \emph{operational detail} such that a
 \emph{summary-based} static analysis such as usage analysis can be derived as an
 \emph{abstract interpretation}.
@@ -92,8 +92,10 @@ Interpreter} because it qualifies both as a denotational
 semantics~\citep{ScottStrachey:71} as well as a total definitional
 interpreter~\citep{Reynolds:72}.
 Such an interpreter can be implemented in any higher-order language such as
-OCaml, Scheme or Java with explicit thunks @fun () -> _@, but we picked Haskell
-out of convenience.%
+OCaml, Scheme or Java with explicit thunks,
+% @fun () -> _@
+but we picked Haskell
+for convenience.%
 \footnote{We extract from this document a runnable Haskell file which we add as
 a Supplement, containing the complete definitions.
 Furthermore, the (terminating) interpreter outputs are directly generated from
@@ -101,15 +103,12 @@ this extract.}
 
 Recall that a denotational semantics is expressed as a mathematical
 function |eval :: Exp -> (Name :-> D) -> D|.
-The expression |eval e ρ| \emph{gives meaning to}, or \emph{denotes}, the
-expression |e| in an environment |ρ| that in turn gives meaning to the free
-variables of |e|, in some \emph{semantic domain} |D|.
-(We sketch the encoding of syntax in \Cref{fig:syntax} and the API of
-environments and sets in \Cref{fig:map}.)
-This is exactly how the definition of |eval| in \Cref{fig:eval} is to be
-understood, however its definition in Haskell is abstracting over the concrete
-semantic domain |D|, which must be an instance of the three type classes
-|Trace|, |Domain| and |HasBind|.
+The expression |eval e ρ| takes an expression |e| and returns its meaning, or \emph{denotation}, in
+some \emph{semantic domain} |D|.
+The environment |ρ| gives meaning to the free variables of |e|, by mapping each free variable to
+its denotation in |D|.
+We sketch the Haskell encoding of syntax in \Cref{fig:syntax} and the API of
+environments and sets in \Cref{fig:map}.
 
 \begin{figure}
 \begin{minipage}{0.49\textwidth}
@@ -153,15 +152,21 @@ dom = Map.keysSet
 \end{minipage}
 \end{figure}
 
-\subsection{Semantic Domain}
-One example of such a concrete semantic domain is the domain of call-by-name
-traces |DName|.
-One of our major contributions is that, when |eval| is told to denote in
-|DName|, it will produce traces of the by-name variant of the Krivine machine in
+\subsection{Semantic Domain} \label{sec:dna}
+
+In traditional denotational semantics, the semantic domain |D| is typically
+the union of base values (integers, strings, etc) and functions |D -> D|.
+A distinctive feature of this paper is that \emph{our semantic domain are traces}
+that describe, in as much or as little detail as desired, the execution of an abstract machine.
+For example, we can choose a semantic domain |DName|, so that |eval|
+will produce precisely the traces of the by-name variant of the Krivine machine in
 \Cref{fig:lk-semantics}!
 In \Cref{sec:evaluation-strategies} we will give semantic domains for by-value
 and by-need semantics as well, and in \Cref{sec:abstractions} we obtain static
 analyses as instances.
+
+Here are the data type declarations for |DName|, the by-name variant:
+
 \begin{minipage}{0.65\textwidth}
 %if style == newcode
 \begin{code}
@@ -202,15 +207,16 @@ instance Monad T where
 %endif
 \end{minipage}
 \noindent
-Every |DName| corresponds to a \emph{program trace} |T| that ends with a
-concrete |Value|.
 A trace |T| can either |Ret|urn or it can make a |Step|, indicating that the
 program makes another small-step transition before reaching a terminal state.
+So every value in |DName| corresponds to a \emph{program trace} |T| that ends with a
+concrete |Value|.
 
-We embellished each |Step| with operational information about the particular
-type of small-step |Event|, for example we attach the |Name| of the let-bound
-variable to |Lookup|.
+We have embellished each |Step| with an |Event|, which describes what happpens
+in that |Step|; for example, a |Lookup| event describes a lookup in environment, and
+we further decorate it with the |Name| of the let-bound variable.
 The reason for this decision will become clear in \Cref{sec:abstractions};
+\slpj{What decision?}
 just note that the choice of |Event| suggests a spectrum of intensionality,
 with |data Event = Unit| corresponding to the ``delay monad'' popularised by
 \citet{Capretta:05} on the more abstract end of the spectrum and arbitrary
@@ -221,17 +227,17 @@ we could have started from a more elaborate construction such as (guarded)
 interaction trees~\citep{interaction-trees,gitrees}.
 
 The coinductive nature of |T|'s definition in Haskell is crucial to our
-approach, because diverging traces can be expressed as an infinite, productive
-nesting of |Step|s.
-In a strict language, we would have introduced a thunk in
+approach\footnote{In a strict language, we would have introduced a thunk in
 the definition of |Step|, \eg, @Step of event * (unit -> 'a t)@.
+}, because diverging traces can be expressed as an infinite, but productive,
+nesting of |Step|s.
 The |Monad| instance of |T| implements the monadic bind operator |(>>=)| by
 forwarding |Step|s, thus guarding the recursion~\citep{Capretta:05}.
 
 A domain element |DName| eventually terminates with a |Value| that is either
 |Stuck|, a |Fun|ction waiting to be applied to an argument |DName| to yield another
 |DName|, or a |Con|structor application giving the denotations of its fields.
-|Value| is a standard denotational encoding of its syntactic counterpart, devoid
+|Value| is thus just a standard denotational encoding of its syntactic counterpart, devoid
 of any syntax.
 (We postpone worries about well-definedness and totality to \Cref{sec:adequacy}.)
 
@@ -308,18 +314,35 @@ ifPoly (instance HasBind DName where
 
 \subsection{The Interpreter}
 
-The domain |DName| is encoded as an algebraic datatype, \ie, an \emph{initial}
-encoding.
-The interpreter |eval| in \Cref{fig:eval}, however, maps into a fold-like
-\emph{final encoding}~\citep{Carette:07} of a domain, in terms of the three type
-classes |Trace|, |Domain| and |HasBind| depicted in \Cref{fig:trace-classes}.
-Thus, it is not the final \emph{structure} of the interpreter that is novel so
-much as the \emph{decomposition} of its semantic domain.
-
+It is clear that we want to vary the semantic domain quite a bit, so it
+is natural to use type-class overloading to abstract over the semantic
+function |eval| over the particular domain, thus:
+$$
+|eval  ::  (Trace d, Domain d, HasBind d) =>  Exp -> (Name :-> d) -> d|
+$$
+We have parameterised the semantic domain |D| over three type classes,
+classes |Trace|, |Domain| and |HasBind|, whose signatures are given in
+\Cref{fig:trace-classes}.
 Each of the three type classes offer knobs that we will tweak individually in
 later Sections.
-Traces |T| and denotations |DName| are instances of these type classes via
-\Cref{fig:trace-instances}.
+
+\Cref{fig:eval} gives the complete definition of |eval|. \slpj{What is |<<|???}
+It also gives
+type-classes instances for the particular domain |DName| that we introduced
+in \Cref{sec:dna}\slpj{Some instances are for |DName|, oathers for |Trace|.  Boo!!}.   Together this enough to actually run the denotational
+interpreter to produce traces.
+% The domain |DName| is encoded as an algebraic datatype, \ie, an \emph{initial}
+% encoding.
+% The interpreter |eval| in \Cref{fig:eval}, however, maps into a fold-like
+%\emph{final encoding}~\citep{Carette:07} of a domain, \slpj{I don't understand the significance
+%of this initia/final stufff.  Do we need it?}
+%in terms of the three type
+%classes |Trace|, |Domain| and |HasBind| depicted in \Cref{fig:trace-classes}.
+%Thus, it is not the final \emph{structure} of the interpreter that is novel so
+%much as the \emph{decomposition} of its semantic domain.
+%
+%Traces |T| and denotations |DName| are instances of these type classes via
+% \Cref{fig:trace-instances}.
 For example, we can evaluate the expression $\Let{i}{\Lam{x}{x}}{i~i}$ like
 this:%
 \footnote{We use |read :: String -> Exp| as a parsing function.}
@@ -328,11 +351,11 @@ this:%
 $\perform{eval (read "let i = λx.x in i i") emp :: D (ByName T)}$
 \\[\belowdisplayskip]
 \noindent
-Which is in direct correspondence to the call-by-name small-step trace
+This trace is in direct correspondence to the call-by-name small-step trace \slpj{What "call-by-name small-step trace"? backward reference please}
 \[\begin{array}{c}
   \arraycolsep2pt
   \begin{array}{clclcl}
-             & (\Let{i}{\Lam{x}{x}}{i~i}, [], [], \StopF) & \smallstep[\LetIT] & (i~i, ρ_1, μ, \StopF)
+             \multicolumn{2}{l}{(\Let{i}{\Lam{x}{x}}{i~i}, [], [], \StopF)} & \smallstep[\LetIT] & (i~i, ρ_1, μ, \StopF)
              & \smallstep[\AppIT] & (i, ρ_1, μ, \ApplyF(\pa_1) \pushF \StopF)
              \\
   \smallstep[\LookupT] & (\Lam{x}{x}, ρ_1, μ, \ApplyF(\pa_1) \pushF \StopF) & \smallstep[\AppET] & (x, ρ_2, μ, \StopF) & \smallstep[\LookupT] & (\Lam{x}{x}, ρ_1, μ, \StopF)
@@ -343,23 +366,25 @@ Which is in direct correspondence to the call-by-name small-step trace
   \end{array}
 \end{array}\]
 \noindent
-While the |step| method of |Trace| is exactly the final encoding of |Step|,
-|Domain| is a bit of a mixture between |Value| and |DName = T Value|.
-The method names of |Domain| bear resemblance to |Value|:
-There are ``injections'' |fun|, |con| and |stuck| as well as ``eliminators''
-|apply| and |select|.
-The \emph{types} are wrong, though, with |DName| occurring where we would expect
-|Value|.
-We will revisit this curious generalisation in \Cref{sec:abstractions} where we
-consider abstract interpretations that \emph{summarise} a |DName| in different ways
-depending on the |Domain| instance.
+The definition of |eval| is easy to read.  For example, consider the |Lam| case.  To get the denotation of
+|Lam x body|, we must recursively invoke |eval| on |body|, extending the environment to bind |x| to its
+denotation.  We wrap that body in |step App2|, where |step :: Event -> d -> d|, to prefix the trace of |body| with
+an |App2| event whenever the function is invoked.  Finally,
+we use the type-class method |fun :: (d -> d) -> d| to build the returned denotation;
+the details are bound to depend on |d|.
 
-The third type class is |HasBind|, a most significant knob to our
-interpreter because it fixes a particular evaluation strategy.
-We will play with this knob in \Cref{sec:evaluation-strategies}.
+The other cases follow a similar pattern; they each do some work, before handing off to the
+type-class methods for all the domain-specific functions.
+As we shall see, we can re-use this single definition of |eval| with a variety of
+different trace types to instantiate the semantics domain |d|.
+
+The |HasBind| type class is particularly significant,
+because it fixes a particular \emph{evaluation strategy}, as we shall see in 
+\Cref{sec:evaluation-strategies}.
 The |bind| method of |HasBind| is used to give meaning to recursive let
-bindings; as such its type is \emph{almost} an instance of the venerable
-fixpoint combinator |fix :: (a -> a) -> a|, but it takes two functionals
+bindings:
+% fixpoint combinator |fix :: (a -> a) -> a|, but
+it takes two functionals
 for building the denotation of the right-hand side and that of the let body,
 given a denotation for the right-hand side.
 The concrete implementation for |DName| given in \Cref{fig:trace-instances} simply
@@ -368,9 +393,21 @@ call-by-name evaluation strategy.
 We will shortly see examples of eager evaluation strategies that will yield from
 |fix rhs| inside |bind| instead of calling |body| immediately.
 
+\slpj{I am doubtful that this paragraph adds anything.}
+While the |step| method of |Trace| is exactly the final encoding of |Step|,
+|Domain| is a bit of a mixture between |Value| and |DName = T Value| \slpj{I have no idea what this means}.
+The method names of |Domain| bear resemblance to |Value|:
+There are ``injections'' |fun|, |con| and |stuck| as well as ``eliminators''
+|apply| and |select|.
+The \emph{types} are wrong \slpj{what types}, though, with |DName| occurring where we would expect
+|Value|.
+We will revisit this curious generalisation in \Cref{sec:abstractions} where we
+consider abstract interpretations that \emph{summarise} a |DName| in different waysa
+depending on the |Domain| instance.  \slpj{Very obscure paragraph, no information conveyed.}
+
 We conclude this Subsection with a few examples, starting with two programs that
 diverge. The lazy |step| implementation allows us to observe finite prefixes of
-the trace:
+the trace:\slpj{Need to give signature for |takeT| and explain}
 
 < ghci> takeT 3 $ eval (read "let x = x in x") emp :: T (Maybe Value)
 $\perform{takeName 3 $ eval (read "let x = x in x") emp :: T (Maybe (Value (ByName T)))}$
@@ -413,8 +450,14 @@ instance HasBind (D (ByName τ)) where
 
 \begin{figure}
 \begin{spec}
-type Addr = Int; type Heap τ = Addr :-> D τ; nextFree :: Heap τ -> Addr
+-- State transformers (standard Haskell)
+--   (StateT s m a) transforms monad m, by adding state s
+get     :: Monad m => StateT s m s
+modify  :: Monad m => (s -> s) -> StateT s m ()
+
+-- The ByNeed trace transformer
 data ByNeed τ v = ByNeed (StateT (Heap (ByNeed τ)) τ v)
+type Addr = Int; type Heap τ = Addr :-> D τ; nextFree :: Heap τ -> Addr
 runByNeed :: ByNeed τ a -> τ (a, Heap (ByNeed τ))
 instance Monad τ => Monad (ByNeed τ) where ...
 instance Trace (τ v) => Trace (ByNeed τ v) where ...
@@ -427,7 +470,7 @@ memo a d = d >>= ByNeed . StateT . upd
          upd v      μ = step Update (return (v, ext μ a (memo a (return v))))
 
 instance (Monad τ, forall v. Trace (τ v)) => HasBind (D (ByNeed τ)) where
-  bind rhs body = do  a <- nextFree <$> ByNeed get
+  bind rhs body = do  a <- ByNeed $ do { μ <- get; nextFree μ }
                       ByNeed $ modify (\μ -> ext μ a (memo a (rhs (fetch a))))
                       body (fetch a)
 \end{spec}
@@ -469,22 +512,26 @@ instance (Monad τ, forall v. Trace (τ v)) => HasBind (D (ByNeed τ)) where
 \subsection{More Evaluation Strategies}
 \label{sec:evaluation-strategies}
 
+\slpj{What is |(!)| in Fig 7?  WHat is the arrow |:->|?}
+
 By varying the |HasBind| instance of our type |DName|, we can endow our language
 |Exp| with different evaluation strategies.
 With a bit of generalisation, variations become as simple as switching out a
 monad transformer, a common phenomenon in abstract definitional
 interpreters~\citep{adi}.
-Thus we parameterise the definition of |DName| and |Value| over the particular
+In particular, we parameterise the definition of |DName| and |Value| over the particular
 trace type |T|:%
 \footnote{For a realistic implementation, we suggest to define |D| as a data
 type to keep type class resolution decidable and non-overlapping.
 We will however stick to a |type| synonym in this presentation in order to elide
 noisy wrapping and unwrapping of constructors.}
+\slpj{Is there really much wrapping and unwrapping? Other than in the monad instance.}
 \begin{spec}
 type D τ = τ (Value τ)
 data Value τ = Stuck | Fun (D τ -> D τ) | Con Tag [D τ]
 instance Monad τ => Domain (D τ) where ...
 \end{spec}
+\slpj{I wonder if we can just start with this generalisation directly.}
 
 \noindent
 \subsubsection{Call-by-name}
@@ -496,26 +543,61 @@ so called because |ByName τ| inherits its |Monad| and |Trace|
 instance from |τ| (busywork we omit).
 Our old |DName| can be recovered as |D (ByName T)|.
 
+\slpj{Can we not recover by-name from |D T|?  That would be simpler}
+
 \subsubsection{Call-by-need}
 
-The trace transformer |ByNeed| in \Cref{fig:by-need} mixes in a call-by-need
-evaluation strategy by introducing a heap and memoisation to |τ|.
-Interestingly, |ByNeed T| denotes a \emph{stateful function returning a trace},
-thus it is the first time we compute with something different than a |T|.
-The |bind| implementation for |ByNeed| traces will tie the recursive knot with
-a |D| that |fetch|es the bound action from a heap, under an address |a| that is
-not taken yet in the current heap |μ|.
-This newly heap-bound |D| in turn evaluates |rhs|, the result of which is
-|memo|ised in an |Update| step, so that the heap-bound |D| is replaced by
-one that immediately |return|s the value.
-We will prove this semantics adequate \wrt to the LK transition system in
-\Cref{fig:lk-semantics} in \Cref{sec:adequacy}.
+To get call-by-need, we use the semantic domain |D (ByNeed T)| (\Cref{fig:by-need}).
+We can see that
+$$
+\begin{array}{ll}
+|D (ByNeed T)| & \cong |ByNeed T (Value (ByNeed T)) | \\
+  & \cong |StateT (Heap (ByNeed T)) T (Value (ByNeed T))|
+\end{array}
+$$
+where |StateT| is the standard state transformer monad, whose key operations |get| and |modify| are
+given in \Cref{fig:by-need}. So the denotation of
+an expression is no longer a trace, but rather a \emph{stateful trace} in which the
+carried state |Heap (ByNeed T)| implements the heap in which call-by-need thunks are
+allocated.
+The key part is the |HasBind| instance for |D (ByNeed T)|, which implements |letrec|,
+the only place that a thunk is allocated in our little language.
+The implementation of |bind| has three steps.
+First uses the state monad to
+allocates a fresh heap address |a|; we use |μ :: Heap (ByNeed T)| as the name of the heap.
+Second, it uses |modify| to bind the address
+|a| to something (itself a stateful trace) that we will look at next.
+Finally it applies |body| to |(fetch a :: D (ByNeed T))|, a little
+computation that looks up the address |a| in the current state of the heap, and
+runs it.
+
+In the second step we bind |a| to a stateful trace of type |D (ByNeed T)|.
+The first time we run that computation (in the case for |Var|)
+we want to evaluate the argument,
+and update the heap to bind |a| to the value thus computed; this the essence of
+lazy evaluation. \slpj{Need a bit more; I don't yet grok memo.}
+
+% The trace transformer |ByNeed| in \Cref{fig:by-need} mixes in a call-by-need
+% evaluation strategy by introducing a heap and memoisation to |τ|.
+% Interestingly, |ByNeed T| denotes a \emph{stateful function returning a trace},
+% thus it is the first time we compute with something different than a |T|.
+% The |bind| implementation for |ByNeed| traces will tie the recursive knot with
+% a |D| that |fetch|es the bound action from a heap, under an address |a| that is
+% not taken yet in the current heap |μ|.
+% This newly heap-bound |D| in turn evaluates |rhs|, the result of which is
+% |memo|ised in an |Update| step, so that the heap-bound |D| is replaced by
+% one that immediately |return|s the value.
+% We will prove this semantics adequate \wrt to the LK transition system in
+% \Cref{fig:lk-semantics} in \Cref{sec:adequacy}.
 
 %\todo{Mention that we could also have tested this result, with a type like
 %|type ValidateT τ = StateT σ τ|, where the |step| action crashes if the |Event|
 %does not match the currently applicable LK transition for $σ$.}
 
-It is worth stressing how simple it was to carry out this extension.
+Although the code is carefully written, it is worth stressing how
+compact and expressive it is.  We were able to move from traces to stateful traces
+just by wrapping traces |T| in a state transformer |StateT|, without modifying
+the main |eval| function at all.
 Furthermore, nothing in our approach is particularly specific to |Exp| or
 |Value|!
 We have built similar interpreters for PCF, where the @rec@, @let@ and
@@ -614,6 +696,8 @@ instance (Monad τ, forall v. Trace (τ v)) => HasBind (D (ByVInit τ)) where
 By defining a |MonadFix| instance for |T| and defining |bind| in terms
 of this instance, we can give a by-value semantics to |Exp|, as shown in
 \Cref{fig:by-value}.
+\slpj{Gah!  Now I have to understand MonadFix!  Can't we just give a |HasBind| instance directly?
+Indeed, isn't by-value a bit easier than by-need?  Your super-compact definitions just look like line noise to me.}
 Let us unpack the definition of |bind|.
 As its first action, it yields a brand new |Let0| event, indicating in the
 trace that focus descends into the right-hand side of a |let|.
