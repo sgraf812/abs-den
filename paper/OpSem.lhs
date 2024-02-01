@@ -2,7 +2,7 @@
 > module OpSem where
 %endif
 
-\subsection{Reference Semantics: Lazy Krivine Machine}
+\section{Reference Semantics: Lazy Krivine Machine}
 \label{sec:opsem}
 
 \begin{figure}
@@ -43,7 +43,11 @@
   \label{fig:lk-semantics}
 \end{figure}
 
-Let us introduce the semantic ground truth of this work: The Mark II machine of
+Before we get to introduce our novel denotational interpreaters, let us
+introduce the semantic ground truth%
+\footnote{\citet{Sergey:14} and \citet{Breitner:16} are just two examples that
+pick the same ground truth.}
+of this work: The Mark II machine of
 \citet{Sestoft:97} given in \Cref{fig:lk-semantics}, a small-step operational
 semantics.
 It is a Lazy Krivine (LK) machine implementing call-by-need.
