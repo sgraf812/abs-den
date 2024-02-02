@@ -19,9 +19,9 @@
 %format untyped(a) = "(undefined :: forall a. a)"
 %format unused(a) = "_"
 %format named(dom)(d) = dom
-%format nameenv(dom)(env) = "Map Name " dom
+%format nameenv(dom)(env) = "Name :-> " dom
 %format needd(d) = "Pow (D (ByNeed T))"
-%format needenv(env) = "Pow (Map Name (D (ByNeed T)))"
+%format needenv(env) = "Pow (Name :-> D (ByNeed T))"
 %format needheap(heap) = "Pow (Heap (ByNeed T))"
 
 %else
@@ -96,9 +96,11 @@
 %format θ2
 %format ω = "\varcolor{\omega}"
 %format Σ = "\concolor{\Sigma}"
+%format :-> = "\hspace{-0.15em}\rightharpoonup\hspace{-0.19em}"
 %format :->: = "\mathbin{:\rightarrow:}"
 %format ∈ = "\in"
 %format emp = "\varcolor{\epsilon}"
+%format ! = "\mathop{!}"
 %format DName = "\conid{D}_{\mathbf{na}}"
 %format eval(a)(b) = "\mathcal{S}\denot{" a "}_{" b "}"
 %format evalC(a)(b) = "\mathcal{S}_{\mathcal{C}}\denot{" a "}_{" b "}"

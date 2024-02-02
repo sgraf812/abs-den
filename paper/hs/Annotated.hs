@@ -15,10 +15,13 @@ import Exp
 import Order
 import Interpreter
 
-type AnnT s a = ReaderT (STRef s (Map Name a))
+type AnnT s a = ReaderT (STRef s (Name :-> a))
 
 instance Trace d => Trace (ReaderT e (ST s) d) where
   step ev (ReaderT f) = ReaderT (\e -> step ev <$> f e)
+
+--(|||) :: Ann U -> Ann U -> Ann U
+--(|||) = Map.unionWith undefined
 
 data U = U0 | U1 | Uω; instance Lat U where
   bottom = U0
@@ -26,7 +29,7 @@ data U = U0 | U1 | Uω; instance Lat U where
   u   ⊔  U0  = u
   U1  ⊔  U1  = U1
   _   ⊔  _   = Uω
-data UT a = Uses (Map Name U) a
+data UT a = Uses (Name :-> U) a
 
 instance Trace (UT v) where
   step (Lookup x)  (Uses φ a)  = Uses (φ + ext emp x U1) a
@@ -73,7 +76,7 @@ instance Plussable U where
   U1 + U1 = Uω
   u1 + u2 = u1 ⊔ u2
 
-instance (Ord k, Plussable v) => Plussable (Map k v) where
+instance (Ord k, Plussable v) => Plussable (k :-> v) where
   (+) = Map.unionWith (+)
 
 instance Show a => Show (UT a) where
@@ -89,7 +92,7 @@ instance Show UValue where
 instance HasBind UD where
   bind _ rhs body = body (kleeneFix rhs)
 
-data Anns s = A { cache :: STRef s (Map Name UD), anns :: STRef s (Map Name U) }
+data Anns s = A { cache :: STRef s (Name :-> UD), anns :: STRef s (Name :-> U) }
 
 newtype AnnUT s a = AnnUT (ReaderT (Anns s) (ST s) a)
   deriving (Functor, Applicative, Monad, Trace)
@@ -126,7 +129,7 @@ instance HasBind (AnnUD s) where
     setCache x d1
     annotate x (body (pure d1))
 
-run :: (forall s. AnnUD s) -> (Map Name U, Map Name U)
+run :: (forall s. AnnUD s) -> (Name :-> U, Name :-> U)
 run m = runST $ do
   ann <- A <$> newSTRef emp <*> newSTRef emp
   Uses φ Nop <- runReaderT (case m of AnnUT r -> r) ann

@@ -9,7 +9,6 @@
 module Abstractions where
 
 import Prelude hiding ((+), (*))
-import Data.Map (Map)
 import qualified Data.Map as Map
 import Data.Set (Set)
 import qualified Data.Set as Set
@@ -34,7 +33,7 @@ root = call `seq` anyCtx -- Suppress redundant import warning
 class Eq a => Lat a where bottom :: a; (⊔) :: a -> a -> a;
 lub :: Lat a => [a] -> a; kleeneFix :: Lat a => (a -> a) -> a
 kleeneFix f = go bottom where go x = let x' = f x in if x' ⊑ x then x' else go x'
-instance (Ord k, Lat v) => Lat (Map k v) where bottom = emp; (⊔) = Map.unionWith (⊔)
+instance (Ord k, Lat v) => Lat (k :-> v) where bottom = emp; (⊔) = Map.unionWith (⊔)
 \end{spec}
 \caption{Order theory and Kleene fixpoint}
 \label{fig:lat}
@@ -53,7 +52,7 @@ data U = U0 | U1 | Uω; instance Lat U where {-" ... \iffalse "-}
   U1  ⊔  U1  = U1
   _   ⊔  _   = Uω
 {-" \fi "-}
-data UT a = Uses (Map Name U) a
+data UT a = Uses (Name :-> U) a
 
 instance Trace (UT v) where
   step (Lookup x)  (Uses φ a)  = Uses (φ + ext emp x U1) a
@@ -123,7 +122,7 @@ instance Plussable U where
   U1 + U1 = Uω
   u1 + u2 = u1 ⊔ u2
 
-instance (Ord k, Plussable v) => Plussable (Map k v) where
+instance (Ord k, Plussable v) => Plussable (k :-> v) where
   (+) = Map.unionWith (+)
 
 instance Show a => Show (UT a) where
@@ -146,7 +145,7 @@ $\LookupT$ transitions per let-bound variable.
 We can encode this intuition in the custom trace type |UT| in \Cref{fig:usg-abs}
 that will take the place of |T|.
 |UT| aggregates the number of |Lookup x| transitions per variable |x| in a usage
-environment |Map Name U|, with the matching |Monad| and |Trace| instances.
+environment |Name :-> U|, with the matching |Monad| and |Trace| instances.
 A \emph{usage cardinality} |U| abstracts an upper bound on the number of such
 |Lookup x| events, where |U0| means ``at most 0 times'' (\ie, dead) and |U1|
 means ``at most 1 times''.
@@ -156,7 +155,7 @@ ordinal.
 The definition of |(+)| on |U| coincides with the least upper bound operator
 |(⊔)|, except for carrying over |U1 + U1 = Uω|, so any number of lookups
 beyond $1$ goes straight to $ω$.
-Both |(+)| and |(⊔)| are lifted pointwise to |Map Name U|.
+Both |(+)| and |(⊔)| are lifted pointwise to |Name :-> U|.
 
 If we had no interest in a terminating analysis, we could already make do
 with the induced \emph{semantic usage abstraction} |D (ByName UT)|:
@@ -284,7 +283,7 @@ the contrasting examples (2)-(5) point out.
 data Type = Type :->: Type | TyConApp TyCon [Type] | TyVar Name | Wrong
 data PolyType = PT [Name] Type; data TyCon = {-" ... \iffalse "-} BoolTyCon | NatTyCon | OptionTyCon | PairTyCon {-" \fi "-}
 
-type Constraint = (Type, Type); type Subst = Map Name Type
+type Constraint = (Type, Type); type Subst = Name :-> Type
 data Cts a = Cts (StateT (Set Name,Subst) Maybe a)
 emitCt :: Constraint -> Cts ();                   freshTyVar :: Cts Type
 instantiatePolyTy :: PolyType -> Cts Type; ^^ ^^  generaliseTy :: Cts Type -> Cts PolyType
@@ -535,7 +534,7 @@ for diverging programs works as expected.
 \begin{code}
 data Pow a = P (Set a); type CValue = Pow Label
 type ConCache = (Tag, [CValue]); data FunCache = FC (Maybe (CValue, CValue)) (CD -> CD)
-data Cache = Cache (Map Label ConCache) (Map Label FunCache)
+data Cache = Cache (Label :-> ConCache) (Label :-> FunCache)
 data CT a = CT (State Cache a); type CD = CT CValue; runCFA :: CD -> CValue
 
 updFunCache :: Label -> (CD -> CD) -> CT (); cachedCall :: Label -> CValue -> CD
@@ -639,16 +638,16 @@ instance Lat a => Lat [a] where
   xs ⊔ [] = xs
   (x:xs) ⊔ (y:ys) = x ⊔ y : xs ⊔ ys
 
-cCons :: Cache -> Map Label ConCache
+cCons :: Cache -> Label :-> ConCache
 cCons (Cache cons _) = cons
 
-overCons :: (Map Label ConCache -> Map Label ConCache) -> Cache -> Cache
+overCons :: ((Label :-> ConCache) -> (Label :-> ConCache)) -> Cache -> Cache
 overCons f (Cache cons funs) = Cache (f cons) funs
 
-cFuns :: Cache -> Map Label FunCache
+cFuns :: Cache -> Label :-> FunCache
 cFuns (Cache _ funs) = funs
 
-overFuns :: (Map Label FunCache -> Map Label FunCache) -> Cache -> Cache
+overFuns :: ((Label :-> FunCache) -> (Label :-> FunCache)) -> Cache -> Cache
 overFuns f (Cache cons funs) = Cache cons (f funs)
 
 updConCache :: Label -> Tag -> [CValue] -> CT ()

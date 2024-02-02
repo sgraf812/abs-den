@@ -2,7 +2,6 @@ module Sergey14 where
 
 import Exp
 import Interpreter
-import Data.Map (Map)
 import Data.Set (Set)
 
 data Demand
@@ -11,7 +10,7 @@ data SubDemand
 instance Show SubDemand
 instance Show Demand
 
-type DmdEnv = Map Name Demand
+type DmdEnv = Name :-> Demand
 
 newtype DmdT a = DT { unDT :: Set Name -> SubDemand -> (a, DmdEnv) }
 type DmdD = DmdT DmdVal

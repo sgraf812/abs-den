@@ -157,7 +157,7 @@ The full, type-checked development is available in the Supplement.
     guarded recursive types.
     As such it is no surprise that the state-passing of the mutable |Heap| in
     the implementation of |ByNeed| requires breaking of a recursive cycle
-    by delaying heap entries, |Heap τ = Map Addr (Later (D τ))|.
+    by delaying heap entries, |Heap τ = Addr :-> Later (D τ)|.
   \item
     We need to pass around |Tick| binders in |eval| in a way that the type
     checker is satisfied; a simple exercise.
@@ -352,7 +352,7 @@ finite, inductive type).
   α_\Environments([\many{\px ↦ \pa_{\py,i}}]) & = & [\many{|x| ↦ |step (Lookup y) (fetch a_yi)|}] \\
   α_\Heaps([\many{\pa ↦ (ρ,\pe)}]) & = & [\many{|a| ↦ |memo a (eval e (αEnv ρ))|}] \\
   α_\States(\Lam{\px}{\pe},ρ,μ,κ) & = & |(Fun (\d -> eval e (ext (αEnv ρ) x d)), αHeap μ)| \\
-  α_\States(K~\overline{\px},ρ,μ,κ) & = & |(Con k (map (αEnv ρ `at`) xs), αHeap μ)| \\
+  α_\States(K~\overline{\px},ρ,μ,κ) & = & |(Con k (map (αEnv ρ !) xs), αHeap μ)| \\
   α_\Events(σ) & = & \begin{cases}
     |Let1| & σ = (\Let{\px}{\wild}{\wild},\wild,μ,\wild), \pa_{\px,i} \not∈ \dom(μ) \\
     |App1| & σ = (\wild~\px,\wild,\wild,\wild) \\

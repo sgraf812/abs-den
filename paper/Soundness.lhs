@@ -50,9 +50,9 @@ In this setting, we extend the original Galois connection to the signature of
 \ie, the structural properties of a Galois connection follow as a free
 theorem), to
 \[
-  (|Map Name (pow Traces) -> pow Traces|, |dot (⊆)|)
+  (|(Name :-> pow Traces) -> pow Traces|, |dot (⊆)|)
   \galois{|\f -> α . f . (γ <<)|}{|\(hat f) -> γ . hat f . (α <<)|}
-  (|Map Name (hat D) -> hat D|, |dot (⊑)|),
+  (|(Name :-> hat D) -> hat D|, |dot (⊑)|),
 \]
 and state soundness of the abstract semantics |eval3 (hat D)| as
 \[
@@ -294,7 +294,7 @@ More formally,
   by mutual guarded recursion as
   \begin{itemize}
     \item |named (hat D) d| iff |d| is of the form |Lub (step (Lookup x) (eval e ρ1 :: (hat D)) || Later (named (hat D) ρ1))|, and
-    \item |nameenv (hat D) ρ| iff for all |x|, |named (hat D) (ρ `at` x)|.
+    \item |nameenv (hat D) ρ| iff for all |x|, |named (hat D) (ρ ! x)|.
   \end{itemize}
 \end{definition}
 % We really need to generalise over |D|, because we need this characterisation in the abstract as well.
@@ -328,10 +328,10 @@ invocations, and |trace| does so as well.
       |hat f (hat a) ⊑ apply (fun (hat f)) (hat a)|} \qquad
     \inferrule[\textsc{Beta-Sel}]{\begin{minipage}[c]{0.6\textwidth}{%
       \begin{spec}
-        (hat alts `at` k) (hat ds)  |  len (hat ds) /= len (xs)  = stuck
+        (hat alts ! k) (hat ds)  |  len (hat ds) /= len (xs)  = stuck
                                  |  otherwise                 = step Case2 (eval er (exts (hat ρ) xs (hat ds)))
       \end{spec}}\end{minipage}}{%
-      |(hat alts `at` k) (map (hat ρ1 `at`) ys) ⊑ select (con k (map (hat ρ1 `at`) ys)) (hat alts)|} \\
+      |(hat alts ! k) (map (hat ρ1 !) ys) ⊑ select (con k (map (hat ρ1 !) ys)) (hat alts)|} \\
     \\[-0.5em]
     \inferrule[\textsc{Bind-ByName}]{|hat rhs (hat d1) = eval e1 (ext (hat ρ) x (step (Lookup x) (hat d1)))|\\ |hat body (hat d1) = step Let1 (eval e2 (ext (hat ρ) x (hat d1)))|}{|(hat body) (lfp (hat rhs)) ⊑ bind (hat rhs) (hat body)|}
   \end{array}\]
@@ -344,7 +344,7 @@ invocations, and |trace| does so as well.
   Let |hat D| be a domain with instances for |Trace|, |Domain|, |HasBind| and
   |Lat|, satisfying property \textsc{Mono} in
   \Cref{fig:by-name-soundness-lemmas}.
-  Then |eval e :: Map Name (hat D) -> hat D| is a monotone function.
+  Then |eval e :: (Name :-> hat D) -> hat D| is a monotone function.
 \end{lemma}
 \begin{proofsketch}
   Follows by parametricity.
@@ -376,36 +376,36 @@ By Löb induction and cases on |e|, using the representation function
         step (Lookup y) (many (step ev1) (eval v (βE << ρ2)))
     ⊑   {- Induction hypothesis at |ev1|, |ρ3| as above -}
         step (Lookup y) (eval e' (βE << ρ3))
-    =   {- Refold |βE|, |ρ3 `at` x| -}
-        βE (ρ1 `at` x)
+    =   {- Refold |βE|, |ρ3 ! x| -}
+        βE (ρ1 ! x)
     =   {- Refold |eval x (βE << ρ1)| -}
         eval x (βE << ρ1)
     \end{spec}
   \item \textbf{Case} |Lam|, |ConApp|: By reflexivity of $⊑$.
   \item \textbf{Case} |App e x|:
     Then |eval e ρ1 = many (Step ev1) (eval (Lam y body) ρ3)|,
-    |eval body (ext ρ3 y (ρ1 `at` x)) = many (Step ev2) (eval v ρ2)|.
+    |eval body (ext ρ3 y (ρ1 ! x)) = many (Step ev2) (eval v ρ2)|.
     \begin{spec}
         many (step ev) (eval v (βE << ρ2))
     =   {- |many ev = [App1] ++ many ev1 ++ [App2] ++ many ev2|, IH at |ev2| -}
-        step App1 (many (step ev1) (step App2 (eval body (ext (βE << ρ3) y (βE << ρ1 `at` x)))))
+        step App1 (many (step ev1) (step App2 (eval body (ext (βE << ρ3) y (βE << ρ1 ! x)))))
     ⊑   {- Assumption \textsc{Beta-App} -}
-        step App1 (many (step ev1) (apply (eval (Lam y body) (βE << ρ3)) (βE << ρ1 `at` x)))
+        step App1 (many (step ev1) (apply (eval (Lam y body) (βE << ρ3)) (βE << ρ1 ! x)))
     ⊑   {- Assumption \textsc{Step-App} -}
-        step App1 (apply (many (step ev1) (eval (Lam y body) (βE << ρ3))) (βE << ρ1 `at` x))
+        step App1 (apply (many (step ev1) (eval (Lam y body) (βE << ρ3))) (βE << ρ1 ! x))
     ⊑   {- Induction hypothesis at |ev1| -}
-        step App1 (apply (eval e (βE << ρ1)) (βE << ρ1 `at` x))
+        step App1 (apply (eval e (βE << ρ1)) (βE << ρ1 ! x))
     =   {- Refold |eval (App e x) (βE << ρ1)| -}
         eval (App e x) (βE << ρ1)
     \end{spec}
   \item \textbf{Case} |Case e alts|:
     Then |eval e ρ1 = many (Step ev1) (eval (ConApp k ys) ρ3)|,
-    |eval er (exts ρ1 xs (map (ρ3 `at`) ys)) = many (Step ev2) (eval v ρ2)|,
-    where |alts `at` k = (xs,er)| is the matching RHS.
+    |eval er (exts ρ1 xs (map (ρ3 !) ys)) = many (Step ev2) (eval v ρ2)|,
+    where |alts ! k = (xs,er)| is the matching RHS.
     \begin{spec}
         many (step ev) (eval v (βE << ρ2))
     ⊑   {- |many ev = [Case1] ++ many ev1 ++ [Case2] ++ ev2|, IH at |ev2| -}
-        step Case1 (many (step ev1) (step Case2 (eval er (βE << (exts ρ1 xs (map (hat ρ3 `at`) ys))))))
+        step Case1 (many (step ev1) (step Case2 (eval er (βE << (exts ρ1 xs (map (hat ρ3 !) ys))))))
     ⊑   {- Assumption \textsc{Beta-Sel} -}
         step Case1 (many (step ev1) (select (eval (ConApp k ys) (βE << ρ3)) (cont << alts)))
     ⊑   {- Assumption \textsc{Step-Sel} -}
@@ -456,7 +456,8 @@ then |eval| instantiates at |hat D| to an abstract interpreter that is sound
 \end{theoremrep}
 \begin{proof}
 We first simplify our proof obligation by assuming, without loss of generality,
-that |ρ| only maps into singleton sets, henceforth interpreting |ρ| in |Map Name (D (ByName T))|.
+that |ρ| only maps into singleton sets, henceforth interpreting |ρ| in |Name :->
+D (ByName T)|.
 This is not losing generality as any other |ρ1| can be represented
 as the (pointwise) join over a potentially infinite set of such singleton |ρ|s,
 in which case we have
@@ -479,13 +480,13 @@ which we will prove by Löb induction and cases on |e|.
     The stuck case follows by unfolding |αT|.
     Otherwise,
     \begin{spec}
-        βT (ρ `at` x)
+        βT (ρ ! x)
     =   {- |nameenv (Pow (D (ByName T))) (set << ρ)|, Unfold |βT| -}
         step (Lookup y) (βT (eval e' ρ'))
     ⊑   {- Induction hypothesis -}
         step (Lookup y) (eval e' (βE << ρ'))
     =   {- Refold |βE| -}
-        βE (ρ `at` x)
+        βE (ρ ! x)
     \end{spec}
   \item \textbf{Case} |Lam x body|:
     \begin{spec}
@@ -504,7 +505,7 @@ which we will prove by Löb induction and cases on |e|.
     \begin{spec}
         βT (eval (ConApp k xs) ρ)
     =   {- Unfold |eval|, |βT| -}
-        con k (map ((βE << ρ) `at`) xs)
+        con k (map ((βE << ρ) !) xs)
     =   {- Refold |eval| -}
         eval (Lam x body) (βE << ρ)
     \end{spec}
@@ -516,11 +517,11 @@ which we will prove by Löb induction and cases on |e|.
     \begin{spec}
         βT (eval (App e x) ρ)
     =   {- Unfold |eval|, |βT| -}
-        step App1 (βT (apply (eval e ρ) (ρ `at` x)))
+        step App1 (βT (apply (eval e ρ) (ρ ! x)))
     =   {- Unfold |apply| -}
-        step App1 (βT (eval e ρ >>= \case Fun f -> f (ρ `at` x); _ -> stuck))
+        step App1 (βT (eval e ρ >>= \case Fun f -> f (ρ ! x); _ -> stuck))
     ⊑   {- By cases, see below -}
-        step App1 (apply (eval e (βE << ρ)) ((βE << ρ) `at` x))
+        step App1 (apply (eval e (βE << ρ)) ((βE << ρ) ! x))
     =   {- Refold |eval| -}
         eval (App e x) (βE << ρ)
     \end{spec}
@@ -530,49 +531,49 @@ which we will prove by Löb induction and cases on |e|.
     =   {- |eval e ρ| diverges, unfold |βT| -}
         step ev1 (step ev2 (...))
     ⊑   {- Assumption \textsc{Step-App} -}
-        apply (step ev1 (step ev2 (...))) ((βE << ρ) `at` x)
+        apply (step ev1 (step ev2 (...))) ((βE << ρ) ! x)
     =   {- Refold |βT|, |eval e ρ| -}
-        apply (βT (eval e ρ)) ((βE << ρ) `at` x)
+        apply (βT (eval e ρ)) ((βE << ρ) ! x)
     ⊑   {- Induction hypothesis -}
-        apply (eval e (βE << ρ)) ((βE << ρ) `at` x)
+        apply (eval e (βE << ρ)) ((βE << ρ) ! x)
     \end{spec}
     Otherwise, |eval e ρ| must produce a value |v|.
     If |v=Stuck| or |v=Con k ds|, we set |d := stuck|
     (resp. |d := con k (map βE ds)|) and have
     \begin{spec}
-        βT (eval e ρ >>= \case Fun f -> f (ρ `at` x); _ -> stuck)
+        βT (eval e ρ >>= \case Fun f -> f (ρ ! x); _ -> stuck)
     =   {- |eval e ρ = many (step ev) (return v)|, unfold |βT| -}
-        many (step ev) (βT (return v >>= \case Fun f -> f (ρ `at` x); _ -> stuck))
+        many (step ev) (βT (return v >>= \case Fun f -> f (ρ ! x); _ -> stuck))
     =   {- |v| not |Fun|, unfold |βT| -}
         many (step ev) stuck
     ⊑   {- Assumptions \textsc{Unwind-Stuck}, \textsc{Intro-Stuck} where |d := stuck| or |d := con k (map βT ds)| -}
         many (step ev) (apply d a)
     ⊑   {- Assumption \textsc{Step-App} -}
-        apply (many (step ev) d) ((βE << ρ) `at` x)
+        apply (many (step ev) d) ((βE << ρ) ! x)
     =   {- Refold |βT|, |eval e ρ| -}
-        apply (βT (eval e ρ)) ((βE << ρ) `at` x)
+        apply (βT (eval e ρ)) ((βE << ρ) ! x)
     ⊑   {- Induction hypothesis -}
-        apply (eval e (βE << ρ)) ((βE << ρ) `at` x)
+        apply (eval e (βE << ρ)) ((βE << ρ) ! x)
     \end{spec}
     In the final case, we have |v = Fun f|, which must be the result of some
     call |eval (Lam y body) ρ1|; hence
     |f := \d -> step App2 (eval body (ext ρ1 y d))|.
     \begin{spec}
-        βT (eval e ρ >>= \case Fun f -> f (ρ `at` x); _ -> stuck)
+        βT (eval e ρ >>= \case Fun f -> f (ρ ! x); _ -> stuck)
     =   {- |eval e ρ = many (step ev) (return v)|, unfold |βT| -}
-        many (step ev) (βT (return v >>= \case Fun f -> f (ρ `at` x); _ -> stuck))
+        many (step ev) (βT (return v >>= \case Fun f -> f (ρ ! x); _ -> stuck))
     =   {- |v=Fun f|, with |f| as above; unfold |βT| -}
-        many (step ev) (step App2 (βT (eval body (ext ρ1 y (ρ `at` x)))))
+        many (step ev) (step App2 (βT (eval body (ext ρ1 y (ρ ! x)))))
     ⊑   {- Induction hypothesis -}
-        many (step ev) (step App2 (eval body (βE << (ext ρ1 y (ρ `at` x)))))
+        many (step ev) (step App2 (eval body (βE << (ext ρ1 y (ρ ! x)))))
     =   {- Rearrange -}
-        many (step ev) (step App2 (eval body (ext (βE << ρ1) y ((βE << ρ) `at` x))))
+        many (step ev) (step App2 (eval body (ext (βE << ρ1) y ((βE << ρ) ! x))))
     ⊑   {- Assumption \textsc{Beta-App} -}
-        many (step ev) (apply (eval (Lam y body) (βE << ρ1)) ((βE << ρ) `at` x))
+        many (step ev) (apply (eval (Lam y body) (βE << ρ1)) ((βE << ρ) ! x))
     ⊑   {- Assumption \textsc{Step-App} -}
-        apply (many (step ev) (eval (Lam y body) (βE << ρ1))) ((βE << ρ) `at` x)
+        apply (many (step ev) (eval (Lam y body) (βE << ρ1))) ((βE << ρ) ! x)
     ⊑   {- \Cref{thm:eval-improves} applied to |many ev| -}
-        apply (eval e (βE << ρ)) ((βE << ρ) `at` x)
+        apply (eval e (βE << ρ)) ((βE << ρ) ! x)
     \end{spec}
 
   \item \textbf{Case} |Case e alts|:
@@ -580,23 +581,23 @@ which we will prove by Löb induction and cases on |e|.
     When |eval e ρ| diverges or does not evaluate to |eval (ConApp k ys) ρ1|,
     the reasoning is similar to |App e x|, but in a |select| context.
     So assume that |eval e ρ = many (step ev) (eval (ConApp k ys) ρ1)| and that
-    there exists |((cont << alts) `at` k) ds = step Case2 (eval er (exts ρ xs ds))|.
+    there exists |((cont << alts) ! k) ds = step Case2 (eval er (exts ρ xs ds))|.
     \begin{spec}
         βT (eval (Case e alts) ρ)
     =   {- Unfold |eval|, |βT| -}
         step Case1 (βT (select (eval e ρ) (cont << alts))
     =   {- Unfold |select| -}
-        step Case1 (βT (eval e ρ >>= \case Con k ds | k ∈ dom alts -> ((cont << alts) `at` k) ds))
+        step Case1 (βT (eval e ρ >>= \case Con k ds | k ∈ dom alts -> ((cont << alts) ! k) ds))
     =   {- |eval e ρ = many (step ev) (eval (ConApp k ys) ρ1)|, unfold |βT| -}
-        step Case1 (many (step ev) (βT (eval (ConApp k ys) ρ1) >>= \case Con k ds | k ∈ dom (cont << alts) -> ((cont << alts) `at` k) ds))
-    =   {- Simplify |return (Con k ds) >>= f = f (Con k ds)|, |(cont << alts) `at` k| as above -}
-        step Case1 (many (step ev) (βT (step Case2 (eval er (exts ρ xs (map (ρ1 `at`) ys))))))
+        step Case1 (many (step ev) (βT (eval (ConApp k ys) ρ1) >>= \case Con k ds | k ∈ dom (cont << alts) -> ((cont << alts) ! k) ds))
+    =   {- Simplify |return (Con k ds) >>= f = f (Con k ds)|, |(cont << alts) ! k| as above -}
+        step Case1 (many (step ev) (βT (step Case2 (eval er (exts ρ xs (map (ρ1 !) ys))))))
     =   {- Unfold |βT| -}
-        step Case1 (many (step ev) (step Case2 (βT (eval er (exts ρ xs (map (ρ1 `at`) ys))))))
+        step Case1 (many (step ev) (step Case2 (βT (eval er (exts ρ xs (map (ρ1 !) ys))))))
     ⊑   {- Induction hypothesis -}
-        step Case1 (many (step ev) (step Case2 (eval er (exts (βE << ρ) xs (map ((βE << ρ1) `at`) ys)))))
+        step Case1 (many (step ev) (step Case2 (eval er (exts (βE << ρ) xs (map ((βE << ρ1) !) ys)))))
     =   {- Refold |cont| -}
-        step Case1 (cont (alts `at` k) (map ((βE << ρ1) `at`) xs))
+        step Case1 (cont (alts ! k) (map ((βE << ρ1) !) xs))
     ⊑   {- Assumption \textsc{Beta-Sel} -}
         step Case1 (many (step ev) (select (eval (ConApp k ys) (βE << ρ1)) (cont << alts)))
     ⊑   {- Assumption \textsc{Step-Sel} -}
@@ -683,7 +684,7 @@ for any monotone |hat f| due to the lack of full abstraction, and likewise for
 For example,
 \begin{center}
 \begin{spec}
-  hat f (Uses φ _) := if φ `at` x ⊑ 0 then nopD else step (Lookup z) nopD
+  hat f (Uses φ _) := if φ ! x ⊑ 0 then nopD else step (Lookup z) nopD
 \end{spec}
 \end{center}
 defines a monotone |hat f| that violates \textsc{Beta-App}
@@ -728,7 +729,7 @@ This operation forms a Galois connection, as follows:
 
 \begin{code}
 freezeHeap :: (Trace (hat d), Domain (hat d), HasBind (hat d), Lat (hat d)) => needheap -> GC (needd ) (named (hat d))
-freezeHeap μ = untyped (repr β where β (step (Lookup x) (fetch a))  |  memo a (eval e ρ) <- μ `at` a
+freezeHeap μ = untyped (repr β where β (step (Lookup x) (fetch a))  |  memo a (eval e ρ) <- μ ! a
                                                                     =  step (Lookup x) (eval e (β << ρ)))
 \end{code}
 
@@ -742,20 +743,20 @@ The precise \Cref{defn:syn-heap} can be found in the Appendix.
 \begin{definition}[Syntactic by-need heaps and environments, address domain]
   \label{defn:syn-heap}
   We write |needenv ρ| (resp. |needheap μ|) to say that the by-need
-  environment |ρ :: Map Name (Pow (D (ByNeed T)))| (resp. by-need heap |μ|) is
+  environment |ρ :: Name :-> Pow (D (ByNeed T))| (resp. by-need heap |μ|) is
   \emph{syntactic}, defined by mutual guarded recursion as
   \begin{itemize}
     \item |needd d| iff |d = Cup (step (Lookup y) (fetch a))|.
-    \item |needenv ρ| iff for all |x|, |needd (ρ `at` x)|.
-    \item |adom d := set (a || step (Lookup y) (fetch a) ∈ ρ `at` x)|
-    \item |adom ρ := Cup (adom (ρ `at` x) || x ∈ dom ρ)|.
-    \item |needheap μ| iff for all |a|, |μ `at` a = Cup (memo a (eval e ρ) || Later (needenv ρ && adom ρ ⊆ dom μ))|.
+    \item |needenv ρ| iff for all |x|, |needd (ρ ! x)|.
+    \item |adom d := set (a || step (Lookup y) (fetch a) ∈ ρ ! x)|
+    \item |adom ρ := Cup (adom (ρ ! x) || x ∈ dom ρ)|.
+    \item |needheap μ| iff for all |a|, |μ ! a = Cup (memo a (eval e ρ) || Later (needenv ρ && adom ρ ⊆ dom μ))|.
   \end{itemize}
   We refer to |adom d| (resp. |adom ρ|) as the \emph{address domain} of |d| (resp. |ρ|).
 \end{definition}
 
 As before, for the remainder of this Subsection we assume that all concrete
-environments |Map Name (D (ByNeed T))| and heaps |Heap (ByNeed T)| satisfy
+environments |Name :-> D (ByNeed T)| and heaps |Heap (ByNeed T)| satisfy
 |needenv| resp. |needheap|.
 It is easy to see that syntacticness is preserved by |eval| whenever environment
 or heap is extended, assuming that |Domain| and |HasBind| are adjusted
@@ -780,7 +781,7 @@ toward a proof for the approximation statement about |αE| in
     \qquad
     \inferrule[\progresstoext]{|a| \not∈ |dom μ| \quad |adom ρ ⊆ dom μ ∪ set a|}{|μ ~> ext μ a (memo a (eval e ρ))|}
     \\ \\[-0.5em]
-    \inferrule[\progresstomemo]{|μ1 `at` a = memo a (eval e ρ1)| \quad |Later (eval e ρ1 μ1 = many (Step ev) (eval v ρ2 μ2))|}{|μ1 ~> ext μ2 a (memo a (eval v ρ2))|}
+    \inferrule[\progresstomemo]{|μ1 ! a = memo a (eval e ρ1)| \quad |Later (eval e ρ1 μ1 = many (Step ev) (eval v ρ2 μ2))|}{|μ1 ~> ext μ2 a (memo a (eval v ρ2))|}
     \\[-0.5em]
   \end{array}\]
   \caption{Heap progression relation}
@@ -808,10 +809,10 @@ a lack of full abstraction.
 % Can't prove the following lemma:
 %\begin{lemmarep}
 %If |μ1 ~> μ2| by \progresstomemo,
-%then also |ext μ2 a (μ1 `at` a) ~> μ2| for the updated |a ∈ dom μ1|.
+%then also |ext μ2 a (μ1 ! a) ~> μ2| for the updated |a ∈ dom μ1|.
 %\end{lemmarep}
 %\begin{proof}
-%By rule inversion, we have |μ1 `at` a = memo a (eval e ρ1)|
+%By rule inversion, we have |μ1 ! a = memo a (eval e ρ1)|
 %and |eval e ρ1 μ1 = many (Step ev) (eval v ρ2 (ext μ2 a (memo a (eval e ρ1)))|
 %for some |e|, |ρ1|, |v|, |ρ2|.
 %Then
@@ -835,11 +836,11 @@ By Löb induction and cases on |e|.
   \item \textbf{Case} |Var x|:
     Let |many ev1 := tail (init (many ev))|.
     \begin{spec}
-        (ρ1 `at` x) μ1
+        (ρ1 ! x) μ1
     =   {- |needenv ρ1|, some |y|, |a| -}
         Step (Lookup y) (fetch a μ1)
     =   {- Unfold |fetch| -}
-        Step (Lookup y) ((μ1 `at` a) μ1)
+        Step (Lookup y) ((μ1 ! a) μ1)
     =   {- |needheap μ|, some |e|, |ρ3| -}
         Step (Lookup y) (memo a (eval e ρ3 μ1))
     =   {- Unfold |memo| -}
@@ -858,7 +859,7 @@ By Löb induction and cases on |e|.
     \end{spec}
     We have
     \begin{align}
-      & |μ1 `at` a = memo a (eval e ρ3)| \label{eqn:eval-progression-memo} \\
+      & |μ1 ! a = memo a (eval e ρ3)| \label{eqn:eval-progression-memo} \\
       & |Later (eval e ρ3 μ1 = many (Step ev1) (eval v ρ2 μ3))| \label{eqn:eval-progression-eval} \\
       & |μ2 = ext μ3 a (memo a (eval v ρ2))| \label{eqn:eval-progression-heaps}
     \end{align}
@@ -869,7 +870,7 @@ By Löb induction and cases on |e|.
     Then |μ1 = μ2| and the goal follows by \progresstorefl.
   \item \textbf{Case} |App e1 x|:
     Let us assume that |eval e1 ρ1 μ1 = many (Step ev1) (eval (Lam y e2) ρ3 μ3)| and
-    |eval e2 (ext ρ3 y (ρ `at` x)) μ3 = many (Step ev2) (eval v ρ2 μ2)|, so that
+    |eval e2 (ext ρ3 y (ρ ! x)) μ3 = many (Step ev2) (eval v ρ2 μ2)|, so that
     |μ1 ~> μ3|, |μ3 ~> μ2| by the induction hypothesis.
     The goal follows by \progresstotrans, because
     |many ev = [App1] ++ many ev1 ++ [App2] ++ many ev2|.
@@ -908,20 +909,20 @@ semantically irrelevant when it is never updated:
 
 \begin{lemma}[Update once]
 \label{thm:update-once}
-If   |μ1 ~> μ2| and |μ1 `at` a = memo a (eval v ρ)|,
-then |μ2 `at` a = memo a (eval v ρ)|.
+If   |μ1 ~> μ2| and |μ1 ! a = memo a (eval v ρ)|,
+then |μ2 ! a = memo a (eval v ρ)|.
 \end{lemma}
 \begin{proof}
 Simple proof by induction on |μ1 ~> μ2|.
 The only case updating a heap entry is \progresstomemo, and there we can see
-that |μ2 `at` a = memo (eval v ρ)| because evaluating |v| in |μ1| does not make
+that |μ2 ! a = memo (eval v ρ)| because evaluating |v| in |μ1| does not make
 a step.
 \end{proof}
 
 \begin{lemma}[No update implies semantic irrelevance]
 \label{thm:no-update-irrelevance}
 If |eval e ρ1 μ1 = many (Step ev) (eval v ρ2 μ2)|
-and |μ1 `at` a = μ2 `at` a = memo a (eval e1 ρ3)|, |e1| not a value,
+and |μ1 ! a = μ2 ! a = memo a (eval e1 ρ3)|, |e1| not a value,
 then |eval e ρ1 (ext μ1 a d) = many (Step ev) (eval v ρ2 (ext μ2 a d))|.
 \end{lemma}
 \begin{proof}
@@ -934,12 +935,12 @@ By Löb induction and cases on |e|.
      have updated |a| with |eval v ρ2|.
      Then we also have |eval x ρ1 (ext μ1 a d) = Step (Lookup y) (memo a1 (eval e1 ρ3 (ext μ1 a d)))|.
      The goal follows from applying the induction hypothesis and realising that
-     |μ2 `at` a1| has been updated consistently with |memo a1 (eval v ρ2)|.
+     |μ2 ! a1| has been updated consistently with |memo a1 (eval v ρ2)|.
   \item \textbf{Case} |Lam x e|, |ConApp k xs|: Easy to see for |μ1 = μ2|.
   \item \textbf{Case} |App e x|:
     We can apply the induction hypothesis twice,
     to     |eval e ρ1 μ1 = many (step ev1) (eval (Lam y body) ρ3 μ3)|
-    and to |eval body (ext ρ3 y (ρ1 `at` x)) μ3 = many (step ev2) (eval v ρ2 μ2)|
+    and to |eval body (ext ρ3 y (ρ1 ! x)) μ3 = many (step ev2) (eval v ρ2 μ2)|
     to show the goal.
   \item \textbf{Case} |Case e alts|: Similar to |App|.
   \item \textbf{Case} |Let x e1 e2|:
@@ -955,13 +956,13 @@ By Löb induction and cases on |e|.
 
 \begin{lemma}
 \label{thm:freeze-heap-eq}
-If |forall a ∈ adom d. μ1 `at` a = μ2 `at` a|,
+If |forall a ∈ adom d. μ1 ! a = μ2 ! a|,
 then |αE μ1 d = αE μ2 d|, where |αE μ :<->: γE μ = freezeHeap μ|.
 \end{lemma}
 \begin{proof}
 By Löb induction.
 Since |needd d|, we have |d = Cup (step (Lookup y) (fetch a))|.
-Let |memo a (eval e ρ) := μ1 `at` a = μ2 `at` a|.
+Let |memo a (eval e ρ) := μ1 ! a = μ2 ! a|.
 Then |adom ρ ⊆ dom μi| due to |needheap μi| and the goal follows by the
 induction hypothesis:
 \[
@@ -983,7 +984,7 @@ following lemma ensures compatibility:
   \begin{enumerate}[label=(\alph*),ref=\thelemma.(\alph*)]
     \item
       If   |eval e ρ1 μ1 = many (Step ev) (eval v ρ2 μ2)|
-      and  |μ1 `at` a = memo a (eval e ρ1)|,\\
+      and  |μ1 ! a = memo a (eval e ρ1)|,\\
       then |eval v (βE (ext μ2 a (memo a (eval v ρ2))) << ρ2) ⊑ eval e (βE μ2 << ρ1)|.
       \label{thm:memo-improves}
     \item
@@ -998,7 +999,7 @@ By Löb induction, we assume that both properties hold \emph{later}.
 \begin{itemize}
   \item \labelcref{thm:memo-improves}:
     We assume that |eval e ρ1 μ1 = many (Step ev) (eval v ρ2 μ2)|
-    and |μ1 `at` a = memo a (eval e ρ1)|
+    and |μ1 ! a = memo a (eval e ρ1)|
     to show |eval v (αE (ext μ2 a (memo a (eval v ρ2))) << set << ρ2) ⊑ eval e (αE μ2 << set << ρ1)|.
 
     We can use the IH \labelcref{thm:memo-improves} to prove that
@@ -1031,37 +1032,37 @@ By Löb induction, we assume that both properties hold \emph{later}.
     By Löb induction and cases on |e|.
     \begin{itemize}
       \item \textbf{Case} |Var x|:
-        Let |a| be the address such that |ρ1 `at` x = step (Lookup y) (fetch a)|.
-        Note that |μ1 `at` a = memo a _|, so the result has been memoised in
+        Let |a| be the address such that |ρ1 ! x = step (Lookup y) (fetch a)|.
+        Note that |μ1 ! a = memo a _|, so the result has been memoised in
         |μ2|, and by \Cref{thm:update-once} in |μ3| as well.
-        Hence the entry in |μ3| must be of the form |μ3 `at` a = memo a (eval v ρ2)|.
+        Hence the entry in |μ3| must be of the form |μ3 ! a = memo a (eval v ρ2)|.
         \begin{spec}
             eval v (βE μ3 << ρ2)
         ⊑   {- Assumption \textsc{Step-Inc} -}
             step (Lookup y) (eval v (βE μ3 << ρ2))
         =   {- Refold |βE| for the appropriate |y| -}
-            (βE μ3 << ρ1) `at` x
+            (βE μ3 << ρ1) ! x
         =   {- Refold |eval| -}
             eval x (βE μ3 << ρ1)
         \end{spec}
       \item \textbf{Case} |Lam x body|, |ConApp k xs|: Follows by reflexivity.
       \item \textbf{Case} |App e x|:
         Then |eval e ρ1 μ1 = many (Step ev1) (eval (Lam y body) ρ3 μ4)|\\
-        and |eval body (ext ρ3 y (ρ1 `at` x)) μ4 = many (Step ev2) (eval v ρ2 μ2)|.
+        and |eval body (ext ρ3 y (ρ1 ! x)) μ4 = many (Step ev2) (eval v ρ2 μ2)|.
         Note that |μ4 ~> μ2| by \Cref{thm:eval-progression}, hence |μ4 ~> μ3|
         by \progresstotrans.
         \begin{spec}
             eval v (βE μ3 << ρ2)
         ⊑   {- IH \labelcref{thm:value-improves} at |μ2 ~> μ3| -}
-            eval body (βE μ3 << ext ρ3 y (ρ1 `at` x))
+            eval body (βE μ3 << ext ρ3 y (ρ1 ! x))
         ⊑   {- Assumption \textsc{Step-Inc} -}
-            step App2 (eval body (βE μ3 << ext ρ3 y (ρ1 `at` x)))
+            step App2 (eval body (βE μ3 << ext ρ3 y (ρ1 ! x)))
         ⊑   {- Assumption \textsc{Beta-App} -}
-            apply (eval (Lam y body) (βE μ3 << ρ3)) (βE μ3 (ρ1 `at` x))
+            apply (eval (Lam y body) (βE μ3 << ρ3)) (βE μ3 (ρ1 ! x))
         ⊑   {- IH \labelcref{thm:value-improves} at |μ4 ~> μ3| -}
-            apply (eval e (βE μ3 << ρ1)) (βE μ3 << ρ1 `at` x)
+            apply (eval e (βE μ3 << ρ1)) (βE μ3 << ρ1 ! x)
         ⊑   {- Assumption \textsc{Step-Inc} -}
-            step App1 (apply (eval e (βE μ3 << ρ1)) (βE μ3 << ρ1 `at` x))
+            step App1 (apply (eval e (βE μ3 << ρ1)) (βE μ3 << ρ1 ! x))
         =   {- Refold |eval (App e x) (βE μ3 << ρ1)| -}
             eval (App e x) (βE μ3 << ρ1)
         \end{spec}
@@ -1071,7 +1072,7 @@ By Löb induction, we assume that both properties hold \emph{later}.
         |a := nextFree μ1|, |ρ4 := ext ρ1 x (step (Lookup x) (fetch a))|,
         |μ4 := ext μ1 a (memo a (eval e1 ρ4))|.
         Observe that |μ4 ~> μ2 ~> μ3|.
-        Since |μ4 `at` a = memo a (eval e1 ρ4)|, |μ3 `at` a| must either be the same
+        Since |μ4 ! a = memo a (eval e1 ρ4)|, |μ3 ! a| must either be the same
         entry or the result of \progresstomemo, that is,
         \begin{spec}
             eval v (βE μ3 << ρ2)
@@ -1080,14 +1081,14 @@ By Löb induction, we assume that both properties hold \emph{later}.
         ⊑   {- Assumption \textsc{Step-Inc} -}
             step Let1 (eval e2 (βE μ3 << ρ4))
         =   {- Unfold |ρ4| -}
-            step Let1 (eval e2 (ext (βE μ3 << ρ1) x (βE μ3 (ρ4 `at` x))))
+            step Let1 (eval e2 (ext (βE μ3 << ρ1) x (βE μ3 (ρ4 ! x))))
         \end{spec}
         Here, we proceed by case analysis on whether or not |μ4 ~> μ3| contains
-        a \progresstomemo application updating |μ4 `at` a|.
-        If that is not the case, we have |μ3 `at` a = μ4 `at` a|.
+        a \progresstomemo application updating |μ4 ! a|.
+        If that is not the case, we have |μ3 ! a = μ4 ! a|.
         We get
         \begin{spec}
-        =   {- Unfold |βE μ3 (ρ4 `at` x)|, |μ3 `at` a = μ4 `at` a| -}
+        =   {- Unfold |βE μ3 (ρ4 ! x)|, |μ3 ! a = μ4 ! a| -}
             step Let1 (eval e2 (ext (βE μ3 << ρ1) x (lfp (\(hat d1) -> step (Lookup x) (eval e1 (ext (βE μ3 << ρ1) x (hat d1)))))))
         ⊑   {- Assumption \textsc{Bind-ByName} -}
             bind  (\(hat d1) -> eval e1 (ext ((βE μ3 << ρ1)) x (step (Lookup x) (hat d1))))
@@ -1095,24 +1096,24 @@ By Löb induction, we assume that both properties hold \emph{later}.
         =   {- Refold |eval| -}
             eval (Let x e1 e2) (βE μ3 << ρ1)
         \end{spec}
-        Otherwise, |μ3 `at` a| is the result of updating it to the form
+        Otherwise, |μ3 ! a| is the result of updating it to the form
         |memo a (eval v1 ρ3)|, where |eval e1 ρ4 μ4' = many (Step ev1) (eval v1 ρ3 μ3')|
         such that |μ4 ~> μ4' ~> (ext μ3' a (memo a (eval v1 ρ3))) ~> μ3| and
-        |μ3' `at` a = μ4' `at` a = μ4 `at` a|.
+        |μ3' ! a = μ4' ! a = μ4 ! a|.
         (NB: if there are multiple such occurrences of \progresstomemo in
         |μ4 ~> μ3|, this must be the first one, because afterwards it is
-        $|μ4' `at` a| \not= |μ4 `at` a|$.)
+        $|μ4' ! a| \not= |μ4 ! a|$.)
 
         It is not useful to apply the IH \labelcref{thm:memo-improves} to this
         situation directly, because |μ3' ~> μ3| does not hold.
-        However, since $|μ4' `at` a = μ3' `at` a| \not= |μ3 `at` a|$, we can apply
+        However, since $|μ4' ! a = μ3' ! a| \not= |μ3 ! a|$, we can apply
         \Cref{thm:no-update-irrelevance} to get
         |eval e1 ρ4 (ext μ4' a (memo a (eval v1 ρ3))) = many (Step ev1) (eval v1 ρ3 (ext μ3' a (memo a (eval v1 ρ3))))|
         and applying the induction hypothesis
         \labelcref{thm:memo-improves} to |ext μ3' a (memo a (eval v1 ρ3)) ~> μ3|
         yields |eval v1 (βE μ3 << ρ3) ⊑ eval e1 (βE μ3 << ρ1)|, which we use below:
         \begin{spec}
-        =   {- Unfold |βE μ3 (ρ4 `at` x)|, |μ3 `at` a = memo a (eval v1 ρ3)| -}
+        =   {- Unfold |βE μ3 (ρ4 ! x)|, |μ3 ! a = memo a (eval v1 ρ3)| -}
             step Let1 (eval e2 (ext (βE μ3 << ρ1) x (lfp (\(hat d1) -> step (Lookup x) (eval v1 (ext (βE μ3 << ρ3) x (hat d1)))))))
         ⊑   {- |eval v1 (βE μ3 << ρ3) ⊑ eval e1 (βE μ3 << ρ1)| -}
             step Let1 (eval e2 (ext (βE μ3 << ρ1) x (lfp (\(hat d1) -> step (Lookup x) (eval e1 (ext (βE μ3 << ρ1) x (hat d1)))))))
@@ -1145,7 +1146,7 @@ Similar to \Cref{thm:soundness-by-name}, it suffices to show the goal for a
 single |d = step (Lookup y) (fetch a)| for some |y|, |a| and the representation
 function |βE μ := αE μ << set|.
 
-Furthermore, let us abbreviate |memo a (eval ei ρi) := μi `at` a|.
+Furthermore, let us abbreviate |memo a (eval ei ρi) := μi ! a|.
 The goal is to show
 \[
   |step (Lookup y) (eval e2 (βE μ2 << ρ2)) ⊑ step (Lookup y) (eval e1 (βE μ1 << ρ1))|,
@@ -1168,14 +1169,14 @@ induction hypothesis, which is freely applicable under the ambient |Later|.
     We get to refine |μ2 = ext μ1 a1 (memo a1 (eval e ρ))|.
     Since |a ∈ dom μ1|,
     we have $|a1| \not= |a|$
-    and thus |μ1 `at` a = μ2 `at` a|, thus |e1=e2|, |ρ1=ρ2|.
+    and thus |μ1 ! a = μ2 ! a|, thus |e1=e2|, |ρ1=ρ2|.
     The goal can be simplified to
     |Later (eval e1 (βE μ2 << ρ1) ⊑ eval e1 (βE μ1 << ρ1))|.
     We can apply the induction hypothesis to get
     |Later (βE μ2 ⊑ βE μ1)|, and the goal follows by monotonicity.
-  \item \textbf{Case} $\inferrule*[vcenter,left=\progresstomemo]{|μ1 `at` a1 = memo a1 (eval e ρ3)| \quad |Later (eval e ρ3 μ1 = many (Step ev) (eval v ρ2 μ3))|}{|μ1 ~> ext μ3 a1 (memo a1 (eval v ρ2))|}$:\\
+  \item \textbf{Case} $\inferrule*[vcenter,left=\progresstomemo]{|μ1 ! a1 = memo a1 (eval e ρ3)| \quad |Later (eval e ρ3 μ1 = many (Step ev) (eval v ρ2 μ3))|}{|μ1 ~> ext μ3 a1 (memo a1 (eval v ρ2))|}$:\\
     We get to refine |μ2 = ext μ3 a1 (memo a1 (eval v ρ2))|.
-    When $|a1| \not= |a|$, we have |μ1 `at` a = μ2 `at` a| and the goal follows as in the \progresstoext case.
+    When $|a1| \not= |a|$, we have |μ1 ! a = μ2 ! a| and the goal follows as in the \progresstoext case.
     Otherwise, |a = a1|, |e1 = e|, |ρ3 = ρ1|, |e2 = v|.
 
     We can use Lemma \labelcref{thm:memo-improves} to prove that
@@ -1229,7 +1230,7 @@ By Löb induction and cases on |e|, using the representation function
       eval x ρ1 μ1 = Step (Lookup y) (memo a (eval e1 ρ3 μ1)) = many (Step ev) (eval v ρ2 μ2)
     \end{spec}
     for some |y|, |a|, |e1|, |ρ3|,
-    such that |ρ1 = step (Lookup y) (fetch a)|, |μ1 `at` a = memo a (eval e1 ρ3)| and
+    such that |ρ1 = step (Lookup y) (fetch a)|, |μ1 ! a = memo a (eval e1 ρ3)| and
     |many ev = [Lookup y] ++ many ev1 ++ [Update]| for some |ev1| by determinism.
     \begin{spec}
         many (step ev) (eval v (βE μ2 << ρ2))
@@ -1241,8 +1242,8 @@ By Löb induction and cases on |e|, using the representation function
         step (Lookup y) (many (step ev1) (eval v (βE (ext μ2 a (memo a (eval e1 ρ3))) << ρ2)))
     ⊑   {- \Cref{thm:eval-improves-need} -}
         step (Lookup y) (eval e1 (βE μ1 << ρ3))
-    =   {- Refold |βE|, |ρ3 `at` x| -}
-        βE (ρ1 `at` x)
+    =   {- Refold |βE|, |ρ3 ! x| -}
+        βE (ρ1 ! x)
     =   {- Refold |eval x (βE μ1 << ρ1)| -}
         eval x (βE μ1 << ρ1)
     \end{spec}
@@ -1256,9 +1257,9 @@ By Löb induction and cases on |e|, using the representation function
     |a := nextFree μ1|,
     |μ3 := ext μ1 a (memo a (eval e1 ρ3))|.
 
-    Then |(βE μ3 << ρ3) `at` y = (βE μ1 << ρ1) `at` y| whenever $|x| \not= |y|$
+    Then |(βE μ3 << ρ3) ! y = (βE μ1 << ρ1) ! y| whenever $|x| \not= |y|$
     by \Cref{thm:freeze-heap-eq},
-    and |(βE μ3 << ρ3) `at` x = step (Lookup x) (eval e1 (βE μ3 << ρ3))|.
+    and |(βE μ3 << ρ3) ! x = step (Lookup x) (eval e1 (βE μ3 << ρ3))|.
 
     We prove the goal, thus
     \begin{spec}
@@ -1268,8 +1269,8 @@ By Löb induction and cases on |e|, using the representation function
     ⊑   {- Induction hypothesis at |ev1| -}
         step Let1 (eval e2 (βE μ3 << ρ3))
     =   {- Rearrange |βE μ3| by above reasoning -}
-        step Let1 (eval e2 (ext (βE μ1 << ρ1) x (βE μ3 (ρ3 `at` x))) μ3)
-    =   {- Expose fixpoint, rewriting |βE μ3 << ρ3| to |ext (βE μ1 << ρ1) x (βE μ3 (ρ3 `at` x))| -}
+        step Let1 (eval e2 (ext (βE μ1 << ρ1) x (βE μ3 (ρ3 ! x))) μ3)
+    =   {- Expose fixpoint, rewriting |βE μ3 << ρ3| to |ext (βE μ1 << ρ1) x (βE μ3 (ρ3 ! x))| -}
         step Let1 (eval e2 (ext (βE μ1 << ρ1) x (lfp (\(hat d1) -> step (Lookup x) (eval e1 (ext (βE μ1 << ρ1) x (hat d1)))))))
     =   {- Partially unroll |lfp| -}
         step Let1 (eval e2 (ext (βE μ1 << ρ1) x (step (Lookup x) (lfp (\(hat d1) -> eval e1 (ext (βE μ1 << ρ1) x (step (Lookup x) (hat d1))))))))
@@ -1289,20 +1290,20 @@ By Löb induction and cases on |e|, using the representation function
     to argument denotations.
 
     We have |eval e ρ1 μ1 = many (Step ev1) (eval (Lam y body) ρ3 μ3)|
-    and |eval body (ext ρ3 y (ρ1 `at` x)) μ3 = many (Step ev2) (eval v ρ2 μ2)|.
+    and |eval body (ext ρ3 y (ρ1 ! x)) μ3 = many (Step ev2) (eval v ρ2 μ2)|.
     We have |μ1 ~> μ3| by \Cref{thm:eval-progression}.
     \begin{spec}
         step App1 (many (Step ev1) (step App2 (many (Step ev2) (eval v (βE μ2 << ρ2)))))
     =   {- Induction hypothesis at |many ev2| -}
-        step App1 (many (step ev1) (step App2 (eval body (βE μ3 << (ext ρ3 y (ρ1 `at` x))))))
+        step App1 (many (step ev1) (step App2 (eval body (βE μ3 << (ext ρ3 y (ρ1 ! x))))))
     ⊑   {- Assumption \textsc{Beta-App} -}
-        step App1 (many (step ev1) (apply (eval (Lam y body) (βE μ3 << ρ3)) ((βE μ3 << ρ1) `at` x)))
+        step App1 (many (step ev1) (apply (eval (Lam y body) (βE μ3 << ρ3)) ((βE μ3 << ρ1) ! x)))
     ⊑   {- Assumption \textsc{Step-App} -}
-        step App1 (apply (many (step ev1) (eval (Lam y body) (βE μ3 << ρ3))) ((βE μ3 << ρ1) `at` x))
+        step App1 (apply (many (step ev1) (eval (Lam y body) (βE μ3 << ρ3))) ((βE μ3 << ρ1) ! x))
     ⊑   {- Induction hypothesis at |many ev1| -}
-        step App1 (apply (eval e (βE μ1 << ρ1)) ((βE μ3 << ρ1) `at` x))
+        step App1 (apply (eval e (βE μ1 << ρ1)) ((βE μ3 << ρ1) ! x))
     ⊑   {- \Cref{thm:heap-progress-freeze} -}
-        step App1 (apply (eval e (βE μ1 << ρ1)) ((βE μ1 << ρ1) `at` x))
+        step App1 (apply (eval e (βE μ1 << ρ1)) ((βE μ1 << ρ1) ! x))
     =   {- Refold |eval| -}
         eval (App e x) (βE μ1 << ρ1)
     \end{spec}
@@ -1311,12 +1312,12 @@ By Löb induction and cases on |e|, using the representation function
     The same as in \Cref{thm:eval-improves}.
 
     We have |eval e ρ1 μ1 = many (Step ev1) (eval (ConApp k ys) ρ3 μ3)|,
-    |eval er (exts ρ1 xs (map (ρ3 `at`) ys)) μ3 = many (Step ev2) (eval v ρ2) μ2|,
-    where |alts `at` k = (xs,er)| is the matching RHS.
+    |eval er (exts ρ1 xs (map (ρ3 !) ys)) μ3 = many (Step ev2) (eval v ρ2) μ2|,
+    where |alts ! k = (xs,er)| is the matching RHS.
     \begin{spec}
         many (step ev) (eval v (βE << ρ2) µ2)
     ⊑   {- |many ev = [Case1] ++ many ev1 ++ [Case2] ++ ev2|, IH at |ev2| -}
-        step Case1 (many (step ev1) (step Case2 (eval er (βE μ3 << (exts ρ1 xs (map (hat ρ3 `at`) ys))))))
+        step Case1 (many (step ev1) (step Case2 (eval er (βE μ3 << (exts ρ1 xs (map (hat ρ3 !) ys))))))
     ⊑   {- Assumption \textsc{Beta-Sel} -}
         step Case1 (many (step ev1) (select (eval (ConApp k ys) (βE μ3 << ρ3)) (cont << alts)))
     ⊑   {- Assumption \textsc{Step-Sel} -}
@@ -1386,7 +1387,7 @@ We proceed by cases over |e|.
   \item \textbf{Case} |Var x|:
     The stuck case follows by unfolding |βT|.
     \begin{spec}
-        βT ((ρ `at` x) μ)
+        βT ((ρ ! x) μ)
     =   {- |needenv ρ|, Unfold |βT| -}
         step (Lookup y) (βT (fetch a μ))
     =   {- |needheap μ| -}
@@ -1400,7 +1401,7 @@ We proceed by cases over |e|.
     ⊑   {- Induction hypothesis -}
         step (Lookup y) (eval e1 (βE μ << ρ1))
     =   {- Refold |βE| -}
-        βE μ (ρ `at` x)
+        βE μ (ρ ! x)
     \end{spec}
 
   \item \textbf{Case} |Lam x body|:
@@ -1420,7 +1421,7 @@ We proceed by cases over |e|.
     \begin{spec}
         βT (eval (ConApp k xs) ρ μ)
     =   {- Unfold |eval|, |βT| -}
-        con k (map ((βE μ << ρ) `at`) xs)
+        con k (map ((βE μ << ρ) !) xs)
     =   {- Refold |eval| -}
         eval (Lam x body) (βE μ << ρ)
     \end{spec}
@@ -1432,11 +1433,11 @@ We proceed by cases over |e|.
 %    \begin{spec}
 %        βT (eval (App e x) ρ μ)
 %    =   {- Unfold |eval|, |βT| -}
-%        step App1 (βT (apply (eval e ρ μ) (ρ `at` x)))
+%        step App1 (βT (apply (eval e ρ μ) (ρ ! x)))
 %    =   {- Unfold |apply| -}
-%        step App1 (βT (eval e ρ μ >>= \case Fun f -> f (ρ `at` x); _ -> stuck))
+%        step App1 (βT (eval e ρ μ >>= \case Fun f -> f (ρ ! x); _ -> stuck))
 %    ⊑   {- By cases, see below -}
-%        step App1 (apply (eval e (βE μ << ρ)) ((βE μ << ρ) `at` x))
+%        step App1 (apply (eval e (βE μ << ρ)) ((βE μ << ρ) ! x))
 %    =   {- Refold |eval| -}
 %        eval (App e x) (βE μ << ρ)
 %    \end{spec}
@@ -1446,43 +1447,43 @@ We proceed by cases over |e|.
 %    =   {- |eval e ρ μ| diverges, unfold |βT| -}
 %        step ev1 (step ev2 (...))
 %    ⊑   {- Assumption \textsc{Step-App} -}
-%        apply (step ev1 (step ev2 (...))) ((βE μ << ρ) `at` x)
+%        apply (step ev1 (step ev2 (...))) ((βE μ << ρ) ! x)
 %    =   {- Refold |βT|, |eval| -}
-%        apply (βT (eval e ρ μ)) ((βE μ << ρ) `at` x)
+%        apply (βT (eval e ρ μ)) ((βE μ << ρ) ! x)
 %    ⊑   {- Induction hypothesis -}
-%        apply (eval e (βE μ << ρ)) ((βE μ << ρ) `at` x)
+%        apply (eval e (βE μ << ρ)) ((βE μ << ρ) ! x)
 %    \end{spec}
 %    Otherwise, |eval e ρ μ| must produce a value |v| in heap |μ2|.
 %    If |v=Stuck| or |v=Con k ds|, we set |d := stuck|
 %    (resp. |d := con k (map (βE μ) ds)|) and have
 %    \begin{spec}
-%        βT (eval e ρ μ >>= \case Fun f -> f (ρ `at` x); _ -> stuck)
+%        βT (eval e ρ μ >>= \case Fun f -> f (ρ ! x); _ -> stuck)
 %    =   {- |eval e ρ μ = many (step ev) (return v)|, unfold |βT| -}
-%        many (step ev) (βT (return v μ2 >>= \case Fun f -> f (ρ `at` x); _ -> stuck))
+%        many (step ev) (βT (return v μ2 >>= \case Fun f -> f (ρ ! x); _ -> stuck))
 %    =   {- |v| not |Fun|, unfold |βT| -}
 %        many (step ev) stuck
 %    ⊑   {- Assumptions \textsc{Unwind-Stuck}, \textsc{Intro-Stuck} where |d := stuck| or |d := con k (map βT ds)| -}
 %        many (step ev) (apply (d μ2) a)
 %    ⊑   {- Assumption \textsc{Step-App} -}
-%        apply (many (step ev) (d μ2)) ((βE μ << ρ) `at` x)
+%        apply (many (step ev) (d μ2)) ((βE μ << ρ) ! x)
 %    =   {- Refold |βT|, |eval| -}
-%        apply (βT (eval e ρ μ)) ((βE μ << ρ) `at` x)
+%        apply (βT (eval e ρ μ)) ((βE μ << ρ) ! x)
 %    ⊑   {- Induction hypothesis -}
-%        apply (eval e (βE μ << ρ)) ((βE μ << ρ) `at` x)
+%        apply (eval e (βE μ << ρ)) ((βE μ << ρ) ! x)
 %    \end{spec}
 %    In the final case, we have |v = Fun f|, which must be the result of some
 %    call |eval (Lam y body) ρ1 μ2|; hence
 %    |f := \d μ2 -> step App2 (eval body (ext ρ1 y d) μ2)|.
 %    \begin{spec}
-%        βT (eval e ρ μ >>= \case Fun f -> f (ρ `at` x); _ -> stuck)
+%        βT (eval e ρ μ >>= \case Fun f -> f (ρ ! x); _ -> stuck)
 %    =   {- |eval e ρ μ = many (step ev) (return v μ2)|, unfold |βT| -}
-%        many (step ev) (βT (return v μ2 >>= \case Fun f -> f (ρ `at` x); _ -> stuck))
+%        many (step ev) (βT (return v μ2 >>= \case Fun f -> f (ρ ! x); _ -> stuck))
 %    =   {- |v=Fun f|, with |f| as above; unfold |βT| -}
-%        many (step ev) (step App2 (βT (eval body (ext ρ1 y (ρ `at` x)) μ2)))
+%        many (step ev) (step App2 (βT (eval body (ext ρ1 y (ρ ! x)) μ2)))
 %    ⊑   {- Induction hypothesis -}
-%        many (step ev) (step App2 (eval body (βE μ2 << (ext ρ1 y (ρ `at` x)))))
+%        many (step ev) (step App2 (eval body (βE μ2 << (ext ρ1 y (ρ ! x)))))
 %    ⊑   {- Same as in proof for \Cref{thm:eval-improves-need} -}
-%        apply (eval e (βE μ << ρ)) ((βE μ << ρ) `at` x)
+%        apply (eval e (βE μ << ρ)) ((βE μ << ρ) ! x)
 %    \end{spec}
 
   \item \textbf{Case} |Let x e1 e2|:
@@ -1494,9 +1495,9 @@ We proceed by cases over |e|.
     |a := nextFree μ|,
     |μ1 := ext μ a (memo a (eval e1 ρ1))|.
 
-    Then |(βE μ1 << ρ1) `at` y = (βE μ << ρ) `at` y| whenever $|x| \not= |y|$
+    Then |(βE μ1 << ρ1) ! y = (βE μ << ρ) ! y| whenever $|x| \not= |y|$
     by \Cref{thm:freeze-heap-eq},
-    and |(βE μ1 << ρ1) `at` x = step (Lookup x) (eval e1 (βE μ1 << ρ1))|.
+    and |(βE μ1 << ρ1) ! x = step (Lookup x) (eval e1 (βE μ1 << ρ1))|.
     \begin{spec}
         βT (eval (Let x e1 e2) ρ μ)
     =   {- Unfold |eval| -}
@@ -1507,7 +1508,7 @@ We proceed by cases over |e|.
         step Let1 (βT (eval e2 (ext ρ x (step (Lookup x) (fetch a))) (ext μ a (memo a (eval e1 (ext ρ x (step (Lookup x) (fetch a))))))))
     ⊑   {- Induction hypothesis, setting |μ1 := ext μ a (memo a (eval e1 (ext ρ x (step (Lookup x) (fetch a)))))| -}
         step Let1 (eval e2 (ext (βE μ1 << ρ) x (βE μ1 (step (Lookup x) (fetch a)))))
-    =   {- Expose fixpoint, rewriting |βE μ1 << ρ1| to |ext (βE μ << ρ) x (βE μ1 (ρ1 `at` x))| -}
+    =   {- Expose fixpoint, rewriting |βE μ1 << ρ1| to |ext (βE μ << ρ) x (βE μ1 (ρ1 ! x))| -}
         step Let1 (eval e2 (ext (βE μ << ρ) x (lfp (\(hat d1) -> step (Lookup x) (eval e1 (ext (βE μ << ρ) x (hat d1)))))))
     =   {- Partially unroll fixpoint -}
         step Let1 (eval e2 (ext (βE μ << ρ) x (step (Lookup x) (lfp (\(hat d1) -> eval e1 (ext (βE μ << ρ) x (step (Lookup x) (hat d1))))))))
@@ -1567,16 +1568,16 @@ and |eval e (σ1 ρ1) (σ1 μ1) = many (Step (σ1 ev)) (eval v (σ2 ρ2) (σ2 μ
 By Löb induction and cases on |e|.
 \begin{itemize}
   \item \textbf{Case} |Var x|:
-    It is |σ1 ρ1 `at` x = step (Lookup y) (fetch (σ1 a))|
-    and   |σ1 μ1 `at` σ1 a = memo (σ1 a) (eval e1 (σ1 ρ3))|,
+    It is |σ1 ρ1 ! x = step (Lookup y) (fetch (σ1 a))|
+    and   |σ1 μ1 ! σ1 a = memo (σ1 a) (eval e1 (σ1 ρ3))|,
     so |eval x (σ1 ρ1) (σ1 μ1) = Step (Lookup y) (memo (σ1 a) (eval e1 (σ1 ρ3)) (σ1 μ1))|.
     We apply the induction hypothesis to |eval e1 ρ3|.
     The subsequent update transition updates |σ1 a| with |memo (σ1 a) (eval v (σ2 ρ2))|,
-    which is exactly what |σ2 μ2 `at` σ1 a = σ1 μ2 `at` σ1 a| looks like.
+    which is exactly what |σ2 μ2 ! σ1 a = σ1 μ2 ! σ1 a| looks like.
   \item \textbf{Case} |Lam x e|, |ConApp k xs|: Easy to see for |σ1 = σ2|.
   \item \textbf{Case} |App e x|:
     In the interesting case, the lambda body in the value of |e| is entered with
-    |ext (σ3 ρ3) y (σ1 ρ1 `at` x) = ext (σ3 ρ3) y (σ3 ρ1 `at` x)|,
+    |ext (σ3 ρ3) y (σ1 ρ1 ! x) = ext (σ3 ρ3) y (σ3 ρ1 ! x)|,
     where |σ3| is obtained from applying the induction hypothesis to |e|.
     Since |σ3| is an extension of |σ1|, we can invoke the induction hypothesis
     once more to show the goal.
@@ -1611,8 +1612,8 @@ By Löb induction and cases on |e|.
   \item \textbf{Case} |Lam x e|, |ConApp k xs|: Easy to see for |μ1 = μ2|.
   \item \textbf{Case} |App e x|:
     In the interesting case, the lambda body in the value of |e| is entered with
-    |ext ρ3 y (ρ1 `at` x)| in a heap |μ3 `oplus` μ'|,
-    |adom (ext ρ3 y (ρ1 `at` x)) ⊆ dom μ3|, which is the situation we invoke the
+    |ext ρ3 y (ρ1 ! x)| in a heap |μ3 `oplus` μ'|,
+    |adom (ext ρ3 y (ρ1 ! x)) ⊆ dom μ3|, which is the situation we invoke the
     induction hypothesis at once more to show the goal.
   \item \textbf{Case} |Case e alts|: Similar to |App|.
   \item \textbf{Case} |Let x e1 e2|:
