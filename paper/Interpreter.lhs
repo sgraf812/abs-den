@@ -64,9 +64,9 @@ instance (Show a, forall a. Show a => Show (τ a)) => Show (Fork (ParT τ) a) wh
   show (Fork l r) = "Fork(" ++ show l ++ "," ++ show r ++ ")"
 instance (Show a, forall a. Show a => Show (m a)) => Show (ParT m a) where
   show (ParT m) = show m
-instance {-# OVERLAPPING #-} (Show v) => Show (Addr :-> v) where
+instance {-# OVERLAPPING #-} (Show v) => Show (Map Addr v) where
   showsPrec _ = showListWith (\(k,v) -> shows k . showString "\\!\\! \\mapsto \\!\\! " . shows v) . Map.toList
-instance {-# OVERLAPPING #-} (Show v) => Show (Name :-> v) where
+instance {-# OVERLAPPING #-} (Show v) => Show (Map Name v) where
   showsPrec _ = showListWith (\(k,v) -> showString "\\mathit{" . showString k . showString "} \\! \\mapsto \\! " . shows v) . Map.toList
 
 takeT :: Int -> T a -> T (Maybe a)
@@ -102,7 +102,7 @@ Furthermore, the (terminating) interpreter outputs are directly generated from
 this extract.}
 
 Recall that a denotational semantics is expressed as a mathematical
-function |eval :: Exp -> (Name :-> D) -> D|.
+function |eval :: Exp -> (Map Name D) -> D|.
 The expression |eval e ρ| takes an expression |e| and returns its meaning, or \emph{denotation}, in
 some \emph{semantic domain} |D|.
 The environment |ρ| gives meaning to the free variables of |e|, by mapping each free variable to
@@ -119,21 +119,21 @@ data Exp
   =  Var Name | Let Name Exp Exp
   |  Lam Name Exp | App Exp Name
   |  ConApp Tag [Name] | Case Exp Alts
-type Alts = Tag :-> ([Name],Exp)
+type Alts = Map Tag ([Name],Exp)
 \end{spec}
 \caption{Syntax}
 \label{fig:syntax}
 \end{minipage}%
 \begin{minipage}{0.51\textwidth}
 \begin{code}
-type (:->) = Map; emp :: Ord k => k :-> v
-ext :: Ord k => (k :-> v) -> k -> v -> (k :-> v)
-exts :: Ord k  => (k :-> v) -> [k] -> [v]
-               -> (k :-> v)
-(!) :: Ord k => (k :-> v) -> k -> v
-dom :: Ord k => (k :-> v) -> Set k
+emp :: Ord k => Map k v
+ext :: Ord k => Map k v -> k -> v -> Map k v
+exts :: Ord k  => Map k v -> [k] -> [v]
+               -> Map k v
+at :: Ord k => Map k v -> k -> v
+dom :: Ord k => Map k v -> Set k
 (∈) :: Ord k => k -> Set k -> Bool
-(<<) :: (b -> c) -> (a :-> b) -> (a :-> c)
+(<<) :: (b -> c) -> Map a b -> Map a c
 \end{code}
 %if style == newcode
 \begin{code}
@@ -142,7 +142,7 @@ ext ρ x d = Map.insert x d ρ
 exts ρ xs ds = foldl' (uncurry . ext) ρ (zip xs ds)
 (<<) = Map.map
 infixr 9 <<
-(!) = (Map.!)
+at = (Map.!)
 dom = Map.keysSet
 (∈) = Set.member
 \end{code}
@@ -247,21 +247,21 @@ of any syntax.
 \begin{minipage}{0.55\textwidth}
 \begin{code}
 eval  ::  (Trace d, Domain d, HasBind d)
-      =>  Exp -> (Name :-> d) -> d
+      =>  Exp -> (Map Name d) -> d
 eval e ρ = case e of
-  Var x  | x ∈ dom ρ  -> ρ ! x
+  Var x  | x ∈ dom ρ  -> ρ `at` x
          | otherwise  -> stuck
   Lam x body -> fun {-" \iffalse "-}(label e){-" \fi "-} $ \d ->
     step App2 (eval body ((ext ρ x d)))
   App e x  | x ∈ dom ρ  -> step App1 $
-               apply (eval e ρ) (ρ ! x)
+               apply (eval e ρ) (ρ `at` x)
            | otherwise  -> stuck
   Let x e1 e2 -> bind {-" \iffalse "-}x{-" \fi "-}
     (\d1 -> eval e1 (ext ρ x (step (Lookup x) d1)))
     (\d1 -> step Let1 (eval e2 (ext ρ x (step (Lookup x) d1))))
   ConApp k xs
     | all (∈ dom ρ) xs, length xs == conArity k
-    -> con {-" \iffalse "-}(label e){-" \fi "-} k (map (ρ !) xs)
+    -> con {-" \iffalse "-}(label e){-" \fi "-} k (map (ρ `at`) xs)
     | otherwise
     -> stuck
   Case e alts -> step Case1 $
@@ -283,7 +283,7 @@ class Domain d where
   fun :: {-" \iffalse "-}Label -> {-" \fi "-}(d -> d) -> d
   apply :: d -> d -> d
   con :: {-" \iffalse "-}Label -> {-" \fi "-}Tag -> [d] -> d
-  select :: d -> (Tag :-> ([d] -> d)) ->  d
+  select :: d -> Map Tag ([d] -> d) ->  d
 
 class HasBind d where
   bind :: {-" \iffalse "-}Name -> {-" \fi "-}(d -> d) -> (d -> d) -> d
@@ -301,7 +301,7 @@ instance ifCodeElse (Monad τ => Domain (D τ)) (Domain DName) where
     Fun f -> f a; _ -> stuck
   con {-" \iffalse "-}_{-" \fi "-} k ds = return (Con k ds)
   select dv alts = dv >>= \case
-    Con k ds | k ∈ dom alts  -> (alts ! k) ds
+    Con k ds | k ∈ dom alts  -> (alts `at` k) ds
     _                        -> stuck
 
 ifPoly (instance HasBind DName where
@@ -462,12 +462,12 @@ modify  :: Monad m => (s -> s) -> StateT s m ()
 
 -- The ByNeed trace transformer
 data ByNeed τ v = ByNeed (StateT (Heap (ByNeed τ)) τ v)
-type Addr = Int; type Heap τ = Addr :-> D τ; nextFree :: Heap τ -> Addr
+type Addr = Int; type Heap τ = Map Addr (D τ); nextFree :: Heap τ -> Addr
 runByNeed :: ByNeed τ a -> τ (a, Heap (ByNeed τ))
 instance Monad τ => Monad (ByNeed τ) where ...
 instance Trace (τ v) => Trace (ByNeed τ v) where ...
 
-fetch :: Monad τ => Addr -> D (ByNeed τ); fetch a = ByNeed get >>= \μ -> μ ! a
+fetch :: Monad τ => Addr -> D (ByNeed τ); fetch a = ByNeed get >>= \μ -> μ `at` a
 
 memo :: forall τ. (Monad τ, forall v. Trace (τ v)) => Addr -> D (ByNeed τ) -> D (ByNeed τ)
 memo a d = d >>= ByNeed . StateT . upd
@@ -481,7 +481,7 @@ instance (Monad τ, forall v. Trace (τ v)) => HasBind (D (ByNeed τ)) where
 \end{spec}
 %if style == newcode
 \begin{code}
-type Addr = Int; type Heap τ = Addr :-> D τ; nextFree :: Heap τ -> Addr
+type Addr = Int; type Heap τ = Map Addr (D τ); nextFree :: Heap τ -> Addr
 
 nextFree h = case Map.lookupMax h of
   Nothing     -> 0
@@ -497,7 +497,7 @@ instance (forall v. Trace (τ v)) => Trace (ByNeed τ v) where
   step e (ByNeed (StateT m)) = ByNeed $ StateT $ \μ -> step e (m μ)
 
 fetch :: Monad τ => Addr -> D (ByNeed τ)
-fetch a = ByNeed get >>= \μ -> μ ! a
+fetch a = ByNeed get >>= \μ -> μ `at` a
 
 memo :: forall τ. (Monad τ, forall v. Trace (τ v)) => Addr -> D (ByNeed τ) -> D (ByNeed τ)
 memo a d = d >>= ByNeed . StateT . upd
@@ -516,8 +516,6 @@ instance (Monad τ, forall v. Trace (τ v)) => HasBind (D (ByNeed τ)) where
 
 \subsection{More Evaluation Strategies}
 \label{sec:evaluation-strategies}
-
-\slpj{What is |(!)| in Fig 7?  WHat is the arrow |:->|?}
 
 By varying the |HasBind| instance of our type |DName|, we can endow our language
 |Exp| with different evaluation strategies.
@@ -679,7 +677,7 @@ instance (forall v. Trace (τ v)) => Trace (ByVInit τ v) where
   step e (ByVInit (StateT m)) = ByVInit $ StateT $ \μ -> step e (m μ)
 
 fetch' :: Monad τ => Addr -> D (ByVInit τ)
-fetch' a = ByVInit get >>= \μ -> μ ! a
+fetch' a = ByVInit get >>= \μ -> μ `at` a
 
 memo' :: forall τ. (Monad τ, forall v. Trace (τ v)) => Addr -> D (ByVInit τ) -> D (ByVInit τ)
 memo' a d = d >>= ByVInit . StateT . upd

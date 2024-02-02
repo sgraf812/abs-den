@@ -10,6 +10,7 @@ import Abstractions
 import Data.Functor.Identity
 import Control.Monad.Trans.Writer
 import Control.Monad.Trans.Reader
+import Data.Map (Map)
 import qualified Data.Map as Map
 import Data.Set (Set)
 import qualified Data.Set as Set
@@ -88,7 +89,7 @@ instance Show Demand where
   show Abs = "A"
   show (n :* sd) = show n ++ "*" ++ show sd
 
-type DmdEnv = Name :-> Demand
+type DmdEnv = Map Name Demand
 instance Semigroup Demand where
   d1 <> d2 = d1 + d2
 instance Monoid Demand where
