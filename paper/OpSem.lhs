@@ -76,17 +76,16 @@ It is easy to see that the transition system maintains this invariant and that
 it is still possible to observe scoping errors which are thus confined to lookup
 in $ρ$.
 We conclude with the following example trace evaluating $\Let{i}{\Lam{x}{x}}{i~i}$:
-\[\begin{array}{c}
+\begin{equation}\raisetag{5em} \label{ex:trace} \begin{array}{l}
   \arraycolsep2pt
   \begin{array}{clclclclcl}
-             & (\Let{i}{\Lam{x}{x}}{i~i}, [], [], \StopF) & \smallstep[\LetIT] & (i~i, ρ_1, μ, \StopF)
-             & \smallstep[\AppIT] & (i, ρ_1, μ, κ)
-             & \smallstep[\LookupT] & \highlight{(\Lam{x}{x}, ρ_1, μ, \UpdateF(\pa_1) \pushF κ)}
-  \\ \highlight{\smallstep[\UpdateT]} & (\Lam{x}{x}, ρ_1, μ, κ) & \smallstep[\AppET] & (x, ρ_2, μ, \StopF) & \smallstep[\LookupT] & \highlight{(\Lam{x}{x}, ρ_1, μ, \UpdateF(\pa_1) \pushF \StopF)} & \highlight{\smallstep[\UpdateT]} & (\Lam{x}{x}, ρ_1, μ, \StopF)
+                       & (\Let{i}{\Lam{x}{x}}{i~i}, [], [], \StopF) & \smallstep[\LetIT] & (i~i, ρ_1, μ, \StopF) & \smallstep[\AppIT] & (i, ρ_1, μ, κ) \\
+  \smallstep[\LookupT] & \highlight{(\Lam{x}{x}, ρ_1, μ, \UpdateF(\pa_1) \pushF κ)} & \highlight{\smallstep[\UpdateT]} & (\Lam{x}{x}, ρ_1, μ, κ) & \smallstep[\AppET] & (x, ρ_2, μ, \StopF) \\
+  \smallstep[\LookupT] & \highlight{(\Lam{x}{x}, ρ_1, μ, \UpdateF(\pa_1) \pushF \StopF)} & \highlight{\smallstep[\UpdateT]} & (\Lam{x}{x}, ρ_1, μ, \StopF)
   \end{array} \\
   \\[-0.5em]
-  \quad \text{where} \quad \begin{array}{lll}
-    κ = \ApplyF(\pa_1) \pushF \StopF, ρ_1 = [i ↦ \pa_1] & ρ_2 = [i ↦ \pa_1, x ↦ \pa_1] & μ = [\pa_1 ↦ (ρ_1,\Lam{x}{x})]. \\
+  \text{where} \begin{array}{llll}
+    κ = \ApplyF(\pa_1) \pushF \StopF & ρ_1 = [i ↦ \pa_1] & ρ_2 = [i ↦ \pa_1, x ↦ \pa_1] & μ = [\pa_1 ↦ (ρ_1,\Lam{x}{x})] \\
   \end{array}
-\end{array}\]
-The corresponding by-name trace simply omits the highlighted parts.
+\end{array}\end{equation}
+The corresponding by-name trace simply omits the highlighted update steps.
