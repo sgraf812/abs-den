@@ -155,9 +155,11 @@ dom = Map.keysSet
 \subsection{Semantic Domain} \label{sec:dna}
 
 In traditional denotational semantics, the semantic domain |D| is typically
-the union of base values (integers, strings, etc) and functions |D -> D|.
+an algebraic domain, embedding \emph{semantic values} such as base values
+(integers, strings, etc) and functions |D -> D|.
 A distinctive feature of this paper is that \emph{our semantic domain are traces}
-that describe, in as much or as little detail as desired, the execution of an abstract machine.
+that describe, in as much or as little detail as desired, the execution of an
+abstract machine, and that \emph{end} in these semantic values.
 For example, we can choose a semantic domain |DName|, so that |eval|
 will produce precisely the traces of the by-name variant of the Krivine machine in
 \Cref{fig:lk-semantics}!
@@ -210,7 +212,7 @@ instance Monad T where
 A trace |T| can either |Ret|urn or it can make a |Step|, indicating that the
 program makes another small-step transition before reaching a terminal state.
 So every value in |DName| corresponds to a \emph{program trace} |T| that ends with a
-concrete |Value|.
+concrete, semantic |Value|.
 
 We have embellished each |Step| with an |Event|, which describes what happpens
 in that |Step|; for example, a |Lookup| event describes a lookup in environment, and
@@ -317,12 +319,15 @@ ifPoly (instance HasBind DName where
 It is clear that we want to vary the semantic domain quite a bit, so it
 is natural to use type-class overloading to abstract over the semantic
 function |eval| over the particular domain, thus:
-$$
-|eval  ::  (Trace d, Domain d, HasBind d) =>  Exp -> (Name :-> d) -> d|
-$$
-We have parameterised the semantic domain |D| over three type classes,
+\[
+|eval  ::  (Trace d, Domain d, HasBind d) =>  Exp -> (Map Name d) -> d|
+\]
+We have parameterised the semantic domain |d| over three type classes,
 classes |Trace|, |Domain| and |HasBind|, whose signatures are given in
-\Cref{fig:trace-classes}.
+\Cref{fig:trace-classes}.%
+\footnote{One can think of these type classes as a final fold-like final
+encoding~\citep{Carette:07} of a domain.
+However, the significance is in \emph{what} is encoded, not in how.}
 Each of the three type classes offer knobs that we will tweak individually in
 later Sections.
 
@@ -379,7 +384,7 @@ As we shall see, we can re-use this single definition of |eval| with a variety o
 different trace types to instantiate the semantics domain |d|.
 
 The |HasBind| type class is particularly significant,
-because it fixes a particular \emph{evaluation strategy}, as we shall see in 
+because it fixes a particular \emph{evaluation strategy}, as we shall see in
 \Cref{sec:evaluation-strategies}.
 The |bind| method of |HasBind| is used to give meaning to recursive let
 bindings:
@@ -549,12 +554,12 @@ Our old |DName| can be recovered as |D (ByName T)|.
 
 To get call-by-need, we use the semantic domain |D (ByNeed T)| (\Cref{fig:by-need}).
 We can see that
-$$
+\[
 \begin{array}{ll}
 |D (ByNeed T)| & \cong |ByNeed T (Value (ByNeed T)) | \\
   & \cong |StateT (Heap (ByNeed T)) T (Value (ByNeed T))|
 \end{array}
-$$
+\]
 where |StateT| is the standard state transformer monad, whose key operations |get| and |modify| are
 given in \Cref{fig:by-need}. So the denotation of
 an expression is no longer a trace, but rather a \emph{stateful trace} in which the
