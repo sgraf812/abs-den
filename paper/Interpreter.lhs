@@ -159,9 +159,9 @@ dom = Map.keysSet
 
 \subsection{Semantic Domain} \label{sec:dna}
 
-In traditional denotational semantics, the semantic domain |D| is typically
-an algebraic domain, embedding \emph{semantic values} such as base values
-(integers, strings, etc) and functions |D -> D|.
+In traditional denotational semantics, the semantic domain |D| allows embedding
+\emph{semantic values} such as base values (integers, strings, etc) and
+functions |D -> D|.
 A distinctive feature of this paper is that \emph{our semantic domain are traces}
 that describe, in as much or as little detail as desired, the execution of an
 abstract machine, and that \emph{end} in these semantic values.
@@ -332,27 +332,16 @@ classes |Trace|, |Domain| and |HasBind|, whose signatures are given in
 \Cref{fig:trace-classes}.%
 \footnote{One can think of these type classes as a final fold-like final
 encoding~\citep{Carette:07} of a domain.
-However, the significance is in \emph{what} is encoded, not in how.}
+However, the significance is in the \emph{decomposition} of the domain, not the
+choice of encoding.}
 Each of the three type classes offer knobs that we will tweak individually in
 later Sections.
 
-\Cref{fig:eval} gives the complete definition of |eval|. \slpj{What is |<<|???}
-It also gives
-type-classes instances for the particular domain |DName| that we introduced
-in \Cref{sec:dna}\slpj{Some instances are for |DName|, oathers for |Trace|.  Boo!!}.   Together this enough to actually run the denotational
+\Cref{fig:eval} gives the complete definition of |eval|.
+It also gives type-classes instances for the particular domain |DName| that we
+introduced in \Cref{sec:dna}.
+Together this enough to actually run the denotational
 interpreter to produce traces.
-% The domain |DName| is encoded as an algebraic datatype, \ie, an \emph{initial}
-% encoding.
-% The interpreter |eval| in \Cref{fig:eval}, however, maps into a fold-like
-%\emph{final encoding}~\citep{Carette:07} of a domain, \slpj{I don't understand the significance
-%of this initia/final stufff.  Do we need it?}
-%in terms of the three type
-%classes |Trace|, |Domain| and |HasBind| depicted in \Cref{fig:trace-classes}.
-%Thus, it is not the final \emph{structure} of the interpreter that is novel so
-%much as the \emph{decomposition} of its semantic domain.
-%
-%Traces |T| and denotations |DName| are instances of these type classes via
-% \Cref{fig:trace-instances}.
 For example, we can evaluate the expression $\Let{i}{\Lam{x}{x}}{i~i}$ like
 this:%
 \footnote{We use |read :: String -> Exp| as a parsing function.}

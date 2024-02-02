@@ -75,20 +75,18 @@ $\dom(μ)$.
 It is easy to see that the transition system maintains this invariant and that
 it is still possible to observe scoping errors which are thus confined to lookup
 in $ρ$.
-%We conclude with the following example trace evaluating $\Let{i}{\Lam{x}{x}}{i~i}$:
-%TODO: If we decide to bring the example below, adapt it for by-need by inserting Update transitions
-%
-%\[\begin{array}{c}
-%  \arraycolsep2pt
-%  \begin{array}{clclcl}
-%             & (\Let{i}{\Lam{x}{x}}{i~i}, [], [], \StopF) & \smallstep[\LetIT] & (i~i, ρ_1, μ, \StopF)
-%             & \smallstep[\AppIT] & (i, ρ_1, μ, \ApplyF(\pa_1) \pushF \StopF)
-%             \\
-%  \smallstep[\LookupT] & (\Lam{x}{x}, ρ_1, μ, \ApplyF(\pa_1) \pushF \StopF) & \smallstep[\AppET] & (x, ρ_2, μ, \StopF) & \smallstep[\LookupT] & (\Lam{x}{x}, ρ_1, μ, \StopF)
-%  \end{array} \\
-%  \\[-0.5em]
-%  \quad \text{where} \quad \begin{array}{lll}
-%    ρ_1 = [i ↦ \pa_1] & ρ_2 = [i ↦ \pa_1, x ↦ \pa_1] & μ = [\pa_1 ↦ (ρ_1,\Lam{x}{x})]. \\
-%  \end{array}
-%\end{array}\]
-
+We conclude with the following example trace evaluating $\Let{i}{\Lam{x}{x}}{i~i}$:
+\[\begin{array}{c}
+  \arraycolsep2pt
+  \begin{array}{clclclclcl}
+             & (\Let{i}{\Lam{x}{x}}{i~i}, [], [], \StopF) & \smallstep[\LetIT] & (i~i, ρ_1, μ, \StopF)
+             & \smallstep[\AppIT] & (i, ρ_1, μ, κ)
+             & \smallstep[\LookupT] & \highlight{(\Lam{x}{x}, ρ_1, μ, \UpdateF(\pa_1) \pushF κ)}
+  \\ \highlight{\smallstep[\UpdateT]} & (\Lam{x}{x}, ρ_1, μ, κ) & \smallstep[\AppET] & (x, ρ_2, μ, \StopF) & \smallstep[\LookupT] & \highlight{(\Lam{x}{x}, ρ_1, μ, \UpdateF(\pa_1) \pushF \StopF)} & \highlight{\smallstep[\UpdateT]} & (\Lam{x}{x}, ρ_1, μ, \StopF)
+  \end{array} \\
+  \\[-0.5em]
+  \quad \text{where} \quad \begin{array}{lll}
+    κ = \ApplyF(\pa_1) \pushF \StopF, ρ_1 = [i ↦ \pa_1] & ρ_2 = [i ↦ \pa_1, x ↦ \pa_1] & μ = [\pa_1 ↦ (ρ_1,\Lam{x}{x})]. \\
+  \end{array}
+\end{array}\]
+The corresponding by-name trace simply omits the highlighted parts.
