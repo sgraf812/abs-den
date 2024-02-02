@@ -3,7 +3,7 @@
 %endif
 
 \section{Reference Semantics: Lazy Krivine Machine}
-\label{sec:opsem}
+\label{sec:op-sem}
 
 \begin{figure}
 \[\begin{array}{c}
@@ -44,12 +44,9 @@
 \end{figure}
 
 Before we get to introduce our novel denotational interpreaters, let us
-introduce the semantic ground truth%
-\footnote{\citet{Sergey:14} and \citet{Breitner:16} are just two examples that
-pick the same ground truth.}
-of this work: The Mark II machine of
-\citet{Sestoft:97} given in \Cref{fig:lk-semantics}, a small-step operational
-semantics.
+recall the semantic ground truth of this work and others \citep{Sergey:14,
+Breitner:16}: The Mark II machine of \citet{Sestoft:97} given in
+\Cref{fig:lk-semantics}, a small-step operational semantics.
 It is a Lazy Krivine (LK) machine implementing call-by-need.
 (A close sibling for call-by-value would be a CESK machine \citep{Felleisen:87}.)
 A reasonable call-by-name semantics can be recovered by removing the $\UpdateT$

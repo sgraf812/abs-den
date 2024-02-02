@@ -25,12 +25,12 @@ lambda calculus with \emph{recursive} let bindings and algebraic data types:
 \]
 The form is reminiscent of \citet{Launchbury:93} and \citet{Sestoft:97} because
 it is factored into \emph{A-normal form}, that is, the arguments of applications
-are restricted to be variables, so the difference between call-by-name and
-call-by-value manifests purely in the semantics of $\mathbf{let}$.
+are restricted to be variables, so the difference between lazy and eager
+semantics is manifest in the semantics of $\mathbf{let}$.
 Note that $\Lam{x}{x}$ (with an overbar) denotes syntax, whereas $\fn{x}{x+1}$
 denotes a function in math.
 In this section, only the highlighted parts are relevant, but the interpreter
-definition in \Cref{sec:interpreter} supports data types as well.
+definition in \Cref{sec:interp} supports data types as well.
 From hereon throughout, we assume that all bound program variables
 are distinct.
 
@@ -84,7 +84,7 @@ are distinct.
   \label{fig:absence}
 \end{figure}
 
-Absence analysis for call-by-name programs is defined in \Cref{fig:absence}.
+Absence analysis for lazy programs is defined in \Cref{fig:absence}.
 We informally say that $\px$ is \emph{absent} in $\pe$ when $\px$ is never
 evaluated by $\pe$, no matter how deep we evaluate it.
 Otherwise, $\px$ is \emph{used} in $\pe$.
@@ -108,17 +108,18 @@ where $φ(\px) = \aU$ and $φ(\py) = \aA$ for $\px \not= \py$.
 We will occasionally write $\langle φ, \varsigma \rangle[\px ↦ a]$ to mean
 the same as $\langle φ[\px ↦ a], \varsigma \rangle$.
 Now we can understand $ρ_Δ$ to say that evaluation of each free variable
-$\px$ uses only $\px$ and uses any actual argument it is supplied, indicated by
-$\aU..$\ .
+$\px$ uses only $\px$, and that any actual argument it is applied to is used,
+indicated by argument summary $\aU..$\ .
 
 Since $\semabs{\wild}$ computes least fixpoints at recursive let bindings,
 $\AbsTy$ is equipped with a semi-lattice structure, induced by the order $\aA
 ⊏ \aU$ on $\Absence$ flags.
 The order on $\Uses$, $φ_1 ⊑ φ_2$, is defined pointwise, and the order on
 $\AbsTy$ is the product order.
-The only non-structural order is for $\Summaries$, where the smallest preorder
-defined by $\aA.. ⊑ a \sumcons \varsigma ⊑ \aU..$ and the product ordering
-on $a \sumcons \varsigma$ yields a partial order modulo the non-syntactic
+The order on $\Summaries$ is non-structural:
+The inequations $\aA.. ⊑ a \sumcons \varsigma ⊑ \aU..$ and the
+product ordering on $a \sumcons \varsigma$ define a smallest preorder,
+and the partial order on $\Summaries$ is this preorder modulo the non-syntactic
 equivalences $\aA \sumcons \aA.. \equiv \aA..$, $\aU \sumcons \aU.. \equiv
 \aU..$, with $\aA..$ as the bottom element.
 
@@ -128,11 +129,9 @@ Since all let bindings are non-recursive, we will omit least fixpoints and
 environment extension.
 \begin{DispWithArrows*}[fleqn,mathindent=1.5em]
       & \semabs{\Let{x_2}{x_1}{\Let{k}{\Lam{y}{\Lam{z}{y}}}{k~x_3~x_2}}}_{ρ_Δ}
-        \Arrow{Unfold $\semabs{\Let{\px}{\pe_1}{\pe_2}}$} \\
+        \Arrow{Unfold $\semabs{\Let{\px}{\pe_1}{\pe_2}}$. NB: Lazy Let!} \\
   ={} & \semabs{\Let{k}{\Lam{y}{\Lam{z}{y}}}{k~x_3~x_2}}_{ρ_Δ[x_2↦x_2+\semabs{x_1}_{ρ_Δ}]}
-        \Arrow{Unfold $\semabs{\px}_ρ$} \\
-  ={} & \semabs{\Let{k}{\Lam{y}{\Lam{z}{y}}}{k~x_3~x_2}}_{ρ_Δ[x_2↦x_2+ρ_Δ(x_1)]}
-        \Arrow{Unfold $\semabs{\wild}$, $ρ_x \triangleq ρ_Δ[x_2↦x_2+ρ_Δ(x_1)]$} \\
+        \Arrow{Unfold $\semabs{\wild}$, $ρ_x \triangleq ρ_Δ[x_2↦x_2+\semabs{x_1}_{ρ_Δ}]$} \\
   ={} & \semabs{k~x_3~x_2}_{ρ_x[k↦k+\semabs{\Lam{y}{\Lam{z}{y}}}_{ρ_x}]}
         \Arrow{$ρ_{xk} \triangleq ρ_x[k↦k+\semabs{\Lam{y}{\Lam{z}{y}}}_{ρ_x}]$} \\
   ={} & \semabs{k~x_3~x_2}_{ρ_{xk}}
@@ -149,9 +148,9 @@ environment extension.
         \Arrow{Unfold $\mathit{app}$, simplify} \\
   ={} & \langle [k ↦ \aU,x_3↦\aU], \aU.. \rangle
 \end{DispWithArrows*}
-Note that both $x_1$ and $x_2$ map to $\aA$ in the final $\Uses$ $[k ↦ \aU,x_3↦\aU]$,
+Both $x_1$ and $x_2$ map to $\aA$ in the final $\Uses$ $[k ↦ \aU,x_3↦\aU]$,
 indicating that $x_1$ is absent.
-That is contrast to the result for the free variable $x_3$, which is used.
+That is in contrast to the result for the free variable $x_3$, which is used.
 
 %In general, we can make the following \emph{soundness statement}:
 %$\px$ is absent in $\pe$ when $\px \not∈ \semabs{\pe}_{\tr_Δ}$.
@@ -163,7 +162,7 @@ That is contrast to the result for the free variable $x_3$, which is used.
 % $k + \semabs{\Lam{y}{\Lam{z}{y}}}_{ρ_x}$
 Note that in order to see that $x_1$ was absent in the example above, absence
 analysis employs a \emph{summary mechanism} to enable useful and sound analysis
-of function calls.
+of function calls, with relevant analysis information highlighted in grey.
 This summary mechanism is manifest in the $\mathit{fun}$ and $\mathit{app}$
 functions we deliberately extracted out, encoding a contract between function
 definitions and their call sites.
@@ -181,8 +180,8 @@ The produced summary is concretised back in $\semabs{\pe~\px}$ through
 $\mathit{app}$ which encodes the adjoint (``reverse'') operation.
 More concretely, $f^\sharp_{ρ,\pe,\px}(θ) ⊑
 \mathit{app}(\mathit{fun}_\px(f^\sharp_{ρ,\pe,\px}))(θ)$ for any choice of
-$ρ$, $\pe$, $\px$ and $θ$, suggesting a Galois connection on abstract
-transformers.%
+$ρ$, $\pe$, $\px$ and $θ$, suggesting a Galois connection between abstract
+transformers in $\AbsTy \to \AbsTy$ and $\AbsTy$.%
 \footnote{We will see at the end of \Cref{sec:by-name-soundness} why it is
 important to restrict the Galois connection to syntactic $f^\sharp_{ρ,\pe,\px}$
 and not arbitrary monotone functions in $\AbsTy \to \AbsTy$.}
@@ -393,8 +392,8 @@ proofs~\citep{tapl} and a crucial part in proving $\semabs{\wild}$ correct.
 
 Summaries arise naturally in a compiler analysis such as $\semabs{\pe}$ that is
 \emph{compositional}:%
-\footnote{Even non-compositional analyses such as CFA \emph{might} employ a
-summary mechanism; see \Cref{sec:related-work}.}
+\footnote{Although even non-compositional analyses such as CFA \emph{might}
+employ a summary mechanism; see \Cref{sec:related-work}.}
 A (static or dynamic) semantics $\denot{\wild}$ is compositional
 when $\denot{\pe}$ can be defined as a function solely of the denotations
 $\denot{\pe_1}, ..., \denot{\pe_n}$ of $\pe$'s subexpressions $\pe_1,...,\pe_n$,
@@ -427,7 +426,7 @@ from module A's signature file, but do not need to reanalyse its definition.
 
 Suppose now that we were to prove $\semabs{\wild}$ correct.
 What are the main obstacles to do so?
-As the first step, we must first define what absence \emph{means}, in a formal sense.
+As the first step, we must define what absence \emph{means}, in a formal sense.
 There are many ways to do so, and it is not at all clear which is best.
 One plausible definition is in terms of the operational semantics in
 \Cref{sec:op-sem}.
@@ -694,7 +693,7 @@ But since $\px ∈ \tr(\py)$ implies $\px = \py$, so we must have $\px ∈
 \end{proof}
 
 The proof of this statement in the Appendix is exemplary of more ambitious
-proofs such as in \citet{Sergey:14} or \citet[Section 4]{Breitner:16}.
+proofs such as in \citet{Sergey:14} and \citet[Section 4]{Breitner:16}.
 We suggest the reader to have a cursory look.
 Though seemingly disparate, these proofs all follow an established
 preservation-style proof technique at heart.%
@@ -702,14 +701,16 @@ preservation-style proof technique at heart.%
 4.1]{Nielson:99}, applicable to \emph{trace properties}, but not to
 \emph{hyperproperties}~\citep{ClarksonSchneider:10}.}
 The proof of \citet{Sergey:14}, who prove a generalisation of $\semabs{\wild}$
-correct, is roughly structured as follows:
+correct, is roughly structured as follows (non-clickable references to Figures
+and lemmas below reference \citet{Sergey:14}):
 
 \begin{enumerate}
   \item Instrument a standard call-by-need semantics (a variant of our reference
     in \Cref{sec:op-sem}) such that heap lookups decrement a per-address
     counter; when heap lookup is attempted and the counter is 0, the machine is stuck.
   \item Give a declarative type system that characterises the results of the
-    analysis (\ie, $\semabs{\wild}$) in a lenient (upwards closed) way.
+    analysis (\ie, $\semabs{\wild}$) in a lenient (upwards closed) way, a unary
+    \emph{logical relation}~\citep{Nielson:99}.
   \item Prove that evaluation of well-typed terms in the instrumented
     semantics is bisimilar to evaluation of the term in the standard semantics,
     \ie, does not get stuck when the standard semantics would not.
@@ -749,12 +750,16 @@ it, is enormous.
     In our experience this step hides the thorniest of surprises; that is
     definitely the case in the correctness proof for $\semabs{\wild}$ as well as
     \Cref{thm:soundness-by-need}.
+
+    \sg{Is this a fair characterisation or perhaps too destructive already? I
+    really don't want to diminish Ilya's contribution here; it was an enormous
+    undertaking.}
 \end{itemize}
 
 
 The main takeaway:
 Although analysis and semantics might be reasonably simple, the correctness
-proof that relates both is \emph{not}; it requires a sufficient explosion in formal
+proof that relates both is \emph{not}; it necessitates an explosion in formal
 artefacts and the parts of the proof that concern the domain of the analysis are
 drowned in coping with semantic subtleties that ultimately could be shared with
 similar analyses.
@@ -764,13 +769,13 @@ to the point where trust can only be recovered by full mechanisation.
 
 It would be preferable to find a framework to \emph{prove these distractions
 rigorously and separately}, once and for all, and then instantiate this
-framework for absence analysis or cardinality analysis, such that only the
+framework for absence analysis or cardinality analysis, so that only the
 highlights of the preservation proof such as the substitution lemma need to be
 shown.
 
 Abstract interpretation provides such a framework.
-Alas, \citet{Cousot:21} starts from a \emph{compositional} semantics to
-derive compositional analyses, but small-step operational semantics are
+Alas, the book of \citet{Cousot:21} starts from a \emph{compositional} semantics
+to derive compositional analyses, but small-step operational semantics are
 non-compositional!
 This begs the question if we could have started from a compositional
 denotational semantics.
