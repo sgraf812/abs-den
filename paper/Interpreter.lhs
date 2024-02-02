@@ -109,6 +109,11 @@ The environment |ρ| gives meaning to the free variables of |e|, by mapping each
 its denotation in |D|.
 We sketch the Haskell encoding of syntax in \Cref{fig:syntax} and the API of
 environments and sets in \Cref{fig:map}.
+For concise notation, we will use a small number of infix operators:
+|(:->)| as a synonym for finite |Map|s, with |m ! x| for
+looking up |x| in |m|, |ext m x d| for updates, |f <. m| for mapping |f| over
+every element of |m|, |dom m| for returning the set of keys present in the map,
+and |(`elem`)| for membership tests in that set.
 
 \begin{figure}
 \begin{minipage}{0.49\textwidth}
