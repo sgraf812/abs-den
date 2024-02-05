@@ -634,7 +634,7 @@ tell \emph{why} the code does what it does rather than only \emph{how} it does
 it. Perhaps move up the example below for a better explanation?}
 The implementation of |bind| has three steps.
 First it uses the state monad to allocates a fresh heap address |a|; we use |μ ::
-Heap (ByNeed T)| as the name of the heap, as in \Cref{fig:lk-machine}.
+Heap (ByNeed T)| as the name of the heap, as in \Cref{fig:lk-semantics}.
 Second, it uses |modify| to bind the address
 |a| to something (itself a stateful trace) that we will look at next.
 Finally it applies |body| to |(fetch a :: D (ByNeed T))|, a little
