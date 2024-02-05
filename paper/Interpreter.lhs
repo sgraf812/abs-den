@@ -556,7 +556,8 @@ data ByNeed τ v = ByNeed (StateT (Heap (ByNeed τ)) τ v)
 type Addr = Int; type Heap τ = Addr :-> D τ; nextFree :: Heap τ -> Addr
 runByNeed :: ByNeed τ a -> τ (a, Heap (ByNeed τ))
 instance Monad τ => Monad (ByNeed τ) where ...
-instance Trace (τ v) => Trace (ByNeed τ v) where ...
+instance Trace (τ v) => Trace (ByNeed τ v) where
+  step e (ByNeed (StateT m)) = ByNeed (StateT (step e . m))
 
 fetch :: Monad τ => Addr -> D (ByNeed τ); fetch a = ByNeed get >>= \μ -> μ ! a
 
@@ -622,8 +623,8 @@ $|D τ| \cong |Heap τ -> τ (Value τ, Heap τ)|$.
 So the denotation of an expression is no longer a trace, but rather a
 \emph{stateful trace} in which the carried state |Heap (ByNeed T)| implements
 the heap in which call-by-need thunks are allocated.
-The |Trace| instance of |ByNeed T| simply forwards to that of |T|, pointwise,
-and is omitted.
+The |Trace| instance of |ByNeed T| simply forwards to that of |T|, pointwise
+over heaps.
 The key part is again the implementation of |HasBind| for |D (ByNeed T)|,
 because that is the only place where thunks are allocated.
 \sg{Simon, please rewrite this when you've ``grok'd memo'' so that it is
