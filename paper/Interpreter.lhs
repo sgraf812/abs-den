@@ -3,6 +3,7 @@
 %include custom.fmt
 %if style == newcode
 \begin{code}
+{-# OPTIONS_GHC -Wno-simplifiable-class-constraints #-}
 {-# LANGUAGE DerivingStrategies #-}
 {-# LANGUAGE PartialTypeSignatures #-}
 {-# LANGUAGE LambdaCase #-}
@@ -111,7 +112,7 @@ We sketch the Haskell encoding of syntax in \Cref{fig:syntax} and the API of
 environments and sets in \Cref{fig:map}.
 For concise notation, we will use a small number of infix operators:
 |(:->)| as a synonym for finite |Map|s, with |m ! x| for
-looking up |x| in |m|, |ext m x d| for updates, |f <. m| for mapping |f| over
+looking up |x| in |m|, |ext m x d| for updates, |f << m| for mapping |f| over
 every element of |m|, |dom m| for returning the set of keys present in the map,
 and |(`elem`)| for membership tests in that set.
 
@@ -221,10 +222,9 @@ concrete, semantic |Value|.
 
 We have embellished each |Step| with an |Event|, which describes what happpens
 in that |Step|; for example, a |Lookup| event describes a lookup in environment, and
-we further decorate it with the |Name| of the let-bound variable.
-The reason for this decision will become clear in \Cref{sec:abstractions};
-\slpj{What decision?}
-just note that the choice of |Event| suggests a spectrum of intensionality,
+we further decorate it with the |Name| of the let-bound variable for later
+scrutinisation in \Cref{sec:abstractions}.
+Note that the choice of |Event| suggests a spectrum of intensionality,
 with |data Event = Unit| corresponding to the ``delay monad'' popularised by
 \citet{Capretta:05} on the more abstract end of the spectrum and arbitrary
 syntactic detail attached to each of |Event|'s constructors at the intensional
@@ -322,7 +322,7 @@ ifPoly (instance HasBind DName where
 \subsection{The Interpreter}
 
 It is clear that we want to vary the semantic domain quite a bit, so it
-is natural to use type-class overloading to abstract over the semantic
+is natural to use type class overloading to abstract over the semantic
 function |eval| over the particular domain, thus:
 \[
 |eval  ::  (Trace d, Domain d, HasBind d) =>  Exp -> (Map Name d) -> d|
@@ -338,7 +338,7 @@ Each of the three type classes offer knobs that we will tweak individually in
 later Sections.
 
 \Cref{fig:eval} gives the complete definition of |eval|.
-It also gives type-classes instances for the particular domain |DName| that we
+It also gives type classes instances for the particular domain |DName| that we
 introduced in \Cref{sec:dna}.
 Together this enough to actually run the denotational
 interpreter to produce traces.
@@ -347,42 +347,31 @@ this:%
 \footnote{We use |read :: String -> Exp| as a parsing function.}
 
 < ghci> eval (read "let i = λx.x in i i") emp :: DName
-$\perform{eval (read "let i = λx.x in i i") emp :: D (ByName T)}$
+$\perform{eval (read "let i = λx.x in i i") emp :: D (ByName T)}$,
 \\[\belowdisplayskip]
 \noindent
-This trace is in direct correspondence to the call-by-name small-step trace \slpj{What "call-by-name small-step trace"? backward reference please}
-\[\begin{array}{c}
-  \arraycolsep2pt
-  \begin{array}{clclcl}
-             \multicolumn{2}{l}{(\Let{i}{\Lam{x}{x}}{i~i}, [], [], \StopF)} & \smallstep[\LetIT] & (i~i, ρ_1, μ, \StopF)
-             & \smallstep[\AppIT] & (i, ρ_1, μ, \ApplyF(\pa_1) \pushF \StopF)
-             \\
-  \smallstep[\LookupT] & (\Lam{x}{x}, ρ_1, μ, \ApplyF(\pa_1) \pushF \StopF) & \smallstep[\AppET] & (x, ρ_2, μ, \StopF) & \smallstep[\LookupT] & (\Lam{x}{x}, ρ_1, μ, \StopF)
-  \end{array} \\
-  \\[-0.5em]
-  \quad \text{where} \quad \begin{array}{lll}
-    ρ_1 = [i ↦ \pa_1] & ρ_2 = [i ↦ \pa_1, x ↦ \pa_1] & μ = [\pa_1 ↦ (ρ_1,\Lam{x}{x})]. \\
-  \end{array}
-\end{array}\]
-\noindent
-The definition of |eval| is easy to read.  For example, consider the |Lam| case.  To get the denotation of
-|Lam x body|, we must recursively invoke |eval| on |body|, extending the environment to bind |x| to its
-denotation.  We wrap that body in |step App2|, where |step :: Event -> d -> d|, to prefix the trace of |body| with
-an |App2| event whenever the function is invoked.  Finally,
-we use the type-class method |fun :: (d -> d) -> d| to build the returned denotation;
-the details are bound to depend on |d|.
+where $\lambda$ means that the trace ends in a |Fun| value. This is
+in direct correspondence to the earlier call-by-name small-step trace
+\labelcref{ex:trace}.
+
+The definition of |eval| is by structural recursion over the input expression.
+For example, to get the denotation of |Lam x body|, we must recursively invoke
+|eval| on |body|, extending the environment to bind |x| to its denotation.
+We wrap that body denotation in |step App2|, to prefix the trace of |body| with
+an |App2| event whenever the function is invoked.
+Finally, we use |fun| to build the returned denotation; the details are bound to
+depend on the |Domain|.
 
 The other cases follow a similar pattern; they each do some work, before handing off to the
-type-class methods for all the domain-specific functions.
-As we shall see, we can re-use this single definition of |eval| with a variety of
-different trace types to instantiate the semantics domain |d|.
+type class methods for all the domain-specific functions.
+As we shall see, we can reuse this single definition of |eval| with a variety of
+different types to instantiate the semantic domain |d|.
 
 The |HasBind| type class is particularly significant,
 because it fixes a particular \emph{evaluation strategy}, as we shall see in
 \Cref{sec:evaluation-strategies}.
 The |bind| method of |HasBind| is used to give meaning to recursive let
 bindings:
-% fixpoint combinator |fix :: (a -> a) -> a|, but
 it takes two functionals
 for building the denotation of the right-hand side and that of the let body,
 given a denotation for the right-hand side.
@@ -392,21 +381,13 @@ call-by-name evaluation strategy.
 We will shortly see examples of eager evaluation strategies that will yield from
 |fix rhs| inside |bind| instead of calling |body| immediately.
 
-\slpj{I am doubtful that this paragraph adds anything.}
-While the |step| method of |Trace| is exactly the final encoding of |Step|,
-|Domain| is a bit of a mixture between |Value| and |DName = T Value| \slpj{I have no idea what this means}.
-The method names of |Domain| bear resemblance to |Value|:
-There are ``injections'' |fun|, |con| and |stuck| as well as ``eliminators''
-|apply| and |select|.
-The \emph{types} are wrong \slpj{what types}, though, with |DName| occurring where we would expect
-|Value|.
-We will revisit this curious generalisation in \Cref{sec:abstractions} where we
-consider abstract interpretations that \emph{summarise} a |DName| in different waysa
-depending on the |Domain| instance.  \slpj{Very obscure paragraph, no information conveyed.}
-
-We conclude this Subsection with a few examples, starting with two programs that
-diverge. The lazy |step| implementation allows us to observe finite prefixes of
-the trace:\slpj{Need to give signature for |takeT| and explain}
+We conclude this Subsection with a few examples and will will make use of a
+function |takeT :: Int -> T v -> T (Maybe v)| to do so;
+|takeT n τ| returns the first |n| events of |τ| and replaces the final value
+with |Nothing| (printed as $\bot$) if it goes on for longer.
+We will start with two programs that diverge.
+The lazy |step| implementation allows us to observe finite prefixes of
+the trace:
 
 < ghci> takeT 3 $ eval (read "let x = x in x") emp :: T (Maybe Value)
 $\perform{takeName 3 $ eval (read "let x = x in x") emp :: T (Maybe (Value (ByName T)))}$
@@ -416,13 +397,13 @@ $\perform{takeName 3 $ eval (read "let w = λy. y y in w w") emp :: T (Maybe (Va
 \\[\belowdisplayskip]
 \noindent
 And data types work as well, allowing for interesting ways (type errors) to get
-stuck:
+stuck ($\lightning$):
 
-< ghci> eval (read "let zero = Z() in let one = S(zero) in case one of { S(z) -> z }") emp :: DName
-$\perform{eval (read "let zero = Z() in let one = S(zero) in case one of { S(zz) -> zz }") emp :: D (ByName T)}$
+< ghci> eval (read "let zro = Z() in let one = S(zro) in case one of { S(z) -> z }") emp :: DName
+$\perform{eval (read "let zro = Z() in let one = S(zro) in case one of { S(zz) -> zz }") emp :: D (ByName T)}$
 
-< ghci> eval (read "let zero = Z() in zero zero") emp :: DName
-$\perform{eval (read "let zero = Z() in zero zero") emp :: D (ByName T)}$
+< ghci> eval (read "let zro = Z() in zro zro") emp :: DName
+$\perform{eval (read "let zro = Z() in zro zro") emp :: D (ByName T)}$
 
 \begin{figure}
 \begin{spec}
@@ -446,6 +427,122 @@ instance HasBind (D (ByName τ)) where
 \caption{Redefinition of call-by-name semantics from \Cref{fig:trace-instances}}
 \label{fig:by-name}
 \end{figure}
+
+\subsection{More Evaluation Strategies}
+\label{sec:evaluation-strategies}
+
+By varying the |HasBind| instance of our type |DName|, we can endow our language
+|Exp| with different evaluation strategies.
+With a bit of generalisation, variations become as simple as switching out a
+monad transformer, a common phenomenon in abstract definitional
+interpreters~\citep{adi}.
+In particular, we parameterise the definition of |DName| and |Value| over the particular
+trace type |T|:%
+\footnote{For a realistic implementation, we suggest to define |D| as a data
+type to keep type class resolution decidable and non-overlapping.
+We will however stick to a |type| synonym in this presentation in order to elide
+noisy wrapping and unwrapping of constructors.}
+\slpj{Is there really much wrapping and unwrapping? Other than in the monad instance.}
+\sg{There is no monad instance. |D| is of kind |(* -> *) -> *|. The monad is on
+|τ|. Thus there will be wrapping and unwrapping in the |Domain| instance.}
+\begin{spec}
+type D τ = τ (Value τ)
+data Value τ = Stuck | Fun (D τ -> D τ) | Con Tag [D τ]
+instance Monad τ => Domain (D τ) where ...
+\end{spec}
+\slpj{I wonder if we can just start with this generalisation directly.}
+\sg{I would be happy to do that if it can be sold convincingly.}
+
+\noindent
+\subsubsection{Call-by-name}
+
+We redefine by-name semantics via the |ByName| \emph{trace transformer}
+in \Cref{fig:by-name},%
+\footnote{The Supplement defines these datatypes as |newtype|s.}
+so called because |ByName τ| inherits its |Monad| and |Trace|
+instance from |τ| (busywork we omit).
+Our old |DName| can be recovered as |D (ByName T)|.
+
+\slpj{Can we not recover by-name from |D T|?  That would be simpler}
+\sg{Both |D (ByName T)| and |D (ByValue T)| have the same representation |D T|.
+Blessing |D (ByName T)| this way seems arbitrary.}
+
+\begin{figure}
+\begin{spec}
+data ByValue τ v = ByValue { unByValue :: τ v }; data Event = ... | Let0
+instance Monad τ => Monad (ByValue τ) where ...
+instance Trace (τ v) => Trace (ByValue τ v) where ...
+
+class Extract τ where extract :: τ v -> v
+instance Extract T where extract (Ret v) = v; extract (Step _ τ) = extract τ
+instance (Trace (D (ByValue τ)), Monad τ, Extract τ) => HasBind (D (ByValue τ)) where
+  bind {-" \iffalse "-}_{-" \fi "-} rhs body = step Let0 (fix (rhs . return . extract . unByValue) >>= body . return)
+\end{spec}
+%if style == newcode
+\begin{code}
+newtype ByValue τ v = ByValue { unByValue :: τ v }
+  deriving (Functor,Applicative,Monad)
+instance Trace (τ v) => Trace (ByValue τ v) where
+  step e (ByValue τ) = ByValue (step e τ)
+class Extract τ where extract :: τ v -> v
+instance Extract T where extract (Ret v) = v; extract (Step _ τ) = extract τ
+instance (Trace (D (ByValue τ)), Monad τ, Extract τ) => HasBind (D (ByValue τ)) where
+  bind {-" \iffalse "-}_{-" \fi "-} rhs body = step Let0 (fix (rhs . return . extract . unByValue) >>= body . return)
+\end{code}
+%endif
+\caption{Call-by-value}
+\label{fig:by-value}
+\end{figure}
+
+\subsubsection{Call-by-value}
+
+Call-by-value eagerly traces evaluation of a let-bound RHS to substitute its
+\emph{value}, rather than the complete trace that led to the value, into every
+use site.
+
+Our |ByValue| trace transfomer \Cref{fig:by-value} achieves this quite literally.
+Let us unpack the definition of |bind|.
+As its first action, it yields a brand new |Let0| event, indicating in the
+trace that focus descends into the right-hand side of a |let|.
+Then |>>=| will keep yielding from the |fix| expression corresponding to the RHS
+until it is evaluated, and the value |v| is then passed |return|ed (\ie, wrapped
+in |Ret|) to |body|.
+
+The |τ >>= body . return| idiom is quite important, as it yields from the trace
+|τ| eagerly, and only once, rather than duplicating it at every use site in
+|body|.
+The |fix| expression, on the other hand, expresses the following recursion equation:
+|rhs τ| ends in the value |v| if and only if |τ| is |Ret v|.
+The type class instance method |extract :: T v -> v| applied to |rhs τ| will
+return |v|,%
+\footnote{The keen Haskell-affine reader may have noted that we could use
+|Extract| to define a |MonadFix| instance for |τ|.}
+and |return v = Ret v|, so |fix| solves this recursion equation for us.
+
+Since nothing about |extract| is particularly special to |T|, it lives in its
+own type class |Extract| so that we get a |HasBind| instance for different
+types of |Trace|s, such as more abstract ones in \Cref{sec:abstractions}.
+
+Let us trace $\Let{i}{(\Lam{y}{\Lam{x}{x}})~i}{i~i}$ for call-by-value:
+
+< ghci> eval (read "let i = (λy.λx.x) i in i i") emp :: D (ByValue T)
+$\perform{eval (read "let i = (λy.λx.x) i in i i") emp :: D (ByValue T)}$
+\\[\belowdisplayskip]
+\noindent
+The beta reduction of $(\Lam{y}{\Lam{x}{x}})~i$ now happens once within the
+$\LetOT$/$\LetIT$ bracket; the two subsequent $\LookupT$ events immediately halt
+with a value.
+
+Alas, this model of call-by-value does not yield a total interpreter!
+Consider the case when the right-hand side accesses its value before yielding
+one, \eg,
+
+< ghci> takeT 5 $ eval (read "let x = x in x x") emp :: ByValue T (Maybe (Value (ByValue T)))
+$\LetOT\xhookrightarrow{\hspace{1.1ex}}\LookupT(x)\xhookrightarrow{\hspace{1.1ex}}\LetIT\xhookrightarrow{\hspace{1.1ex}}\AppIT\xhookrightarrow{\hspace{1.1ex}}\LookupT(x)\xhookrightarrow{\hspace{1.1ex}}\texttt{\textasciicircum{}CInterrupted}$
+\\[\belowdisplayskip]
+\noindent
+This loops forever unproductively, rendering the interpreter unfit as a
+denotational semantics.
 
 \begin{figure}
 \begin{spec}
@@ -508,62 +605,35 @@ instance (Monad τ, forall v. Trace (τ v)) => HasBind (D (ByNeed τ)) where
 \label{fig:by-need}
 \end{figure}
 
-\subsection{More Evaluation Strategies}
-\label{sec:evaluation-strategies}
-
-\slpj{What is |(!)| in Fig 7?  WHat is the arrow |:->|?}
-
-By varying the |HasBind| instance of our type |DName|, we can endow our language
-|Exp| with different evaluation strategies.
-With a bit of generalisation, variations become as simple as switching out a
-monad transformer, a common phenomenon in abstract definitional
-interpreters~\citep{adi}.
-In particular, we parameterise the definition of |DName| and |Value| over the particular
-trace type |T|:%
-\footnote{For a realistic implementation, we suggest to define |D| as a data
-type to keep type class resolution decidable and non-overlapping.
-We will however stick to a |type| synonym in this presentation in order to elide
-noisy wrapping and unwrapping of constructors.}
-\slpj{Is there really much wrapping and unwrapping? Other than in the monad instance.}
-\begin{spec}
-type D τ = τ (Value τ)
-data Value τ = Stuck | Fun (D τ -> D τ) | Con Tag [D τ]
-instance Monad τ => Domain (D τ) where ...
-\end{spec}
-\slpj{I wonder if we can just start with this generalisation directly.}
-
-\noindent
-\subsubsection{Call-by-name}
-
-We redefine by-name semantics via the |ByName| \emph{trace transformer}
-in \Cref{fig:by-name}%
-\footnote{The Supplement defines these datatypes as |newtype|s.},
-so called because |ByName τ| inherits its |Monad| and |Trace|
-instance from |τ| (busywork we omit).
-Our old |DName| can be recovered as |D (ByName T)|.
-
-\slpj{Can we not recover by-name from |D T|?  That would be simpler}
-
 \subsubsection{Call-by-need}
 
-To get call-by-need, we use the semantic domain |D (ByNeed T)| (\Cref{fig:by-need}).
-We can see that
-\[
-\begin{array}{ll}
-|D (ByNeed T)| & \cong |ByNeed T (Value (ByNeed T)) | \\
-  & \cong |StateT (Heap (ByNeed T)) T (Value (ByNeed T))|
-\end{array}
-\]
-where |StateT| is the standard state transformer monad, whose key operations |get| and |modify| are
-given in \Cref{fig:by-need}. So the denotation of
-an expression is no longer a trace, but rather a \emph{stateful trace} in which the
-carried state |Heap (ByNeed T)| implements the heap in which call-by-need thunks are
-allocated.
-The key part is the |HasBind| instance for |D (ByNeed T)|, which implements |letrec|,
-the only place that a thunk is allocated in our little language.
+The semantic domain |D (ByNeed T)| in \Cref{fig:by-need} defines a call-by-need
+evaluation strategy by introducing a stateful heap and memoisation via the
+standard state transformer monad |StateT|, whose key operations |get| and
+|modify| are given in \Cref{fig:by-need}.
+
+|ByNeed| accumulates quite a few layers of abstractions and is recursive as
+well.
+It is best thought of as an answer to the request ``give me a |τ| such that |D
+τ| models stateful computations in |D τ|''.
+|ByNeed T| is one such solution |τ|, satisfying the equation
+$|D τ| \cong |Heap τ -> τ (Value τ, Heap τ)|$.
+
+So the denotation of an expression is no longer a trace, but rather a
+\emph{stateful trace} in which the carried state |Heap (ByNeed T)| implements
+the heap in which call-by-need thunks are allocated.
+The |Trace| instance of |ByNeed T| simply forwards to that of |T|, pointwise,
+and is omitted.
+The key part is again the implementation of |HasBind| for |D (ByNeed T)|,
+because that is the only place where thunks are allocated.
+\sg{Simon, please rewrite this when you've ``grok'd memo'' so that it is
+coherent and does not simply repeat the code in the definition. At present I
+don't see anything that doesn't follow from simply staring at the code; better
+tell \emph{why} the code does what it does rather than only \emph{how} it does
+it. Perhaps move up the example below for a better explanation?}
 The implementation of |bind| has three steps.
-First uses the state monad to
-allocates a fresh heap address |a|; we use |μ :: Heap (ByNeed T)| as the name of the heap.
+First it uses the state monad to allocates a fresh heap address |a|; we use |μ ::
+Heap (ByNeed T)| as the name of the heap, as in \Cref{fig:lk-machine}.
 Second, it uses |modify| to bind the address
 |a| to something (itself a stateful trace) that we will look at next.
 Finally it applies |body| to |(fetch a :: D (ByNeed T))|, a little
@@ -624,36 +694,6 @@ transition system.
 
 \begin{figure}
 \begin{spec}
-instance MonadFix T where
-  mfix f = fst $ fix (\(τ, v) -> go (f v)) where  go (Step e τ) | (τ', v) <- go τ  = (Step e τ', v)
-                                                  go (Ret v)                       = (Ret v, v)
-
-data ByValue τ v = ByValue { unByValue :: τ v }; data Event = ... | Let0
-
-instance (Trace (D (ByValue τ)), MonadFix τ) => HasBind (D (ByValue τ)) where
-  bind {-" \iffalse "-}_{-" \fi "-} rhs body = step Let0 (ByValue (mfix (unByValue . rhs . return))) >>= body . return
-\end{spec}
-%if style == newcode
-\begin{code}
-instance MonadFix T where
-  mfix f = fst $ fix (go . f . snd) where  go (Step e τ) | (τ', v) <- go τ  = (Step e τ', v)
-                                           go (Ret v)                       = (Ret v, v)
-
-newtype ByValue τ v = ByValue { unByValue :: τ v }
-  deriving (Functor,Applicative,Monad)
-instance Trace (τ v) => Trace (ByValue τ v) where
-  step e (ByValue τ) = ByValue (step e τ)
-
-instance (Trace (D (ByValue τ)), MonadFix τ) => HasBind (D (ByValue τ)) where
-  bind {-" \iffalse "-}_{-" \fi "-} rhs body = step Let0 (ByValue (mfix (unByValue . rhs . return))) >>= body . return
-\end{code}
-%endif
-\caption{Call-by-value}
-\label{fig:by-value}
-\end{figure}
-
-\begin{figure}
-\begin{spec}
 data ByVInit τ v = ByVInit (StateT (Heap (ByVInit τ)) τ v)
 runByVInit :: Monad τ => ByVInit τ a -> τ (a, Heap (ByVInit τ))
 instance (Monad τ, forall v. Trace (τ v)) => HasBind (D (ByVInit τ)) where
@@ -690,53 +730,10 @@ instance (Monad τ, forall v. Trace (τ v)) => HasBind (D (ByVInit τ)) where
 \label{fig:by-value-init}
 \end{figure}
 
-\subsubsection{Call-by-value}
-
-By defining a |MonadFix| instance for |T| and defining |bind| in terms
-of this instance, we can give a by-value semantics to |Exp|, as shown in
-\Cref{fig:by-value}.
-\slpj{Gah!  Now I have to understand MonadFix!  Can't we just give a |HasBind| instance directly?
-Indeed, isn't by-value a bit easier than by-need?  Your super-compact definitions just look like line noise to me.}
-Let us unpack the definition of |bind|.
-As its first action, it yields a brand new |Let0| event, indicating in the
-trace that focus descends into the right-hand side of a |let|.
-The definition of |mfix| on |T| then takes over;
-producing a trace |τ| which ends in a |Ret v| after finitely many steps.
-The value |v| is then passed to the argument |f| of |bind|, wrapped in a
-|return|.
-This procedure works as long as |f| does not scrutinise |v| before producing
-the |Ret| constructor.
-The effect is that the trace |τ| is yielded \emph{while executing |mfix|}, and
-the value |v| is then passed |return|ed to |body|.
-Notably, |body (step Let0 ...)| would have different semantics, deferring the
-effect of evaluating |rhs| to its fixpoint at use sites; hence the
-|(>>= body . return)| idiom that forces the effects (\eg, yields the trace) of
-its argument eagerly.
-Subsequent evaluations of |return v| will not have to yield the |Step|s of |τ|
-again.
-
-Let us trace $\Let{i}{(\Lam{y}{\Lam{x}{x}})~i}{i~i}$ for call-by-value:
-
-< ghci> eval (read "let i = (λy.λx.x) i in i i") emp :: D (ByValue T)
-$\perform{eval (read "let i = (λy.λx.x) i in i i") emp :: D (ByValue T)}$
-\\[\belowdisplayskip]
-\noindent
-The beta reduction of $(\Lam{y}{\Lam{x}{x}})~i$ now happens once within the
-$\LetOT$/$\LetIT$ bracket; the two subsequent $\LookupT$ events immediately halt
-with a value.
-
 \subsubsection{Lazy Initialisation and Black-holing}
 
-Alas, this model of call-by-value does not yield a total interpreter!
-Consider the case when the right-hand side accesses its value before yielding
-one, \eg,
-
-< ghci> takeT 5 $ eval (read "let x = x in x x") emp :: ByValue T (Maybe (Value (ByValue T)))
-$\LetOT\xhookrightarrow{\hspace{1.1ex}}\LookupT(x)\xhookrightarrow{\hspace{1.1ex}}\LetIT\xhookrightarrow{\hspace{1.1ex}}\AppIT\xhookrightarrow{\hspace{1.1ex}}\LookupT(x)\xhookrightarrow{\hspace{1.1ex}}\texttt{\textasciicircum{}CInterrupted}$
-\\[\belowdisplayskip]
-\noindent
-This loops forever unproductively, rendering the interpreter unfit as a
-denotational semantics.
+Recall that our simple |ByValue| transformer above yields a potentially looping
+interpreter.
 Typical strict languages work around this issue in either of two ways:
 They enforce termination of the RHS statically (OCaml, ML), or they use
 \emph{lazy initialisation} techniques~\citep{Nakata:10,Nakata:06} (Scheme,
