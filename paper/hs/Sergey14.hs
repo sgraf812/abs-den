@@ -64,13 +64,13 @@ instance Lat SubDemand where
   Prod dmds1 ⊔ Prod dmds2 = mkProd (dmds1⊔dmds2)
   _ ⊔ _ = Top
 
-instance UAlg Demand where
+instance UMod Demand where
   Abs + d = d
   d + Abs = d
   (_u1:*sd1) + (_u2:*sd2) = Uω :* (sd1+sd2)
   _ * _ = error "unused"
 
-instance UAlg SubDemand where
+instance UMod SubDemand where
   Top + _ = Top
   _ + Top = Top
   Seq + sd = sd
@@ -91,7 +91,7 @@ instance Show Demand where
   show (n :* sd) = show n ++ "*" ++ show sd
 
 type DmdEnv = Name :-> Demand
-instance UAlg (Name :-> Demand) where {-" ... \iffalse "-}
+instance UMod (Name :-> Demand) where {-" ... \iffalse "-}
   (+) = Map.unionWith (+)
   u * m = Map.map (u *) m
 {-" \fi "-}

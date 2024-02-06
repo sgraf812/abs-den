@@ -46,7 +46,7 @@ are distinct.
  \begin{array}{rclcl}
   a & {}∈{} & \Absence     & {}::={} & \aA \mid \aU \\
   φ & {}∈{} & \Uses & {}={} & \Var \to \Absence \\
-  \varsigma & {}∈{} & \Summaries & {}::={} & \aA.. \mid a \sumcons \varsigma \mid \aU.. \\
+  \varsigma & {}∈{} & \Summary & {}::={} & \aA.. \mid a \sumcons \varsigma \mid \aU.. \\
   θ & {}∈{} & \AbsTy & {}::={} & \langle φ, \varsigma \rangle \\
   \\[-0.9em]
   \multicolumn{5}{c}{\aA \sumcons \aA.. \equiv \aA.. \quad \aU \sumcons \aU.. \equiv \aU..} \\
@@ -117,10 +117,10 @@ $\AbsTy$ is equipped with a semi-lattice structure, induced by the order $\aA
 ⊏ \aU$ on $\Absence$ flags.
 The order on $\Uses$, $φ_1 ⊑ φ_2$, is defined pointwise, and the order on
 $\AbsTy$ is the product order.
-The order on $\Summaries$ is non-structural:
+The order on $\Summary$ is non-structural:
 The inequations $\aA.. ⊑ a \sumcons \varsigma ⊑ \aU..$ and the
 product ordering on $a \sumcons \varsigma$ define a smallest preorder,
-and the partial order on $\Summaries$ is this preorder modulo the non-syntactic
+and the partial order on $\Summary$ is this preorder modulo the non-syntactic
 equivalences $\aA \sumcons \aA.. \equiv \aA..$, $\aU \sumcons \aU.. \equiv
 \aU..$, with $\aA..$ as the bottom element.
 
@@ -293,7 +293,7 @@ indicate the respective step below as ``handwaving''.
 \end{proof}
 \end{toappendix}
 
-\begin{lemmarep}[Substitution]
+\begin{lemmarep}[Substitution, syntactically]
 \label{thm:subst-absence}
 $\semabs{\pe}_{ρ[\px↦ρ(\py)]} ⊑ \semabs{(\Lam{\px}{\pe})~\py}_ρ$.
 \end{lemmarep}

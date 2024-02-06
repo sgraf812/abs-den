@@ -909,8 +909,3 @@ $\perform{eval (read "let i = λx.x in i i") emp :: D (ByName Identity)}$
 \texttt{\textasciicircum{}CInterrupted}
 \\[\belowdisplayskip]
 \noindent
-A total description of the \emph{dynamic semantics} of a language requires a
-coinductive domain.
-For \emph{static analysis} we need to find good abstractions that approximate
-the dynamics in an inductive domain.
-We will now consider examples of such abstract, inductive domains.

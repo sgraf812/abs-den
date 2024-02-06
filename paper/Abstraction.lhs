@@ -19,46 +19,53 @@ import qualified Data.List as List
 import Exp
 import Order
 import Interpreter
-import {-# SOURCE #-} Sergey14
-
-root = call `seq` anyCtx -- Suppress redundant import warning
 \end{code}
 %endif
 
-\section{abstractions}
+\section{Abstraction}
 \label{sec:abstraction}
 
-\begin{figure}
-\begin{spec}
-class Eq a => Lat a where bottom :: a; (⊔) :: a -> a -> a;
-lub :: Lat a => [a] -> a; qquad kleeneFix :: Lat a => (a -> a) -> a
-kleeneFix f = go bottom where go x = let x' = f x in if x' ⊑ x then x' else go x'
-instance (Ord k, Lat v) => Lat (k :-> v) where bottom = emp; (⊔) = Map.unionWith (⊔)
-\end{spec}
-\\[-1em]
-\caption{Order theory and Kleene fixpoint}
-\label{fig:lat}
-\end{figure}
+We will now recover a summary-based usage analysis as an instance of our
+compositional definition of |eval|.
+We demonstrate how our framework can be used both to \emph{instrument} the
+dynamic semantics to describe \emph{operational properties}, as well as
+\emph{statically approximate} these operational properties by specifying
+a summary mechanism and appealing to order theory.
 
-\subsection{Usage analysis}
-\label{sec:usage-analysis}
+\subsection{Instrumentation}
+\label{sec:instrumentation}
+
+\begin{table}
+\begin{tabular}{clll}
+\toprule
+\# & |d|             & |eval e emp :: d| \\
+\midrule
+(1)        & |D (ByName UT)|  & $\perform{eval (read "let i = λx.x in let j = (λy.y) i in let u = Z() in let t = u in j j") emp :: D (ByName UT)}$ \\
+(2)        & |D (ByValue UT)| & $\perform{eval (read "let i = λx.x in let j = (λy.y) i in let u = Z() in let t = u in j j") emp :: D (ByValue UT)}$ \\
+(3)        & |D (ByNeed UT)|  & $\perform{runByNeed (eval (read "let i = λx.x in let j = (λy.y) i in let u = Z() in let t = u in j j") emp) :: UT (Value (ByNeed UT), Heap _)}$ \\
+\bottomrule
+\end{tabular}
+\caption{Comparing the usage instrumentation of different evaluation strategies on the expression \\
+$e \triangleq \Let{i}{\Lam{x}{x}}{\Let{j}{(\Lam{y}{y})~i}{\Let{u}{Z()}{\Let{t}{u}{j~j}}}}$.}
+\label{fig:usage-instrumentation-examples}
+\end{table}
 
 \begin{figure}
 \begin{minipage}{0.4\textwidth}
 \begin{code}
 data U = U0 | U1 | Uω
 type Uses = Name :-> U
-class UAlg a where
+class UMod a where
   (+)  :: a -> a -> a
   (*)  :: U -> a -> a
-instance UAlg U where {-" ... \iffalse "-}
+instance UMod U where {-" ... \iffalse "-}
   U1 + U1 = Uω
   u1 + u2 = u1 ⊔ u2
   U0 * _ = U0
   _ * U0 = U0
   U1 * u = u
   Uω * _ = Uω {-" \fi "-}
-instance UAlg Uses where {-" ... \iffalse "-}
+instance UMod Uses where {-" ... \iffalse "-}
   (+) = Map.unionWith (+)
   u * m = Map.map (u *) m
 {-" \fi "-}
@@ -66,50 +73,80 @@ instance UAlg Uses where {-" ... \iffalse "-}
 \end{minipage}%
 \begin{minipage}{0.6\textwidth}
 \begin{code}
-data UT a = MkUT Uses a
+data UT v = MkUT Uses v
+instance Trace (UT v) where
+  step (Lookup x)  (MkUT φ v)  = MkUT (ext emp x U1 + φ) v
+  step _           τ           = τ
 instance Monad UT where
   return a = MkUT emp a
   MkUT φ1 a >>= k |  MkUT φ2 b <- k a =  MkUT (φ1+φ2) b
-instance Trace (UT v) where
-  step (Lookup x)  τ = MkUT (ext emp x U1) ( () ) >> τ
-  step _           τ = τ
 \end{code}
+%if style == newcode
+\begin{code}
+instance Extract UT where extract (MkUT _ v) = v
+\end{code}
+%endif
 \end{minipage}
 \\[-1em]
-\caption{|Trace| instance for usage analysis}
+\caption{|Trace| instance for usage analysis and |Monad| instance inducing usage instrumentation}
 \label{fig:usg-abs}
 \end{figure}
 
 The gist of usage analysis is that it collects upper bounds for the number of
 $\LookupT$ transitions per let-bound variable.
-We can encode this intuition in the custom trace type |UT| in \Cref{fig:usg-abs}
-that will take the place of |T|.
-|UT| aggregates the number of |Lookup x| transitions per variable |x| in a usage
-environment |Name :-> U|, with the matching |Monad| and |Trace| instances.
-A \emph{usage cardinality} |U| abstracts an upper bound on the number of such
-|Lookup x| events, where |U0| means ``at most 0 times'' (\ie, dead) and |U1|
-means ``at most 1 times''.
-|Uω| is the top element of the lattice defined by the total ordering |U0 ⊏ U1
-⊏ Uω| and can be read as ``at most ω times'', where $ω$ is the first limit
+We refer to these upper bounds as \emph{usage cardinality} |U| in
+\Cref{fig:usg-abs}, and a |Uses| collects the usage cardinality for each
+let-bound variable.
+The |U|sage |U0| means ``at most 0 times'' and |U1| means ``at most 1 times'',
+and |Uω| can be read as ``at most $ω$ times'', where $ω$ is the first limit
 ordinal.
-The definition of |(+)| on |U| coincides with the least upper bound operator
-|(⊔)|, except for carrying over |U1 + U1 = Uω|, so any number of lookups
-beyond $1$ goes straight to $ω$.
-Both |(+)| and |(⊔)| are lifted pointwise to |Name :-> U|.
+Usage analysis is a generalisation of absence analysis in \Cref{fig:absence}:
+a variable is absent ($\aA$) when it has usage |U0|, otherwise it is used ($\aU$).
 
-If we had no interest in a terminating analysis, we could already make do
-with the induced \emph{semantic usage abstraction} |D (ByName UT)|:
+It is quite natural to define addition and multiplication with |U|, expressed in
+the type class |UMod|.%
+\footnote{Yes, we think that |UMod| is an R-module. No, it is not a vector
+space, because it lacks inverses.}
+For example, |U0 + u = u| and |U1 + U1 = Uω|, as well as |U0 * u = U0|,
+|Uω * U1 = Uω|.
+These operations lift to |Uses| pointwise, \eg,
+$(|Uω| * [|x| ↦ |U1|]) + [|y| ↦ |U1|] = [|x| ↦ |Uω|, |y| ↦ |U1|]$.
 
-< ghci> eval (read "let i = λx.x in let j = λy.y in i j j") emp :: D (ByName UT)
-$\perform{eval (read "let i = λx.x in let j = λy.y in i j j") emp :: D (ByName UT)}$
-\\[\belowdisplayskip]
-\noindent
-This analysis amounts to running the concrete semantics and then folding the
+Compared to the concrete |T| from \Cref{sec:interp}, the |Trace| instance of
+the custom trace type |UT| abstracts away all events other than |Lookup|s, and
+smashes such lookups into a |Uses|.
+The point of wrapping |Uses| in |UT| is to define a |Monad| instance that
+aggregates |Uses| in a Writer-like fashion.
+
+Astonishingly, these two simple definitions induce an \emph{instrumentation} of
+our semantics!%
+\footnote{For |ByValue|, we omit the trivial |extract (MkUT _ v) = v| definition.}
+\Cref{fig:usage-instrumentation-examples} lists the results of running
+the instrumented interpreter on the same characteristic expression, but with
+three different evaluation strategies |ByName|, |ByValue| and |ByNeed|.
+Thus, we finally reap the benefits of having defined |Domain| and |HasBind|
+instances in \Cref{sec:interp} that are polymorphic over the inner trace |τ|.
+As can be seen, the by-need strategy only evaluates what is needed.
+The by-value strategy additionally uses the unused binding $u$ and the by-name
+strategy evaluates $i$ multiple times since $j$ is evaluated multiple times.
+
+Instrumentation amounts to running the concrete semantics and then folding the
 trace into a |UT|; it is what the static analysis is supposed to approximate.
-Of course, this will diverge whenever the object program diverges.
-Perhaps interestingly, we have not needed any order theory so far, because the
-abstraction is a precise fold over the program trace, thanks to the concrete
-|Value|s manipulated.
+Of course, this process will diverge whenever the object program diverges.
+
+\subsection{Usage analysis}
+\label{sec:usage-analysis}
+
+\begin{figure}
+\begin{spec}
+class Eq a => Lat a where bottom :: a; (⊔) :: a -> a -> a;
+kleeneFix :: Lat a => (a -> a) -> a; qquad lub :: Lat a => [a] -> a
+kleeneFix f = go bottom where go x = let x' = f x in if x' ⊑ x then x' else go x'
+\end{spec}
+\\[-1em]
+\caption{Order theory and Kleene iteration}
+\label{fig:lat}
+\end{figure}
 
 \begin{figure}
 \begin{minipage}{0.43\textwidth}
@@ -124,6 +161,7 @@ instance Lat U where {-" ... \iffalse "-}
   U1  ⊔  U1  = U1
   _   ⊔  _   = Uω
 {-" \fi "-}
+ifPoly (instance Lat Uses where ...)
 instance Lat UValue where {-" ... \iffalse "-}
   bottom = AAA
   AAA ⊔ v = v
@@ -137,10 +175,10 @@ instance Lat UD where {-" ... \iffalse "-}
   MkUT φ1 v1 ⊔ MkUT φ2 v2 = MkUT (φ1 ⊔ φ2) (v1 ⊔ v2)
 {-" \fi "-}
 
-asCons :: UValue -> (U, UValue)
-asCons AAA          = (U0,AAA)
-asCons (UCons u v)  = (u,v)
-asCons UUU          = (Uω,UUU)
+peel :: UValue -> (U, UValue)
+peel AAA          = (U0,AAA)
+peel (UCons u v)  = (u,v)
+peel UUU          = (Uω,UUU)
 
 m !? x  | x ∈ dom m  = m ! x
         | otherwise  = U0
@@ -151,8 +189,8 @@ m !? x  | x ∈ dom m  = m ! x
 instance Domain UD where
   stuck                                  = bottom
   fun x {-" \iffalse "-}_{-" \fi "-} f   = case f (MkUT (ext emp x U1) UUU) of
-    MkUT φ v -> MkUT (ext φ x U0) (UCons (φ !? x) v)
-  apply (MkUT φ1 v1) (MkUT φ2 _)         = case asCons v1 of
+    MkUT φ v -> MkUT (ext (Uω * φ) x U0) (UCons (φ !? x) v)
+  apply (MkUT φ1 v1) (MkUT φ2 _)         = case peel v1 of
     (u, v2) -> MkUT (φ1 + u*φ2) v2
   con {-" \iffalse "-}_{-" \fi "-} _ ds  = foldr apply (MkUT emp UUU) ds
   select d fs                            =
@@ -172,7 +210,7 @@ deriving instance Functor UT
 instance Eq UValue where
   AAA == AAA = True
   UUU == UUU = True
-  v1 == v2 = asCons v1 == asCons v2
+  v1 == v2 = peel v1 == peel v2
 
 instance Show U where
   show U0 = "0"
@@ -182,8 +220,8 @@ instance Show U where
 infixl 6 +
 infixl 7 *
 
-instance Show a => Show (UT a) where
-  show (MkUT φ _) = show φ
+instance Show v => Show (UT v) where
+  show (MkUT φ v) = "\\langle " ++ show (Map.filter (/= U0) φ) ++ ", " ++ show v ++ " \\rangle"
 
 instance Applicative UT where
   pure a = MkUT emp a
@@ -202,13 +240,45 @@ instance Show UValue where
 If we want to assess usage cardinality statically, we have to find a more
 abstract, inductive representation of |Value|.
 In particular, the negative recursive occurrence of |Value| in |Fun| is
-disqualifying.
-\Cref{fig:abs-usg} gives one such candidate |UValue|, a type containing a single
-inhabitant |Nop|, so it is the crudest possible summary of a concrete |Value|.
+disqualifying and we must replace it with a finite summary such as $\Summary$ in
+\Cref{fig:absence}.
+So we define |UValue| in \Cref{fig:abs-usg} as a copy of $\Summary$ that lists
+argument usage |U| instead of $\Absence$ flags.
+Absence types in \Cref{fig:absence} are now called |UD| and constitute
+the abstract semantic domain for which we will define |Domain| and |HasBind|
+instances.
+
+Since any |d::UD| is finite, we can no longer use guarded |fix|points in
+|HasBind UD|, so we will use least fixpoints (computed by |kleeneFix| in
+\Cref{fig:lat}) instead, as we did for absence analysis.%
+\footnote{Why least fixpoints? Why does that yield a correct solution?
+The reason is that usage cardinality is a safety property; c.f.\
+\Cref{sec:safety-extension}.}
+The resulting definition of |HasBind| is safe for by-name and by-need semantics.
+
+|kleeneFix| requires us to define an order on |UD|, which is induced entirely
+in the same way from the total order |U0 ⊏ U1 ⊏ Uω| on |U| as the order
+on $\AbsTy$ in \Cref{sec:absence} was induced from the order $\aA ⊏ \aU$
+on $\Absence$ flags.
+Specifically, |peel| exemplifies the non-syntactic equalities such as |UUU =
+UCons Uω UUU| at work that are respected by the |Lat UD| instance.
+
 The |Domain| instance is reponsible for implementing the summary mechanism.
-|stuck|,|fun| and |con| map from values to summarised representation, and
-|apply| and |select| encode the concretisation of |Nop| in terms of the abstract
-domain |UD|.
+While |stuck| programs do not evaluate anything and hence are denoted by
+|bot = MkUT emp AAA|, the |fun| and |apply| functions play exactly the same
+roles as $\mathit{fun}_\px$ and $\mathit{app}$ in \Cref{fig:absence}.
+
+In |fun x f|, the abstract transformer |f| is applied to a ``proxy'' |(MkUT (ext
+emp x U1) UUU)| to summarise how |f| uses its argument by way of looking at the
+usage of |x| and returning this use in the value.%
+\footnote{As before, the exact identity of |x| is exchangeable; we use it as a
+De Bruijn level.}
+Every use site of |x| must make do with the imprecise value |UUU|,
+and every use of free variables in the function body is multiplied with |Uω|
+because the function might be called many times.
+
+In |apply|, the
+
 
 When a |d| is |apply|'d to an argument |a|, the result is that of
 evaluating |a| many times (note that it is enough to evaluate twice in
@@ -787,6 +857,12 @@ diverging programs and cyclic data.
 \end{toappendix}
 
 \subsection{Discussion}
+%A total description of the \emph{dynamic semantics} of a language requires a
+%coinductive domain.
+%For \emph{static analysis} we need to find good abstractions that approximate
+%the dynamics in an inductive domain.
+%The culprit is the use of concrete |Value|s in |D|: its |Fun| constructor is
+%decidedly not inductive because it recurses in negative position.
 
 By recovering usage analysis as an abstraction of |eval|, we have achieved our
 main goal:
