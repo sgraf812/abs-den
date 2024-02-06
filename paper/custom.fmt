@@ -169,8 +169,8 @@
 %%format ds = "\overline{\varid{d}}"
 %%format alts = "\overline{\varid{alt}}"
 
-%format UD = "\concolor{\slfamily\widehat{D}_U}"
-%format UT = "\concolor{\slfamily\widehat{T}_U}"
+%format UD = "\concolor{\widehat{D}_U}"
+%format UT = "\concolor{\widehat{T}_U}"
 %format MkUT(a)(b)= "\langle " a ", " b " \rangle"
 %format UValue = "\concolor{\widehat{Value}_U}"
 %format U0 = "\concolor{U_0}"
