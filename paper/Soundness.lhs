@@ -252,10 +252,13 @@ trace  ::  (Trace (hat d), Domain (hat d), Lat (hat d))
        =>  GC (Pow (D r)) (hat d) -> GC (Pow (NameD (D r))) (NameD (hat d)) -> GC (Pow (T (Value r))) (hat d)
 trace (αT :<->: γT) (αE :<->: γE) = repr β where
   β (Ret Stuck)       = stuck
-  β (Ret (Fun f))     = fun {-"\iffalse"-}""{-"\fi"-} (αT . powMap f . γE)
+  β (Ret (Fun f))     = fun {-"\iffalse"-}"" ""{-"\fi"-} (αT . powMap f . γE)
   β (Ret (Con k ds))  = con {-"\iffalse"-}""{-"\fi"-} k (map (αE . set) ds)
-  β (Step e (hat d))        = step e (β (hat d))
+  β (Step e (hat d))  = step e (β (hat d))
 \end{code}
+\sg{Mention that we omit the |Name| passed to |fun| and that it must be
+chosen fresh (\ie, not shadowing any let-bound vars in the entire program
+and fresh \wrt previously chosen vars.}
 Note how |trace| expects two Galois connections: The first one is applicable
 in the ``recursive case'' and the second one applies to (the powerset over)
 |NameD (D (ByName T))|, a subtype of |D (ByName T)|.
@@ -1339,7 +1342,7 @@ nameNeed  ::  (Trace (hat d), Domain (hat d), HasBind (hat d), Lat (hat d)) =>  
 nameNeed = repr β where
   β (Step e d)           = step e (β d)
   β (Ret (Stuck, μ))     = stuck
-  β (Ret (Fun f, μ))     = fun {-"\iffalse"-}""{-"\fi"-} (\(hat d) -> Lub (β (f d μ) | d ∈ γE (hat d)))  where unused (  _   :<->: γE)  = untyped (freezeHeap μ)
+  β (Ret (Fun f, μ))     = fun {-"\iffalse"-}"" ""{-"\fi"-} (\(hat d) -> Lub (β (f d μ) | d ∈ γE (hat d)))  where unused (  _   :<->: γE)  = untyped (freezeHeap μ)
   β (Ret (Con k ds, μ))  = con {-"\iffalse"-}""{-"\fi"-} k (map (αE . set) ds)                           where           αE  :<->: _    = freezeHeap μ
 \end{code}
 

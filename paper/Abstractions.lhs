@@ -52,8 +52,20 @@ data U = U0 | U1 | Uω; instance Lat U where {-" ... \iffalse "-}
   U1  ⊔  U1  = U1
   _   ⊔  _   = Uω
 {-" \fi "-}
+class UAlg a where (+) :: a -> a -> a; (*) :: U -> a -> a
+instance UAlg U where {-" ... \iffalse "-}
+  U1 + U1 = Uω
+  u1 + u2 = u1 ⊔ u2
+  U0 * _ = U0
+  _ * U0 = U0
+  U1 * u = u
+  Uω * _ = Uω
+{-" \fi "-}
 data UT a = MkUT (Name :-> U) a
-
+instance UAlg (Name :-> U) where {-" ... \iffalse "-}
+  (+) = Map.unionWith (+)
+  u * m = Map.map (u *) m
+{-" \fi "-}
 instance Trace (UT v) where
   step (Lookup x)  (MkUT φ a)  = MkUT (φ + ext emp x U1) a
   step _           τ           = τ
@@ -73,7 +85,7 @@ instance Monad UT where
 \end{figure}
 
 \begin{figure}
-\begin{minipage}{0.51\textwidth}
+\begin{minipage}{0.43\textwidth}
 \begin{code}
 data UValue = AAA | UCons U UValue | UUU
 type UD = UT UValue
@@ -91,29 +103,27 @@ instance Lat UD where {-" ... \iffalse "-}
   MkUT φ1 v1 ⊔ MkUT φ2 v2 = MkUT (φ1 ⊔ φ2) (v1 ⊔ v2)
 {-" \fi "-}
 
-uncons :: UValue -> (U, UValue)
-uncons AAA          = (U0,AAA)
-uncons (UCons u v)  = (u,v)
-uncons UUU          = (Uω,UUU)
+asCons :: UValue -> (U, UValue)
+asCons AAA          = (U0,AAA)
+asCons (UCons u v)  = (u,v)
+asCons UUU          = (Uω,UUU)
 
-m !? x = Map.findWithDefault U0 x m
+m !? x  | x ∈ dom m = m ! x
+        | otherwise = U0
 
 proxy :: Name -> UD
 proxy x = MkUT (ext emp x U1) UUU
-
-manify :: UD -> UD
-manify (MkUT φ v) = MkUT (φ+φ) v
 \end{code}
 \end{minipage}%
-\begin{minipage}{0.49\textwidth}
+\begin{minipage}{0.57\textwidth}
 \begin{code}
 instance Domain UD where
   stuck                                  = bottom
   fun x {-" \iffalse "-}_{-" \fi "-} f   = case f (MkUT (ext emp x U1) UUU) of
     MkUT φ v -> MkUT (ext φ x U0) (UCons (φ !? x) v)
-  con {-" \iffalse "-}_{-" \fi "-} _ ds  = manify (foldr (>>) bottom ds)
-  apply (MkUT φ1 v) (MkUT φ2 _)          = case uncons v of
-    (u, v) -> MkUT (φ1 + u*φ2)     v
+  apply (MkUT φ1 v1) (MkUT φ2 _)         = case asCons v1 of
+    (u, v2) -> MkUT (φ1 + u*φ2) v2
+  con {-" \iffalse "-}_{-" \fi "-} _ ds  = foldr apply (MkUT emp UUU) ds
   select d fs                            =
     d >> lub  [  f (replicate (conArity k) (MkUT emp UUU))
               |  (k,f) <- assocs fs ]
@@ -131,30 +141,15 @@ deriving instance Functor UT
 instance Eq UValue where
   AAA == AAA = True
   UUU == UUU = True
-  v1 == v2 = uncons v1 == uncons v2
+  v1 == v2 = asCons v1 == asCons v2
 
 instance Show U where
   show U0 = "0"
   show U1 = "1"
   show Uω = "ω"
 
-class UAlgebra a where
-  (+) :: a -> a -> a
-  (*) :: U -> a -> a
 infixl 6 +
 infixl 7 *
-
-instance UAlgebra U where
-  U1 + U1 = Uω
-  u1 + u2 = u1 ⊔ u2
-  U0 * _ = U0
-  _ * U0 = U0
-  U1 * u = u
-  Uω * _ = Uω
-
-instance (Ord k, UAlgebra v) => UAlgebra (k :-> v) where
-  (+) = Map.unionWith (+)
-  u * m = Map.map (u *) m
 
 instance Show a => Show (UT a) where
   show (MkUT φ _) = show φ

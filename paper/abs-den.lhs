@@ -107,7 +107,7 @@
 \newcommand{\varcolor}[1]{{\color{Sepia} #1}}
 \newcommand{\concolor}[1]{{\color{OliveGreen} #1}}
 \newcommand{\varid}[1]{\varcolor{\id{#1}}}
-\newcommand{\conid}[1]{\concolor{\id{#1}}}
+\newcommand{\conid}[1]{\concolor{\textit{#1}}}
 %\newcommand{\tick}{\text{\textquoteright}}
 \newcommand{\package}[1]{\textsf{#1}}
 \renewcommand{\commentbegin}{\ensuremath{\quad\Lbag\ }}

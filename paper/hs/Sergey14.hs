@@ -64,12 +64,13 @@ instance Lat SubDemand where
   Prod dmds1 ⊔ Prod dmds2 = mkProd (dmds1⊔dmds2)
   _ ⊔ _ = Top
 
-instance UAlgebra Demand where
+instance UAlg Demand where
   Abs + d = d
   d + Abs = d
   (_u1:*sd1) + (_u2:*sd2) = Uω :* (sd1+sd2)
+  _ * _ = error "unused"
 
-instance UAlgebra SubDemand where
+instance UAlg SubDemand where
   Top + _ = Top
   _ + Top = Top
   Seq + sd = sd
@@ -77,6 +78,7 @@ instance UAlgebra SubDemand where
   Call _n1 sd1 + Call _n2 sd2 = mkCall Uω (sd1 ⊔ sd2)
   Prod dmds1 + Prod dmds2 | length dmds1 == length dmds2 = mkProd (zipWith (+) dmds1 dmds2)
   _ + _ = Top
+  _ * _ = error "unused"
 
 instance Show SubDemand where
   show Seq = "HU"
@@ -89,6 +91,10 @@ instance Show Demand where
   show (n :* sd) = show n ++ "*" ++ show sd
 
 type DmdEnv = Name :-> Demand
+instance UAlg (Name :-> Demand) where {-" ... \iffalse "-}
+  (+) = Map.unionWith (+)
+  u * m = Map.map (u *) m
+{-" \fi "-}
 instance Semigroup Demand where
   d1 <> d2 = d1 + d2
 instance Monoid Demand where
@@ -157,7 +163,7 @@ freshs n ns = (xs, foldr Set.insert ns xs) where xs = take n (map (("X" ++) . sh
 
 instance Domain (DmdT DmdVal) where
   stuck = return DmdBot
-  fun _ f = DT $ \ns sd ->
+  fun _ _ f = DT $ \ns sd ->
     let (x,ns') = fresh ns in
     let proxy = step (Lookup x) (pure DmdNop) in
     let (n,sd') = case sd of
@@ -167,9 +173,9 @@ instance Domain (DmdT DmdVal) where
     if n == U0
       then (DmdBot, emp)
       else
-        let (v,φ) = unDT (f proxy) ns' sd' in
+        let (v,φ)  = unDT (f proxy) ns' sd' in
         let (d,φ') = (Map.findWithDefault absDmd x φ,Map.delete x φ) in
-        (multDmdVal n (mkDmdFun d v), multDmdEnv n φ')
+        (multDmdVal n (mkDmdFun d v), n * φ')
   con _ k ds = DT $ \ns sd ->
     let dmds = case sd of
           Prod dmds | length dmds == length ds, isProd k -> dmds
@@ -224,11 +230,6 @@ peelManyCalls _ Top = (Uω, Top)
 peelManyCalls _ Prod{} = (Uω, Top)
 peelManyCalls n (Call u sd) | (u',sd') <- peelManyCalls (n-1) sd = (u * u', sd')
 
-multDmdEnv :: U -> DmdEnv -> DmdEnv
-multDmdEnv U0 _ = emp
-multDmdEnv U1 φ = φ
-multDmdEnv Uω φ = φ+φ
-
 multDmdVal :: U -> DmdVal -> DmdVal
 multDmdVal U0 _ = DmdNop
 multDmdVal Uω (DmdFun d v) = mkDmdFun (d+d) (multDmdVal Uω v)
@@ -239,7 +240,7 @@ type DmdSummary = (DmdVal, DmdEnv)
 concDmdSummary :: Int -> DmdSummary -> DmdD
 concDmdSummary arty (v,φ) = DT $ \_ns sd ->
   let (u,_body_sd) = peelManyCalls arty sd in
-  (multDmdVal u v, multDmdEnv u φ)
+  (multDmdVal u v, u * φ)
 
 
 -- | A single call with n args in an otherwise unknown context
