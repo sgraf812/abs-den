@@ -52,20 +52,20 @@ data U = U0 | U1 | Uω; instance Lat U where {-" ... \iffalse "-}
   U1  ⊔  U1  = U1
   _   ⊔  _   = Uω
 {-" \fi "-}
-data UT a = Uses (Name :-> U) a
+data UT a = MkUT (Name :-> U) a
 
 instance Trace (UT v) where
-  step (Lookup x)  (Uses φ a)  = Uses (φ + ext emp x U1) a
+  step (Lookup x)  (MkUT φ a)  = MkUT (φ + ext emp x U1) a
   step _           τ           = τ
 \end{code}
 \end{minipage}%
 \begin{minipage}{0.35\textwidth}
 \begin{code}
 instance Monad UT where
-  return a = Uses emp a
-  Uses φ1 a >>= k
-    |  Uses φ2 b <- k a
-    =  Uses (φ1+φ2) b
+  return a = MkUT emp a
+  MkUT φ1 a >>= k
+    |  MkUT φ2 b <- k a
+    =  MkUT (φ1+φ2) b
 \end{code}
 \end{minipage}
 \caption{|Trace| instance for usage analysis}
@@ -75,28 +75,36 @@ instance Monad UT where
 \begin{figure}
 \begin{minipage}{0.51\textwidth}
 \begin{code}
-data UValue = Nop; type UD = UT UValue
+data UValue = AAA | UCons U UValue | UUU; type UD = UT UValue
 
-nopD :: UD
-nopD = Uses emp Nop
+instance Lat UValue where
+  bottom = AAA
+  AAA ⊔ v = v
+  v ⊔ AAA = v
+  UUU ⊔ _ = UUU
+  _ ⊔ UUU = UUU
+  UCons u1 v1 ⊔ UCons u2 v2 = UCons (u1 ⊔ u2) (v1 ⊔ v2)
+
+proxyD :: UD
+proxyD = MkUT emp UUU
 
 manify :: UD -> UD
-manify (Uses φ Nop) = Uses (φ+φ) Nop
+manify (MkUT φ v) = MkUT (φ+φ) v
 
 instance Lat UD where
-  bottom = nopD
-  Uses φ1 _ ⊔ Uses φ2 _ = Uses (φ1 ⊔ φ2) Nop
+  bottom = MkUT bottom bottom
+  MkUT φ1 v1 ⊔ MkUT φ2 v2 = MkUT (φ1 ⊔ φ2) (v1 ⊔ v2)
 \end{code}
 \end{minipage}%
 \begin{minipage}{0.49\textwidth}
 \begin{code}
 instance Domain UD where
-  stuck                                  = nopD
-  fun {-" \iffalse "-}_{-" \fi "-} f     = manify (f nopD)
-  con {-" \iffalse "-}_{-" \fi "-} _ ds  = manify (foldr (>>) nopD ds)
+  stuck                                  = proxyD
+  fun {-" \iffalse "-}_{-" \fi "-} f     = manify (f proxyD)
+  con {-" \iffalse "-}_{-" \fi "-} _ ds  = manify (foldr (>>) proxyD ds)
   apply d a                              = manify a >> d
   select d fs                            =
-    d >> lub  [  f (replicate (conArity k) nopD)
+    d >> lub  [  f (replicate (conArity k) proxyD)
               |  (k,f) <- Map.assocs fs ]
 
 instance HasBind UD where
@@ -126,14 +134,16 @@ instance (Ord k, Plussable v) => Plussable (k :-> v) where
   (+) = Map.unionWith (+)
 
 instance Show a => Show (UT a) where
-  show (Uses φ _) = show φ
+  show (MkUT φ _) = show φ
 
 instance Applicative UT where
-  pure a = Uses emp a
+  pure a = MkUT emp a
   (<*>) = ap
 
 instance Show UValue where
-  show Nop = ""
+  show UUU = "U_\\omega.."
+  show AAA = "U_0.."
+  show (UCons u v) = show u ++ " \\sumcons " ++ show v
 \end{code}
 %endif
 \caption{Naïve usage analysis via |Domain| and |HasBind|}

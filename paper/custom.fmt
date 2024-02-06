@@ -169,12 +169,16 @@
 %%format ds = "\overline{\varid{d}}"
 %%format alts = "\overline{\varid{alt}}"
 
-%format UD = "\concolor{\widehat{D}}"
-%format UT = "\concolor{\widehat{T}}"
-%format UValue = "\concolor{\widehat{Value}}"
+%format UD = "\concolor{\slfamily\widehat{D}_U}"
+%format UT = "\concolor{\slfamily\widehat{T}_U}"
+%format MkUT(a)(b)= "\langle " a ", " b " \rangle"
+%format UValue = "\concolor{\widehat{Value}_U}"
 %format U0 = "\concolor{U_0}"
 %format U1 = "\concolor{U_1}"
 %format Uω = "\concolor{U_\omega}"
+%format AAA = "\concolor{U_0..}"
+%format UUU = "\concolor{U_\omega..}"
+%format UCons a b = a " \sumcons " b
 
 %format CD = "\concolor{\widehat{D}}"
 %format CT = "\concolor{\widehat{T}}"
