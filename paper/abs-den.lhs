@@ -102,12 +102,12 @@
 \ifnonanon{\usepackage[mark]{gitinfo2}}
 
 %include custom.fmt
-\newcommand{\keyword}[1]{\textcolor{BlueViolet}{\textbf{#1}}}
-\newcommand{\id}[1]{\textsf{\textsl{#1}}}
+\newcommand{\kwcolor}[1]{{\color{BlueViolet} #1}}
 \newcommand{\varcolor}[1]{{\color{Sepia} #1}}
 \newcommand{\concolor}[1]{{\color{OliveGreen} #1}}
-\newcommand{\varid}[1]{\varcolor{\id{#1}}}
-\newcommand{\conid}[1]{\concolor{\textit{#1}}}
+\newcommand{\keyword}[1]{\kwcolor{\mathbf{#1}}}
+\newcommand{\varid}[1]{\varcolor{\mathit{#1}}}
+\newcommand{\conid}[1]{\concolor{\mathsf{#1}}}
 %\newcommand{\tick}{\text{\textquoteright}}
 \newcommand{\package}[1]{\textsf{#1}}
 \renewcommand{\commentbegin}{\ensuremath{\quad\Lbag\ }}

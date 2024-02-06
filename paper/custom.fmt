@@ -95,7 +95,7 @@
 %format θ1
 %format θ2
 %format ω = "\varcolor{\omega}"
-%format Σ = "\concolor{\Sigma}"
+%format Σ = "\concolor{\mathsf{\Sigma}}"
 %format :-> = "\hspace{-0.15em}\rightharpoonup\hspace{-0.19em}"
 %format :->: = "\mathbin{:\rightarrow:}"
 %format ∈ = "\in"
@@ -164,25 +164,25 @@
 %format Let1
 %format trD = "\tr_Δ"
 %format ℕ_ω = "ℕ_ω"
-%format Sn = "\concolor{S}^n"
+%format Sn = "\concolor{\mathsf{S}}^n"
 %%format xs = "\overline{\varid{x}}"
 %%format ds = "\overline{\varid{d}}"
 %%format alts = "\overline{\varid{alt}}"
 
-%format UD = "\concolor{\widehat{D}_U}"
-%format UT = "\concolor{\widehat{T}_U}"
+%format UD = "\concolor{\mathsf{D_U}}"
+%format UT = "\concolor{\mathsf{T_U}}"
 %format (MkUT(a)(b))= "\langle " a ", " b " \rangle"
-%format UValue = "\concolor{\widehat{Value}_U}"
-%format U0 = "\concolor{U_0}"
-%format U1 = "\concolor{U_1}"
-%format Uω = "\concolor{U_\omega}"
-%format AAA = "\concolor{U_0..}"
-%format UUU = "\concolor{U_\omega..}"
+%format UValue = "\concolor{\mathsf{Value_U}}"
+%format U0 = "\concolor{\mathsf{U_0}}"
+%format U1 = "\concolor{\mathsf{U_1}}"
+%format Uω = "\concolor{\mathsf{U_\omega}}"
+%format AAA = "\concolor{\mathsf{U_0..}}"
+%format UUU = "\concolor{\mathsf{U_\omega..}}"
 %format UCons a b = a " \sumcons " b
 
-%format CD = "\concolor{\widehat{D}}"
-%format CT = "\concolor{\widehat{T}}"
-%format CValue = "\concolor{\widehat{Value}}"
+%format CD = "\concolor{\mathsf{D_C}}"
+%format CT = "\concolor{\mathsf{T_C}}"
+%format CValue = "\concolor{\mathsf{Value_C}}"
 
 %format Later = "\later\!"
 %format highlight(a) = "\highlight{" a "}"
@@ -214,11 +214,6 @@
 %format (Cup(a)) = "\bigcup\{" a "\}"
 %format (Lub(a)) = "\Lub\{" a "\}"
 %format powMap(f) = "{" f "}^{*}"
-%format AT = "\varcolor{\widehat{T}}"
-%format AV = "\varcolor{\widehat{V}}"
-%format aτ = "\varcolor{\widehat{\tau}}"
-%format av = "\varcolor{\widehat{v}}"
-%format ADict = "\widehat{\varid{Dict}}"
 %format (hat(a)) = "\widehat{" a "}"
 %format (dot(a)) = "\dot{" a "}"
 
@@ -272,8 +267,8 @@
 %format .         = "\hsdot{" `comp_` "}{" period_ "}"
 %format `comp_`   = "\circ "
 %format period_   = ".\,"
-%format forall_   = "\keyword{$\forall$}\!\! "
-%format exists_   = "\keyword{$\exists$}\!\! "
+%format forall_   = "\keyword{\forall}\!\! "
+%format exists_   = "\keyword{\exists}\!\! "
 %
 % This is made in such a way that after a forall, the next
 % dot will be printed as a period, otherwise the formatting
