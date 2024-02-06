@@ -6,7 +6,7 @@
 {-# OPTIONS_GHC -Wno-noncanonical-monad-instances #-}
 {-# LANGUAGE LambdaCase #-}
 
-module Abstractions where
+module Abstraction where
 
 import Prelude hiding ((+), (*))
 import qualified Data.Map as Map
@@ -25,16 +25,17 @@ root = call `seq` anyCtx -- Suppress redundant import warning
 \end{code}
 %endif
 
-\section{Abstractions}
-\label{sec:abstractions}
+\section{abstractions}
+\label{sec:abstraction}
 
 \begin{figure}
 \begin{spec}
 class Eq a => Lat a where bottom :: a; (⊔) :: a -> a -> a;
-lub :: Lat a => [a] -> a; kleeneFix :: Lat a => (a -> a) -> a
+lub :: Lat a => [a] -> a; qquad kleeneFix :: Lat a => (a -> a) -> a
 kleeneFix f = go bottom where go x = let x' = f x in if x' ⊑ x then x' else go x'
 instance (Ord k, Lat v) => Lat (k :-> v) where bottom = emp; (⊔) = Map.unionWith (⊔)
 \end{spec}
+\\[-1em]
 \caption{Order theory and Kleene fixpoint}
 \label{fig:lat}
 \end{figure}
@@ -43,46 +44,72 @@ instance (Ord k, Lat v) => Lat (k :-> v) where bottom = emp; (⊔) = Map.unionWi
 \label{sec:usage-analysis}
 
 \begin{figure}
-\begin{minipage}{0.65\textwidth}
+\begin{minipage}{0.4\textwidth}
 \begin{code}
-data U = U0 | U1 | Uω; instance Lat U where {-" ... \iffalse "-}
-  bottom = U0
-  U0  ⊔  u   = u
-  u   ⊔  U0  = u
-  U1  ⊔  U1  = U1
-  _   ⊔  _   = Uω
-{-" \fi "-}
-class UAlg a where (+) :: a -> a -> a; (*) :: U -> a -> a
+data U = U0 | U1 | Uω
+type Uses = Name :-> U
+class UAlg a where
+  (+)  :: a -> a -> a
+  (*)  :: U -> a -> a
 instance UAlg U where {-" ... \iffalse "-}
   U1 + U1 = Uω
   u1 + u2 = u1 ⊔ u2
   U0 * _ = U0
   _ * U0 = U0
   U1 * u = u
-  Uω * _ = Uω
-{-" \fi "-}
-data UT a = MkUT (Name :-> U) a
-instance UAlg (Name :-> U) where {-" ... \iffalse "-}
+  Uω * _ = Uω {-" \fi "-}
+instance UAlg Uses where {-" ... \iffalse "-}
   (+) = Map.unionWith (+)
   u * m = Map.map (u *) m
 {-" \fi "-}
-instance Trace (UT v) where
-  step (Lookup x)  (MkUT φ a)  = MkUT (φ + ext emp x U1) a
-  step _           τ           = τ
 \end{code}
 \end{minipage}%
-\begin{minipage}{0.35\textwidth}
+\begin{minipage}{0.6\textwidth}
 \begin{code}
+data UT a = MkUT Uses a
 instance Monad UT where
   return a = MkUT emp a
-  MkUT φ1 a >>= k
-    |  MkUT φ2 b <- k a
-    =  MkUT (φ1+φ2) b
+  MkUT φ1 a >>= k |  MkUT φ2 b <- k a =  MkUT (φ1+φ2) b
+instance Trace (UT v) where
+  step (Lookup x)  τ = MkUT (ext emp x U1) ( () ) >> τ
+  step _           τ = τ
 \end{code}
 \end{minipage}
+\\[-1em]
 \caption{|Trace| instance for usage analysis}
 \label{fig:usg-abs}
 \end{figure}
+
+The gist of usage analysis is that it collects upper bounds for the number of
+$\LookupT$ transitions per let-bound variable.
+We can encode this intuition in the custom trace type |UT| in \Cref{fig:usg-abs}
+that will take the place of |T|.
+|UT| aggregates the number of |Lookup x| transitions per variable |x| in a usage
+environment |Name :-> U|, with the matching |Monad| and |Trace| instances.
+A \emph{usage cardinality} |U| abstracts an upper bound on the number of such
+|Lookup x| events, where |U0| means ``at most 0 times'' (\ie, dead) and |U1|
+means ``at most 1 times''.
+|Uω| is the top element of the lattice defined by the total ordering |U0 ⊏ U1
+⊏ Uω| and can be read as ``at most ω times'', where $ω$ is the first limit
+ordinal.
+The definition of |(+)| on |U| coincides with the least upper bound operator
+|(⊔)|, except for carrying over |U1 + U1 = Uω|, so any number of lookups
+beyond $1$ goes straight to $ω$.
+Both |(+)| and |(⊔)| are lifted pointwise to |Name :-> U|.
+
+If we had no interest in a terminating analysis, we could already make do
+with the induced \emph{semantic usage abstraction} |D (ByName UT)|:
+
+< ghci> eval (read "let i = λx.x in let j = λy.y in i j j") emp :: D (ByName UT)
+$\perform{eval (read "let i = λx.x in let j = λy.y in i j j") emp :: D (ByName UT)}$
+\\[\belowdisplayskip]
+\noindent
+This analysis amounts to running the concrete semantics and then folding the
+trace into a |UT|; it is what the static analysis is supposed to approximate.
+Of course, this will diverge whenever the object program diverges.
+Perhaps interestingly, we have not needed any order theory so far, because the
+abstraction is a precise fold over the program trace, thanks to the concrete
+|Value|s manipulated.
 
 \begin{figure}
 \begin{minipage}{0.43\textwidth}
@@ -90,6 +117,13 @@ instance Monad UT where
 data UValue = AAA | UCons U UValue | UUU
 type UD = UT UValue
 
+instance Lat U where {-" ... \iffalse "-}
+  bottom = U0
+  U0  ⊔  u   = u
+  u   ⊔  U0  = u
+  U1  ⊔  U1  = U1
+  _   ⊔  _   = Uω
+{-" \fi "-}
 instance Lat UValue where {-" ... \iffalse "-}
   bottom = AAA
   AAA ⊔ v = v
@@ -108,11 +142,8 @@ asCons AAA          = (U0,AAA)
 asCons (UCons u v)  = (u,v)
 asCons UUU          = (Uω,UUU)
 
-m !? x  | x ∈ dom m = m ! x
-        | otherwise = U0
-
-proxy :: Name -> UD
-proxy x = MkUT (ext emp x U1) UUU
+m !? x  | x ∈ dom m  = m ! x
+        | otherwise  = U0
 \end{code}
 \end{minipage}%
 \begin{minipage}{0.57\textwidth}
@@ -167,37 +198,6 @@ instance Show UValue where
 \caption{Summary-based usage analysis via |Domain| and |HasBind|}
 \label{fig:abs-usg}
 \end{figure}
-
-The gist of usage analysis is that it collects upper bounds for the number of
-$\LookupT$ transitions per let-bound variable.
-We can encode this intuition in the custom trace type |UT| in \Cref{fig:usg-abs}
-that will take the place of |T|.
-|UT| aggregates the number of |Lookup x| transitions per variable |x| in a usage
-environment |Name :-> U|, with the matching |Monad| and |Trace| instances.
-A \emph{usage cardinality} |U| abstracts an upper bound on the number of such
-|Lookup x| events, where |U0| means ``at most 0 times'' (\ie, dead) and |U1|
-means ``at most 1 times''.
-|Uω| is the top element of the lattice defined by the total ordering |U0 ⊏ U1
-⊏ Uω| and can be read as ``at most ω times'', where $ω$ is the first limit
-ordinal.
-The definition of |(+)| on |U| coincides with the least upper bound operator
-|(⊔)|, except for carrying over |U1 + U1 = Uω|, so any number of lookups
-beyond $1$ goes straight to $ω$.
-Both |(+)| and |(⊔)| are lifted pointwise to |Name :-> U|.
-
-If we had no interest in a terminating analysis, we could already make do
-with the induced \emph{semantic usage abstraction} |D (ByName UT)|:
-
-< ghci> eval (read "let i = λx.x in let j = λy.y in i j j") emp :: D (ByName UT)
-$\perform{eval (read "let i = λx.x in let j = λy.y in i j j") emp :: D (ByName UT)}$
-\\[\belowdisplayskip]
-\noindent
-This analysis amounts to running the concrete semantics and then folding the
-trace into a |UT|; it is what the static analysis is supposed to approximate.
-Of course, this will diverge whenever the object program diverges.
-Perhaps interestingly, we have not needed any order theory so far, because the
-abstraction is a precise fold over the program trace, thanks to the concrete
-|Value|s manipulated.
 
 If we want to assess usage cardinality statically, we have to find a more
 abstract, inductive representation of |Value|.
@@ -304,6 +304,7 @@ abstraction, as can be seen for example (1) of \Cref{fig:usage-examples}.
 The results will be more approximate when summaries are involved, however, as
 the contrasting examples (2)-(5) point out.
 
+\begin{toappendix}
 \subsection{Type Analysis}
 
 \begin{figure}
@@ -783,6 +784,7 @@ imprecise result, respectively. The latter is due to the fact that both |i| and
 |j| flow into |x|.
 Examples (3) and (4) show that the |HasBind| instance guarantees termination for
 diverging programs and cyclic data.
+\end{toappendix}
 
 \subsection{Discussion}
 
@@ -802,6 +804,7 @@ Finally, the example of 0CFA demonstrates that our framework can be instantiated
 to perform traditional, whole-program, higher-order analysis based on
 approximate call strings.
 
+\begin{comment}
 \subsection{Bonus: Higher-order Cardinality Analysis}
 
 In the style of \citet{Sergey:14}.
@@ -822,3 +825,4 @@ arguments'', |anyCtx| means ``evaluate in any evaluation context'' (top).}
 %               & $\perform{anyCtx "let z = Z() in let o = S(z) in let plus = λa.λb. case a of { Z() -> b; S(n) -> let plusn = plus n b in S(plusn) } in plus z o"}$ \\
 \bottomrule
 \end{tabular}
+\end{comment}

@@ -173,7 +173,7 @@ For example, we can choose a semantic domain |DName|, so that |eval|
 will produce precisely the traces of the by-name variant of the Krivine machine in
 \Cref{fig:lk-semantics}!
 In \Cref{sec:evaluation-strategies} we will give semantic domains for by-value
-and by-need semantics as well, and in \Cref{sec:abstractions} we obtain static
+and by-need semantics as well, and in \Cref{sec:abstraction} we obtain static
 analyses as instances.
 
 Here are the data type declarations for |DName|, the by-name variant:
@@ -226,7 +226,7 @@ concrete, semantic |Value|.
 We have embellished each |Step| with an |Event|, which describes what happpens
 in that |Step|; for example, a |Lookup| event describes a lookup in environment, and
 we further decorate it with the |Name| of the let-bound variable for later
-scrutinisation in \Cref{sec:abstractions}.
+scrutinisation in \Cref{sec:abstraction}.
 Note that the choice of |Event| suggests a spectrum of intensionality,
 with |data Event = Unit| corresponding to the ``delay monad'' popularised by
 \citet{Capretta:05} on the more abstract end of the spectrum and arbitrary
@@ -305,10 +305,10 @@ instance Trace (T v) where
 instance ifCodeElse (Monad τ => Domain (D τ)) (Domain DName) where
   stuck = return Stuck
   fun _ {-" \iffalse "-}_{-" \fi "-} f = return (Fun f)
-  apply  d a = d >>= \case
+  apply  d a = d >>= \v -> case v of
     Fun f -> f a; _ -> stuck
   con {-" \iffalse "-}_{-" \fi "-} k ds = return (Con k ds)
-  select dv alts = dv >>= \case
+  select dv alts = dv >>= \v -> case v of
     Con k ds | k ∈ dom alts  -> (alts ! k) ds
     _                        -> stuck
 
@@ -367,7 +367,7 @@ depend on the |Domain|.
 The lambda-bound |x::Name| passed to |fun| is ignored in the concrete by-name
 semantics.
 As well it should: it is syntax, after all!
-We will need |x| in \Cref{sec:abstractions} for a similar purpose as
+We will need |x| in \Cref{sec:abstraction} for a similar purpose as
 $\mathit{fun}_\px$ in \Cref{fig:absence}.
 
 The other cases follow a similar pattern; they each do some work, before handing off to the
@@ -529,7 +529,7 @@ and |return v = Ret v|, so |fix| solves this recursion equation for us.
 
 Since nothing about |extract| is particularly special to |T|, it lives in its
 own type class |Extract| so that we get a |HasBind| instance for different
-types of |Trace|s, such as more abstract ones in \Cref{sec:abstractions}.
+types of |Trace|s, such as more abstract ones in \Cref{sec:abstraction}.
 
 Let us trace $\Let{i}{(\Lam{y}{\Lam{x}{x}})~i}{i~i}$ for call-by-value:
 

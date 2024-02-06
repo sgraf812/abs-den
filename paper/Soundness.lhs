@@ -12,7 +12,7 @@ import Data.Set (Set)
 import qualified Data.Set as Set
 import Order
 import Interpreter
-import Abstractions
+import Abstraction
 
 instance Eq (D (ByName T)) where
   (==) = undefined

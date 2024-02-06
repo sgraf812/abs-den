@@ -11,7 +11,7 @@ import Data.Char
 import Text.Show
 import Control.Monad
 import Control.Monad.Trans.State
-import Abstractions hiding ((+))
+import Abstraction hiding ((+))
 
 import Exp hiding (Env)
 import GHC.Stack

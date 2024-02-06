@@ -827,7 +827,7 @@ inlining computations into function bodies.}.
 For these reasons, we set out to find a \textbf{\emph{compositional semantics
 that exhibits operational detail}} just like the trace-generating semantics of
 \citet{Cousot:21}, and were successful.
-The example of usage analysis in \Cref{sec:abstractions} (generalising
+The example of usage analysis in \Cref{sec:abstraction} (generalising
 $\semabs{\wild}$, as suggested above) demonstrates that we can
 \textbf{\emph{derive summary-based analyses as an abstract interpretation}} from
 our semantics.

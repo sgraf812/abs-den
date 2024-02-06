@@ -24,7 +24,7 @@ import           Control.Exception
 
 import           Exp hiding (assert)
 import           Interpreter
-import           Abstractions
+import           Abstraction
 
 
 main :: IO ()

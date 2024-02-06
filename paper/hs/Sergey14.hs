@@ -6,7 +6,7 @@ import qualified Prelude
 import Exp
 import Order
 import Interpreter
-import Abstractions
+import Abstraction
 import Data.Functor.Identity
 import Control.Monad.Trans.Writer
 import Control.Monad.Trans.Reader
@@ -16,7 +16,7 @@ import qualified Data.Set as Set
 -- import Debug.Trace
 
 
--- data U = U0 | U1 | Uω -- defined in Abstractions, including ⊔ and +
+-- data U = U0 | U1 | Uω -- defined in Abstraction, including ⊔ and +
 type UNonAbs  = U -- Not U0
 type UNonOnce = U -- Not U1
 

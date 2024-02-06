@@ -215,10 +215,10 @@
 %include Absence.lhs
 %include OpSem.lhs
 %include Interpreter.lhs
-%include Abstractions.lhs
 %include Adequacy.lhs
 %include Soundness.lhs
 %include RelatedWork.lhs
+%include Abstraction.lhs
 
 %\begin{acks}
 %We would like to thank the anonymous POPL reviewers for their feedback.

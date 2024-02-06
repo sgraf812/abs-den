@@ -82,7 +82,7 @@ We make the following contributions:
   endow our object language with call-by-name, variants of call-by-need and
   variants of call-by-value evaluation strategies, producing (abstractions of)
   small-step traces.
-\item In \Cref{sec:abstractions} we give three examples of abstract
+\item In \Cref{sec:abstraction} we give three examples of abstract
   interpretations, covering a wide span of applications: Type analysis, usage
   analysis and 0CFA control-flow analysis.
   The former two have interesting summary mechanisms that our framework
