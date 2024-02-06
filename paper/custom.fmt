@@ -171,7 +171,7 @@
 
 %format UD = "\concolor{\widehat{D}_U}"
 %format UT = "\concolor{\widehat{T}_U}"
-%format MkUT(a)(b)= "\langle " a ", " b " \rangle"
+%format (MkUT(a)(b))= "\langle " a ", " b " \rangle"
 %format UValue = "\concolor{\widehat{Value}_U}"
 %format U0 = "\concolor{U_0}"
 %format U1 = "\concolor{U_1}"

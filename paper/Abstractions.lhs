@@ -75,37 +75,48 @@ instance Monad UT where
 \begin{figure}
 \begin{minipage}{0.51\textwidth}
 \begin{code}
-data UValue = AAA | UCons U UValue | UUU; type UD = UT UValue
+data UValue = AAA | UCons U UValue | UUU
+type UD = UT UValue
 
-instance Lat UValue where
+instance Lat UValue where {-" ... \iffalse "-}
   bottom = AAA
   AAA ⊔ v = v
   v ⊔ AAA = v
   UUU ⊔ _ = UUU
   _ ⊔ UUU = UUU
   UCons u1 v1 ⊔ UCons u2 v2 = UCons (u1 ⊔ u2) (v1 ⊔ v2)
+{-" \fi "-}
+instance Lat UD where {-" ... \iffalse "-}
+  bottom = MkUT bottom bottom
+  MkUT φ1 v1 ⊔ MkUT φ2 v2 = MkUT (φ1 ⊔ φ2) (v1 ⊔ v2)
+{-" \fi "-}
 
-proxyD :: UD
-proxyD = MkUT emp UUU
+uncons :: UValue -> (U, UValue)
+uncons AAA          = (U0,AAA)
+uncons (UCons u v)  = (u,v)
+uncons UUU          = (Uω,UUU)
+
+m !? x = Map.findWithDefault U0 x m
+
+proxy :: Name -> UD
+proxy x = MkUT (ext emp x U1) UUU
 
 manify :: UD -> UD
 manify (MkUT φ v) = MkUT (φ+φ) v
-
-instance Lat UD where
-  bottom = MkUT bottom bottom
-  MkUT φ1 v1 ⊔ MkUT φ2 v2 = MkUT (φ1 ⊔ φ2) (v1 ⊔ v2)
 \end{code}
 \end{minipage}%
 \begin{minipage}{0.49\textwidth}
 \begin{code}
 instance Domain UD where
-  stuck                                  = proxyD
-  fun {-" \iffalse "-}_{-" \fi "-} f     = manify (f proxyD)
-  con {-" \iffalse "-}_{-" \fi "-} _ ds  = manify (foldr (>>) proxyD ds)
-  apply d a                              = manify a >> d
+  stuck                                  = bottom
+  fun x {-" \iffalse "-}_{-" \fi "-} f   = case f (MkUT (ext emp x U1) UUU) of
+    MkUT φ v -> MkUT (ext φ x U0) (UCons (φ !? x) v)
+  con {-" \iffalse "-}_{-" \fi "-} _ ds  = manify (foldr (>>) bottom ds)
+  apply (MkUT φ1 v) (MkUT φ2 _)          = case uncons v of
+    (u, v) -> MkUT (φ1 + u*φ2)     v
   select d fs                            =
-    d >> lub  [  f (replicate (conArity k) proxyD)
-              |  (k,f) <- Map.assocs fs ]
+    d >> lub  [  f (replicate (conArity k) (MkUT emp UUU))
+              |  (k,f) <- assocs fs ]
 
 instance HasBind UD where
   bind {-" \iffalse "-}_{-" \fi "-} rhs body = body (kleeneFix rhs)
@@ -115,23 +126,35 @@ instance HasBind UD where
 \begin{code}
 deriving instance Eq U
 deriving instance Eq a => Eq (UT a)
-deriving instance Eq UValue
 deriving instance Functor UT
+
+instance Eq UValue where
+  AAA == AAA = True
+  UUU == UUU = True
+  v1 == v2 = uncons v1 == uncons v2
 
 instance Show U where
   show U0 = "0"
   show U1 = "1"
   show Uω = "ω"
 
-class Plussable a where
+class UAlgebra a where
   (+) :: a -> a -> a
+  (*) :: U -> a -> a
+infixl 6 +
+infixl 7 *
 
-instance Plussable U where
+instance UAlgebra U where
   U1 + U1 = Uω
   u1 + u2 = u1 ⊔ u2
+  U0 * _ = U0
+  _ * U0 = U0
+  U1 * u = u
+  Uω * _ = Uω
 
-instance (Ord k, Plussable v) => Plussable (k :-> v) where
+instance (Ord k, UAlgebra v) => UAlgebra (k :-> v) where
   (+) = Map.unionWith (+)
+  u * m = Map.map (u *) m
 
 instance Show a => Show (UT a) where
   show (MkUT φ _) = show φ
@@ -146,7 +169,7 @@ instance Show UValue where
   show (UCons u v) = show u ++ " \\sumcons " ++ show v
 \end{code}
 %endif
-\caption{Naïve usage analysis via |Domain| and |HasBind|}
+\caption{Summary-based usage analysis via |Domain| and |HasBind|}
 \label{fig:abs-usg}
 \end{figure}
 
@@ -303,7 +326,7 @@ closedType d = runCts (generaliseTy $ d >>= instantiatePolyTy)
 
 instance Trace (Cts v) where step _ = id
 instance Domain (Cts PolyType) where stuck = return (PT [] Wrong); {-" ... \iffalse "-}
-                                     fun {-" \iffalse "-}_{-" \fi "-} f = do
+                                     fun _ {-" \iffalse "-}_{-" \fi "-} f = do
                                        arg <- freshTyVar
                                        res <- f (return (PT [] arg)) >>= instantiatePolyTy
                                        return (PT [] (arg :->: res))
@@ -560,7 +583,7 @@ instance HasBind CD where{-" ... \iffalse "-}
         if v' ⊑ v && cache' ⊑ cache then do { v'' <- rhs (return v'); if v' /= v'' then error "blah" else return v' } else go v'
 {-" \fi "-}; instance Trace (CT v) where step _ = id
 instance Domain CD where
-  fun ell f = do updFunCache ell f; return (P (Set.singleton ell))
+  fun _ ell f = do updFunCache ell f; return (P (Set.singleton ell))
   apply dv da = dv >>= \(P ells) -> da >>= \a -> lub <$> traverse (\ell -> cachedCall ell a) (Set.toList ells)
   {-" ... \iffalse "-}
   stuck = return bottom
@@ -704,7 +727,7 @@ the value's control-flow node:
 type Label = String
 class Domain d where
   con  :: {-" \highlight{ "-}Label -> {-" {}} "-} Tag -> [d] -> d
-  fun  :: {-" \highlight{ "-}Label -> {-" {}} "-} (d -> d) -> d
+  fun  :: Name -> {-" \highlight{ "-}Label -> {-" {}} "-} (d -> d) -> d
 \end{spec}
 \noindent
 We omit how to forward labels appropriately in |eval| and how to adjust

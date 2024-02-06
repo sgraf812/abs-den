@@ -1,7 +1,7 @@
 {-# LANGUAGE DerivingVia #-}
 module Sergey14 where
 
-import Prelude hiding ((+))
+import Prelude hiding ((+), (*))
 import qualified Prelude
 import Exp
 import Order
@@ -64,12 +64,12 @@ instance Lat SubDemand where
   Prod dmds1 ⊔ Prod dmds2 = mkProd (dmds1⊔dmds2)
   _ ⊔ _ = Top
 
-instance Plussable Demand where
+instance UAlgebra Demand where
   Abs + d = d
   d + Abs = d
   (_u1:*sd1) + (_u2:*sd2) = Uω :* (sd1+sd2)
 
-instance Plussable SubDemand where
+instance UAlgebra SubDemand where
   Top + _ = Top
   _ + Top = Top
   Seq + sd = sd
@@ -159,7 +159,7 @@ instance Domain (DmdT DmdVal) where
   stuck = return DmdBot
   fun _ f = DT $ \ns sd ->
     let (x,ns') = fresh ns in
-    let sentinel = step (Lookup x) (pure DmdNop) in
+    let proxy = step (Lookup x) (pure DmdNop) in
     let (n,sd') = case sd of
           Call n sd' -> (n, sd')
           Seq        -> (U0, Seq)
@@ -167,7 +167,7 @@ instance Domain (DmdT DmdVal) where
     if n == U0
       then (DmdBot, emp)
       else
-        let (v,φ) = unDT (f sentinel) ns' sd' in
+        let (v,φ) = unDT (f proxy) ns' sd' in
         let (d,φ') = (Map.findWithDefault absDmd x φ,Map.delete x φ) in
         (multDmdVal n (mkDmdFun d v), multDmdEnv n φ')
   con _ k ds = DT $ \ns sd ->
@@ -184,8 +184,8 @@ instance Domain (DmdT DmdVal) where
   select (DT scrut) fs = DT $ \ns sd -> case Map.assocs fs of
     [(k,f)] | k == Pair ->
       let (xs,ns')  = freshs (conArity k) ns in
-      let sentinels = map (\x -> step (Lookup x) (pure DmdNop)) xs in
-      let (v,φ)     = unDT (f sentinels) ns' sd in
+      let proxies   = map (\x -> step (Lookup x) (pure DmdNop)) xs in
+      let (v,φ)     = unDT (f proxies) ns' sd in
       let (ds,φ')   = (map (\x -> Map.findWithDefault absDmd x φ) xs,foldr Map.delete φ xs) in
       case scrut ns (mkProd ds) of
         (_v,φ'') -> (v,φ''+φ')
@@ -196,8 +196,8 @@ instance Domain (DmdT DmdVal) where
       where
         alt ns sd (k,f) =
           let (xs,ns')  = freshs (conArity k) ns in
-          let sentinels = map (\_ -> pure DmdNop) xs in
-          let (v,φ)     = unDT (f sentinels) ns' sd in
+          let proxies   = map (\_ -> pure DmdNop) xs in
+          let (v,φ)     = unDT (f proxies) ns' sd in
           let φ'        = foldr Map.delete φ xs in
           (v,φ')
 
@@ -222,13 +222,7 @@ peelManyCalls 0 sd = (U1,sd)
 peelManyCalls _ Seq = (U0, Seq)
 peelManyCalls _ Top = (Uω, Top)
 peelManyCalls _ Prod{} = (Uω, Top)
-peelManyCalls n (Call u sd) | (u',sd') <- peelManyCalls (n-1) sd = (u `mult` u', sd')
-  where
-    mult U0 _  = U0
-    mult _  U0 = U0
-    mult Uω _  = Uω
-    mult _  Uω = Uω
-    mult U1 U1 = U1
+peelManyCalls n (Call u sd) | (u',sd') <- peelManyCalls (n-1) sd = (u * u', sd')
 
 multDmdEnv :: U -> DmdEnv -> DmdEnv
 multDmdEnv U0 _ = emp
@@ -262,8 +256,8 @@ instance HasBind DmdD where
     if arty == 0
       then
         let (x,ns') = fresh ns in
-        let sentinel = step (Lookup x) (pure DmdNop) in
-        case unDT (body sentinel) ns' sd of -- LetUp
+        let proxy = step (Lookup x) (pure DmdNop) in
+        case unDT (body proxy) ns' sd of -- LetUp
           (v,φ) ->
             case Map.findWithDefault absDmd x φ of
               Abs -> (v,Map.delete x φ)

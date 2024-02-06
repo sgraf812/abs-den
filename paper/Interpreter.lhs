@@ -113,8 +113,9 @@ environments and sets in \Cref{fig:map}.
 For concise notation, we will use a small number of infix operators:
 |(:->)| as a synonym for finite |Map|s, with |m ! x| for
 looking up |x| in |m|, |ext m x d| for updates, |f << m| for mapping |f| over
-every element of |m|, |dom m| for returning the set of keys present in the map,
-and |(`elem`)| for membership tests in that set.
+every element of |m|, |assocs m| for turning |m| into a list of key-value pairs,
+|dom m| for returning the set of keys present in the map, and |(`elem`)| for
+membership tests in that set.
 
 \begin{figure}
 \begin{minipage}{0.49\textwidth}
@@ -140,6 +141,7 @@ exts :: Ord k  => (k :-> v) -> [k] -> [v]
 dom :: Ord k => (k :-> v) -> Set k
 (∈) :: Ord k => k -> Set k -> Bool
 (<<) :: (b -> c) -> (a :-> b) -> (a :-> c)
+assocs :: (k :-> v) -> [(k,v)]
 \end{code}
 %if style == newcode
 \begin{code}
@@ -151,6 +153,7 @@ infixr 9 <<
 (!) = (Map.!)
 dom = Map.keysSet
 (∈) = Set.member
+assocs = Map.assocs
 \end{code}
 %endif
 \caption{Environments}
@@ -256,7 +259,7 @@ eval  ::  (Trace d, Domain d, HasBind d)
 eval e ρ = case e of
   Var x  | x ∈ dom ρ  -> ρ ! x
          | otherwise  -> stuck
-  Lam x body -> fun {-" \iffalse "-}(label e){-" \fi "-} $ \d ->
+  Lam x body -> fun x {-" \iffalse "-}(label e){-" \fi "-} $ \d ->
     step App2 (eval body ((ext ρ x d)))
   App e x  | x ∈ dom ρ  -> step App1 $
                apply (eval e ρ) (ρ ! x)
@@ -285,7 +288,7 @@ class Trace d where
 
 class Domain d where
   stuck :: d
-  fun :: {-" \iffalse "-}Label -> {-" \fi "-}(d -> d) -> d
+  fun :: Name -> {-" \iffalse "-}Label -> {-" \fi "-}(d -> d) -> d
   apply :: d -> d -> d
   con :: {-" \iffalse "-}Label -> {-" \fi "-}Tag -> [d] -> d
   select :: d -> (Tag :-> ([d] -> d)) ->  d
@@ -301,7 +304,7 @@ instance Trace (T v) where
 
 instance ifCodeElse (Monad τ => Domain (D τ)) (Domain DName) where
   stuck = return Stuck
-  fun {-" \iffalse "-}_{-" \fi "-} f = return (Fun f)
+  fun _ {-" \iffalse "-}_{-" \fi "-} f = return (Fun f)
   apply  d a = d >>= \case
     Fun f -> f a; _ -> stuck
   con {-" \iffalse "-}_{-" \fi "-} k ds = return (Con k ds)
@@ -361,6 +364,11 @@ We wrap that body denotation in |step App2|, to prefix the trace of |body| with
 an |App2| event whenever the function is invoked.
 Finally, we use |fun| to build the returned denotation; the details are bound to
 depend on the |Domain|.
+The lambda-bound |x::Name| passed to |fun| is ignored in the concrete by-name
+semantics.
+As well it should: it is syntax, after all!
+We will need |x| in \Cref{sec:abstractions} for a similar purpose as
+$\mathit{fun}_\px$ in \Cref{fig:absence}.
 
 The other cases follow a similar pattern; they each do some work, before handing off to the
 type class methods for all the domain-specific functions.
