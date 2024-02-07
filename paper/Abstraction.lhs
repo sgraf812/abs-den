@@ -298,45 +298,108 @@ Now consider the expression |app (fun x f) a|.
 As discussed in \Cref{sec:absence}, for a correct summary mechanism, this
 expression is supposed to approximate |f a|, the concrete substitution
 operation.
-By abbreviating $|dosubst (f (MkUT (ext emp x U1) UUU)) x d| \triangleq |app
+By abbreviating $|abssubst (f (MkUT (ext emp x U1) UUU)) x d| \triangleq |app
 (fun x f) d|$ we can make this abstract substitution operation more tangible,
 to formulate and prove correct the following substitution lemma which will
 become instrumental in the soundness proof for usage analysis, \Cref{thm:usage-correct}.
-\begin{lemmarep}[Usage substitution, semantically]
+
+\begin{lemmarep}[Substitution]
 \label{thm:usage-subst}
-|eval e (ext ρ x d) ⊑ dosubst (eval e (ext ρ x (MkUT (ext emp x U1) UUU))) x d|.
+If |x| is absent in |ρ| and |d|, then |eval e (ext ρ x d) ⊑ abssubst (eval e (ext ρ x (MkUT (ext emp x U1) UUU))) x d|.
 \end{lemmarep}
 \begin{proof}
-\sg{TODO: Update}
-By induction on |e|.
+Let us abbreviate |prx x := (MkUT (ext emp x U1) UUU)| (for ``proxy'') to write
+out and simplify the definition of abstract substitution:
+\begin{spec}
+abssubst (f (prx x)) x (MkUT φ2 _) = case f (prx x) of MkUT φ1 v -> MkUT (ext φ1 x U0 + (φ1 !? x) * φ2) v
+\end{spec}
+The proof below needs to appeal to a couple of algebraic identities for
+|abssubst| the proofs of which would be tedious and hard to follow, hence they
+are omitted.
+Here is an exhaustive list of them, to isolate handwaving:
+\begin{enumerate}
+  \item If |x| is absent in |f (prx x)|, then |f (prx x) = abssubst (f (prx x)) x d|.
+  \item \mbox{If |x //=y|, then |fun y (\d1 -> abssubst (f d1 (prx x)) x d) = abssubst (fun y (\d1 -> f d1 (prx x))) x d|.}
+  \item Similarly for |select|.
+  \item \mbox{|apply (abssubst (f (prx x)) x d) (abssubst (g (prx x)) x d) = abssubst (apply (f (prx x)) (g (prx x))) x d)|.}
+  \item Similarly for |con|.
+  \item \mbox{|kleeneFix (\d1 -> abssubst (f d1 (prx x)) x d) = abssubst (kleeneFix (\d1 -> f d1 (prx x))) x d|.}
+  \item \mbox{If |x| abs in |d| and |ρ|, then |abssubst (eval e (ext (ext ρ x (prx x)) y (abssubst d1 x d))) x d = abssubst (eval e (ext (ext ρ x (prx x)) y d1)) x d|.}
+\end{enumerate}
+We proceed by induction on |e|.
 \begin{itemize}
-  \item \textbf{Case} |Var|: By assumption.
-  \item \textbf{Case} |Lam|: By induction hypothesis.
-  \item \textbf{Case} |App e y|:
-    The case |x /= y| is a simple application of the induction hypothesis.
-    Otherwise, we might evaluate |x| both as part of evaluating |e| and in the
-    lambda body it produces.
-    Fortunately, we may collapse |manify d >> manify d = manify d| as often as
-    needed, and |manify nopD >>| is the identity function.
-    Thus we can show
+  \item \textbf{Case }|Var y|:
+    When |x //= y|, we have
     \begin{spec}
-      eval (App e x) (ext ρ x d)
-    = {- Definition of |eval| -}
-      apply (eval e (ext ρ x d)) d
-    = {- Definition of |apply| -}
-      manify d >> eval e (ext ρ x d)
-    ⊑ {- Induction hypothesis -}
-      manify d >> manify d >> eval e (ext ρ x nopD)
-    ⊑ {- Collapse |manify d|, expand |d = manify nopD >> d| -}
-      manify nopD >> manify d >> eval e (ext ρ x nopD)
-    = {- Definition of |apply| -}
-      manify d >> apply (eval e (ext ρ x nopD)) nopD
-    = {- Definition of |eval| -}
-      manify d >> eval (App e x) (ext ρ x nopD)
+        eval y (ext ρ x d)
+    =   {- |x //= y| -}
+        ρ ! y
+    =   {- Refold |eval| -}
+        eval y (ext ρ x (prx x))
+    =   {- |x| absent in |ρ ! y| by assumption, identity (1) -}
+        abssubst (eval y (ext ρ x (prx x))) x d
     \end{spec}
+    Otherwise, we have |x = y|, thus |d = ρ ! y|.
+    We abbreviate |MkUT φ v = d| and proceed
+    \begin{spec}
+        eval y (ext ρ x d)
+    =   {- |x = y|, unfold -}
+        MkUT φ v
+    ⊑   {- |v ⊑ UUU| NB: This is the only place that induces |⊏|; the rest is just congruence -}
+        MkUT φ UUU
+    =   {- Definition of abstract substitution -}
+        abssubst (prx x) x d
+    =   {- Refold |eval| -}
+        abssubst (eval y (ext ρ x (prx x))) x d
+    \end{spec}
+
+  \item \textbf{Case} |Lam y e|:
+    \begin{spec}
+        eval (Lam y e) (ext ρ x d)
+    =   {- Unfold |eval|, simplify |step App2 = id| -}
+        fun y (\d2 -> eval e (ext (ext ρ x d) y d2))
+    =   {- Rearrange -}
+        fun y (\d2 -> eval e (ext (ext ρ y d2) x d))
+    ⊑   {- Induction hypothesis, $|x| \not= |y|$ -}
+        fun y (\d2 -> abssubst (eval e (ext (ext ρ y d2) x (prx x))) x d)
+    =   {- $|x| \not= |y|$, identity (2) -}
+        abssubst (fun y (\d2 -> eval e (ext (ext ρ y d2) x (prx x)))) x d
+    =   {- Refold |eval| -}
+        abssubst (eval (Lam y e) (ext ρ x (prx x))) x d
+    \end{spec}
+
+  \item \textbf{Case} |App e y|:
+    \begin{spec}
+        eval (App e y) (ext ρ x d)
+    =   {- Unfold |eval| -}
+        apply (eval e (ext ρ x d)) ((ext ρ x d) ! y)
+    ⊑   {- Induction hypothesis -}
+        apply (abssubst (eval e (ext ρ x (prx x))) x d) ((ext ρ x d) ! y)
+    ⊑   {- |Var| case (might also incur actual |⊏|) -}
+        apply (abssubst (eval e (ext ρ x (prx x))) x d) (abssubst ((ext ρ x (prx x)) ! y) x d)
+    =   {- Identity (4) -}
+        abssubst (apply (eval e (ext ρ x (prx x))) ((ext ρ x (prx x)) ! y)) x d
+    =   {- Refold |eval| -}
+        abssubst (eval (App e y) (ext ρ x (prx x))) x d
+    \end{spec}
+
   \item \textbf{Case} |Con|, |Case|:
-    Similar; need to collapse |manify d| after applying the induction
-    hypothesis.
+    Similar, needs identities (3) and (5).
+
+  \item \textbf{Case} |Let|:
+    \begin{spec}
+        eval (Let y e1 e2) (ext ρ x d)
+    =   {- Unfold |eval|, |HasBind|, |Trace| -}
+        eval e2 (ext (ext ρ x d) y (step (Lookup y) (kleeneFix (\d1 -> eval e1 (ext (ext ρ x d) y (step (Lookup y) d1))))))
+    ⊑   {- Induction hypothesis, twice. NB: |x| is absent in |d|, hence in |d1| -}
+        abssubst (eval e2 (ext (ext ρ x (prx x)) y (step (Lookup y) (kleeneFix (\d1 -> abssubst (eval e1 (ext (ext ρ x (prx x)) y (step (Lookup y) d1))) x d))))) x d
+    =   {- Identity (6) -}
+        abssubst (eval e2 (ext (ext ρ x (prx x)) y (step (Lookup y) (abssubst (kleeneFix (\d1 -> eval e1 (ext (ext ρ x (prx x)) y (step (Lookup y) d1)))) x d)))) x d
+    =   {- Identity (7) -}
+        abssubst (eval e2 (ext (ext ρ x (prx x)) y (step (Lookup y) (kleeneFix (\d1 -> eval e1 (ext (ext ρ x (prx x)) y (step (Lookup y) d1))))))) x d
+    =   {- Refold |eval| -}
+        abssubst (eval (Let y e1 e2) (ext ρ x (prx x))) x d
+    \end{spec}
 \end{itemize}
 \end{proof}
 
