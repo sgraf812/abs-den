@@ -103,7 +103,7 @@ ordinal.
 Usage analysis is a generalisation of absence analysis in \Cref{fig:absence}:
 a variable is absent ($\aA$) when it has usage |U0|, otherwise it is used ($\aU$).
 
-It is quite natural to define addition and multiplication with |U|, expressed in
+It is quite natural to define addition on and multiplication with |U|, expressed in
 the type class |UMod|.%
 \footnote{Yes, we think that |UMod| is an R-module. No, it is not a vector
 space, because it lacks inverses.}
@@ -119,11 +119,11 @@ The point of wrapping |Uses| in |UT| is to define a |Monad| instance that
 aggregates |Uses| in a Writer-like fashion.
 
 Astonishingly, these two simple definitions induce an \emph{instrumentation} of
-our semantics!%
-\footnote{For |ByValue|, we omit the trivial |extract (MkUT _ v) = v| definition.}
+our semantics!
 \Cref{fig:usage-instrumentation-examples} lists the results of running
 the instrumented interpreter on the same characteristic expression, but with
-three different evaluation strategies |ByName|, |ByValue| and |ByNeed|.
+three different evaluation strategies |ByName|, |ByValue| and |ByNeed|.%
+\footnote{For |ByValue|, we omit the trivial |extract (MkUT _ v) = v| definition.}
 Thus, we finally reap the benefits of having defined |Domain| and |HasBind|
 instances in \Cref{sec:interp} that are polymorphic over the inner trace |τ|.
 As can be seen, the by-need strategy only evaluates what is needed.
@@ -238,12 +238,11 @@ instance Show UValue where
 \end{figure}
 
 If we want to assess usage cardinality statically, we have to find a more
-abstract, inductive representation of |Value|.
+abstract, finite representation of |Value|.
 In particular, the negative recursive occurrence of |Value| in |Fun| is
-disqualifying and we must replace it with a finite summary such as $\Summary$ in
-\Cref{fig:absence}.
-So we define |UValue| in \Cref{fig:abs-usg} as a copy of $\Summary$ that lists
-argument usage |U| instead of $\Absence$ flags.
+disqualifying.
+So we define |UValue| in \Cref{fig:abs-usg} as a copy of $\Summary$ in
+\Cref{fig:absence} that lists argument usage |U| instead of $\Absence$ flags.
 Absence types in \Cref{fig:absence} are now called |UD| and constitute
 the abstract semantic domain for which we will define |Domain| and |HasBind|
 instances.
@@ -252,65 +251,54 @@ Since any |d::UD| is finite, we can no longer use guarded |fix|points in
 |HasBind UD|, so we will use least fixpoints (computed by |kleeneFix| in
 \Cref{fig:lat}) instead, as we did for absence analysis.%
 \footnote{Why least fixpoints? Why does that yield a correct solution?
-The reason is that usage cardinality is a safety property; c.f.\
+The reason is that usage cardinality is a safety property; see
 \Cref{sec:safety-extension}.}
 The resulting definition of |HasBind| is safe for by-name and by-need semantics.
 
-|kleeneFix| requires us to define an order on |UD|, which is induced entirely
-in the same way from the total order |U0 ⊏ U1 ⊏ Uω| on |U| as the order
+|kleeneFix| requires us to define an order on |UD|, which is induced
+by |U0 ⊏ U1 ⊏ Uω| in the same way that the order
 on $\AbsTy$ in \Cref{sec:absence} was induced from the order $\aA ⊏ \aU$
 on $\Absence$ flags.
 Specifically, |peel| exemplifies the non-syntactic equalities such as |UUU =
 UCons Uω UUU| at work that are respected by the |Lat UD| instance.
 
 The |Domain| instance is reponsible for implementing the summary mechanism.
-While |stuck| programs do not evaluate anything and hence are denoted by
-|bot = MkUT emp AAA|, the |fun| and |apply| functions play exactly the same
+While |stuck| expressions do not evaluate anything and hence are denoted by
+|bottom = MkUT emp AAA|, the |fun| and |apply| functions play exactly the same
 roles as $\mathit{fun}_\px$ and $\mathit{app}$ in \Cref{fig:absence}.
 
 In |fun x f|, the abstract transformer |f| is applied to a ``proxy'' |(MkUT (ext
 emp x U1) UUU)| to summarise how |f| uses its argument by way of looking at the
-usage of |x| and returning this use in the value.%
+usage of |x| (via |!?|) and returning this use as the head of the value.%
 \footnote{As before, the exact identity of |x| is exchangeable; we use it as a
 De Bruijn level.}
-Every use site of |x| must make do with the imprecise value |UUU|,
+Occurrences of |x| must make do with the top value |UUU|,
 and every use of free variables in the function body is multiplied with |Uω|
 because the function might be called many times.
 
-In |apply|, the
+The definition of |apply| is nearly the same as in \Cref{fig:absence}, except
+for the use of |+| instead of $⊔$ to carry over |U1 + U1 = Uω|, and an
+explicit |peel| to view a |UValue| in terms of $\sumcons$.
+The usage |u| thus pelt from the value determines how often the actual
+argument was evaluated, and multiplying the uses of the argument |φ2| with |u|
+accounts for that.
 
+In contrast to \citet{cardinality-ext}, we lack a summary mechanism for data
+constructors, and thus assume that any field of a data constructor is used
+multiple times.
+This is achieved in |con| by repeatedly |apply|ing to the top value |UUU|, as if
+a data constructor was a lambda-bound variable.
+Dually, |select| does not need to track how fields are used and can pass |MkUT
+emp UUU| as proxies for field denotations.
+The result uses anything the scrutinee expression used, plus the upper bound of
+uses in case alternatives, one of which will be taken.
 
-When a |d| is |apply|'d to an argument |a|, the result is that of
-evaluating |a| many times (note that it is enough to evaluate twice in
-|U|, as in |manify|) plus evaluating |d|, roughly corresponding to the
-application case in \Cref{fig:deadness}.
-When a |d| is |select|ed, the result is that of evaluating the case
-alternatives |fs| with |nopD| for field denotations of the corresponding
-constructor, then returning the least upper bound |lub| of all alternatives.
-Such a |nopD| is simply an inert denotation that does not contribute any uses
-itself, but crucially distributes the |Nop| value to field accesses inside |fs|,
-leading to conservative approximation in turn.
-
-Dually, when a constructor application is returned in |con|, all the fields
-are evaluated eagerly, and many times, conservatively approximating potential
-use of any of the fields in the future.
-This justifies passing |nopD| for field denotations in |select|; the fields have
-already been ``squeezed dry'' in |con|.
-Likewise, when returning a function in |fun|, that function is ``squeezed
-dry'' by passing it a |nopD| and |manify|ing the result, thus accounting for
-uses inside the function body at any potential call site.
-(Recall that uses of the argument at the call site is handled by |apply|.)
-This bears a strong resemblence to the lambda case of \Cref{fig:deadness},
-where analysis of the body assumes that the argument does not need
-anything (\ie, has been ``squeezed dry'' at the call site) when adding
-$[\px↦\varnothing]$ to $ρ$.
-
-The following substitution lemma formalises this notion of ``sequeezing
-dry'' a |d|, and it is material in proving the summary mechanism correct in
-\Cref{sec:soundness}:
+The following substitution lemma proves the summary mechanism correct and is
+vital for the proof of \Cref{sec:soundness}: TODO update
 \begin{lemmarep}[Usage squeezing]
 \label{thm:usage-squeezing}
-|eval e (ext ρ x d) ⊑ manify d >> eval e (ext ρ x nopD)|.
+TODO: Perhaps fix the assumptions of \Cref{sec:soundness}
+|eval e (ext ρ x (ρ ! y)) ⊑ eval e (ext ρ x nopD)|.
 \end{lemmarep}
 \begin{proof}
 By induction on |e|.
@@ -344,13 +332,6 @@ By induction on |e|.
     hypothesis.
 \end{itemize}
 \end{proof}
-
-The final key to a terminating definition is in swapping out the fixpoint
-combinator in |HasBind|.
-The |HasBind| instance for |UValue| computes an order-theoretic Kleene fixpoint
-(\cf \Cref{fig:lat}) instead of |fix| (which only works for a guarded recursive
-|f|).
-The Kleene fixpoint exists by monotonicity and finiteness of |UD|.
 
 \begin{table}
 \begin{tabular}{clll}
