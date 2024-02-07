@@ -32,7 +32,7 @@ dynamic semantics to describe \emph{operational properties}, as well as
 \emph{statically approximate} these operational properties by specifying
 a summary mechanism and appealing to order theory.
 
-\subsection{Instrumentation}
+\subsection{Usage Instrumentation}
 \label{sec:instrumentation}
 
 \begin{table}
@@ -180,6 +180,7 @@ peel AAA          = (U0,AAA)
 peel (UCons u v)  = (u,v)
 peel UUU          = (Uω,UUU)
 
+(!?) :: Uses -> Name -> U
 m !? x  | x ∈ dom m  = m ! x
         | otherwise  = U0
 \end{code}
@@ -189,10 +190,10 @@ m !? x  | x ∈ dom m  = m ! x
 instance Domain UD where
   stuck                                  = bottom
   fun x {-" \iffalse "-}_{-" \fi "-} f   = case f (MkUT (ext emp x U1) UUU) of
-    MkUT φ v -> MkUT (ext (Uω * φ) x U0) (UCons (φ !? x) v)
+    MkUT φ v -> MkUT (ext φ x U0) (UCons (φ !? x) v)
   apply (MkUT φ1 v1) (MkUT φ2 _)         = case peel v1 of
     (u, v2) -> MkUT (φ1 + u*φ2) v2
-  con {-" \iffalse "-}_{-" \fi "-} _ ds  = foldr apply (MkUT emp UUU) ds
+  con {-" \iffalse "-}_{-" \fi "-} _ ds  = foldl apply (MkUT emp UUU) ds
   select d fs                            =
     d >> lub  [  f (replicate (conArity k) (MkUT emp UUU))
               |  (k,f) <- assocs fs ]
@@ -241,8 +242,9 @@ If we want to assess usage cardinality statically, we have to find a more
 abstract, finite representation of |Value|.
 In particular, the negative recursive occurrence of |Value| in |Fun| is
 disqualifying.
-So we define |UValue| in \Cref{fig:abs-usg} as a copy of $\Summary$ in
-\Cref{fig:absence} that lists argument usage |U| instead of $\Absence$ flags.
+We address finiteness by defining |UValue| in \Cref{fig:abs-usg} as a copy
+of $\Summary$ in \Cref{fig:absence} that lists argument usage |U| instead of
+$\Absence$ flags.
 Absence types in \Cref{fig:absence} are now called |UD| and constitute
 the abstract semantic domain for which we will define |Domain| and |HasBind|
 instances.
@@ -267,14 +269,13 @@ While |stuck| expressions do not evaluate anything and hence are denoted by
 |bottom = MkUT emp AAA|, the |fun| and |apply| functions play exactly the same
 roles as $\mathit{fun}_\px$ and $\mathit{app}$ in \Cref{fig:absence}.
 
-In |fun x f|, the abstract transformer |f| is applied to a ``proxy'' |(MkUT (ext
-emp x U1) UUU)| to summarise how |f| uses its argument by way of looking at the
-usage of |x| (via |!?|) and returning this use as the head of the value.%
+In |fun x f|, the abstract transformer |f| is applied to a proxy |(MkUT (ext
+emp x U1) UUU)| to summarise how |f| uses its argument by way of looking at how
+|f| uses |x|, and returns this usage by prepending it to the summarised value.%
 \footnote{As before, the exact identity of |x| is exchangeable; we use it as a
 De Bruijn level.}
-Occurrences of |x| must make do with the top value |UUU|,
-and every use of free variables in the function body is multiplied with |Uω|
-because the function might be called many times.
+Occurrences of |x| must make do with the top value |UUU| for lack of knowing the
+actual argument at call sites.
 
 The definition of |apply| is nearly the same as in \Cref{fig:absence}, except
 for the use of |+| instead of $⊔$ to carry over |U1 + U1 = Uω|, and an
@@ -283,7 +284,7 @@ The usage |u| thus pelt from the value determines how often the actual
 argument was evaluated, and multiplying the uses of the argument |φ2| with |u|
 accounts for that.
 
-In contrast to \citet{cardinality-ext}, we lack a summary mechanism for data
+In contrast to \citet{Sergey:14}, we lack a summary mechanism for data
 constructors, and thus assume that any field of a data constructor is used
 multiple times.
 This is achieved in |con| by repeatedly |apply|ing to the top value |UUU|, as if
@@ -293,14 +294,20 @@ emp UUU| as proxies for field denotations.
 The result uses anything the scrutinee expression used, plus the upper bound of
 uses in case alternatives, one of which will be taken.
 
-The following substitution lemma proves the summary mechanism correct and is
-vital for the proof of \Cref{sec:soundness}: TODO update
-\begin{lemmarep}[Usage squeezing]
-\label{thm:usage-squeezing}
-TODO: Perhaps fix the assumptions of \Cref{sec:soundness}
-|eval e (ext ρ x (ρ ! y)) ⊑ eval e (ext ρ x nopD)|.
+Now consider the expression |app (fun x f) a|.
+As discussed in \Cref{sec:absence}, for a correct summary mechanism, this
+expression is supposed to approximate |f a|, the concrete substitution
+operation.
+By abbreviating $|dosubst (f (MkUT (ext emp x U1) UUU)) x d| \triangleq |app
+(fun x f) d|$ we can make this abstract substitution operation more tangible,
+to formulate and prove correct the following substitution lemma which will
+become instrumental in the soundness proof for usage analysis, \Cref{thm:usage-correct}.
+\begin{lemmarep}[Usage substitution, semantically]
+\label{thm:usage-subst}
+|eval e (ext ρ x d) ⊑ dosubst (eval e (ext ρ x (MkUT (ext emp x U1) UUU))) x d|.
 \end{lemmarep}
 \begin{proof}
+\sg{TODO: Update}
 By induction on |e|.
 \begin{itemize}
   \item \textbf{Case} |Var|: By assumption.
@@ -338,22 +345,50 @@ By induction on |e|.
 \toprule
 \# & |d|             & |e|                                               & |eval e emp :: d| \\
 \midrule
-(1)        & |UD|            & $\Let{i}{\Lam{x}{x}}{\Let{j}{\Lam{y}{y}}{i~j~j}}$ & $\perform{eval (read "let i = λx.x in let j = λy.y in i j j") emp :: UD}$ \\
-(2)        & |D (ByName UT)| & $\Let{i}{\Lam{x}{x}}{\Let{j}{\Lam{y}{y}}{i~j}}$   & $\perform{eval (read "let i = λx.x in let j = λy.y in i j") emp :: D (ByName UT)}$ \\
-(3)        & |UD|            & $\Let{i}{\Lam{x}{x}}{\Let{j}{\Lam{y}{y}}{i~j}}$   & $\perform{eval (read "let i = λx.x in let j = λy.y in i j") emp :: UD}$ \\
-(4)        & |D (ByName UT)| & $\Let{z}{Z()}{\Case{Z()}{Z() → Z(); S(n) → z}}$   & $\perform{eval (read "let z = Z() in case Z() of { Z() -> Z(); S(n) -> z }") emp  :: D (ByName UT)}$ \\
-(5)        & |UD|            & $\Let{z}{Z()}{\Case{Z()}{Z() → Z(); S(n) → z}}$   & $\perform{eval (read "let z = Z() in case Z() of { Z() -> Z(); S(n) -> z }") emp :: UD}$ \\
+(1) & |UD|            & $\pe$ from \Cref{fig:usage-instrumentation-examples} & $\perform{eval (read "let i = λx.x in let j = (λy.y) i in let u = Z() in let t = u in j j") emp :: UD}$ \\
+(2) & |D (ByName UT)| & $\Let{i}{\Lam{x}{x}}{\Let{j}{\Lam{y}{y}}{i~j}}$   & $\perform{eval (read "let i = λx.x in let j = λy.y in i j") emp :: D (ByName UT)}$ \\
+(3) & |UD|            & $\Let{i}{\Lam{x}{x}}{\Let{j}{\Lam{y}{y}}{i~j}}$   & $\perform{eval (read "let i = λx.x in let j = λy.y in i j") emp :: UD}$ \\
+(4) & |D (ByName UT)| & $\Let{i}{\Lam{x}{x}}{\Let{j}{\Lam{y}{y}}{i~i~j}}$   & $\perform{eval (read "let i = λx.x in let j = λy.y in i i j") emp :: D (ByName UT)}$ \\
+(5) & |UD|            & $\Let{i}{\Lam{x}{x}}{\Let{j}{\Lam{y}{y}}{i~i~j}}$   & $\perform{eval (read "let i = λx.x in let j = λy.y in i i j") emp :: UD}$ \\
+(6) & |D (ByName UT)| & $\Let{z}{Z()}{\Case{S(z)}{S(n) → n}}$   & $\perform{eval (read "let z = Z() in case S(z) of { S(n) -> n }") emp  :: D (ByName UT)}$ \\
+(7) & |UD|            & $\Let{z}{Z()}{\Case{S(z)}{S(n) → n}}$   & $\perform{eval (read "let z = Z() in case S(z) of { S(n) -> n }") emp :: UD}$ \\
 \bottomrule
 \end{tabular}
-\caption{Comparing usage analysis |UD| to the semantic usage abstraction |D (ByName UT)|.}
-\label{fig:usage-examples}
+\caption{Comparing usage analysis |UD| to the usage instrumentation |D (ByName UT)|.}
+\label{fig:usage-analysis-examples}
 \end{table}
 
 \subsubsection*{Examples}
-Our naïve usage analysis can yield the same result as the semantic usage
-abstraction, as can be seen for example (1) of \Cref{fig:usage-examples}.
-The results will be more approximate when summaries are involved, however, as
-the contrasting examples (2)-(5) point out.
+Example (1) of \Cref{fig:usage-analysis-examples} shows that usage analysis infers
+the same result as the by-name instrumentation on the example from
+\Cref{fig:usage-instrumentation-examples}.
+Examples (2) and (3) illustrate that usage analysis can precisely infer
+second-order |U1| usage on $j$, however examples (4) and (5) show that precision
+declines when there is another indirect call involved.
+Examples (6) and (7) concern data constructors and demonstrate the imprecision
+of the analysis even when faced with manifest beta redexes.
+
+\subsection{Discussion}
+%A total description of the \emph{dynamic semantics} of a language requires a
+%coinductive domain.
+%For \emph{static analysis} we need to find good abstractions that approximate
+%the dynamics in an inductive domain.
+%The culprit is the use of concrete |Value|s in |D|: its |Fun| constructor is
+%decidedly not inductive because it recurses in negative position.
+
+By recovering usage analysis as an abstraction of |eval|, we have achieved an
+important goal:
+To derive a \emph{compositional} static analysis approximating a property
+of a \emph{small-step trace}, with a simple but useful summary mechanism, as
+an instance of a generic denotational interpreter skeleton, thus sharing most of
+its structure with the concrete semantics.
+We will see in \Cref{sec:soundness} that sharing the skeleton leads to
+significant reuse in soundness proofs.
+
+To demonstrate the versatility of our approach, we have also defined
+a compositional type analysis with let generalisation as well as
+0CFA as an instance of our denotational interpreter; you can find
+outlines in the Appendix.
 
 \begin{toappendix}
 \subsection{Type Analysis}
@@ -836,30 +871,6 @@ imprecise result, respectively. The latter is due to the fact that both |i| and
 Examples (3) and (4) show that the |HasBind| instance guarantees termination for
 diverging programs and cyclic data.
 \end{toappendix}
-
-\subsection{Discussion}
-%A total description of the \emph{dynamic semantics} of a language requires a
-%coinductive domain.
-%For \emph{static analysis} we need to find good abstractions that approximate
-%the dynamics in an inductive domain.
-%The culprit is the use of concrete |Value|s in |D|: its |Fun| constructor is
-%decidedly not inductive because it recurses in negative position.
-
-By recovering usage analysis as an abstraction of |eval|, we have achieved our
-main goal:
-To derive a \emph{compositional} static analysis approximating a property
-of a \emph{small-step trace}, with a simple but useful summary mechanism, as
-an instance of an abstract definitional interpreter, thus sharing most of its
-structure with the concrete semantics.
-
-Our second example of type analysis, in which |PolyType|s serve as summaries
-that can be instantiated at call sites, demonstrates that our approach enjoys a
-broad range of applications that wouldn't be easily defined in terms of abstract
-big-step interpreters due to their inherent lack of modularity.
-
-Finally, the example of 0CFA demonstrates that our framework can be instantiated
-to perform traditional, whole-program, higher-order analysis based on
-approximate call strings.
 
 \begin{comment}
 \subsection{Bonus: Higher-order Cardinality Analysis}

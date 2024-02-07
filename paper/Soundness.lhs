@@ -663,23 +663,23 @@ It suffices to show the soundness lemmas in \Cref{fig:by-name-soundness-lemmas}.
   \item \textsc{Step-App}, \textsc{Step-Sel}:
     Follows by unfolding |step|, |apply|, |select|, |>>| and associativity of |+|.
   \item \textsc{Beta-App}:
-    Follows by unfolding |apply| and |fun| and applying \Cref{thm:usage-squeezing}.
+    Follows by unfolding |apply| and |fun| and applying \Cref{thm:usage-subst}.
   \item \textsc{Beta-Sel}:
     Follows by unfolding |select| and |con| and applying
-    \Cref{thm:usage-squeezing} multiple times.
+    \Cref{thm:usage-subst} multiple times.
   \item \textsc{Bind-ByName}:
     |kleeneFix| approximates the least fixpoint |lfp| since the iteratee is
     monotone and |UD| is finite.
 \end{itemize}
 \end{proof}
 
-Building on the substitution \Cref{thm:usage-squeezing}, this proof is
+Building on the substitution \Cref{thm:usage-subst}, this proof is
 delightfully simple.
 The main lemmas \textsc{Beta-App} and \textsc{Beta-Sel} encode soundness of
-the summary mechanism and hence appeal to \Cref{thm:usage-squeezing}, while the
+the summary mechanism and hence appeal to \Cref{thm:usage-subst}, while the
 proof for \textsc{Bind-ByName} governs sound fixpoint approximation.
 
-Note that in order to appeal to \Cref{thm:usage-squeezing}, we really need the
+Note that in order to appeal to \Cref{thm:usage-subst}, we really need the
 syntactic premises in \Cref{fig:by-name-soundness-lemmas}.
 It would not be possible to show |hat f (hat a) ⊑ apply (fun (hat f)) (hat a)|
 for any monotone |hat f| due to the lack of full abstraction, and likewise for

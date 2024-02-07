@@ -107,6 +107,7 @@
 %format eval3(d)(a)(b) = "\mathcal{S}_{" d "}\denot{" a "}_{" b "}"
 %format (ext rho (x) (d)) = rho "[" x "\mapsto" d "]"
 %format (exts rho (xs) (ds)) = rho "[\many{" xs "\mapsto" ds "}]"
+%format (dosubst d (x) (φ)) = d "[" x "\Mapsto" φ "]"
 %format << = "\lhd"
 %format emptyP = "\varcolor{\varnothing}"
 %format ell = "\varcolor{\ell}"
