@@ -557,61 +557,43 @@ This loops forever unproductively, rendering the interpreter unfit as a
 denotational semantics.
 
 \begin{figure}
-\begin{spec}
--- State transformers (standard Haskell)
---   (StateT s m a) transforms monad m, by adding state s
-get     :: Monad m => StateT s m s
-modify  :: Monad m => (s -> s) -> StateT s m ()
-
--- The ByNeed trace transformer
-data ByNeed τ v = ByNeed (StateT (Heap (ByNeed τ)) τ v)
-type Addr = Int; type Heap τ = Addr :-> D τ; nextFree :: Heap τ -> Addr
-runByNeed :: ByNeed τ a -> τ (a, Heap (ByNeed τ))
-instance Monad τ => Monad (ByNeed τ) where ...
-instance Trace (τ v) => Trace (ByNeed τ v) where
-  step e (ByNeed (StateT m)) = ByNeed (StateT (step e . m))
-
-fetch :: Monad τ => Addr -> D (ByNeed τ); fetch a = ByNeed get >>= \μ -> μ ! a
-
-memo :: forall τ. (Monad τ, forall v. Trace (τ v)) => Addr -> D (ByNeed τ) -> D (ByNeed τ)
-memo a d = d >>= ByNeed . StateT . upd
-  where  upd Stuck  μ = return (Stuck :: Value (ByNeed τ), μ)
-         upd v      μ = step Update (return (v, ext μ a (memo a (return v))))
-
-instance (Monad τ, forall v. Trace (τ v)) => HasBind (D (ByNeed τ)) where
-  bind rhs body = do  a <- ByNeed $ do { μ <- get; nextFree μ }
-                      ByNeed $ modify (\μ -> ext μ a (memo a (rhs (fetch a))))
-                      body (fetch a)
-\end{spec}
-%if style == newcode
 \begin{code}
 type Addr = Int; type Heap τ = Addr :-> D τ; nextFree :: Heap τ -> Addr
+ifCodeElse(newtype ByNeed τ v)(data ByNeed τ v) = ByNeed (StateT (Heap (ByNeed τ)) τ v)
+wrapN    :: (Heap (ByNeed τ) -> τ (v, Heap (ByNeed τ))) -> ByNeed τ v
+unwrapN  :: ByNeed τ v -> (Heap (ByNeed τ) -> τ (v, Heap (ByNeed τ)))
 
+getN  :: Monad τ => ByNeed τ (Heap (ByNeed τ));         getN    = wrapN (\ μ -> return (μ, μ))
+putN  :: Monad τ => Heap (ByNeed τ) -> ByNeed τ (); ^^  putN μ  = wrapN (\ _ -> return ((), μ))
+ifPoly(instance Monad τ => Monad (ByNeed τ) where ...)
+
+instance (forall v. Trace (τ v)) => Trace (ByNeed τ v) where step e m = wrapN (step e . unwrapN m)
+
+fetchN :: Monad τ => Addr -> D (ByNeed τ); fetchN a = getN >>= \μ -> μ ! a
+
+memoN :: forall τ. (Monad τ, forall v. Trace (τ v)) => Addr -> D (ByNeed τ) -> D (ByNeed τ)
+memoN a d = d >>= \v -> wrapN (upd v)
+  where  upd Stuck  μ = return (Stuck :: Value (ByNeed τ), μ)
+         upd v      μ = step Update (return (v, ext μ a (memoN a (return v))))
+
+instance (Monad τ, forall v. Trace (τ v)) => HasBind (D (ByNeed τ)) where
+  bind rhs body = do  μ <- getN
+                      let a = nextFree μ
+                      putN (ext μ a (memoN a (rhs (fetchN a))))
+                      body (fetchN a)
+\end{code}
+%if style == newcode
+\begin{code}
 nextFree h = case Map.lookupMax h of
   Nothing     -> 0
   Just (k,_)  -> k+1
 
-newtype ByNeed τ v = ByNeed { unByNeed :: StateT (Heap (ByNeed τ)) τ v }
-  deriving newtype (Functor,Applicative,Monad)
+deriving instance Functor τ  => Functor (ByNeed τ)
+deriving instance Monad τ    => Applicative (ByNeed τ)
+deriving instance Monad τ    => Monad (ByNeed τ)
 
-runByNeed :: ByNeed τ a -> τ (a, Heap (ByNeed τ))
-runByNeed (ByNeed (StateT m)) = m emp
-
-instance (forall v. Trace (τ v)) => Trace (ByNeed τ v) where
-  step e (ByNeed (StateT m)) = ByNeed $ StateT $ \μ -> step e (m μ)
-
-fetch :: Monad τ => Addr -> D (ByNeed τ)
-fetch a = ByNeed get >>= \μ -> μ ! a
-
-memo :: forall τ. (Monad τ, forall v. Trace (τ v)) => Addr -> D (ByNeed τ) -> D (ByNeed τ)
-memo a d = d >>= ByNeed . StateT . upd
-  where upd Stuck  μ = return (Stuck :: Value (ByNeed τ), μ)
-        upd v      μ = step Update (return (v, ext μ a (memo a (return v))))
-
-instance (Monad τ, forall v. Trace (τ v)) => HasBind (D (ByNeed τ)) where
-  bind _ rhs body = do  a <- nextFree <$> ByNeed get
-                        ByNeed $ modify (\μ -> ext μ a (memo a (rhs (fetch a))))
-                        body (fetch a)
+wrapN = ByNeed . StateT
+unwrapN (ByNeed (StateT m)) = m
 \end{code}
 %endif
 \caption{Call-by-need}
@@ -622,7 +604,7 @@ instance (Monad τ, forall v. Trace (τ v)) => HasBind (D (ByNeed τ)) where
 
 The semantic domain |D (ByNeed T)| in \Cref{fig:by-need} defines a call-by-need
 evaluation strategy by introducing a stateful heap and memoisation via the
-standard state transformer monad |StateT|, whose key operations |get| and
+standard state transformer monad |StateT|, whose key operations |getN| and
 |modify| are given in \Cref{fig:by-need}.
 
 |ByNeed| accumulates quite a few layers of abstractions and is recursive as
@@ -630,7 +612,8 @@ well.
 It is best thought of as an answer to the request ``give me a |τ| such that |D
 τ| models stateful computations in |D τ|''.
 |ByNeed T| is one such solution |τ|, satisfying the equation
-$|D τ| \cong |Heap τ -> τ (Value τ, Heap τ)|$.
+$|D τ| \cong |Heap τ -> T (Value τ, Heap τ)|$ via |ByNeed . StateT|, which
+we abbreviate as |wrapN|, and the other direction with |unwrap|.
 
 So the denotation of an expression is no longer a trace, but rather a
 \emph{stateful trace} in which the carried state |Heap (ByNeed T)| implements
@@ -649,7 +632,7 @@ First it uses the state monad to allocates a fresh heap address |a|; we use |μ 
 Heap (ByNeed T)| as the name of the heap, as in \Cref{fig:lk-semantics}.
 Second, it uses |modify| to bind the address
 |a| to something (itself a stateful trace) that we will look at next.
-Finally it applies |body| to |(fetch a :: D (ByNeed T))|, a little
+Finally it applies |body| to |(fetchN a :: D (ByNeed T))|, a little
 computation that looks up the address |a| in the current state of the heap, and
 runs it.
 
@@ -664,10 +647,10 @@ lazy evaluation. \slpj{Need a bit more; I don't yet grok memo.}
 % Interestingly, |ByNeed T| denotes a \emph{stateful function returning a trace},
 % thus it is the first time we compute with something different than a |T|.
 % The |bind| implementation for |ByNeed| traces will tie the recursive knot with
-% a |D| that |fetch|es the bound action from a heap, under an address |a| that is
+% a |D| that |fetchN|es the bound action from a heap, under an address |a| that is
 % not taken yet in the current heap |μ|.
 % This newly heap-bound |D| in turn evaluates |rhs|, the result of which is
-% |memo|ised in an |Update| step, so that the heap-bound |D| is replaced by
+% |memoN|ised in an |Update| step, so that the heap-bound |D| is replaced by
 % one that immediately |return|s the value.
 % We will prove this semantics adequate \wrt to the LK transition system in
 % \Cref{fig:lk-semantics} in \Cref{sec:adequacy}.
@@ -687,10 +670,11 @@ non-atomic argument constructs can simply reuse |bind| to recover a
 call-by-need semantics.
 (The |Event| type needs semantics- and use-case-specific adjustment, though.)
 
-Here is an example evaluating $\Let{i}{(\Lam{y}{\Lam{x}{x}})~i}{i~i}$:
+Here is an example evaluating $\Let{i}{(\Lam{y}{\Lam{x}{x}})~i}{i~i}$, starting
+in an empty heap:
 
-< ghci> runByNeed $ eval (read "let i = (λy.λx.x) i in i i") emp :: T (Value (ByNeed T), Heap _)
-$\perform{runByNeed $ eval (read "let i = (λy.λx.x) i in i i") emp :: T (Value (ByNeed T), Heap _)}$
+< ghci> unwrapN (eval (read "let i = (λy.λx.x) i in i i") emp) emp :: T (Value _, Heap _)
+$\perform{unwrapN (eval (read "let i = (λy.λx.x) i in i i") emp) emp :: T (Value (ByNeed T), Heap _)}$
 \\[\belowdisplayskip]
 \noindent
 We can observe memoisation at play:
@@ -700,43 +684,45 @@ This work is cached, so that the second $\LookupT$ bracket does not do any beta
 reduction.
 
 Finally note that it would be very simple to suppress $\UpdateT$ events for
-already evaluated heap bindings by tweaking |upd| to omit the |memo| wrapper,
+already evaluated heap bindings by tweaking |upd| to omit the |memoN| wrapper,
 \eg, |upd v μ = return (v, ext μ a (return v))|.
 We decided against that because it obscures the simple correspondence to the LK
 transition system.
 
 \begin{figure}
-\begin{spec}
-data ByVInit τ v = ByVInit (StateT (Heap (ByVInit τ)) τ v)
-runByVInit :: Monad τ => ByVInit τ a -> τ (a, Heap (ByVInit τ))
+\begin{code}
+ifCodeElse(newtype ByVInit τ v)(data ByVInit τ v) = ByVInit (StateT (Heap (ByVInit τ)) τ v)
+unwrapV :: ByVInit τ v -> (Heap (ByVInit τ) -> τ (v, Heap (ByVInit τ)))
 instance (Monad τ, forall v. Trace (τ v)) => HasBind (D (ByVInit τ)) where
-  bind _ rhs body = do  a <- nextFree <$> ByVInit get
-                        ByVInit $ modify (\μ -> ext μ a stuck)
-                        step Let0 (memo a (rhs (fetch a))) >>= body . return
-\end{spec}
+  bind rhs body = do  μ <- getV
+                      let a = nextFree μ
+                      putV (ext μ a stuck)
+                      step Let0 (memoV a (rhs (fetchV a))) >>= body . return
+\end{code}
 %if style == newcode
 \begin{code}
-newtype ByVInit τ v = ByVInit (StateT (Heap (ByVInit τ)) τ v)
-  deriving (Functor,Applicative,Monad)
+wrapV :: (Heap (ByVInit τ) -> τ (v, Heap (ByVInit τ))) -> ByVInit τ v
+wrapV = ByVInit . StateT
+unwrapV (ByVInit (StateT m)) = m
 
-runByVInit :: Monad τ => ByVInit τ a -> τ (a, Heap (ByVInit τ))
-runByVInit (ByVInit m) = runStateT m emp
+deriving instance Functor τ  => Functor (ByVInit τ)
+deriving instance Monad τ    => Applicative (ByVInit τ)
+deriving instance Monad τ    => Monad (ByVInit τ)
 
-instance (forall v. Trace (τ v)) => Trace (ByVInit τ v) where
-  step e (ByVInit (StateT m)) = ByVInit $ StateT $ \μ -> step e (m μ)
+getV :: Monad τ => ByVInit τ (Heap (ByVInit τ))
+getV = wrapV (\ μ -> return (μ, μ))
+putV :: Monad τ => Heap (ByVInit τ) -> ByVInit τ ()
+putV μ = wrapV (\ _ -> return ((), μ))
 
-fetch' :: Monad τ => Addr -> D (ByVInit τ)
-fetch' a = ByVInit get >>= \μ -> μ ! a
+instance (forall v. Trace (τ v)) => Trace (ByVInit τ v) where step e m = wrapV (step e . unwrapV m)
 
-memo' :: forall τ. (Monad τ, forall v. Trace (τ v)) => Addr -> D (ByVInit τ) -> D (ByVInit τ)
-memo' a d = d >>= ByVInit . StateT . upd
-  where upd Stuck  μ = return (Stuck :: Value (ByVInit τ), μ)
-        upd v      μ = return (v, ext μ a (return v))
+fetchV :: Monad τ => Addr -> D (ByVInit τ)
+fetchV a = getV >>= \μ -> μ ! a
 
-instance (Monad τ, forall v. Trace (τ v)) => HasBind (D (ByVInit τ)) where
-  bind _ rhs body = do  a <- nextFree <$> ByVInit get
-                        ByVInit $ modify (\μ -> ext μ a stuck)
-                        step Let0 (memo' a (rhs (fetch' a))) >>= body . return
+memoV :: forall τ. (Monad τ, forall v. Trace (τ v)) => Addr -> D (ByVInit τ) -> D (ByVInit τ)
+memoV a d = d >>= \v -> wrapV (upd v)
+  where  upd Stuck  μ = return (Stuck :: Value (ByVInit τ), μ)
+         upd v      μ = return (v, ext μ a (memoV a (return v)))
 \end{code}
 %endif
 \caption{Call-by-value with lazy initialisation}
@@ -756,8 +742,8 @@ reusing the implementation from |ByNeed| and initialising the heap
 with a \emph{black hole}~\citep{stg} |stuck| in |bind| as in
 \Cref{fig:by-value-init}.
 
-< ghci> runByVInit $ eval (read "let x = x in x x") emp :: T (Value (ByVInit T), Heap (ByVInit T))
-$\perform{runByVInit $ eval (read "let x = x in x x") emp :: T (Value (ByVInit T), Heap (ByVInit T))}$
+< ghci> unwrapV (eval (read "let x = x in x x") emp) emp :: T (Value _, Heap _)
+$\perform{unwrapV (eval (read "let x = x in x x") emp) emp :: T (Value (ByVInit T), Heap (ByVInit T))}$
 
 
 \begin{figure}
