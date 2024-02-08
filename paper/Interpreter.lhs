@@ -528,7 +528,7 @@ The |fix| expression, on the other hand, expresses the following recursion equat
 The type class instance method |extract :: T v -> v| applied to |rhs τ| will
 return |v|,%
 \footnote{The keen reader may have noted that we could use |Extract| to define a
-|MonadFix| instance for |τ|.}
+|MonadFix| instance for deterministic |τ|.}
 and |return v = Ret v|, so |fix| solves this recursion equation for us.
 
 Since nothing about |extract| is particularly special to |T|, it lives in its
@@ -596,6 +596,7 @@ wrapN = ByNeed . StateT
 unwrapN (ByNeed (StateT m)) = m
 \end{code}
 %endif
+\\[-1em]
 \caption{Call-by-need}
 \label{fig:by-need}
 \end{figure}
@@ -605,22 +606,37 @@ unwrapN (ByNeed (StateT m)) = m
 The semantic domain |D (ByNeed T)| in \Cref{fig:by-need} defines a call-by-need
 evaluation strategy by introducing a stateful heap and memoisation via the
 standard state transformer monad |StateT|, whose key operations |getN| and
-|modify| are given in \Cref{fig:by-need}.
+|putN| are given in \Cref{fig:by-need}.
+\sg{We often switch between |ByNeed T| and |ByNeed τ| below. Doing so has no
+significant impact on the story we tell, except that sticking to |T| is awkward
+when discussing the quantified constraint |forall v. Trace (T v)|. Therefore I
+suggest we stick to |τ|.}
 
 |ByNeed| accumulates quite a few layers of abstractions and is recursive as
 well.
-It is best thought of as an answer to the request ``give me a |τ| such that |D
-τ| models stateful computations in |D τ|''.
-|ByNeed T| is one such solution |τ|, satisfying the equation
-$|D τ| \cong |Heap τ -> T (Value τ, Heap τ)|$ via |ByNeed . StateT|, which
+It is best thought of as an answer to the request ``give me a |θ| such that |D
+θ| models stateful computations in |D θ|''.
+|ByNeed τ| is one such solution |θ|, satisfying the equation
+$|D θ| \cong |Heap θ -> τ (Value θ, Heap θ)|$ via |ByNeed . StateT|, which
 we abbreviate as |wrapN|, and the other direction with |unwrap|.
 
 So the denotation of an expression is no longer a trace, but rather a
-\emph{stateful trace} in which the carried state |Heap (ByNeed T)| implements
+\emph{stateful trace}
+\sg{but it's a \emph{stateful function returning} a trace, not a single stateful
+trace.
+To me, an example of a stateful trace is a trace in the LK transition system.
+By contrast, our traces fundamentally lack any kind of state, except at the
+end.
+Depending on the heap in which you start, you get wildly different kinds of
+traces.}
+in which the carried state |Heap (ByNeed τ)| implements
 the heap in which call-by-need thunks are allocated.
-The |Trace| instance of |ByNeed T| simply forwards to that of |T|, pointwise
-over heaps.
-The key part is again the implementation of |HasBind| for |D (ByNeed T)|,
+The |Trace| instance of |ByNeed τ| simply forwards to that of |τ| (\ie, often
+|T|), pointwise over heaps.
+Doing so needs a |Trace| instance for |τ (Value (ByNeed τ), Heap (ByNeed τ))|, but we
+found it more succinct to use a quantified constraint |(forall v. Trace (τ v))|;
+given that |τ| must also be a |Monad|, that is not an onerous requirement.
+The key part is again the implementation of |HasBind| for |D (ByNeed τ)|,
 because that is the only place where thunks are allocated.
 \sg{Simon, please rewrite this when you've ``grok'd memo'' so that it is
 coherent and does not simply repeat the code in the definition. At present I
@@ -629,14 +645,15 @@ tell \emph{why} the code does what it does rather than only \emph{how} it does
 it. Perhaps move up the example below for a better explanation?}
 The implementation of |bind| has three steps.
 First it uses the state monad to allocates a fresh heap address |a|; we use |μ ::
-Heap (ByNeed T)| as the name of the heap, as in \Cref{fig:lk-semantics}.
+Heap (ByNeed τ)| as the name of the heap, as in \Cref{fig:lk-semantics}
+\sg{Do we really need to discuss the choice of \emph{names}?}.
 Second, it uses |modify| to bind the address
 |a| to something (itself a stateful trace) that we will look at next.
-Finally it applies |body| to |(fetchN a :: D (ByNeed T))|, a little
+Finally it applies |body| to |(fetchN a :: D (ByNeed τ))|, a little
 computation that looks up the address |a| in the current state of the heap, and
 runs it.
 
-In the second step we bind |a| to a stateful trace of type |D (ByNeed T)|.
+In the second step we bind |a| to a stateful trace of type |D (ByNeed τ)|.
 The first time we run that computation (in the case for |Var|)
 we want to evaluate the argument,
 and update the heap to bind |a| to the value thus computed; this the essence of
@@ -725,6 +742,7 @@ memoV a d = d >>= \v -> wrapV (upd v)
          upd v      μ = return (v, ext μ a (memoV a (return v)))
 \end{code}
 %endif
+\\[-1em]
 \caption{Call-by-value with lazy initialisation}
 \label{fig:by-value-init}
 \end{figure}
@@ -737,10 +755,9 @@ Typical strict languages work around this issue in either of two ways:
 They enforce termination of the RHS statically (OCaml, ML), or they use
 \emph{lazy initialisation} techniques~\citep{Nakata:10,Nakata:06} (Scheme,
 recursive modules in OCaml).
-We could recover a total interpreter using the semantics in \citet{Nakata:10},
-reusing the implementation from |ByNeed| and initialising the heap
-with a \emph{black hole}~\citep{stg} |stuck| in |bind| as in
-\Cref{fig:by-value-init}.
+We recover a total interpreter using the semantics in \citet{Nakata:10}, reusing
+the primitives of |ByNeed| and initialising the heap with a \emph{black
+hole}~\citep{stg} |stuck| in |bind| as in \Cref{fig:by-value-init}.
 
 < ghci> unwrapV (eval (read "let x = x in x x") emp) emp :: T (Value _, Heap _)
 $\perform{unwrapV (eval (read "let x = x in x x") emp) emp :: T (Value (ByVInit T), Heap (ByVInit T))}$
@@ -755,10 +772,10 @@ instance Monad τ => Alternative (ParT τ) where
 newtype Clairvoyant τ a = Clairvoyant (ParT τ a)
 runClair :: D (Clairvoyant T) -> T (Value (Clairvoyant T))
 
-instance (MonadFix τ, forall v. Trace (τ v)) => HasBind (D (Clairvoyant τ)) where
+instance (Extract τ, Monad τ, forall v. Trace (τ v)) => HasBind (D (Clairvoyant τ)) where
   bind rhs body = Clairvoyant (skip <|> let') >>= body
     where  skip = return (Clairvoyant empty)
-           let' = fmap return $ step Let0 $ ... ^^ mfix ... rhs . return ...
+           let' = fmap return $ step Let0 $ ... ^^ fix ... rhs ... extract ...
 \end{spec}
 %if style == newcode
 \begin{code}
@@ -796,13 +813,13 @@ rightT (ParT τ) = ParT $ τ >>= \case
   Fork _ r -> unParT r
   _ -> undefined
 
-parFix :: MonadFix τ => (Fork (ParT τ) a -> ParT τ a) -> ParT τ a
-parFix f = ParT $ mfix (unParT . f) >>= \case
+parFix :: (Extract τ, Monad τ) => (Fork (ParT τ) a -> ParT τ a) -> ParT τ a
+parFix f = ParT $ fix (unParT . f . extract) >>= \case
     Empty -> pure Empty
     Single a -> pure (Single a)
     Fork _ _ -> pure (Fork (parFix (leftT . f)) (parFix (rightT . f)))
 
-instance (MonadFix τ, forall v. Trace (τ v)) => HasBind (D (Clairvoyant τ)) where
+instance (Extract τ, Monad τ, forall v. Trace (τ v)) => HasBind (D (Clairvoyant τ)) where
   bind rhs body = Clairvoyant (skip <|> let') >>= body
     where
       skip = return (Clairvoyant empty)
@@ -834,6 +851,7 @@ runClair (Clairvoyant m) = headParT m >>= \case
   Just t  -> pure t
 \end{code}
 %endif
+\\[-1em]
 \caption{Clairvoyant Call-by-value}
 \label{fig:clairvoyant-by-value}
 \end{figure}
