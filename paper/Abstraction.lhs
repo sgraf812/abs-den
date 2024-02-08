@@ -305,9 +305,25 @@ become instrumental in the soundness proof for usage analysis, \Cref{thm:usage-c
 
 \begin{lemmarep}[Substitution]
 \label{thm:usage-subst}
-If |x| is absent in |ρ| and |d|, then |eval e (ext ρ x d) ⊑ abssubst (eval e (ext ρ x (MkUT (ext emp x U1) UUU))) x d|.
+|eval e (ext ρ x d) ⊑ abssubst (eval e (ext ρ x (MkUT (ext emp x U1) UUU))) x d|.
 \end{lemmarep}
 \begin{proof}
+The assumptions of the proposition are actually a little to weak.
+We need the following additional freshness assumptions (in that they all relate
+to the identity of |x|) that we would get for free if we had used a locally
+nameless representation for lambda binders:
+\begin{itemize}
+  \item |x| is absent in |ρ|, otherwise we cannot use |ext emp x U1| as a proxy
+    to see how often the binding for |x| was used.
+  \item |x| is absent in |d|, otherwise the fixpoint identity (6) below does not hold
+  \item This implies that |x| is not bound in |e|, otherwise we cannot guarantee
+    that |x| is absent in |d| when applying the induction hypothesis in
+    |Lam x e'|.
+\end{itemize}
+Alas, locally nameless would lead to drastically more complicated code.
+On the other hand, the definition of |eval| always respects these assumptions,
+so we see no reason to complicate our definition.
+
 Let us abbreviate |prx x := (MkUT (ext emp x U1) UUU)| (for ``proxy'') to write
 out and simplify the definition of abstract substitution:
 \begin{spec}
