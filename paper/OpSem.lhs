@@ -67,7 +67,7 @@ $\{a_1,...,a_n\}$ that maps $a_i$ to $b_i$. Function update $f[a ↦ b]$
 maps $a$ to $b$ and is otherwise equal to $f$.
 
 The initial machine state for a closed expression $\pe$ is given by the
-injection function $\inj(\pe) = (\pe,[],[],\StopF)$ and
+injection function $\init(\pe) = (\pe,[],[],\StopF)$ and
 the final machine states are of the form $(\pv,\wild,\wild,\StopF)$.
 We bake into $σ∈\States$ the simplifying invariant of \emph{well-addressedness}:
 Any address $\pa$ occuring in $ρ$, $κ$ or the range of $μ$ must be an element of

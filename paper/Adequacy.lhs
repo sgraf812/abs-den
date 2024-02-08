@@ -301,7 +301,7 @@ is irrelevant to execution, so maximal traces that differ only in the initial
 stack are bisimilar.
 
 One class of maximal traces is of particular interest:
-The maximal trace starting in $\inj(\pe)$!
+The maximal trace starting in $\init(\pe)$!
 Whether it is infinite, stuck or balanced is the defining operational
 characteristic of $\pe$.
 If we can show that |eval e emp| distinguishes these behaviors of |e|, we have
@@ -608,14 +608,14 @@ strong version of adequacy for |eval|, where $σ$ is defined to be a
   \begin{itemize}
     \item
       |τ| ends with |Ret (Fun _, _)| or |Ret (Con _ _, _)| (is balanced) iff there
-      exists a final state $σ$ such that $\inj(\pe) \smallstep^* σ$.
+      exists a final state $σ$ such that $\init(\pe) \smallstep^* σ$.
     \item
       |τ| ends with |Ret (Stuck, _)| (is stuck) iff there exists a non-final
-      state $σ$ such that $\inj(\pe) \smallstep^* σ$ and there exists no $σ'$
+      state $σ$ such that $\init(\pe) \smallstep^* σ$ and there exists no $σ'$
       such that $σ \smallstep σ'$.
     \item
       |τ| is infinite |Step _ (Step _ ^^ ...)| (is diverging) iff for all $σ$ with
-      $\inj(\pe) \smallstep^* σ$ there exists $σ'$ with $σ \smallstep σ'$.
+      $\init(\pe) \smallstep^* σ$ there exists $σ'$ with $σ \smallstep σ'$.
     \item
       The |e :: Event| in every |Step e ^^ ...| occurrence in |τ| corresponds in
       the intuitive way to the matching small-step transition rule that was
@@ -636,7 +636,7 @@ The full proof is in the Appendix.
 \end{proofsketch}
 \begin{proof}
   There exists a maximal trace $(σ_i)_{i∈\overline{n}}$ starting
-  from $σ_0 = \inj(\pe)$, and by \Cref{thm:sem-correct} we have
+  from $σ_0 = \init(\pe)$, and by \Cref{thm:sem-correct} we have
   $α_{\STraces}((σ_i)_{i∈\overline{n}},\StopF) = τ$.
   The correctness of |Event|s emitted follows directly from $α_\Events$.
   \begin{itemize}
@@ -655,14 +655,14 @@ The full proof is in the Appendix.
           $σ'$ such that $σ \smallstep σ'$ whatsoever.
         \item
           If $(σ_i)_{i∈\overline{n}}$ is diverging, $n=ω$ and for every $σ$ with
-          $\inj(\pe) \smallstep^* σ$ there exists an $i$ such that $σ = σ_i$ by
+          $\init(\pe) \smallstep^* σ$ there exists an $i$ such that $σ = σ_i$ by
           determinism.
       \end{itemize}
 
     \item[$\Leftarrow$]
       \begin{itemize}
         \item
-          If $σ_n$ is a final state, it has $\cont(σ) = \cont(\inj(\pe)) = []$,
+          If $σ_n$ is a final state, it has $\cont(σ) = \cont(\init(\pe)) = []$,
           so the trace is balanced.
         \item
           If $σ$ is not a final state, $τ'$ is not balanced. Since there is no
