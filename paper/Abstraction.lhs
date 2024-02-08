@@ -38,15 +38,15 @@ a summary mechanism and appealing to order theory.
 \begin{table}
 \begin{tabular}{clll}
 \toprule
-\# & |d|             & |eval e emp :: d| \\
+\#  & |d|              & |eval e emp :: d| \\
 \midrule
-(1)        & |D (ByName UT)|  & $\perform{eval (read "let i = λx.x in let j = (λy.y) i in let u = Z() in let t = u in j j") emp :: D (ByName UT)}$ \\
-(2)        & |D (ByValue UT)| & $\perform{eval (read "let i = λx.x in let j = (λy.y) i in let u = Z() in let t = u in j j") emp :: D (ByValue UT)}$ \\
-(3)        & |D (ByNeed UT)|  & $\perform{runByNeed (eval (read "let i = λx.x in let j = (λy.y) i in let u = Z() in let t = u in j j") emp) :: UT (Value (ByNeed UT), Heap _)}$ \\
+(1) & |D (ByName UT)|  & $\perform{eval (read "let id = λx.x in let t = (λy.y) id in let v = Z() in let u = v in t t") emp :: D (ByName UT)}$ \\
+(2) & |D (ByValue UT)| & $\perform{eval (read "let id = λx.x in let t = (λy.y) id in let v = Z() in let u = v in t t") emp :: D (ByValue UT)}$ \\
+(3) & |D (ByNeed UT)|  & $\perform{runByNeed (eval (read "let id = λx.x in let t = (λy.y) id in let v = Z() in let u = v in t t") emp) :: UT (Value (ByNeed UT), Heap _)}$ \\
 \bottomrule
 \end{tabular}
 \caption{Comparing the usage instrumentation of different evaluation strategies on the expression \\
-$e \triangleq \Let{i}{\Lam{x}{x}}{\Let{j}{(\Lam{y}{y})~i}{\Let{u}{Z()}{\Let{t}{u}{j~j}}}}$.}
+$e \triangleq \Let{id}{\Lam{x}{x}}{\Let{t}{(\Lam{y}{y})~id}{\Let{v}{Z()}{\Let{u}{v}{t~t}}}}$.}
 \label{fig:usage-instrumentation-examples}
 \end{table}
 
@@ -97,9 +97,9 @@ $\LookupT$ transitions per let-bound variable.
 We refer to these upper bounds as \emph{usage cardinality} |U| in
 \Cref{fig:usg-abs}, and a |Uses| collects the usage cardinality for each
 let-bound variable.
-The |U|sage |U0| means ``at most 0 times'' and |U1| means ``at most 1 times'',
+The |U|sage |U0| means ``at most 0 times'', |U1| means ``at most 1 times'',
 and |Uω| can be read as ``at most $ω$ times'', where $ω$ is the first limit
-ordinal.
+ordinal, greater than any natural number.
 Usage analysis is a generalisation of absence analysis in \Cref{fig:absence}:
 a variable is absent ($\aA$) when it has usage |U0|, otherwise it is used ($\aU$).
 
@@ -118,17 +118,18 @@ smashes such lookups into a |Uses|.
 The point of wrapping |Uses| in |UT| is to define a |Monad| instance that
 aggregates |Uses| in a Writer-like fashion.
 
-Astonishingly, these two simple definitions induce an \emph{instrumentation} of
-our semantics!
+Astonishingly, the simple |Trace| and |Monad| definitions already induce an
+\emph{instrumentation} of our semantics!
 \Cref{fig:usage-instrumentation-examples} lists the results of running
 the instrumented interpreter on the same characteristic expression, but with
 three different evaluation strategies |ByName|, |ByValue| and |ByNeed|.%
-\footnote{For |ByValue|, we omit the trivial |extract (MkUT _ v) = v| definition.}
+\footnote{For |ByValue|, we additionally need |instance Extract UT where extract (MkUT _ v) = v|.}
 Thus, we finally reap the benefits of having defined |Domain| and |HasBind|
-instances in \Cref{sec:interp} that are polymorphic over the inner trace |τ|.
+instances in \Cref{sec:interp} polymorphically over the inner trace |τ|.
 As can be seen, the by-need strategy only evaluates what is needed.
-The by-value strategy additionally uses the unused binding $u$ and the by-name
-strategy evaluates $i$ multiple times since $j$ is evaluated multiple times.
+The by-value strategy additionally uses the unused binding $v$ and the by-name
+strategy evaluates $id$ multiple times since the thunk $t$ is evaluated multiple
+times.
 
 Instrumentation amounts to running the concrete semantics and then folding the
 trace into a |UT|; it is what the static analysis is supposed to approximate.
@@ -253,15 +254,15 @@ Since any |d::UD| is finite, we can no longer use guarded |fix|points in
 |HasBind UD|, so we will use least fixpoints (computed by |kleeneFix| in
 \Cref{fig:lat}) instead, as we did for absence analysis.%
 \footnote{Why least fixpoints? Why does that yield a correct solution?
-The reason is that usage cardinality is a safety property; see
-\Cref{sec:safety-extension}.}
+The reason is that usage cardinality is a safety property~\citep{Lamport:77};
+see \Cref{sec:safety-extension}.}
 The resulting definition of |HasBind| is safe for by-name and by-need semantics.
 
 |kleeneFix| requires us to define an order on |UD|, which is induced
 by |U0 ⊏ U1 ⊏ Uω| in the same way that the order
 on $\AbsTy$ in \Cref{sec:absence} was induced from the order $\aA ⊏ \aU$
 on $\Absence$ flags.
-Specifically, |peel| exemplifies the non-syntactic equalities such as |UUU =
+Specifically, |peel| exemplifies the non-syntactic equalities such as |UUU ==
 UCons Uω UUU| at work that are respected by the |Lat UD| instance.
 
 The |Domain| instance is reponsible for implementing the summary mechanism.
@@ -275,7 +276,8 @@ emp x U1) UUU)| to summarise how |f| uses its argument by way of looking at how
 \footnote{As before, the exact identity of |x| is exchangeable; we use it as a
 De Bruijn level.}
 Occurrences of |x| must make do with the top value |UUU| for lack of knowing the
-actual argument at call sites.
+actual argument at call sites; this is how our analysis loses precision compared
+to the instrumentation.
 
 The definition of |apply| is nearly the same as in \Cref{fig:absence}, except
 for the use of |+| instead of $⊔$ to carry over |U1 + U1 = Uω|, and an
@@ -284,7 +286,7 @@ The usage |u| thus pelt from the value determines how often the actual
 argument was evaluated, and multiplying the uses of the argument |φ2| with |u|
 accounts for that.
 
-In contrast to \citet{Sergey:14}, we lack a summary mechanism for data
+In contrast to \citet{Sergey:14}, we omit a summary mechanism for data
 constructors, and thus assume that any field of a data constructor is used
 multiple times.
 This is achieved in |con| by repeatedly |apply|ing to the top value |UUU|, as if
@@ -302,6 +304,9 @@ By abbreviating $|abssubst (f (MkUT (ext emp x U1) UUU)) x d| \triangleq |app
 (fun x f) d|$ we can make this abstract substitution operation more tangible,
 to formulate and prove correct the following substitution lemma which will
 become instrumental in the soundness proof for usage analysis, \Cref{thm:usage-correct}.
+\sg{Is the |abssubst| form really better than
+|eval e (ext ρ x d) ⊑ app (fun x (\d1 -> eval e (ext ρ x d1))) d|? Let me
+know.}
 
 \begin{lemmarep}[Substitution]
 \label{thm:usage-subst}
@@ -424,7 +429,7 @@ We proceed by induction on |e|.
 \toprule
 \# & |d|             & |e|                                               & |eval e emp :: d| \\
 \midrule
-(1) & |UD|            & $\pe$ from \Cref{fig:usage-instrumentation-examples} & $\perform{eval (read "let i = λx.x in let j = (λy.y) i in let u = Z() in let t = u in j j") emp :: UD}$ \\
+(1) & |UD|            & $\pe$ from \Cref{fig:usage-instrumentation-examples} & $\perform{eval (read "let id = λx.x in let t = (λy.y) id in let v = Z() in let u = v in t t") emp :: UD}$ \\
 (2) & |D (ByName UT)| & $\Let{i}{\Lam{x}{x}}{\Let{j}{\Lam{y}{y}}{i~j}}$   & $\perform{eval (read "let i = λx.x in let j = λy.y in i j") emp :: D (ByName UT)}$ \\
 (3) & |UD|            & $\Let{i}{\Lam{x}{x}}{\Let{j}{\Lam{y}{y}}{i~j}}$   & $\perform{eval (read "let i = λx.x in let j = λy.y in i j") emp :: UD}$ \\
 (4) & |D (ByName UT)| & $\Let{i}{\Lam{x}{x}}{\Let{j}{\Lam{y}{y}}{i~i~j}}$   & $\perform{eval (read "let i = λx.x in let j = λy.y in i i j") emp :: D (ByName UT)}$ \\
@@ -444,8 +449,8 @@ the same result as the by-name instrumentation on the example from
 Examples (2) and (3) illustrate that usage analysis can precisely infer
 second-order |U1| usage on $j$, however examples (4) and (5) show that precision
 declines when there is another indirect call involved.
-Examples (6) and (7) concern data constructors and demonstrate the imprecision
-of the analysis even when faced with manifest beta redexes.
+Examples (6) and (7) concern data constructors and demonstrate the blatant
+imprecision of the analysis when faced with manifest beta redexes.
 
 \subsection{Discussion}
 %A total description of the \emph{dynamic semantics} of a language requires a
@@ -467,7 +472,8 @@ significant reuse in soundness proofs.
 To demonstrate the versatility of our approach, we have also defined
 a compositional type analysis with let generalisation as well as
 0CFA as an instance of our denotational interpreter; you can find
-outlines in the Appendix.
+outlines in the Appendix and the complete implementations in the supplied
+extract of this document.
 
 \begin{toappendix}
 \subsection{Type Analysis}
