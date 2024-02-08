@@ -200,7 +200,7 @@ instance Domain UD where
               |  (k,f) <- assocs fs ]
 
 instance HasBind UD where
-  bind {-" \iffalse "-}_{-" \fi "-} rhs body = body (kleeneFix rhs)
+  bind rhs body = body (kleeneFix rhs)
 \end{code}
 \end{minipage}
 %if style == newcode
@@ -527,7 +527,7 @@ instance Domain (Cts PolyType) where stuck = return (PT [] Wrong); {-" ... \iffa
 
 {-" \fi "-}
 instance HasBind (Cts PolyType) where
-  bind {-" \iffalse "-}_{-" \fi "-} rhs body = generaliseTy (do
+  bind rhs body = generaliseTy (do
     rhs_ty <- freshTyVar
     rhs_ty' <- rhs (return (PT [] rhs_ty)) >>= instantiatePolyTy
     emitCt (rhs_ty, rhs_ty')
@@ -740,7 +740,7 @@ data CT a = CT (State Cache a); type CD = CT CValue; runCFA :: CD -> CValue
 updFunCache :: Label -> (CD -> CD) -> CT (); cachedCall :: Label -> CValue -> CD
 
 instance HasBind CD where{-" ... \iffalse "-}
-  bind {-" \iffalse "-}_{-" \fi "-} rhs body = go bottom >>= body . return
+  bind rhs body = go bottom >>= body . return
     where
       go :: CValue -> CT CValue
       go v = do

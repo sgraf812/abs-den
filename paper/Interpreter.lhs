@@ -264,7 +264,7 @@ eval e ρ = case e of
   App e x  | x ∈ dom ρ  -> step App1 $
                apply (eval e ρ) (ρ ! x)
            | otherwise  -> stuck
-  Let x e1 e2 -> bind {-" \iffalse "-}x{-" \fi "-}
+  Let x e1 e2 -> bind
     (\d1 -> eval e1 (ext ρ x (step (Lookup x) d1)))
     (\d1 -> step Let1 (eval e2 (ext ρ x (step (Lookup x) d1))))
   ConApp k xs
@@ -294,7 +294,7 @@ class Domain d where
   select :: d -> (Tag :-> ([d] -> d)) ->  d
 
 class HasBind d where
-  bind :: {-" \iffalse "-}Name -> {-" \fi "-}(d -> d) -> (d -> d) -> d
+  bind :: (d -> d) -> (d -> d) -> d
 \end{code}
 \\[-2.5em]
 \subcaption{Interface of traces and values}
@@ -431,7 +431,7 @@ instance Trace (τ v) => Trace (ByName τ v) where
   step e = ByName . step e . unByName
 
 instance HasBind (D (ByName τ)) where
-  bind _ rhs body = body (fix rhs)
+  bind rhs body = body (fix rhs)
 \end{code}%
 %endif
 \\[-1em]
@@ -487,7 +487,7 @@ instance Trace (τ v) => Trace (ByValue τ v) where ...
 class Extract τ where extract :: τ v -> v
 instance Extract T where extract (Ret v) = v; extract (Step _ τ) = extract τ
 instance (Trace (D (ByValue τ)), Monad τ, Extract τ) => HasBind (D (ByValue τ)) where
-  bind {-" \iffalse "-}_{-" \fi "-} rhs body = step Let0 (fix (rhs . return . extract . unByValue) >>= body . return)
+  bind rhs body = step Let0 (fix (rhs . return . extract . unByValue) >>= body . return)
 \end{spec}
 %if style == newcode
 \begin{code}
@@ -498,7 +498,7 @@ instance Trace (τ v) => Trace (ByValue τ v) where
 class Extract τ where extract :: τ v -> v
 instance Extract T where extract (Ret v) = v; extract (Step _ τ) = extract τ
 instance (Trace (D (ByValue τ)), Monad τ, Extract τ) => HasBind (D (ByValue τ)) where
-  bind {-" \iffalse "-}_{-" \fi "-} rhs body = step Let0 (fix (rhs . return . extract . unByValue) >>= body . return)
+  bind rhs body = step Let0 (fix (rhs . return . extract . unByValue) >>= body . return)
 \end{code}
 %endif
 \\[-1em]
@@ -770,7 +770,7 @@ newtype Clairvoyant τ a = Clairvoyant (ParT τ a)
 runClair :: D (Clairvoyant T) -> T (Value (Clairvoyant T))
 
 instance (MonadFix τ, forall v. Trace (τ v)) => HasBind (D (Clairvoyant τ)) where
-  bind {-" \iffalse "-}_{-" \fi "-} rhs body = Clairvoyant (skip <|> let') >>= body
+  bind rhs body = Clairvoyant (skip <|> let') >>= body
     where  skip = return (Clairvoyant empty)
            let' = fmap return $ step Let0 $ ... ^^ mfix ... rhs . return ...
 \end{spec}
@@ -817,7 +817,7 @@ parFix f = ParT $ mfix (unParT . f) >>= \case
     Fork _ _ -> pure (Fork (parFix (leftT . f)) (parFix (rightT . f)))
 
 instance (MonadFix τ, forall v. Trace (τ v)) => HasBind (D (Clairvoyant τ)) where
-  bind {-" \iffalse "-}_{-" \fi "-} rhs body = Clairvoyant (skip <|> let') >>= body
+  bind rhs body = Clairvoyant (skip <|> let') >>= body
     where
       skip = return (Clairvoyant empty)
       let' = fmap return $ unClair $ step Let0 $ Clairvoyant $ parFix $ unClair . rhs . Clairvoyant . ParT . return
