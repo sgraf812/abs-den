@@ -86,8 +86,8 @@ takeName n (ByName τ) = takeT n τ
 Now we get to the main contribution of this work, namely
 a \emph{compositional semantics} for a functional language, the semantic
 domain of which can express sufficient \emph{operational detail} such that a
-\emph{summary-based} static analysis such as usage analysis can be derived as an
-\emph{abstract interpretation}.
+\emph{summary-based} static analysis such as usage analysis in
+\Cref{sec:abstraction} can be derived as an \emph{abstract interpretation}.
 Following~\citet{Might:10}, we call this semantics a \emph{Denotational
 Interpreter} because it qualifies both as a denotational
 semantics~\citep{ScottStrachey:71} as well as a total definitional
@@ -164,9 +164,9 @@ assocs = Map.assocs
 \subsection{Semantic Domain} \label{sec:dna}
 
 In traditional denotational semantics, the semantic domain |D| allows embedding
-\emph{semantic values} such as base values (integers, strings, etc) and
+\emph{semantic values} such as base values (integers, strings, etc.) and
 functions |D -> D|.
-A distinctive feature of this paper is that \emph{our semantic domain are traces}
+A distinctive feature of our work is that \emph{our semantic domain are traces}
 that describe, in as much or as little detail as desired, the execution of an
 abstract machine, and that \emph{end} in these semantic values.
 For example, we can choose a semantic domain |DName|, so that |eval|
@@ -178,7 +178,7 @@ analyses as instances.
 
 Here are the data type declarations for |DName|, the by-name variant:
 
-\begin{minipage}{0.65\textwidth}
+\begin{minipage}{0.6\textwidth}
 %if style == newcode
 \begin{code}
 type D τ = τ (Value τ)
@@ -196,7 +196,7 @@ data Event  =  Lookup Name | Update | App1 | App2
 data Value = Stuck | Fun (DName -> DName) | Con Tag [DName]
 \end{spec}
 \end{minipage}
-\begin{minipage}{0.35\textwidth}
+\begin{minipage}{0.4\textwidth}
 \begin{spec}
 instance Monad T where
   return a = Ret a
@@ -224,17 +224,17 @@ So every value in |DName| corresponds to a \emph{program trace} |T| that ends wi
 concrete, semantic |Value|.
 
 We have embellished each |Step| with an |Event|, which describes what happpens
-in that |Step|; for example, a |Lookup| event describes a lookup in environment, and
-we further decorate it with the |Name| of the let-bound variable for later
-scrutinisation in \Cref{sec:abstraction}.
+in that |Step|; for example, a |Lookup| event describes a lookup in the
+environment, and we further decorate it with the |Name| of the let-bound
+variable for later scrutinisation in \Cref{sec:abstraction}.
 Note that the choice of |Event| suggests a spectrum of intensionality,
 with |data Event = Unit| corresponding to the ``delay monad'' popularised by
 \citet{Capretta:05} on the more abstract end of the spectrum and arbitrary
 syntactic detail attached to each of |Event|'s constructors at the intensional
-end of the spectrum.
-If our language had facilities for input/output and more general side-effects,
-we could have started from a more elaborate construction such as (guarded)
-interaction trees~\citep{interaction-trees,gitrees}.
+end of the spectrum.%
+\footnote{If our language had facilities for input/output and more general
+side-effects, we could have started from a more elaborate trace construction
+such as (guarded) interaction trees~\citep{interaction-trees,gitrees}.}
 
 The coinductive nature of |T|'s definition in Haskell is crucial to our
 approach\footnote{In a strict language, we would have introduced a thunk in
@@ -296,6 +296,7 @@ class Domain d where
 class HasBind d where
   bind :: {-" \iffalse "-}Name -> {-" \fi "-}(d -> d) -> (d -> d) -> d
 \end{code}
+\\[-2.5em]
 \subcaption{Interface of traces and values}
   \label{fig:trace-classes}
 \begin{code}
@@ -315,9 +316,11 @@ instance ifCodeElse (Monad τ => Domain (D τ)) (Domain DName) where
 ifPoly (instance HasBind DName where
   bind rhs body = body (fix rhs))
 \end{code}
+\\[-2.5em]
 \subcaption{Concrete by-name semantics for |DName|}
   \label{fig:trace-instances}
 \end{minipage}%
+\\[-0.5em]
 \caption{Abstract Denotational Interpreter}
   \label{fig:eval}
 \end{figure}
@@ -328,12 +331,11 @@ It is clear that we want to vary the semantic domain quite a bit, so it
 is natural to use type class overloading to abstract over the semantic
 function |eval| over the particular domain, thus:
 \[
-|eval  ::  (Trace d, Domain d, HasBind d) =>  Exp -> (Map Name d) -> d|
+|eval  ::  (Trace d, Domain d, HasBind d) =>  Exp -> (Name :-> d) -> d|
 \]
-We have parameterised the semantic domain |d| over three type classes,
-classes |Trace|, |Domain| and |HasBind|, whose signatures are given in
-\Cref{fig:trace-classes}.%
-\footnote{One can think of these type classes as a final fold-like final
+We have parameterised the semantic domain |d| over three type classes |Trace|,
+|Domain| and |HasBind|, whose signatures are given in \Cref{fig:trace-classes}.%
+\footnote{One can think of these type classes as a fold-like final
 encoding~\citep{Carette:07} of a domain.
 However, the significance is in the \emph{decomposition} of the domain, not the
 choice of encoding.}
@@ -341,10 +343,10 @@ Each of the three type classes offer knobs that we will tweak individually in
 later Sections.
 
 \Cref{fig:eval} gives the complete definition of |eval|.
-It also gives type classes instances for the particular domain |DName| that we
+It also gives type class instances for the particular domain |DName| that we
 introduced in \Cref{sec:dna}.
-Together this enough to actually run the denotational
-interpreter to produce traces.
+Together this is enough to actually run the denotational interpreter to produce
+traces.
 For example, we can evaluate the expression $\Let{i}{\Lam{x}{x}}{i~i}$ like
 this:%
 \footnote{We use |read :: String -> Exp| as a parsing function.}
@@ -368,7 +370,7 @@ The lambda-bound |x::Name| passed to |fun| is ignored in the concrete by-name
 semantics.
 As well it should: it is syntax, after all!
 We will need |x| in \Cref{sec:abstraction} for a similar purpose as
-$\mathit{fun}_\px$ in \Cref{fig:absence}.
+$\mathit{fun}_\px$ needed $\px$ in \Cref{fig:absence}.
 
 The other cases follow a similar pattern; they each do some work, before handing off to the
 type class methods for all the domain-specific functions.
@@ -384,24 +386,24 @@ it takes two functionals
 for building the denotation of the right-hand side and that of the let body,
 given a denotation for the right-hand side.
 The concrete implementation for |DName| given in \Cref{fig:trace-instances} simply
-hands over the fixpoint of the right-hand side to the body, yielding a
+hands over the (guarded) fixpoint of the right-hand side to the body, yielding a
 call-by-name evaluation strategy.
 We will shortly see examples of eager evaluation strategies that will yield from
 |fix rhs| inside |bind| instead of calling |body| immediately.
 
 We conclude this Subsection with a few examples and will will make use of a
 function |takeT :: Int -> T v -> T (Maybe v)| to do so;
-|takeT n τ| returns the first |n| events of |τ| and replaces the final value
+|takeT n τ| returns the first |n| steps of |τ| and replaces the final value
 with |Nothing| (printed as $\bot$) if it goes on for longer.
 We will start with two programs that diverge.
 The lazy |step| implementation allows us to observe finite prefixes of
 the trace:
 
-< ghci> takeT 3 $ eval (read "let x = x in x") emp :: T (Maybe Value)
-$\perform{takeName 3 $ eval (read "let x = x in x") emp :: T (Maybe (Value (ByName T)))}$
+< ghci> takeT 5 $ eval (read "let x = x in x") emp :: T (Maybe Value)
+$\perform{takeName 5 $ eval (read "let x = x in x") emp :: T (Maybe (Value (ByName T)))}$
 
-< ghci> takeT 3 $ eval (read "let w = λy. y y in w w") emp :: T (Maybe Value)
-$\perform{takeName 3 $ eval (read "let w = λy. y y in w w") emp :: T (Maybe (Value (ByName T)))}$
+< ghci> takeT 9 $ eval (read "let w = λy. y y in w w") emp :: T (Maybe Value)
+$\perform{takeName 9 $ eval (read "let w = λy. y y in w w") emp :: T (Maybe (Value (ByName T)))}$
 \\[\belowdisplayskip]
 \noindent
 And data types work as well, allowing for interesting ways (type errors) to get
@@ -432,6 +434,7 @@ instance HasBind (D (ByName τ)) where
   bind _ rhs body = body (fix rhs)
 \end{code}%
 %endif
+\\[-1em]
 \caption{Redefinition of call-by-name semantics from \Cref{fig:trace-instances}}
 \label{fig:by-name}
 \end{figure}
@@ -498,6 +501,7 @@ instance (Trace (D (ByValue τ)), Monad τ, Extract τ) => HasBind (D (ByValue �
   bind {-" \iffalse "-}_{-" \fi "-} rhs body = step Let0 (fix (rhs . return . extract . unByValue) >>= body . return)
 \end{code}
 %endif
+\\[-1em]
 \caption{Call-by-value}
 \label{fig:by-value}
 \end{figure}
@@ -518,13 +522,13 @@ in |Ret|) to |body|.
 
 The |τ >>= body . return| idiom is quite important, as it yields from the trace
 |τ| eagerly, and only once, rather than duplicating it at every use site in
-|body|.
+|body|, as |body τ| would.
 The |fix| expression, on the other hand, expresses the following recursion equation:
 |rhs τ| ends in the value |v| if and only if |τ| is |Ret v|.
 The type class instance method |extract :: T v -> v| applied to |rhs τ| will
 return |v|,%
-\footnote{The keen Haskell-affine reader may have noted that we could use
-|Extract| to define a |MonadFix| instance for |τ|.}
+\footnote{The keen reader may have noted that we could use |Extract| to define a
+|MonadFix| instance for |τ|.}
 and |return v = Ret v|, so |fix| solves this recursion equation for us.
 
 Since nothing about |extract| is particularly special to |T|, it lives in its
