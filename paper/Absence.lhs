@@ -31,8 +31,7 @@ Note that $\Lam{x}{x}$ (with an overbar) denotes syntax, whereas $\fn{x}{x+1}$
 denotes a function in math.
 In this section, only the highlighted parts are relevant, but the interpreter
 definition in \Cref{sec:interp} supports data types as well.
-From hereon throughout, we assume that all bound program variables
-are distinct.
+Throughout the paper we assume that all bound program variables are distinct.
 
 \subsection{Absence Analysis}
 \label{sec:absence}
@@ -86,12 +85,21 @@ are distinct.
 
 Absence analysis for lazy programs is defined in \Cref{fig:absence}.
 We informally say that $\px$ is \emph{absent} in $\pe$ when $\px$ is never
-evaluated by $\pe$, no matter how deep we evaluate it.
+evaluated by $\pe$, regardless of the context in which $\pe$ appears.
 Otherwise, $\px$ is \emph{used} in $\pe$.
 
 The idea for $\semabs{\pe}_ρ$ is to conservatively approximate which variables are
 absent ($\aA$) in $\pe$, rather than possibly used ($\aU$), given an environment
-$ρ$ containing absence information about its free variables.
+$ρ$ containing absence information about its free variables. Clearly if $\px$ is not
+free in $\pe$ then $\px$ is absent in $\pe$, but our analysis does a bit better.
+Consider
+$$ \Let{f}{\Lam{x}{y}}{f~v}$$
+Here $v$ is free in the expression, but it is absent because $f$ discards it.
+The analysis records a \emph{summary} $\varsigma$ for $f$ in the environment $\rho$.
+For this particular case the summary is $\aA \sumcons ??$.   \slpj{complete the example, in
+particular talking about the other component of the AbsTy.  I found this whole
+section hard going, given that it's such a simple analysis!}
+
 When $\semabs{\pe}_{ρ_Δ} = \langle φ, \varsigma \rangle$ and $φ(\px) = \aA$,
 then $\px$ is absent in $\pe$, where $ρ_Δ$ is the free variable environment
 defined as

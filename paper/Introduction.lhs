@@ -20,10 +20,10 @@ Function summaries enable efficient modular higher-order analyses, because it is
 much faster to apply the summary of a function instead of reanalysing its
 definition at use sites in other modules.
 
-If the analysis is used in a compiler to inform optimisations, it is quite
-important to establish trust in its correctness, because lacking correctness
+If the analysis is used in a compiler to inform optimisations, it is
+important to prove it correct, because lacking correctness
 can lead to miscompilation of safety-critical applications~\citep{Sun:16}.
-In order to prove the analysis correct, it is favorable to pick a language
+In order to prove the analysis correct, it is helpful to pick a language
 semantics that is also compositional, such as a \emph{denotational
 semantics}~\citep{ScottStrachey:71}; then the semantics and the analysis ``line
 up'' and the correctness proof is relatively straightforward.
@@ -33,7 +33,7 @@ semantics~\citep{Cousot:21}, particularly when the abstract operations of the
 analysis correspond to concrete operations in the semantics.
 
 Alas, traditional denotational semantics does not model operational details --
-but those details might be the whole point of the analysis.
+and yet those details might be the whole point of the analysis.
 For example, we might want to ask ``How often does $\pe$ evaluate its free
 variable $x$?'', but a standard denotational semantics simply does not express
 the concept of ``evaluating a variable''.
@@ -42,16 +42,20 @@ semantics}~\citep{Plotkin:81}, which directly models operational details like
 the stack and heap, and sees program execution as a sequence of machine states.
 Now we have two unappealing alternatives:
 \begin{itemize}
-\item Put up with a difficult ad-hoc correctness proof, one that links an
+\item Develop a difficult, ad-hoc correctness proof, one that links an
   non-compositional operational semantics with a compositional analysis.
 \item Reimagine and reimplement the analysis as an abstraction of the
   reachable states of an operational semantics.
   This is the essence of the \emph{Abstracting Abstract Machines} (AAM)
-  \cite{aam} recipe.
-  A very fruitful framework, but one that follows the \emph{call strings}
+  \cite{aam} recipe,
+  a very fruitful framework, but one that follows the \emph{call strings}
   approach~\citep{SharirPnueli:78}, reanalysing function bodies at call sites.
   Hence the new analysis becomes non-modular, and possibly less efficient and
-  less precise than its compositional, summary-based variant.
+  less precise than its compositional, summary-based variant. \slpj{It's hard
+  to understand this critique.  Better: ``Reimagine and reimplement the analysis as an abstraction of the
+  reachable states of an operational semantics.  Now the analysis and semantics
+  ``line up'' again, so the correctness proof is relatively simple.  Alas, this
+  approach has significant shortcomings that we outline in \Cref{blah}''.}
 \end{itemize}
 
 In this paper, we resolve the tension by exploring \emph{Denotational
@@ -65,8 +69,8 @@ Static analyses arise as instantiations of the shared interpreter skeleton,
 enabling succinct, shared correctness proofs just like for AAM or big-step
 definitional interpreters~\citep{adi,Keidel:18,Bodin:19}.
 However, the shared, compositional structure enables a wide range of summary
-mechanisms in static analyses that we think are beyond reach for
-non-compositional reachable states abstractions.
+mechanisms in static analyses that we think are beyond the reach of
+non-compositional reachable-states abstractions like AAM.
 
 We make the following contributions:
 \begin{itemize}
@@ -74,17 +78,17 @@ We make the following contributions:
   We use a concrete example (absence analysis) to argue for
   the usefulness of correctness statements and scrutinise a summary mechanism
   in \Cref{sec:problem}.
-  Finally, we demonstrate the straining experience of conducting an ad-hoc
+  Finally, we demonstrate the difficulty of conducting an ad-hoc
   correctness proof \wrt a non-compositional small-step operational semantics.
 \item \Cref{sec:interp} walks through the structural definition of our shared
   denotational interpreter and its type class algebra in Haskell.
   We demonstrate the ease with which different instances of our interpreter
   endow our object language with call-by-name, variants of call-by-need and
-  variants of call-by-value evaluation strategies, producing (abstractions of)
-  small-step traces.
+  variants of call-by-value evaluation strategies, each producing (abstractions of)
+  small-step abstract-machine traces.
 \item In \Cref{sec:abstraction} we give three examples of abstract
-  interpretations, covering a wide span of applications: Type analysis, usage
-  analysis and 0CFA control-flow analysis.
+  interpretations, covering a wide range of applications: Type analysis, usage
+  analysis and 0CFA control-flow analysis. \slpj{check what we end up covering}
   The former two have interesting summary mechanisms that our framework
   expresses in a natural way.
 \item A concrete instantiation of a denotational interpreter is \emph{total}
@@ -93,7 +97,7 @@ We make the following contributions:
   \Cref{sec:totality} proves that the by-name and by-need instantiations are
   total by embedding the shared interpreter and its instances in Guarded Cubical
   Agda.
-\item \Cref{sec:adequacy} delivers proof that the by-need instantiation of our
+\item \Cref{sec:adequacy} proves that the by-need instantiation of our
   denotational interpreter adequately generates an abstraction of a lazy Krivine
   trace, preserving its length as well as arbitrary operational information
   about each transition taken.

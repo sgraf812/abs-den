@@ -115,7 +115,7 @@ For concise notation, we will use a small number of infix operators:
 looking up |x| in |m|, |ext m x d| for updates, |f << m| for mapping |f| over
 every element of |m|, |assocs m| for turning |m| into a list of key-value pairs,
 |dom m| for returning the set of keys present in the map, and |(`elem`)| for
-membership tests in that set.
+membership tests in that set. \slpj{can we use a noisier notation like $a \mapsto b$}
 
 \begin{figure}
 \begin{minipage}{0.49\textwidth}
@@ -163,20 +163,24 @@ assocs = Map.assocs
 
 \subsection{Semantic Domain} \label{sec:dna}
 
-In traditional denotational semantics, the semantic domain |D| allows embedding
+In traditional denotational semantics, the semantic domain |D| comprises
 \emph{semantic values} such as base values (integers, strings, etc.) and
 functions |D -> D|.
-A distinctive feature of our work is that \emph{our semantic domain are traces}
-that describe, in as much or as little detail as desired, the execution of an
-abstract machine, and that \emph{end} in these semantic values.
+A distinctive feature of our work is that our semantic domain are instead
+\emph{traces}
+that describe
+% , in as much or as little detail as desired,
+the \emph{steps} taken
+by an abstract machine, and that \emph{end} in these semantic values.
 For example, we can choose a semantic domain |DName|, so that |eval|
 will produce precisely the traces of the by-name variant of the Krivine machine in
-\Cref{fig:lk-semantics}!
+\Cref{fig:lk-semantics}.
 In \Cref{sec:evaluation-strategies} we will give semantic domains for by-value
 and by-need semantics as well, and in \Cref{sec:abstraction} we obtain static
 analyses as instances.
 
-Here are the data type declarations for |DName|, the by-name variant:
+Here are the data type declarations for |DName|, the semantic domain for
+the call-by-name variant of our language:
 
 \begin{minipage}{0.6\textwidth}
 %if style == newcode
@@ -223,7 +227,7 @@ program makes another small-step transition before reaching a terminal state.
 So every value in |DName| corresponds to a \emph{program trace} |T| that ends with a
 concrete, semantic |Value|.
 
-We have embellished each |Step| with an |Event|, which describes what happpens
+Each |Step| is decorated with an |Event|, which describes what happpens
 in that |Step|; for example, a |Lookup| event describes a lookup in the
 environment, and we further decorate it with the |Name| of the let-bound
 variable for later scrutinisation in \Cref{sec:abstraction}.
@@ -248,7 +252,7 @@ A domain element |DName| eventually terminates with a |Value| that is either
 |Stuck|, a |Fun|ction waiting to be applied to an argument |DName| to yield another
 |DName|, or a |Con|structor application giving the denotations of its fields.
 |Value| is thus just a standard denotational encoding of its syntactic counterpart, devoid
-of any syntax.
+of any syntax. \slpj{I don't know what that sentence adds or even means.  Omit?}
 (We postpone worries about well-definedness and totality to \Cref{sec:adequacy}.)
 
 \begin{figure}
@@ -328,8 +332,9 @@ ifPoly (instance HasBind DName where
 \subsection{The Interpreter}
 
 It is clear that we want to vary the semantic domain quite a bit, so it
-is natural to use type class overloading to abstract over the semantic
-function |eval| over the particular domain, thus:
+is natural to use type-class overloading to
+allow the semantic
+function |eval| to abstract over the particular domain, thus:
 \[
 |eval  ::  (Trace d, Domain d, HasBind d) =>  Exp -> (Name :-> d) -> d|
 \]
@@ -355,7 +360,7 @@ this:%
 $\perform{eval (read "let i = λx.x in i i") emp :: D (ByName T)}$,
 \\[\belowdisplayskip]
 \noindent
-where $\lambda$ means that the trace ends in a |Fun| value. This is
+where $\langle\lambda\rangle$ means that the trace ends in a |Fun| value. This is
 in direct correspondence to the earlier call-by-name small-step trace
 \labelcref{ex:trace}.
 
