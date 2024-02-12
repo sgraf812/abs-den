@@ -5,6 +5,7 @@
 \begin{code}
 {-# OPTIONS_GHC -Wno-simplifiable-class-constraints #-}
 {-# LANGUAGE DerivingStrategies #-}
+{-# LANGUAGE DerivingVia #-}
 {-# LANGUAGE PartialTypeSignatures #-}
 {-# LANGUAGE LambdaCase #-}
 {-# LANGUAGE QuantifiedConstraints #-}
@@ -459,8 +460,9 @@ type to keep type class resolution decidable and non-overlapping.
 We will however stick to a |type| synonym in this presentation in order to elide
 noisy wrapping and unwrapping of constructors.}
 \slpj{Is there really much wrapping and unwrapping? Other than in the monad instance.}
-\sg{There is no monad instance. |D| is of kind |(* -> *) -> *|. The monad is on
-|τ|. Thus there will be wrapping and unwrapping in the |Domain| instance.}
+\sg{There is no monad instance. |D| is of kind |(* -> *) -> *|. The monad
+instance is on |τ|. Thus there will be wrapping and unwrapping in the |Domain|
+instance and other operations such as |fetchN| and |memoN|.}
 \begin{spec}
 type D τ = τ (Value τ)
 data Value τ = Stuck | Fun (D τ -> D τ) | Con Tag [D τ]
@@ -564,20 +566,18 @@ denotational semantics.
 \begin{figure}
 \begin{code}
 type Addr = Int; type Heap τ = Addr :-> D τ; nextFree :: Heap τ -> Addr
-ifCodeElse(newtype ByNeed τ v)(data ByNeed τ v) = ByNeed (StateT (Heap (ByNeed τ)) τ v)
-wrapN    :: (Heap (ByNeed τ) -> τ (v, Heap (ByNeed τ))) -> ByNeed τ v
-unwrapN  :: ByNeed τ v -> (Heap (ByNeed τ) -> τ (v, Heap (ByNeed τ)))
+ifCodeElse(newtype ByNeed τ v)(data ByNeed τ v) = ByNeed { unByNeed :: Heap (ByNeed τ) -> τ (v, Heap (ByNeed τ)) }
 
-getN  :: Monad τ => ByNeed τ (Heap (ByNeed τ));         getN    = wrapN (\ μ -> return (μ, μ))
-putN  :: Monad τ => Heap (ByNeed τ) -> ByNeed τ (); ^^  putN μ  = wrapN (\ _ -> return ((), μ))
+getN  :: Monad τ => ByNeed τ (Heap (ByNeed τ));         getN    = ByNeed (\ μ -> return (μ, μ))
+putN  :: Monad τ => Heap (ByNeed τ) -> ByNeed τ (); ^^  putN μ  = ByNeed (\ _ -> return ((), μ))
 ifPoly(instance Monad τ => Monad (ByNeed τ) where ...)
 
-instance (forall v. Trace (τ v)) => Trace (ByNeed τ v) where step e m = wrapN (step e . unwrapN m)
+instance (forall v. Trace (τ v)) => Trace (ByNeed τ v) where step e m = ByNeed (step e . unByNeed m)
 
 fetchN :: Monad τ => Addr -> D (ByNeed τ); fetchN a = getN >>= \μ -> μ ! a
 
 memoN :: forall τ. (Monad τ, forall v. Trace (τ v)) => Addr -> D (ByNeed τ) -> D (ByNeed τ)
-memoN a d = d >>= \v -> wrapN (upd v)
+memoN a d = d >>= \v -> ByNeed (upd v)
   where  upd Stuck  μ = return (Stuck :: Value (ByNeed τ), μ)
          upd v      μ = step Update (return (v, ext μ a (memoN a (return v))))
 
@@ -593,12 +593,9 @@ nextFree h = case Map.lookupMax h of
   Nothing     -> 0
   Just (k,_)  -> k+1
 
-deriving instance Functor τ  => Functor (ByNeed τ)
-deriving instance Monad τ    => Applicative (ByNeed τ)
-deriving instance Monad τ    => Monad (ByNeed τ)
-
-wrapN = ByNeed . StateT
-unwrapN (ByNeed (StateT m)) = m
+deriving via StateT (Heap (ByNeed τ)) τ instance Functor τ  => Functor (ByNeed τ)
+deriving via StateT (Heap (ByNeed τ)) τ instance Monad τ    => Applicative (ByNeed τ)
+deriving via StateT (Heap (ByNeed τ)) τ instance Monad τ    => Monad (ByNeed τ)
 \end{code}
 %endif
 \\[-1em]
@@ -608,113 +605,83 @@ unwrapN (ByNeed (StateT m)) = m
 
 \subsubsection{Call-by-need}
 
-The semantic domain |D (ByNeed T)| in \Cref{fig:by-need} defines a call-by-need
-evaluation strategy by introducing a stateful heap and memoisation via the
-standard state transformer monad |StateT|, whose key operations |getN| and
-|putN| are given in \Cref{fig:by-need}.
-\sg{We often switch between |ByNeed T| and |ByNeed τ| below. Doing so has no
-significant impact on the story we tell, except that sticking to |T| is awkward
-when discussing the quantified constraint |forall v. Trace (T v)|. Therefore I
-suggest we stick to |τ|.}
+The trace transformer |ByNeed| in \Cref{fig:by-need} defines a call-by-need
+evaluation strategy by introducing a stateful heap and memoisation to |τ|
+by embedding a standard state transformer monad,%
+\footnote{Indeed, we derive its monad instance |via State (Heap (ByNeed τ))
+τ|~\citep{Blondal:18}.}
+whose key operations |getN| and |putN| are given in \Cref{fig:by-need}.
 
-|ByNeed| accumulates quite a few layers of abstractions and is recursive as
-well.
-It is best thought of as an answer to the request ``give me a |θ| such that |D
-θ| models stateful computations in |D θ|''.
-|ByNeed τ| is one such solution |θ|, satisfying the equation
-$|D θ| \cong |Heap θ -> τ (Value θ, Heap θ)|$ via |ByNeed . StateT|, which
-we abbreviate as |wrapN|, and the other direction with |unwrap|.
+|ByNeed τ| is best thought of as an answer to the request ``give me a |θ| such
+that |D θ| models stateful computations in |D θ|''.
+More formally, |θ := ByNeed τ| satisfies the recursion equation
+$|(Heap θ -> τ (Value θ, Heap θ))| \cong |D θ|$ via |ByNeed| and its inverse
+|unByNeed|.
 
 So the denotation of an expression is no longer a trace, but rather a
-\emph{stateful trace}
-\sg{but it's a \emph{stateful function returning} a trace, not a single stateful
-trace.
-To me, an example of a stateful trace is a trace in the LK transition system.
-By contrast, our traces fundamentally lack any kind of state, except at the
-end.
-Depending on the heap in which you start, you get wildly different kinds of
-traces.}
-in which the carried state |Heap (ByNeed τ)| implements
-the heap in which call-by-need thunks are allocated.
+\emph{stateful function returning a trace}, where the carried state
+|Heap (ByNeed τ)| implements the heap in which call-by-need thunks are
+allocated.
 The |Trace| instance of |ByNeed τ| simply forwards to that of |τ| (\ie, often
 |T|), pointwise over heaps.
 Doing so needs a |Trace| instance for |τ (Value (ByNeed τ), Heap (ByNeed τ))|, but we
-found it more succinct to use a quantified constraint |(forall v. Trace (τ v))|;
-given that |τ| must also be a |Monad|, that is not an onerous requirement.
+found it more succinct to use a quantified constraint |(forall v. Trace (τ
+v))|, that is, we require a |Trace (τ v)| instance for every choice of |v|.
+Given that |τ| must also be a |Monad|, that is not an onerous requirement.
+
 The key part is again the implementation of |HasBind| for |D (ByNeed τ)|,
 because that is the only place where thunks are allocated.
-\sg{Simon, please rewrite this when you've ``grok'd memo'' so that it is
-coherent and does not simply repeat the code in the definition. At present I
-don't see anything that doesn't follow from simply staring at the code; better
-tell \emph{why} the code does what it does rather than only \emph{how} it does
-it. Perhaps move up the example below for a better explanation?}
-The implementation of |bind| has three steps.
-First it uses the state monad to allocates a fresh heap address |a|; we use |μ ::
-Heap (ByNeed τ)| as the name of the heap, as in \Cref{fig:lk-semantics}
-\sg{Do we really need to discuss the choice of \emph{names}?}.
-Second, it uses |modify| to bind the address
-|a| to something (itself a stateful trace) that we will look at next.
-Finally it applies |body| to |(fetchN a :: D (ByNeed τ))|, a little
-computation that looks up the address |a| in the current state of the heap, and
-runs it.
-
-In the second step we bind |a| to a stateful trace of type |D (ByNeed τ)|.
-The first time we run that computation (in the case for |Var|)
-we want to evaluate the argument,
-and update the heap to bind |a| to the value thus computed; this the essence of
-lazy evaluation. \slpj{Need a bit more; I don't yet grok memo.}
-
-% The trace transformer |ByNeed| in \Cref{fig:by-need} mixes in a call-by-need
-% evaluation strategy by introducing a heap and memoisation to |τ|.
-% Interestingly, |ByNeed T| denotes a \emph{stateful function returning a trace},
-% thus it is the first time we compute with something different than a |T|.
-% The |bind| implementation for |ByNeed| traces will tie the recursive knot with
-% a |D| that |fetchN|es the bound action from a heap, under an address |a| that is
-% not taken yet in the current heap |μ|.
-% This newly heap-bound |D| in turn evaluates |rhs|, the result of which is
-% |memoN|ised in an |Update| step, so that the heap-bound |D| is replaced by
-% one that immediately |return|s the value.
-% We will prove this semantics adequate \wrt to the LK transition system in
-% \Cref{fig:lk-semantics} in \Cref{sec:adequacy}.
-
-%\todo{Mention that we could also have tested this result, with a type like
-%|type ValidateT τ = StateT σ τ|, where the |step| action crashes if the |Event|
-%does not match the currently applicable LK transition for $σ$.}
+The implemention of |bind| designates a fresh heap address |a|
+to hold the denotation of the right-hand side.
+Both |rhs| and |body| are called with |fetchN a|, a denotation that looks up |a|
+in the heap and runs it.
+If we were to omit the |memo a| action explained next, we would thus have
+recovered another form of call-by-name semantics based on mutable state instead
+of guarded |fix|points.
+The whole purpose of the |memo a d| combinator then is to \emph{memoise} the
+computation of |d| the first time we run the computation, via |fetchN a| in the
+|Var| case of |eval|.
+So |memo a d| yields from |d| until it has reached a value, and then |upd|ates
+the heap after an additional |Update| step.
+Repeated access to the same variable will run the replacement |memo a (return
+v)|, which immediately yields |v| after performing an |step Update| that does
+nothing.%
+\footnote{More serious semantics would omit updates after the first
+evaluation as an \emph{optimisation}, \ie, update with |ext μ a (return v)|,
+but doing so complicates relating the semantics to \Cref{fig:lk-semantics},
+where omission of update frames for values behaves differently.
+For now, our goal is not to formalise this optimisation, but rather to show
+adequacy \wrt an established semantics.}
 
 Although the code is carefully written, it is worth stressing how
 compact and expressive it is.  We were able to move from traces to stateful traces
-just by wrapping traces |T| in a state transformer |StateT|, without modifying
-the main |eval| function at all.
-Furthermore, nothing in our approach is particularly specific to |Exp| or
+just by wrapping traces |T| in a state transformer |ByNeed|, without modifying
+the main |eval| function at all.%
+\footnote{It is worth noting that nothing in our approach is particularly specific to |Exp| or
 |Value|!
 We have built similar interpreters for PCF, where the @rec@, @let@ and
 non-atomic argument constructs can simply reuse |bind| to recover a
 call-by-need semantics.
-(The |Event| type needs semantics- and use-case-specific adjustment, though.)
+The |Event| type needs semantics- and use-case-specific adjustment, though.}
 
 Here is an example evaluating $\Let{i}{(\Lam{y}{\Lam{x}{x}})~i}{i~i}$, starting
 in an empty heap:
 
-< ghci> unwrapN (eval (read "let i = (λy.λx.x) i in i i") emp) emp :: T (Value _, Heap _)
-$\perform{unwrapN (eval (read "let i = (λy.λx.x) i in i i") emp) emp :: T (Value (ByNeed T), Heap _)}$
+< ghci> unByNeed (eval (read "let i = (λy.λx.x) i in i i") emp) emp :: T (Value _, Heap _)
+$\perform{unByNeed (eval (read "let i = (λy.λx.x) i in i i") emp) emp :: T (Value (ByNeed T), Heap _)}$
 \\[\belowdisplayskip]
 \noindent
+This trace is in clear correspondence to the earlier by-need LK trace
+\labelcref{ex:trace2}.
 We can observe memoisation at play:
 Between the first bracket of $\LookupT$ and $\UpdateT$ events, the heap entry
 for $i$ goes through a beta reduction before producing a value.
 This work is cached, so that the second $\LookupT$ bracket does not do any beta
 reduction.
 
-Finally note that it would be very simple to suppress $\UpdateT$ events for
-already evaluated heap bindings by tweaking |upd| to omit the |memoN| wrapper,
-\eg, |upd v μ = return (v, ext μ a (return v))|.
-We decided against that because it obscures the simple correspondence to the LK
-transition system.
-
 \begin{figure}
 \begin{code}
-ifCodeElse(newtype ByVInit τ v)(data ByVInit τ v) = ByVInit (StateT (Heap (ByVInit τ)) τ v)
-unwrapV :: ByVInit τ v -> (Heap (ByVInit τ) -> τ (v, Heap (ByVInit τ)))
+ifCodeElse(newtype ByVInit τ v)(data ByVInit τ v) = ByVInit { unByVInit :: Heap (ByVInit τ) -> τ (v, Heap (ByVInit τ)) }
 instance (Monad τ, forall v. Trace (τ v)) => HasBind (D (ByVInit τ)) where
   bind rhs body = do  μ <- getV
                       let a = nextFree μ
@@ -723,26 +690,22 @@ instance (Monad τ, forall v. Trace (τ v)) => HasBind (D (ByVInit τ)) where
 \end{code}
 %if style == newcode
 \begin{code}
-wrapV :: (Heap (ByVInit τ) -> τ (v, Heap (ByVInit τ))) -> ByVInit τ v
-wrapV = ByVInit . StateT
-unwrapV (ByVInit (StateT m)) = m
-
-deriving instance Functor τ  => Functor (ByVInit τ)
-deriving instance Monad τ    => Applicative (ByVInit τ)
-deriving instance Monad τ    => Monad (ByVInit τ)
+deriving via StateT (Heap (ByVInit τ)) τ instance Functor τ  => Functor (ByVInit τ)
+deriving via StateT (Heap (ByVInit τ)) τ instance Monad τ    => Applicative (ByVInit τ)
+deriving via StateT (Heap (ByVInit τ)) τ instance Monad τ    => Monad (ByVInit τ)
 
 getV :: Monad τ => ByVInit τ (Heap (ByVInit τ))
-getV = wrapV (\ μ -> return (μ, μ))
+getV = ByVInit (\ μ -> return (μ, μ))
 putV :: Monad τ => Heap (ByVInit τ) -> ByVInit τ ()
-putV μ = wrapV (\ _ -> return ((), μ))
+putV μ = ByVInit (\ _ -> return ((), μ))
 
-instance (forall v. Trace (τ v)) => Trace (ByVInit τ v) where step e m = wrapV (step e . unwrapV m)
+instance (forall v. Trace (τ v)) => Trace (ByVInit τ v) where step e m = ByVInit (step e . unByVInit m)
 
 fetchV :: Monad τ => Addr -> D (ByVInit τ)
 fetchV a = getV >>= \μ -> μ ! a
 
 memoV :: forall τ. (Monad τ, forall v. Trace (τ v)) => Addr -> D (ByVInit τ) -> D (ByVInit τ)
-memoV a d = d >>= \v -> wrapV (upd v)
+memoV a d = d >>= \v -> ByVInit (upd v)
   where  upd Stuck  μ = return (Stuck :: Value (ByVInit τ), μ)
          upd v      μ = return (v, ext μ a (memoV a (return v)))
 \end{code}
@@ -760,12 +723,12 @@ Typical strict languages work around this issue in either of two ways:
 They enforce termination of the RHS statically (OCaml, ML), or they use
 \emph{lazy initialisation} techniques~\citep{Nakata:10,Nakata:06} (Scheme,
 recursive modules in OCaml).
-We recover a total interpreter using the semantics in \citet{Nakata:10}, reusing
-the primitives of |ByNeed| and initialising the heap with a \emph{black
-hole}~\citep{stg} |stuck| in |bind| as in \Cref{fig:by-value-init}.
+We recover a total interpreter using the semantics in \citet{Nakata:10},
+building on the same encoding as |ByNeed| and initialising the heap with a
+\emph{black hole}~\citep{stg} |stuck| in |bind| as in \Cref{fig:by-value-init}.
 
-< ghci> unwrapV (eval (read "let x = x in x x") emp) emp :: T (Value _, Heap _)
-$\perform{unwrapV (eval (read "let x = x in x x") emp) emp :: T (Value (ByVInit T), Heap (ByVInit T))}$
+< ghci> unByVInit (eval (read "let x = x in x x") emp) emp :: T (Value _, Heap _)
+$\perform{unByVInit (eval (read "let x = x in x x") emp) emp :: T (Value (ByVInit T), Heap (ByVInit T))}$
 
 
 \begin{figure}

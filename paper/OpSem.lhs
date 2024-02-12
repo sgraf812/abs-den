@@ -75,7 +75,8 @@ $\dom(μ)$.
 It is easy to see that the transition system maintains this invariant and that
 it is still possible to observe scoping errors which are thus confined to lookup
 in $ρ$.
-We conclude with the following example trace evaluating $\Let{i}{\Lam{x}{x}}{i~i}$:
+
+We conclude with two example traces. The first one evaluates $\Let{i}{\Lam{x}{x}}{i~i}$:
 \begin{align} \label{ex:trace}
   \arraycolsep2pt
   &\begin{array}{lclclclclc}
@@ -88,3 +89,34 @@ We conclude with the following example trace evaluating $\Let{i}{\Lam{x}{x}}{i~i
   \end{array} \notag
 \end{align}
 The corresponding by-name trace simply omits the highlighted update steps.
+The second example evaluates $\pe \triangleq \Let{i}{(\Lam{y}{\Lam{x}{x}})~i}{i~i}$,
+demonstrating memoisation of $i$:
+\begin{align} \label{ex:trace2}
+  &\begin{array}{l}
+  (\pe, [], [], \StopF)
+  \smallstep[\LetIT]
+  (i~i, ρ_1, μ_1, \StopF)
+  \smallstep[\AppIT]
+  (i, ρ_1, μ_1, κ_1)
+  \smallstep[\LookupT]
+  ((\Lam{y}{\Lam{x}{x}})~i, ρ_1, μ_1, κ_2)
+  \\
+  \smallstep[\AppIT]
+  (\Lam{y}{\Lam{x}{x}}, ρ_1, μ_1, \ApplyF(\pa_1) \pushF κ_2)
+  \smallstep[\AppET]
+  (\Lam{x}{x}, ρ_2, μ_1, κ_2)
+  \smallstep[\UpdateT]
+  (\Lam{x}{x}, ρ_2, μ_2, κ_1)
+  \\
+  \smallstep[\AppET]
+  (x, ρ_3, μ_2, \StopF)
+  \smallstep[\LookupT]
+  (\Lam{x}{x}, ρ_2, μ_2, \UpdateF(\pa_1) \pushF \StopF)
+  \smallstep[\UpdateT]
+  (\Lam{x}{x}, ρ_2, μ_2, \StopF)
+  \end{array} \\ \notag
+  &\qquad\text{where } \arraycolsep1pt \begin{array}{llll}
+    ρ_1 = [i ↦ \pa_1], & ρ_2 = [i ↦ \pa_1, y ↦ \pa_1], & \multicolumn{2}{l}{ρ_3 = [i ↦ \pa_1, y ↦ \pa_1, x ↦ \pa_1],} \\
+    μ_1 = (ρ_1, (\Lam{y}{\Lam{x}{x}})~i), & μ_2 = [\pa_1 ↦ (ρ_2,\Lam{x}{x})], & κ_1 = \ApplyF(\pa_1) \pushF \StopF, & κ_2 = \UpdateF (\pa_1) \pushF κ_1
+  \end{array} \notag
+\end{align}

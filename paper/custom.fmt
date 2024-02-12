@@ -40,6 +40,7 @@
 %subst keyword a = "\keyword{" a "}"
 %subst dummy = "\wild"
 
+%format via = "\keyword{via}"
 %format τ = "\varcolor{\tau}"
 %format τ'
 %format τ1
