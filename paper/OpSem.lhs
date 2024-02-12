@@ -43,7 +43,7 @@
   \label{fig:lk-semantics}
 \end{figure}
 
-Before we get to introduce our novel denotational interpreaters, let us
+Before we get to introduce our novel denotational interpreters, let us
 recall the semantic ground truth of this work and others \citep{Sergey:14,
 Breitner:16}: The Mark II machine of \citet{Sestoft:97} given in
 \Cref{fig:lk-semantics}, a small-step operational semantics.
