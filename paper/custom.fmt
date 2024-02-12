@@ -192,6 +192,7 @@
 %format U0 = "\concolor{\mathsf{U_0}}"
 %format U1 = "\concolor{\mathsf{U_1}}"
 %format Uω = "\concolor{\mathsf{U_\omega}}"
+%format (Rep u) = u "\mathsf{..}"
 %format AAA = "\concolor{\mathsf{U_0..}}"
 %format UUU = "\concolor{\mathsf{U_\omega..}}"
 %format UCons a b = a " \sumcons " b

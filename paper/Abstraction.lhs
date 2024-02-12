@@ -42,7 +42,7 @@ a summary mechanism and appealing to order theory.
 \midrule
 (1) & |D (ByName UT)|  & $\perform{eval (read "let id = λx.x in let t = (λy.y) id in let v = Z() in let u = v in t t") emp :: D (ByName UT)}$ \\
 (2) & |D (ByValue UT)| & $\perform{eval (read "let id = λx.x in let t = (λy.y) id in let v = Z() in let u = v in t t") emp :: D (ByValue UT)}$ \\
-(3) & |D (ByNeed UT)|  & $\perform{runByNeed (eval (read "let id = λx.x in let t = (λy.y) id in let v = Z() in let u = v in t t") emp) :: UT (Value (ByNeed UT), Heap _)}$ \\
+(3) & |D (ByNeed UT)|  & $\perform{unByNeed (eval (read "let id = λx.x in let t = (λy.y) id in let v = Z() in let u = v in t t") emp) emp :: UT (Value (ByNeed UT), Heap _)}$ \\
 \bottomrule
 \end{tabular}
 \caption{Comparing the usage instrumentation of different evaluation strategies on the expression \\
@@ -116,7 +116,7 @@ Compared to the concrete |T| from \Cref{sec:interp}, the |Trace| instance of
 the custom trace type |UT| abstracts away all events other than |Lookup|s, and
 smashes such lookups into a |Uses|.
 The point of wrapping |Uses| in |UT| is to define a |Monad| instance that
-aggregates |Uses| in a Writer-like fashion.
+aggregates |Uses| via |(+)|.
 
 Astonishingly, the simple |Trace| and |Monad| definitions already induce an
 \emph{instrumentation} of our semantics!
@@ -131,9 +131,44 @@ The by-value strategy additionally uses the unused binding $v$ and the by-name
 strategy evaluates $id$ multiple times since the thunk $t$ is evaluated multiple
 times.
 
+The results of running the instrumentation yields surprising results on nested
+let-bindings:
+< ghci> eval (read "let i = let j = λx.x in j in i i") emp :: D (ByName UT)
+$\perform{eval (read "let i = let j = λx.x in j in i i") emp :: D (ByName UT)}$
+\\[\belowdisplayskip]
+\noindent
+Note that every \emph{activation} of $j$ is only evaluated once, but since there
+is one activation for each of the two lookups of $i$, and both actications were
+looked up once each, the result says that $j$ was looked up many times.
+It is clear that this is not useful, but fortunately the information on outer
+let-bindings such as $i$ is accurate enough to enable useful optimisations.
+
+\subsection{Operational properties and improvement}
+
 Instrumentation amounts to running the concrete semantics and then folding the
-trace into a |UT|; it is what the static analysis is supposed to approximate.
-Of course, this process will diverge whenever the object program diverges.
+trace into a |UT|.
+We will understand this instrumentation in a very formal sense as describing
+a safety property of traces in \Cref{sec:soundness}; it is the semantic property
+that the static analysis is supposed to approximate.
+
+The appeal of such a description is that \emph{trace properties are just folds
+over traces}, in contrast to the result of a static analysis approximating
+the property, which is often defined by least fixpoints.
+For example, we can define usage cardinality (``|e| evaluates |x| at most |u|
+times'') as
+\[
+  |forall e1. case eval (Let x e1 e) emp :: D (ByName UT) of ByName (MkUT φ _) -> (φ ! x) ⊑ u|.
+\]
+Since there is no difference (\cf \Cref{sec:adequacy}) between running
+|eval (Let x e1 e) emp| and generating the resulting trace from the small-step
+semantics in \Cref{fig:lk-semantics}, we can use this definition
+to show an observational improvement statement $\forall \pe_1,\pe_2.\
+\Let{x}{\pe_1}{e} \impequiv \Let{x}{\pe_2}{e}$ \citep{MoranSands:99} whenever
+|u| is absent (|U0|), \ie, evaluating $\Let{x}{\pe_1}{e}$ takes the same
+number of steps no matter what $\pe_1$ is or in which syntactic context we put
+the whole expression.%
+\footnote{Similarly, we could prove that update avoidance~\citep{Gustavsson:98}
+is improving when |u ⊑ U1|, but that would take an even more elaborate setup.}
 
 \subsection{Usage analysis}
 \label{sec:usage-analysis}
@@ -152,7 +187,7 @@ kleeneFix f = go bottom where go x = let x' = f x in if x' ⊑ x then x' else go
 \begin{figure}
 \begin{minipage}{0.43\textwidth}
 \begin{code}
-data UValue = AAA | UCons U UValue | UUU
+data UValue = UCons U UValue | Rep U
 type UD = UT UValue
 
 instance Lat U where {-" ... \iffalse "-}
@@ -164,11 +199,10 @@ instance Lat U where {-" ... \iffalse "-}
 {-" \fi "-}
 ifPoly (instance Lat Uses where ...)
 instance Lat UValue where {-" ... \iffalse "-}
-  bottom = AAA
-  AAA ⊔ v = v
-  v ⊔ AAA = v
-  UUU ⊔ _ = UUU
-  _ ⊔ UUU = UUU
+  bottom = (Rep U0)
+  Rep u1 ⊔ Rep u2 = Rep (u1 ⊔ u2)
+  Rep u1 ⊔ v = UCons u1 (Rep u1) ⊔ v
+  v ⊔ Rep u2 = v ⊔ UCons u2 (Rep u2)
   UCons u1 v1 ⊔ UCons u2 v2 = UCons (u1 ⊔ u2) (v1 ⊔ v2)
 {-" \fi "-}
 instance Lat UD where {-" ... \iffalse "-}
@@ -177,9 +211,8 @@ instance Lat UD where {-" ... \iffalse "-}
 {-" \fi "-}
 
 peel :: UValue -> (U, UValue)
-peel AAA          = (U0,AAA)
+peel (Rep u)      = (u,(Rep u))
 peel (UCons u v)  = (u,v)
-peel UUU          = (Uω,UUU)
 
 (!?) :: Uses -> Name -> U
 m !? x  | x ∈ dom m  = m ! x
@@ -190,13 +223,13 @@ m !? x  | x ∈ dom m  = m ! x
 \begin{code}
 instance Domain UD where
   stuck                                  = bottom
-  fun x {-" \iffalse "-}_{-" \fi "-} f   = case f (MkUT (ext emp x U1) UUU) of
+  fun x {-" \iffalse "-}_{-" \fi "-} f   = case f (MkUT (ext emp x U1) (Rep Uω)) of
     MkUT φ v -> MkUT (ext φ x U0) (UCons (φ !? x) v)
   apply (MkUT φ1 v1) (MkUT φ2 _)         = case peel v1 of
     (u, v2) -> MkUT (φ1 + u*φ2) v2
-  con {-" \iffalse "-}_{-" \fi "-} _ ds  = foldl apply (MkUT emp UUU) ds
+  con {-" \iffalse "-}_{-" \fi "-} _ ds  = foldl apply (MkUT emp (Rep Uω)) ds
   select d fs                            =
-    d >> lub  [  f (replicate (conArity k) (MkUT emp UUU))
+    d >> lub  [  f (replicate (conArity k) (MkUT emp (Rep Uω)))
               |  (k,f) <- assocs fs ]
 
 instance HasBind UD where
@@ -210,9 +243,8 @@ deriving instance Eq a => Eq (UT a)
 deriving instance Functor UT
 
 instance Eq UValue where
-  AAA == AAA = True
-  UUU == UUU = True
-  v1 == v2 = peel v1 == peel v2
+  Rep u1 == Rep u2 = u1 == u2
+  v1     == v2     = peel v1 == peel v2
 
 instance Show U where
   show U0 = "0"
@@ -230,8 +262,7 @@ instance Applicative UT where
   (<*>) = ap
 
 instance Show UValue where
-  show UUU = "U_\\omega.."
-  show AAA = "U_0.."
+  show (Rep u) = show u ++ ".."
   show (UCons u v) = show u ++ " \\sumcons " ++ show v
 \end{code}
 %endif
@@ -239,6 +270,8 @@ instance Show UValue where
 \label{fig:abs-usg}
 \end{figure}
 
+Of course, \emph{running} the instrumented interpreter will diverge whenever the
+object program diverges.
 If we want to assess usage cardinality statically, we have to find a more
 abstract, finite representation of |Value|.
 In particular, the negative recursive occurrence of |Value| in |Fun| is
@@ -253,29 +286,34 @@ instances.
 Since any |d::UD| is finite, we can no longer use guarded |fix|points in
 |HasBind UD|, so we will use least fixpoints (computed by |kleeneFix| in
 \Cref{fig:lat}) instead, as we did for absence analysis.%
-\footnote{Why least fixpoints? Why does that yield a correct solution?
-The reason is that usage cardinality is a safety property~\citep{Lamport:77};
-see \Cref{sec:safety-extension}.}
+\footnote{Why is the use of least fixpoints correct?
+The fact that we are approximating a safety property~\citep{Lamport:77}
+is important. We will discuss this topic in \Cref{sec:safety-extension}.}
 The resulting definition of |HasBind| is safe for by-name and by-need semantics.
 
 |kleeneFix| requires us to define an order on |UD|, which is induced
 by |U0 ⊏ U1 ⊏ Uω| in the same way that the order
 on $\AbsTy$ in \Cref{sec:absence} was induced from the order $\aA ⊏ \aU$
 on $\Absence$ flags.
-Specifically, |peel| exemplifies the non-syntactic equalities such as |UUU ==
-UCons Uω UUU| at work that are respected by the |Lat UD| instance.
-
+Specifically, |peel| exemplifies the non-syntactic equality |(Rep u) ==
+UCons u (Rep u)| at work that is respected by the |Lat UD| instance.%
+\footnote{The keen reader may note that termination of |kleeneFix| does not
+always terminate due to infinite ascending chains such as
+|UCons U1 (UCons U1 (... Rep U0))|.
+These can be easily worked around with appropriate widening measures.
+A very simple one is to turn |Rep U0| into |Rep Uω| when the |UValue|
+exceeds a certain constant depth.}
 The |Domain| instance is reponsible for implementing the summary mechanism.
 While |stuck| expressions do not evaluate anything and hence are denoted by
-|bottom = MkUT emp AAA|, the |fun| and |apply| functions play exactly the same
+|bottom = MkUT emp (Rep U0)|, the |fun| and |apply| functions play exactly the same
 roles as $\mathit{fun}_\px$ and $\mathit{app}$ in \Cref{fig:absence}.
 
 In |fun x f|, the abstract transformer |f| is applied to a proxy |(MkUT (ext
-emp x U1) UUU)| to summarise how |f| uses its argument by way of looking at how
+emp x U1) (Rep Uω))| to summarise how |f| uses its argument by way of looking at how
 |f| uses |x|, and returns this usage by prepending it to the summarised value.%
 \footnote{As before, the exact identity of |x| is exchangeable; we use it as a
 De Bruijn level.}
-Occurrences of |x| must make do with the top value |UUU| for lack of knowing the
+Occurrences of |x| must make do with the top value |(Rep Uω)| for lack of knowing the
 actual argument at call sites; this is how our analysis loses precision compared
 to the instrumentation.
 
@@ -289,10 +327,10 @@ accounts for that.
 In contrast to \citet{Sergey:14}, we omit a summary mechanism for data
 constructors, and thus assume that any field of a data constructor is used
 multiple times.
-This is achieved in |con| by repeatedly |apply|ing to the top value |UUU|, as if
+This is achieved in |con| by repeatedly |apply|ing to the top value |(Rep Uω)|, as if
 a data constructor was a lambda-bound variable.
 Dually, |select| does not need to track how fields are used and can pass |MkUT
-emp UUU| as proxies for field denotations.
+emp (Rep Uω)| as proxies for field denotations.
 The result uses anything the scrutinee expression used, plus the upper bound of
 uses in case alternatives, one of which will be taken.
 
@@ -300,7 +338,7 @@ Now consider the expression |app (fun x f) a|.
 As discussed in \Cref{sec:absence}, for a correct summary mechanism, this
 expression is supposed to approximate |f a|, the concrete substitution
 operation.
-By abbreviating $|abssubst (f (MkUT (ext emp x U1) UUU)) x d| \triangleq |app
+By abbreviating $|abssubst (f (MkUT (ext emp x U1) (Rep Uω))) x d| \triangleq |app
 (fun x f) d|$ we can make this abstract substitution operation more tangible,
 to formulate and prove correct the following substitution lemma which will
 become instrumental in the soundness proof for usage analysis, \Cref{thm:usage-correct}.
@@ -310,7 +348,7 @@ know.}
 
 \begin{lemmarep}[Substitution]
 \label{thm:usage-subst}
-|eval e (ext ρ x d) ⊑ abssubst (eval e (ext ρ x (MkUT (ext emp x U1) UUU))) x d|.
+|eval e (ext ρ x d) ⊑ abssubst (eval e (ext ρ x (MkUT (ext emp x U1) (Rep Uω)))) x d|.
 \end{lemmarep}
 \begin{proof}
 The assumptions of the proposition are actually a little to weak.
@@ -329,7 +367,7 @@ Alas, locally nameless would lead to drastically more complicated code.
 On the other hand, the definition of |eval| always respects these assumptions,
 so we see no reason to complicate our definition.
 
-Let us abbreviate |prx x := (MkUT (ext emp x U1) UUU)| (for ``proxy'') to write
+Let us abbreviate |prx x := (MkUT (ext emp x U1) (Rep Uω))| (for ``proxy'') to write
 out and simplify the definition of abstract substitution:
 \begin{spec}
 abssubst (f (prx x)) x (MkUT φ2 _) = case f (prx x) of MkUT φ1 v -> MkUT (ext φ1 x U0 + (φ1 !? x) * φ2) v
@@ -366,8 +404,8 @@ We proceed by induction on |e|.
         eval y (ext ρ x d)
     =   {- |x = y|, unfold -}
         MkUT φ v
-    ⊑   {- |v ⊑ UUU| NB: This is the only place that induces |⊏|; the rest is just congruence -}
-        MkUT φ UUU
+    ⊑   {- |v ⊑ (Rep Uω)| NB: This is the only place that induces |⊏|; the rest is just congruence -}
+        MkUT φ (Rep Uω)
     =   {- Definition of abstract substitution -}
         abssubst (prx x) x d
     =   {- Refold |eval| -}
@@ -436,6 +474,7 @@ We proceed by induction on |e|.
 (5) & |UD|            & $\Let{i}{\Lam{x}{x}}{\Let{j}{\Lam{y}{y}}{i~i~j}}$   & $\perform{eval (read "let i = λx.x in let j = λy.y in i i j") emp :: UD}$ \\
 (6) & |D (ByName UT)| & $\Let{z}{Z()}{\Case{S(z)}{S(n) → n}}$   & $\perform{eval (read "let z = Z() in case S(z) of { S(n) -> n }") emp  :: D (ByName UT)}$ \\
 (7) & |UD|            & $\Let{z}{Z()}{\Case{S(z)}{S(n) → n}}$   & $\perform{eval (read "let z = Z() in case S(z) of { S(n) -> n }") emp :: UD}$ \\
+(8) & |D (ByName UT)| & $\Let{i}{\Let{j}{\Lam{x}{x}}{j}}{i~i}$   & $\perform{eval (read "let i = let j = λx.x in j in i i") emp :: UD}$ \\
 \bottomrule
 \end{tabular}
 \caption{Comparing usage analysis |UD| to the usage instrumentation |D (ByName UT)|.}
@@ -451,6 +490,18 @@ second-order |U1| usage on $j$, however examples (4) and (5) show that precision
 declines when there is another indirect call involved.
 Examples (6) and (7) concern data constructors and demonstrate the blatant
 imprecision of the analysis when faced with manifest beta redexes.
+
+Example (8) shows that the static analysis reports the same surprising
+multi-usage result of the nested let-binder $j$ as the instrumentation.
+As well it should, since that is inherent to the trace property it is
+approximating!
+Of course, a practical implementation would write out annotations in |bind|,
+when it leaves the lexical scope of the let-binding, rather than rerunning
+the analysis for every let-binding in the program separately.
+We have done so as an experiment in the Supplement \sg{as well as the case study
+modifying GHC}, but it complicates the simple correctness relationship the analysis
+enjoys \wrt the instrumentation in \Cref{thm:usage-correct}, so we leave it out
+in this work.
 
 \subsection{Discussion}
 %A total description of the \emph{dynamic semantics} of a language requires a

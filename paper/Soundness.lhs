@@ -83,6 +83,7 @@ The soundness proof for usage analysis \wrt by-name semantics thus fits on the
 back of an envelope.
 
 \subsection{Guarded Fixpoints, Safety Properties and Safety Extension of a Galois Connection}
+\label{sec:safety-extension}
 
 Suppose for a second that we were only interested in the trace component of our
 semantic domain, thus effectively restricting ourselves to
@@ -665,7 +666,7 @@ It suffices to show the soundness lemmas in \Cref{fig:by-name-soundness-lemmas}.
   \item \textsc{Beta-App}:
     Follows by unfolding |apply| and |fun| and applying \Cref{thm:usage-subst}.
   \item \textsc{Beta-Sel}:
-    Follows by unfolding |select| and |con| and applying
+    Follows by unfolding |select| and |con| and applying a lemma very similar to
     \Cref{thm:usage-subst} multiple times.
   \item \textsc{Bind-ByName}:
     |kleeneFix| approximates the least fixpoint |lfp| since the iteratee is
