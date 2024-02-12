@@ -55,6 +55,10 @@ for turning a definition of the former into one of the latter.
 Today, we would recognise compositional interpreters as (partial) denotational
 interpreters, whereas big-step interpreters capture the non-compositional
 variant.
+By giving by-name and by-value evaluation strategies for our denotational
+interpreter, our work is somewhat contradicting Reynolds' pitch that
+definitional interpreters inherit the evaluation strategy from their host
+language.
 
 \citet{AgerDanvyMidtgaard:04} pick up on Reynold's idea and successively
 transform a partial denotational interpreter into a variant of the LK machine.
