@@ -117,6 +117,10 @@ looking up |x| in |m|, |ext m x d| for updates, |f << m| for mapping |f| over
 every element of |m|, |assocs m| for turning |m| into a list of key-value pairs,
 |dom m| for returning the set of keys present in the map, and |(`elem`)| for
 membership tests in that set. \slpj{can we use a noisier notation like $a \mapsto b$}
+\sg{Noisier notation for what? You mean something like $[a ↦ v] ∈ m$?
+I suppose that could be syntactic sugar for |Just v <- Map.lookup x m|, yes.
+But that won't help for uses such as |all (`elem` dom ρ) xs|, so I'm not convinced
+its useful to introduce yet another way to access maps.}
 
 \begin{figure}
 \begin{minipage}{0.49\textwidth}
@@ -180,8 +184,8 @@ In \Cref{sec:evaluation-strategies} we will give semantic domains for by-value
 and by-need semantics as well, and in \Cref{sec:abstraction} we obtain static
 analyses as instances.
 
-Here are the data type declarations for |DName|, the semantic domain for
-the call-by-name variant of our language:
+We can define the semantic domain |DName| for a call-by-name variant
+of our language as follows:
 
 \begin{minipage}{0.6\textwidth}
 %if style == newcode
@@ -252,8 +256,11 @@ forwarding |Step|s, thus guarding the recursion~\citep{Capretta:05}.
 A domain element |DName| eventually terminates with a |Value| that is either
 |Stuck|, a |Fun|ction waiting to be applied to an argument |DName| to yield another
 |DName|, or a |Con|structor application giving the denotations of its fields.
-|Value| is thus just a standard denotational encoding of its syntactic counterpart, devoid
-of any syntax. \slpj{I don't know what that sentence adds or even means.  Omit?}
+|Value| is thus just a standard denotational encoding of its syntactic
+counterpart |Lam|/|ConApp|, devoid of any syntax. \slpj{I don't know what that
+sentence adds or even means. Omit?}
+\sg{I clarified, mentioining |Lam|/|ConApp|. This point is one of the main
+distinctions between operational semantics and denotational semantics.}
 (We postpone worries about well-definedness and totality to \Cref{sec:adequacy}.)
 
 \begin{figure}
