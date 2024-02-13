@@ -224,7 +224,7 @@ m !? x  | x ∈ dom m  = m ! x
 instance Domain UD where
   stuck                                  = bottom
   fun x {-" \iffalse "-}_{-" \fi "-} f   = case f (MkUT (ext emp x U1) (Rep Uω)) of
-    MkUT φ v -> MkUT (ext φ x U0) (UCons (φ !? x) v)
+    MkUT φ v -> MkUT (Uω * ext φ x U0) (UCons (φ !? x) v)
   apply (MkUT φ1 v1) (MkUT φ2 _)         = case peel v1 of
     (u, v2) -> MkUT (φ1 + u*φ2) v2
   con {-" \iffalse "-}_{-" \fi "-} _ ds  = foldl apply (MkUT emp (Rep Uω)) ds
@@ -297,10 +297,10 @@ on $\AbsTy$ in \Cref{sec:absence} was induced from the order $\aA ⊏ \aU$
 on $\Absence$ flags.
 Specifically, |peel| exemplifies the non-syntactic equality |(Rep u) ==
 UCons u (Rep u)| at work that is respected by the |Lat UD| instance.%
-\footnote{The keen reader may note that termination of |kleeneFix| does not
-always terminate due to infinite ascending chains such as
+\footnote{The keen reader may note that the least fixed-point does not
+always exist due to infinite ascending chains such as
 |UCons U1 (UCons U1 (... Rep U0))|.
-These can be easily worked around with appropriate widening measures.
+This can be easily worked around with appropriate widening measures.
 A very simple one is to turn |Rep U0| into |Rep Uω| when the |UValue|
 exceeds a certain constant depth.}
 The |Domain| instance is reponsible for implementing the summary mechanism.
@@ -313,9 +313,9 @@ emp x U1) (Rep Uω))| to summarise how |f| uses its argument by way of looking a
 |f| uses |x|, and returns this usage by prepending it to the summarised value.%
 \footnote{As before, the exact identity of |x| is exchangeable; we use it as a
 De Bruijn level.}
-Occurrences of |x| must make do with the top value |(Rep Uω)| for lack of knowing the
-actual argument at call sites; this is how our analysis loses precision compared
-to the instrumentation.
+Occurrences of |x| must make do with the top value |(Rep Uω)| for lack of
+knowing the actual argument at call sites, and uses in the lambda body are
+multiplied with |Uω| to anticipate the effect of multiple calls.
 
 The definition of |apply| is nearly the same as in \Cref{fig:absence}, except
 for the use of |+| instead of $⊔$ to carry over |U1 + U1 = Uω|, and an
