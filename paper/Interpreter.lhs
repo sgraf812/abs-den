@@ -185,31 +185,26 @@ and by-need semantics as well, and in \Cref{sec:abstraction} we obtain static
 analyses as instances.
 
 We can define the semantic domain |DName| for a call-by-name variant
-of our language as follows:
+of our language as follows:%
+\footnote{For a realistic implementation, we suggest to define |D| as a data
+type to keep type class resolution decidable and non-overlapping.
+We will however stick to a |type| synonym in this presentation in order to elide
+noisy wrapping and unwrapping of constructors.}
 
-\begin{minipage}{0.6\textwidth}
-%if style == newcode
+\begin{minipage}{0.62\textwidth}
 \begin{code}
-type D τ = τ (Value τ)
-data T a = Step Event (T a) | Ret a
+type D τ = τ (Value τ); type DName = D T
+data T v = Step Event (T v) | Ret v
 data Event  =  Lookup Name | Update | App1 | App2
-            |  Let1 | Case1 | Case2 | Let0
+            |  Let1 | Case1 | Case2 {-"\iffalse"-} | Let0{-"\fi"-}
 data Value τ = Stuck | Fun (D τ -> D τ) | Con Tag [D τ]
 \end{code}
-%endif
-\begin{spec}
-type DName = T Value
-data T a = Step Event (T a) | Ret a
-data Event  =  Lookup Name | Update | App1 | App2
-            |  Let1 | Case1 | Case2
-data Value = Stuck | Fun (DName -> DName) | Con Tag [DName]
-\end{spec}
 \end{minipage}
-\begin{minipage}{0.4\textwidth}
+\begin{minipage}{0.38\textwidth}
 \begin{spec}
 instance Monad T where
-  return a = Ret a
-  Ret a >>= k = k a
+  return v = Ret v
+  Ret v >>= k = k v
   Step e τ >>= k = Step e (τ >>= k)
 \end{spec}
 %if style == newcode
@@ -221,7 +216,7 @@ instance Applicative T where
   pure = Ret
   (<*>) = ap
 instance Monad T where
-  Ret a >>= k = k a
+  Ret v >>= k = k v
   Step e τ >>= k = Step e (τ >>= k)
 \end{code}
 %endif
@@ -315,7 +310,7 @@ class HasBind d where
 instance Trace (T v) where
   step = Step
 
-instance ifCodeElse (Monad τ => Domain (D τ)) (Domain DName) where
+instance Monad τ => Domain (D τ) where
   stuck = return Stuck
   fun _ {-" \iffalse "-}_{-" \fi "-} f = return (Fun f)
   apply  d a = d >>= \v -> case v of
@@ -428,6 +423,14 @@ $\perform{eval (read "let zro = Z() in let one = S(zro) in case one of { S(zz) -
 < ghci> eval (read "let zro = Z() in zro zro") emp :: DName
 $\perform{eval (read "let zro = Z() in zro zro") emp :: D (ByName T)}$
 
+\subsection{More Evaluation Strategies}
+\label{sec:evaluation-strategies}
+
+By varying the |HasBind| instance of our type |D|, we can endow our language
+|Exp| with different evaluation strategies.
+Following a similar approach as~\citet{adi}, we maximise reuse by instantiating
+the same |D| at different wrappers of |T|, rather than reinventing |Value| and |T|.
+
 \begin{figure}
 \begin{spec}
 data ByName τ v = ByName (τ v)
@@ -452,45 +455,14 @@ instance HasBind (D (ByName τ)) where
 \label{fig:by-name}
 \end{figure}
 
-\subsection{More Evaluation Strategies}
-\label{sec:evaluation-strategies}
-
-By varying the |HasBind| instance of our type |DName|, we can endow our language
-|Exp| with different evaluation strategies.
-With a bit of generalisation, variations become as simple as switching out a
-monad transformer, a common phenomenon in abstract definitional
-interpreters~\citep{adi}.
-In particular, we parameterise the definition of |DName| and |Value| over the particular
-trace type |T|:%
-\footnote{For a realistic implementation, we suggest to define |D| as a data
-type to keep type class resolution decidable and non-overlapping.
-We will however stick to a |type| synonym in this presentation in order to elide
-noisy wrapping and unwrapping of constructors.}
-\slpj{Is there really much wrapping and unwrapping? Other than in the monad instance.}
-\sg{There is no monad instance. |D| is of kind |(* -> *) -> *|. The monad
-instance is on |τ|. Thus there will be wrapping and unwrapping in the |Domain|
-instance and other operations such as |fetchN| and |memoN|.}
-\begin{spec}
-type D τ = τ (Value τ)
-data Value τ = Stuck | Fun (D τ -> D τ) | Con Tag [D τ]
-instance Monad τ => Domain (D τ) where ...
-\end{spec}
-\slpj{I wonder if we can just start with this generalisation directly.}
-\sg{I would be happy to do that if it can be sold convincingly.}
-
-\noindent
 \subsubsection{Call-by-name}
 
 We redefine by-name semantics via the |ByName| \emph{trace transformer}
 in \Cref{fig:by-name},%
 \footnote{The Supplement defines these datatypes as |newtype|s.}
 so called because |ByName τ| inherits its |Monad| and |Trace|
-instance from |τ| (busywork we omit).
+instance from |τ| (busywork we omit) and reminiscent of \citet{Darais:15}.
 Our old |DName| can be recovered as |D (ByName T)|.
-
-\slpj{Can we not recover by-name from |D T|?  That would be simpler}
-\sg{Both |D (ByName T)| and |D (ByValue T)| have the same representation |D T|.
-Blessing |D (ByName T)| this way seems arbitrary.}
 
 \begin{figure}
 \begin{spec}

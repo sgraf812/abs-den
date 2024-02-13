@@ -1305,3 +1305,23 @@ series = {PLDI '88}
   edition = {1st},
   abstract = {A type system is a syntactic method for automatically checking the absence of certain erroneous behaviors by classifying program phrases according to the kinds of values they compute. The study of type systems -- and of programming languages from a type-theoretic perspective -- has important applications in software engineering, language design, high-performance compilers, and security.This text provides a comprehensive introduction both to type systems in computer science and to the basic theory of programming languages. The approach is pragmatic and operational; each new concept is motivated by programming examples and the more theoretical sections are driven by the needs of implementations. Each chapter is accompanied by numerous exercises and solutions, as well as a running implementation, available via the Web. Dependencies between chapters are explicitly identified, allowing readers to choose a variety of paths through the material.The core topics include the untyped lambda-calculus, simple type systems, type reconstruction, universal and existential polymorphism, subtyping, bounded quantification, recursive types, kinds, and type operators. Extended case studies develop a variety of approaches to modeling the features of object-oriented languages.}
 }
+
+@article{Blondal:18,
+  author = {Bl\"{o}ndal, Baldur and L\"{o}h, Andres and Scott, Ryan},
+  title = {Deriving via: or, how to turn hand-written instances into an anti-pattern},
+  year = {2018},
+  issue_date = {July 2018},
+  publisher = {Association for Computing Machinery},
+  address = {New York, NY, USA},
+  volume = {53},
+  number = {7},
+  issn = {0362-1340},
+  url = {https://doi.org/10.1145/3299711.3242746},
+  doi = {10.1145/3299711.3242746},
+  abstract = {Haskell's deriving construct is a cheap and cheerful way to quickly generate instances of type classes that follow common patterns. But at present, there is only a subset of such type class patterns that deriving supports, and if a particular class lies outside of this subset, then one cannot derive it at all, with no alternative except for laboriously declaring the instances by hand.  To overcome this deficit, we introduce Deriving Via, an extension to deriving that enables programmers to compose instances from named programming patterns, thereby turning deriving into a high-level domain-specific language for defining instances. Deriving Via leverages newtypes---an already familiar tool of the Haskell trade---to declare recurring patterns in a way that both feels natural and allows a high degree of abstraction.},
+  journal = {SIGPLAN Not.},
+  month = {sep},
+  pages = {55–67},
+  numpages = {13},
+  keywords = {type classes, instances, functional programming, deriving, Haskell}
+}
