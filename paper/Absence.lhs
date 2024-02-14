@@ -42,14 +42,14 @@ Throughout the paper we assume that all bound program variables are distinct.
   \arraycolsep=0pt
   \abovedisplayskip=0pt
   \[\begin{array}{rcl}
-    \multicolumn{3}{c}{ \ruleform{ \semabs{\wild}_{\wild} \colon \Exp → \Env → \AbsTy } } \\
+    \multicolumn{3}{c}{ \ruleform{ \semabs{\wild}_{\wild} \colon \Exp → (\Var \pfun \AbsTy) → \AbsTy } } \\
     \\[-0.5em]
     \semabs{\px}_ρ & {}={} & ρ(\px) \\
     \semabs{\Lam{\px}{\pe}}_ρ & {}={} & \mathit{fun}_{\px}( \fn{θ}{\semabs{\pe}_{ρ[\px ↦ θ]}}) \\
     \semabs{\pe~\px}_ρ & {}={} & \mathit{app}(\semabs{\pe}_{ρ})(ρ(\px)) \\
     \semabs{\Letsmall{\px}{\pe_1}{\pe_2}}_ρ & {}={} & \semabs{\pe_2}_{ρ[\px ↦ θ]} \\
-    \text{where} \hspace{1.5em} θ &{}={}& \lfp(\fn{θ}{\px + \semabs{\pe_1}_{ρ[\px ↦ θ]}}) \\
-    \px + \langle φ, \varsigma \rangle & = & \langle φ[\px↦\aU], \varsigma \rangle
+    \text{where} \hspace{1.5em} θ &{}={}& \lfp(\fn{θ}{\px \both \semabs{\pe_1}_{ρ[\px ↦ θ]}}) \\
+    \px \both \langle φ, \varsigma \rangle & = & \langle φ[\px↦\aU], \varsigma \rangle
     \\[-0.5em]
   \end{array}\]
   \end{minipage}%
@@ -61,17 +61,17 @@ Throughout the paper we assume that all bound program variables are distinct.
   \abovedisplayskip=0pt
   \[\begin{array}{c}
   \begin{array}{rclcl}
-    \rho & {}∈{} & \Env & {}={} & \Var \rightharpoonup \AbsTy \\
-    θ & {}∈{} & \AbsTy & {}={} & \langle \Uses, \Summary \rangle \\
-    φ & {}∈{} & \Uses & {}={} & \Var \to \Absence \\
-    a & {}∈{} & \Absence     & {}::={} & \aA \mid \aU \\
-    \varsigma & {}∈{} & \Summary & {}::={} & \aA.. \mid a \sumcons \varsigma \mid \aU.. \\
+    a & {}∈{} & \Absence & {}::={} & \aA \mid \aU \\
+    φ & {}∈{} & \Uses    & {}={} & \Var \to \Absence \\
+    \varsigma & {}∈{}    & \Summary & {}::={} & \aA.. \mid a \sumcons \varsigma \mid \aU.. \\
+    θ & {}∈{} & \AbsTy   & {}::={} & \langle φ, \varsigma \rangle \\
     \\[-0.9em]
     \multicolumn{5}{c}{\aA \sumcons \aA.. \equiv \aA.. \quad \aU \sumcons \aU.. \equiv \aU..} \\
   \end{array} \\
   \\[-0.5em]
   \begin{array}{l}
-    a * φ = \begin{cases} (\fn{\wild}{\aA}) & a = \aA \\ φ & a = \aU \\ \end{cases} \\
+    \aA * φ = [] \\
+    \aU * φ = φ  \\
     \mathit{fun}_{\px}( f) {}={} \langle φ[\px↦\aA], φ(\px) \sumcons \varsigma \rangle \\
     \qquad\text{where } \langle φ, \varsigma \rangle = f(\langle [\px↦\aU], \aU.. \rangle) \\
     \mathit{app}(\langle φ_f, a \sumcons \varsigma \rangle)(\langle φ_a, \wild \rangle) = \langle φ_f ⊔ (a * φ_a), \varsigma \rangle \\
@@ -84,109 +84,141 @@ Throughout the paper we assume that all bound program variables are distinct.
   \label{fig:absence}
 \end{figure}
 
-The absence analysis for lazy programs semantics is defined in \Cref{fig:absence}.
-A variable $\px$ is \emph{absent} in a program $\pe$ when $\px$ is never evaluated by $\pe$ ($\aA \in \Absence$).
-Otherwise, the variable $\px$ may be \emph{used} in $\pe$ ($\aU \in \Absence$).
-Analysis $\semabs{\pe}\rho$ takes an environment with absence information about the free variables of $\pe$ and returns an $\langle \varphi, \varsigma \rangle$.
-Furthermore, the analysis returns a tuple $\langle \varphi, \varsigma \rangle$ of usage information of variables $\varphi$ and a summary $\varsigma$.
+Semantically, a variable $\px$ is \emph{absent} in a program $\pe$ when $\px$ is
+never evaluated by $\pe$, regardless of the context in which $\pe$ appears.
+Otherwise, the variable $\px$ is \emph{used} in $\pe$.
 
-We illustrate the analysis at the example of program $\Let{x_2}{x_1}{\Let{k}{\Lam{y}{\Lam{z}{y}}}{k~x_3~x_2}}$, where the initial environment $ρ_Δ(\px) \triangleq \langle [\px ↦ \aU], \aU.. \rangle$ declares the free variables 
-  
+\Cref{fig:absence} defines an absence analysis $\semabs{\pe}_ρ$ for lazy
+program semantics that conservatively approximates semantic absence.
+It takes an environment $ρ \in \Var \pfun \Absence$ containing absence
+information about the free variables of $\pe$ and returns
+an \emph{absence type} $\langle φ, \varsigma \rangle \in \AbsTy$; an abstract
+representation of $\pe$.
+The \emph{free variable uses} $φ \in \Uses$ captures how $\pe$ uses its free
+variables by associating an $\Absence$ flag with each.
+When $φ(\px) = \aA$, then $\px$ is absent in $\pe$; otherwise, $φ(\px) = \aU$
+and $\px$ might be used in $\pe$.
+The \emph{argument summary} $\varsigma \in \Summary$ describes how $\pe$ uses
+actual arguments supplied at application sites.
 
-% We can use $\semabs{\wild}$ to compute that $x_1$ is absent in $\Let{x_2}{x_1}{\Let{k}{\Lam{y}{\Lam{z}{y}}}{k~x_3~x_2}}$, as follows.
-% Since all let bindings are non-recursive, we will omit least fixpoints and environment extension.
-\begin{DispWithArrows*}[fleqn,mathindent=1.5em]
-      & \semabs{\Let{x_2}{x_1}{\Let{k}{\Lam{y}{\Lam{z}{y}}}{k~x_3~x_2}}}_{ρ_Δ}
+Clearly if $\px$ is not free in $\pe$, then $\px$ is absent in $\pe$, but our
+analysis does a bit better.\\
+Consider the expression $\pe \triangleq \Let{f}{\Lam{x}{y}}{f~v}$.
+Here, $v$ is a free variable of $\pe$, but it is absent because $f$ discards it.
+The analysis figures out the same, by recording a summary $\varsigma$ in the
+absence type for $f$ stored in the environment $ρ$.
+For this particular example, the summary is $\aA \sumcons \aU..$, indicating
+that $f$ is absent in its first argument but potentially uses any further
+arguments.
+The summary $\aU..$ can be thought of as a finite representation of an infinite
+list of $\aU$, as expressed by the non-syntactic equality $\aU \equiv \aU
+\sumcons \aU..$, and likewise for $\aA.. \equiv \aA \sumcons \aA..$.
+Since $f$ also uses $y$, the absence type recorded in the environment at the
+call site of $f$ looks like $ρ(f) = \langle [f ↦ \aU, y ↦ \aU], \aA
+\sumcons aU.. \rangle$, indicating that the call $f~v$ uses the free variables
+$f$ and $y$, \emph{but not} $v$.
+(Note that the literal notation $[f ↦ \aU, y ↦ \aU]$ maps any variable other
+than $f$ and $y$ to $\aA$.)
+
+%When $\semabs{\pe}_{ρ_{\pe}} = \langle φ, \varsigma \rangle$ and $φ(\px) = \aA$,
+%then $\px$ is absent in $\pe$, where $ρ_{\pe}$ is the free variable environment
+%defined as
+%\[
+%  ρ_{\pe}(\px) \triangleq \langle [\px ↦ \aU], \aU.. \rangle, \quad \text{(if $\px ∈ \fv(\pe)$)}.
+%\]
+
+%In a slight extension of function update syntax, $[\px ↦ \aU]$ denotes a $φ$
+%where $φ(\px) = \aU$ and $φ(\py) = \aA$ for $\px \not= \py$.
+%Now we can understand $ρ_{\pe}$ to say that evaluation of each free variable
+%$\px$ uses only $\px$, and that any actual argument it is applied to is used,
+%indicated by argument summary $\aU..$\ .
+
+We illustrate the analysis at the example of program
+$\Let{x_2}{x_1}{\Let{k}{\Lam{y}{\Lam{z}{y}}}{k~x_3~x_2}}$, where the initial
+environment for $\pe$, $ρ_\pe(\px) \triangleq \langle [\px ↦ \aU], \aU.. \rangle$,
+declares the free variables of $\pe$ with a pessimistic summary $\aU..$.
+For now assume a special case for non-recursive let,
+$\semabs{\Letsmall{\px}{\pe_1}{\pe_2}}_ρ = \semabs{\pe_2}_{ρ[\px ↦ \px \both \semabs{\pe_1}_ρ]}$
+and postpone computation of least fixed points $\lfp$ until we have defined the involved partial order.
+\sg{Perhaps we should just define absence analysis for non-recursive let in the
+first place, then? The fact that we need to fixpoint iteration for rec let is not
+helping our narrative.}
+\begin{DispWithArrows}[fleqn,mathindent=0em]
+      & \semabs{\Let{x_2}{x_1}{\Let{k}{\Lam{y}{\Lam{z}{y}}}{k~x_3~x_2}}}_{ρ_{\pe}} \label{eq:abs-ex1}
         \Arrow{Unfold $\semabs{\Let{\px}{\pe_1}{\pe_2}}$. NB: Lazy Let!} \\
-  ={} & \semabs{\Let{k}{\Lam{y}{\Lam{z}{y}}}{k~x_3~x_2}}_{ρ_Δ[x_2↦x_2+\semabs{x_1}_{ρ_Δ}]}
-        \Arrow{Unfold $\semabs{\wild}$, $ρ_x \triangleq ρ_Δ[x_2↦x_2+\semabs{x_1}_{ρ_Δ}]$} \\
-  ={} & \semabs{k~x_3~x_2}_{ρ_x[k↦k+\semabs{\Lam{y}{\Lam{z}{y}}}_{ρ_x}]}
-        \Arrow{$ρ_{xk} \triangleq ρ_x[k↦k+\semabs{\Lam{y}{\Lam{z}{y}}}_{ρ_x}]$} \\
+  ={} & \semabs{\Let{k}{\Lam{y}{\Lam{z}{y}}}{k~x_3~x_2}}_{ρ_{\pe}[x_2↦x_2 \both \semabs{x_1}_{ρ_{\pe}}]} \label{eq:abs-ex2}
+        \Arrow{Unfold $\semabs{\wild}$, $ρ_x \triangleq ρ_{\pe}[x_2 ↦ x_2 \both \semabs{x_1}_{ρ_{\pe}}]$} \\
+  ={} & \semabs{k~x_3~x_2}_{ρ_x[k↦k \both \semabs{\Lam{y}{\Lam{z}{y}}}_{ρ_x}]}
+        \Arrow{$ρ_{xk} \triangleq ρ_x[k↦k \both \semabs{\Lam{y}{\Lam{z}{y}}}_{ρ_x}]$} \\
   ={} & \semabs{k~x_3~x_2}_{ρ_{xk}}
         \Arrow{Unfold $\semabs{\pe~\px}$ twice, $\semabs{\px}$} \\
   ={} & \mathit{app}(\mathit{app}(ρ_{xk}(k),ρ_{xk}(x_3)))(ρ_{xk}(x_2))
         \Arrow{Unfold $ρ_{xk}(k)$} \\
-  ={} & \mathit{app}(\mathit{app}(k + \semabs{\Lam{y}{\Lam{z}{y}}}_{ρ_x})(ρ_{xk}(x_3)))(ρ_{xk}(x_2))
+  ={} & \mathit{app}(\mathit{app}(k \both \semabs{\Lam{y}{\Lam{z}{y}}}_{ρ_x})(ρ_{xk}(x_3)))(ρ_{xk}(x_2))
         \Arrow{Unfold $\semabs{\Lam{\px}{\pe}}$ twice, $\semabs{\px}$} \\
-  ={} & \mathit{app}(\mathit{app}(k + \mathit{fun}_{y}(\fn{θ_y}{\mathit{fun}_{z}(\fn{θ_z}{θ_y})}))(...))(...)
+  ={} & \mathit{app}(\mathit{app}(k \both \mathit{fun}_{y}(\fn{θ_y}{\mathit{fun}_{z}(\fn{θ_z}{θ_y})}))(...))(...) \label{eq:abs-ex3}
         \Arrow{Unfold $\mathit{fun}$ twice, simplify} \\
-  ={} & \mathit{app}(\mathit{app}(\langle [k ↦ \aU], \highlight{\aU} \sumcons \aA \sumcons \aU.. \rangle)(\highlight{ρ_{xk}(x_3)}))(...)
-        \Arrow{Unfold $\mathit{app}$, $ρ_{xk}(x_3)=ρ_Δ(x_3)$, simplify} \\
-  ={} & \mathit{app}(\langle [k ↦ \aU,x_3↦\aU], \highlight{\aA} \sumcons \aU.. \rangle)(\highlight{ρ_{xk}(x_2)})
+  ={} & \mathit{app}(\mathit{app}(\langle [k ↦ \aU], \highlight{\aU} \sumcons \aA \sumcons \aU.. \rangle)(\highlight{ρ_{xk}(x_3)}))(...) \label{eq:abs-ex4}
+        \Arrow{Unfold $\mathit{app}$, $ρ_{xk}(x_3)=ρ_{\pe}(x_3)$, simplify} \\
+  ={} & \mathit{app}(\langle [k ↦ \aU,x_3↦\aU], \highlight{\aA} \sumcons \aU.. \rangle)(\highlight{ρ_{xk}(x_2)}) \label{eq:abs-ex5}
         \Arrow{Unfold $\mathit{app}$, simplify} \\
   ={} & \langle [k ↦ \aU,x_3↦\aU], \aU.. \rangle
-\end{DispWithArrows*}
-Both $x_1$ and $x_2$ map to $\aA$ in the final $\Uses$ $[k ↦ \aU,x_3↦\aU]$,
-indicating that $x_1$ is absent.
-That is in contrast to the result for the free variable $x_3$, which is used.
+\end{DispWithArrows}
+The $\Uses$ component of the absence type returned by the analysis lists
+$k$ and $x_3$ as potentially used.
+On the other hand, $x_1$ and $x_2$ are absent, \emph{despite}
+$x_2$ occuring in argument position.
+This is thanks to the summary mechanism; we have highlighted the interacting
+information in grey above.
 
-
-% SG: I'm sorry that we cannot use this as is, but whether or not a variable is
-%     _semantically_ absent should not refer to the analysis in any way; that
-%     is kind of the point.
-%     Perhaps merge the analysis explanation with the next para.
-%
-%The absence analysis is defined in \Cref{fig:absence} for a lazy program semantics.
-%Analysis $\semabs{\pe}$ computes which variables are definitely not evaluated in expression $\pe$.
-%These variables are called \emph{absent} ($\aA \in \Absence$).
-%Furthermore, the analysis overapproximates which variables may potentially be evaluated.
-%These variables are called \emph{used} ($\aU \in \Absence$).
-%The analysis' return value $\langle \varphi, \varsigma \rangle$ is a tuple of usage information of variables $\varphi$ and a summary $\varsigma$.
-%
-%Additionally, analysis $\semabs{\pe}\rho$ takes an environment with absence information about the free variables of $\pe$ and returns an $\langle \varphi, \varsigma \rangle$.
-
-The idea for $\semabs{\pe}_ρ$ is to conservatively approximate which variables are
-absent ($\aA \in \Absence$) in $\pe$, rather than possibly used ($\aU \in \Absence$), given an environment
-$ρ$ containing absence information about its free variables. Clearly if $\px$ is not
-free in $\pe$ then $\px$ is absent in $\pe$, but our analysis does a bit better.
-Consider
-$$ \Let{f}{\Lam{x}{y}}{f~v}$$
-Here $v$ is free in the expression, but it is absent because $f$ discards it.
-The analysis records a \emph{summary} $\varsigma$ for $f$ in the environment $\rho$.
-For this particular case the summary is $\aA \sumcons ??$.   \slpj{complete the example, in
-particular talking about the other component of the AbsTy.  I found this whole
-section hard going, given that it's such a simple analysis!}
-
-When $\semabs{\pe}_{ρ_Δ} = \langle φ, \varsigma \rangle$ and $φ(\px) = \aA$,
-then $\px$ is absent in $\pe$, where $ρ_Δ$ is the free variable environment
-defined as
+Let us look at the steps in a bit more detail.
+Steps \labelcref{eq:abs-ex1, eq:abs-ex2} extend the environment with
+absence types for the let right-hand sides.
+For space reasons, we have not simplified the extended environment entries, but
+for $x_2$ we would get $x_2 \both \semabs{x_1}_{ρ_{\pe}} = x_2 \both
+ρ_\pe(x_1) = \langle [x_1 ↦ \aU, x_2 ↦ \aU], \aU.. \rangle$,
+via unfolding the variable case, $\both$ and $ρ_\pe(x_1)$.
+The steps up until \labelcref{eq:abs-ex3} are simple to follow, successively exposing
+applications of the $\mathit{app}$ and $\mathit{fun}$ helper functions applied
+to environment entries for the involved variables.
+Step \labelcref{eq:abs-ex3} then evaluates $\mathit{fun}_y(\fn{θ_y}{\mathit{fun}_z(\fn{θ_z}{θ_y})})$, which unfolds
 \[
-  ρ_Δ(\px) \triangleq \langle [\px ↦ \aU], \aU.. \rangle, \quad \text{(if $\px$ free variable of $\pe$)}.
+\langle (([y↦\aU])[z↦\aA])[y↦\aA], (([y↦\aU])[z↦\aA])(y) \sumcons [y↦\aU](z) \sumcons \aU.. \rangle
 \]
-The $\langle φ, \varsigma \rangle$ syntactic form denotes an \emph{absence
-type}; an abstraction of an expression.
-The $φ$ captures how an expression \emph{uses} its free variables by
-associating an $\Absence$ flag with each, whereas the \emph{argument summary}
-$\varsigma$ describes how it uses actual arguments supplied at application
-sites.
-In a slight extension of function update syntax, $[\px ↦ \aU]$ denotes a $φ$
-where $φ(\px) = \aU$ and $φ(\py) = \aA$ for $\px \not= \py$.
-We will occasionally write $\langle φ, \varsigma \rangle[\px ↦ a]$ to mean
-the same as $\langle φ[\px ↦ a], \varsigma \rangle$.
-Now we can understand $ρ_Δ$ to say that evaluation of each free variable
-$\px$ uses only $\px$, and that any actual argument it is applied to is used,
-indicated by argument summary $\aU..$\ .
+(mind the difference between literal notation $[y ↦ \aU]$ and function update $\wild [ z ↦ \aA]$),
+and that simplifies to $\langle [], \aU \sumcons \aA \sumcons \aU.. \rangle$, an
+absence type abstracting the expression $\Lam{y}{\Lam{z}{y}}$.
+The $\mathit{app}$ steps \labelcref{eq:abs-ex4,eq:abs-ex5} simply match up
+the uses of $ρ_{xk}(x_3)$ with $\aU$ and $ρ_{xk}(x_2)$ with the $\Absence$ flags
+in the summary $\aU \sumcons \aA \sumcons \aU..$, adding (with join
+$⊔$ defined momentarily) the $\Uses$ from $ρ_{xk}(x_3) = \langle [x_3 ↦ \aU], \aU.. \rangle$
+but not from $ρ_{xk}(x_2)$, because the first actual argument ($x_3$) is used
+whereas the second ($x_2$) is not.
+The join on $\Uses$ follows pointwise from the order $\aA ⊏ \aU$, \ie, $(φ_1
+⊔ φ_2)(\px) \triangleq φ_1(\px) ⊔ φ_2(\px)$.
+For the final result, these $\Uses$ are combined with the use on $k$ stemming
+from the variable lookup in the application head.
 
-Since $\semabs{\wild}$ computes least fixpoints at recursive let bindings,
-$\AbsTy$ is equipped with a semi-lattice structure, induced by the order $\aA
-⊏ \aU$ on $\Absence$ flags.
-The order on $\Uses$, $φ_1 ⊑ φ_2$, is defined pointwise, and the order on
-$\AbsTy$ is the product order.
-The order on $\Summary$ is non-structural:
-The inequations $\aA.. ⊑ a \sumcons \varsigma ⊑ \aU..$ and the
-product ordering on $a \sumcons \varsigma$ define a smallest preorder,
-and the partial order on $\Summary$ is this preorder modulo the non-syntactic
-equivalences $\aA \sumcons \aA.. \equiv \aA..$, $\aU \sumcons \aU.. \equiv
-\aU..$, with $\aA..$ as the bottom element.
+%Since $\semabs{\wild}$ computes least fixpoints at recursive let bindings,
+%$\AbsTy$ is equipped with a semi-lattice structure, induced by the order $\aA
+%⊏ \aU$ on $\Absence$ flags.
+%The order on $\Uses$, $φ_1 ⊑ φ_2$, is defined pointwise, and the order on
+%$\AbsTy$ is the product order.
+%The order on $\Summary$ is non-structural:
+%The inequations $\aA.. ⊑ a \sumcons \varsigma ⊑ \aU..$ and the
+%product ordering on $a \sumcons \varsigma$ define a smallest preorder,
+%and the partial order on $\Summary$ is this preorder modulo the non-syntactic
+%equivalences $\aA \sumcons \aA.. \equiv \aA..$, $\aU \sumcons \aU.. \equiv
+%\aU..$, with $\aA..$ as the bottom element.
 
 %In general, we can make the following \emph{soundness statement}:
-%$\px$ is absent in $\pe$ when $\px \not∈ \semabs{\pe}_{\tr_Δ}$.
+%$\px$ is absent in $\pe$ when $\px \not∈ \semabs{\pe}_{\tr_\pe}$.
 %Thus, $\semabs{\wild}$ can be used in a compiler to enable absent code removal.
 
 \subsection{Function Summaries, Substitution Lemmas, Compositionality and Modularity}
 
 % Note that it was convenient to postpone evaluation of
-% $k + \semabs{\Lam{y}{\Lam{z}{y}}}_{ρ_x}$
+% $k \both \semabs{\Lam{y}{\Lam{z}{y}}}_{ρ_x}$
 Note that in order to see that $x_1$ was absent in the example above, absence
 analysis employs a \emph{summary mechanism} to enable useful and sound analysis
 of function calls, with relevant analysis information highlighted in grey.
@@ -306,11 +338,11 @@ indicate the respective step below as ``handwaving''.
 \begin{DispWithArrows*}[fleqn,mathindent=1em]
       & \semabs{\Let{\pz}{(\Lam{\px}{\pe_1})~\py}{(\Lam{\px}{\pe_2})~\py}}_ρ
       \Arrow{Unfold $\semabs{\wild}$} \\
-  ={} & \semabs{(\Lam{\px}{\pe_2})~\py}_{ρ[\pz↦\lfp(\fn{θ}{\px + \semabs{(\Lam{\px}{\pe_1})~\py}_{ρ[\pz ↦ θ]}})]}
+  ={} & \semabs{(\Lam{\px}{\pe_2})~\py}_{ρ[\pz↦\lfp(\fn{θ}{\px \both \semabs{(\Lam{\px}{\pe_1})~\py}_{ρ[\pz ↦ θ]}})]}
       \Arrow{\Cref{thm:abs-syn-subst}} \\
-  ={} & (\semabs{\pe_2}_{ρ[\px↦\langle [\px ↦ \aU], \aU.. \rangle,\pz↦\lfp(\fn{θ}{\px + (\semabs{\pe_1}_{ρ[\px↦\langle [\px ↦ \aU], \aU.. \rangle, \pz ↦ θ]})[\px \Mapsto ρ(\py).φ]})]})[\px \Mapsto ρ(\py).φ]
+  ={} & (\semabs{\pe_2}_{ρ[\px↦\langle [\px ↦ \aU], \aU.. \rangle,\pz↦\lfp(\fn{θ}{\px \both (\semabs{\pe_1}_{ρ[\px↦\langle [\px ↦ \aU], \aU.. \rangle, \pz ↦ θ]})[\px \Mapsto ρ(\py).φ]})]})[\px \Mapsto ρ(\py).φ]
       \Arrow{Handwaving above} \\
-  ={} & (\semabs{\pe_2}_{ρ[\px↦\langle [\px ↦ \aU], \aU.. \rangle,\pz↦\lfp(\fn{θ}{\px + \semabs{\pe_1}_{ρ[\px↦\langle [\px ↦ \aU], \aU.. \rangle, \pz ↦ θ]}})]})[\px \Mapsto ρ(\py).φ]
+  ={} & (\semabs{\pe_2}_{ρ[\px↦\langle [\px ↦ \aU], \aU.. \rangle,\pz↦\lfp(\fn{θ}{\px \both \semabs{\pe_1}_{ρ[\px↦\langle [\px ↦ \aU], \aU.. \rangle, \pz ↦ θ]}})]})[\px \Mapsto ρ(\py).φ]
       \Arrow{Refold $\semabs{\wild}$} \\
   ={} & (\semabs{\Let{\pz}{\pe_1}{\pe_2}}_{ρ[\px↦\langle [\px ↦ \aU], \aU.. \rangle]})[\px \Mapsto ρ(\py).φ]
       \Arrow{\Cref{thm:abs-syn-subst}} \\
@@ -340,7 +372,7 @@ By induction on $\pe$.
     ={} & \semabs{(\Lam{\px}{\pz})~\py}_ρ
     \end{DispWithArrows*}
     The application of \Cref{thm:lambda-bound-absent} above requires
-    that $ρ(\py)$ is \emph{syntactic}, \eg, of the form $\px' +
+    that $ρ(\py)$ is \emph{syntactic}, \eg, of the form $\px'  \both
     \semabs{\pe'}_{ρ'}$ for some $\px'$, $\pe'$, $ρ'$.
     A detail we hand-wave over for now, but revisit in \Cref{defn:syn-name}.
 
@@ -406,9 +438,9 @@ By induction on $\pe$.
     \begin{DispWithArrows*}[fleqn,mathindent=4em]
         & \semabs{\Let{\pz}{\pe_1}{\pe_2}}_{ρ[\px↦ρ(\py)]}
         \Arrow{Unfold $\semabs{\wild}$} \\
-    ={} & \semabs{\pe_2}_{ρ[\px↦ρ(\py),\pz↦\lfp(\fn{θ}{\pz + \semabs{\pe_1}_{ρ[\px↦ρ(\py),\pz ↦ θ]}})]}
+    ={} & \semabs{\pe_2}_{ρ[\px↦ρ(\py),\pz↦\lfp(\fn{θ}{\pz \both \semabs{\pe_1}_{ρ[\px↦ρ(\py),\pz ↦ θ]}})]}
         \Arrow{Induction hypothesis, monotonicity} \\
-    ⊑{} & \semabs{(\Lam{\px}{\pe_2})~\py}_{ρ[\pz↦\lfp(\fn{θ}{\pz + \semabs{(\Lam{\px}{\pe_1})~\py}_{ρ[\pz ↦ θ]}})]}
+    ⊑{} & \semabs{(\Lam{\px}{\pe_2})~\py}_{ρ[\pz↦\lfp(\fn{θ}{\pz \both \semabs{(\Lam{\px}{\pe_1})~\py}_{ρ[\pz ↦ θ]}})]}
         \Arrow{Refold $\semabs{\wild}$} \\
     ={} & \semabs{\Let{\pz}{(\Lam{\px}{\pe_1})~\py}{(\Lam{\px}{\pe_2})~\py}}_ρ
         \Arrow{\Cref{thm:push-let-absence}} \\
@@ -486,7 +518,7 @@ from a concrete environment $ρ$ from the LK machine.
 
 Whenever there exists $\tr$ such that $\tr(\px) \not⊑ (\semabs{\pe}_\tr).φ$
 (recall that $θ.φ$ selects the $\Uses$ in the first field of the pair $θ$),
-then also $\tr_Δ(\px) \not⊑ \semabs{\pe}_{\tr_Δ}$.
+then also $\tr_\pe(\px) \not⊑ \semabs{\pe}_{\tr_\pe}$.
 The following lemma captures this intuition:
 
 \begin{lemma}[Diagonal factoring]
@@ -544,7 +576,7 @@ By induction on $\pe$.
     \begin{DispWithArrows*}[fleqn,mathindent=4em]
         & \semabs{\Let{\py}{\pe_1}{\pe_2}}_\tr
         \Arrow{Unfold $\semabs{\wild}$} \\
-    ={} & \semabs{\pe_2}_{\tr[\py↦\lfp(\fn{θ}{\py + \semabs{\pe_1}_{\tr[\py ↦ θ]}})]}
+    ={} & \semabs{\pe_2}_{\tr[\py↦\lfp(\fn{θ}{\py \both \semabs{\pe_1}_{\tr[\py ↦ θ]}})]}
         \Arrow{Induction hypothesis} \\
     ={} & \semabs{\pe_2}_{\tr[\py↦\lfp(\fn{θ}{(\semabs{\pe_1}_{{\tr_α}[\py ↦ \langle [\py ↦ \aU], θ.\varsigma \rangle]})[\many{\px \Mapsto \tr(\px).φ}, \py \Mapsto θ.φ]})]}
         \Arrow{Induction hypothesis, backwards} \\
@@ -573,7 +605,7 @@ replaces $(ρ,\pe)$ with the value.
   \multicolumn{3}{c}{ \ruleform{ \semabsS{\wild} \colon \States → \AbsTy } } \\
   \\[-0.5em]
   \semabsS{(\pe,ρ,μ,κ)} & {}={} & \mathit{apps}_μ(κ,\semabs{\pe}_{α(μ) \circ ρ}) \\
-                   α(μ) & {}={} & \lfp(\fn{\tm}{[ \pa ↦ \px + \semabs{\pe'}_{\tm \circ ρ'} \mid μ(\pa) = (\px,ρ',\pe') ]}) \\
+                   α(μ) & {}={} & \lfp(\fn{\tm}{[ \pa ↦ \px \both \semabs{\pe'}_{\tm \circ ρ'} \mid μ(\pa) = (\px,ρ',\pe') ]}) \\
              \mathit{apps}_μ(\StopF,θ) & {}={} & θ \\
              \mathit{apps}_μ(\ApplyF(\pa) \pushF κ,θ) & {}={} & \mathit{apps}_μ(κ,\mathit{app}(θ,α(μ)(\pa))) \\
              \mathit{apps}_μ(\UpdateF(\pa) \pushF κ,θ) & {}={} & \mathit{apps}_μ(κ,θ)
@@ -614,7 +646,7 @@ By cases on the transition.
     \begin{DispWithArrows*}[fleqn,mathindent=3em]
            & \semabsS{σ_1} \Arrow{Unfold $\semabsS{σ_1}$} \\
       {}={}& \mathit{apps}_μ(κ)(\semabs{\Let{\py}{\pe_1}{\pe_2}}_{α(μ) \circ ρ}) \Arrow{Unfold $\semabs{\Let{\py}{\pe_1}{\pe_2}}$} \\
-      {}={}& \mathit{apps}_μ(κ)(\semabs{\pe_2}_{(α(μ) \circ ρ)[\py↦\py + \lfp(\fn{θ}{\semabs{\pe_1}_{(α(μ) \circ ρ)[\py↦θ]}})]}) \Arrow{Move fixpoint outwards, refold $α$} \\
+      {}={}& \mathit{apps}_μ(κ)(\semabs{\pe_2}_{(α(μ) \circ ρ)[\py↦\py \both \lfp(\fn{θ}{\semabs{\pe_1}_{(α(μ) \circ ρ)[\py↦θ]}})]}) \Arrow{Move fixpoint outwards, refold $α$} \\
       {}={}& \mathit{apps}_{μ_1}(κ)(\semabs{\pe_2}_{α(μ_1) \circ ρ_1}) \Arrow{Stack was well-addressed in $μ$} \\
       {}={}& \mathit{apps}_{μ_1}(κ)(\semabs{\pe_2}_{α(μ_1) \circ ρ_1}) \Arrow{Refold $\semabsS{σ_2}$} \\
       {}={}& \semabsS{σ_2}
@@ -648,7 +680,7 @@ By cases on the transition.
            & \semabsS{σ_1} \Arrow{Unfold $\semabsS{σ_1}$} \\
       {}={}& \mathit{apps}_μ(κ)(\semabs{\py}_{α(μ) \circ ρ}) \Arrow{Unfold $\semabs{\py}$} \\
       {}={}& \mathit{apps}_μ(κ)((α(μ) \circ ρ)(\py)) \Arrow{Unfold $α$} \\
-      {}={}& \mathit{apps}_μ(κ)(\pz + \semabs{\pe'}_{α(μ) \circ ρ'}) \Arrow{Drop $[\pz↦\aU]$} \\
+      {}={}& \mathit{apps}_μ(κ)(\pz \both \semabs{\pe'}_{α(μ) \circ ρ'}) \Arrow{Drop $[\pz↦\aU]$} \\
       {}⊒{}& \mathit{apps}_μ(κ)(\semabs{\pe'}_{α(μ) \circ ρ'}) \Arrow{Refold $\semabsS{σ_2}$} \\
       {}={}& \semabsS{σ_2}
     \end{DispWithArrows*}
@@ -715,7 +747,7 @@ By cases on the transition.
 
 \begin{theoremrep}[Correct absence analysis]
   \label{thm:absence-correct}
-  If $\semabs{\pe}_{\tr_Δ} = \langle φ, \varsigma \rangle$ and $φ(\px) = \aA$,
+  If $\semabs{\pe}_{\tr_\pe} = \langle φ, \varsigma \rangle$ and $φ(\px) = \aA$,
   then $\px$ is absent in $\pe$.
 \end{theoremrep}
 \begin{proof}
@@ -748,10 +780,10 @@ $ρ$ due to well-addressedness, we have $[\px ↦ \aU] ⊑ (\semabsS{(\pe,ρ_1,�
 and only if $[\px ↦ \aU] ⊑ (\semabs{\pe}_{\tr}).φ$.
 With \Cref{thm:diag-fact}, we can decompose
 \[
-  [\px ↦ \aU] ⊑ (\semabs{\pe}_{\tr}).φ = (\semabs{\pe}_{\tr_Δ}[\many{\py \Mapsto \tr(\py).φ}]).φ = \Lub \{ \tr(\py).φ \mid \py ∈ \semabs{\pe}_{\tr_Δ}.φ(\py) = \aU \}
+  [\px ↦ \aU] ⊑ (\semabs{\pe}_{\tr}).φ = (\semabs{\pe}_{\tr_\pe}[\many{\py \Mapsto \tr(\py).φ}]).φ = \Lub \{ \tr(\py).φ \mid \py ∈ \semabs{\pe}_{\tr_\pe}.φ(\py) = \aU \}
 \]
 But since $\tr(\py).φ(\px) = \aU$ implies $\px = \py$, we must have
-$(\semabs{\pe}_{\tr_Δ}).φ(\px) = \aU$, as required.
+$(\semabs{\pe}_{\tr_\pe}).φ(\px) = \aU$, as required.
 \end{proof}
 
 The proof of this statement in the Appendix is exemplary of more ambitious
