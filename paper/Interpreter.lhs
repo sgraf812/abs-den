@@ -121,6 +121,10 @@ membership tests in that set. \slpj{can we use a noisier notation like $a \mapst
 I suppose that could be syntactic sugar for |Just v <- Map.lookup x m|, yes.
 But that won't help for uses such as |all (`elem` dom ρ) xs|, so I'm not convinced
 its useful to introduce yet another way to access maps.}
+\slpj{No: I mean the notation for the \emph{type constructor}.  As you have it, it's
+an arrow that looks very very like ordinary function arrow.  In actual Haskell I might
+write `type a :-> b = Map a b`, so that the tyep constructor `:->` is more visually
+different to `->`.  If I was writing the paper I'd definitely use `Map`, but I yield to you on that!}
 
 \begin{figure}
 \begin{minipage}{0.49\textwidth}
@@ -186,14 +190,14 @@ analyses as instances.
 
 We can define the semantic domain |DName| for a call-by-name variant
 of our language as follows:%
-\footnote{For a realistic implementation, we suggest to define |D| as a data
+\footnote{For a realistic implementation, we would define |D| as a data
 type to keep type class resolution decidable and non-overlapping.
 We will however stick to a |type| synonym in this presentation in order to elide
 noisy wrapping and unwrapping of constructors.}
 
 \begin{minipage}{0.62\textwidth}
 \begin{code}
-type D τ = τ (Value τ); type DName = D T
+type D τ = τ (Value τ);   type DName = D T
 data T v = Step Event (T v) | Ret v
 data Event  =  Lookup Name | Update | App1 | App2
             |  Let1 | Case1 | Case2 {-"\iffalse"-} | Let0{-"\fi"-}
@@ -248,7 +252,7 @@ nesting of |Step|s.
 The |Monad| instance of |T| implements the monadic bind operator |(>>=)| by
 forwarding |Step|s, thus guarding the recursion~\citep{Capretta:05}.
 
-A domain element |DName| eventually terminates with a |Value| that is either
+A domain element |DName| is a trace that eventually terminates with a |Value| that is either
 |Stuck|, a |Fun|ction waiting to be applied to an argument |DName| to yield another
 |DName|, or a |Con|structor application giving the denotations of its fields.
 |Value| is thus just a standard denotational encoding of its syntactic
@@ -256,6 +260,7 @@ counterpart |Lam|/|ConApp|, devoid of any syntax. \slpj{I don't know what that
 sentence adds or even means. Omit?}
 \sg{I clarified, mentioining |Lam|/|ConApp|. This point is one of the main
 distinctions between operational semantics and denotational semantics.}
+\slpj{I still don't know what ``devoid of syntax'' means.  Omit?}
 (We postpone worries about well-definedness and totality to \Cref{sec:adequacy}.)
 
 \begin{figure}
@@ -357,7 +362,8 @@ Together this is enough to actually run the denotational interpreter to produce
 traces.
 For example, we can evaluate the expression $\Let{i}{\Lam{x}{x}}{i~i}$ like
 this:%
-\footnote{We use |read :: String -> Exp| as a parsing function.}
+\footnote{We use |read :: String -> Exp| as a parsing function, and a |Show| instance
+for |T (Value T)| that displays traces.}
 
 < ghci> eval (read "let i = λx.x in i i") emp :: DName
 $\perform{eval (read "let i = λx.x in i i") emp :: D (ByName T)}$,
@@ -365,23 +371,23 @@ $\perform{eval (read "let i = λx.x in i i") emp :: D (ByName T)}$,
 \noindent
 where $\langle\lambda\rangle$ means that the trace ends in a |Fun| value. This is
 in direct correspondence to the earlier call-by-name small-step trace
-\labelcref{ex:trace}.
+\labelcref{ex:trace} in \Cref{sec:op-sem}.
 
-The definition of |eval| is by structural recursion over the input expression.
+The definition of |eval|, given in \Cref{fig:eval}, is by structural recursion over the input expression.
 For example, to get the denotation of |Lam x body|, we must recursively invoke
 |eval| on |body|, extending the environment to bind |x| to its denotation.
 We wrap that body denotation in |step App2|, to prefix the trace of |body| with
-an |App2| event whenever the function is invoked.
-Finally, we use |fun| to build the returned denotation; the details are bound to
-depend on the |Domain|.
+an |App2| event whenever the function is invoked, where |step| is a method of class |Trace|.
+Finally, we use |fun| to build the returned denotation; the details necessarily
+depend on the |Domain|, so |fun| is a method of class |Domain|.
 The lambda-bound |x::Name| passed to |fun| is ignored in the concrete by-name
-semantics.
+semantics, as you can see in |Domain| instance for |DName| in \Cref{fig:trace-instances}.
 As well it should: it is syntax, after all!
-We will need |x| in \Cref{sec:abstraction} for a similar purpose as
+However, in \Cref{sec:abstraction} we will need |x|, much as
 $\mathit{fun}_\px$ needed $\px$ in \Cref{fig:absence}.
 
-The other cases follow a similar pattern; they each do some work, before handing off to the
-type class methods for all the domain-specific functions.
+The other cases follow a similar pattern; they each do some work, before handing off to
+type class methods to do the domain-specific work.
 As we shall see, we can reuse this single definition of |eval| with a variety of
 different types to instantiate the semantic domain |d|.
 
@@ -393,19 +399,21 @@ bindings:
 it takes two functionals
 for building the denotation of the right-hand side and that of the let body,
 given a denotation for the right-hand side.
-The concrete implementation for |DName| given in \Cref{fig:trace-instances} simply
+The concrete implementation for |bind| given in \Cref{fig:trace-instances} simply
 hands over the (guarded) fixpoint of the right-hand side to the body, yielding a
 call-by-name evaluation strategy.
 We will shortly see examples of eager evaluation strategies that will yield from
 |fix rhs| inside |bind| instead of calling |body| immediately.
+\slpj{But where is |fix| defined?}
 
-We conclude this Subsection with a few examples and will will make use of a
-function |takeT :: Int -> T v -> T (Maybe v)| to do so;
+We conclude this subsection with a few examples.
+We will start with two programs that diverge.
+The lazy |step| implementation means that the interpreter does \emph{not} diverge;
+rather, it produces an infinite trace.  To display these traces we
+use a function |takeT :: Int -> T v -> T (Maybe v)| to truncate them:
 |takeT n τ| returns the first |n| steps of |τ| and replaces the final value
 with |Nothing| (printed as $\bot$) if it goes on for longer.
-We will start with two programs that diverge.
-The lazy |step| implementation allows us to observe finite prefixes of
-the trace:
+\slpj{Should this not be |:: T (Maybe (Value T))| below?}
 
 < ghci> takeT 5 $ eval (read "let x = x in x") emp :: T (Maybe Value)
 $\perform{takeName 5 $ eval (read "let x = x in x") emp :: T (Maybe (Value (ByName T)))}$
@@ -414,14 +422,16 @@ $\perform{takeName 5 $ eval (read "let x = x in x") emp :: T (Maybe (Value (ByNa
 $\perform{takeName 9 $ eval (read "let w = λy. y y in w w") emp :: T (Maybe (Value (ByName T)))}$
 \\[\belowdisplayskip]
 \noindent
-And data types work as well, allowing for interesting ways (type errors) to get
-stuck ($\lightning$):
+Data types work as well, allowing for interesting ways (type errors) to get
+|Stuck| (printed as $\lightning$):
 
 < ghci> eval (read "let zro = Z() in let one = S(zro) in case one of { S(z) -> z }") emp :: DName
 $\perform{eval (read "let zro = Z() in let one = S(zro) in case one of { S(zz) -> zz }") emp :: D (ByName T)}$
 
 < ghci> eval (read "let zro = Z() in zro zro") emp :: DName
 $\perform{eval (read "let zro = Z() in zro zro") emp :: D (ByName T)}$
+\\
+\slpj{What is the |...| in the first of these two examples?}
 
 \subsection{More Evaluation Strategies}
 \label{sec:evaluation-strategies}
@@ -472,6 +482,7 @@ instance Trace (τ v) => Trace (ByValue τ v) where ...
 
 class Extract τ where extract :: τ v -> v
 instance Extract T where extract (Ret v) = v; extract (Step _ τ) = extract τ
+
 instance (Trace (D (ByValue τ)), Monad τ, Extract τ) => HasBind (D (ByValue τ)) where
   bind rhs body = step Let0 (fix (rhs . return . extract . unByValue) >>= body . return)
 \end{spec}
@@ -496,7 +507,7 @@ instance (Trace (D (ByValue τ)), Monad τ, Extract τ) => HasBind (D (ByValue �
 
 Call-by-value eagerly traces evaluation of a let-bound RHS to substitute its
 \emph{value}, rather than the complete trace that led to the value, into every
-use site.
+use site. \slpj{I could not follow this sentence.}
 
 Our |ByValue| trace transfomer \Cref{fig:by-value} achieves this quite literally.
 Let us unpack the definition of |bind|.
