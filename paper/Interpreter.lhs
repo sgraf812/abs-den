@@ -50,7 +50,7 @@ instance Show a => Show (T a) where
 -- collect (Ret a)                      = ([],a)
 instance Show (Value τ) where
   show (Fun _) = "\\lambda"
-  show (Con k _) = "Con(" ++ show k ++ ",...)"
+  show (Con k _) = "Con(" ++ show k ++ ")"
   show Stuck = "\\lightning"
 instance (Show (τ v)) => Show (ByName τ v) where
   show (ByName τ) = show τ
@@ -98,15 +98,7 @@ Traditionally, denotational semantics is expressed as a mathematical function |e
 The expression |eval e ρ| takes an expression |e| and returns its meaning, or \emph{denotation}, in some \emph{semantic domain} |D|.
 The environment |ρ| gives meaning to the free variables of |e|, by mapping each free variable to its denotation in |D|.
 We sketch the Haskell encoding of syntax in \Cref{fig:syntax} and the API of environments and sets in \Cref{fig:map}\sven{This feels off topic discussing syntax here. Maybe move the whole syntax definitions to the bottom of fig 5?}.
-For concise notation, we will use a small number of infix operators: |(:->)| as a synonym for finite |Map|s, with |m ! x| for looking up |x| in |m|, |ext m x d| for updates, |f << m| for mapping |f| over every element of |m|, |assocs m| for turning |m| into a list of key-value pairs, |dom m| for returning the set of keys present in the map, and |(`elem`)| for membership tests in that set\sven{Same here, this feels off-topic. Move the notation to the bottom of fig 5?}. \slpj{can we use a noisier notation like $a \mapsto b$}
-\sg{Noisier notation for what? You mean something like $[a ↦ v] ∈ m$?
-I suppose that could be syntactic sugar for |Just v <- Map.lookup x m|, yes.
-But that won't help for uses such as |all (`elem` dom ρ) xs|, so I'm not convinced
-its useful to introduce yet another way to access maps.}
-\slpj{No: I mean the notation for the \emph{type constructor}.  As you have it, it's
-an arrow that looks very very like ordinary function arrow.  In actual Haskell I might
-write `type a :-> b = Map a b`, so that the tyep constructor `:->` is more visually
-different to `->`.  If I was writing the paper I'd definitely use `Map`, but I yield to you on that!}
+For concise notation, we will use a small number of infix operators: |(:->)| as a synonym for finite |Map|s, with |m ! x| for looking up |x| in |m|, |ext m x d| for updates, |f << m| for mapping |f| over every element of |m|, |assocs m| for turning |m| into a list of key-value pairs, |dom m| for returning the set of keys present in the map, and |(`elem`)| for membership tests in that set\sven{Same here, this feels off-topic. Move the notation to the bottom of fig 5?}.
 
 \begin{figure}
 \begin{minipage}{0.49\textwidth}
@@ -201,12 +193,12 @@ Note that the choice of |Event| suggests a spectrum of intensionality, with |dat
 
 The coinductive nature of |T|'s definition in Haskell is crucial to our approach\footnote{In a strict language, we would have introduced a thunk in the definition of |Step|, \eg, @Step of event * (unit -> 'a t)@.\sven{Too much technical detail that distracts from the story line.}}, because diverging traces can be expressed as an infinite, but productive, nesting of |Step|s.
 The |Monad| instance of |T| implements the monadic bind operator |(>>=)| by forwarding |Step|s, thus guarding the recursion~\citep{Capretta:05}.
-
 A trace |T| eventually terminates with a |Value| that is either stuck (|Stuck|), a function waiting to be applied to a domain value (|Fun|), or a constructor constructor application giving the denotations of its fields (|Con|).
-|Value| is thus just a standard denotational encoding of its syntactic counterpart |Lam|/|ConApp|, devoid of any syntax. \slpj{I don't know what that sentence adds or even means. Omit?}
-\sg{I clarified, mentioining |Lam|/|ConApp|. This point is one of the main distinctions between operational semantics and denotational semantics.}
-\slpj{I still don't know what ``devoid of syntax'' means.  Omit?}
-(We postpone worries about well-definedness and totality to \Cref{sec:adequacy}.)
+%|Value| is thus just a standard denotational encoding of its syntactic counterpart |Lam|/|ConApp|, devoid of any syntax. \slpj{I don't know what that sentence adds or even means. Omit?}
+%\sg{I clarified, mentioining |Lam|/|ConApp|. This point is one of the main distinctions between operational semantics and denotational semantics.}
+%\slpj{I still don't know what ``devoid of syntax'' means.  Omit?}
+We postpone worries about well-definedness and totality of this encoding to
+\Cref{sec:totality}.
 
 \begin{figure}
 \begin{minipage}{0.55\textwidth}
@@ -271,7 +263,7 @@ instance Monad τ => Domain (D τ) where
     _                        -> stuck
 
 ifPoly (instance HasBind DName where
-  bind rhs body = body (fix rhs))
+  bind rhs body = body (let d = rhs d in d)
 \end{code}
 \\[-2.5em]
 \subcaption{Concrete by-name semantics for |DName|}
@@ -339,12 +331,15 @@ bindings:
 it takes two functionals
 for building the denotation of the right-hand side and that of the let body,
 given a denotation for the right-hand side.
-The concrete implementation for |bind| given in \Cref{fig:trace-instances} simply
-hands over the (guarded) fixpoint of the right-hand side to the body, yielding a
-call-by-name evaluation strategy.
+The concrete implementation for |bind| given in \Cref{fig:trace-instances}
+computes a |d| such that |d = rhs d| and passes the recursively-defined |d| to
+|body|.%
+\footnote{Such a |d| correponds to the \emph{guarded fixpoint} of |rhs|.
+Strict languages can define this fixpoint as |d () = rhs (d ())|.}
+Doing so yields a call-by-name evaluation strategy, because the trace |d|
+will be unfolded at every occurrence of |x| in the right-hand side |e1|.
 We will shortly see examples of eager evaluation strategies that will yield from
 |fix rhs| inside |bind| instead of calling |body| immediately.
-\slpj{But where is |fix| defined?}
 
 We conclude this subsection with a few examples\sven{Explain what the examples are demonstrating}.
 We will start with two programs that diverge\sven{Here the discussion about the lazyness of trace |T| makes more sense}.
@@ -353,30 +348,38 @@ rather, it produces an infinite trace.  To display these traces we
 use a function |takeT :: Int -> T v -> T (Maybe v)| to truncate them:
 |takeT n τ| returns the first |n| steps of |τ| and replaces the final value
 with |Nothing| (printed as $\bot$) if it goes on for longer.
-\slpj{Should this not be |:: T (Maybe (Value T))| below?}
+%\slpj{Should this not be |:: T (Maybe (Value T))| below?} \sg{Yes, thanks}
 \sven{
 This is different to traditional denotational semantics, right?
 Traditional denotational semantics would return $\bot$ if and only if the program does not terminate.
 Here |takeT| may return $\bot$, even if the program terminates.
 Is this a problem?
 }
+\sg{
+I don't think so; the purpose of $\bot$ is not really to indicate that the
+program diverges, but rather to indicate that we have depleted our "fuel".
+We don't really use |takeT| for anything other than demonstration purposes;
+its main use is to demonstrate that we may look at a finite prefix of arbitrary
+length without risking a loop in the interpreter.
+This is total functional programming at its best.}
 
-< ghci> takeT 5 $ eval (read "let x = x in x") emp :: T (Maybe Value)
+< ghci> takeT 5 $ eval (read "let x = x in x") emp :: T (Maybe (Value T))
 $\perform{takeName 5 $ eval (read "let x = x in x") emp :: T (Maybe (Value (ByName T)))}$
 
-< ghci> takeT 9 $ eval (read "let w = λy. y y in w w") emp :: T (Maybe Value)
+< ghci> takeT 9 $ eval (read "let w = λy. y y in w w") emp :: T (Maybe (Value T))
 $\perform{takeName 9 $ eval (read "let w = λy. y y in w w") emp :: T (Maybe (Value (ByName T)))}$
 \\[\belowdisplayskip]
 \noindent
-Data types work as well, allowing for interesting ways (type errors) to get |Stuck| (printed as $\lightning$)\sven{Explain what this example demonstrates. Why is it intersting to get |Stuck|?}:
+Data constructor values are printed as $Con(K)$, where $K$ indicates the
+constructor |Tag|.
+Data types allow for interesting ways (type errors) to get |Stuck| (\ie, the
+\textbf{wrong} value of \citet{Milner:78}), printed as $\lightning$:
 
 < ghci> eval (read "let zro = Z() in let one = S(zro) in case one of { S(z) -> z }") emp :: DName
 $\perform{eval (read "let zro = Z() in let one = S(zro) in case one of { S(zz) -> zz }") emp :: D (ByName T)}$
 
 < ghci> eval (read "let zro = Z() in zro zro") emp :: DName
 $\perform{eval (read "let zro = Z() in zro zro") emp :: D (ByName T)}$
-\\
-\slpj{What is the |...| in the first of these two examples?}
 
 \subsection{More Evaluation Strategies}
 \label{sec:evaluation-strategies}
@@ -388,7 +391,7 @@ the same |D| at different wrappers of |T|, rather than reinventing |Value| and |
 
 \begin{figure}
 \begin{spec}
-data ByName τ v = ByName (τ v)
+data ByName τ v = ByName { unByName :: τ v }
 instance Monad τ => Monad (ByName τ) where ...
 instance Trace (τ v) => Trace (ByName τ v) where ...
 instance HasBind (D (ByName τ)) where ...
@@ -420,27 +423,25 @@ instance from |τ| (busywork we omit) and reminiscent of \citet{Darais:15}.
 Our old |DName| can be recovered as |D (ByName T)|.
 
 \begin{figure}
-\begin{spec}
-data ByValue τ v = ByValue { unByValue :: τ v }; data Event = ... | Let0
-instance Monad τ => Monad (ByValue τ) where ...
-instance Trace (τ v) => Trace (ByValue τ v) where ...
+\begin{code}
+ifPoly(data ByValue τ v = ByValue { unByValue :: τ v }; data Event = ... | Let0)
+ifPoly(instance Monad τ => Monad (ByValue τ) where ...)
+instance Trace (τ v) => Trace (ByValue τ v) where {-" ... \iffalse "-}
+  step e (ByValue τ) = ByValue (step e τ) {-" \fi "-}
 
 class Extract τ where extract :: τ v -> v
 instance Extract T where extract (Ret v) = v; extract (Step _ τ) = extract τ
 
 instance (Trace (D (ByValue τ)), Monad τ, Extract τ) => HasBind (D (ByValue τ)) where
-  bind rhs body = step Let0 (fix (rhs . return . extract . unByValue) >>= body . return)
-\end{spec}
+  bind rhs body = step Let0 (d >>=  \v1 -> body (return v1))
+                                   where  d = rhs (return v)         :: D (ByValue τ)
+                                          v = extract (unByValue d)  :: Value (ByValue τ)
+
+\end{code}
 %if style == newcode
 \begin{code}
 newtype ByValue τ v = ByValue { unByValue :: τ v }
   deriving (Functor,Applicative,Monad)
-instance Trace (τ v) => Trace (ByValue τ v) where
-  step e (ByValue τ) = ByValue (step e τ)
-class Extract τ where extract :: τ v -> v
-instance Extract T where extract (Ret v) = v; extract (Step _ τ) = extract τ
-instance (Trace (D (ByValue τ)), Monad τ, Extract τ) => HasBind (D (ByValue τ)) where
-  bind rhs body = step Let0 (fix (rhs . return . extract . unByValue) >>= body . return)
 \end{code}
 %endif
 \\[-1em]
@@ -450,28 +451,29 @@ instance (Trace (D (ByValue τ)), Monad τ, Extract τ) => HasBind (D (ByValue �
 
 \subsubsection{Call-by-value}
 
-Call-by-value eagerly traces evaluation of a let-bound RHS to substitute its
-\emph{value}, rather than the complete trace that led to the value, into every
-use site. \slpj{I could not follow this sentence.}
+Call-by-value eagerly evaluates a let-bound RHS and then substitutes its
+\emph{value}, rather than the reduction trace that led to the value, into every
+use site. %\slpj{I could not follow this sentence.} \sg{Better?}
 
 Our |ByValue| trace transfomer \Cref{fig:by-value} achieves this quite literally.
 Let us unpack the definition of |bind|.
 As its first action, it yields a brand new |Let0| event, indicating in the
 trace that focus descends into the right-hand side of a |let|.
-Then |>>=| will keep yielding from the |fix| expression corresponding to the RHS
-until it is evaluated, and the value |v| is then passed |return|ed (\ie, wrapped
-in |Ret|) to |body|.
+Then monadic bind |v <- d; body (return v1)| will keep yielding |Step|s from |d|
+(discussed shortly) until its value |v1 :: Value (ByValue τ)| is reached, which
+is then passed |return|ed (\ie, wrapped in |Ret|) to the let |body|.
+Note that the steps in |d| are yielded \emph{eagerly}, and only once, rather
+than duplicating the trace at every use site in |body|, as the by-name form
+|body d| would.
 
-The |τ >>= body . return| idiom is quite important, as it yields from the trace
-|τ| eagerly, and only once, rather than duplicating it at every use site in
-|body|, as |body τ| would.
-The |fix| expression, on the other hand, expresses the following recursion equation:
-|rhs τ| ends in the value |v| if and only if |τ| is |Ret v|.
-The type class instance method |extract :: T v -> v| applied to |rhs τ| will
-return |v|,%
+The |d :: D (ByValue τ)| denotes the recursive semantics of the right-hand side
+and is defined by mutual recursion with |v :: Value (ByValue τ)|.
+Consider the case |τ = T|; then |return = Ret| and the |d = rhs (Ret v)| for
+the value |v| at the end of the trace |d|.
+The purpose of the type class instance method |extract :: T v -> v| applied to |d| is supposed
+to run down |d| and return the  |v|.%
 \footnote{The keen reader may have noted that we could use |Extract| to define a
 |MonadFix| instance for deterministic |τ|.}
-and |return v = Ret v|, so |fix| solves this recursion equation for us.
 
 Since nothing about |extract| is particularly special to |T|, it lives in its
 own type class |Extract| so that we get a |HasBind| instance for different
@@ -496,7 +498,9 @@ $\LetOT\xhookrightarrow{\hspace{1.1ex}}\LookupT(x)\xhookrightarrow{\hspace{1.1ex
 \\[\belowdisplayskip]
 \noindent
 This loops forever unproductively, rendering the interpreter unfit as a
-denotational semantics. \slpj{Forward ref to where we handle this?}
+denotational semantics.
+We will discuss a remedy in the form of lazy initialisation in
+\Cref{sec:lazy-init}.
 
 \begin{figure}
 \begin{code}
@@ -543,7 +547,7 @@ deriving via StateT (Heap (ByNeed τ)) τ instance Monad τ    => Monad (ByNeed 
 The trace transformer |ByNeed| in \Cref{fig:by-need} defines a call-by-need
 evaluation strategy by introducing a stateful heap and memoisation to |τ|
 by embedding a standard state transformer monad,%
-\footnote{Indeed, we derive its monad instance |via State (Heap (ByNeed τ))
+\footnote{Indeed, we derive its monad instance |via StateT (Heap (ByNeed τ))
 τ|~\citep{Blondal:18}.}
 whose key operations |getN| and |putN| are given in \Cref{fig:by-need}.
 
@@ -572,14 +576,14 @@ Both |rhs| and |body| are called with |fetchN a|, a denotation that looks up |a|
 in the heap and runs it.
 If we were to omit the |memo a| action explained next, we would thus have
 recovered another form of call-by-name semantics based on mutable state instead
-of guarded |fix|points.
+of guarded fixpoints such as in |ByName| and |ByValue|.
 The whole purpose of the |memo a d| combinator then is to \emph{memoise} the
 computation of |d| the first time we run the computation, via |fetchN a| in the
 |Var| case of |eval|.
 So |memo a d| yields from |d| until it has reached a value, and then |upd|ates
 the heap after an additional |Update| step.
 Repeated access to the same variable will run the replacement |memo a (return
-v)|, which immediately yields |v| after performing an |step Update| that does
+v)|, which immediately yields |v| after performing a |step Update| that does
 nothing.%
 \footnote{More serious semantics would omit updates after the first
 evaluation as an \emph{optimisation}, \ie, update with |ext μ a (return v)|,
@@ -651,6 +655,7 @@ memoV a d = d >>= \v -> ByVInit (upd v)
 \end{figure}
 
 \subsubsection{Lazy Initialisation and Black-holing}
+\label{sec:lazy-init}
 
 Recall that our simple |ByValue| transformer above yields a potentially looping
 interpreter.
@@ -728,27 +733,18 @@ instance (Extract τ, Monad τ, forall v. Trace (τ v)) => HasBind (D (Clairvoya
       skip = return (Clairvoyant empty)
       let' = fmap return $ unClair $ step Let0 $ Clairvoyant $ parFix $ unClair . rhs . Clairvoyant . ParT . return
 
--- This is VERY weird
-class Monad m => MonadRecord m where
-  recordIfJust :: m (Maybe a) -> Maybe (m a)
-
-instance MonadRecord T where
-  recordIfJust (Ret Nothing) = Nothing
-  recordIfJust (Ret (Just a)) = Just (Ret a)
-  recordIfJust (Step e t) = Step e <$> (recordIfJust t)
-
-headParT :: MonadRecord m => ParT m a -> m (Maybe a)
-headParT m = go m
+headParT :: (Monad τ, Extract τ) => ParT τ v -> τ (Maybe v)
+headParT τ = go τ
   where
-    go :: MonadRecord m => ParT m a -> m (Maybe a)
-    go (ParT m) = m >>= \case
+    go :: (Monad τ, Extract τ) => ParT τ v -> τ (Maybe v)
+    go (ParT τ) = τ >>= \case
       Empty    -> pure Nothing
       Single a -> pure (Just a)
-      Fork l r -> case recordIfJust (go l) of
+      Fork l r -> case extract (go l) of
         Nothing -> go r
-        Just m  -> Just <$> m
+        Just _  -> go l
 
-runClair :: MonadRecord τ => D (Clairvoyant τ) -> τ (Value (Clairvoyant τ))
+runClair :: (Monad τ, Extract τ) => D (Clairvoyant τ) -> τ (Value (Clairvoyant τ))
 runClair (Clairvoyant m) = headParT m >>= \case
   Nothing -> error "There should have been at least one Clairvoyant trace"
   Just t  -> pure t
