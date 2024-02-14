@@ -103,6 +103,7 @@
 %format emp = "\varcolor{\epsilon}"
 %format ! = "\mathop{!}"
 %format DName = "\conid{D}_{\mathbf{na}}"
+%format dsem(a)(b) = "\denot{" a "}_{" b "}"
 %format eval(a)(b) = "\mathcal{S}\denot{" a "}_{" b "}"
 %format evalC(a)(b) = "\mathcal{S}_{\mathcal{C}}\denot{" a "}_{" b "}"
 %format eval3(d)(a)(b) = "\mathcal{S}_{" d "}\denot{" a "}_{" b "}"
