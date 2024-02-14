@@ -85,9 +85,41 @@ Throughout the paper we assume that all bound program variables are distinct.
 \end{figure}
 
 The absence analysis for lazy programs semantics is defined in \Cref{fig:absence}.
-We informally say that $\px$ is \emph{absent} in $\pe$ when $\px$ is never
-evaluated by $\pe$, regardless of the evaluation context in which $\pe$ appears.
-Otherwise, $\px$ is \emph{used} in $\pe$.
+A variable $\px$ is \emph{absent} in a program $\pe$ when $\px$ is never evaluated by $\pe$ ($\aA \in \Absence$).
+Otherwise, the variable $\px$ may be \emph{used} in $\pe$ ($\aU \in \Absence$).
+Analysis $\semabs{\pe}\rho$ takes an environment with absence information about the free variables of $\pe$ and returns an $\langle \varphi, \varsigma \rangle$.
+Furthermore, the analysis returns a tuple $\langle \varphi, \varsigma \rangle$ of usage information of variables $\varphi$ and a summary $\varsigma$.
+
+We illustrate the analysis at the example of program $\Let{x_2}{x_1}{\Let{k}{\Lam{y}{\Lam{z}{y}}}{k~x_3~x_2}}$, where the initial environment $ρ_Δ(\px) \triangleq \langle [\px ↦ \aU], \aU.. \rangle$ declares the free variables 
+  
+
+% We can use $\semabs{\wild}$ to compute that $x_1$ is absent in $\Let{x_2}{x_1}{\Let{k}{\Lam{y}{\Lam{z}{y}}}{k~x_3~x_2}}$, as follows.
+% Since all let bindings are non-recursive, we will omit least fixpoints and environment extension.
+\begin{DispWithArrows*}[fleqn,mathindent=1.5em]
+      & \semabs{\Let{x_2}{x_1}{\Let{k}{\Lam{y}{\Lam{z}{y}}}{k~x_3~x_2}}}_{ρ_Δ}
+        \Arrow{Unfold $\semabs{\Let{\px}{\pe_1}{\pe_2}}$. NB: Lazy Let!} \\
+  ={} & \semabs{\Let{k}{\Lam{y}{\Lam{z}{y}}}{k~x_3~x_2}}_{ρ_Δ[x_2↦x_2+\semabs{x_1}_{ρ_Δ}]}
+        \Arrow{Unfold $\semabs{\wild}$, $ρ_x \triangleq ρ_Δ[x_2↦x_2+\semabs{x_1}_{ρ_Δ}]$} \\
+  ={} & \semabs{k~x_3~x_2}_{ρ_x[k↦k+\semabs{\Lam{y}{\Lam{z}{y}}}_{ρ_x}]}
+        \Arrow{$ρ_{xk} \triangleq ρ_x[k↦k+\semabs{\Lam{y}{\Lam{z}{y}}}_{ρ_x}]$} \\
+  ={} & \semabs{k~x_3~x_2}_{ρ_{xk}}
+        \Arrow{Unfold $\semabs{\pe~\px}$ twice, $\semabs{\px}$} \\
+  ={} & \mathit{app}(\mathit{app}(ρ_{xk}(k),ρ_{xk}(x_3)))(ρ_{xk}(x_2))
+        \Arrow{Unfold $ρ_{xk}(k)$} \\
+  ={} & \mathit{app}(\mathit{app}(k + \semabs{\Lam{y}{\Lam{z}{y}}}_{ρ_x})(ρ_{xk}(x_3)))(ρ_{xk}(x_2))
+        \Arrow{Unfold $\semabs{\Lam{\px}{\pe}}$ twice, $\semabs{\px}$} \\
+  ={} & \mathit{app}(\mathit{app}(k + \mathit{fun}_{y}(\fn{θ_y}{\mathit{fun}_{z}(\fn{θ_z}{θ_y})}))(...))(...)
+        \Arrow{Unfold $\mathit{fun}$ twice, simplify} \\
+  ={} & \mathit{app}(\mathit{app}(\langle [k ↦ \aU], \highlight{\aU} \sumcons \aA \sumcons \aU.. \rangle)(\highlight{ρ_{xk}(x_3)}))(...)
+        \Arrow{Unfold $\mathit{app}$, $ρ_{xk}(x_3)=ρ_Δ(x_3)$, simplify} \\
+  ={} & \mathit{app}(\langle [k ↦ \aU,x_3↦\aU], \highlight{\aA} \sumcons \aU.. \rangle)(\highlight{ρ_{xk}(x_2)})
+        \Arrow{Unfold $\mathit{app}$, simplify} \\
+  ={} & \langle [k ↦ \aU,x_3↦\aU], \aU.. \rangle
+\end{DispWithArrows*}
+Both $x_1$ and $x_2$ map to $\aA$ in the final $\Uses$ $[k ↦ \aU,x_3↦\aU]$,
+indicating that $x_1$ is absent.
+That is in contrast to the result for the free variable $x_3$, which is used.
+
 
 % SG: I'm sorry that we cannot use this as is, but whether or not a variable is
 %     _semantically_ absent should not refer to the analysis in any way; that
@@ -146,35 +178,6 @@ product ordering on $a \sumcons \varsigma$ define a smallest preorder,
 and the partial order on $\Summary$ is this preorder modulo the non-syntactic
 equivalences $\aA \sumcons \aA.. \equiv \aA..$, $\aU \sumcons \aU.. \equiv
 \aU..$, with $\aA..$ as the bottom element.
-
-We can use $\semabs{\wild}$ to compute that $x_1$ is absent in
-$\Let{x_2}{x_1}{\Let{k}{\Lam{y}{\Lam{z}{y}}}{k~x_3~x_2}}$, as follows.
-Since all let bindings are non-recursive, we will omit least fixpoints and
-environment extension.
-\begin{DispWithArrows*}[fleqn,mathindent=1.5em]
-      & \semabs{\Let{x_2}{x_1}{\Let{k}{\Lam{y}{\Lam{z}{y}}}{k~x_3~x_2}}}_{ρ_Δ}
-        \Arrow{Unfold $\semabs{\Let{\px}{\pe_1}{\pe_2}}$. NB: Lazy Let!} \\
-  ={} & \semabs{\Let{k}{\Lam{y}{\Lam{z}{y}}}{k~x_3~x_2}}_{ρ_Δ[x_2↦x_2+\semabs{x_1}_{ρ_Δ}]}
-        \Arrow{Unfold $\semabs{\wild}$, $ρ_x \triangleq ρ_Δ[x_2↦x_2+\semabs{x_1}_{ρ_Δ}]$} \\
-  ={} & \semabs{k~x_3~x_2}_{ρ_x[k↦k+\semabs{\Lam{y}{\Lam{z}{y}}}_{ρ_x}]}
-        \Arrow{$ρ_{xk} \triangleq ρ_x[k↦k+\semabs{\Lam{y}{\Lam{z}{y}}}_{ρ_x}]$} \\
-  ={} & \semabs{k~x_3~x_2}_{ρ_{xk}}
-        \Arrow{Unfold $\semabs{\pe~\px}$ twice, $\semabs{\px}$} \\
-  ={} & \mathit{app}(\mathit{app}(ρ_{xk}(k),ρ_{xk}(x_3)))(ρ_{xk}(x_2))
-        \Arrow{Unfold $ρ_{xk}(k)$} \\
-  ={} & \mathit{app}(\mathit{app}(k + \semabs{\Lam{y}{\Lam{z}{y}}}_{ρ_x})(ρ_{xk}(x_3)))(ρ_{xk}(x_2))
-        \Arrow{Unfold $\semabs{\Lam{\px}{\pe}}$ twice, $\semabs{\px}$} \\
-  ={} & \mathit{app}(\mathit{app}(k + \mathit{fun}_{y}(\fn{θ_y}{\mathit{fun}_{z}(\fn{θ_z}{θ_y})}))(...))(...)
-        \Arrow{Unfold $\mathit{fun}$ twice, simplify} \\
-  ={} & \mathit{app}(\mathit{app}(\langle [k ↦ \aU], \highlight{\aU} \sumcons \aA \sumcons \aU.. \rangle)(\highlight{ρ_{xk}(x_3)}))(...)
-        \Arrow{Unfold $\mathit{app}$, $ρ_{xk}(x_3)=ρ_Δ(x_3)$, simplify} \\
-  ={} & \mathit{app}(\langle [k ↦ \aU,x_3↦\aU], \highlight{\aA} \sumcons \aU.. \rangle)(\highlight{ρ_{xk}(x_2)})
-        \Arrow{Unfold $\mathit{app}$, simplify} \\
-  ={} & \langle [k ↦ \aU,x_3↦\aU], \aU.. \rangle
-\end{DispWithArrows*}
-Both $x_1$ and $x_2$ map to $\aA$ in the final $\Uses$ $[k ↦ \aU,x_3↦\aU]$,
-indicating that $x_1$ is absent.
-That is in contrast to the result for the free variable $x_3$, which is used.
 
 %In general, we can make the following \emph{soundness statement}:
 %$\px$ is absent in $\pe$ when $\px \not∈ \semabs{\pe}_{\tr_Δ}$.
