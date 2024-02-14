@@ -142,7 +142,8 @@ $\semabs{\Letsmall{\px}{\pe_1}{\pe_2}}_ρ = \semabs{\pe_2}_{ρ[\px ↦ \px \both
 and postpone computation of least fixed points $\lfp$ until we have defined the involved partial order.
 \sg{Perhaps we should just define absence analysis for non-recursive let in the
 first place, then? The fact that we need to fixpoint iteration for rec let is not
-helping our narrative.}
+helping our narrative.
+Furthermore, I think we could get rid of $\aA..$ which has no other role than providing a bottom element.}
 \begin{DispWithArrows}[fleqn,mathindent=0em]
       & \semabs{\Let{x_2}{x_1}{\Let{k}{\Lam{y}{\Lam{z}{y}}}{k~x_3~x_2}}}_{ρ_{\pe}} \label{eq:abs-ex1}
         \Arrow{Unfold $\semabs{\Let{\px}{\pe_1}{\pe_2}}$. NB: Lazy Let!} \\
