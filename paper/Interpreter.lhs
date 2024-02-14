@@ -351,6 +351,8 @@ This motivates the type of our interpreter:
 However, we want to vary the domain because ...
 We do this by parameterizing over the semantic domain |d| with three type classes ...
 }
+\sg{I think I've addressed this point, both above and through the edits I did
+below.}
 
 To derive both dynamic semantics and static analysis as instances of the same
 interpreter skeleton |eval|, we need to vary the type of its semantic domain,
@@ -423,7 +425,7 @@ Here |takeT| may return $\bot$, even if the program terminates.
 Is this a problem?
 }
 \sg{
-TLDR; Yes, quite different. No, no problem. \\
+TLDR; Yes, quite different. No, no problem. Perhaps $...$ or $\Uparrow$ is less confusing than $\bot$? \\
 First off, there is no approximation order on |D τ|.
 Or, well, it is discretely ordered ($a ⊑ b$ if and only if $a = b$), so there
 is no bottom element.
@@ -440,7 +442,6 @@ This is total functional programming at its best.
 I think you agree that we should not explain this point here; I have done so
 numerous times in the past and the response always was ``I don't care''.
 }
-\sg{Perhaps $...$ or $\Uparrow$ is less confusing than $\bot$?}
 
 < ghci> takeT 5 $ eval (read "let x = x in x") emp :: T (Maybe (Value T))
 $\perform{takeName 5 $ eval (read "let x = x in x") emp :: T (Maybe (Value (ByName T)))}$
