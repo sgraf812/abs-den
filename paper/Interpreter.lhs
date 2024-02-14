@@ -118,6 +118,10 @@ Following~\citet{Might:10}, we call this semantics a \emph{Denotational Interpre
 Such an interpreter can be implemented in any higher-order language such as OCaml, Scheme or Java with explicit thunks, but we picked Haskell for convenience.
 \footnote{We extract from this document a runnable Haskell file which we add as a Supplement, containing the complete definitions. Furthermore, the (terminating) interpreter outputs are directly generated from this extract.}
 
+Since our work touches an enormous amount of exciting Related Work, we will make
+liberal use of footnotes to make tangential remarks for expert readers that
+distract from the main flow; these can freely be ignored on first reading.
+
 Traditionally, denotational semantics is expressed as a mathematical function |dsem :: Exp -> (Name :-> D) -> D|.
 \sven{This helps to motivate the type of the interpreter in Figure 5. Consider moving this explanation to the beginning of section 4.2}
 \sg{I gave that a try, but it is awkward to talk about \emph{semantic domains} without having a grasp on what that is, all just to reintroduce the term in 4.2}
