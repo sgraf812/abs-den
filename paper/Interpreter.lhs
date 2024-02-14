@@ -551,7 +551,7 @@ $\LetOT\xhookrightarrow{\hspace{1.1ex}}\LookupT(x)\xhookrightarrow{\hspace{1.1ex
 \\[\belowdisplayskip]
 \noindent
 This loops forever unproductively, rendering the interpreter unfit as a
-denotational semantics.
+denotational semantics. \slpj{Forward ref to where we handle this?}
 
 \begin{figure}
 \begin{code}
