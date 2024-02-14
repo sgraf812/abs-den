@@ -33,6 +33,9 @@ In this section, only the highlighted parts are relevant, but the interpreter
 definition in \Cref{sec:interp} supports data types as well.
 Throughout the paper we assume that all bound program variables are distinct.
 
+\subsection{Absence Analysis}
+\label{sec:absence}
+
 \begin{figure}
   %\fboxsep=0pt\fbox{%
   \begin{minipage}[t]{0.47\textwidth}
