@@ -230,38 +230,39 @@ operation.%
 is indeed important for a correctness proof and corresponds to a substitution
 \Cref{thm:subst-absence}.}
 
-The summary mechanism of $\semabs{\wild}$ proves useful because it infers that
-$x_1$ is absent in the example above.
-But in this example, we could just as well have \emph{inlined} and \emph{beta
-reduced} $k$ to see that $x_1$ is absent, without a summary mechanism!
-Indeed, that is what control-flow analysis~\citep{Shiver:91} amounts to.
+To support efficient separate compilation, a compiler analysis must be
+\emph{modular}, and summaries are indispensable to achieving that.
+Let us say that our example function $k = (\Lam{y}{\Lam{z}{y}})$ is defined in
+module A and there is a use site $(k~x_1~x_2)$ in module B.
+Then a \emph{modular analysis} must not reanalyse A.$k$ at its use site in B.
+Our absence analysis $\semabs{\wild}$ facilitates that easily, because it can
+serialiase the summarised $\AbsTy$ for $k$ into module A's signature file.
+Do note that this would not have been possible for the functional
+$(\fn{θ_y}{θ_z}{θ_y}) : \AbsTy \to \AbsTy \to \AbsTy$ that describes the
+inline expansion of $k$.
 
-Work that contrasts both approaches reaches back as far as \citet{SharirPnueli:78}.
-We argue that it is not just a matter of preference to pick either;
-rather, \emph{modularity} (or open world assumption, or separate compilation)
-demands a summary mechanism.%
-\footnote{Astonishingly, \citet[Section 11.3.2]{Shivers:91} already discussed
-the need for summary mechanisms for CFA for this reason.}
-Let us say that our example function $k = (\Lam{y}{\Lam{z}{y}})$ is defined
-in module A and there is a use site $(f~x_1~x_2)$ in module B.
-To analyse the use site, we only need to load $f$'s summary $\aU \sumcons \aA \sumcons \aU..$
-from module A's signature file.
-By contrast, without a summary mechanism, the analysis would need re-analyse the
-definition of $k$ at every use site.
-
-Since compilers must support efficient separate compilation, it is no surprise
-that summaries arise naturally there.
-Furthermore, summaries enable the definition of \emph{compositional} compiler
-analyses such as $\semabs{\wild}$.
+The same way summaries enable efficient \emph{inter}-module compilation,
+they enable efficient \emph{intra}-module compilation for \emph{compositional}
+static analyses such as $\semabs{\wild}$.%
+\footnote{\citet{Cousot:02} understand modularity as degrees of compositionality.}
 Compositionality implies that $\semabs{\Let{f}{\Lam{x}{\pe_{\mathit{big}}}}{f~f~f~f}}$
 is a function of $\semabs{\Lam{x}{\pe_{\mathit{big}}}}$, itself a function of
 $\semabs{\pe_{\mathit{big}}}$.
 In order to satisfy the scalability requirements of a compiler and
 guarantee termination of the analysis in the first place, it is
 important not to repeat the work of analysing $\semabs{\pe_{\mathit{big}}}$
-at every use site of $f$, so it is natural to summarise
-$\semabs{\Lam{x}{\pe_{\mathit{big}}}}$ into a finite $\AbsTy$, rather than
-to keep working with the ``inline functional'' $\AbsTy \to \AbsTy$.
+at every use site of $f$.
+Thus, it is necessary to summarise $\semabs{\Lam{x}{\pe_{\mathit{big}}}}$ into
+a finite $\AbsTy$, rather than to keep working with the ``inline functional''
+$\AbsTy \to \AbsTy$.
+
+\sg{We also say this in Related Work, but it seems a fitting place to
+bring the following point. Would you agree? Otherwise we can remove it or turn it
+into a footnote.}
+While a compositional analysis appears to \emph{need} a summary mechanism,
+it is certainly possible to equip a non-compositional, call string-based
+analysis such as control-flow analysis with symbolic summaries to enable
+modularity, as discussed in \citet[Section 3.8.2 and 11.3.2]{Shivers:91}.
 
 %This summary mechanism is manifest in the $\mathit{fun}$ and $\mathit{app}$
 %functions we deliberately extracted out, encoding a contract between function
@@ -300,6 +301,94 @@ to keep working with the ``inline functional'' $\AbsTy \to \AbsTy$.
 %proof, $\mathit{fun}_\px \circ \mathit{app} \mathbin{\ddot{⊑}} \mathit{id}$,
 %corresponds to eta expansion $\semabs{\Lam{\px}{\pe~\px}}_ρ ⊑
 %\semabs{\pe}_ρ$.}
+
+%We conjecture that every substitution lemma has a summary mechanism it proves
+%correct; that is why they are capstone lemmas in type system soundness
+%proofs~\citep{tapl} and a crucial part in proving $\semabs{\wild}$ correct.
+
+\subsection{Soundness}
+
+It should be clear now that compositional, summary-based compiler analyses offer
+significant advantages, yet we lack ergonomic ways to prove them correct, as we
+will see next.
+
+Suppose that we were to prove $\semabs{\wild}$ correct.
+The following statement will do:
+
+\begin{theoremrep}[Correct absence analysis]
+  \label{thm:absence-correct}
+  If $\semabs{\pe}_{ρ_\pe} = \langle φ, \varsigma \rangle$ and $φ(\px) = \aA$,
+  then $\px$ is absent in $\pe$.
+\end{theoremrep}
+\begin{proof}
+We show the contraposition, that is,
+if $\px$ is used in $\pe$, then $φ(\px) = \aU$.
+
+Since $\px$ is used in $\pe$, there exists a trace
+\[
+  (\Let{\px}{\pe'}{\pe},ρ,μ,κ) \smallstep (\pe,ρ[\px↦\pa],μ[\pa↦(\px,ρ[\px↦\pa],\pe')],κ) \smallstep^* (\py,ρ'[\py↦\pa],μ',κ').
+\]
+Let us abbreviate $ρ_1 \triangleq ρ[\px↦\pa]$, $μ_1 \triangleq μ[\pa↦(\px,ρ[\px↦\pa],\pe')]$.
+
+Without loss of generality, we assume that there is no other heap entry for
+$\px$ yet -- this may happen under a lambda that is called multiple times, and
+when that happens we can always find a simpler evaluation context in which this
+is not the case.
+(This is a subtle claim that we would have to prove as well if we were serious.)
+Furthermore, let us assume that this is the first lookup at $\pa$, so $μ'(\pa) = μ_1(\pa) = (\px, ρ_1,\pe')$.
+
+Let us abbreviate $\tr \triangleq (α(μ_1) \circ ρ_1)$.
+Under the above assumptions, $\tr(\py).φ(\px) = \aU$ implies $\px = \py$ for all
+$\py$, because $μ_1(\pa)$ is the only heap entry in which $\px$ occurs.
+
+By unfolding $\semabsS{\wild}$ and $\semabs{\py}$ we can see
+that $[\px ↦ \aU] ⊑ α(μ')(\pa).φ ⊑ (\semabsS{(\py,ρ'[\py↦\pa],μ',κ')}).φ$.
+By \Cref{thm:preserve-absent} and transitivity, we also have
+$[\px ↦ \aU] ⊑ (\semabsS{(\pe,ρ_1,μ_1,κ)}).φ$.
+Since there was no other heap entry for $\px$ and $\pa$ cannot occur in $κ$ or
+$ρ$ due to well-addressedness, we have $[\px ↦ \aU] ⊑ (\semabsS{(\pe,ρ_1,μ_1,κ)}).φ$ if
+and only if $[\px ↦ \aU] ⊑ (\semabs{\pe}_{\tr}).φ$.
+With \Cref{thm:diag-fact}, we can decompose
+\[
+  [\px ↦ \aU] ⊑ (\semabs{\pe}_{\tr}).φ = (\semabs{\pe}_{\tr_\pe}[\many{\py \Mapsto \tr(\py).φ}]).φ = \Lub \{ \tr(\py).φ \mid \py ∈ \semabs{\pe}_{\tr_\pe}.φ(\py) = \aU \}
+\]
+But since $\tr(\py).φ(\px) = \aU$ implies $\px = \py$, we must have
+$(\semabs{\pe}_{\tr_\pe}).φ(\px) = \aU$, as required.
+\end{proof}
+
+What are the main obstacles to prove it?
+As the first step, we must define what absence \emph{means}, in a formal sense.
+There are many ways to do so, and it is not at all clear which is best.
+One plausible definition is in terms of the standard operational semantics in
+\Cref{sec:op-sem}:
+
+\begin{definitionrep}[Absence]
+  \label{defn:absence}
+  A variable $\px$ is \emph{used} in an expression $\pe$
+  if and only if there exists a trace
+  $(\Let{\px}{\pe'}{\pe},ρ,μ,κ) \smallstep (\pe,ρ[\px↦\pa],\wild,\wild) \smallstep^* (\py,ρ'[\py↦\pa],\wild,\wild)$
+  that is about to evaluate $\px$, \ie, look up its heap entry.
+  Otherwise, $\px$ is \emph{absent} in $\pe$.
+\end{definitionrep}
+
+\begin{toappendix}
+The elaborate setup of this definition ensures that $\pa$, the address that
+$\px$ binds, does not alias with anything defined in the initial heap $μ$ and
+thus not with anything in $ρ$ or $κ$.
+Unsurprisingly, the no-alias property is easily defeated during evaluation, as
+soon as $\px$ is passed as an argument, hence $\py$ can be chosen differently to
+$\px$ in \Cref{defn:absence}.
+
+It is quite important that this definition is closed under arbitrary evaluation
+contexts $(ρ,μ,κ)$, so that absence is compatible with a contextual
+equivalence relation such as contextual improvement~\citep{MoranSands:99}.
+\end{toappendix}
+
+The Appendix explains why this is a good definition.
+Furthermore, we must prove correct the summary mechanism, captured in the
+following \emph{substitution lemma}~\citep{tapl}:%
+\footnote{This statement amounts to $id ⊑ \mathit{app} \circ \mathit{fun}_x$,
+one half of the Galois connection.}
 
 \begin{toappendix}
 \begin{abbreviation}
@@ -390,8 +479,9 @@ indicate the respective step below as ``handwaving''.
   ={} & \semabs{(\Lam{\px}{\Let{\pz}{\pe_1}{\pe_2}})~\py}_ρ
 \end{DispWithArrows*}
 \end{proof}
+\end{toappendix}
 
-\begin{lemmarep}[Substitution, syntactically]
+\begin{lemmarep}[Substitution]
 \label{thm:subst-absence}
 $\semabs{\pe}_{ρ[\px↦ρ(\py)]} ⊑ \semabs{(\Lam{\px}{\pe})~\py}_ρ$.
 \end{lemmarep}
@@ -488,39 +578,8 @@ By induction on $\pe$.
     \end{DispWithArrows*}
 \end{itemize}
 \end{proof}
-\end{toappendix}
-
-%We conjecture that every substitution lemma has a summary mechanism it proves
-%correct; that is why they are capstone lemmas in type system soundness
-%proofs~\citep{tapl} and a crucial part in proving $\semabs{\wild}$ correct.
-
-\subsection{Soundness}
-
-Suppose now that we were to prove $\semabs{\wild}$ correct.
-What are the main obstacles to do so?
-As the first step, we must define what absence \emph{means}, in a formal sense.
-There are many ways to do so, and it is not at all clear which is best.
-One plausible definition is in terms of the operational semantics in
-\Cref{sec:op-sem}.
-Given such a formal definition, soundness is easily stated:
 
 \begin{toappendix}
-\begin{definition}[Operational Absence]
-  \label{defn:absence}
-  A variable $\px$ is \emph{used} in an expression $\pe$
-  if and only if there exists a trace
-  $(\Let{\px}{\pe'}{\pe},ρ,μ,κ) \smallstep (\pe,ρ[\px↦\pa],\wild,\wild) \smallstep^* (\py,ρ'[\py↦\pa],\wild,\wild)$
-  that is about to evaluate $\px$, \ie, look up its heap entry.
-  Otherwise, $\px$ is \emph{absent} in $\pe$.
-\end{definition}
-
-The elaborate setup of this definition ensures that $\pa$, the address that
-$\px$ binds, does not alias with anything defined in the initial heap $μ$ and
-thus not with anything in $ρ$ or $κ$.
-Unsurprisingly, the no-alias property is easily defeated during evaluation, as
-soon as $\px$ is passed as an argument, hence $\py$ can be chosen differently to
-$\px$ in \Cref{defn:absence}.
-
 For the purposes of the correctness proof, we will write $\tr$ with a tilde to
 denote that abstract environment of type $\Var \to \AbsTy$, to disambiguate it
 from a concrete environment $ρ$ from the LK machine.
@@ -754,50 +813,12 @@ By cases on the transition.
 \end{proof}
 \end{toappendix}
 
-\begin{theoremrep}[Correct absence analysis]
-  \label{thm:absence-correct}
-  If $\semabs{\pe}_{\tr_\pe} = \langle φ, \varsigma \rangle$ and $φ(\px) = \aA$,
-  then $\px$ is absent in $\pe$.
-\end{theoremrep}
-\begin{proof}
-We show the contraposition, that is,
-if $\px$ is used in $\pe$, then $φ(\px) = \aU$.
-
-Since $\px$ is used in $\pe$, there exists a trace
-\[
-  (\Let{\px}{\pe'}{\pe},ρ,μ,κ) \smallstep (\pe,ρ[\px↦\pa],μ[\pa↦(\px,ρ[\px↦\pa],\pe')],κ) \smallstep^* (\py,ρ'[\py↦\pa],μ',κ').
-\]
-Let us abbreviate $ρ_1 \triangleq ρ[\px↦\pa]$, $μ_1 \triangleq μ[\pa↦(\px,ρ[\px↦\pa],\pe')]$.
-
-Without loss of generality, we assume that there is no other heap entry for
-$\px$ yet -- this may happen under a lambda that is called multiple times, and
-when that happens we can always find a simpler evaluation context in which this
-is not the case.
-(This is a subtle claim that we would have to prove as well if we were serious.)
-Furthermore, let us assume that this is the first lookup at $\pa$, so $μ'(\pa) = μ_1(\pa) = (\px, ρ_1,\pe')$.
-
-Let us abbreviate $\tr \triangleq (α(μ_1) \circ ρ_1)$.
-Under the above assumptions, $\tr(\py).φ(\px) = \aU$ implies $\px = \py$ for all
-$\py$, because $μ_1(\pa)$ is the only heap entry in which $\px$ occurs.
-
-By unfolding $\semabsS{\wild}$ and $\semabs{\py}$ we can see
-that $[\px ↦ \aU] ⊑ α(μ')(\pa).φ ⊑ (\semabsS{(\py,ρ'[\py↦\pa],μ',κ')}).φ$.
-By \Cref{thm:preserve-absent} and transitivity, we also have
-$[\px ↦ \aU] ⊑ (\semabsS{(\pe,ρ_1,μ_1,κ)}).φ$.
-Since there was no other heap entry for $\px$ and $\pa$ cannot occur in $κ$ or
-$ρ$ due to well-addressedness, we have $[\px ↦ \aU] ⊑ (\semabsS{(\pe,ρ_1,μ_1,κ)}).φ$ if
-and only if $[\px ↦ \aU] ⊑ (\semabs{\pe}_{\tr}).φ$.
-With \Cref{thm:diag-fact}, we can decompose
-\[
-  [\px ↦ \aU] ⊑ (\semabs{\pe}_{\tr}).φ = (\semabs{\pe}_{\tr_\pe}[\many{\py \Mapsto \tr(\py).φ}]).φ = \Lub \{ \tr(\py).φ \mid \py ∈ \semabs{\pe}_{\tr_\pe}.φ(\py) = \aU \}
-\]
-But since $\tr(\py).φ(\px) = \aU$ implies $\px = \py$, we must have
-$(\semabs{\pe}_{\tr_\pe}).φ(\px) = \aU$, as required.
-\end{proof}
-
-The proof of this statement in the Appendix is exemplary of more ambitious
-proofs such as in \citet{Sergey:14} and \citet[Section 4]{Breitner:16}.
-We suggest the reader to have a cursory look.
+Now we may finally attempt the proof for \Cref{thm:absence-correct}.
+We suggest the reader to have a cursory look by clicking on the theorem number,
+linking to the Appendix.
+\sg{Need to reformulate the below in terms of our proof.}
+The proof is exemplary of even more ambitious proofs such as in
+\citet{Sergey:14} and \citet[Section 4]{Breitner:16}.
 Though seemingly disparate, these proofs all follow an established
 preservation-style proof technique at heart.%
 \footnote{A ``mundane approach`` according to \citet[Section

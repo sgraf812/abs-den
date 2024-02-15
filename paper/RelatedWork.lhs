@@ -204,10 +204,13 @@ inter-modular analysis led \citet[Section 3.8.2]{Shivers:91} to implement
 the $\mathit{xproc}$ summary mechanism.
 He also acknowledged the need for accurate intra-modular summary mechanisms for
 scalability reasons in Section 11.3.2.
+We are however doubtful that the powerset-centric AAM approach could integrate
+summary mechanisms; the whole recipe rests on the fact that the set of
+expressions and thus evaluation contexts is finite.
 
-\citet{Mangal:14} seem to agree: They have shown that a summary-based analysis
-can be equivalent to $\infty$-CFA for arbitrary complete lattices and outperform
-2-CFA in both precision and speed.
+\citet{Mangal:14} have shown that a summary-based analysis can be equivalent
+to $\infty$-CFA for arbitrary complete lattices and outperform 2-CFA in both
+precision and speed.
 
 To illustrate this, usage analysis based on $k$-CFA would need less explanation
 of its |Nop| summary, but in turn it would lose modularity and precision due to
