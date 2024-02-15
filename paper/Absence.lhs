@@ -29,28 +29,34 @@ are restricted to be variables, so the difference between lazy and eager
 semantics is manifest in the semantics of $\mathbf{let}$.
 Note that $\Lam{x}{x}$ (with an overbar) denotes syntax, whereas $\fn{x}{x+1}$
 denotes an anonymous mathematical function.
-In this section, only the highlighted parts are relevant, but the interpreter
+In this Section, only the highlighted parts are relevant, but the interpreter
 definition in \Cref{sec:interp} supports data types as well.
 Throughout the paper we assume that all bound program variables are distinct.
+% Rationale for this:
+% While shadowing is fine for the semantics, the analyses don't cope well with
+% shadowing. Also Lookup events carry a Name and it becomes more complicated to
+% explain when Lookup events might alias.
+% It's not an uncommon assumption anyway, but we should state it IMO.
 
 \subsection{Absence Analysis}
 \label{sec:absence}
 
 \begin{figure}
   %\fboxsep=0pt\fbox{%
+  \[\ruleform{ \semabs{\wild}_{\wild} \colon \Exp → (\Var \pfun \AbsTy) → \AbsTy }\]
+  \\[-0.5em]
   \begin{minipage}[t]{0.47\textwidth}
   \arraycolsep=0pt
   \abovedisplayskip=0pt
   \[\begin{array}{rcl}
-    \multicolumn{3}{c}{ \ruleform{ \semabs{\wild}_{\wild} \colon \Exp → (\Var \pfun \AbsTy) → \AbsTy } } \\
-    \\[-0.5em]
     \semabs{\px}_ρ & {}={} & ρ(\px) \\
     \semabs{\Lam{\px}{\pe}}_ρ & {}={} & \mathit{fun}_{\px}( \fn{θ}{\semabs{\pe}_{ρ[\px ↦ θ]}}) \\
     \semabs{\pe~\px}_ρ & {}={} & \mathit{app}(\semabs{\pe}_{ρ})(ρ(\px)) \\
-    \semabs{\Letsmall{\px}{\pe_1}{\pe_2}}_ρ & {}={} & \semabs{\pe_2}_{ρ[\px ↦ θ]} \\
-    \text{where} \hspace{1.5em} θ &{}={}& \lfp(\fn{θ}{\px \both \semabs{\pe_1}_{ρ[\px ↦ θ]}}) \\
-    \px \both \langle φ, \varsigma \rangle & = & \langle φ[\px↦\aU], \varsigma \rangle
-    \\[-0.5em]
+    \semabs{\Letsmall{\px}{\pe_1}{\pe_2}}_ρ & {}={} & \semabs{\pe_2}_{ρ[\px ↦ \px \both \semabs{\pe_1}_ρ]} \\
+    \\[-0.8em]
+    \multicolumn{3}{c}{\mathit{fun}_{\px}( f) {}={} \langle φ[\px↦\aA], φ(\px) \sumcons \varsigma \rangle} \\
+    \multicolumn{3}{c}{\qquad\qquad\text{where } \langle φ, \varsigma \rangle = f(\langle [\px↦\aU], \aU.. \rangle)} \\
+    \multicolumn{3}{c}{\mathit{app}(\langle φ_f, a \sumcons \varsigma \rangle)(\langle φ_a, \wild \rangle) = \langle φ_f ⊔ (a * φ_a), \varsigma \rangle} \\
   \end{array}\]
   \end{minipage}%
   %}%
@@ -66,15 +72,13 @@ Throughout the paper we assume that all bound program variables are distinct.
     \varsigma & {}∈{}    & \Summary & {}::={} & \aA.. \mid a \sumcons \varsigma \mid \aU.. \\
     θ & {}∈{} & \AbsTy   & {}::={} & \langle φ, \varsigma \rangle \\
     \\[-0.9em]
-    \multicolumn{5}{c}{\aA \sumcons \aA.. \equiv \aA.. \quad \aU \sumcons \aU.. \equiv \aU..} \\
+    \multicolumn{5}{c}{\aA.. \equiv \aA \sumcons \aA.. \quad \aU.. \equiv \aU \sumcons \aU..} \\
   \end{array} \\
   \\[-0.5em]
   \begin{array}{l}
-    \aA * φ = [] \\
+    \aA * φ = [] \quad
     \aU * φ = φ  \\
-    \mathit{fun}_{\px}( f) {}={} \langle φ[\px↦\aA], φ(\px) \sumcons \varsigma \rangle \\
-    \qquad\text{where } \langle φ, \varsigma \rangle = f(\langle [\px↦\aU], \aU.. \rangle) \\
-    \mathit{app}(\langle φ_f, a \sumcons \varsigma \rangle)(\langle φ_a, \wild \rangle) = \langle φ_f ⊔ (a * φ_a), \varsigma \rangle \\
+    \px \both \langle φ, \varsigma \rangle = \langle φ[\px↦\aU], \varsigma \rangle
   \end{array}
   \\[-0.5em]
   \end{array}\]
@@ -84,9 +88,12 @@ Throughout the paper we assume that all bound program variables are distinct.
   \label{fig:absence}
 \end{figure}
 
-Semantically, a variable $\px$ is \emph{absent} in a program $\pe$ when $\px$ is
-never evaluated by $\pe$, regardless of the context in which $\pe$ appears.
+Semantically, a variable $\px$ is \emph{absent} in an expression $\pe$ when
+$\px$ is never evaluated by $\pe$, regardless of the context in which $\pe$
+appears.
 Otherwise, the variable $\px$ is \emph{used} in $\pe$.
+%SG: Note the emphasis on context; indeed, absent means absent in all contexts,
+%not just in a WHNF evaluation of $\pe$.
 
 \Cref{fig:absence} defines an absence analysis $\semabs{\pe}_ρ$ for lazy
 program semantics that conservatively approximates semantic absence.
@@ -117,8 +124,8 @@ Since $f$ also uses $y$, the absence type recorded in the environment at the
 call site of $f$ looks like $ρ(f) = \langle [f ↦ \aU, y ↦ \aU], \aA
 \sumcons aU.. \rangle$, indicating that the call $f~v$ uses the free variables
 $f$ and $y$, \emph{but not} $v$.
-(Note that the literal notation $[f ↦ \aU, y ↦ \aU]$ maps any variable other
-than $f$ and $y$ to $\aA$.)
+(Note that the literal notation $[f ↦ \aU, y ↦ \aU] ∈ \Uses$ maps any
+variable other than $f$ and $y$ to $\aA$.)
 
 %When $\semabs{\pe}_{ρ_{\pe}} = \langle φ, \varsigma \rangle$ and $φ(\px) = \aA$,
 %then $\px$ is absent in $\pe$, where $ρ_{\pe}$ is the free variable environment
@@ -133,17 +140,10 @@ than $f$ and $y$ to $\aA$.)
 %$\px$ uses only $\px$, and that any actual argument it is applied to is used,
 %indicated by argument summary $\aU..$\ .
 
-We illustrate the analysis at the example of program
+We illustrate the analysis at the example expression
 $\Let{x_2}{x_1}{\Let{k}{\Lam{y}{\Lam{z}{y}}}{k~x_3~x_2}}$, where the initial
 environment for $\pe$, $ρ_\pe(\px) \triangleq \langle [\px ↦ \aU], \aU.. \rangle$,
 declares the free variables of $\pe$ with a pessimistic summary $\aU..$.
-For now assume a special case for non-recursive let,
-$\semabs{\Letsmall{\px}{\pe_1}{\pe_2}}_ρ = \semabs{\pe_2}_{ρ[\px ↦ \px \both \semabs{\pe_1}_ρ]}$
-and postpone computation of least fixed points $\lfp$ until we have defined the involved partial order.
-\sg{Perhaps we should just define absence analysis for non-recursive let in the
-first place, then? The fact that we need to fixpoint iteration for rec let is not
-helping our narrative.
-Furthermore, I think we could get rid of $\aA..$ which has no other role than providing a bottom element.}
 \begin{DispWithArrows}[fleqn,mathindent=0em]
       & \semabs{\Let{x_2}{x_1}{\Let{k}{\Lam{y}{\Lam{z}{y}}}{k~x_3~x_2}}}_{ρ_{\pe}} \label{eq:abs-ex1}
         \Arrow{Unfold $\semabs{\Let{\px}{\pe_1}{\pe_2}}$. NB: Lazy Let!} \\
@@ -167,13 +167,13 @@ Furthermore, I think we could get rid of $\aA..$ which has no other role than pr
 \end{DispWithArrows}
 The $\Uses$ component of the absence type returned by the analysis lists
 $k$ and $x_3$ as potentially used.
-On the other hand, $x_1$ and $x_2$ are absent, \emph{despite}
-$x_2$ occuring in argument position.
+On the other hand, $x_1$ and $x_2$ are inferred absent, \emph{despite} $x_2$
+occuring in argument position.
 This is thanks to the summary mechanism; we have highlighted the interacting
-information in grey above.
+information in grey.
 
 Let us look at the steps in a bit more detail.
-Steps \labelcref{eq:abs-ex1, eq:abs-ex2} extend the environment with
+Steps \labelcref{eq:abs-ex1,eq:abs-ex2} extend the environment with
 absence types for the let right-hand sides.
 For space reasons, we have not simplified the extended environment entries, but
 for $x_2$ we would get $x_2 \both \semabs{x_1}_{ρ_{\pe}} = x_2 \both
@@ -189,12 +189,12 @@ Step \labelcref{eq:abs-ex3} then evaluates $\mathit{fun}_y(\fn{θ_y}{\mathit{fun
 (mind the difference between literal notation $[y ↦ \aU]$ and function update $\wild [ z ↦ \aA]$),
 and that simplifies to $\langle [], \aU \sumcons \aA \sumcons \aU.. \rangle$, an
 absence type abstracting the expression $\Lam{y}{\Lam{z}{y}}$.
-The $\mathit{app}$ steps \labelcref{eq:abs-ex4,eq:abs-ex5} simply match up
-the uses of $ρ_{xk}(x_3)$ with $\aU$ and $ρ_{xk}(x_2)$ with the $\Absence$ flags
+The $\mathit{app}$ steps \labelcref{eq:abs-ex4,eq:abs-ex5} simply zip up
+the uses of $ρ_{xk}(x_3)$ and $ρ_{xk}(x_2)$ with the $\Absence$ flags
 in the summary $\aU \sumcons \aA \sumcons \aU..$, adding (with join
 $⊔$ defined momentarily) the $\Uses$ from $ρ_{xk}(x_3) = \langle [x_3 ↦ \aU], \aU.. \rangle$
 but not from $ρ_{xk}(x_2)$, because the first actual argument ($x_3$) is used
-whereas the second ($x_2$) is not.
+whereas the second ($x_2$) is absent.
 The join on $\Uses$ follows pointwise from the order $\aA ⊏ \aU$, \ie, $(φ_1
 ⊔ φ_2)(\px) \triangleq φ_1(\px) ⊔ φ_2(\px)$.
 For the final result, these $\Uses$ are combined with the use on $k$ stemming
