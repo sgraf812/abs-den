@@ -96,7 +96,8 @@ interpreter skeleton.
 Proving a static analysis correct \wrt a dynamic semantics merely needs to prove
 statements about the respective semantic domains, rather than the shared
 skeleton (\cf \Cref{sec:soundness}), which is a drastic simplification compared
-to hand-rolling a preservation-style proof as outlined in \Cref{sec:problem}.
+to hand-rolling a preservation-style proof as outlined in \Cref{sec:problem}
+\sven{This sentence is hard to understand without context. I suppose the point is: Our generic denotational simplifies the soundness proofs of derived static analyses, as the proofs require no reasoning about the genric interpreter, only about its instances.}.
 
 %In this section, we present the main contribution of this work, namely the
 %skeleton of a \emph{compositional semantics} for a functional language, the
@@ -113,6 +114,7 @@ why this interpreter is interesting:
 \item Simplifies the soundness proofs of summary-based analyses (hint at why it is simpler)
 \end{itemize}}
 \sg{Indeed. Better?}
+\sven{Yes, much better}
 
 Following~\citet{Might:10}, we call this semantics a \emph{Denotational Interpreter} because it qualifies both as a denotational semantics~\citep{ScottStrachey:71} as well as a total definitional interpreter~\citep{Reynolds:72}.
 Such an interpreter can be implemented in any higher-order language such as OCaml, Scheme or Java with explicit thunks, but we picked Haskell for convenience.
@@ -120,11 +122,12 @@ Such an interpreter can be implemented in any higher-order language such as OCam
 
 Since our work touches an enormous amount of exciting Related Work, we will make
 liberal use of footnotes to make tangential remarks for expert readers that
-distract from the main flow; these can freely be ignored on first reading.
+distract from the main flow; these can freely be ignored on first reading\sven{You don't need to spell this out}.
 
 Traditionally, denotational semantics is expressed as a mathematical function |dsem :: Exp -> (Name :-> D) -> D|.
 \sven{This helps to motivate the type of the interpreter in Figure 5. Consider moving this explanation to the beginning of section 4.2}
 \sg{I gave that a try, but it is awkward to talk about \emph{semantic domains} without having a grasp on what that is, all just to reintroduce the term in 4.2}
+\sven{Why is it a problem to introduce semantic domains without first explaining the full type of |dsem|? You can start section 4.1 with "Denotational interpreters evaluate programs to their denotation in a \emph{semantic domain}. In this section, we define a semantic domain for a call-by-name dynamic language semantics." I still think that this entire paragraph should go into section 4.2.}
 The expression |dsem e ρ| takes an expression |e| and returns its meaning, or \emph{denotation}, in some \emph{semantic domain} |D|.
 The environment |ρ| gives meaning to the free variables of |e|, by mapping each free variable to its denotation in |D|.
 We sketch the Haskell encoding of syntax in \Cref{fig:syntax} and the API of environments and sets in \Cref{fig:map}.
@@ -255,7 +258,7 @@ approach,%
 the definition of |Step|, \eg, @Step of event * (unit -> 'a t)@.
 \sven{Too much technical detail that distracts from the story line.}}
 because diverging traces can be expressed as an infinite, but productive,
-nesting of |Step|s.
+nesting of |Step|s\sven{This discussion should go into section 4.2. where you show the example of a diverging trace.}.
 The |Monad| instance of |T| implements the monadic bind operator |(>>=)| by
 forwarding |Step|s, thus guarding the recursion, an approach popularised by
 \citet{Capretta:05}.
@@ -357,6 +360,7 @@ We do this by parameterizing over the semantic domain |d| with three type classe
 }
 \sg{I think I've addressed this point, both above and through the edits I did
 below.}
+\sven{I still think that we should introduce the type of |eval| here. This allows the reader to directly compare our generic denotational interpreter to traditional denotational interpreters.}
 
 To derive both dynamic semantics and static analysis as instances of the same
 interpreter skeleton |eval|, we need to vary the type of its semantic domain,
@@ -380,7 +384,7 @@ this:
 $\perform{eval (read "let i = λx.x in i i") emp :: D (ByName T)}$,
 \\[\belowdisplayskip]
 \noindent
-where $\langle\lambda\rangle$ means that the trace ends in a |Fun| value. This is
+where $\langle\lambda\rangle$\sven{Is it possible to spell out what the lambda is? Its just $\langle λx.x \rangle$, correct? I know that it its not possible in Haskell, but maybe just here in the paper.} means that the trace ends in a |Fun| value. This is
 in direct correspondence to the earlier call-by-name small-step trace
 \labelcref{ex:trace} in \Cref{sec:op-sem}.
 
@@ -394,8 +398,7 @@ abstract domains such as that of usage analysis (\Cref{sec:abstraction}).
 The other cases follow a similar pattern; they each do some work, before handing
 off to type class methods to do the domain-specific work.
 
-The |HasBind| type class is particularly significant,
-because it fixes a particular \emph{evaluation strategy}, as we shall see in
+The |HasBind| type class defines a particular \emph{evaluation strategy}, as we shall see in
 \Cref{sec:evaluation-strategies}.
 The |bind| method of |HasBind| is used to give meaning to recursive let
 bindings:
@@ -446,6 +449,8 @@ This is total functional programming at its best.
 I think you agree that we should not explain this point here; I have done so
 numerous times in the past and the response always was ``I don't care''.
 }
+\\
+\sven{Then perhaps the notation $\mathit{Trace} \hookrightarrow \ldots$ is better?}
 
 < ghci> takeT 5 $ eval (read "let x = x in x") emp :: T (Maybe (Value T))
 $\perform{takeName 5 $ eval (read "let x = x in x") emp :: T (Maybe (Value (ByName T)))}$
