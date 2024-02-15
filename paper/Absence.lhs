@@ -74,7 +74,7 @@ Throughout the paper we assume that all bound program variables are distinct.
     \\[-0.9em]
     \multicolumn{5}{c}{\aA.. \equiv \aA \sumcons \aA.. \quad \aU.. \equiv \aU \sumcons \aU..} \\
   \end{array} \\
-  \\[-0.5em]
+  \\[-0.9em]
   \begin{array}{l}
     \aA * φ = [] \quad
     \aU * φ = φ  \\
@@ -216,50 +216,90 @@ from the variable lookup in the application head.
 %$\px$ is absent in $\pe$ when $\px \not∈ \semabs{\pe}_{\tr_\pe}$.
 %Thus, $\semabs{\wild}$ can be used in a compiler to enable absent code removal.
 
-\subsection{Function Summaries, Substitution Lemmas, Compositionality and Modularity}
+\subsection{Function Summaries, Compositionality and Modularity}
 
-% Note that it was convenient to postpone evaluation of
-% $k \both \semabs{\Lam{y}{\Lam{z}{y}}}_{ρ_x}$
-Note that in order to see that $x_1$ was absent in the example above, absence
-analysis employs a \emph{summary mechanism} to enable useful and sound analysis
-of function calls, with relevant analysis information highlighted in grey.
-This summary mechanism is manifest in the $\mathit{fun}$ and $\mathit{app}$
-functions we deliberately extracted out, encoding a contract between function
-definitions and their call sites.
+Let us clarify that by a \emph{summary mechanism}, we mean a mechanism for
+approximating the semantics of a function call in terms of the domain of a
+static analysis, often yielding a symbolic, finite representation.
+In the definition of $\semabs{\wild}$, we took care to explicate the mechanism
+via $\mathit{fun}$ and $\mathit{app}$.
+The former approximates a functional $(\fn{θ}{...}) : \AbsTy \to \AbsTy$ into
+a finite $\AbsTy$, and $\mathit{app}$ encodes the adjoint (``reverse'')
+operation.%
+\footnote{Proving that $\mathit{fun}$ and $\mathit{app}$ form a Galois connection
+is indeed important for a correctness proof and corresponds to a substitution
+\Cref{thm:subst-absence}.}
 
-We can give a more formal definition of what a summary mechanism is in terms of
-abstract interpretation~\citep{Cousot:21}:
-In this work, a \emph{function summary} is an approximation to, or abstraction
-of, the function's abstract transformer implied by the considered analysis.
+The summary mechanism of $\semabs{\wild}$ proves useful because it infers that
+$x_1$ is absent in the example above.
+But in this example, we could just as well have \emph{inlined} and \emph{beta
+reduced} $k$ to see that $x_1$ is absent, without a summary mechanism!
+Indeed, that is what control-flow analysis~\citep{Shiver:91} amounts to.
 
-In case of $\semabs{\Lam{\px}{\pe}}$, the implied abstract transformer is the
-function $f^\sharp_{ρ,\pe,\px} \triangleq \fn{θ}{\semabs{\pe}_{ρ[\px ↦
-θ]}}$ passed to $\mathit{fun}_\px$,%
-\footnote{Note that in contrast to let-bound names, the syntactic parameter
-$\px$ is used as a convenient proxy for a De Bruijn level, if you wonder about
-the scoping semantics.}
-which \emph{summarises} (\ie, abstracts)
-$f^\sharp_{ρ,\pe,\px}$ into something finite (\ie, not a function).
-The produced summary is concretised back in $\semabs{\pe~\px}$ through
-$\mathit{app}$ which encodes the adjoint (``reverse'') operation.
-More concretely, $f^\sharp_{ρ,\pe,\px}(θ) ⊑
-\mathit{app}(\mathit{fun}_\px(f^\sharp_{ρ,\pe,\px}))(θ)$ for any choice of
-$ρ$, $\pe$, $\px$ and $θ$, suggesting a Galois connection between abstract
-transformers in $\AbsTy \to \AbsTy$ and $\AbsTy$.%
-\footnote{We will see at the end of \Cref{sec:by-name-soundness} why it is
-important to restrict the Galois connection to syntactic $f^\sharp_{ρ,\pe,\px}$
-and not arbitrary monotone functions in $\AbsTy \to \AbsTy$.}
+Work that contrasts both approaches reaches back as far as \citet{SharirPnueli:78}.
+We argue that it is not just a matter of preference to pick either;
+rather, \emph{modularity} (or open world assumption, or separate compilation)
+demands a summary mechanism.%
+\footnote{Astonishingly, \citet[Section 11.3.2]{Shivers:91} already discussed
+the need for summary mechanisms for CFA for this reason.}
+Let us say that our example function $k = (\Lam{y}{\Lam{z}{y}})$ is defined
+in module A and there is a use site $(f~x_1~x_2)$ in module B.
+To analyse the use site, we only need to load $f$'s summary $\aU \sumcons \aA \sumcons \aU..$
+from module A's signature file.
+By contrast, without a summary mechanism, the analysis would need re-analyse the
+definition of $k$ at every use site.
 
-If we unfold $f^\sharp_{ρ,\pe,\px}$ and refold $\semabs{\wild}$ twice in
-the above statement, we can recognise it as a \emph{substitution lemma},
-so called because the (delayed) substitution carried out when beta reducing
-$(\Lam{\px}{\pe})~\py$ to $\pe[\px:=\py]$ preserves analysis results:%
-\footnote{All proofs can be found in the Appendix; in case of the extended
-version via clickable links.}
-\footnote{An inconsequential observation: The other half of the Galois connection
-proof, $\mathit{fun}_\px \circ \mathit{app} \mathbin{\ddot{⊑}} \mathit{id}$,
-corresponds to eta expansion $\semabs{\Lam{\px}{\pe~\px}}_ρ ⊑
-\semabs{\pe}_ρ$.}
+Since compilers must support efficient separate compilation, it is no surprise
+that summaries arise naturally there.
+Furthermore, summaries enable the definition of \emph{compositional} compiler
+analyses such as $\semabs{\wild}$.
+Compositionality implies that $\semabs{\Let{f}{\Lam{x}{\pe_{\mathit{big}}}}{f~f~f~f}}$
+is a function of $\semabs{\Lam{x}{\pe_{\mathit{big}}}}$, itself a function of
+$\semabs{\pe_{\mathit{big}}}$.
+In order to satisfy the scalability requirements of a compiler and
+guarantee termination of the analysis in the first place, it is
+important not to repeat the work of analysing $\semabs{\pe_{\mathit{big}}}$
+at every use site of $f$, so it is natural to summarise
+$\semabs{\Lam{x}{\pe_{\mathit{big}}}}$ into a finite $\AbsTy$, rather than
+to keep working with the ``inline functional'' $\AbsTy \to \AbsTy$.
+
+%This summary mechanism is manifest in the $\mathit{fun}$ and $\mathit{app}$
+%functions we deliberately extracted out, encoding a contract between function
+%definitions and their call sites.
+%
+%We can give a more formal definition of what a summary mechanism is in terms of
+%abstract interpretation~\citep{Cousot:21}:
+%In this work, a \emph{function summary} is an approximation to, or abstraction
+%of, the function's abstract transformer implied by the considered analysis.
+%
+%In case of $\semabs{\Lam{\px}{\pe}}$, the implied abstract transformer is the
+%function $f^\sharp_{ρ,\pe,\px} \triangleq \fn{θ}{\semabs{\pe}_{ρ[\px ↦
+%θ]}}$ passed to $\mathit{fun}_\px$,%
+%\footnote{Note that in contrast to let-bound names, the syntactic parameter
+%$\px$ is used as a convenient proxy for a De Bruijn level, if you wonder about
+%the scoping semantics.}
+%which \emph{summarises} (\ie, abstracts)
+%$f^\sharp_{ρ,\pe,\px}$ into something finite (\ie, not a function).
+%The produced summary is concretised back in $\semabs{\pe~\px}$ through
+%$\mathit{app}$ which encodes the adjoint (``reverse'') operation.
+%More concretely, $f^\sharp_{ρ,\pe,\px}(θ) ⊑
+%\mathit{app}(\mathit{fun}_\px(f^\sharp_{ρ,\pe,\px}))(θ)$ for any choice of
+%$ρ$, $\pe$, $\px$ and $θ$, suggesting a Galois connection between abstract
+%transformers in $\AbsTy \to \AbsTy$ and $\AbsTy$.%
+%\footnote{We will see at the end of \Cref{sec:by-name-soundness} why it is
+%important to restrict the Galois connection to syntactic $f^\sharp_{ρ,\pe,\px}$
+%and not arbitrary monotone functions in $\AbsTy \to \AbsTy$.}
+%
+%If we unfold $f^\sharp_{ρ,\pe,\px}$ and refold $\semabs{\wild}$ twice in
+%the above statement, we can recognise it as a \emph{substitution lemma},
+%so called because the (delayed) substitution carried out when beta reducing
+%$(\Lam{\px}{\pe})~\py$ to $\pe[\px:=\py]$ preserves analysis results:%
+%\footnote{All proofs can be found in the Appendix; in case of the extended
+%version via clickable links.}
+%\footnote{An inconsequential observation: The other half of the Galois connection
+%proof, $\mathit{fun}_\px \circ \mathit{app} \mathbin{\ddot{⊑}} \mathit{id}$,
+%corresponds to eta expansion $\semabs{\Lam{\px}{\pe~\px}}_ρ ⊑
+%\semabs{\pe}_ρ$.}
 
 \begin{toappendix}
 \begin{abbreviation}
@@ -350,7 +390,6 @@ indicate the respective step below as ``handwaving''.
   ={} & \semabs{(\Lam{\px}{\Let{\pz}{\pe_1}{\pe_2}})~\py}_ρ
 \end{DispWithArrows*}
 \end{proof}
-\end{toappendix}
 
 \begin{lemmarep}[Substitution, syntactically]
 \label{thm:subst-absence}
@@ -449,42 +488,11 @@ By induction on $\pe$.
     \end{DispWithArrows*}
 \end{itemize}
 \end{proof}
+\end{toappendix}
 
-We conjecture that every substitution lemma has a summary mechanism it proves
-correct; that is why they are capstone lemmas in type system soundness
-proofs~\citep{tapl} and a crucial part in proving $\semabs{\wild}$ correct.
-
-Summaries arise naturally in a compiler analysis such as $\semabs{\pe}$ that is
-\emph{compositional}:%
-\footnote{Although even non-compositional analyses such as CFA \emph{might}
-employ a summary mechanism; see \Cref{sec:related-work}.}
-A (static or dynamic) semantics $\denot{\wild}$ is compositional
-when $\denot{\pe}$ can be defined as a function solely of the denotations
-$\denot{\pe_1}, ..., \denot{\pe_n}$ of $\pe$'s subexpressions $\pe_1,...,\pe_n$,
-but \emph{not} of the subexpressions themselves.
-
-Compositionality implies that $\denot{\Let{\px}{\Lam{\py}{\pe_1}}{\pe_2}}$
-is a function of $\denot{\Lam{\py}{\pe_1}}$, itself a function of
-$\denot{\pe_1}$.
-In order to satisfy the scalability requirements of a compiler and
-guarantee termination of the analysis in the first place, it is
-important not to repeat the work of analysing $\denot{\pe_1}$, so
-$\denot{\Let{\px}{\Lam{\py}{\pe_1}}{\pe_2}}$ computes a \emph{finite} summary
-(\ie, data) for $\denot{\Lam{\py}{\pe_1}}$ to apply at use sites of $\px$ in
-$\pe_2$. For our absence analysis, summarisation is baked right into the lambda
-case rather than the let case.
-% Doing so keeps the analysis domain simple, even though it penalises analysis
-% of redexes such as $(\Lam{y}{\Lam{z}{z}})~x$ that fortunately are unlikely
-% to be encountered in an optimised program.
-
-In the same way that compositionality and finite summaries enable scalability
-\emph{within} a module~\citep[Section 11.3.2]{Shivers:91}, they ensure
-\emph{modularity}~\citep{Cousot:02}, \ie, scalability \emph{across} module
-boundaries.
-Let us say that $f = (\Lam{y}{\Lam{z}{z}})$ is defined
-in module A and there is a use site $(f~x_1~x_2)$ in module B.
-To analyse the use site, we only need to load $f$'s summary $\aA \sumcons \aU..$
-from module A's signature file, but do not need to reanalyse its definition.
+%We conjecture that every substitution lemma has a summary mechanism it proves
+%correct; that is why they are capstone lemmas in type system soundness
+%proofs~\citep{tapl} and a crucial part in proving $\semabs{\wild}$ correct.
 
 \subsection{Soundness}
 
