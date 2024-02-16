@@ -156,8 +156,10 @@ In fact, we think that for any trace property (\ie, |Trace| instance), there
 is an analysis that can be built on CFA, without the need to define a custom
 summary mechanism encoded as a |Domain| instance.
 
-\citet{adi} and others apply the AAM recipe to big-step interpreter in the style
+\citet{adi} and others apply the AAM recipe to big-step interpreters in the style
 of \citeauthor{Reynolds:72}, in order to share analysis code with the semantics.
+\citet{Wei:18} show de-/refunctionalisation correspondence between AAM and ADI,
+hinting at the existence of abstract denotational interpreters.
 \citet{Backhouse:04} and \citet{Keidel:18} show that in doing so, correctness of
 shared code follows by parametricity~\citep{Wadler:89}.
 We found it quite elegant to utilise parametricity in this way, but
