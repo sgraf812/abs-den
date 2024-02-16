@@ -115,17 +115,6 @@ the concrete semantics.
 Denotational interpreters can be implemented in any higher-order language such as OCaml, Scheme or Java with explicit thunks, but we picked Haskell for convenience.%
 \footnote{We extract from this document a runnable Haskell file which we add as a Supplement, containing the complete definitions. Furthermore, the (terminating) interpreter outputs are directly generated from this extract.}
 
-Traditionally, denotational semantics is expressed as a mathematical function |dsem :: Exp -> (Name :-> D) -> D|.
-\sven{This helps to motivate the type of the interpreter in Figure 5. Consider moving this explanation to the beginning of section 4.2}
-\sg{I gave that a try, but it is awkward to talk about \emph{semantic domains} without having a grasp on what that is, all just to reintroduce the term in 4.2}
-\sven{Why is it a problem to introduce semantic domains without first explaining the full type of |dsem|? You can start section 4.1 with "Denotational interpreters evaluate programs to their denotation in a \emph{semantic domain}. In this section, we define a semantic domain for a call-by-name dynamic language semantics." I still think that this entire paragraph should go into section 4.2.}
-The expression |dsem e ρ| takes an expression |e| and returns its meaning, or \emph{denotation}, in some \emph{semantic domain} |D|.
-The environment |ρ| gives meaning to the free variables of |e|, by mapping each free variable to its denotation in |D|.
-We sketch the Haskell encoding of syntax in \Cref{fig:syntax} and the API of environments and sets in \Cref{fig:map}.
-\sven{This feels off topic discussing syntax here. Maybe move the whole syntax definitions to the bottom of fig 5?}
-\sg{Given that we need the syntax to talk about |dsem|, and that we need |dsem| to talk about semantic domains, this feels like the right place to put this definitions.}
-For concise notation, we will use a small number of infix operators: |(:->)| as a synonym for finite |Map|s, with |m ! x| for looking up |x| in |m|, |ext m x d| for updates, |f << m| for mapping |f| over every element of |m|, |assocs m| for turning |m| into a list of key-value pairs, |dom m| for returning the set of keys present in the map, and |(`elem`)| for membership tests in that set.
-
 \begin{figure}
 \begin{minipage}{0.49\textwidth}
 \begin{spec}
@@ -172,9 +161,10 @@ assocs = Map.assocs
 
 \subsection{Semantic Domain} \label{sec:dna}
 
-In traditional denotational semantics, the semantic domain |D| comprises
-\emph{semantic values} such as base values (integers, strings, etc.) and
-functions |D -> D|.
+Just as traditional denotational semantics, denotational interpreters
+assign meaning to programs in some \emph{semantic domain}.
+Traditionally, the semantic domain |D| comprises \emph{semantic values} such as
+base values (integers, strings, etc.) and functions |D -> D|.
 One of the main features of these semantic domains is that they lack
 \emph{operational}, or, \emph{intensional detail} that is unnecessary to
 assigning each observationally distinct expression a distinct meaning.
@@ -207,7 +197,7 @@ unwrapping of constructors.}
 type D τ = τ (Value τ);   type DName = D T
 data T v = Step Event (T v) | Ret v
 data Event  =  Lookup Name | Update | App1 | App2
-            |  Let1 | Case1 | Case2 {-"\iffalse"-} | Let0{-"\fi"-}
+            |  Let0 | Let1 | Case1 | Case2
 data Value τ = Stuck | Fun (D τ -> D τ) | Con Tag [D τ]
 \end{code}
 \end{minipage}
@@ -235,7 +225,7 @@ instance Monad T where
 \noindent
 A trace |T| either returns a value (|Ret|) or makes a small-step transition (|Step|).
 Each step |Step ev rest| is decorated with an event |ev|, which describes what happpens in that step.
-For example, event |Lookup name| describes the lookup of variable |name| in the environment.
+For example, event |Lookup x| describes the lookup of variable |x :: Name| in the environment.
 Note that the choice of |Event| is use-case (\ie analysis) specific and suggests
 a spectrum of intensionality, with |data Event = Unit| on the more abstract end
 of the spectrum and arbitrary syntactic detail attached to each of |Event|'s
@@ -244,16 +234,10 @@ constructors at the intensional end of the spectrum.%
 side-effects, we could have started from a more elaborate trace construction
 such as (guarded) interaction trees~\citep{interaction-trees,gitrees}.}
 
-The coinductive nature of |T|'s definition in Haskell is crucial to our
-approach,%
-\footnote{In a strict language, we would have introduced a thunk in
-the definition of |Step|, \eg, @Step of event * (unit -> 'a t)@.}
-because diverging traces can be expressed as an infinite, but productive,
-nesting of |Step|s\sven{This discussion should go into section 4.2. where you show the example of a diverging trace.}.
-The |Monad| instance of |T| implements the monadic bind operator |(>>=)| by
-forwarding |Step|s, thus guarding the recursion, an approach popularised by
-\citet{Capretta:05}.
-A trace |T| eventually terminates with a |Value| that is either stuck (|Stuck|), a function waiting to be applied to a domain value (|Fun|), or a constructor constructor application giving the denotations of its fields (|Con|).
+A trace in |DName = T (Value T)| eventually terminates with a |Value| that is
+either stuck (|Stuck|), a function waiting to be applied to a domain value
+(|Fun|), or a constructor constructor application giving the denotations of its
+fields (|Con|).
 %|Value| is thus just a standard denotational encoding of its syntactic counterpart |Lam|/|ConApp|, devoid of any syntax. \slpj{I don't know what that sentence adds or even means. Omit?}
 %\sg{I clarified, mentioining |Lam|/|ConApp|. This point is one of the main distinctions between operational semantics and denotational semantics.}
 %\slpj{I still don't know what ``devoid of syntax'' means.  Omit?}
@@ -336,31 +320,29 @@ ifPoly (instance HasBind DName where
 
 \subsection{The Interpreter}
 
-\sven{
-I would start with:
-\emph{ Traditionally, denotational semantics is expressed as a mathematical function |eval :: Exp -> (Name :-> D) -> D|(use just semantic brackets without S to distinguish traditional denotational semantics from your interpreter).
-The expression |eval e ρ| takes an expression |e| and returns its meaning, or \emph{denotation}, in some \emph{semantic domain} |D|.
-The environment |ρ| gives meaning to the free variables of |e|, by mapping each free variable to its denotation in |D|.}\\
-\medskip
-This motivates the type of our interpreter:
-\[
-|eval  ::  (Trace d, Domain d, HasBind d) =>  Exp -> (Name :-> d) -> d|
-\]
-However, we want to vary the domain because ...
-We do this by parameterizing over the semantic domain |d| with three type classes ...
-}
-\sg{I think I've addressed this point, both above and through the edits I did
-below.}
-\sven{I still think that we should introduce the type of |eval| here. This allows the reader to directly compare our generic denotational interpreter to traditional denotational interpreters.}
+Traditionally, a denotational semantics is expressed as a mathematical function,
+often written |dsem e ρ|, to give an expression |e :: Exp| a meaning, or
+\emph{denotation}, in terms of some semantic domain |D|.
+The environment |ρ :: Name :-> D| gives meaning to the free variables of |e|,
+by mapping each free variable to its denotation in |D|.
+We sketch the Haskell encoding of |Exp| in \Cref{fig:syntax} and the API of
+environments and sets in \Cref{fig:map}.
+For concise notation, we will use a small number of infix operators: |(:->)| as
+a synonym for finite |Map|s, with |m ! x| for looking up |x| in |m|, |ext m x
+d| for updates, |assocs m| for a list of key-value pairs in |m|, |f << m| for
+mapping |f| over every value in |m|, |dom m| for the set of keys present in the
+map, and |(`elem`)| for membership tests in that set.
 
-To derive both dynamic semantics and static analysis as instances of the same
+Our denotational interpreter |eval :: Exp -> (Name :-> DName) -> DName| can
+have a similar type as |dsem|.
+However, to derive both dynamic semantics and static analysis as instances of the same
 generic interpreter |eval|, we need to vary the type of its semantic domain,
 which is naturally expressed using type-class overloading, thus:
 \[
 |eval  ::  (Trace d, Domain d, HasBind d) =>  Exp -> (Name :-> d) -> d|
 \]
 We have parameterised the semantic domain |d| over three type classes |Trace|, |Domain| and |HasBind|, whose signatures are given in \Cref{fig:trace-classes}.%
-\footnote{One can think of these type classes as a fold-like final encoding~\citep{Carette:07} of a domain. However, the significance is in the \emph{decomposition} of the domain, not the choice of encoding.\sven{Too much technical detail that is distracting the reader.}}
+\footnote{One can think of these type classes as a fold-like final encoding~\citep{Carette:07} of a domain. However, the significance is in the \emph{decomposition} of the domain, not the choice of encoding.}
 Each of the three type classes offer knobs that we will tweak to derive
 different evaluation strategies as well as static analyses.
 
@@ -410,13 +392,11 @@ will be unfolded at every occurrence of |x| in the right-hand side |e1|.
 We will shortly see examples of eager evaluation strategies that will yield from
 |d| inside |bind| instead of calling |body| immediately.
 
-We conclude this subsection with a few examples, demonstrating diverging and
-stuck traces as well as data types.
-\sven{Explain what the examples are demonstrating}.
-\sven{Here the discussion about the lazyness of trace |T| makes more sense}.
-The lazy |step| implementation means that the interpreter does \emph{not} diverge;
-rather, it produces an infinite trace.  To display these traces we
-use a function |takeT :: Int -> T v -> T (Maybe v)| to truncate them:
+We conclude this subsection with a few examples.
+First we demonstrate that our interpreter is \emph{productive}:
+we can observe prefixes of diverging traces without risking a looping
+interpreter.
+To observe prefixes, we use a function |takeT :: Int -> T v -> T (Maybe v)|:
 |takeT n τ| returns the first |n| steps of |τ| and replaces the final value
 with |Nothing| (printed as $...$) if it goes on for longer.
 
@@ -427,6 +407,14 @@ $\perform{takeName 5 $ eval (read "let x = x in x") emp :: T (Maybe (Value (ByNa
 $\perform{takeName 9 $ eval (read "let w = λy. y y in w w") emp :: T (Maybe (Value (ByName T)))}$
 \\[\belowdisplayskip]
 \noindent
+
+The reason |eval| is productive is due to the coinductive nature of |T|'s
+definition in Haskell.%
+\footnote{In a strict language, we need to introduce a thunk in
+the definition of |Step|, \eg, @Step of event * (unit -> 'a t)@.}
+Productivity requires that the monadic bind operator |(>>=)| for |T|
+guards the recursion, as in the delay monad of \citet{Capretta:05}.
+
 Data constructor values are printed as $Con(K)$, where $K$ indicates the
 |Tag|.
 Data types allow for interesting ways (type errors) to get |Stuck| (\ie, the
