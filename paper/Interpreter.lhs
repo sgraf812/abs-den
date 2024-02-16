@@ -593,7 +593,7 @@ found it more succinct to use a quantified constraint |(forall v. Trace (τ
 v))|, that is, we require a |Trace (τ v)| instance for every choice of |v|
 \sven{This sentence seems like an implementation detail. Is this really worth discussing?}
 \sg{You mean the explanation of quantified constraints? This is mostly so
-satiate people unfamiliar this GHC extension or what it is supposed to do.
+placate people unfamiliar with this GHC extension or what it is supposed to do.
 We can leave it out/shorten it if you think this explanation is unnecessary.}
 .
 Given that |τ| must also be a |Monad|, that is not an onerous requirement.
@@ -725,7 +725,7 @@ The effect of |Ret (getValue (unByValue d))| is that of stripping all |Step|s fr
 return . getValue . unByValue)|, but some co-authors prefer to see the expanded
 form.}
 \sg{Is |let d = rhs (strip d); strip = return . getValue . unByValue in ...|
-perhaps more intuitive? Simon?}
+perhaps a more intuitive decomposition than |d|/|v|? Simon?}
 
 Since nothing about |getValue| is particularly special to |T|, it lives in its
 own type class |Extract| so that we get a |HasBind| instance for different
