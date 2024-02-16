@@ -50,12 +50,15 @@ Now we have two unappealing alternatives:
   \cite{aam} recipe,
   a very fruitful framework, but one that follows the \emph{call strings}
   approach~\citep{SharirPnueli:78}, reanalysing function bodies at call sites.
-  Hence the new analysis becomes non-modular, and possibly less efficient and
-  less precise than its compositional, summary-based variant. \slpj{It's hard
+  Hence the new analysis becomes non-modular, leading to scalability problems
+  for a compiler.
+  \slpj{It's hard
   to understand this critique.  Better: ``Reimagine and reimplement the analysis as an abstraction of the
   reachable states of an operational semantics.  Now the analysis and semantics
   ``line up'' again, so the correctness proof is relatively simple.  Alas, this
   approach has significant shortcomings that we outline in \Cref{blah}''.}
+  \sg{Better? I think that connecting reanalysing function bodies with modularity
+  is pretty succinct and convincing.}
 \end{itemize}
 
 In this paper, we resolve the tension by exploring \emph{Denotational
@@ -65,7 +68,7 @@ Interpreters}~\citep{Reynolds:72} and denotational semantics.
 Our denotational interpreters generate small-step traces embellished with
 arbitrary operational detail and enjoy a straightforward encoding in typical
 higher-order programming languages.
-Static analyses arise as instantiations of the shared interpreter skeleton,
+Static analyses arise as instantiations of the generic interpreter,
 enabling succinct, shared correctness proofs just like for AAM or big-step
 definitional interpreters~\citep{adi,Keidel:18,Bodin:19}.
 However, the shared, compositional structure enables a wide range of summary
@@ -76,21 +79,22 @@ We make the following contributions:
 \begin{itemize}
 \item
   We use a concrete example (absence analysis) to argue for
-  the usefulness of correctness statements and scrutinise a summary mechanism
-  in \Cref{sec:problem}.
-  Finally, we demonstrate the difficulty of conducting an ad-hoc
-  correctness proof \wrt a non-compositional small-step operational semantics.
+  the usefulness of compositional, summary-based analysis in \Cref{sec:problem}
+  and we demonstrate the difficulty of conducting an ad-hoc correctness proof
+  \wrt a non-compositional small-step operational semantics.
 \item \Cref{sec:interp} walks through the structural definition of our shared
   denotational interpreter and its type class algebra in Haskell.
   We demonstrate the ease with which different instances of our interpreter
   endow our object language with call-by-name, variants of call-by-need and
   variants of call-by-value evaluation strategies, each producing (abstractions of)
   small-step abstract-machine traces.
-\item In \Cref{sec:abstraction} we give three examples of abstract
-  interpretations, covering a wide range of applications: Type analysis, usage
-  analysis and 0CFA control-flow analysis. \slpj{check what we end up covering}
-  The former two have interesting summary mechanisms that our framework
-  expresses in a natural way.
+\item In \Cref{sec:abstraction} we inspect usage analysis, a generalisation of
+  absence analysis in \Cref{sec:problem}, as an example of an abstract
+  interpretation.
+  We highlight the difference between operational property and the summary-based
+  static analysis approximating it.
+  Further examples in the Appendix comprise Type Analysis and 0CFA control-flow
+  analysis, demonstrating the wide range of applicability of our framework.
 \item A concrete instantiation of a denotational interpreter is \emph{total}
   if it coinductively yields a (possibly-infinite) trace for every input
   program, including ones that diverge.
@@ -110,7 +114,8 @@ We make the following contributions:
   This enables us to finally prove usage analysis correct \wrt the by-name
   and by-need semantics in a third of a page, building on reusable
   semantics-specific theorems.
+  \sg{Redo when I have cut it down}
 \item
-  We compare to a variety of other related approaches in \Cref{sec:related-work}.
+  We compare to the enormous body of related approaches in \Cref{sec:related-work}.
   %TODO say more?
 \end{itemize}
