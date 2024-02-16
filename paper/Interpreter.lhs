@@ -113,7 +113,7 @@ the concrete semantics.
 \sven{This sentence is hard to understand without context. I suppose the point is: Our generic denotational simplifies the soundness proofs of derived static analyses, as the proofs require no reasoning about the genric interpreter, only about its instances.}
 
 Denotational interpreters can be implemented in any higher-order language such as OCaml, Scheme or Java with explicit thunks, but we picked Haskell for convenience.%
-\footnote{We extract from this document a runnable Haskell file which we add as a Supplement, containing the complete definitions. Furthermore, the (terminating) interpreter outputs are directly generated from this extract.}
+\footnote{We getValue from this document a runnable Haskell file which we add as a Supplement, containing the complete definitions. Furthermore, the (terminating) interpreter outputs are directly generated from this getValue.}
 
 \begin{figure}
 \begin{minipage}{0.49\textwidth}
@@ -429,23 +429,34 @@ $\perform{eval (read "let zro = Z() in zro zro") emp :: D (ByName T)}$
 \subsection{More Evaluation Strategies}
 \label{sec:evaluation-strategies}
 
-\sven{Start with the motivation for this section:
-In this section, we derive the evaluation strategies call-by-name, call-by-need, call-by-value, clearvoyant call-by-value, ... \emph{from the same generic denotational interpreter}. This has the following benefits over traditional approaches that describe evaluation strategies with separate interpreters:
-\begin{itemize}
-\item Unified understanding: It is easier to understand how different evaluation strategies relate to each other if they are derived from the same generic interpreter
-\item Shared Meta Theory: Proofs about the generic denotational interpreter carry over to different evaluation strategies more easily
-\item Unified Program Transformations: Program transformations such as optimizations and automated refactorings can be proven correct over multiple evaluation strategies simulaneously.
-\item ...
-\end{itemize}}
+%\sven{Start with the motivation for this section:
+%In this section, we derive the evaluation strategies call-by-name, call-by-need, call-by-value, clearvoyant call-by-value, ... \emph{from the same generic denotational interpreter}. This has the following benefits over traditional approaches that describe evaluation strategies with separate interpreters:
+%\begin{itemize}
+%\item Unified understanding: It is easier to understand how different evaluation strategies relate to each other if they are derived from the same generic interpreter
+%\item Shared Meta Theory: Proofs about the generic denotational interpreter carry over to different evaluation strategies more easily
+%\item Unified Program Transformations: Program transformations such as optimizations and automated refactorings can be proven correct over multiple evaluation strategies simulaneously.
+%\item ...
+%\end{itemize}}
+%\sg{See slack; Let's motivate Unified Understanding and leave the rest. (See below.)
+%Sadly, no time nor space to substantiate those claims.}
 
 By varying the |HasBind| instance of our type |D|, we can endow our language
 |Exp| with different evaluation strategies.
+The appeal of that is firstly that it is possible to do so.
+Furthermore, we thus introduce the --- to our knowledge --- first provably
+adequate denotational semantics for call-by-need.
+We will go on to prove usage analysis sound \wrt by-need evaluation in
+\Cref{sec:soundness}.
+The different by-value semantics demonstrate versatility, in that our
+approach is applicable to strict languages as well and thus can be used to study
+the differences between by-need and by-value evaluation.
+
 Following a similar approach as~\citet{adi}, we maximise reuse by instantiating
 the same |D| at different wrappers of |T|, rather than reinventing |Value| and |T|.
 
 \begin{figure}
 \begin{spec}
-data ByName τ v = ByName { unByName :: τ v }
+newtype ByName τ v = ByName { unByName :: τ v }
 instance Monad τ => Monad (ByName τ) where ...
 instance Trace (τ v) => Trace (ByName τ v) where ...
 instance HasBind (D (ByName τ)) where ...
@@ -469,100 +480,34 @@ instance HasBind (D (ByName τ)) where
 
 \subsubsection{Call-by-name}
 
-We redefine\sven{Redefinitions are very confusing, because readers may miss them. Why don't we present this as the original definition of |DName| to begin with?} by-name semantics via the |ByName| \emph{trace transformer}
-in \Cref{fig:by-name}\sven{Figure 6 does not contain any new information. Literally all implementations are omitted. I would remove Figure 6 to save space.},%
-\footnote{The Supplement defines these datatypes as |newtype|s.\sven{So why do you define them as |data| types here? Just define them as |newtype|s here and omit this footnote.}}
+We redefine
+%\sven{Redefinitions are very confusing, because readers may miss them. Why don't we present this as the original definition of |DName| to begin with?}
+%\sg{I'm hesitant because the reader then is exposed early to a deep stack
+%of type synonyms/newtypes. We would need to write |ByName T (Maybe (Value
+%(ByName T)))| in a couple of places; seems a bit too much faff.}
+by-name semantics via the |ByName| \emph{trace transformer}
+in \Cref{fig:by-name},
+%\sven{Figure 6 does not contain any new information. Literally all implementations are omitted. I would remove Figure 6 to save space.}
+%\sg{Doubtful that doing so saves much space, and the implications |Trace τ => Trace (ByName τ)| and |Monad τ => ByName τ| are still useful.}
 so called because |ByName τ| inherits its |Monad| and |Trace|
 instance from |τ| (busywork we omit) and reminiscent of \citet{Darais:15}.
 Our old |DName| can be recovered as |D (ByName T)|.
 
 \begin{figure}
-\begin{code}
--- \sven{Why do you show the Event type again? Doesn't it stay the same throughout the evaluation strategies? If this is the case, I would just omit it here.}
-ifPoly(data ByValue τ v = ByValue { unByValue :: τ v }; data Event = ... | Let0)
--- \sven{If you don't include any details in the |Monad| and |Trace| instances, I would just omit them, because as is they don't provide any new information.}
-ifPoly(instance Monad τ => Monad (ByValue τ) where ...)
-instance Trace (τ v) => Trace (ByValue τ v) where {-" ... \iffalse "-}
-  step e (ByValue τ) = ByValue (step e τ) {-" \fi "-}
-
--- \sven{Function |extract| gets the value of a trace. So maybe |getValue| is a better name? Also it's definition is trivial, so maybe its code can be omitted entirely.}
-class Extract τ where extract :: τ v -> v
-instance Extract T where extract (Ret v) = v; extract (Step _ τ) = extract τ
-
-instance (Trace (D (ByValue τ)), Monad τ, Extract τ) => HasBind (D (ByValue τ)) where
-  bind rhs body = step Let0 (d >>=  \v1 -> body (return v1)) -- \sven{Why not use do notation?}
-                                   -- \sven{Maybe we could use a combinator like |fix| to make it clearer that we are computing a fixpoint here.}
-                                   where  d = rhs (return v)         :: D (ByValue τ)
-                                          v = extract (unByValue d)  :: Value (ByValue τ)
-\end{code}
-%if style == newcode
-\begin{code}
-newtype ByValue τ v = ByValue { unByValue :: τ v }
-  deriving (Functor,Applicative,Monad)
-\end{code}
-%endif
-\\[-1em]
-\caption{Call-by-value }
-\label{fig:by-value}
-\end{figure}
-
-\subsubsection{Call-by-value}
-
-Call-by-value eagerly evaluates a let-bound RHS and then substitutes its
-\emph{value}, rather than the reduction trace that led to the value, into every
-use site. %\slpj{I could not follow this sentence.} \sg{Better?}
-
-The call-by-value evaluation strategy is implemented with the |ByValue| trace transformer shown in \Cref{fig:by-value}.
-Function |bind| first yields a |Let0| event, indicating in the
-trace that the right-hand side of a |let| is evaluated first.
-Then monadic bind |v <- d; body (return v1)| yields steps from |d|
-(discussed shortly) until its value |v1 :: Value (ByValue τ)| is reached, which
-is then passed |return|ed (\ie, wrapped in |Ret|) to the let |body|.
-Note that the steps in |d| are yielded \emph{eagerly}, and only once, rather
-than duplicating the trace at every use site in |body|, as the by-name form
-|body d| would.
-
-The |d :: D (ByValue τ)| denotes the recursive semantics of the right-hand side
-and is defined by mutual recursion with |v :: Value (ByValue τ)|.
-Consider the case |τ = T|; then |return = Ret| and the |d = rhs (Ret v)| for
-the value |v| at the end of the trace |d|.
-The purpose of the type class instance method |extract :: T v -> v| applied to |d| is supposed
-to run down |d| and return the  |v|.%
-\footnote{The keen reader may have noted that we could use |Extract| to define a
-|MonadFix| instance for deterministic |τ|.}
-
-Since nothing about |extract| is particularly special to |T|, it lives in its
-own type class |Extract| so that we get a |HasBind| instance for different
-types of |Trace|s, such as more abstract ones in \Cref{sec:abstraction}.
-
-Let us trace $\Let{i}{(\Lam{y}{\Lam{x}{x}})~i}{i~i}$ for call-by-value:
-
-< ghci> eval (read "let i = (λy.λx.x) i in i i") emp :: D (ByValue T)
-$\perform{eval (read "let i = (λy.λx.x) i in i i") emp :: D (ByValue T)}$
-\\[\belowdisplayskip]
-\noindent
-The beta reduction of $(\Lam{y}{\Lam{x}{x}})~i$ now happens once within the
-$\LetOT$/$\LetIT$ bracket; the two subsequent $\LookupT$ events immediately halt
-with a value.
-
-Alas, this model of call-by-value does not yield a total interpreter!
-Consider the case when the right-hand side accesses its value before yielding
-one, \eg,
-
-< ghci> takeT 5 $ eval (read "let x = x in x x") emp :: ByValue T (Maybe (Value (ByValue T)))
-$\LetOT\xhookrightarrow{\hspace{1.1ex}}\LookupT(x)\xhookrightarrow{\hspace{1.1ex}}\LetIT\xhookrightarrow{\hspace{1.1ex}}\AppIT\xhookrightarrow{\hspace{1.1ex}}\LookupT(x)\xhookrightarrow{\hspace{1.1ex}}\texttt{\textasciicircum{}CInterrupted}$
-\\[\belowdisplayskip]
-\noindent
-This loops forever unproductively, rendering the interpreter unfit as a
-denotational semantics.
-We will discuss a remedy in the form of lazy initialisation in
-\Cref{sec:lazy-init}.
-
-\begin{figure}
+\begin{flushleft}
+\sven{This is just the state monad. So why not define it by |newtype ByNeed
+τ v = ByNeed (State (Heap (ByNeed τ)) v)|. Then you could also omit the
+definitions of |get| and |put|.}
+\sg{Have a look at 0d104f30cdd5eb6 :).
+I like the current version much better because there is far less newtype
+wrapping, and there is nothing we gain by using |StateT|, other than Simon
+wondering how StateT and |getN|,|putN| expands.
+Do also note that we derive |Monad| etc. |via StateT|, so it's not even about
+reuse.}
+\end{flushleft}
 \begin{code}
 type Addr = Int; type Heap τ = Addr :-> D τ; nextFree :: Heap τ -> Addr
--- \sven{This is just the state monad. So why not define it by |newtype ByNeed τ v = ByNeed (State (Heap (ByNeed τ)) v)|. Then you could also omit the definitions of |get| and |put|.}
-ifCodeElse(newtype ByNeed τ v)(data ByNeed τ v) = ByNeed { unByNeed :: Heap (ByNeed τ) -> τ (v, Heap (ByNeed τ)) }
+newtype ByNeed τ v = ByNeed { unByNeed :: Heap (ByNeed τ) -> τ (v, Heap (ByNeed τ)) }
 
 getN  :: Monad τ => ByNeed τ (Heap (ByNeed τ));         getN    = ByNeed (\ μ -> return (μ, μ))
 putN  :: Monad τ => Heap (ByNeed τ) -> ByNeed τ (); ^^  putN μ  = ByNeed (\ _ -> return ((), μ))
@@ -601,38 +546,56 @@ deriving via StateT (Heap (ByNeed τ)) τ instance Monad τ    => Monad (ByNeed 
 
 \subsubsection{Call-by-need}
 
-The trace transformer |ByNeed| in \Cref{fig:by-need} defines a call-by-need
-evaluation strategy by introducing a stateful heap and memoisation to |τ|
-by embedding a standard state transformer monad,%
+The use of a stateful heap is essential to the call-by-need evaluation strategy
+in order to enable memoisation.
+So how do we vary |θ| such that |D θ| accomodates state?
+We certainly cannot perform the heap update by updating entries in |ρ|,
+because those entries are immutable once inserted, and we do not want to change
+the generic interpreter.
+That rules out $|θ| \cong |T|$ (as for |ByName T|), because then repeated
+occurrences of the variable |x| must yield the same trace |ρ ! x|.
+However, the whole point of memoisation is that every evaluation of |x| after
+the first one leads to a potentially different, shorter trace.
+This implies we have to \emph{paramaterise} every occurrence of |x| over the
+current heap |μ| at the time of evaluation, and every evaluation of |x| must
+subsequently update this heap with its value, so that the next evaluation
+of |x| returns the value directly.
+In other words, we need a representation $|D θ| \cong |Heap -> T (Value θ,
+Heap)|$.
+
+Our trace transformer |ByNeed| in \Cref{fig:by-need} solves this type equation
+via |θ := ByNeed T|.
+It embeds a standard state transformer monad,%
 \footnote{Indeed, we derive its monad instance |via StateT (Heap (ByNeed τ))
 τ|~\citep{Blondal:18}.}
 whose key operations |getN| and |putN| are given in \Cref{fig:by-need}.
 
-\sven{The storyline of this subsection can be improved.
-Currently, in the following paragraph it is unclear what you are getting at.
-I propose the following storyline:
-\begin{enumerate}
-\item Explain what the goal is you want to achieve: Define denotation for call-by-need languages
-\item Explain the problems you run into when doing this naively: When defining the denotation of an expression as a trace this does not work because ...
-\item Explain how you solved the problem: Therefore, we design the denotation as a stateful function returning a trace. This stateful function is the result of solving the recurisve equation $|(Heap θ -> τ (Value θ, Heap θ))| \cong |D θ|$.
-\item Explain the details of your solution (explain fig 8).
-\end{enumerate}}
-
-|ByNeed τ| is best thought of as an answer to the request ``give me a |θ| such
-that |D θ| models stateful computations in |D θ|''.
-More formally, |θ := ByNeed τ| satisfies the recursion equation
-$|(Heap θ -> τ (Value θ, Heap θ))| \cong |D θ|$ via |ByNeed| and its inverse
-|unByNeed|\sven{You use this as a motivation for your definition of the denotation of call-by-value languages. But to me it is unclear what insight this provides. What can the reader learn from that the denotation is the solution to this recursive equation?}.
+%\sven{The storyline of this subsection can be improved.
+%Currently, in the following paragraph it is unclear what you are getting at.
+%I propose the following storyline:
+%\begin{enumerate}
+%\item Explain what the goal is you want to achieve: Define denotation for call-by-need languages
+%\item Explain the problems you run into when doing this naively: When defining the denotation of an expression as a trace this does not work because ...
+%\item Explain how you solved the problem: Therefore, we design the denotation as a stateful function returning a trace. This stateful function is the result of solving the recurisve equation $|(Heap θ -> τ (Value θ, Heap θ))| \cong |D θ|$.
+%\item Explain the details of your solution (explain fig 8).
+%\end{enumerate}}
+%\sg{Thanks. Better now, I think. Do you agree?}
+%\sven{You use this as a motivation for your definition of the denotation of call-by-value languages. But to me it is unclear what insight this provides. What can the reader learn from that the denotation is the solution to this recursive equation?}
+%\sg{I think I addresses this now with the leading para.}
 
 So the denotation of an expression is no longer a trace, but rather a
-\emph{stateful function returning a trace}, where the carried state
-|Heap (ByNeed τ)| implements the heap in which call-by-need thunks are
-allocated.
+\emph{stateful function returning a trace} with state |Heap (ByNeed τ)| in
+which to allocate call-by-need thunks.
 The |Trace| instance of |ByNeed τ| simply forwards to that of |τ| (\ie, often
 |T|), pointwise over heaps.
 Doing so needs a |Trace| instance for |τ (Value (ByNeed τ), Heap (ByNeed τ))|, but we
 found it more succinct to use a quantified constraint |(forall v. Trace (τ
-v))|, that is, we require a |Trace (τ v)| instance for every choice of |v|\sven{This sentence seems like an implementation detail. Is this really worth discussing?}.
+v))|, that is, we require a |Trace (τ v)| instance for every choice of |v|
+\sven{This sentence seems like an implementation detail. Is this really worth discussing?}
+\sg{You mean the explanation of quantified constraints? This is mostly so
+satiate people unfamiliar this GHC extension or what it is supposed to do.
+We can leave it out/shorten it if you think this explanation is unnecessary.}
+.
 Given that |τ| must also be a |Monad|, that is not an onerous requirement.
 
 The key part is again the implementation of |HasBind| for |D (ByNeed τ)|,
@@ -643,7 +606,13 @@ Both |rhs| and |body| are called with |fetchN a|, a denotation that looks up |a|
 in the heap and runs it.
 If we were to omit the |memo a| action explained next, we would thus have
 recovered another form of call-by-name semantics based on mutable state instead
-of guarded fixpoints such as in |ByName| and |ByValue|\sven{I don't understand what we learn from this sentence that advances the storyline. The goal of this section is to understand |ByNeed| and not |ByName| or |ByValue|}.
+of guarded fixpoints such as in |ByName| and |ByValue|
+\sven{I don't understand what we learn from this sentence that advances the storyline. The goal of this section is to understand |ByNeed| and not |ByName| or |ByValue|}
+\sg{The point is to say ``if we were to omit |memo|, this would be just another
+by-name semantics, which is something you already know.''. Would say this is
+an unnecessary point? Otherwise, how would you improve? Or is it just the
+contrasting of fixpoint combinators (guarded recursion vs. mutable state) that
+you find distracting?}
 The whole purpose of the |memo a d| combinator then is to \emph{memoise} the
 computation of |d| the first time we run the computation, via |fetchN a| in the
 |Var| case of |eval|.
@@ -660,15 +629,26 @@ For now, our goal is not to formalise this optimisation, but rather to show
 adequacy \wrt an established semantics.}
 
 Although the code is carefully written, it is worth stressing how
-compact and expressive it is.  We were able to move from traces to stateful traces
-just by wrapping traces |T| in a state transformer |ByNeed|, without modifying
-the main |eval| function at all\sven{You need to better describe why this is a benefit of this approach: Traditionally, different evaluation strategies were described with separate interpreters. This has the following downsides ... Here we derive all these evaluation strategies from \emph{the same interpreter} by instantiating it differently. From this we gain ...}\sven{This needs to be moved to the top of the section 4.3 because it motivates the section}.%
+compact and expressive it is.
+We were able to move from traces to stateful traces just by wrapping traces |T|
+in a state transformer |ByNeed|, without modifying the main |eval| function at
+all.
+In doing so, we provide the simplest encoding of a denotational by-need semantics
+that we know of.%
 \footnote{It is worth noting that nothing in our approach is particularly specific to |Exp| or
 |Value|!
 We have built similar interpreters for PCF, where the @rec@, @let@ and
 non-atomic argument constructs can simply reuse |bind| to recover a
 call-by-need semantics.
 The |Event| type needs semantics- and use-case-specific adjustment, though.}
+\sven{You need to better describe why this is a benefit of this approach:
+Traditionally, different evaluation strategies were described with separate
+interpreters. This has the following downsides ... Here we derive all these
+evaluation strategies from \emph{the same interpreter} by instantiating it
+differently. From this we gain ...}
+\sven{This needs to be moved to the top of the section 4.3 because it motivates
+the section} \\
+\sg{I might have sufficiently addressed this point now.}
 
 Here is an example evaluating $\Let{i}{(\Lam{y}{\Lam{x}{x}})~i}{i~i}$, starting
 in an empty heap:
@@ -687,7 +667,94 @@ reduction.
 
 \begin{figure}
 \begin{code}
-ifCodeElse(newtype ByVInit τ v)(data ByVInit τ v) = ByVInit { unByVInit :: Heap (ByVInit τ) -> τ (v, Heap (ByVInit τ)) }
+newtype ByValue τ v = ByValue { unByValue :: τ v }
+ifPoly(instance Monad τ => Monad (ByValue τ) where ...)
+instance Trace (τ v) => Trace (ByValue τ v) where {-" ... \iffalse "-}
+  step e (ByValue τ) = ByValue (step e τ) {-" \fi "-}
+
+class Extract τ where getValue :: τ v -> v
+instance Extract T where getValue (Ret v) = v; getValue (Step _ τ) = getValue τ
+
+instance (Trace (D (ByValue τ)), Monad τ, Extract τ) => HasBind (D (ByValue τ)) where
+  bind rhs body = step Let0 (do  v1 <- d; body (return v1))
+                                 where  d = rhs (return v)          :: D (ByValue τ)
+                                        v = getValue (unByValue d)  :: Value (ByValue τ)
+\end{code}
+%if style == newcode
+\begin{code}
+deriving instance Functor τ     => Functor (ByValue τ)
+deriving instance Applicative τ => Applicative (ByValue τ)
+deriving instance Monad τ       => Monad (ByValue τ)
+\end{code}
+%endif
+\\[-1em]
+\caption{Call-by-value }
+\label{fig:by-value}
+\end{figure}
+
+\subsubsection{Call-by-value}
+
+Call-by-value eagerly evaluates a let-bound RHS and then substitutes its
+\emph{value}, rather than the reduction trace that led to the value, into every
+use site.
+
+The call-by-value evaluation strategy is implemented with the |ByValue| trace transformer shown in \Cref{fig:by-value}.
+Function |bind| defines a denotation |d :: D (ByValue τ)| of the right-hand
+side by mutual recursion with |v :: Value (ByValue τ)| that we will discuss
+shortly.
+
+As its first action, |bind| yields a |Let0| event, announcing in the trace that
+the right-hand side of a |let| is to be evaluated.
+Then monadic bind |v1 <- d; body (return v1)| yields steps from the right-hand
+side |d| until its value |v1 :: Value (ByValue τ)| is reached, which is then
+passed |return|ed (\ie, wrapped in |Ret|) to the let |body|.
+Note that the steps in |d| are yielded \emph{eagerly}, and only once, rather
+than duplicating the trace at every use site in |body|, as the by-name form
+|body d| would.
+
+To understand the recursive definition of the denotation of the right-hand side |d|
+and its value |v|,
+consider the case |τ = T|.
+Then |return = Ret| and we get |d = rhs (Ret v)| for the value |v| at the end of
+the trace |d|, as computed by the type class instance method |getValue :: T v ->
+v|.%
+\footnote{The keen reader may have noted that we could use |Extract| to define a
+|MonadFix| instance for deterministic |τ|.}
+The effect of |Ret (getValue (unByValue d))| is that of stripping all |Step|s from |d|.%
+\footnote{We could have defined |d| as one big guarded fixpoint |fix (rhs .
+return . getValue . unByValue)|, but some co-authors prefer to see the expanded
+form.}
+\sg{Is |let d = rhs (strip d); strip = return . getValue . unByValue in ...|
+perhaps more intuitive? Simon?}
+
+Since nothing about |getValue| is particularly special to |T|, it lives in its
+own type class |Extract| so that we get a |HasBind| instance for different
+types of |Trace|s, such as more abstract ones in \Cref{sec:abstraction}.
+
+Let us trace $\Let{i}{(\Lam{y}{\Lam{x}{x}})~i}{i~i}$ for call-by-value:
+
+< ghci> eval (read "let i = (λy.λx.x) i in i i") emp :: D (ByValue T)
+$\perform{eval (read "let i = (λy.λx.x) i in i i") emp :: D (ByValue T)}$
+\\[\belowdisplayskip]
+\noindent
+The beta reduction of $(\Lam{y}{\Lam{x}{x}})~i$ now happens once within the
+$\LetOT$/$\LetIT$ bracket; the two subsequent $\LookupT$ events immediately halt
+with a value.
+
+Alas, this model of call-by-value does not yield a total interpreter!
+Consider the case when the right-hand side accesses its value before yielding
+one, \eg,
+
+< ghci> takeT 5 $ eval (read "let x = x in x x") emp :: ByValue T (Maybe (Value (ByValue T)))
+$\LetOT\xhookrightarrow{\hspace{1.1ex}}\LookupT(x)\xhookrightarrow{\hspace{1.1ex}}\LetIT\xhookrightarrow{\hspace{1.1ex}}\AppIT\xhookrightarrow{\hspace{1.1ex}}\LookupT(x)\xhookrightarrow{\hspace{1.1ex}}\texttt{\textasciicircum{}CInterrupted}$
+\\[\belowdisplayskip]
+\noindent
+This loops forever unproductively, rendering the interpreter unfit as a
+denotational semantics.
+
+\begin{figure}
+\begin{code}
+newtype ByVInit τ v = ByVInit { unByVInit :: Heap (ByVInit τ) -> τ (v, Heap (ByVInit τ)) }
 instance (Monad τ, forall v. Trace (τ v)) => HasBind (D (ByVInit τ)) where
   bind rhs body = do  μ <- getV
                       let a = nextFree μ
@@ -724,7 +791,7 @@ memoV a d = d >>= \v -> ByVInit (upd v)
 \subsubsection{Lazy Initialisation and Black-holing}
 \label{sec:lazy-init}
 
-\sven{Why do you discuss this after call-by-need? The storyline would be more cohesive if this subsection would appear directly after call-by-value.}
+%\sven{Why do you discuss this after call-by-need? The storyline would be more cohesive if this subsection would appear directly after call-by-value.}
 Recall that our simple |ByValue| transformer above yields a potentially looping
 interpreter.
 Typical strict languages work around this issue in either of two ways:
@@ -751,7 +818,7 @@ runClair :: D (Clairvoyant T) -> T (Value (Clairvoyant T))
 instance (Extract τ, Monad τ, forall v. Trace (τ v)) => HasBind (D (Clairvoyant τ)) where
   bind rhs body = Clairvoyant (skip <|> let') >>= body
     where  skip = return (Clairvoyant empty)
-           let' = fmap return $ step Let0 $ ... ^^ fix ... rhs ... extract ...
+           let' = fmap return $ step Let0 $ ... ^^ fix ... rhs ... getValue ...
 \end{spec}
 %if style == newcode
 \begin{code}
@@ -790,7 +857,7 @@ rightT (ParT τ) = ParT $ τ >>= \case
   _ -> undefined
 
 parFix :: (Extract τ, Monad τ) => (Fork (ParT τ) a -> ParT τ a) -> ParT τ a
-parFix f = ParT $ fix (unParT . f . extract) >>= \case
+parFix f = ParT $ fix (unParT . f . getValue) >>= \case
     Empty -> pure Empty
     Single a -> pure (Single a)
     Fork _ _ -> pure (Fork (parFix (leftT . f)) (parFix (rightT . f)))
@@ -808,7 +875,7 @@ headParT τ = go τ
     go (ParT τ) = τ >>= \case
       Empty    -> pure Nothing
       Single a -> pure (Just a)
-      Fork l r -> case extract (go l) of
+      Fork l r -> case getValue (go l) of
         Nothing -> go r
         Just _  -> go l
 

@@ -83,7 +83,7 @@ instance Monad UT where
 \end{code}
 %if style == newcode
 \begin{code}
-instance Extract UT where extract (MkUT _ v) = v
+instance Extract UT where getValue (MkUT _ v) = v
 \end{code}
 %endif
 \end{minipage}
