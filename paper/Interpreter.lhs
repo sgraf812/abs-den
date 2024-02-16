@@ -43,11 +43,10 @@ instance Show Event where
 instance Show a => Show (T a) where
   show (Step e t) = show e ++ "\\xhookrightarrow{\\hspace{1.1ex}}" ++ show t
   show (Ret a) = "\\langle "++show a++"\\rangle "
---   show (collect -> (es, a)) = case es of
---     [] -> "\\langle "++show a++"\\rangle "
---     _  -> "\\smallstep" ++ showListWith shows es [] ++ "\\langle "++show a++"\\rangle "
--- collect (Step e (collect -> (es,a))) = (e:es,a)
--- collect (Ret a)                      = ([],a)
+instance {-# OVERLAPPING #-} Show a => Show (T (Maybe a)) where
+  show (Step e t) = show e ++ "\\xhookrightarrow{\\hspace{1.1ex}}" ++ show t
+  show (Ret Nothing)  = "..."
+  show (Ret (Just a)) = "\\langle "++show a++"\\rangle "
 instance Show (Value τ) where
   show (Fun _) = "\\lambda"
   show (Con k _) = "Con(" ++ show k ++ ")"
@@ -84,45 +83,37 @@ takeName n (ByName τ) = takeT n τ
 \section{A Denotational Interpreter}
 \label{sec:interp}
 
-In this section, we present the main contribution of this work, namely the
-skeleton of a \emph{compositional semantics} for a functional language which we
-can instantiate with different semantic domains.
+In this section, we present the main contribution of this work, namely a
+generic \emph{denotational interpreter}%
+\footnote{This term was coined by \citet{Might:10}.
+We find it fitting, because a denotational interpreter is both a
+\emph{denotational semantics}~\citep{ScottStrachey:71} as well as a total
+\emph{definitional interpreter}~\citep{Reynolds:72}.}
+for a functional language which we can instantiate with different semantic
+domains.
 The choice of semantic domain determines the \emph{evaluation strategy}
 (call-by-name, call-by-value, call-by-need) and the degree to which
 \emph{operational detail} can be observed.
 Yet different semantic domains give rise to useful \emph{summary-based} static
 analyses such as usage analysis in \Cref{sec:abstraction}, all from the same
 interpreter skeleton.
-Proving a static analysis correct \wrt a dynamic semantics merely needs to prove
-statements about the respective semantic domains, rather than the shared
-skeleton (\cf \Cref{sec:soundness}), which is a drastic simplification compared
-to hand-rolling a preservation-style proof as outlined in \Cref{sec:problem}
-\sven{This sentence is hard to understand without context. I suppose the point is: Our generic denotational simplifies the soundness proofs of derived static analyses, as the proofs require no reasoning about the genric interpreter, only about its instances.}.
+Our generic denotational interpreter simplifies the soundness proofs of derived
+static analyses because it modularly decomposes into a large preservation proof
+(as in \Cref{sec:problem}), to be done once per semantics, and a comparatively
+small proof involving the analysis domain.
+\sg{I tried to improve, but fear it is even more inscrutible than before. Alternative:}
+Our generic denotational interpreter simplifies the soundness proofs of derived
+static analyses because the proof only involves the operations of the analysis
+domain rather than their composition in the interpreter and how they relate to
+the concrete semantics.
+%Proving a static analysis correct \wrt a dynamic semantics merely needs to prove
+%statements about the respective semantic domains, rather than the shared
+%skeleton (\cf \Cref{sec:soundness}), which is a drastic simplification compared
+%to hand-rolling a preservation-style proof as outlined in \Cref{sec:problem}
+\sven{This sentence is hard to understand without context. I suppose the point is: Our generic denotational simplifies the soundness proofs of derived static analyses, as the proofs require no reasoning about the genric interpreter, only about its instances.}
 
-%In this section, we present the main contribution of this work, namely the
-%skeleton of a \emph{compositional semantics} for a functional language, the
-%semantic domain of which can express sufficient \emph{operational
-%detail} such that a \emph{summary-based} static analysis such as usage
-%analysis in \Cref{sec:abstraction} can be derived as an \emph{abstract
-%interpretation}.
-\sven{The second half of this sentence is too technical for the
-opening of a section. Instead, you should start with explaining at a high-level
-why this interpreter is interesting:
-\begin{itemize}
-\item Can express multiple evaluation semantics (strict, by-need, by-name, ...)
-\item Can be instantiated to derive multiple summary-based analyses (Usage anaysis, ...)
-\item Simplifies the soundness proofs of summary-based analyses (hint at why it is simpler)
-\end{itemize}}
-\sg{Indeed. Better?}
-\sven{Yes, much better}
-
-Following~\citet{Might:10}, we call this semantics a \emph{Denotational Interpreter} because it qualifies both as a denotational semantics~\citep{ScottStrachey:71} as well as a total definitional interpreter~\citep{Reynolds:72}.
-Such an interpreter can be implemented in any higher-order language such as OCaml, Scheme or Java with explicit thunks, but we picked Haskell for convenience.
+Denotational interpreters can be implemented in any higher-order language such as OCaml, Scheme or Java with explicit thunks, but we picked Haskell for convenience.%
 \footnote{We extract from this document a runnable Haskell file which we add as a Supplement, containing the complete definitions. Furthermore, the (terminating) interpreter outputs are directly generated from this extract.}
-
-Since our work touches an enormous amount of exciting Related Work, we will make
-liberal use of footnotes to make tangential remarks for expert readers that
-distract from the main flow; these can freely be ignored on first reading\sven{You don't need to spell this out}.
 
 Traditionally, denotational semantics is expressed as a mathematical function |dsem :: Exp -> (Name :-> D) -> D|.
 \sven{This helps to motivate the type of the interpreter in Figure 5. Consider moving this explanation to the beginning of section 4.2}
@@ -197,7 +188,7 @@ It is possible to describe evaluation cardinality as a property of the traces
 thus generated, as required for a correctness proof of usage analysis.
 We choose |DName|, defined below, as the first example of such a semantic domain,
 because it is simple and illustrative of the approach.
-Instantiated at |DName|, our interpreter skeleton will produce precisely the
+Instantiated at |DName|, our generic interpreter will produce precisely the
 traces of the by-name variant of the Krivine machine in \Cref{fig:lk-semantics}.
 %In \Cref{sec:evaluation-strategies} we will give semantic domains for by-value
 %and by-need semantics as well, and in \Cref{sec:abstraction} we obtain static
@@ -209,8 +200,7 @@ We can define the semantic domain |DName| for a call-by-name variant of our lang
 \footnote{For a realistic implementation, we would define |D| as a data type to
 keep type class resolution decidable and non-overlapping. We will however stick
 to a |type| synonym in this presentation in order to elide noisy wrapping and
-unwrapping of constructors.\sven{I would omit this technical explanation. It
-just distracts the reader.}}
+unwrapping of constructors.}
 
 \begin{minipage}{0.62\textwidth}
 \begin{code}
@@ -250,13 +240,14 @@ Note that the choice of |Event| is use-case (\ie analysis) specific and suggests
 a spectrum of intensionality, with |data Event = Unit| on the more abstract end
 of the spectrum and arbitrary syntactic detail attached to each of |Event|'s
 constructors at the intensional end of the spectrum.%
-\footnote{If our language had facilities for input/output and more general side-effects, we could have started from a more elaborate trace construction such as (guarded) interaction trees~\citep{interaction-trees,gitrees}.\sven{Too much technical detail that is distracting the reader.}}
+\footnote{If our language had facilities for input/output and more general
+side-effects, we could have started from a more elaborate trace construction
+such as (guarded) interaction trees~\citep{interaction-trees,gitrees}.}
 
 The coinductive nature of |T|'s definition in Haskell is crucial to our
 approach,%
 \footnote{In a strict language, we would have introduced a thunk in
-the definition of |Step|, \eg, @Step of event * (unit -> 'a t)@.
-\sven{Too much technical detail that distracts from the story line.}}
+the definition of |Step|, \eg, @Step of event * (unit -> 'a t)@.}
 because diverging traces can be expressed as an infinite, but productive,
 nesting of |Step|s\sven{This discussion should go into section 4.2. where you show the example of a diverging trace.}.
 The |Monad| instance of |T| implements the monadic bind operator |(>>=)| by
@@ -363,7 +354,7 @@ below.}
 \sven{I still think that we should introduce the type of |eval| here. This allows the reader to directly compare our generic denotational interpreter to traditional denotational interpreters.}
 
 To derive both dynamic semantics and static analysis as instances of the same
-interpreter skeleton |eval|, we need to vary the type of its semantic domain,
+generic interpreter |eval|, we need to vary the type of its semantic domain,
 which is naturally expressed using type-class overloading, thus:
 \[
 |eval  ::  (Trace d, Domain d, HasBind d) =>  Exp -> (Name :-> d) -> d|
@@ -384,8 +375,12 @@ this:
 $\perform{eval (read "let i = λx.x in i i") emp :: D (ByName T)}$,
 \\[\belowdisplayskip]
 \noindent
-where $\langle\lambda\rangle$\sven{Is it possible to spell out what the lambda is? Its just $\langle λx.x \rangle$, correct? I know that it its not possible in Haskell, but maybe just here in the paper.} means that the trace ends in a |Fun| value. This is
-in direct correspondence to the earlier call-by-name small-step trace
+where $\langle\lambda\rangle$
+\sven{Is it possible to spell out what the lambda is? Its just $\langle λx.x \rangle$, correct? I know that it its not possible in Haskell, but maybe just here in the paper.}
+means that the trace ends in a |Fun| value.
+We cannot in general print |DName|s or |Fun|ctions thereof, but in this case the result would be $\langle \Lam{x}{x} \rangle$.
+\sg{Is this clarifying sentence helpful? I don't really think so...}
+This is in direct correspondence to the earlier call-by-name small-step trace
 \labelcref{ex:trace} in \Cref{sec:op-sem}.
 
 The definition of |eval|, given in \Cref{fig:eval}, is by structural recursion over the input expression.
@@ -423,34 +418,7 @@ The lazy |step| implementation means that the interpreter does \emph{not} diverg
 rather, it produces an infinite trace.  To display these traces we
 use a function |takeT :: Int -> T v -> T (Maybe v)| to truncate them:
 |takeT n τ| returns the first |n| steps of |τ| and replaces the final value
-with |Nothing| (printed as $\bot$) if it goes on for longer.
-%\slpj{Should this not be |:: T (Maybe (Value T))| below?} \sg{Yes, thanks}
-\sven{
-This is different to traditional denotational semantics, right?
-Traditional denotational semantics would return $\bot$ if and only if the program does not terminate.
-Here |takeT| may return $\bot$, even if the program terminates.
-Is this a problem?
-}
-\sg{
-TLDR; Yes, quite different. No, no problem. Perhaps $...$ or $\Uparrow$ is less confusing than $\bot$? \\
-First off, there is no approximation order on |D τ|.
-Or, well, it is discretely ordered ($a ⊑ b$ if and only if $a = b$), so there
-is no bottom element.
-$\bot$ in denotational semantics does not allow to take
-``prefixes of $\bot$''; there, for a continuous definition of |takeT|,
-|takeT n bot| would always need to return |bot|.
-In other words, if you have a bottom element and use it to denote diverging
-programs, you cannot extract any ``prefixes'' from its execution.\\
-Our use of $\bot$ simply means ``we went out of fuel after n steps, so it possibly diverges''.
-We don't really use |takeT| for anything other than demonstration purposes;
-its main use is to demonstrate that we may look at a finite prefix of arbitrary
-length without risking a loop in the interpreter.
-This is total functional programming at its best.
-I think you agree that we should not explain this point here; I have done so
-numerous times in the past and the response always was ``I don't care''.
-}
-\\
-\sven{Then perhaps the notation $\mathit{Trace} \hookrightarrow \ldots$ is better?}
+with |Nothing| (printed as $...$) if it goes on for longer.
 
 < ghci> takeT 5 $ eval (read "let x = x in x") emp :: T (Maybe (Value T))
 $\perform{takeName 5 $ eval (read "let x = x in x") emp :: T (Maybe (Value (ByName T)))}$
@@ -460,7 +428,7 @@ $\perform{takeName 9 $ eval (read "let w = λy. y y in w w") emp :: T (Maybe (Va
 \\[\belowdisplayskip]
 \noindent
 Data constructor values are printed as $Con(K)$, where $K$ indicates the
-constructor |Tag|.
+|Tag|.
 Data types allow for interesting ways (type errors) to get |Stuck| (\ie, the
 \textbf{wrong} value of \citet{Milner:78}), printed as $\lightning$:
 
@@ -477,7 +445,7 @@ $\perform{eval (read "let zro = Z() in zro zro") emp :: D (ByName T)}$
 In this section, we derive the evaluation strategies call-by-name, call-by-need, call-by-value, clearvoyant call-by-value, ... \emph{from the same generic denotational interpreter}. This has the following benefits over traditional approaches that describe evaluation strategies with separate interpreters:
 \begin{itemize}
 \item Unified understanding: It is easier to understand how different evaluation strategies relate to each other if they are derived from the same generic interpreter
-\item Shared Meta Theory: Proofs about the generic denotational interpreter carry over to different evaluation strategies more easily 
+\item Shared Meta Theory: Proofs about the generic denotational interpreter carry over to different evaluation strategies more easily
 \item Unified Program Transformations: Program transformations such as optimizations and automated refactorings can be proven correct over multiple evaluation strategies simulaneously.
 \item ...
 \end{itemize}}
