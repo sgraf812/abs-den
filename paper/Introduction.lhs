@@ -68,9 +68,9 @@ Interpreters}~\citep{Reynolds:72} and denotational semantics.
 Our denotational interpreters generate small-step traces embellished with
 arbitrary operational detail and enjoy a straightforward encoding in typical
 higher-order programming languages.
-Static analyses arise as instantiations of the generic interpreter,
+Static analyses arise as instantiations of the same generic interpreter,
 enabling succinct, shared correctness proofs just like for AAM or big-step
-definitional interpreters~\citep{adi,Keidel:18,Bodin:19}.
+definitional interpreters~\citep{adi,Keidel:18}.
 However, the shared, compositional structure enables a wide range of summary
 mechanisms in static analyses that we think are beyond the reach of
 non-compositional reachable-states abstractions like AAM.
@@ -114,8 +114,6 @@ We make the following contributions:
   This enables us to finally prove usage analysis correct \wrt the by-name
   and by-need semantics in a third of a page, building on reusable
   semantics-specific theorems.
-  \sg{Redo when I have cut it down}
 \item
   We compare to the enormous body of related approaches in \Cref{sec:related-work}.
-  %TODO say more?
 \end{itemize}
