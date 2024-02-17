@@ -52,7 +52,7 @@ Throughout the paper we assume that all bound program variables are distinct.
     \semabs{\px}_ρ & {}={} & ρ(\px) \\
     \semabs{\Lam{\px}{\pe}}_ρ & {}={} & \mathit{fun}_{\px}( \fn{θ}{\semabs{\pe}_{ρ[\px ↦ θ]}}) \\
     \semabs{\pe~\px}_ρ & {}={} & \mathit{app}(\semabs{\pe}_{ρ})(ρ(\px)) \\
-    \semabs{\Letsmall{\px}{\pe_1}{\pe_2}}_ρ & {}={} & \semabs{\pe_2}_{ρ[\px ↦ \px \both \semabs{\pe_1}_ρ]} \\
+    \semabs{\Let{\px}{\pe_1}{\pe_2}}_ρ & {}={} & \semabs{\pe_2}_{ρ[\px ↦ \px \both \semabs{\pe_1}_ρ]} \\
     \\[-0.8em]
     \multicolumn{3}{c}{\mathit{fun}_{\px}( f) {}={} \langle φ[\px↦\aA], φ(\px) \sumcons \varsigma \rangle} \\
     \multicolumn{3}{c}{\qquad\qquad\text{where } \langle φ, \varsigma \rangle = f(\langle [\px↦\aU], \aU.. \rangle)} \\
@@ -96,7 +96,11 @@ Otherwise, the variable $\px$ is \emph{used} in $\pe$.
 %not just in a WHNF evaluation of $\pe$.
 
 \Cref{fig:absence} defines an absence analysis $\semabs{\pe}_ρ$ for lazy
-program semantics that conservatively approximates semantic absence.
+program semantics that conservatively approximates semantic absence.%
+\footnote{For illustrative purposes, our analysis definition only works for
+the special case of non-recursive let.
+The generalised definition for recursive as well as non-recursive let is
+$\semabs{\Let{\px}{\pe_1}{\pe_2}}_ρ = \semabs{\pe_2}_{ρ[\px ↦ \lfp(\fn{θ}{\px \both \semabs{\pe_1}_{ρ[\px↦θ]}})]}$.}
 It takes an environment $ρ \in \Var \pfun \Absence$ containing absence
 information about the free variables of $\pe$ and returns
 an \emph{absence type} $\langle φ, \varsigma \rangle \in \AbsTy$; an abstract
@@ -235,10 +239,10 @@ To support efficient separate compilation, a compiler analysis must be
 Let us say that our example function $k = (\Lam{y}{\Lam{z}{y}})$ is defined in
 module A and there is a use site $(k~x_1~x_2)$ in module B.
 Then a \emph{modular analysis} must not reanalyse A.$k$ at its use site in B.
-Our absence analysis $\semabs{\wild}$ facilitates that easily, because it can
-serialiase the summarised $\AbsTy$ for $k$ into module A's signature file.
+Our analysis $\semabs{\wild}$ facilitates that easily, because it can
+serialise the summarised $\AbsTy$ for $k$ into module A's signature file.
 Do note that this would not have been possible for the functional
-$(\fn{θ_y}{θ_z}{θ_y}) : \AbsTy \to \AbsTy \to \AbsTy$ that describes the
+$(\fn{θ_y}{\fn{θ_z}{θ_y}}) : \AbsTy \to \AbsTy \to \AbsTy$ that describes the
 inline expansion of $k$.
 
 The same way summaries enable efficient \emph{inter}-module compilation,
@@ -253,12 +257,12 @@ guarantee termination of the analysis in the first place, it is
 important not to repeat the work of analysing $\semabs{\pe_{\mathit{big}}}$
 at every use site of $f$.
 Thus, it is necessary to summarise $\semabs{\Lam{x}{\pe_{\mathit{big}}}}$ into
-a finite $\AbsTy$, rather than to keep working with the ``inline functional''
-$\AbsTy \to \AbsTy$.
+a finite $\AbsTy$, rather than to call the inline expansion
+of type $\AbsTy \to \AbsTy$ multiple times.
 
-\sg{We also say this in Related Work, but it seems a fitting place to
-bring the following point. Would you agree? Otherwise we can remove it or turn it
-into a footnote.}
+\sg{We also say the next sentence in Related Work, but it seems a fitting place
+to bring the following point. Would you agree? Otherwise we can remove it or
+turn it into a footnote.}
 While a compositional analysis appears to \emph{need} a summary mechanism,
 it is certainly possible to equip a non-compositional, call string-based
 analysis such as control-flow analysis with symbolic summaries to enable
@@ -321,39 +325,7 @@ The following statement will do:
   then $\px$ is absent in $\pe$.
 \end{theoremrep}
 \begin{proof}
-We show the contraposition, that is,
-if $\px$ is used in $\pe$, then $φ(\px) = \aU$.
-
-Since $\px$ is used in $\pe$, there exists a trace
-\[
-  (\Let{\px}{\pe'}{\pe},ρ,μ,κ) \smallstep (\pe,ρ[\px↦\pa],μ[\pa↦(\px,ρ[\px↦\pa],\pe')],κ) \smallstep^* (\py,ρ'[\py↦\pa],μ',κ').
-\]
-Let us abbreviate $ρ_1 \triangleq ρ[\px↦\pa]$, $μ_1 \triangleq μ[\pa↦(\px,ρ[\px↦\pa],\pe')]$.
-
-Without loss of generality, we assume that there is no other heap entry for
-$\px$ yet -- this may happen under a lambda that is called multiple times, and
-when that happens we can always find a simpler evaluation context in which this
-is not the case.
-(This is a subtle claim that we would have to prove as well if we were serious.)
-Furthermore, let us assume that this is the first lookup at $\pa$, so $μ'(\pa) = μ_1(\pa) = (\px, ρ_1,\pe')$.
-
-Let us abbreviate $\tr \triangleq (α(μ_1) \circ ρ_1)$.
-Under the above assumptions, $\tr(\py).φ(\px) = \aU$ implies $\px = \py$ for all
-$\py$, because $μ_1(\pa)$ is the only heap entry in which $\px$ occurs.
-
-By unfolding $\semabsS{\wild}$ and $\semabs{\py}$ we can see
-that $[\px ↦ \aU] ⊑ α(μ')(\pa).φ ⊑ (\semabsS{(\py,ρ'[\py↦\pa],μ',κ')}).φ$.
-By \Cref{thm:preserve-absent} and transitivity, we also have
-$[\px ↦ \aU] ⊑ (\semabsS{(\pe,ρ_1,μ_1,κ)}).φ$.
-Since there was no other heap entry for $\px$ and $\pa$ cannot occur in $κ$ or
-$ρ$ due to well-addressedness, we have $[\px ↦ \aU] ⊑ (\semabsS{(\pe,ρ_1,μ_1,κ)}).φ$ if
-and only if $[\px ↦ \aU] ⊑ (\semabs{\pe}_{\tr}).φ$.
-With \Cref{thm:diag-fact}, we can decompose
-\[
-  [\px ↦ \aU] ⊑ (\semabs{\pe}_{\tr}).φ = (\semabs{\pe}_{\tr_\pe}[\many{\py \Mapsto \tr(\py).φ}]).φ = \Lub \{ \tr(\py).φ \mid \py ∈ \semabs{\pe}_{\tr_\pe}.φ(\py) = \aU \}
-\]
-But since $\tr(\py).φ(\px) = \aU$ implies $\px = \py$, we must have
-$(\semabs{\pe}_{\tr_\pe}).φ(\px) = \aU$, as required.
+  See \hyperlink{proof:absence-correct}{the proof at the end of this Section}.
 \end{proof}
 
 What are the main obstacles to prove it?
@@ -388,7 +360,9 @@ The Appendix explains why this is a good definition.
 Furthermore, we must prove correct the summary mechanism, captured in the
 following \emph{substitution lemma}~\citep{tapl}:%
 \footnote{This statement amounts to $id ⊑ \mathit{app} \circ \mathit{fun}_x$,
-one half of the Galois connection.}
+one half of a Galois connection.
+The other half $\mathit{fun}_x \circ \mathit{app} ⊑ id$ is eta-expansion
+$\semabs{\Lam{\px}{\pe~\px}}_ρ ⊑ \semabs{\pe}_ρ$.}
 
 \begin{toappendix}
 \begin{abbreviation}
@@ -811,12 +785,50 @@ By cases on the transition.
 %    \]
 \end{itemize}
 \end{proof}
+
+\noindent
+We conclude with the \hypertarget{proof:absence-correct}{proof} for \Cref{thm:absence-correct}:
+\begin{proof}
+We show the contraposition, that is,
+if $\px$ is used in $\pe$, then $φ(\px) = \aU$.
+
+Since $\px$ is used in $\pe$, there exists a trace
+\[
+  (\Let{\px}{\pe'}{\pe},ρ,μ,κ) \smallstep (\pe,ρ[\px↦\pa],μ[\pa↦(\px,ρ[\px↦\pa],\pe')],κ) \smallstep^* (\py,ρ'[\py↦\pa],μ',κ').
+\]
+Let us abbreviate $ρ_1 \triangleq ρ[\px↦\pa]$, $μ_1 \triangleq μ[\pa↦(\px,ρ[\px↦\pa],\pe')]$.
+Without loss of generality, we assume the trace prefix ends at the first lookup
+at $\pa$, so $μ'(\pa) = μ_1(\pa) = (\px, ρ_1,\pe')$.
+If that was not the case, we could just find a smaller prefix with this property.
+
+Let us abbreviate $\tr \triangleq (α(μ_1) \circ ρ_1)$.
+Under the above assumptions, $\tr(\py).φ(\px) = \aU$ implies $\px = \py$ for all
+$\py$, because $μ_1(\pa)$ is the only heap entry in which $\px$ occurs by our
+shadowing assumptions on syntax.
+By unfolding $\semabsS{\wild}$ and $\semabs{\py}$ we can see that
+\[
+  [\px ↦ \aU] ⊑ α(μ_1)(\pa).φ = α(μ')(\pa).φ = \semabs{\py}_{α(μ') \circ ρ'[\py↦\pa]}.φ ⊑ (\semabsS{(\py,ρ'[\py↦\pa],μ',κ')}).φ.
+\]
+By \Cref{thm:preserve-absent}, we also have
+\[
+  (\semabsS{(\py,ρ'[\py↦\pa],μ',κ')}).φ ⊑ (\semabsS{(\pe,ρ_1,μ_1,κ)}).φ.
+\]
+And with transitivity, we get $[\px ↦ \aU] ⊑ (\semabsS{(\pe,ρ_1,μ_1,κ)}).φ$.
+Since there was no other heap entry for $\px$ and $\pa$ cannot occur in $κ$ or
+$ρ$ due to well-addressedness, we have $[\px ↦ \aU] ⊑ (\semabsS{(\pe,ρ_1,μ_1,κ)}).φ$ if
+and only if $[\px ↦ \aU] ⊑ (\semabs{\pe}_{\tr}).φ$.
+With \Cref{thm:diag-fact}, we can decompose
+\[
+  [\px ↦ \aU] ⊑ (\semabs{\pe}_{\tr}).φ = ((\semabs{\pe}_{\tr_\pe})[\many{\py \Mapsto \tr(\py).φ}]).φ = \Lub \{ \tr(\py).φ \mid \semabs{\pe}_{\tr_\pe}.φ(\py) = \aU \}
+\]
+But since $\tr(\py).φ(\px) = \aU$ implies $\px = \py$, we must have
+$(\semabs{\pe}_{\tr_\pe}).φ(\px) = \aU$, as required.
+\end{proof}
 \end{toappendix}
 
 Now we may finally attempt the proof for \Cref{thm:absence-correct}.
 We suggest the reader to have a cursory look by clicking on the theorem number,
 linking to the Appendix.
-\sg{Need to reformulate the below in terms of our proof.}
 The proof is exemplary of even more ambitious proofs such as in
 \citet{Sergey:14} and \citet[Section 4]{Breitner:16}.
 Though seemingly disparate, these proofs all follow an established
@@ -824,20 +836,24 @@ preservation-style proof technique at heart.%
 \footnote{A ``mundane approach`` according to \citet[Section
 4.1]{Nielson:99}, applicable to \emph{trace properties}, but not to
 \emph{hyperproperties}~\citep{ClarksonSchneider:10}.}
-The proof of \citet{Sergey:14}, who prove a generalisation of $\semabs{\wild}$
-correct, is roughly structured as follows (non-clickable references to Figures
-and lemmas below reference \citet{Sergey:14}):
+The proof of \citet{Sergey:14} for a generalisation of $\semabs{\wild}$
+is roughly structured as follows (non-clickable references to Figures
+and Lemmas below reference \citet{Sergey:14}):
 
 \begin{enumerate}
   \item Instrument a standard call-by-need semantics (a variant of our reference
     in \Cref{sec:op-sem}) such that heap lookups decrement a per-address
     counter; when heap lookup is attempted and the counter is 0, the machine is stuck.
+    In \Cref{defn:absence}, no instrumentation is needed because absence is rather simple.
   \item Give a declarative type system that characterises the results of the
     analysis (\ie, $\semabs{\wild}$) in a lenient (upwards closed) way, a unary
     \emph{logical relation}~\citep{Nielson:99}.
+    In case of \Cref{thm:absence-correct}, we define an analysis function on
+    machine configurations for the proof.
   \item Prove that evaluation of well-typed terms in the instrumented
     semantics is bisimilar to evaluation of the term in the standard semantics,
     \ie, does not get stuck when the standard semantics would not.
+    In our case, we prove that evaluation preserves the analysis result.
 \end{enumerate}
 Alas, the effort in comprehending such a proof in detail, let alone formulating
 it, is enormous.
@@ -859,25 +875,24 @@ it, is enormous.
     context lemma.}
     Another page worth of Figures; the amount of duplicated proof artifacts is
     staggering.
+    In our case, the analysis function on machine configurations is about as
+    long as on expressions.
   \item
     This is all setup before step (3) proves interesting properties about the
     semantic domain of the analysis.
     Among the more interesting properties is the \emph{substitution lemma} A.8
     to be applied during beta reduction; exactly as in our proof.
   \item
-    Although the proof for step (3) is perceived as detailed and rigorous, it
-    hand-waves in the key proof for single-step safety in lemma A.6.
-    The proof claims that the heap update step \textsc{EUpd} to memoise a value
-    is similar to when looking up a value in the heap \textsc{ELkpV}, neglecting
-    the implied mutable update of the heap that is not present in \textsc{ELkpV}.
+    While proving that a single step $σ_1 \smallstep σ_2$ preserves analysis
+    information in step (3), we noticed that we actually got stuck in the $\UpdateT$
+    case, and would need to redo the proof using step-indexing~\citep{AppelMcAllester:01}.
+    In our experience this case hides the thorniest of surprises; that was
+    our experience while proving \Cref{thm:soundness-by-need} which gives a
+    proper account.
 
-    In our experience this step hides the thorniest of surprises; that is
-    definitely the case in the correctness proof for $\semabs{\wild}$ as well as
-    \Cref{thm:soundness-by-need}.
-
-    \sg{Is this a fair characterisation or perhaps too destructive already? I
-    really don't want to diminish Ilya's contribution here; it was an enormous
-    undertaking.}
+    Although the proof in \citet{Sergey:14} is perceived as detailed and
+    rigorous, it is quite terse in the corresponding \textsc{EUpd} case of the
+    single-step safety proof in lemma A.6.
 \end{itemize}
 
 
@@ -907,10 +922,9 @@ While we could have done so for absence or strictness analysis, denotational
 semantics is insufficient to express \emph{operational properties} such as
 \emph{usage cardinality}, \ie, ``$\pe$ evaluates $\px$ at most $u$ times'',
 but usage cardinality is the entire point of the analysis in \citet{Sergey:14}.%
-\footnote{A more useful application of the ``at most once'' cardinality is the
-identification of \emph{one-shot} lambdas~\citep{Sergey:14} --- functions
-which are called at most once for every activation --- because it allows for
-inlining computations into function bodies.}.
+\footnote{Useful applications of the ``at most once'' cardinality are given in
+\citet{Turner:95,Sergey:14}, motivating inlining into function bodies that are
+called at most once, for example.}
 
 For these reasons, we set out to find a \textbf{\emph{compositional semantics
 that exhibits operational detail}} just like the trace-generating semantics of
@@ -920,7 +934,7 @@ $\semabs{\wild}$, as suggested above) demonstrates that we can
 \textbf{\emph{derive summary-based analyses as an abstract interpretation}} from
 our semantics.
 Since both semantics and analysis are derived from the same compositional
-interpreter skeleton, the correctness proof for usage analysis in
+generic interpreter, the correctness proof for usage analysis in
 \Cref{thm:usage-correct} takes no more than a substitution lemma and a bit of
 plumbing.
 Hence our \emph{Denotational Interpreter} does not only enjoy useful
