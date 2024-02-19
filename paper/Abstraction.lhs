@@ -28,9 +28,17 @@ import Interpreter
 We will now recover a summary-based usage analysis as an instance of our
 compositional definition of |eval|.
 We demonstrate how our framework can be used both to \emph{instrument} the
-dynamic semantics to describe \emph{operational properties}, as well as
-\emph{statically approximate} these operational properties by specifying
-a summary mechanism and appealing to order theory.
+dynamic semantics to describe \emph{operational properties} in terms of a
+|Trace| instance, as well as \emph{statically approximate} these operational
+properties by specifying a summary mechanism (\ie, a |Domain| instance) and
+appealing to order theory.
+\Cref{sec:soundness} will understand the connection between instrumentation and
+static analysis in terms of \emph{abstract interpretation}, where the
+abstraction function |α| is completely determined by type class instances.
+This enables further simplification of the usual soundness proof obligations |α
+d ⊑ hat d|, because |α| can be inlined.
+\sg{Is this too much anticipation? Other than that getting the instrumentation
+for free is cool, the technical benefits are remarkable, but a bit inscrutible.}
 
 \subsection{Usage Instrumentation}
 \label{sec:instrumentation}
@@ -55,17 +63,17 @@ $e \triangleq \Let{id}{\Lam{x}{x}}{\Let{t}{(\Lam{y}{y})~id}{\Let{v}{Z()}{\Let{u}
 \begin{code}
 data U = U0 | U1 | Uω
 type Uses = Name :-> U
-class UMod a where
+class UVec a where
   (+)  :: a -> a -> a
   (*)  :: U -> a -> a
-instance UMod U where {-" ... \iffalse "-}
+instance UVec U where {-" ... \iffalse "-}
   U1 + U1 = Uω
   u1 + u2 = u1 ⊔ u2
   U0 * _ = U0
   _ * U0 = U0
   U1 * u = u
   Uω * _ = Uω {-" \fi "-}
-instance UMod Uses where {-" ... \iffalse "-}
+instance UVec Uses where {-" ... \iffalse "-}
   (+) = Map.unionWith (+)
   u * m = Map.map (u *) m
 {-" \fi "-}
@@ -79,7 +87,7 @@ instance Trace (UT v) where
   step _           τ           = τ
 instance Monad UT where
   return a = MkUT emp a
-  MkUT φ1 a >>= k |  MkUT φ2 b <- k a =  MkUT (φ1+φ2) b
+  MkUT φ1 a >>= k = let MkUT φ2 b = k a in MkUT (φ1+φ2) b
 \end{code}
 %if style == newcode
 \begin{code}
@@ -104,9 +112,9 @@ Usage analysis is a generalisation of absence analysis in \Cref{fig:absence}:
 a variable is absent ($\aA$) when it has usage |U0|, otherwise it is used ($\aU$).
 
 It is quite natural to define addition on and multiplication with |U|, expressed in
-the type class |UMod|.%
-\footnote{Yes, we think that |UMod| is an R-module. No, it is not a vector
-space, because it lacks inverses.}
+the type class |UVec|.%
+\footnote{We think that |UVec| models |U|-modules. It is not a vector
+space because |U| lacks inverses, but the intuition is close enough.}
 For example, |U0 + u = u| and |U1 + U1 = Uω|, as well as |U0 * u = U0|,
 |Uω * U1 = Uω|.
 These operations lift to |Uses| pointwise, \eg,
@@ -131,44 +139,53 @@ The by-value strategy additionally uses the unused binding $v$ and the by-name
 strategy evaluates $id$ multiple times since the thunk $t$ is evaluated multiple
 times.
 
-The results of running the instrumentation yields surprising results on nested
-let-bindings:
-< ghci> eval (read "let i = let j = λx.x in j in i i") emp :: D (ByName UT)
-$\perform{eval (read "let i = let j = λx.x in j in i i") emp :: D (ByName UT)}$
-\\[\belowdisplayskip]
-\noindent
-Note that every \emph{activation} of $j$ is only evaluated once, but since there
-is one activation for each of the two lookups of $i$, and both actications were
-looked up once each, the result says that $j$ was looked up many times.
-It is clear that this is not useful, but fortunately the information on outer
-let-bindings such as $i$ is accurate enough to enable useful optimisations.
+Note that there is \emph{no difference} in instrumenting the interpreter at,
+\eg, |D (ByName UT)| and \emph{running} the interpreter at |D (ByName T)|
+to produce a finite trace and then replace every |Step :: Event -> T v -> T v|
+with |step :: Event -> UT v -> UT v|.
+This is the essence of the Galois connection in \Cref{sec:soundness}, which
+takes care of |Value|s at the end of the trace as well.
+Thus, the instrumentation encodes the most precise abstract representation of
+the semantic trace property in question.
 
-\subsection{Operational properties and improvement}
+%The results of running the instrumentation yields surprising results on nested
+%let-bindings:
+%< ghci> eval (read "let i = let j = λx.x in j in i i") emp :: D (ByName UT)
+%$\perform{eval (read "let i = let j = λx.x in j in i i") emp :: D (ByName UT)}$
+%\\[\belowdisplayskip]
+%\noindent
+%Note that every \emph{activation} of $j$ is only evaluated once, but since there
+%is one activation for each of the two lookups of $i$, and both actications were
+%looked up once each, the result says that $j$ was looked up many times.
+%It is clear that this is not useful, but fortunately the information on outer
+%let-bindings such as $i$ is accurate enough to enable useful optimisations.
 
-Instrumentation amounts to running the concrete semantics and then folding the
-trace into a |UT|.
-We will understand this instrumentation in a very formal sense as describing
-a safety property of traces in \Cref{sec:soundness}; it is the semantic property
-that the static analysis is supposed to approximate.
-
-The appeal of such a description is that \emph{trace properties are just folds
-over traces}, in contrast to the result of a static analysis approximating
-the property, which is often defined by least fixpoints.
-For example, we can define usage cardinality (``|e| evaluates |x| at most |u|
-times'') as
-\[
-  |forall e1. case eval (Let x e1 e) emp :: D (ByName UT) of ByName (MkUT φ _) -> (φ ! x) ⊑ u|.
-\]
-Since there is no difference (\cf \Cref{sec:adequacy}) between running
-|eval (Let x e1 e) emp| and generating the resulting trace from the small-step
-semantics in \Cref{fig:lk-semantics}, we can use this definition
-to show an observational improvement statement $\forall \pe_1,\pe_2.\
-\Let{x}{\pe_1}{e} \impequiv \Let{x}{\pe_2}{e}$ \citep{MoranSands:99} whenever
-|u| is absent (|U0|), \ie, evaluating $\Let{x}{\pe_1}{e}$ takes the same
-number of steps no matter what $\pe_1$ is or in which syntactic context we put
-the whole expression.%
-\footnote{Similarly, we could prove that update avoidance~\citep{Gustavsson:98}
-is improving when |u ⊑ U1|, but that would take an even more elaborate setup.}
+%\subsection{Operational properties and improvement}
+%
+%Instrumentation amounts to running the concrete semantics and then folding the
+%trace into a |UT|.
+%We will understand this instrumentation in a very formal sense as describing
+%a safety property of traces in \Cref{sec:soundness}; it is the semantic property
+%that the static analysis is supposed to approximate.
+%
+%The appeal of such a description is that \emph{trace properties are just folds
+%over traces}, in contrast to the result of a static analysis approximating
+%the property, which is often defined by least fixpoints.
+%For example, we can define usage cardinality (``|e| evaluates |x| at most |u|
+%times'') as
+%\[
+%  |forall e1. case eval (Let x e1 e) emp :: D (ByName UT) of ByName (MkUT φ _) -> (φ ! x) ⊑ u|.
+%\]
+%Since there is no difference (\cf \Cref{sec:adequacy}) between running
+%|eval (Let x e1 e) emp| and generating the resulting trace from the small-step
+%semantics in \Cref{fig:lk-semantics}, we can use this definition
+%to show an observational improvement statement $\forall \pe_1,\pe_2.\
+%\Let{x}{\pe_1}{e} \impequiv \Let{x}{\pe_2}{e}$ \citep{MoranSands:99} whenever
+%|u| is absent (|U0|), \ie, evaluating $\Let{x}{\pe_1}{e}$ takes the same
+%number of steps no matter what $\pe_1$ is or in which syntactic context we put
+%the whole expression.%
+%\footnote{Similarly, we could prove that update avoidance~\citep{Gustavsson:98}
+%is improving when |u ⊑ U1|, but that would take an even more elaborate setup.}
 
 \subsection{Usage analysis}
 \label{sec:usage-analysis}
@@ -270,12 +287,12 @@ instance Show UValue where
 \label{fig:abs-usg}
 \end{figure}
 
-Of course, \emph{running} the instrumented interpreter will diverge whenever the
-object program diverges.
+Of course, running the instrumented interpreter will diverge whenever the object
+program diverges.
 If we want to assess usage cardinality statically, we have to find a more
-abstract, finite representation of |Value|.
-In particular, the negative recursive occurrence of |Value| in |Fun| is
-disqualifying.
+abstract, finite representation of |Value|.%
+\footnote{In particular, the negative recursive occurrence in
+|Fun :: (τ (highlight Value τ) -> ...) -> Value τ| is disqualifying.}
 We address finiteness by defining |UValue| in \Cref{fig:abs-usg} as a copy
 of $\Summary$ in \Cref{fig:absence} that lists argument usage |U| instead of
 $\Absence$ flags.
@@ -285,7 +302,7 @@ instances.
 
 Since any |d::UD| is finite, we can no longer use guarded |fix|points in
 |HasBind UD|, so we will use least fixpoints (computed by |kleeneFix| in
-\Cref{fig:lat}) instead, as we did for absence analysis.%
+\Cref{fig:lat}) instead.%
 \footnote{Why is the use of least fixpoints correct?
 The fact that we are approximating a safety property~\citep{Lamport:77}
 is important. We will discuss this topic in \Cref{sec:safety-extension}.}
@@ -302,8 +319,10 @@ always exist due to infinite ascending chains such as
 |UCons U1 (UCons U1 (... Rep U0))|.
 This can be easily worked around with appropriate widening measures.
 A very simple one is to turn |Rep U0| into |Rep Uω| when the |UValue|
-exceeds a certain constant depth.}
-The |Domain| instance is reponsible for implementing the summary mechanism.
+exceeds a certain constant depth.
+We simply assume that such a procedure is in effect and hence that all fixpoints
+exist.}
+The |Domain| instance is responsible for implementing the summary mechanism.
 While |stuck| expressions do not evaluate anything and hence are denoted by
 |bottom = MkUT emp (Rep U0)|, the |fun| and |apply| functions play exactly the same
 roles as $\mathit{fun}_\px$ and $\mathit{app}$ in \Cref{fig:absence}.
@@ -334,112 +353,250 @@ emp (Rep Uω)| as proxies for field denotations.
 The result uses anything the scrutinee expression used, plus the upper bound of
 uses in case alternatives, one of which will be taken.
 
-Now consider the expression |app (fun x f) a|.
-As discussed in \Cref{sec:absence}, for a correct summary mechanism, this
-expression is supposed to approximate |f a|, the concrete substitution
-operation.
-By abbreviating $|abssubst (f (MkUT (ext emp x U1) (Rep Uω))) x d| \triangleq |app
-(fun x f) d|$ we can make this abstract substitution operation more tangible,
-to formulate and prove correct the following substitution lemma which will
-become instrumental in the soundness proof for usage analysis, \Cref{thm:usage-correct}.
-\sg{Is the |abssubst| form really better than
-|eval e (ext ρ x d) ⊑ app (fun x (\d1 -> eval e (ext ρ x d1))) d|? Let me
-know.}
+The summary mechanism implied by |app| and |fun| can be proven correct in the
+following substitution lemma:
+
+\begin{toappendix}
+As in the proof for \Cref{thm:absence-subst}, we will use the following abbreviations:
+
+\begin{abbreviation}
+  We abbreviate |(MkUT φ v)^.φ := φ|.
+\end{abbreviation}
+
+\begin{definition}[Abstract substitution]
+  \label{defn:abs-subst-usage}
+  We call |abssubst φ x φ' := (Uω * ext φ x U0) + (φ ! x) * φ'| the
+  \emph{abstract substitution} operation on |Uses|
+  and overload this notation for |UT|, so that
+  |abssubst (MkUT φ v) x φ' := MkUT (ext φ x φ') v|.
+\end{definition}
+
+\begin{lemma}
+  \label{thm:abs-syn-subst-usage}
+  |eval (App (Lam x e) y) ρ = abssubst (eval e (ext ρ x (MkUT (ext emp x U1) (Rep Uω)))) x ((ρ ! y) ^. φ)|.
+\end{lemma}
+\begin{proof}
+Follows by unfolding the application and lamda case and then refolding abstract substitution.
+\end{proof}
+
+
+\begin{lemma}
+\label{thm:lambda-bound-absent-usage}
+Lambda-bound uses do not escape their scope. That is, when $\px$ is lambda-bound in $\pe$, it is
+\[
+  (\semabs{\pe}_ρ).φ(\px) = \aA.
+\]
+\end{lemma}
+\begin{proof}
+By induction on $\pe$. In the lambda case, any use of $\px$ is cleared to $\aA$
+when returning.
+\end{proof}
+
+\begin{lemma}
+\label{thm:lambda-commutes-usage}
+$\semabs{(\Lam{\px}{\Lam{\py}{\pe}})~\pz}_ρ = \semabs{\Lam{\py}{((\Lam{\px}{\pe})~\pz)}}_ρ$.
+\end{lemma}
+\begin{proof}
+\begin{DispWithArrows*}[fleqn,mathindent=0em]
+      & \semabs{(\Lam{\px}{\Lam{\py}{\pe}})~\pz}_ρ
+      \Arrow{Unfold $\semabs{\wild}$, \Cref{thm:abs-syn-subst}} \\
+  ={} & (\mathit{fun}_\py(\fn{θ_\py}{\semabs{\pe}_{ρ[\px↦\langle [\px↦\aU], \aU.. \rangle,\py↦θ_\py]}}))[\px \Mapsto ρ(\pz).φ]
+      \Arrow{$ρ(\pz)(\py) = \aA$ by \Cref{thm:lambda-bound-absent}, $\px \not= \py \not= \pz$} \\
+  ={} & \mathit{fun}_\py(\fn{θ_\py}{(\semabs{\pe}_{ρ[\px↦\langle [\px↦\aU], \aU.. \rangle,\py↦θ_\py]})[\px \Mapsto ρ(\pz).φ]})
+      \Arrow{Refold $\semabs{\wild}$} \\
+  ={} & \semabs{\Lam{\py}{((\Lam{\px}{\pe})~\pz)}}_ρ
+\end{DispWithArrows*}
+\end{proof}
+
+\begin{lemma}
+\label{thm:push-app-usage}
+$\semabs{(\Lam{\px}{\pe})~\py~\pz}_ρ = \semabs{(\Lam{\px}{\pe~\pz})~\py}_ρ$.
+\end{lemma}
+\begin{proof}
+\begin{DispWithArrows*}[fleqn,mathindent=0em]
+      & \semabs{(\Lam{\px}{\pe})~\py~\pz}_ρ
+      \Arrow{Unfold $\semabs{\wild}$, \Cref{thm:abs-syn-subst}} \\
+  ={} & \mathit{app}((\semabs{\pe}_{ρ[\langle [\px↦\aU], \aU.. \rangle]})[\px \Mapsto ρ(\py).φ])(ρ(\pz))
+      \Arrow{$ρ(\pz)(\px) = \aA$ by \Cref{thm:lambda-bound-absent}, $\py \not= \px \not= \pz$} \\
+  ={} & \mathit{app}(\semabs{\pe}_{ρ[\langle [\px↦\aU], \aU.. \rangle]})(ρ(\pz))[\px \Mapsto ρ(\py).φ]
+      \Arrow{Refold $\semabs{\wild}$} \\
+  ={} & \semabs{(\Lam{\px}{\pe~\pz})~\py}_ρ
+\end{DispWithArrows*}
+\end{proof}
+
+\begin{lemma}
+\label{thm:push-let-usage}
+$\semabs{\Let{\pz}{(\Lam{\px}{\pe_1})~\py}{(\Lam{\px}{\pe_2})~\py}}_ρ = \semabs{(\Lam{\px}{\Let{\pz}{\pe_1}{\pe_2}})~\py}_ρ$.
+\end{lemma}
+\begin{proof}
+The key of this lemma is that it is equivalent to postpone the abstract
+substitution from the let RHS $\pe_1$ to the let body $\pe_2$.
+This can easily be proved by induction on $\pe_2$, which we omit here, but
+indicate the respective step below as ``handwaving''.
+Note that we assume the (more general) recursive let semantics as defined at the
+begin of this Section.
+
+\begin{DispWithArrows*}[fleqn,mathindent=1em]
+      & \semabs{\Let{\pz}{(\Lam{\px}{\pe_1})~\py}{(\Lam{\px}{\pe_2})~\py}}_ρ
+      \Arrow{Unfold $\semabs{\wild}$} \\
+  ={} & \semabs{(\Lam{\px}{\pe_2})~\py}_{ρ[\pz↦\lfp(\fn{θ}{\pz \both \semabs{(\Lam{\px}{\pe_1})~\py}_{ρ[\pz ↦ θ]}})]}
+      \Arrow{\Cref{thm:abs-syn-subst}} \\
+  ={} & (\semabs{\pe_2}_{ρ[\px↦\langle [\px ↦ \aU], \aU.. \rangle,\pz↦\lfp(\fn{θ}{\pz \both (\semabs{\pe_1}_{ρ[\px↦\langle [\px ↦ \aU], \aU.. \rangle, \pz ↦ θ]})[\px \Mapsto ρ(\py).φ]})]})[\px \Mapsto ρ(\py).φ]
+      \Arrow{Handwaving above} \\
+  ={} & (\semabs{\pe_2}_{ρ[\px↦\langle [\px ↦ \aU], \aU.. \rangle,\pz↦\lfp(\fn{θ}{\pz \both \semabs{\pe_1}_{ρ[\px↦\langle [\px ↦ \aU], \aU.. \rangle, \pz ↦ θ]}})]})[\px \Mapsto ρ(\py).φ]
+      \Arrow{Refold $\semabs{\wild}$} \\
+  ={} & (\semabs{\Let{\pz}{\pe_1}{\pe_2}}_{ρ[\px↦\langle [\px ↦ \aU], \aU.. \rangle]})[\px \Mapsto ρ(\py).φ]
+      \Arrow{\Cref{thm:abs-syn-subst}} \\
+  ={} & \semabs{(\Lam{\px}{\Let{\pz}{\pe_1}{\pe_2}})~\py}_ρ
+\end{DispWithArrows*}
+\end{proof}
+\end{toappendix}
 
 \begin{lemmarep}[Substitution]
 \label{thm:usage-subst}
-|eval e (ext ρ x d) ⊑ abssubst (eval e (ext ρ x (MkUT (ext emp x U1) (Rep Uω)))) x d|.
+|eval e (ext ρ x (ρ ! y)) ⊑ eval (Lam x e `App` y) ρ|.
 \end{lemmarep}
 \begin{proof}
-The assumptions of the proposition are actually a little to weak.
 We need the following additional freshness assumptions (in that they all relate
-to the identity of |x|) that we would get for free if we had used a locally
-nameless representation for lambda binders:
+to the identity of |x|) that in practice are respected by |eval|:
 \begin{itemize}
   \item |x| is absent in |ρ|, otherwise we cannot use |ext emp x U1| as a proxy
     to see how often the binding for |x| was used.
   \item |x| is absent in |d|, otherwise the fixpoint identity (6) below does not hold
-  \item This implies that |x| is not bound in |e|, otherwise we cannot guarantee
-    that |x| is absent in |d| when applying the induction hypothesis in
-    |Lam x e'|.
 \end{itemize}
-Alas, locally nameless would lead to drastically more complicated code.
-On the other hand, the definition of |eval| always respects these assumptions,
-so we see no reason to complicate our definition.
 
-Let us abbreviate |prx x := (MkUT (ext emp x U1) (Rep Uω))| (for ``proxy'') to write
-out and simplify the definition of abstract substitution:
+Furthermore, the statement is too weak as an inductive hypothesis, because the
+equivalent of \Cref{thm:lambda-commutes-absence} does not hold.
+Witness the following counter-examples, illustrating the lack of an
+approximation relationship:
 \begin{spec}
-abssubst (f (prx x)) x (MkUT φ2 _) = case f (prx x) of MkUT φ1 v -> MkUT (ext φ1 x U0 + (φ1 !? x) * φ2) v
+    eval (Lam x (Lam y (Var x)) `App` z) ρ
+=   MkUT (Uω * ((ρ ! z)^.φ)) (UCons U0 (Rep Uω))
+⊐   MkUT ((ρ ! z)^.φ) (UCons U0 (Rep Uω))
+=   eval (Lam y (Lam x (Var x) `App` z)) ρ
 \end{spec}
-The proof below needs to appeal to a couple of algebraic identities for
-|abssubst| the proofs of which would be tedious and hard to follow, hence they
-are omitted.
+\begin{spec}
+    eval (Lam x (Lam y (Var y)) `App` z) ρ
+=   MkUT emp (UCons U1 (Rep Uω))
+⊏   MkUT emp (UCons Uω (Rep Uω))
+=   eval (Lam y (Lam x (Var y) `App` z)) ρ
+\end{spec}
+This would cause trouble in the the lambda case, where we need this equality.
+
+The fix is simple: We prove the substitution lemma for a slightly different
+domain, |UD2|, where |fun| is defined as
+\begin{spec}
+  fun x f = case f (MkUT (ext emp x U1) (Rep Uω)) of
+    MkUT φ v -> MkUT (ext φ x U0) (UCons (φ !? x) v)
+    MkUT φ v -> MkUT (Uω * ext φ x U0) (UCons (φ !? x) v)
+\end{spec}
+We gave the original definition in |UD| in the second, dead alternative.
+Note the omission of multiplication with |Uω|.
+With this definition of |fun|, the above equalities hold.
+Why not define |fun| on |UD| like this in the first place?
+Because then the results of usage analysis would be invalidated by wrapping
+arbitrary evaluation contexts around the expression, rendering the results useless
+for program transformation.
+
+Clearly if we can show the substitution lemma for |UD2|, we can show it
+for |UD| as well by monotonicity.
+
+The proof below needs to appeal to a couple of commutation lemmas, the proofs of
+which would be tedious and hard to follow, hence they are omitted.
+Many of these are similar to lemmas we have proven for absence analysis
+(\cf \Cref{thm:lambda-commutes-absence}).
+All of these apply at |UD2| only.
+\begin{lemma}
+\label{thm:lambda-commutes-usage}
+|eval (Lam x (Lam y e) `App` z) ρ = eval (Lam y ((Lam x e) `App` z)) ρ|.
+\end{lemma}
+\begin{lemma}
+\label{thm:push-app-usage}
+|eval (Lam x e `App` y `App` z) ρ = eval (Lam x (e `App` z) `App` y) ρ|.
+\end{lemma}
+\begin{lemma}
+\label{thm:push-select-usage}
+|eval (Lam x e `App` y `App` z) ρ = eval (Lam x (e `App` z) `App` y) ρ|.
+\end{lemma}
+\begin{lemma}
+\label{thm:push-let-usage}
+|eval (Let z (Lam x e1 `App` y) (Lam x e2 `App` y)) ρ = eval (Lam x (Let z e1 e2) `App` y) ρ|.
+\end{lemma}
+
+\sg{I got until here, but then prioritised the pass over Section 5 to make Sven productive.
+Will pick up here soon. At any rate, the proof is not wrong but caught in the middle of a refactorign.}
+
 Here is an exhaustive list of them, to isolate handwaving:
 \begin{enumerate}
-  \item If |x| is absent in |f (prx x)|, then |f (prx x) = abssubst (f (prx x)) x d|.
-  \item \mbox{If |x //=y|, then |fun y (\d1 -> abssubst (f d1 (prx x)) x d) = abssubst (fun y (\d1 -> f d1 (prx x))) x d|.}
+  \item %If |x| is absent in |f (prx x)|, then |f (prx x) = abssubst (f (prx x)) x d|.
+  \item |eval (Lam x (Lam y e) `App` z) ρ = eval (Lam y ((Lam x e) `App` z)) ρ|. \Cref{thm:lambda-commutes-absence}.
   \item Similarly for |select|.
-  \item \mbox{|apply (abssubst (f (prx x)) x d) (abssubst (g (prx x)) x d) = abssubst (apply (f (prx x)) (g (prx x))) x d)|.}
+  \item |eval (Lam x e `App` y `App` z) ρ = eval (Lam x (e `App` z) `App` y) ρ|. \Cref{thm:push-app-absence}
   \item Similarly for |con|.
-  \item \mbox{|kleeneFix (\d1 -> abssubst (f d1 (prx x)) x d) = abssubst (kleeneFix (\d1 -> f d1 (prx x))) x d|.}
+  \item \begin{spec}
+                       kleeneFix (\d1 -> abssubst (  eval e (ext (ext ρ y (step (Lookup x) d1)) x (prx x))) x φ)
+        =  abssubst (  kleeneFix (\d1 ->             eval e (ext (ext ρ y (step (Lookup x) d1)) x (prx x)))) x φ
+        \end{spec}
   \item \mbox{If |x| abs in |d| and |ρ|, then |abssubst (eval e (ext (ext ρ x (prx x)) y (abssubst d1 x d))) x d = abssubst (eval e (ext (ext ρ x (prx x)) y d1)) x d|.}
 \end{enumerate}
 We proceed by induction on |e|.
 \begin{itemize}
-  \item \textbf{Case }|Var y|:
-    When |x //= y|, we have
+  \item \textbf{Case }|Var z|:
+    When |x //= z|, we have
     \begin{spec}
-        eval y (ext ρ x d)
-    =   {- |x //= y| -}
-        ρ ! y
+        eval z (ext ρ x (ρ ! y))
+    =   {- |x //= z| -}
+        ρ ! z
     =   {- Refold |eval| -}
-        eval y (ext ρ x (prx x))
-    =   {- |x| absent in |ρ ! y| by assumption, identity (1) -}
-        abssubst (eval y (ext ρ x (prx x))) x d
+        eval z (ext ρ x (prx x))
+    =   {- |((ρ ! z)^.φ) ! x = U0| -}
+        abssubst (eval z (ext ρ x (prx x))) x ((ρ ! y)^.φ)
+    =   {- \Cref{thm:abs-syn-subst-usage} -}
+        eval (Lam x z `App` y) ρ
     \end{spec}
-    Otherwise, we have |x = y|, thus |d = ρ ! y|.
-    We abbreviate |MkUT φ v = d| and proceed
+    Otherwise, we have |x = z|.
     \begin{spec}
-        eval y (ext ρ x d)
+        eval z (ext ρ x (ρ ! y))
     =   {- |x = y|, unfold -}
-        MkUT φ v
-    ⊑   {- |v ⊑ (Rep Uω)| NB: This is the only place that induces |⊏|; the rest is just congruence -}
-        MkUT φ (Rep Uω)
+        ρ ! y
+    ⊑   {- |v ⊑ (Rep Uω)| -}
+        MkUT ((ρ ! y)^.φ) (Rep Uω)
     =   {- Definition of abstract substitution -}
-        abssubst (prx x) x d
+        abssubst (prx x) x ((ρ ! y)^.φ)
     =   {- Refold |eval| -}
-        abssubst (eval y (ext ρ x (prx x))) x d
+        abssubst (eval z (ext ρ x (prx x))) x ((ρ ! y)^.φ)
+    =   {- \Cref{thm:abs-syn-subst-usage} -}
+        eval (Lam x z `App` y) ρ
     \end{spec}
 
-  \item \textbf{Case} |Lam y e|:
+  \item \textbf{Case} |Lam z e|:
     \begin{spec}
-        eval (Lam y e) (ext ρ x d)
-    =   {- Unfold |eval|, simplify |step App2 = id| -}
-        fun y (\d2 -> eval e (ext (ext ρ x d) y d2))
-    =   {- Rearrange -}
-        fun y (\d2 -> eval e (ext (ext ρ y d2) x d))
-    ⊑   {- Induction hypothesis, $|x| \not= |y|$ -}
-        fun y (\d2 -> abssubst (eval e (ext (ext ρ y d2) x (prx x))) x d)
-    =   {- $|x| \not= |y|$, identity (2) -}
-        abssubst (fun y (\d2 -> eval e (ext (ext ρ y d2) x (prx x)))) x d
-    =   {- Refold |eval| -}
-        abssubst (eval (Lam y e) (ext ρ x (prx x))) x d
-    \end{spec}
-
-  \item \textbf{Case} |App e y|:
-    \begin{spec}
-        eval (App e y) (ext ρ x d)
+        eval (Lam z e) (ext ρ x (ρ ! y))
     =   {- Unfold |eval| -}
-        apply (eval e (ext ρ x d)) ((ext ρ x d) ! y)
-    ⊑   {- Induction hypothesis -}
-        apply (abssubst (eval e (ext ρ x (prx x))) x d) ((ext ρ x d) ! y)
-    ⊑   {- |Var| case (might also incur actual |⊏|) -}
-        apply (abssubst (eval e (ext ρ x (prx x))) x d) (abssubst ((ext ρ x (prx x)) ! y) x d)
-    =   {- Identity (4) -}
-        abssubst (apply (eval e (ext ρ x (prx x))) ((ext ρ x (prx x)) ! y)) x d
+        fun z (\d -> step App2 $ eval e (ext (ext ρ x (ρ ! y)) z d))
+    =   {- Rearrange, $|x| \not= |z|$ -}
+        fun z (\d -> step App2 $ eval e (ext (ext ρ z d) x (ρ ! y)))
+    ⊑   {- Induction hypothesis, $|x| \not= |z|$ -}
+        fun z (\d -> step App2 $ eval (Lam x e `App` y) (ext ρ z d))
     =   {- Refold |eval| -}
-        abssubst (eval (App e y) (ext ρ x (prx x))) x d
+        eval (Lam z (Lam x e `App` y)) ρ
+    =   {- $|x| \not= |z|$, \Cref{thm:lambda-commutes-usage} -}
+        eval (Lam x (Lam z e) `App` y) ρ
+    \end{spec}
+
+  \item \textbf{Case} |App e z|:
+    \begin{spec}
+        eval (App e z) (ext ρ x d)
+    =   {- Unfold |eval| -}
+        apply (eval e (ext ρ x d)) ((ext ρ x d) ! z)
+    ⊑   {- Induction hypothesis -}
+        apply (abssubst (eval e (ext ρ x (prx x))) x d) ((ext ρ x d) ! z)
+    ⊑   {- |Var| case (might also incur actual |⊏|) -}
+        apply (abssubst (eval e (ext ρ x (prx x))) x d) (abssubst ((ext ρ x (prx x)) ! z) x d)
+    =   {- \Cref{thm:push-app-usage} -}
+        abssubst (apply (eval e (ext ρ x (prx x))) ((ext ρ x (prx x)) ! z)) x d
+    =   {- Refold |eval| -}
+        abssubst (eval (App e z) (ext ρ x (prx x))) x d
     \end{spec}
 
   \item \textbf{Case} |Con|, |Case|:
@@ -447,17 +604,17 @@ We proceed by induction on |e|.
 
   \item \textbf{Case} |Let|:
     \begin{spec}
-        eval (Let y e1 e2) (ext ρ x d)
+        eval (Let z e1 e2) (ext ρ x d)
     =   {- Unfold |eval|, |HasBind|, |Trace| -}
-        eval e2 (ext (ext ρ x d) y (step (Lookup y) (kleeneFix (\d1 -> eval e1 (ext (ext ρ x d) y (step (Lookup y) d1))))))
+        eval e2 (ext (ext ρ x d) z (step (Lookup z) (kleeneFix (\d1 -> eval e1 (ext (ext ρ x d) z (step (Lookup z) d1))))))
     ⊑   {- Induction hypothesis, twice. NB: |x| is absent in |d|, hence in |d1| -}
-        abssubst (eval e2 (ext (ext ρ x (prx x)) y (step (Lookup y) (kleeneFix (\d1 -> abssubst (eval e1 (ext (ext ρ x (prx x)) y (step (Lookup y) d1))) x d))))) x d
+        abssubst (eval e2 (ext (ext ρ x (prx x)) z (step (Lookup z) (kleeneFix (\d1 -> abssubst (eval e1 (ext (ext ρ x (prx x)) z (step (Lookup z) d1))) x d))))) x d
     =   {- Identity (6) -}
-        abssubst (eval e2 (ext (ext ρ x (prx x)) y (step (Lookup y) (abssubst (kleeneFix (\d1 -> eval e1 (ext (ext ρ x (prx x)) y (step (Lookup y) d1)))) x d)))) x d
+        abssubst (eval e2 (ext (ext ρ x (prx x)) z (step (Lookup z) (abssubst (kleeneFix (\d1 -> eval e1 (ext (ext ρ x (prx x)) z (step (Lookup z) d1)))) x d)))) x d
     =   {- Identity (7) -}
-        abssubst (eval e2 (ext (ext ρ x (prx x)) y (step (Lookup y) (kleeneFix (\d1 -> eval e1 (ext (ext ρ x (prx x)) y (step (Lookup y) d1))))))) x d
+        abssubst (eval e2 (ext (ext ρ x (prx x)) z (step (Lookup z) (kleeneFix (\d1 -> eval e1 (ext (ext ρ x (prx x)) z (step (Lookup z) d1))))))) x d
     =   {- Refold |eval| -}
-        abssubst (eval (Let y e1 e2) (ext ρ x (prx x))) x d
+        abssubst (eval (Let z e1 e2) (ext ρ x (prx x))) x d
     \end{spec}
 \end{itemize}
 \end{proof}
@@ -474,7 +631,7 @@ We proceed by induction on |e|.
 (5) & |UD|            & $\Let{i}{\Lam{x}{x}}{\Let{j}{\Lam{y}{y}}{i~i~j}}$   & $\perform{eval (read "let i = λx.x in let j = λy.y in i i j") emp :: UD}$ \\
 (6) & |D (ByName UT)| & $\Let{z}{Z()}{\Case{S(z)}{S(n) → n}}$   & $\perform{eval (read "let z = Z() in case S(z) of { S(n) -> n }") emp  :: D (ByName UT)}$ \\
 (7) & |UD|            & $\Let{z}{Z()}{\Case{S(z)}{S(n) → n}}$   & $\perform{eval (read "let z = Z() in case S(z) of { S(n) -> n }") emp :: UD}$ \\
-(8) & |D (ByName UT)| & $\Let{i}{\Let{j}{\Lam{x}{x}}{j}}{i~i}$   & $\perform{eval (read "let i = let j = λx.x in j in i i") emp :: UD}$ \\
+%(8) & |D (ByName UT)| & $\Let{i}{\Let{j}{\Lam{x}{x}}{j}}{i~i}$   & $\perform{eval (read "let i = let j = λx.x in j in i i") emp :: UD}$ \\
 \bottomrule
 \end{tabular}
 \caption{Comparing usage analysis |UD| to the usage instrumentation |D (ByName UT)|.}
@@ -491,17 +648,17 @@ declines when there is another indirect call involved.
 Examples (6) and (7) concern data constructors and demonstrate the blatant
 imprecision of the analysis when faced with manifest beta redexes.
 
-Example (8) shows that the static analysis reports the same surprising
-multi-usage result of the nested let-binder $j$ as the instrumentation.
-As well it should, since that is inherent to the trace property it is
-approximating!
-Of course, a practical implementation would write out annotations in |bind|,
-when it leaves the lexical scope of the let-binding, rather than rerunning
-the analysis for every let-binding in the program separately.
-We have done so as an experiment in the Supplement \sg{as well as the case study
-modifying GHC}, but it complicates the simple correctness relationship the analysis
-enjoys \wrt the instrumentation in \Cref{thm:usage-correct}, so we leave it out
-in this work.
+%Example (8) shows that the static analysis reports the same surprising
+%multi-usage result of the nested let-binder $j$ as the instrumentation.
+%As well it should, since that is inherent to the trace property it is
+%approximating!
+%Of course, a practical implementation would write out annotations in |bind|,
+%when it leaves the lexical scope of the let-binding, rather than rerunning
+%the analysis for every let-binding in the program separately.
+%We have done so as an experiment in the Supplement \sg{as well as the case study
+%modifying GHC}, but it complicates the simple correctness relationship the analysis
+%enjoys \wrt the instrumentation in \Cref{thm:usage-correct}, so we leave it out
+%in this work.
 
 \subsection{Discussion}
 %A total description of the \emph{dynamic semantics} of a language requires a

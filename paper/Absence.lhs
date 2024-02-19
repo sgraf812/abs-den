@@ -232,7 +232,7 @@ a finite $\AbsTy$, and $\mathit{app}$ encodes the adjoint (``reverse'')
 operation.%
 \footnote{Proving that $\mathit{fun}$ and $\mathit{app}$ form a Galois connection
 is indeed important for a correctness proof and corresponds to a substitution
-\Cref{thm:subst-absence}.}
+\Cref{thm:absence-subst}.}
 
 To support efficient separate compilation, a compiler analysis must be
 \emph{modular}, and summaries are indispensable to achieving that.
@@ -391,6 +391,9 @@ syntactic substitution:
   \label{thm:abs-syn-subst}
   $\semabs{(\Lam{\px}{\pe})~\py}_ρ = (\semabs{\pe}_{ρ[\px↦\langle [\px↦\aU], \aU.. \rangle]})[\px \Mapsto ρ(\py).φ]$.
 \end{lemma}
+\begin{proof}
+Follows by unfolding the application and lamda case and then refolding abstract substitution.
+\end{proof}
 
 \begin{lemma}
 \label{thm:lambda-bound-absent}
@@ -405,7 +408,7 @@ when returning.
 \end{proof}
 
 \begin{lemma}
-\label{thm:lambda-commutes}
+\label{thm:lambda-commutes-absence}
 $\semabs{(\Lam{\px}{\Lam{\py}{\pe}})~\pz}_ρ = \semabs{\Lam{\py}{((\Lam{\px}{\pe})~\pz)}}_ρ$.
 \end{lemma}
 \begin{proof}
@@ -465,7 +468,7 @@ begin of this Section.
 \end{toappendix}
 
 \begin{lemmarep}[Substitution]
-\label{thm:subst-absence}
+\label{thm:absence-subst}
 $\semabs{\pe}_{ρ[\px↦ρ(\py)]} ⊑ \semabs{(\Lam{\px}{\pe})~\py}_ρ$.
 \end{lemmarep}
 \begin{proof}
@@ -512,7 +515,7 @@ By induction on $\pe$.
     ⊑{} & \mathit{fun}_\pz(\fn{θ_\pz}{\semabs{(\Lam{\px}{\pe'})~\py}_{ρ[\pz↦θ_\pz]}})
         \Arrow{Refold $\semabs{\wild}$} \\
     ={} & \semabs{\Lam{\pz}{((\Lam{\px}{\pe'})~\py)}}_ρ
-        \Arrow{\Cref{thm:lambda-commutes}} \\
+        \Arrow{\Cref{thm:lambda-commutes-absence}} \\
     ={} & \semabs{(\Lam{\px}{\Lam{\pz}{\pe'}})~\py}_ρ
     \end{DispWithArrows*}
 
@@ -717,7 +720,7 @@ By cases on the transition.
     \begin{DispWithArrows*}[fleqn,mathindent=3em]
            & \semabsS{σ_1} \Arrow{Unfold $\semabsS{σ_1}$} \\
       {}={}& \mathit{apps}_μ(\ApplyF(\pa) \pushF κ)(\semabs{\Lam{\py}{\pe'}}_{α(μ) \circ ρ}) \Arrow{Unfold $\mathit{apps}$} \\
-      {}={}& \mathit{apps}_μ(κ)(\mathit{app}(\semabs{\Lam{\py}{\pe'}}_{α(μ) \circ ρ}, α(μ)(\pa))) \Arrow{Unfold RHS of \Cref{thm:subst-absence}} \\
+      {}={}& \mathit{apps}_μ(κ)(\mathit{app}(\semabs{\Lam{\py}{\pe'}}_{α(μ) \circ ρ}, α(μ)(\pa))) \Arrow{Unfold RHS of \Cref{thm:absence-subst}} \\
       {}⊒{}& \mathit{apps}_μ(κ)(\semabs{\pe'}_{(α(μ) \circ ρ)[\py↦α(μ)(\pa)]}) \Arrow{Rearrange} \\
       {}={}& \mathit{apps}_μ(κ)(\semabs{\pe'}_{(α(μ) \circ ρ[\py↦\pa])}) \Arrow{Refold $\semabsS{σ_2}$} \\
       {}={}& \semabsS{σ_2}

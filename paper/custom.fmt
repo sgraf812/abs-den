@@ -33,7 +33,6 @@
 %format qquad = "\qquad"
 %format ^ = " "
 %format ^^ = "\;"
-%format at(a)(b) = a "_{\{" b "\}}"
 
 %subst conid a = "\conid{" a "}"
 %subst varid a = "\varid{" a "}"
@@ -111,6 +110,7 @@
 %format (exts rho (xs) (ds)) = rho "[\many{" xs "\mapsto" ds "}]"
 %format (abssubst d (x) (φ)) = d "[" x "\Mapsto" φ "]"
 %format << = "\lhd"
+%format ^. = "."
 %format emptyP = "\varcolor{\varnothing}"
 %format ell = "\varcolor{\ell}"
 %format ells = "\varcolor{\many{\ell}}"
@@ -197,6 +197,7 @@
 %format AAA = "\concolor{\mathsf{U_0..}}"
 %format UUU = "\concolor{\mathsf{U_\omega..}}"
 %format UCons a b = a " \sumcons " b
+%format UD2 = "\concolor{\mathsf{\widehat{D_U}}}"
 
 %format CD = "\concolor{\mathsf{D_C}}"
 %format CT = "\concolor{\mathsf{T_C}}"
