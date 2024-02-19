@@ -300,9 +300,22 @@ Absence types in \Cref{fig:absence} are now called |UD| and constitute
 the abstract semantic domain for which we will define |Domain| and |HasBind|
 instances.
 
-Since any |d::UD| is finite, we can no longer use guarded |fix|points in
-|HasBind UD|, so we will use least fixpoints (computed by |kleeneFix| in
-\Cref{fig:lat}) instead.%
+The analysis is just a slight generalisation of absence analysis.
+However, it is formulated as an abstract denotational interpreter, which is
+a bit different than absence analysis.
+Hence we will start with some examples building on the existing intuition to see
+what usage analysis infers before discussing its implementation.
+Example (1) of \Cref{fig:usage-analysis-examples} shows that the analysis infers
+the same result as the by-name instrumentation on the example from
+\Cref{fig:usage-instrumentation-examples}.
+Examples (2) and (3) illustrate that usage analysis can precisely infer
+second-order |U1| usage on $j$ through the summary mechanism encoded in |apply|
+and |fun|, however examples (4) and (5) show that precision declines when there
+is another indirect call involved.
+
+As for the implementation: since any |d::UD| is finite, we can no longer use
+guarded |fix|points in |HasBind UD| to compute recursive let bindings, so we
+will use least fixpoints (computed by |kleeneFix| in \Cref{fig:lat}) instead.%
 \footnote{Why is the use of least fixpoints correct?
 The fact that we are approximating a safety property~\citep{Lamport:77}
 is important. We will discuss this topic in \Cref{sec:safety-extension}.}
@@ -312,7 +325,7 @@ The resulting definition of |HasBind| is safe for by-name and by-need semantics.
 by |U0 ⊏ U1 ⊏ Uω| in the same way that the order
 on $\AbsTy$ in \Cref{sec:absence} was induced from the order $\aA ⊏ \aU$
 on $\Absence$ flags.
-Specifically, |peel| exemplifies the non-syntactic equality |(Rep u) ==
+Function |peel| exemplifies the non-syntactic equality |(Rep u) ==
 UCons u (Rep u)| at work that is respected by the |Lat UD| instance.%
 \footnote{The keen reader may note that the least fixed-point does not
 always exist due to infinite ascending chains such as
@@ -327,40 +340,82 @@ While |stuck| expressions do not evaluate anything and hence are denoted by
 |bottom = MkUT emp (Rep U0)|, the |fun| and |apply| functions play exactly the same
 roles as $\mathit{fun}_\px$ and $\mathit{app}$ in \Cref{fig:absence}.
 
-In |fun x f|, the abstract transformer |f| is applied to a proxy |(MkUT (ext
-emp x U1) (Rep Uω))| to summarise how |f| uses its argument by way of looking at how
-|f| uses |x|, and returns this usage by prepending it to the summarised value.%
+Consider again example (3) from \Cref{fig:usage-analysis-examples}.
+The summary for the right-hand side $\Lam{x}{x}$ of $i$ is computed as follows
+\begin{spec}
+   eval (Lam x (Var x)) ρ
+=  fun x (\d -> step App2 (eval (Var x) (ext ρ x d)))
+=  case step App2 (eval (Var x) (ext ρ x (MkUT (ext emp x U1) (Rep Uω)))) of
+     MkUT φ v -> MkUT (Uω * ext φ x U0) (UCons (φ !? x) (Rep Uω))
+=  MkUT emp (UCons U1 (Rep Uω))
+\end{spec}
+
+That is, the lambda body is applied to a proxy |(MkUT (ext emp x U1) (Rep Uω))|
+to summarise how the body uses its argument by way of looking at how it uses |x|,
+and returns this usage by prepending it to the summarised value.%
 \footnote{As before, the exact identity of |x| is exchangeable; we use it as a
 De Bruijn level.}
 Occurrences of |x| must make do with the top value |(Rep Uω)| for lack of
-knowing the actual argument at call sites, and uses in the lambda body are
-multiplied with |Uω| to anticipate the effect of multiple calls.
+knowing the actual argument at call sites, and free-variable uses in the lambda
+body are multiplied with |Uω| to anticipate the effect of multiple calls.
 
-The definition of |apply| is nearly the same as in \Cref{fig:absence}, except
-for the use of |+| instead of $⊔$ to carry over |U1 + U1 = Uω|, and an
-explicit |peel| to view a |UValue| in terms of $\sumcons$.
+The definition of |apply| to concretise such summaries is nearly the same as in
+\Cref{fig:absence}, except for the use of |+| instead of $⊔$ to carry over |U1
++ U1 = Uω|, and an explicit |peel| to view a |UValue| in terms of $\sumcons$.
 The usage |u| thus pelt from the value determines how often the actual
 argument was evaluated, and multiplying the uses of the argument |φ2| with |u|
 accounts for that.
 
-In contrast to \citet{Sergey:14}, we omit a summary mechanism for data
-constructors, and thus assume that any field of a data constructor is used
-multiple times.
-This is achieved in |con| by repeatedly |apply|ing to the top value |(Rep Uω)|, as if
-a data constructor was a lambda-bound variable.
+Examples (6) and (7) in \Cref{fig:usage-analysis-examples} concern data
+constructors and demonstrate the blatant imprecision of the analysis when faced
+with manifest beta redexes.
+That is because in contrast to \citet{Sergey:14}, we omit a more elaborate
+summary mechanism for data constructors for simplicity, and thus assume that any
+field of a data constructor is used multiple times.
+This is achieved in |con| by repeatedly |apply|ing to the top value |(Rep Uω)|,
+as if a data constructor was a lambda-bound variable.
 Dually, |select| does not need to track how fields are used and can pass |MkUT
 emp (Rep Uω)| as proxies for field denotations.
 The result uses anything the scrutinee expression used, plus the upper bound of
 uses in case alternatives, one of which will be taken.
 
-The summary mechanism implied by |app| and |fun| can be proven correct in the
-following substitution lemma:
+\begin{table}
+\begin{tabular}{clll}
+\toprule
+\# & |d|             & |e|                                               & |eval e emp :: d| \\
+\midrule
+(1) & |UD|            & $\pe$ from \Cref{fig:usage-instrumentation-examples} & $\perform{eval (read "let id = λx.x in let t = (λy.y) id in let v = Z() in let u = v in t t") emp :: UD}$ \\
+(2) & |D (ByName UT)| & $\Let{i}{\Lam{x}{x}}{\Let{j}{\Lam{y}{y}}{i~j}}$   & $\perform{eval (read "let i = λx.x in let j = λy.y in i j") emp :: D (ByName UT)}$ \\
+(3) & |UD|            & $\Let{i}{\Lam{x}{x}}{\Let{j}{\Lam{y}{y}}{i~j}}$   & $\perform{eval (read "let i = λx.x in let j = λy.y in i j") emp :: UD}$ \\
+(4) & |D (ByName UT)| & $\Let{i}{\Lam{x}{x}}{\Let{j}{\Lam{y}{y}}{i~i~j}}$   & $\perform{eval (read "let i = λx.x in let j = λy.y in i i j") emp :: D (ByName UT)}$ \\
+(5) & |UD|            & $\Let{i}{\Lam{x}{x}}{\Let{j}{\Lam{y}{y}}{i~i~j}}$   & $\perform{eval (read "let i = λx.x in let j = λy.y in i i j") emp :: UD}$ \\
+(6) & |D (ByName UT)| & $\Let{z}{Z()}{\Case{S(z)}{S(n) → n}}$   & $\perform{eval (read "let z = Z() in case S(z) of { S(n) -> n }") emp  :: D (ByName UT)}$ \\
+(7) & |UD|            & $\Let{z}{Z()}{\Case{S(z)}{S(n) → n}}$   & $\perform{eval (read "let z = Z() in case S(z) of { S(n) -> n }") emp :: UD}$ \\
+%(8) & |D (ByName UT)| & $\Let{i}{\Let{j}{\Lam{x}{x}}{j}}{i~i}$   & $\perform{eval (read "let i = let j = λx.x in j in i i") emp :: UD}$ \\
+\bottomrule
+\end{tabular}
+\caption{Comparing usage analysis |UD| to the usage instrumentation |D (ByName UT)|.}
+\label{fig:usage-analysis-examples}
+\end{table}
+
+We have proven usage analysis correct by relating it to the instrumentation
+roughly as follows:%
+\footnote{Do note that the range types of |ρ| are incompatible; we fix this in
+\Cref{thm:usage-correct}.}
+\[
+  |(eval e ρ :: D (ByName UT))^.φ ⊑ (eval e ρ :: UD)^.φ|,
+\]
+where we abbreviate the field access |(MkUT φ' v)^.φ := φ'|.
+In other words: for an evaluation to weak-head normal form, our analysis never
+underapproximates the |Uses| reported by the instrumentation.
+For the proof, we need to prove correct the summary mechanism implied by
+|apply| and |fun| in the following substitution lemma:
 
 \begin{toappendix}
 As in the proof for \Cref{thm:absence-subst}, we will use the following abbreviations:
 
 \begin{abbreviation}
-  We abbreviate |(MkUT φ v)^.φ := φ|.
+  We abbreviate |(MkUT φ' v)^.φ := φ'|.
 \end{abbreviation}
 
 \begin{definition}[Abstract substitution]
@@ -619,34 +674,24 @@ We proceed by induction on |e|.
 \end{itemize}
 \end{proof}
 
-\begin{table}
-\begin{tabular}{clll}
-\toprule
-\# & |d|             & |e|                                               & |eval e emp :: d| \\
-\midrule
-(1) & |UD|            & $\pe$ from \Cref{fig:usage-instrumentation-examples} & $\perform{eval (read "let id = λx.x in let t = (λy.y) id in let v = Z() in let u = v in t t") emp :: UD}$ \\
-(2) & |D (ByName UT)| & $\Let{i}{\Lam{x}{x}}{\Let{j}{\Lam{y}{y}}{i~j}}$   & $\perform{eval (read "let i = λx.x in let j = λy.y in i j") emp :: D (ByName UT)}$ \\
-(3) & |UD|            & $\Let{i}{\Lam{x}{x}}{\Let{j}{\Lam{y}{y}}{i~j}}$   & $\perform{eval (read "let i = λx.x in let j = λy.y in i j") emp :: UD}$ \\
-(4) & |D (ByName UT)| & $\Let{i}{\Lam{x}{x}}{\Let{j}{\Lam{y}{y}}{i~i~j}}$   & $\perform{eval (read "let i = λx.x in let j = λy.y in i i j") emp :: D (ByName UT)}$ \\
-(5) & |UD|            & $\Let{i}{\Lam{x}{x}}{\Let{j}{\Lam{y}{y}}{i~i~j}}$   & $\perform{eval (read "let i = λx.x in let j = λy.y in i i j") emp :: UD}$ \\
-(6) & |D (ByName UT)| & $\Let{z}{Z()}{\Case{S(z)}{S(n) → n}}$   & $\perform{eval (read "let z = Z() in case S(z) of { S(n) -> n }") emp  :: D (ByName UT)}$ \\
-(7) & |UD|            & $\Let{z}{Z()}{\Case{S(z)}{S(n) → n}}$   & $\perform{eval (read "let z = Z() in case S(z) of { S(n) -> n }") emp :: UD}$ \\
-%(8) & |D (ByName UT)| & $\Let{i}{\Let{j}{\Lam{x}{x}}{j}}{i~i}$   & $\perform{eval (read "let i = let j = λx.x in j in i i") emp :: UD}$ \\
-\bottomrule
-\end{tabular}
-\caption{Comparing usage analysis |UD| to the usage instrumentation |D (ByName UT)|.}
-\label{fig:usage-analysis-examples}
-\end{table}
+If usage analysis is to be used to inform, \eg, dead code removal in a compiler,
+then the results it infers better generalise to arbitrary program contexts
+in which the analysed expression |e| occurs.
+Thus, it is useful to know the results are invariant under wrapping of
+\emph{evaluation contexts} as in \Cref{defn:absence} of Absence.
+A precise syntactic definition of by-need evaluation contexts such as in
+\citet{MoranSands:99} can be found as part of the proof in the Appendix.
 
-\subsubsection*{Examples}
-Example (1) of \Cref{fig:usage-analysis-examples} shows that usage analysis infers
-the same result as the by-name instrumentation on the example from
-\Cref{fig:usage-instrumentation-examples}.
-Examples (2) and (3) illustrate that usage analysis can precisely infer
-second-order |U1| usage on $j$, however examples (4) and (5) show that precision
-declines when there is another indirect call involved.
-Examples (6) and (7) concern data constructors and demonstrate the blatant
-imprecision of the analysis when faced with manifest beta redexes.
+\begin{theoremrep}
+  Let |ectx| be an arbitrary by-need evaluation context, where |fillC ectx e|
+  fills the hole in |ectx| with |e|.
+  Then |((eval e ρ :: UD)^.φ !? x) = ((eval (fillC ectx e) ρ :: UD)^.φ) !? x| for
+  every free variable |x| of |e| that does not occur in |ectx|.
+\end{theoremrep}
+\begin{proof}
+  TODO
+\end{proof}
+
 
 %Example (8) shows that the static analysis reports the same surprising
 %multi-usage result of the nested let-binder $j$ as the instrumentation.
@@ -670,16 +715,16 @@ imprecision of the analysis when faced with manifest beta redexes.
 
 By recovering usage analysis as an abstraction of |eval|, we have achieved an
 important goal:
-To derive a \emph{compositional} static analysis approximating a property
+to derive a \emph{compositional} static analysis approximating a property
 of a \emph{small-step trace}, with a simple but useful summary mechanism, as
-an instance of a generic denotational interpreter skeleton, thus sharing most of
+an instance of a generic denotational interpreter, thus sharing most of
 its structure with the concrete semantics.
-We will see in \Cref{sec:soundness} that sharing the skeleton leads to
-significant reuse in soundness proofs.
+We will see in \Cref{sec:soundness} that this sharing leads to significant
+reuse in soundness proofs.
 
 To demonstrate the versatility of our approach, we have also defined
 a compositional type analysis with let generalisation as well as
-0CFA as an instance of our denotational interpreter; you can find
+0CFA as an instance of our generic denotational interpreter; you can find
 outlines in the Appendix and the complete implementations in the supplied
 extract of this document.
 
