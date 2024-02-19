@@ -1538,6 +1538,95 @@ is sound \wrt |D (ByNeed T)|, that is,
 \end{spec}}
 \end{corollary}
 
+
+%TBD: Prove correct as absence analysis.
+%  1. Prove "context closure"; e.g., for eval contexts at most factor of Uω (annoying)
+%  2. Prove absence
+%
+%If usage analysis is to be used to inform, \eg, dead code removal in a compiler,
+%then the results it infers better generalise to arbitrary program contexts
+%in which the analysed expression |e| occurs.
+%Thus, it is useful to know the results are invariant under wrapping of
+%\emph{evaluation contexts} as in \Cref{defn:absence} of Absence.
+%A precise syntactic definition of by-need evaluation contexts such as in
+%\citet{MoranSands:99} can be found as part of the proof in the Appendix.
+%
+%\begin{toappendix}
+%\citet[Lemma 4.1]{MoranSands:99} derive the call-by-need evaluation contexts
+%$\pE$ from machine contexts $(μ,\hole,κ)$ of the Sestoft mark I machine; a
+%variant of \Cref{fig:lk-semantics} that uses syntactic substitution of variables
+%instead of delayed substitution and addresses, so $μ ∈ \Var \pfun \Exp$ and no
+%closures are needed.
+%
+%For our language, these contexts can be defined as
+%\[\begin{array}{lcl}
+%  \pE ∈ \EContexts & ::= & \pA \mid \Let{\px}{\pe}{\pE} \mid \Let{\px}{\pE}{\pE[\px]} \\
+%  \pA ∈ \AContexts & ::= & \hold \mid \pA~\px \mid \Case{\pA}{\Sel}
+%\end{array}\]
+%For completeness, we give a function $\mathit{syn}$ that translates from mark I
+%machine contexts $(μ,κ)$ to evaluation contexts $\pE$.
+%\[\begin{array}{lcl}
+%  \mathit{syn} & : & (\Var \pfun \Exp) \times \Continuations \to \EContexts \\
+%  \mathit{syn}([\px ↦ \pe],κ) & = & \Let{\px}{\pe}{\mathit{stk}(\hole,κ)} \\
+%  \mathit{stk} & : & \AContexts \times \Continuations \to \EContexts \\
+%  \mathit{stk}(\pA,\ApplyF(\px) \pushF κ) & = & \mathit{stk}(\pA~\px,κ) \\
+%  \mathit{stk}(\pA,\SelF(\Sel) \pushF κ) & = & \mathit{stk}(\Case{\pA}{\Sel},κ) \\
+%  \mathit{stk}(\pA,\UpdateF(\px) \pushF κ) & = & \Let{\px}{\pA}{\mathit{stk}(\hole, κ)[\px]} \\
+%\end{array}\]
+%Certainly the most interesting case is that of $\UpdateF$ frames.
+%
+%We encode evaluation contexts in Haskell as follows, overloading notation |fillC|:
+%\begin{spec}
+%data ACtxt = Hole | Apply ACtxt Name | Select ACtxt Alts
+%data ECtxt = ACtxt ACtxt | ExtendHeap Name Expr ECtxt | UpdateHeap Name ACtxt Expr
+%fillC :: ACtxt -> Expr -> Expr
+%fillC Hole e = e
+%fillC (Apply actxt x) e = App (fillC actxt e) x
+%fillC (Select actxt alts) e = Case (fillC actxt e) alts
+%fillC :: ECtxt -> Expr -> Expr
+%fillC (ACtxt a) e = fillC a e
+%fillC (ExtendHeap x e1 ectxt) e2 = Let x e1 (fillC ectxt e2)
+%fillC (UpdateHeap x actxt e1) e2 = Let x (fillC actxt e1) e2
+%\end{spec}
+%\end{toappendix}
+%
+%\begin{theoremrep}[Context closure]
+%  \label{thm:usage-context}
+%  Let |ectxt| be an arbitrary by-need evaluation context, where |fillC ectxt e|
+%  fills the hole in |ectxt| with |e|.
+%  Then |((eval e ρ :: UD)^.φ !? x) = ((eval (fillC ectxt e) ρ :: UD)^.φ) !? x| for
+%  every free variable |x| of |e| that does not occur in |ectxt|.
+%\end{theoremrep}
+%\begin{proof}
+%Let us assume that none of the variables in which |e| is free occur in |ectxt|;
+%otherwise we can rename.
+%By induction on the size of |ectxt| and cases on |ectxt|:
+%\begin{itemize}
+%  \item \textbf{Case }|Hole|:
+%    By reflexivity.
+%  \item \textbf{Case }|Apply actxt x|:
+%    Let |y| be a free varaible of |e|, which must be different to |x|.
+%    \begin{spec}
+%        (eval (fillC (Apply actxt x) e) ρ)^.φ ! y
+%    =   {- Definition of |fillC| -}
+%        (eval (App (fillC actxt e) x) ρ)^.φ ! y
+%    =   {- Definition of |eval| -}
+%        (apply (eval (fillC actxt e) ρ) (ρ ! x))^.φ ! y
+%    =   {- Definition of |apply| -}
+%        let MkUT φ v = eval (fillC actxt e) ρ in
+%        case peel v of (u,v2) -> ((MkUT (φ + u*((ρ!x)^.φ)) v2)^.φ ! y)
+%    =   {- Simplify -}
+%        let MkUT φ v = eval (fillC actxt e) ρ in
+%        case peel v of (u,v2) -> (φ + u*((ρ!x)^.φ)) ! y
+%    =   {- |y| absent in |ρ ! x| -}
+%        (eval (fillC actxt e) ρ)^.φ ! y
+%    =   {- Induction hypothesis -}
+%        (eval e ρ)^.φ ! y
+%    \end{spec}
+%\end{itemize}
+%\end{proof}
+
+
 %if False
 % Here is an attempt to recover a frame rule for |eval|, but we didn't need it
 % so far. Perhaps the notion of equivalence modulo readdressing permutations

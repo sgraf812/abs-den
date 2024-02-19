@@ -71,7 +71,8 @@
 %format μ4'
 %format μi'
 %format (fillC ctx (e)) = ctx "[" e "]"
-%format ectx = "\varid{E}"
+%format actxt = "\varid{A}"
+%format ectxt = "\varid{E}"
 %format α = "\varcolor{\alpha}"
 %format αdot = "\dot{\varcolor{\alpha}}"
 %format αup = "\varcolor{\alpha}^{*}"
