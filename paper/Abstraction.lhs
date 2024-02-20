@@ -243,6 +243,8 @@ m !? x  | x ∈ dom m  = m ! x
 \end{minipage}%
 \begin{minipage}{0.57\textwidth}
 \begin{code}
+-- \sven{Define the usage analysis here: $\mathcal{U}\llbracket e \rrbracket \rho = \mathcal{S}\llbracket e \rrbracket \rho :: D_u$}
+
 instance Domain UD where
   stuck                                  = bottom
   fun x {-" \iffalse "-}_{-" \fi "-} f   = case f (MkUT (ext emp x U1) (Rep Uω)) of
@@ -288,7 +290,7 @@ instance Show UValue where
   show (UCons u v) = show u ++ " \\sumcons " ++ show v
 \end{code}
 %endif
-\caption{Summary-based usage analysis via |Domain| and |HasBind|}
+\caption{Summary-based usage analysis via |Domain| and |HasBind| \sven{The left contains helper functions, the right contains the important definitions. I would move the important definitions to the left.}}
 \label{fig:abs-usg}
 \end{figure}
 
@@ -313,7 +315,7 @@ However, it is formulated as an abstract denotational interpreter, which is
 a bit different than absence analysis.
 Hence we will start with some examples building on the existing intuition to see
 what usage analysis infers before discussing its implementation.
-Example (1) of \Cref{fig:usage-analysis-examples} shows that the analysis infers
+Example (1) of \Cref{fig:usage-analysis-examples}\sven{I would have preferred a single trace as in L162. This makes it much clearer what the analysis does, because you can see the intermediate steps. Also it would be good if the example program could included slightly more complicated functions (not identity), so we can see the summary mechanism at work. Maybe the same example program as in L162?} shows that the analysis infers
 the same result as the by-name instrumentation on the example from
 \Cref{fig:usage-instrumentation-examples}.
 Examples (2) and (3) illustrate that usage analysis can precisely infer
@@ -321,19 +323,19 @@ second-order |U1| usage on $j$ through the summary mechanism encoded in |apply|
 and |fun|, however examples (4) and (5) show that precision declines when there
 is another indirect call involved.
 
-As for the implementation: since any |d::UD| is finite, we can no longer use
-guarded |fix|points in |HasBind UD| to compute recursive let bindings, so we
+As for the implementation\sven{Explain the implementation at the example trace of the analysis}: since any |d::UD| is finite, we can no longer use
+guarded |fix|points\sven{Please don't use these words mixed with syntax. They interrupt my reading flow. Either use "fixpoints" or use "function |fix|" } in |HasBind UD| to compute recursive let bindings, so we
 will use least fixpoints (computed by |kleeneFix| in \Cref{fig:lat}) instead.%
 \footnote{Why is the use of least fixpoints correct?
 The fact that we are approximating a safety property~\citep{Lamport:77}
 is important. We will discuss this topic in \Cref{sec:safety-extension}.}
 The resulting definition of |HasBind| is safe for by-name and by-need semantics.
-
 |kleeneFix| requires us to define an order on |UD|, which is induced
-by |U0 ⊏ U1 ⊏ Uω| in the same way that the order
+by |U0 ⊏ U1 ⊏ Uω|\sven{The order should have been defined in the previous section where you introduce the types. Also I would not say anything about the orders if they are obvious as with $\AbsTy$.} in the same way that the order
 on $\AbsTy$ in \Cref{sec:absence} was induced from the order $\aA ⊏ \aU$
 on $\Absence$ flags.
-Function |peel| exemplifies the non-syntactic equality |(Rep u) ==
+
+Function |peel|\sven{I would introduced |peel| in the context of |fun| where it is used.} exemplifies the non-syntactic equality |(Rep u) ==
 UCons u (Rep u)| at work that is respected by the |Lat UD| instance.%
 \footnote{The keen reader may note that the least fixed-point does not
 always exist due to infinite ascending chains such as
@@ -357,8 +359,8 @@ The summary for the right-hand side $\Lam{x}{x}$ of $i$ is computed as follows
 =  MkUT emp (UCons U1 (Rep Uω))
 \end{spec}
 
-That is, the lambda body is applied to a proxy |(MkUT (ext emp x U1) (Rep Uω))|
-to summarise how the body uses its argument by way of looking at how it uses |x|,
+That is, the lambda body is applied to a proxy |(MkUT (ext emp x U1) (Rep Uω))|\sven{Did you explain what $\epsilon$ is?}
+to summarise how the body uses its argument by way of looking at how it uses |x|\sven{Why do you map |x| to |U1|?},
 and returns this usage by prepending it to the summarised value.%
 \footnote{As before, the exact identity of |x| is exchangeable; we use it as a
 De Bruijn level.}
@@ -366,20 +368,20 @@ Occurrences of |x| must make do with the top value |(Rep Uω)| for lack of
 knowing the actual argument at call sites, and free-variable uses in the lambda
 body are multiplied with |Uω| to anticipate the effect of multiple calls.
 
-The definition of |apply| to concretise such summaries is nearly the same as in
+The definition of |apply| to concretise\sven{Weird word. Perhaps "Function |apply| that applies a summary to its argument, is nearly the same as in Figure 1."} such summaries is nearly the same as in
 \Cref{fig:absence}, except for the use of |+| instead of $⊔$ to carry over |U1
 + U1 = Uω|, and an explicit |peel| to view a |UValue| in terms of $\sumcons$.
 The usage |u| thus pelt from the value determines how often the actual
 argument was evaluated, and multiplying the uses of the argument |φ2| with |u|
 accounts for that.
 
-Examples (6) and (7) in \Cref{fig:usage-analysis-examples} concern data
-constructors and demonstrate the blatant imprecision of the analysis when faced
+Examples (6) and (7) in \Cref{fig:usage-analysis-examples}\sven{I would not collect these examples in the figure, but show them here inline. This way they are more connected to the text. Use the same style as three paragraphs above: |eval e ρ = ...|} concern data
+constructors and demonstrate the blatant imprecision\sven{Can we phrase this less dramatic? It is good scientific practice to openly talk about limitations, but we don't need to destroy our own work. Better: "Note that in contrast to \citet{Sergey:14}, our analysis is less precise on manifest beta redexes. That is because ...} of the analysis when faced
 with manifest beta redexes.
 That is because in contrast to \citet{Sergey:14}, we omit a more elaborate
 summary mechanism for data constructors for simplicity, and thus assume that any
 field of a data constructor is used multiple times.
-This is achieved in |con| by repeatedly |apply|ing to the top value |(Rep Uω)|,
+This\sven{Unclear if "this" refers to our or to Sergey's analysis} is achieved in |con| by repeatedly |apply|ing to the top value |(Rep Uω)|,
 as if a data constructor was a lambda-bound variable.
 Dually, |select| does not need to track how fields are used and can pass |MkUT
 emp (Rep Uω)| as proxies for field denotations.
@@ -391,7 +393,7 @@ uses in case alternatives, one of which will be taken.
 \toprule
 \# & |d|             & |e|                                               & |eval e emp :: d| \\
 \midrule
-(1) & |UD|            & $\pe$ from \Cref{fig:usage-instrumentation-examples} & $\perform{eval (read "let id = λx.x in let t = (λy.y) id in let v = Z() in let u = v in t t") emp :: UD}$ \\
+(1) & |UD|            & $\pe$ from \Cref{fig:usage-instrumentation-examples}\sven{Hard to understand the analysis result without seeing the program. Show the program here. Use line breaks if necessary.} & $\perform{eval (read "let id = λx.x in let t = (λy.y) id in let v = Z() in let u = v in t t") emp :: UD}$ \\
 (2) & |D (ByName UT)| & $\Let{i}{\Lam{x}{x}}{\Let{j}{\Lam{y}{y}}{i~j}}$   & $\perform{eval (read "let i = λx.x in let j = λy.y in i j") emp :: D (ByName UT)}$ \\
 (3) & |UD|            & $\Let{i}{\Lam{x}{x}}{\Let{j}{\Lam{y}{y}}{i~j}}$   & $\perform{eval (read "let i = λx.x in let j = λy.y in i j") emp :: UD}$ \\
 (4) & |D (ByName UT)| & $\Let{i}{\Lam{x}{x}}{\Let{j}{\Lam{y}{y}}{i~i~j}}$   & $\perform{eval (read "let i = λx.x in let j = λy.y in i i j") emp :: D (ByName UT)}$ \\
@@ -406,7 +408,7 @@ uses in case alternatives, one of which will be taken.
 \end{table}
 
 We have proven usage analysis correct by relating it to the instrumentation
-roughly as follows:
+roughly as follows\sven{Why show the soundness theorem here? Section 5 is about introducing the usage analysis and section 6 is about proving it sound. I would end this section here, leading over to the next section saying that we prove the analysis sound there.}:
 \[
   |(eval e ρ :: D (ByName UT))^.φ ⊑ (eval e ρ :: UD)^.φ|,
 \]
@@ -688,7 +690,7 @@ To demonstrate the versatility of our approach, we have also defined
 a compositional type analysis with let generalisation (\cf \Cref{sec:type-analysis}) as well as
 0CFA (\cf \Cref{sec:0cfa}) as an instance of our generic denotational interpreter; you can find
 outlines in the Appendix and the complete implementations in the supplied
-extract of this document.
+extract of this document\sven{Why do you only mention this at the end of this section? This is a major contribution of our work and needs to be introduced more prominently at the beginning of the section. I would also write small subsections for each of these analyses at least showing some details that allow the reviewers to judge the impact of these analyses}.
 
 \begin{toappendix}
 \subsection{Type Analysis}
