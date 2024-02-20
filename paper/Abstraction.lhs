@@ -31,7 +31,7 @@ We demonstrate how our framework can be used both to \emph{instrument} the
 dynamic semantics to describe \emph{operational properties} in terms of a
 |Trace| instance, as well as \emph{statically approximate} these operational
 properties by specifying a summary mechanism (\ie, a |Domain| instance) and
-appealing to order theory.
+appealing to order theory\sven{Unclear how the first sentence fits to the second.}.
 \Cref{sec:soundness} will understand the connection between instrumentation and
 static analysis in terms of \emph{abstract interpretation}, where the
 abstraction function |α| is completely determined by type class instances.
@@ -100,6 +100,9 @@ instance Extract UT where getValue (MkUT _ v) = v
 \label{fig:usg-abs}
 \end{figure}
 
+\sven{Add an introductory sentence that explains what this section is about and what problem it solves}
+\sven{Add an example trace to this section and show how it is abstracted to usage information}
+
 The gist of usage analysis is that it collects upper bounds for the number of
 $\LookupT$ transitions per let-bound variable.
 We refer to these upper bounds as \emph{usage cardinality} |U| in
@@ -111,6 +114,7 @@ ordinal, greater than any natural number.
 Usage analysis is a generalisation of absence analysis in \Cref{fig:absence}:
 a variable is absent ($\aA$) when it has usage |U0|, otherwise it is used ($\aU$).
 
+\sven{You need to explain what multiplication and addition on usages are used for. If you cannot motivate their usefulness in section 5.1, I would move their definition into the listing of section 5.2}
 It is quite natural to define addition on and multiplication with |U|, expressed in
 the type class |UVec|.%
 \footnote{We think that |UVec| models |U|-modules. It is not a vector
@@ -120,6 +124,7 @@ For example, |U0 + u = u| and |U1 + U1 = Uω|, as well as |U0 * u = U0|,
 These operations lift to |Uses| pointwise, \eg,
 $(|Uω| * [|x| ↦ |U1|]) + [|y| ↦ |U1|] = [|x| ↦ |Uω|, |y| ↦ |U1|]$.
 
+\sven{Start the paragraph with a high-level goal: "To abstract the concrete trace to usage information, we define a custom trace instance ..."}
 Compared to the concrete |T| from \Cref{sec:interp}, the |Trace| instance of
 the custom trace type |UT| abstracts away all events other than |Lookup|s, and
 smashes such lookups into a |Uses|.
@@ -128,7 +133,7 @@ aggregates |Uses| via |(+)|.
 
 Astonishingly, the simple |Trace| and |Monad| definitions already induce an
 \emph{instrumentation} of our semantics!
-\Cref{fig:usage-instrumentation-examples} lists the results of running
+\Cref{fig:usage-instrumentation-examples}\sven{Table 1 appears 3 pages earlier. Would be good if it were closer to this section.}\sven{Shouldn't Table 1 contain |ω| instead of |Uω|?} lists the results of running
 the instrumented interpreter on the same characteristic expression, but with
 three different evaluation strategies |ByName|, |ByValue| and |ByNeed|.%
 \footnote{For |ByValue|, we additionally need |instance Extract UT where extract (MkUT _ v) = v|.}
@@ -136,9 +141,9 @@ Thus, we finally reap the benefits of having defined |Domain| and |HasBind|
 instances in \Cref{sec:interp} polymorphically over the inner trace |τ|.
 As can be seen, the by-need strategy only evaluates what is needed.
 The by-value strategy additionally uses the unused binding $v$ and the by-name
-strategy evaluates $id$ multiple times since the thunk $t$ is evaluated multiple
-times.
+strategy evaluates $id$ multiple times since the thunk $t$ is evaluated multiple times \sven{You should lead over to the next section by saying that the traces may diverge and are not yet a computable analysis}.
 
+\sven{Why is this important?}
 Note that there is \emph{no difference} in instrumenting the interpreter at,
 \eg, |D (ByName UT)| and \emph{running} the interpreter at |D (ByName T)|
 to produce a finite trace and then replace every |Step :: Event -> T v -> T v|
@@ -287,6 +292,9 @@ instance Show UValue where
 \label{fig:abs-usg}
 \end{figure}
 
+
+\sven{Add an introductory sentence that explains what this section is about and what problem it solves}
+
 Of course, running the instrumented interpreter will diverge whenever the object
 program diverges.
 If we want to assess usage cardinality statically, we have to find a more
@@ -300,7 +308,7 @@ Absence types in \Cref{fig:absence} are now called |UD| and constitute
 the abstract semantic domain for which we will define |Domain| and |HasBind|
 instances.
 
-The analysis is just a slight generalisation of absence analysis.
+The analysis is just a slight generalisation of absence analysis \sven{This is downplaying our contribution. I would phrase it as: "The usage analysis is a generalization of the absence analysis in the following ways ..."}.
 However, it is formulated as an abstract denotational interpreter, which is
 a bit different than absence analysis.
 Hence we will start with some examples building on the existing intuition to see
