@@ -8,16 +8,22 @@ module Adequacy where
 
 \section{Totality and Semantic Adequacy}
 
-In this Section, we prove that the concrete |ByName| and |ByNeed| instantiations
-of our denotational interpreter are denotational \emph{semantics}.
-Semantics must be \emph{total}, that is, defined for every input expression,
-as well as \emph{adequate}, that is, produce the same traces as a reference
-semantics.
-This is an important result because it allows us to switch between operational
-semantics and denotational interpreter as needed, thus guaranteeing compatibility
+\sven{This proves properties about dynamic semantics introduced 2 sections ago. This makes it hard to relate these proves to the code in section 4 as you have to scroll through half of the paper. Maybe we should put this section right after Section 4, the idea being:
+\begin{itemize}
+\item Section 4: Generic Interpreter + Evaluation Strategies
+\item Section 5: Proofs of Evaluation Strategies (this also motivates why we call |eval| a denotational interpreter)
+\item Section 6: Analyses derived from the generic interpreter
+\item Section 7: Proofs about the analyses
+\end{itemize}}
+
+In this Section, we prove that the concrete |ByName| and |ByNeed|\sven{use $\mathcal{S}_{|ByName|}$} instantiations
+of our denotational interpreter are indeed \emph{denotational semantics}.
+Specifically, denotational semantics must be total and adequate.
+\emph{Totality} says that the interpreter is well-defined for every input expression and \emph{Adequacy} says that the interpreter produce the same traces as a reference semantics.
+This is an important result because it allows us to switch between operational semantics and denotational interpreter as needed, thus guaranteeing compatibility
 of definitions such as absence in \Cref{defn:absence}.
 
-We prove that the traces produced by the |D (ByNeed T)| instance of our generic
+\sven{Doesn't this belong into sec 6.2?} We prove that the traces produced by the |D (ByNeed T)| instance of our generic
 denotational interpreter preserve termination properties and the precise list of
 transition |Event|s of the Lazy Krivine traces in \Cref{fig:lk-semantics} they abstract.
 To our knowledge, it is the first adequacy proof for a compositional
@@ -32,17 +38,23 @@ value-binding |LetRec| and a non-recursive |Let| construct.}%
 \label{sec:totality}
 
 \begin{theoremrep}[Totality]
-The expressions |eval e ρ :: D (ByName T)| and |eval e ρ :: D (ByNeed T)| are
-defined for every input |e| and |ρ|.
+The expressions\sven{Expressions? Did you mean "the interpreter"?} |eval e ρ :: D (ByName T)|\sven{This notation is very cumbersome to read. Maybe $\mathcal{S}_{|ByName|}$ } and |eval e ρ :: D (ByNeed T)| are
+defined for every input |e| and |ρ|. \sven{Add \qed to all lemmas and theorems. Add to the end of section 1 and section 6 that all proofs can be found in the supplementary material}
 \end{theoremrep}
 \begin{proof}
-  By embedding |eval| and its |ByName| and |ByNeed| instances in Guarded Cubical
-  Agda.
+  We implemented |eval| and its instances |ByName| and |ByNeed| in Guarded Cubical Agda.
 \end{proof}
+\sven{The proof doesn't provide much insight. The proof is essentially "We implemented it in Agda and therefore it holds". The explanation you give below is much better. I would show the proof and add the entire text below:
+\begin{itemize}
+\item We prove totality by implementing the generic interpreter and its instances in Cubical Agda~\cite{tctt}.
+\item Agda enforces that all its functions are total and therefore the interpreter functions |ByName| and |ByNeed| must be total as well.
+\item The essential idea to prove  that there is only a finite amount of ...
+\end{itemize}
+}
 
 The essential idea to prove totality of concrete semantic instantiations of our
-shared interpreter is that \emph{there is only a finite number of transitions
-between every $\LookupT$ transition}.%
+generic interpreter is that \emph{there is only a finite number of transitions
+between every $\LookupT$ transition}.
 %\footnote{Our experiments with a denotational interpreter for
 %PCF~\citep{Plotkin:77} indicate that this statement holds for PCF as well if
 %$\UnrollT$ transitions introduced by the fixpoint operator were included.}
@@ -52,11 +64,11 @@ our semantics is total by coinduction.
 We make this argument precise by encoding |eval| in Guarded Cubical Agda,
 implementing a total type theory with
 \emph{guarded recursive types}~\citet{tctt}.
-In contrast to denotational semantics based on algebraic domain
+\sven{This sentence should go after the proof, because it describes potential issues you avoided by using cubical agda}In contrast to denotational semantics based on algebraic domain
 theory, use of guarded recursive types avoids issues of continuity and
 partiality of diverging computations, quite like programming in Rust ensures a
 sound stack and register discipline in the produced Assembler code compared to
-writing Assembler code directly.%
+writing Assembler code directly\sven{The analogy to Rust did not help me to understand the issues with denotational semantics better. You should instead elaborate what "continuity and partiality of diverging computation" means.}.%
 \footnote{Of course, the underlying model of guarded recursive type
 theories is the topos of trees~\citep{gdtt}, which very much enjoys an
 approximation order and partiality; the point is that any type safe program
@@ -189,8 +201,10 @@ we could have defined it in a strict language (lowering |Later a| as |() -> a|)
 just as well.
 \end{toappendix}
 
-\subsection{Adequacy of |eval| at |D (ByNeed T)|}
+\subsection{Adequacy of |eval| at |D (ByNeed T)| \sven{Section title makes readers believe that you only proved adequancy of |ByNeed|, but you did it for |ByName| as well, right?}}
 \label{sec:adequacy}
+
+\sven{Section order: Start with the main theorem, then explain the proof.}
 
 Proving adequacy of |eval| amounts to showing that the traces generated by
 concrete semantic instances such as |D (ByName T)| and |D (ByNeed T)| correspond
@@ -200,6 +214,7 @@ We show adequacy in this manner at |D (ByNeed T)|.
 Adequacy at |D (ByName T)| is simpler, and adequacy at |D (ByVInit T)| \wrt a
 by-value small-step semantics should be similar to what we show.
 
+\sven{This belongs into related work}
 \citet{Sestoft:97} has shown a similar statement relating the derivations of
 \citeauthor{Launchbury:93}'s big-step natural semantics for our language to
 the subset of \emph{balanced} small-step lazy Krivine (LK) traces.
@@ -208,8 +223,9 @@ by nature of big-step semantics --- excludes stuck and diverging traces.
 
 We give an intuitive translation of the result here, the proof of which is in
 the Appendix:
-\begin{theoremrep}
-  Let |e| be a closed expression and let |τ := unByNeed (eval e emp) emp :: T _|.
+\begin{theoremrep}[Adequacy]
+  \sven{Start with the high-level statement of the theorem: "We prove adequacy of |ByNeed| and |ByName|. That is, let |e| be a closed expression ..."}
+  Let |e| be a closed expression and let |τ := unByNeed (eval e emp) emp :: T _|\sven{Please don't use the unwrapper |unByNeed| as it is ugly and doesn't add much information. Just use $\mathcal{S}\llbracket e \rrbracket\epsilon$}.
   Then |τ| has the same length (\ie, number of |Step|s) as the maximal Lazy Krivine trace
   evaluating |e|, $(\pe, [],[], \StopF) \smallstep ...$.
   Furthermore, every |ev :: Event| in |τ = many (Step ev ^^ ...)| corresponds in the
@@ -220,6 +236,7 @@ the Appendix:
   Function $α_\Events$ in \Cref{fig:eval-correctness} encodes the intuition in
   which LK transitions abstract into |Event|s.
 \end{proof}
+\sven{Could you give some insights into the proof? What's the high-level structure of the proof? Which lemmas did you need to prove. Which proof techniques did you use (e.g., induction over ...)}
 Note that ``length'' extends to infinite traces:
 When either trace diverges, so does the other.
 
