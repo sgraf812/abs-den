@@ -403,7 +403,7 @@ finite, inductive type).
 \[\begin{array}{rcl}
   α_\Environments([\many{\px ↦ \pa_{\py,i}}]) & = & [\many{|x| ↦ |step (Lookup y) (fetch a_yi)|}] \\
   α_\Heaps([\many{\pa ↦ (ρ,\pe)}]) & = & [\many{|a| ↦ |memo a (eval e (αEnv ρ))|}] \\
-  α_\States(\Lam{\px}{\pe},ρ,μ,κ) & = & |(Fun (\d -> eval e (ext (αEnv ρ) x d)), αHeap μ)| \\
+  α_\States(\Lam{\px}{\pe},ρ,μ,κ) & = & |(Fun (\d -> step App2 (eval e (ext (αEnv ρ) x d))), αHeap μ)| \\
   α_\States(K~\overline{\px},ρ,μ,κ) & = & |(Con k (map (αEnv ρ !) xs), αHeap μ)| \\
   α_\Events(σ) & = & \begin{cases}
     |Let1| & σ = (\Let{\px}{\wild}{\wild},\wild,μ,\wild), \pa_{\px,i} \not∈ \dom(μ) \\
