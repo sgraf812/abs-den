@@ -51,6 +51,7 @@
 %format ρ4
 %format ρi = "\varcolor{\rho}_i"
 %format ρi'
+%format ρe = "\varcolor{\rho}_e"
 %format π = "\varcolor{\pi}"
 %format σ = "\varcolor{\sigma}"
 %format σ1
@@ -102,11 +103,13 @@
 %format :-> = "\mathbin{:\rightharpoonup}"
 %format :->: = "\mathbin{:\rightarrow:}"
 %format ∈ = "\in"
-%format emp = "\varcolor{\epsilon}"
+%format emp = "\varcolor{\varepsilon}"
 %format ! = "\mathop{!}"
 %format DName = "\conid{D}_{\mathbf{na}}"
-%format dsem(a)(b) = "\denot{" a "}_{" b "}"
-%format eval(a)(b) = "\mathcal{S}\denot{" a "}_{" b "}"
+%format dsem(e)(r) = "\denot{" e "}_{" r "}"
+%format eval(e)(r) = "\mathcal{S}\denot{" e "}_{" r "}"
+%format evalNeed(e)(r)(m) = "\mathcal{S}_{\mathbf{ne}}\denot{" e "}_{" r "}("m")"
+%format evalUsg(e)(r) = "\mathcal{S}_{\mathbf{usg}}\denot{" e "}_{" r "}"
 %format evalC(a)(b) = "\mathcal{S}_{\mathcal{C}}\denot{" a "}_{" b "}"
 %format eval3(d)(a)(b) = "\mathcal{S}_{" d "}\denot{" a "}_{" b "}"
 %format (ext rho (x) (d)) = rho "[" x "\mapsto" d "]"

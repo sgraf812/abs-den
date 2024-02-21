@@ -319,7 +319,7 @@ will see next.
 Suppose that we were to prove $\semabs{\wild}$ correct.
 The following statement will do:
 
-\begin{theoremrep}[Correct absence analysis]
+\begin{theoremrep}[$\semabs{\wild}$ infers absence]
   \label{thm:absence-correct}
   If $\semabs{\pe}_{ρ_\pe} = \langle φ, \varsigma \rangle$ and $φ(\px) = \aA$,
   then $\px$ is absent in $\pe$.
