@@ -46,6 +46,7 @@
 %format τ2
 %format ρ = "\varcolor{\rho}"
 %format ρ1
+%format ρ1'
 %format ρ2
 %format ρ3
 %format ρ4
@@ -109,6 +110,7 @@
 %format dsem(e)(r) = "\denot{" e "}_{" r "}"
 %format eval(e)(r) = "\mathcal{S}\denot{" e "}_{" r "}"
 %format evalName(e)(r) = "\mathcal{S}_{\mathbf{na}}\denot{" e "}_{" r "}"
+%format evalNeed2(e)(r) = "\mathcal{S}_{\mathbf{ne}}\denot{" e "}_{" r "}"
 %format evalNeed(e)(r)(m) = "\mathcal{S}_{\mathbf{ne}}\denot{" e "}_{" r "}("m")"
 %format evalUsg(e)(r) = "\mathcal{S}_{\mathbf{usg}}\denot{" e "}_{" r "}"
 %format evalC(a)(b) = "\mathcal{S}_{\mathcal{C}}\denot{" a "}_{" b "}"
@@ -116,7 +118,7 @@
 %format (ext rho (x) (d)) = rho "[" x "\mapsto" d "]"
 %format (exts rho (xs) (ds)) = rho "[\many{" xs "\mapsto" ds "}]"
 %format (abssubst d (x) (φ)) = d "[" x "\Mapsto" φ "]"
-%format << = "\lhd"
+%format << = "\mathbin{\lhd}"
 %format ^. = "."
 %format emptyP = "\varcolor{\varnothing}"
 %format ell = "\varcolor{\ell}"
@@ -293,7 +295,7 @@
 %format exists    = exists_ "\hsexists "
 %format .         = "\hsdot{" `comp_` "}{" period_ "}"
 %format `comp_`   = "\circ "
-%format period_   = ".\,"
+%format period_   = ".\ "
 %format forall_   = "\keyword{\forall}\!\! "
 %format exists_   = "\keyword{\exists}\!\! "
 %
