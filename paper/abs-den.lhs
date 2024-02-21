@@ -223,8 +223,8 @@
 %include Absence.lhs
 %include OpSem.lhs
 %include Interpreter.lhs
-%include Abstraction.lhs
 %include Adequacy.lhs
+%include Abstraction.lhs
 %include Soundness.lhs
 %include RelatedWork.lhs
 
