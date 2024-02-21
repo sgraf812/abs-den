@@ -18,7 +18,7 @@
 %format (hat (a)) = a "__hat"
 %format untyped(a) = "(undefined :: forall a. a)"
 %format unused(a) = "_"
-%format named(dom)(d) = dom
+%format named dom d = NameD dom
 %format nameenv(dom)(env) = "Name :-> " dom
 %format needd(d) = "Pow (D (ByNeed T))"
 %format needenv(env) = "Pow (Name :-> D (ByNeed T))"
@@ -108,6 +108,7 @@
 %format DName = "\conid{D}_{\mathbf{na}}"
 %format dsem(e)(r) = "\denot{" e "}_{" r "}"
 %format eval(e)(r) = "\mathcal{S}\denot{" e "}_{" r "}"
+%format evalName(e)(r) = "\mathcal{S}_{\mathbf{na}}\denot{" e "}_{" r "}"
 %format evalNeed(e)(r)(m) = "\mathcal{S}_{\mathbf{ne}}\denot{" e "}_{" r "}("m")"
 %format evalUsg(e)(r) = "\mathcal{S}_{\mathbf{usg}}\denot{" e "}_{" r "}"
 %format evalC(a)(b) = "\mathcal{S}_{\mathcal{C}}\denot{" a "}_{" b "}"
@@ -135,6 +136,7 @@
 %format `oplus` = "\oplus"
 %format \\ = "\setminus"
 %format many(a) = "\many{" a "}"
+%format Clo = "\varid{Clo}"
 %format named(dom) d = "{" dom " \mathbin{\vdash_{\Domain{}}^{\mathsf{na}}} " d "}"
 %format nameenv(dom)(env) = "{" dom " \mathbin{\vdash_{\Environments}^{\mathsf{na}}} " env "}"
 %format needd(d) = "{\mathop{\vdash_{\Domain{}}^{\mathsf{ne}}} " d "}"
