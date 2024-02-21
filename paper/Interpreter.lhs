@@ -174,7 +174,7 @@ is the whole point of analyses such as usage analysis.
 A distinctive feature of our work is that our semantic domains are instead
 \emph{traces} that describe the \emph{steps} taken by an abstract machine, and
 that \emph{end} in semantic values.
-It is possible to describe evaluation cardinality as a property of the traces
+It is possible to describe usage cardinality as a property of the traces
 thus generated, as required for a correctness proof of usage analysis.
 We choose |DName|, defined below, as the first example of such a semantic domain,
 because it is simple and illustrative of the approach.
@@ -186,8 +186,9 @@ traces of the by-name variant of the Krivine machine in \Cref{fig:lk-semantics}.
 %the definition of |DName| and understand it. I would move this sentence to the
 %end of Sec 4.1.}.
 
-We can define the semantic domain |DName| for a call-by-name variant of our language as follows:%
-\footnote{For a realistic implementation, we would define |D| as a data type to
+We can define the semantic domain |DName| for a call-by-\textbf{\textit{na}}me variant
+of our language as follows:%
+\footnote{For a realistic implementation, we would define |D| as a |newtype| to
 keep type class resolution decidable and non-overlapping. We will however stick
 to a |type| synonym in this presentation in order to elide noisy wrapping and
 unwrapping of constructors.}
@@ -456,6 +457,7 @@ the same |D| at different wrappers of |T|, rather than reinventing |Value| and |
 
 \begin{figure}
 \begin{spec}
+evalName e ρ = eval e ρ :: D (ByName T)
 newtype ByName τ v = ByName { unByName :: τ v }
 instance Monad τ => Monad (ByName τ) where ...
 instance Trace (τ v) => Trace (ByName τ v) where ...
@@ -463,6 +465,7 @@ instance HasBind (D (ByName τ)) where ...
 \end{spec}
 %if style == newcode
 \begin{code}
+evalName e ρ = eval e ρ :: D (ByName T)
 newtype ByName τ v = ByName { unByName :: (τ v) }
   deriving newtype (Functor,Applicative,Monad)
 
@@ -490,8 +493,9 @@ in \Cref{fig:by-name},
 %\sven{Figure 6 does not contain any new information. Literally all implementations are omitted. I would remove Figure 6 to save space.}
 %\sg{Doubtful that doing so saves much space, and the implications |Trace τ => Trace (ByName τ)| and |Monad τ => ByName τ| are still useful.}
 so called because |ByName τ| inherits its |Monad| and |Trace|
-instance from |τ| (busywork we omit) and reminiscent of \citet{Darais:15}.
-Our old |DName| can be recovered as |D (ByName T)|.
+instance from |τ| and in reminiscence of \citet{Darais:15}.
+The old |DName| can be recovered as |D (ByName T)| and we refer to its
+interpreter instance as |evalName e ρ|.
 
 \begin{figure}
 \begin{flushleft}
@@ -506,6 +510,8 @@ Do also note that we derive |Monad| etc. |via StateT|, so it's not even about
 reuse.}
 \end{flushleft}
 \begin{code}
+evalNeed e ρ μ = unByNeed (eval e ρ :: D (ByNeed T)) μ
+
 type Addr = Int; type Heap τ = Addr :-> D τ; nextFree :: Heap τ -> Addr
 newtype ByNeed τ v = ByNeed { unByNeed :: Heap (ByNeed τ) -> τ (v, Heap (ByNeed τ)) }
 
@@ -615,7 +621,7 @@ contrasting of fixpoint combinators (guarded recursion vs. mutable state) that
 you find distracting?}
 The whole purpose of the |memo a d| combinator then is to \emph{memoise} the
 computation of |d| the first time we run the computation, via |fetchN a| in the
-|Var| case of |eval|.
+|Var| case of |evalNeed|.
 So |memo a d| yields from |d| until it has reached a value, and then |upd|ates
 the heap after an additional |Update| step.
 Repeated access to the same variable will run the replacement |memo a (return
@@ -653,8 +659,8 @@ the section} \\
 Here is an example evaluating $\Let{i}{(\Lam{y}{\Lam{x}{x}})~i}{i~i}$, starting
 in an empty heap:
 
-< ghci> unByNeed (eval (read "let i = (λy.λx.x) i in i i") emp) emp :: T (Value _, Heap _)
-$\perform{unByNeed (eval (read "let i = (λy.λx.x) i in i i") emp) emp :: T (Value (ByNeed T), Heap _)}$
+< ghci> evalNeed (read "let i = (λy.λx.x) i in i i") emp emp :: T (Value _, Heap _)
+$\perform{evalNeed (read "let i = (λy.λx.x) i in i i") emp emp :: T (Value _, Heap _)}$
 \\[\belowdisplayskip]
 \noindent
 This trace is in clear correspondence to the earlier by-need LK trace
@@ -667,6 +673,8 @@ reduction.
 
 \begin{figure}
 \begin{code}
+evalValue e ρ = eval e ρ :: D (ByValue T)
+
 newtype ByValue τ v = ByValue { unByValue :: τ v }
 ifPoly(instance Monad τ => Monad (ByValue τ) where ...)
 instance Trace (τ v) => Trace (ByValue τ v) where {-" ... \iffalse "-}
@@ -733,8 +741,8 @@ types of |Trace|s, such as more abstract ones in \Cref{sec:abstraction}.
 
 Let us trace $\Let{i}{(\Lam{y}{\Lam{x}{x}})~i}{i~i}$ for call-by-value:
 
-< ghci> eval (read "let i = (λy.λx.x) i in i i") emp :: D (ByValue T)
-$\perform{eval (read "let i = (λy.λx.x) i in i i") emp :: D (ByValue T)}$
+< ghci> evalValue (read "let i = (λy.λx.x) i in i i") emp
+$\perform{evalValue (read "let i = (λy.λx.x) i in i i") emp}$
 \\[\belowdisplayskip]
 \noindent
 The beta reduction of $(\Lam{y}{\Lam{x}{x}})~i$ now happens once within the
@@ -745,7 +753,7 @@ Alas, this model of call-by-value does not yield a total interpreter!
 Consider the case when the right-hand side accesses its value before yielding
 one, \eg,
 
-< ghci> takeT 5 $ eval (read "let x = x in x x") emp :: ByValue T (Maybe (Value (ByValue T)))
+< ghci> takeT 5 $ evalValue (read "let x = x in x x") emp
 $\LetOT\xhookrightarrow{\hspace{1.1ex}}\LookupT(x)\xhookrightarrow{\hspace{1.1ex}}\LetIT\xhookrightarrow{\hspace{1.1ex}}\AppIT\xhookrightarrow{\hspace{1.1ex}}\LookupT(x)\xhookrightarrow{\hspace{1.1ex}}\texttt{\textasciicircum{}CInterrupted}$
 \\[\belowdisplayskip]
 \noindent
@@ -754,6 +762,8 @@ denotational semantics.
 
 \begin{figure}
 \begin{code}
+evalVInit e ρ μ = unByVInit (eval e ρ :: D (ByVInit T)) μ
+
 newtype ByVInit τ v = ByVInit { unByVInit :: Heap (ByVInit τ) -> τ (v, Heap (ByVInit τ)) }
 instance (Monad τ, forall v. Trace (τ v)) => HasBind (D (ByVInit τ)) where
   bind rhs body = do  μ <- getV
@@ -802,12 +812,14 @@ We recover a total interpreter using the semantics in \citet{Nakata:10},
 building on the same encoding as |ByNeed| and initialising the heap with a
 \emph{black hole}~\citep{stg} |stuck| in |bind| as in \Cref{fig:by-value-init}.
 
-< ghci> unByVInit (eval (read "let x = x in x x") emp) emp :: T (Value _, Heap _)
-$\perform{unByVInit (eval (read "let x = x in x x") emp) emp :: T (Value (ByVInit T), Heap (ByVInit T))}$
+< ghci> evalVInit (read "let x = x in x x") emp emp :: T (Value _, Heap _)
+$\perform{evalVInit (read "let x = x in x x") emp emp :: T (Value _, Heap _)}$
 
 
 \begin{figure}
 \begin{spec}
+evalClair e ρ = runClair $ eval e ρ :: T (Value (Clairvoyant T))
+
 data Fork f a = Empty | Single a | Fork (f a) (f a); data ParT m a = ParT (m (Fork (ParT m) a))
 instance Monad τ => Alternative (ParT τ) where
   empty = ParT (pure Empty); l <|> r = ParT (pure (Fork l r))
@@ -822,6 +834,8 @@ instance (Extract τ, Monad τ, forall v. Trace (τ v)) => HasBind (D (Clairvoya
 \end{spec}
 %if style == newcode
 \begin{code}
+evalClair e ρ = runClair $ eval e ρ :: T (Value (Clairvoyant T))
+
 data Fork f a = Empty | Single !a | Fork (f a) (f a)
   deriving Functor
 
@@ -900,11 +914,11 @@ call-by-value trace as well, as sketched out in \Cref{fig:clairvoyant-by-value}.
 Doing so yields an evaluation strategy that either skips or speculates let
 bindings, depending on whether or not the binding is needed:
 
-< ghci> runClair $ eval (read "let f = λx.x in let g = λy.f in g") emp :: T (Value (Clairvoyant T))
-$\perform{runClair $ eval (read "let f = λx.x in let g = λy.f in g") emp :: T (Value (Clairvoyant T))}$
+< ghci> evalClair (read "let f = λx.x in let g = λy.f in g") emp :: T (Value (Clairvoyant T))
+$\perform{evalClair (read "let f = λx.x in let g = λy.f in g") emp :: T (Value (Clairvoyant T))}$
 
-< ghci> runClair $ eval (read "let f = λx.x in let g = λy.f in g g") emp :: T (Value (Clairvoyant T))
-$\perform{runClair $ eval (read "let f = λx.x in let g = λy.f in g g") emp :: T (Value (Clairvoyant T))}$
+< ghci> evalClair (read "let f = λx.x in let g = λy.f in g g") emp :: T (Value (Clairvoyant T))
+$\perform{evalClair (read "let f = λx.x in let g = λy.f in g g") emp :: T (Value (Clairvoyant T))}$
 \\[\belowdisplayskip]
 \noindent
 The first example discards $f$, but the second needs it, so the trace starts
@@ -914,8 +928,8 @@ denotational semantics without a complicated domain theoretic judgment.
 Furthermore, the decision whether or not a $\LetOT$ is needed can be delayed for
 an infinite amount of time, as exemplified by
 
-< ghci> runClair $ eval (read "let i = Z() in let w = λy.y y in w w") emp :: T (Value (Clairvoyant T))
-%$\perform{runClair $ eval (read "let i = Z() in let w = λy.y y in w w") emp :: T (Value (Clairvoyant T))}$
+< ghci> evalClair (read "let i = Z() in let w = λy.y y in w w") emp :: T (Value (Clairvoyant T))
+%$\perform{evalClair (read "let i = Z() in let w = λy.y y in w w") emp :: T (Value (Clairvoyant T))}$
 \texttt{\textasciicircum{}CInterrupted}
 \\[\belowdisplayskip]
 \noindent
@@ -925,31 +939,31 @@ binding for $i$ might be needed at an unknown point in the future
 This renders Clairvoyant call-by-value inadequate for verifying properties of
 infinite executions.
 
-\subsection{More Trace Types}
-\label{sec:more-trace-types}
-
-\sven{I don't this section. What problem does this solve?}
-
-Our simple trace type |T| has served us well so far, allowing us to study a
-variety of total denotational interpreters for all major evaluation strategies
-(\eg, |ByName|, |ByNeed|, |ByVInit|).
-It is of course possible in Haskell to abandon totality, discard all events and
-use plain |data Identity a = Identity a| as the trace type accompanied by the
-definition |instance Trace Identity where step _ = id|.
-The resulting interpreter diverges whenever the defined program diverges, as is
-typical for partial definitional interpreters:
-
-%if style == newcode
-\begin{code}
-instance Trace (Identity v) where step _ = id
-\end{code}
-%endif
-
-< ghci> eval (read "let i = λx.x in i i") emp :: D (ByName Identity)
-$\perform{eval (read "let i = λx.x in i i") emp :: D (ByName Identity)}$
-
-< ghci> eval (read "let x = x in x") emp :: D (ByName Identity)
-%$\perform{eval (read "let x = x in x") emp :: D (ByName Identity)}$
-\texttt{\textasciicircum{}CInterrupted}
-\\[\belowdisplayskip]
-\noindent
+%\subsection{More Trace Types}
+%\label{sec:more-trace-types}
+%
+%\sven{I don't this section. What problem does this solve?}
+%
+%Our simple trace type |T| has served us well so far, allowing us to study a
+%variety of total denotational interpreters for all major evaluation strategies
+%(\eg, |ByName|, |ByNeed|, |ByVInit|).
+%It is of course possible in Haskell to abandon totality, discard all events and
+%use plain |data Identity a = Identity a| as the trace type accompanied by the
+%definition |instance Trace Identity where step _ = id|.
+%The resulting interpreter diverges whenever the defined program diverges, as is
+%typical for partial definitional interpreters:
+%
+%%if style == newcode
+%\begin{code}
+%instance Trace (Identity v) where step _ = id
+%\end{code}
+%%endif
+%
+%< ghci> eval (read "let i = λx.x in i i") emp :: D (ByName Identity)
+%$\perform{eval (read "let i = λx.x in i i") emp :: D (ByName Identity)}$
+%
+%< ghci> eval (read "let x = x in x") emp :: D (ByName Identity)
+%%$\perform{eval (read "let x = x in x") emp :: D (ByName Identity)}$
+%\texttt{\textasciicircum{}CInterrupted}
+%\\[\belowdisplayskip]
+%\noindent
