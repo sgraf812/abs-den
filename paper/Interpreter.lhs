@@ -329,10 +329,10 @@ by mapping each free variable to its denotation in |D|.
 We sketch the Haskell encoding of |Exp| in \Cref{fig:syntax} and the API of
 environments and sets in \Cref{fig:map}.
 For concise notation, we will use a small number of infix operators: |(:->)| as
-a synonym for finite |Map|s, with |m ! x| for looking up |x| in |m|, |ext m x
-d| for updates, |assocs m| for a list of key-value pairs in |m|, |f << m| for
-mapping |f| over every value in |m|, |dom m| for the set of keys present in the
-map, and |(`elem`)| for membership tests in that set.
+a synonym for finite |Map|s, with |m ! x| for looking up |x| in |m|, |emp| for
+the empty map, |ext m x d| for updates, |assocs m| for a list of key-value pairs
+in |m|, |f << m| for mapping |f| over every value in |m|, |dom m| for the set of
+keys present in the map, and |(`elem`)| for membership tests in that set.
 
 Our denotational interpreter |eval :: Exp -> (Name :-> DName) -> DName| can
 have a similar type as |dsem|.
