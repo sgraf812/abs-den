@@ -195,7 +195,7 @@ instance Read Exp where
         guard (not $ v `elem` ["let","in","case","of"])
         guard (not $ head v `elem` "λΛ@#5\\")
         guard (isLower $ head v) -- Ensures that there is no clash with Tag
-        guard (all isAlphaNum v)
+        guard (all (\c -> isAlphaNum c || c == '_') v)
         pure v
       readAlt = do
         ConApp k xs <- Read.readPrec

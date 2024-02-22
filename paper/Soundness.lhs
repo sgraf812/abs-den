@@ -31,9 +31,9 @@ We will now prove that usage analysis infers absence in the sense of
 \Cref{defn:absence}, which is useful for dead code elimination.
 In stark contrast to the proof for \Cref{thm:absence-correct},
 we do not need to show a usage analysis-specific preservation lemma to do so.
-This is an important contribution!
-In \Cref{sec:problem} we argued that a proof for such a lemma easily drowns in
-semantic complexity unrelated to the analysis at hand, so the proof becomes
+This is an important simplification!
+In \Cref{sec:problem} we argued that a proof for such a lemma drowned in
+semantic complexity unrelated to the analysis at hand, so the proof became
 tedious, hand-wavy and error-prone.
 
 Instead, we instantiate a generic soundness statement, one that can be reused
@@ -290,8 +290,201 @@ We only use it as a De Bruijn level;
 it suffices that |x| is chosen fresh.}
 This states that summarising |f| through |fun|, then |apply|ing the summary to
 |a| must approximate a direct call to |f|.
-We have proven a syntactic form of this statement in \Cref{sec:abstraction} in
-the form of the substitution \Cref{thm:usage-subst}.
+We have proven a syntactic form of this statement in \Cref{sec:problem} in
+the form of the substitution \Cref{thm:absence-subst}.
+We need a similar lemma for usage analysis:
+
+\begin{toappendix}
+\begin{abbreviation}[Field access]
+  |(MkUT φ' v').φ := φ'|, |(MkUT φ' v').v = v'|.
+\end{abbreviation}
+
+For concise notation, we define the following abstract substitution operation:
+
+\begin{definition}[Abstract substitution]
+  \label{defn:abs-subst-usage}
+  We call |abssubst φ x φ' := (ext φ x U0) + (φ ! x) * φ'| the
+  \emph{abstract substitution} operation on |Uses|
+  and overload this notation for |UT|, so that
+  |abssubst (MkUT φ v) x φ' := MkUT (abssubst φ x φ') v|.
+\end{definition}
+
+\begin{lemma}
+  \label{thm:abs-syn-subst-usage}
+  |eval (Lam x e `App` y) ρ = abssubst (eval e (ext ρ x (MkUT (ext emp x U1) (Rep Uω)))) x ((ρ ! y) ^. φ)|.
+\end{lemma}
+
+The proof below needs to appeal to a couple of congruence lemmas about abstract
+substitution, the proofs of which would be tedious and hard to follow, hence
+they are omitted.
+These are very similar to lemmas we have proven for absence analysis (\cf
+\Cref{thm:lambda-commutes-absence}).
+\begin{lemma}
+\label{thm:push-lambda-usage}
+|evalUsg (Lam y (Lam x e `App` z)) ρ = evalUsg (Lam x (Lam y e) `App` z) ρ|.
+\end{lemma}
+\begin{lemma}
+\label{thm:push-app-usage}
+|evalUsg (Lam x e `App` y `App` z) ρ = evalUsg (Lam x (e `App` z) `App` y) ρ|.
+\end{lemma}
+\begin{lemma}
+\label{thm:push-select-usage}
+\belowdisplayskip0pt\[\begin{array}{ll}
+  \\[-2.4em]
+  & |evalUsg (Case (Lam x e `App` y) (alts (Lam x er `App` y))) (ext ρ x (ρ ! y))| \\
+= & |evalUsg (Lam x (Case e (alts er)) `App` y) ρ|.
+\end{array}\]
+\end{lemma}
+\begin{lemma}
+\label{thm:push-let-usage}
+|evalUsg (Let z (Lam x e1 `App` y) (Lam x e2 `App` y)) ρ = evalUsg (Lam x (Let z e1 e2) `App` y) ρ|.
+\end{lemma}
+
+Now we can finally prove the substitution lemma:
+\end{toappendix}
+
+\begin{lemmarep}[Substitution]
+\label{thm:usage-subst}
+|evalUsg e (ext ρ x (ρ ! y)) ⊑ evalUsg (Lam x e `App` y) ρ|.
+\end{lemmarep}
+\begin{proof}
+We need to assume that |x| is absent in the range of |ρ|.
+This is a ``freshness assumption'' relating to the identify of |x| that in
+practice is always respected by |evalUsg|.
+
+Now we proceed by induction on |e| and only consider non-|stuck| cases.
+\begin{itemize}
+  \item \textbf{Case }|Var z|:
+    When |x //= z|, we have
+    \begin{spec}
+        evalUsg z (ext ρ x (ρ ! y))
+    =   {- |x //= z| -}
+        ρ ! z
+    =   {- Refold |evalUsg| -}
+        evalUsg z (ext ρ x (prx x))
+    =   {- |((ρ ! z)^.φ) ! x = U0| -}
+        abssubst (evalUsg z (ext ρ x (prx x))) x ((ρ ! y)^.φ)
+    =   {- Definition of |evalUsg| -}
+        evalUsg (Lam x (Var z) `App` y) ρ
+    \end{spec}
+    Otherwise, we have |x = z|.
+    \begin{spec}
+        evalUsg z (ext ρ x (ρ ! y))
+    =   {- |x = y|, unfold -}
+        ρ ! y
+    ⊑   {- |v ⊑ (Rep Uω)| -}
+        MkUT ((ρ ! y)^.φ) (Rep Uω)
+    =   {- Definition of abstract substitution -}
+        abssubst (prx x) x ((ρ ! y)^.φ)
+    =   {- Refold |evalUsg| -}
+        abssubst (evalUsg z (ext ρ x (prx x))) x ((ρ ! y)^.φ)
+    =   {- Definition of |evalUsg| -}
+        evalUsg (Lam x (Var z) `App` y) ρ
+    \end{spec}
+
+  \item \textbf{Case} |Lam z e|:
+    \begin{spec}
+        evalUsg (Lam z e) (ext ρ x (ρ ! y))
+    =   {- Unfold |evalUsg| -}
+        fun z (\d -> step App2 $ evalUsg e (ext (ext ρ x (ρ ! y)) z d))
+    =   {- Rearrange, $|x| \not= |z|$ -}
+        fun z (\d -> step App2 $ evalUsg e (ext (ext ρ z d) x (ρ ! y)))
+    ⊑   {- Induction hypothesis, $|x| \not= |z|$ -}
+        fun z (\d -> step App2 $ evalUsg (Lam x e `App` y) (ext ρ z d))
+    =   {- Refold |evalUsg| -}
+        evalUsg (Lam z (Lam x e `App` y)) ρ
+    =   {- $|x| \not= |z|$, \Cref{thm:push-lambda-usage} -}
+        evalUsg (Lam x (Lam z e) `App` y) ρ
+    \end{spec}
+
+  \item \textbf{Case} |App e z|:
+    Consider first the case |x = z|.
+    This case is examplary of the tedious calculation required to bring
+    the substitution outside.
+    We abbreviate |prx x := MkUT (ext emp x U1) (Rep Uω)|.
+    \begin{spec}
+        evalUsg (App e z) (ext ρ x (ρ ! y))
+    =   {- Unfold |evalUsg|, |x = z| -}
+        apply (evalUsg e (ext ρ x (ρ ! y))) (ρ ! y)
+    ⊑   {- Induction hypothesis -}
+        apply (evalUsg (Lam x e `App` y) ρ) (ρ ! y)
+    =   {- Unfold |apply|, |evalUsg| -}
+        let MkUT φ v = abssubst (evalUsg e (ext ρ x (prx x))) x ((ρ ! y)^.φ) in
+        case peel v of (u,v2) -> MkUT (φ + u * ((ρ!y)^.φ)) v2
+    =   {- Unfold |abssubst| -}
+        let MkUT φ v = evalUsg e (ext ρ x (prx x)) in
+        case peel v of (u,v2) -> MkUT (ext φ x U0 + (φ !? x) * ((ρ!y)^.φ) + u * ((ρ!y)^.φ)) v2
+    =   {- Refold |abssubst| -}
+        let MkUT φ v = evalUsg e (ext ρ x (prx x)) in
+        case peel v of (u,v2) -> abssubst (MkUT (φ + u * ((prx x)^.φ)) v2) x ((ρ!y)^.φ)
+    =   {- Move out |abssubst|, refold |apply| -}
+        abssubst (apply (evalUsg e (ext ρ x (prx x))) (prx x)) x ((ρ ! y)^.φ)
+    =   {- Refold |evalUsg| -}
+        evalUsg (Lam x (App e z) `App` y) ρ
+    \end{spec}
+    When |x //= z|:
+    \begin{spec}
+        evalUsg (App e z) (ext ρ x (ρ ! y))
+    =   {- Unfold |evalUsg|, |x //= z| -}
+        apply (evalUsg e (ext ρ x (ρ ! y))) (ρ ! z)
+    ⊑   {- Induction hypothesis -}
+        apply (evalUsg (Lam x e `App` y) ρ) (ρ ! z)
+    =   {- Refold |evalUsg| -}
+        evalUsg (Lam x e `App` y `App` z) ρ
+    =   {- \Cref{thm:push-app-usage} -}
+        evalUsg (Lam x (e `App` z) `App` y) ρ
+    \end{spec}
+
+  \item \textbf{Case} |ConApp k xs|:
+    Let us concentrate on the case of a unary constructor application |xs =
+    [z]|; the multi arity case is not much different.
+    \begin{spec}
+        evalUsg (ConApp k [z]) (ext ρ x (ρ ! y))
+    =   {- Unfold |evalUsg| -}
+        foldl apply (MkUT emp (Rep Uω)) [(ext ρ x (ρ ! y)) ! z]
+    ⊑   {- Similar to |Var| case -}
+        foldl apply (MkUT emp (Rep Uω)) [abssubst ((ext ρ x (prx x)) ! z) x ((ρ ! y)^.φ)]
+    =   {- |x| dead in |MkUT emp (Rep Uω)|, push out substitution -}
+        abssubst (foldl apply (MkUT emp (Rep Uω)) [(ext ρ x (prx x)) ! z]) x ((ρ ! y)^.φ)
+    =   {- Refold |evalUsg| -}
+        evalUsg (Lam x (ConApp k [z]) `App` y) ρ
+    \end{spec}
+
+  \item \textbf{Case} |Case e alts|:
+    We concentrate on the single alternative |er|, single field binder |z| case.
+    \begin{spec}
+        evalUsg (Case e (ext emp k ([z], er))) (ext ρ x (ρ ! y))
+    =   {- Unfold |evalUsg|, |step Case2 = id| -}
+        select (evalUsg e (ext ρ x (ρ ! y))) (ext emp k (\[d] -> evalUsg er (ext (ext ρ x (ρ ! y)) z d)))
+    =   {- Unfold |select| -}
+        evalUsg e (ext ρ x (ρ ! y)) >> evalUsg er (ext (ext ρ x (ρ ! y)) z (MkUT emp (Rep Uω)))
+    ⊑   {- Induction hypothesis -}
+        evalUsg (Lam x e `App` y) ρ >> evalUsg (Lam x er `App` y) (ext ρ z (MkUT emp (Rep Uω)))
+    =   {- Refold |select|, |evalUsg| -}
+        evalUsg (Case (Lam x e `App` y) alts) (ext ρ x (ρ ! y))
+    =   {- Refold |select|, |evalUsg| -}
+        evalUsg (Case (Lam x e `App` y) (ext emp k ([z], Lam x er `App` y))) (ext ρ x (ρ ! y))
+    =   {- \Cref{thm:push-select-usage} -}
+        evalUsg (Lam x (Case e (ext emp k ([z], er))) `App` y) ρ
+    \end{spec}
+
+  \item \textbf{Case} |Let|:
+    \begin{spec}
+        evalUsg (Let z e1 e2) (ext ρ x (ρ ! y))
+    =   {- Unfold |evalUsg| -}
+        bind  (\d1 -> evalUsg e1 (ext (ext ρ x (ρ ! y)) z (step (Lookup z) d1)))
+              (\d1 -> step Let1 (evalUsg e2 (ext (ext ρ x (ρ ! y)) z (step (Lookup z) d1))))
+    =   {- Induction hypothesis; note that |x| is absent in |ρ| and thus the fixpoint -}
+        bind  (\d1 -> evalUsg (Lam x e1 `App` y) (ext z (step (Lookup z) d1)))
+              (\d1 -> step Let1 (evalUsg (Lam x e2 `App` y) (ext z (step (Lookup z) d1))))
+    =   {- Refold |evalUsg| -}
+        evalUsg (Let z (Lam x e1 `App` y) (Lam x e1 `App` y)) ρ
+    =   {- \Cref{thm:push-let-usage} -}
+        evalUsg (Lam x (Let z e1 e2) `App` y) ρ
+    \end{spec}
+\end{itemize}
+\end{proof}
+
 In order to apply this lemma in step $⊑$ below, it is important that the
 premise provides us with the syntactic definition of |f d := step App2 (eval e
 (ext ρ x d))|.
@@ -300,11 +493,11 @@ Then we get, for |a := ρ ! y :: UD|,
   \label{eqn:usage-beta-app}
   |f a = step App2 (eval e (ext ρ x a)) = eval e (ext ρ x a) ⊑ eval (Lam x e `App` y) ρ = apply (fun x f) a :: UD|.
 \end{equation}
-Without the syntactic premise of \textsc{Beta-App}, the rule cannot be proven
-for usage analysis; we give a counterexample in the Appendix
-(\Cref{ex:syntactic-beta-app}).
-The necessity of syntactic premises is a symptom of the classic full abstraction
-problem~\citep{Plotkin:77}.
+Without the syntactic premise of \textsc{Beta-App} to rule out undefinable
+entities, the rule cannot be proven for usage analysis; we give a counterexample
+in the Appendix (\Cref{ex:syntactic-beta-app}).%
+\footnote{Finding domains where all entities $d$ are definable is the classic full
+abstraction problem~\citep{Plotkin:77}.}
 
 Rule \textsc{Beta-Sel} states a similar substitution property for data
 constructor redexes, which is why it needs to duplicate much of the |cont|
