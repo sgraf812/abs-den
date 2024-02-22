@@ -29,8 +29,9 @@ semantics}~\citep{ScottStrachey:71}; then the semantics and the analysis ``line
 up'' and the correctness proof is relatively straightforward.
 Indeed, one can often break up the proof into manageable subgoals by regarding
 the analysis as an \emph{abstract interpretation} of the compositional
-semantics~\citep{Cousot:21}, particularly when the abstract operations of the
-analysis correspond to concrete operations in the semantics.
+semantics~\citep{Cousot:21}.
+%particularly when the abstract operations of the
+%analysis correspond to concrete operations in the semantics.
 
 Alas, traditional denotational semantics does not model operational details --
 and yet those details might be the whole point of the analysis.
@@ -52,19 +53,19 @@ Now we have two unappealing alternatives:
   approach~\citep{SharirPnueli:78}, reanalysing function bodies at call sites.
   Hence the new analysis becomes non-modular, leading to scalability problems
   for a compiler.
-  \slpj{It's hard
-  to understand this critique.  Better: ``Reimagine and reimplement the analysis as an abstraction of the
-  reachable states of an operational semantics.  Now the analysis and semantics
-  ``line up'' again, so the correctness proof is relatively simple.  Alas, this
-  approach has significant shortcomings that we outline in \Cref{blah}''.}
-  \sg{Better? I think that connecting reanalysing function bodies with modularity
-  is pretty succinct and convincing.}
+  %\slpj{It's hard
+  %to understand this critique.  Better: ``Reimagine and reimplement the analysis as an abstraction of the
+  %reachable states of an operational semantics.  Now the analysis and semantics
+  %``line up'' again, so the correctness proof is relatively simple.  Alas, this
+  %approach has significant shortcomings that we outline in \Cref{blah}''.}
+  %\sg{Better? I think that connecting reanalysing function bodies with modularity
+  %is pretty succinct and convincing.}
 \end{itemize}
 
-In this paper, we resolve the tension by exploring \emph{Denotational
-Interpreters}~\citep{Might:10}: total, mathematical objects that
-live at the intersection of structurally-defined \emph{Definitional
-Interpreters}~\citep{Reynolds:72} and denotational semantics.
+In this paper, we resolve the tension by exploring \emph{denotational
+interpreters}: total, mathematical objects that live at the intersection of
+structurally-defined \emph{definitional interpreters}~\citep{Reynolds:72} and
+denotational semantics.
 Our denotational interpreters generate small-step traces embellished with
 arbitrary operational detail and enjoy a straightforward encoding in typical
 higher-order programming languages.
@@ -82,37 +83,43 @@ We make the following contributions:
   the usefulness of compositional, summary-based analysis in \Cref{sec:problem}
   and we demonstrate the difficulty of conducting an ad-hoc correctness proof
   \wrt a non-compositional small-step operational semantics.
-\item \Cref{sec:interp} walks through the structural definition of our shared
+\item \Cref{sec:interp} walks through the definition of our generic
   denotational interpreter and its type class algebra in Haskell.
   We demonstrate the ease with which different instances of our interpreter
-  endow our object language with call-by-name, variants of call-by-need and
-  variants of call-by-value evaluation strategies, each producing (abstractions of)
-  small-step abstract-machine traces.
-\item In \Cref{sec:abstraction} we inspect usage analysis, a generalisation of
-  absence analysis in \Cref{sec:problem}, as an example of an abstract
-  interpretation.
-  We highlight the difference between operational property and the summary-based
-  static analysis approximating it.
-  Further examples in the Appendix comprise Type Analysis and 0CFA control-flow
-  analysis, demonstrating the wide range of applicability of our framework.
+  endow our object language with call-by-name, call-by-need and call-by-value
+  evaluation strategies, each producing (abstractions of) small-step
+  abstract machine traces.
 \item A concrete instantiation of a denotational interpreter is \emph{total}
   if it coinductively yields a (possibly-infinite) trace for every input
   program, including ones that diverge.
   \Cref{sec:totality} proves that the by-name and by-need instantiations are
-  total by embedding the shared interpreter and its instances in Guarded Cubical
+  total by embedding the generic interpreter and its instances in Guarded Cubical
   Agda.
 \item \Cref{sec:adequacy} proves that the by-need instantiation of our
-  denotational interpreter adequately generates an abstraction of a lazy Krivine
-  trace, preserving its length as well as arbitrary operational information
-  about each transition taken.
+  denotational interpreter adequately generates an abstraction of a trace
+  in the lazy Krivine machine~\citep{Sestoft:97}, preserving its length as well
+  as arbitrary operational information about each transition taken.
+\item By instantiating the generic interpreter with a finite, abstract semantic
+  domain in \Cref{sec:abstraction}, we recover usage analysis, a generalisation
+  of absence analysis in \Cref{sec:problem}, making use of summaries as well.
+  %Such static analyses can be defined in two steps:
+  %in the first, an operational property is encoded by a fold over the trace,
+  %inducing an instrumented interpreter.
+  %In the second step, the semantic domain is finitised and equipped with a
+  %summary mechanism, inducing a static analysis approximating the instrumentation.
+  Further examples in the Appendix comprise Type Analysis and 0CFA control-flow
+  analysis, demonstrating the wide range of applicability of our framework.
+  %We have refactored the Demand Analysis of the Glasgow Haskell Compiler into
+  %a abstract denotational interpreter to demonstrate a real-world use case.
 \item In \Cref{sec:soundness}, we apply abstract interpretation to characterise
-  a set of soundness conditions that the type class instances of an abstract
+  a set of abstraction laws that the type class instances of an abstract
   domain must satisfy in order to soundly approximate by-name and by-need
   interpretation.
-  None of the conditions mention shared code, and, more remarkably, none of the
-  conditions mention the concrete semantics or the Galois connection either!
-  This enables us to finally prove usage analysis correct \wrt the by-name
-  and by-need semantics in a third of a page, building on reusable
+  None of the proof obligations mention the generic interpreter, and, more
+  remarkably, none of the laws mention the concrete semantics or the Galois
+  connection either!
+  This enables to prove usage analysis correct \wrt the by-name
+  and by-need semantics in half a page, building on reusable
   semantics-specific theorems.
 \item
   We compare to the enormous body of related approaches in \Cref{sec:related-work}.
