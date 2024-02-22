@@ -1,5 +1,13 @@
 %if style == newcode
 > module Problem where
+import qualified Control.Monad.Except as storyline
+import qualified Control.Monad.Except as storyline
+import qualified Control.Monad.Except as absence
+import qualified Control.Monad.Except as absence
+import qualified Control.Monad.Except as 1
+import qualified Control.Monad.Except as 1
+import qualified Control.Monad.Cont as used
+import qualified Control.Monad.Cont as used
 %endif
 
 \section{The Problem We Solve}
@@ -88,6 +96,7 @@ Throughout the paper we assume that all bound program variables are distinct.
   \label{fig:absence}
 \end{figure}
 
+\sven{Add introductory sentence: In this subsection we define the absence analysis}
 Semantically, a variable $\px$ is \emph{absent} in an expression $\pe$ when
 $\px$ is never evaluated by $\pe$, regardless of the context in which $\pe$
 appears.
@@ -105,31 +114,38 @@ It takes an environment $ρ \in \Var \pfun \Absence$ containing absence
 information about the free variables of $\pe$ and returns
 an \emph{absence type} $\langle φ, \varsigma \rangle \in \AbsTy$; an abstract
 representation of $\pe$.
-The \emph{free variable uses} $φ \in \Uses$ captures how $\pe$ uses its free
-variables by associating an $\Absence$ flag with each.
+The first component $φ \in \Uses$ of the absence type captures how $\pe$ uses its free
+variables by associating an $\Absence$ flag with each variable.
 When $φ(\px) = \aA$, then $\px$ is absent in $\pe$; otherwise, $φ(\px) = \aU$
 and $\px$ might be used in $\pe$.
-The \emph{argument summary} $\varsigma \in \Summary$ describes how $\pe$ uses
+The second component $\varsigma \in \Summary$ of the absence type summerizes how $\pe$ uses
 actual arguments supplied at application sites.
-
-Clearly if $\px$ is not free in $\pe$, then $\px$ is absent in $\pe$, but our
-analysis does a bit better.\\
-Consider the expression $\pe \triangleq \Let{f}{\Lam{x}{y}}{f~v}$.
-Here, $v$ is a free variable of $\pe$, but it is absent because $f$ discards it.
-The analysis figures out the same, by recording a summary $\varsigma$ in the
-absence type for $f$ stored in the environment $ρ$.
-For this particular example, the summary is $\aA \sumcons \aU..$, indicating
-that $f$ is absent in its first argument but potentially uses any further
-arguments.
+For example, function $f \triangleq \Lam{x}{y}$ has absence type $\langle [y ↦ \aU], \aA \sumcons \aU.. \rangle$.
+Mapping $[y ↦ \aU]$ indicates that $f$ may use its free variable $y$.
+The literal notation $[y ↦ \aU]$ maps any variable other than $y$ to $\aA$.
+Furthermore, summary $\aA \sumcons \aU..$ indicates that $f$'s first argument is absent and all further arguments are potentially used.
 The summary $\aU..$ can be thought of as a finite representation of an infinite
-list of $\aU$, as expressed by the non-syntactic equality $\aU \equiv \aU
-\sumcons \aU..$, and likewise for $\aA.. \equiv \aA \sumcons \aA..$.
-Since $f$ also uses $y$, the absence type recorded in the environment at the
-call site of $f$ looks like $ρ(f) = \langle [f ↦ \aU, y ↦ \aU], \aA
-\sumcons aU.. \rangle$, indicating that the call $f~v$ uses the free variables
-$f$ and $y$, \emph{but not} $v$.
-(Note that the literal notation $[f ↦ \aU, y ↦ \aU] ∈ \Uses$ maps any
-variable other than $f$ and $y$ to $\aA$.)
+list of $\aU$, as expressed by the non-syntactic equality $\aU.. \equiv \aU
+\sumcons \aU..$.
+ 
+% \sven{You don't need to convince readers that the absence analysis is meaningful. Better focus on giving an example of summeries.}
+% Clearly if $\px$ is not free in $\pe$, then $\px$ is absent in $\pe$, but our
+% analysis does a bit better:
+% Consider the expression $\pe \triangleq \Let{f}{\Lam{x}{y}}{f~v}$.
+% Here, $v$ is a free variable of $\pe$, but it is absent because $f$ discards it.
+% The analysis figures out the same, by recording a summary $\varsigma$ in the
+% absence type for $f$ stored in the environment $ρ$.
+% The summary $\varsigma = \aA \sumcons \aU..$ indicates
+% that $f$ is absent in its first argument \sven{This sounds weird. Perhaps: "$f$'s first argument $x$ is absent"} but potentially uses any further arguments\sven{What does this mean? Looks like $f$ only has one argument: $x$}.
+% The summary $\aU..$ can be thought of as a finite representation of an infinite
+% list of $\aU$, as expressed by the non-syntactic equality $\aU \equiv \aU
+% \sumcons \aU..$, and likewise for $\aA.. \equiv \aA \sumcons \aA..$.
+% Since $f$ also uses $y$, the absence type recorded in the environment at the
+% call site of $f$ looks like $ρ(f) = \langle [f ↦ \aU, y ↦ \aU], \aA
+% \sumcons aU.. \rangle$, indicating that the call $f~v$ uses the free variables
+% $f$ and $y$, \emph{but not} $v$.
+% (Note that the literal notation $[f ↦ \aU, y ↦ \aU] ∈ \Uses$ maps any
+% variable other than $f$ and $y$ to $\aA$.)
 
 %When $\semabs{\pe}_{ρ_{\pe}} = \langle φ, \varsigma \rangle$ and $φ(\px) = \aA$,
 %then $\px$ is absent in $\pe$, where $ρ_{\pe}$ is the free variable environment
@@ -145,8 +161,8 @@ variable other than $f$ and $y$ to $\aA$.)
 %indicated by argument summary $\aU..$\ .
 
 We illustrate the analysis at the example expression
-$\Let{x_2}{x_1}{\Let{k}{\Lam{y}{\Lam{z}{y}}}{k~x_3~x_2}}$, where the initial
-environment for $\pe$, $ρ_\pe(\px) \triangleq \langle [\px ↦ \aU], \aU.. \rangle$,
+$\pe \triangleq \Let{x_2}{x_1}{\Let{k}{\Lam{y}{\Lam{z}{y}}}{k~x_3~x_2}}$, where the initial
+environment for $\pe$, $ρ_\pe(\px) \triangleq \langle [\px ↦ \aU], \aU.. \rangle$\sven{I find the letter subscripts of $\rho$ confusing and hard to read. Maybe enumerate different environments?},
 declares the free variables of $\pe$ with a pessimistic summary $\aU..$.
 \begin{DispWithArrows}[fleqn,mathindent=0em]
       & \semabs{\Let{x_2}{x_1}{\Let{k}{\Lam{y}{\Lam{z}{y}}}{k~x_3~x_2}}}_{ρ_{\pe}} \label{eq:abs-ex1}
@@ -169,27 +185,30 @@ declares the free variables of $\pe$ with a pessimistic summary $\aU..$.
         \Arrow{Unfold $\mathit{app}$, simplify} \\
   ={} & \langle [k ↦ \aU,x_3↦\aU], \aU.. \rangle
 \end{DispWithArrows}
-The $\Uses$ component of the absence type returned by the analysis lists
-$k$ and $x_3$ as potentially used.
-On the other hand, $x_1$ and $x_2$ are inferred absent, \emph{despite} $x_2$
-occuring in argument position.
-This is thanks to the summary mechanism; we have highlighted the interacting
-information in grey.
-
+\sven{The following explanation needs to be shorted. This analysis is not our contribution. Hence we don't need to explain the trace in full detail. I would focus on the following points:
+\begin{itemize}
+\item Explain how the summary for $\lambda y. \lambda z. y$ is computed.
+\item Explain how the summary is applied in $k x_3 x_2$.
+\item Discuss the end result.
+\end{itemize}
+}
+\sven{Step 3 and 4 seem redundant. Skip step 3?}
 Let us look at the steps in a bit more detail.
 Steps \labelcref{eq:abs-ex1,eq:abs-ex2} extend the environment with
 absence types for the let right-hand sides.
 For space reasons, we have not simplified the extended environment entries, but
 for $x_2$ we would get $x_2 \both \semabs{x_1}_{ρ_{\pe}} = x_2 \both
 ρ_\pe(x_1) = \langle [x_1 ↦ \aU, x_2 ↦ \aU], \aU.. \rangle$,
-via unfolding the variable case, $\both$ and $ρ_\pe(x_1)$.
-The steps up until \labelcref{eq:abs-ex3} are simple to follow, successively exposing
+via unfolding the variable case, $\both$ and $ρ_\pe(x_1)$
+\sven{Maybe the example can be slightly simplified by removing the first let binding. Then you don't run into space troubles.}.
+The steps up until \labelcref{eq:abs-ex3} successively expose
 applications of the $\mathit{app}$ and $\mathit{fun}$ helper functions applied
 to environment entries for the involved variables.
 Step \labelcref{eq:abs-ex3} then evaluates $\mathit{fun}_y(\fn{θ_y}{\mathit{fun}_z(\fn{θ_z}{θ_y})})$, which unfolds
 \[
 \langle (([y↦\aU])[z↦\aA])[y↦\aA], (([y↦\aU])[z↦\aA])(y) \sumcons [y↦\aU](z) \sumcons \aU.. \rangle
 \]
+\sven{I would not show this intermediate result, just the end result $\langle [], \aU \sumcons \aA \sumcons \aU.. \rangle$}
 (mind the difference between literal notation $[y ↦ \aU]$ and function update $\wild [ z ↦ \aA]$),
 and that simplifies to $\langle [], \aU \sumcons \aA \sumcons \aU.. \rangle$, an
 absence type abstracting the expression $\Lam{y}{\Lam{z}{y}}$.
@@ -203,6 +222,11 @@ The join on $\Uses$ follows pointwise from the order $\aA ⊏ \aU$, \ie, $(φ_1
 ⊔ φ_2)(\px) \triangleq φ_1(\px) ⊔ φ_2(\px)$.
 For the final result, these $\Uses$ are combined with the use on $k$ stemming
 from the variable lookup in the application head.
+
+The analysis result $[k ↦ \aU,x_3↦\aU]$ declares $k$ and $x_3$ as potentially used and $x_1$ and $x_2$ as absent, despite $x_2$ occuring in argument position.
+This is thanks to the summary mechanism; we have highlighted the interacting
+information in grey.
+
 
 %Since $\semabs{\wild}$ computes least fixpoints at recursive let bindings,
 %$\AbsTy$ is equipped with a semi-lattice structure, induced by the order $\aA
@@ -222,6 +246,8 @@ from the variable lookup in the application head.
 
 \subsection{Function Summaries, Compositionality and Modularity}
 
+\sven{I don't understand the purpose of this section. This section motivates why summery-based analyses are useful, but this doesn't motivate the problem we are solving. The problem we solve is to prove summary-based analyses sound illustrated in Section 2.4. I would drop this section entirely.}
+
 Let us clarify that by a \emph{summary mechanism}, we mean a mechanism for
 approximating the semantics of a function call in terms of the domain of a
 static analysis, often yielding a symbolic, finite representation.
@@ -238,7 +264,7 @@ To support efficient separate compilation, a compiler analysis must be
 \emph{modular}, and summaries are indispensable to achieving that.
 Let us say that our example function $k = (\Lam{y}{\Lam{z}{y}})$ is defined in
 module A and there is a use site $(k~x_1~x_2)$ in module B.
-Then a \emph{modular analysis} must not reanalyse A.$k$ at its use site in B.
+Then a \emph{modular analysis} must not reanalyse A.$k$ at its use site in B. 
 Our analysis $\semabs{\wild}$ facilitates that easily, because it can
 serialise the summarised $\AbsTy$ for $k$ into module A's signature file.
 Do note that this would not have been possible for the functional
@@ -310,16 +336,32 @@ modularity, as discussed in \citet[Section 3.8.2 and 11.3.2]{Shivers:91}.
 %correct; that is why they are capstone lemmas in type system soundness
 %proofs~\citep{tapl} and a crucial part in proving $\semabs{\wild}$ correct.
 
-\subsection{Soundness}
+\subsection{Problem: Proving Soundness of Summary-Base Analyses}
 
-It should be clear now that compositional, summary-based compiler analyses offer
-significant advantages, yet we lack ergonomic ways to prove them correct, as we
-will see next.
+In this subsection, we demonstrate the difficulty of proving summary-based analyses sound.
 
-Suppose that we were to prove $\semabs{\wild}$ correct.
-The following statement will do:
+\sven{The storyline can be streamlined. Right now the story is:
+\begin{itemize}
+\item To prove the absence analysis sound, we need to show Theorem 1.
+\item Why is it difficult to prove?
+\item But before we explain the difficulty, we must first define absence in Definition 2.
+\item Furthermore, before we explain the difficulty, we must also prove substitution in Lemma 3.
+\item Now we look at some existing proofs of such analyses and why they are difficult...
+\end{itemize}
+I propose the following storyline:
+\begin{itemize}
+\item To prove the absence analysis sound, we need to show Theorem 1.
+\item Theorem 1 (Combine theorem 1 and definition 2): 
+  If $\semabs{\pe}_{ρ_\pe} = \langle φ, \varsigma \rangle$ and $φ(\px) = \aA$, implies $\px$ is absent in $\pe$.
+  $\px$ is absent in $\pe$ if there exists no trace ... that evaluates $\px$.
+\item The proof is in the appendix. The proof is exemplary for more ambitios proofs such as ...
+\item Here are the reasons why such proofs are difficult (1) ... (2) ... (3) ...
+\end{itemize}
+In the last point you can incorporate the substitution lemma and why it is difficult
+}
+% Suppose that we were to prove $\semabs{\wild}$ correct. The following statement will do:
 
-\begin{theoremrep}[$\semabs{\wild}$ infers absence]
+\begin{theoremrep}[$\semabs{\wild}$ infers absence\sven{There must be "soundness" somewhere in the title}]
   \label{thm:absence-correct}
   If $\semabs{\pe}_{ρ_\pe} = \langle φ, \varsigma \rangle$ and $φ(\px) = \aA$,
   then $\px$ is absent in $\pe$.
