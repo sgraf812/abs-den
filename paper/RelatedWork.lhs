@@ -34,6 +34,11 @@ G-machine~\citep{Johnsson:84}.
 We improve on \citeauthor{Josephs:89}'s work in that our encoding is
 simpler, rigorously defined (\Cref{sec:totality}) and proven adequate \wrt
 \citeauthor{Sestoft:97}'s by-need semantics (\Cref{sec:adequacy}).
+\citet{Sestoft:97} related the derivations of
+\citeauthor{Launchbury:93}'s big-step natural semantics for our language to
+the subset of \emph{balanced} small-step LK traces.
+Balanced traces are a proper subset of our maximal LK traces that --- by nature
+of big-step semantics --- excludes stuck and diverging traces.
 
 Our denotational interpreter bears strong resemblance to
 a denotational semantics~\citep{ScottStrachey:71},
