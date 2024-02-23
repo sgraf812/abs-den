@@ -21,12 +21,12 @@ much faster to apply the summary of a function instead of reanalysing its
 definition at use sites in other modules.
 
 If the analysis is used in a compiler to inform optimisations, it is
-important to prove it correct, because lacking correctness
+important to prove it sound, because lacking soundness
 can lead to miscompilation of safety-critical applications~\citep{Sun:16}.
-In order to prove the analysis correct, it is helpful to pick a language
+In order to prove the analysis sound, it is helpful to pick a language
 semantics that is also compositional, such as a \emph{denotational
 semantics}~\citep{ScottStrachey:71}; then the semantics and the analysis ``line
-up'' and the correctness proof is relatively straightforward.
+up'' and the soundness proof is relatively straightforward.
 Indeed, one can often break up the proof into manageable subgoals by regarding
 the analysis as an \emph{abstract interpretation} of the compositional
 semantics~\citep{Cousot:21}.
@@ -43,7 +43,7 @@ semantics}~\citep{Plotkin:81}, which directly models operational details like
 the stack and heap, and sees program execution as a sequence of machine states.
 Now we have two unappealing alternatives:
 \begin{itemize}
-\item Develop a difficult, ad-hoc correctness proof, one that links an
+\item Develop a difficult, ad-hoc soundness proof, one that links a
   non-compositional operational semantics with a compositional analysis.
 \item Reimagine and reimplement the analysis as an abstraction of the
   reachable states of an operational semantics.
@@ -56,7 +56,7 @@ Now we have two unappealing alternatives:
   %\slpj{It's hard
   %to understand this critique.  Better: ``Reimagine and reimplement the analysis as an abstraction of the
   %reachable states of an operational semantics.  Now the analysis and semantics
-  %``line up'' again, so the correctness proof is relatively simple.  Alas, this
+  %``line up'' again, so the soundness proof is relatively simple.  Alas, this
   %approach has significant shortcomings that we outline in \Cref{blah}''.}
   %\sg{Better? I think that connecting reanalysing function bodies with modularity
   %is pretty succinct and convincing.}
@@ -70,7 +70,7 @@ Our denotational interpreters generate small-step traces embellished with
 arbitrary operational detail and enjoy a straightforward encoding in typical
 higher-order programming languages.
 Static analyses arise as instantiations of the same generic interpreter,
-enabling succinct, shared correctness proofs just like for AAM or big-step
+enabling succinct, shared soundness proofs just like for AAM or big-step
 definitional interpreters~\citep{adi,Keidel:18}.
 However, the shared, compositional structure enables a wide range of summary
 mechanisms in static analyses that we think are beyond the reach of
@@ -81,7 +81,7 @@ We make the following contributions:
 \item
   We use a concrete example (absence analysis) to argue for
   the usefulness of compositional, summary-based analysis in \Cref{sec:problem}
-  and we demonstrate the difficulty of conducting an ad-hoc correctness proof
+  and we demonstrate the difficulty of conducting an ad-hoc soundness proof
   \wrt a non-compositional small-step operational semantics.
 \item \Cref{sec:interp} walks through the definition of our generic
   denotational interpreter and its type class algebra in Haskell.
@@ -118,7 +118,7 @@ We make the following contributions:
   None of the proof obligations mention the generic interpreter, and, more
   remarkably, none of the laws mention the concrete semantics or the Galois
   connection either!
-  This enables to prove usage analysis correct \wrt the by-name
+  This enables to prove usage analysis sound \wrt the by-name
   and by-need semantics in half a page, building on reusable
   semantics-specific theorems.
 \item

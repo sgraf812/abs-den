@@ -168,7 +168,7 @@
   such as evaluation cardinality, and hence to static analyses abstracting these
   operational properties.
   Since static analysis and dynamic semantics share the same generic interpreter
-  definition, correctness proofs via abstract interpretation decompose into
+  definition, soundness proofs via abstract interpretation decompose into
   showing small abstraction laws about the abstract domain, thus obviating
   complicated ad-hoc preservation-style proof frameworks.
 \end{abstract}
