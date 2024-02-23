@@ -8,7 +8,7 @@ module Adequacy where
 
 \section{Totality and Semantic Adequacy}
 
-In this Section, we prove that the |evalNeed| instantiation of our generic
+In this section, we prove that the |evalNeed| instantiation of our generic
 denotational interpreter is indeed a \emph{denotational semantics}.%
 \footnote{Similar results for |evalName| and |evalVInit| should be derivative.}
 Excitingly, to our knowledge, |evalNeed| is the first denotational call-by-need

@@ -29,7 +29,7 @@ are restricted to be variables, so the difference between lazy and eager
 semantics is manifest in the semantics of $\mathbf{let}$.
 Note that $\Lam{x}{x}$ (with an overbar) denotes syntax, whereas $\fn{x}{x+1}$
 denotes an anonymous mathematical function.
-In this Section, only the highlighted parts are relevant, but the interpreter
+In this section, only the highlighted parts are relevant, but the interpreter
 definition in \Cref{sec:interp} supports data types as well.
 Throughout the paper we assume that all bound program variables are distinct.
 % Rationale for this:
@@ -88,7 +88,7 @@ Throughout the paper we assume that all bound program variables are distinct.
   \label{fig:absence}
 \end{figure}
 
-In order to define and explore absence analysis in this Subsection, we must
+In order to define and explore absence analysis in this subsection, we must
 clarify what absence means, semantically.
 A variable $\px$ is \emph{absent} in an expression $\pe$ when
 $\pe$ never evaluates $\px$, regardless of the context in which $\pe$
@@ -233,11 +233,11 @@ thanks to the summary mechanism.
 \sg{Section 2 is about substantiating the claim in the Introduction that we
 have two established alternatives that are \emph{unappealing}:
 Alt (1): Proof despite structural mismatch. Implies complicated proofs. The bulk
-of this Section is about substantiating this claim.
+of this section is about substantiating this claim.
 Alt (2): Reformulate the analysis in terms of AAM/CFA. But then we give up on
 summaries and lose modularity. That's what I want to substantiate in this subsection.
 So I added the following paragraph.
-Perhaps I should move this entire Subsection to Related Work and point to that at the end of 2.2?
+Perhaps I should move this entire subsection to Related Work and point to that at the end of 2.2?
 }
 
 Instead of coming up with a summary mechanism, we could simply have ``inlined''
@@ -378,7 +378,7 @@ I tried to leave some forward references to clarify.}
   then $\px$ is absent in $\pe$.
 \end{theoremrep}
 \begin{proof}
-  See \hyperlink{proof:absence-correct}{the proof at the end of this Section}.
+  See \hyperlink{proof:absence-correct}{the proof at the end of this section}.
 \end{proof}
 
 What are the main obstacles to prove it?
@@ -502,7 +502,7 @@ substitution from the let RHS $\pe_1$ to the let body $\pe_2$.
 This can easily be proved by induction on $\pe_2$, which we omit here, but
 indicate the respective step below as ``handwaving''.
 Note that we assume the (more general) recursive let semantics as defined at the
-begin of this Section.
+begin of this section.
 
 \begin{DispWithArrows*}[fleqn,mathindent=1em]
       & \semabs{\Let{\pz}{(\Lam{\px}{\pe_1})~\py}{(\Lam{\px}{\pe_2})~\py}}_ρ

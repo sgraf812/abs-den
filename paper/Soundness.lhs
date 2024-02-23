@@ -826,7 +826,7 @@ More formally,
 \end{definition}
 % We really need to generalise over |D|, because we need this characterisation in the abstract as well.
 
-For the remainder of this Subsection, we assume a refined definition of |Domain|
+For the remainder of this subsection, we assume a refined definition of |Domain|
 and |HasBind| that expects |named (hat D)| (denoting the set of
 |hat d :: hat D| such that |named (hat D) (hat d)|) where we pass around
 denotations that end up in an environment.
