@@ -60,8 +60,6 @@ every free variable of |e|.
   then |x| is absent in |e|.
 \end{theoremrep}
 \begin{proof}
-\sg{Should discuss a bit more big picture before diving into the details.}
-
 We show the contraposition, that is,
 if |x| is used in |e|, then |φ !? x //= U0|, \ie, |U1 ⊑ φ !? x|.
 
@@ -69,50 +67,58 @@ Since |x| is used in |e|, there exists a trace
 \[
   (\Let{\px}{\pe'}{\pe},ρ,μ,κ) \smallstep (\pe,ρ[\px↦\pa_{\px}],μ[\pa_{\px}↦(ρ[\px↦\pa_{\px}],\pe')],κ) \smallstep^* (\py,ρ'[\py↦\pa_{\px}],μ',κ').
 \]
-This is not a maximal trace: note that $(\py,ρ'[\py↦\pa_{\px}],μ',κ')$
-makes a $\LookupT$ transition to look up address $\pa_{\px}$.
-We can easily extend it into a maximal trace, though:
-First off, we need to reconstruct the syntactic \emph{evaluation context} $\pE$
+
+This is the big picture of how we prove |φ !? //= U0| from this fact:
+\begin{DispWithArrows}[fleqn,mathindent=0em]
+                          & (\Let{\px}{\pe'}{\pe},ρ,μ,κ) \smallstep^* (\py,ρ'[\py↦\pa_{\px}],μ',κ') \smallstep[\LookupT(\pa_\px)] ...
+                          \label{arrow:usg-context}
+                          \Arrow{Context lemma} \\
+  {}\Longrightarrow{}     & \init(\pE[\Let{\px}{\pe'}{\pe}]) \smallstep^* (\py,ρ'[\py↦\pa_{\px}],μ',κ') \smallstep[\LookupT(\pa_\px)] ...
+                          \Arrow{Apply $α_{\STraces}$ (\Cref{fig:eval-correctness})} \\
+  {}\Longrightarrow{}     & α_{\STraces}(\init(\pE[\Let{\px}{\pe'}{\pe}]) \smallstep^*, []) = | ... Step (Lookup x) ...|
+                          \Arrow{Adequacy of |evalNeed|} \\
+  {}\Longleftrightarrow{} & |evalNeed (fillC ectxt (Let x e' e)) emp emp| = |... Step (Lookup x) ...|
+                          \label{arrow:usg-instr}
+                          \Arrow{Usage instrumentation} \\
+  {}\Longrightarrow{}     & |(α (set (evalNeed (fillC ectxt (Let x e' e)) emp emp)))^.φ| ⊒ [|x| ↦ |U1|]
+                          \label{arrow:usg-abs}
+                          \Arrow{\Cref{thm:usage-abstracts-need-closed}} \\
+  {}\Longrightarrow{}     & |(evalUsg (fillC ectxt (Let x e' e)) emp)^.φ| ⊒ [|x| ↦ |U1|]
+                          \label{arrow:usg-anal-context}
+                          \Arrow{\Cref{thm:usage-bound-vars-context}} \\
+  {}\Longrightarrow{}     & |Uω * (evalUsg e ρe)^.φ| = |Uω * φ| ⊒ [|x| ↦ |U1|]
+                          \Arrow{|Uω * U0 = U0 ⊏ U1|} \\
+  {}\Longrightarrow{}     & |φ !? //= U0|
+\end{DispWithArrows}
+
+Note that the trace we start with is not necessarily an interior trace,
+so step \labelcref{arrow:usg-context} finds a prefix that makes the trace interior.
+We do so by reconstructing the syntactic \emph{evaluation context} $\pE$
 (we will discuss how to do that after this proof) such that
 \[
   (\pE[\Let{\px}{\pe'}{\pe}], [], [], \StopF) \smallstep^* (\Let{\px}{\pe'}{\pe},ρ,μ,κ)
 \]
 Then the trace above is contained in the maximal trace starting in
 $(\pE[\Let{\px}{\pe'}{\pe}], [], [], \StopF)$.
-Let us call this maximal trace $(σ_i)_{i∈\overline{n}}$.
 It contains at least one $\LookupT$ transition that looks up $\pa_{\px}$.
 
-By \Cref{thm:sem-correct}, we have
-\begin{equation}
-  |τ| \triangleq α_{\STraces}((σ_i)_{i∈\overline{n}}, \StopF) = |evalNeed (fillC ectxt (Let x e' e)) emp emp|
-\end{equation}
-And the $\LookupT$ transition at $\pa_{\px}$
-manifests as a |Step (Lookup x) ...| in |τ| via
-$α_\Events((\py,ρ'[\py↦\pa_{\px}],μ',κ'))$.
-
-Now consider the abstraction function |αT :<->: _ := nameNeed| into |UD|.
+The next two steps apply adequacy of |evalNeed| to the trace, shifting from LK
+trace to denotational interpreter.
+Step \labelcref{arrow:usg-instr} instruments the trace by applying the usage
+abstraction function |α :<->: _ := nameNeed|.
 This function will replace every |Step| constructor
-with the |step| implementation of |UT| to produce |MkUT φ' v := αT (set τ) :: UD|.
-The |Lookup x| event in |τ| implies that |U1 ⊑ φ' ! x|.
+with the |step| implementation of |UT|;
+The |Lookup x| event on the right-hand side implies that its image under |α| is
+at least $[|x| ↦ |U1|]$.
 
-We apply \Cref{thm:usage-abstracts-need-closed} to this situation to get
-\begin{equation}
-  \label{eqn:usage-abs-int}
-  |MkUT φ' v = αT (set τ) = αT (set (evalNeed (fillC ectxt (Let x e' e)) emp emp)) ⊑ evalUsg (fillC ectxt (Let x e' e)) emp|.
-\end{equation}
-In other words: whenever there is a lookup at |x|, we will have
-|(evalUsg (fillC ectxt (Let x e' e)) emp)^.φ ! x //= U0|.
+Step \labelcref{arrow:usg-abs} applies the central soundness
+\Cref{thm:usage-abstracts-need-closed} that is the main topic of this section,
+abstracting the dynamic trace property in terms of the static semantics.
 
-Since |x| is bound inside the hole, we may apply \Cref{thm:usage-bound-vars-context} to get
-\begin{equation}
-  \label{eqn:usage-ctxt-x}
-  |((evalUsg (fillC ectxt (Let x e' e)) emp)^.φ ! x) ⊑ Uω * ((evalUsg (Let x e' e) emp)^.φ ! x)|.
-\end{equation}
-Suppose that |(evalUsg (Let x e' e) emp)^.φ ! x = U0 = Uω * U0 = Uω * ((evalUsg (Let x e' e) emp)^.φ ! x)|.
-Then \Cref{eqn:usage-ctxt-x} implies that |((evalUsg (fillC ectxt (Let x e' e)) emp)^.φ ! x) = U0| as well,
-in contradiction to \Cref{eqn:usage-abs-int} and the fact that |U1 ⊑ φ' ! x|.
-
-So we must have |(evalUsg (Let x e' e) emp)^.φ ! x //= U0|, as required.
+Finally, step \labelcref{arrow:usg-anal-context} applies
+\Cref{thm:usage-bound-vars-context}, which proves that absence information
+doesn't change when an expression is put in an arbitrary evaluation context.
+The final step is just algebra.
 
 %The abstraction |hat τ| is exactly the result of running the by-need
 %instrumentation induced by |UT|, \ie,
@@ -123,6 +129,48 @@ So we must have |(evalUsg (Let x e' e) emp)^.φ ! x //= U0|, as required.
 \end{proof}
 
 \begin{toappendix}
+Above, we use useful to know the results are invariant under wrapping of
+\emph{evaluation contexts} as in \Cref{defn:absence} of Absence.
+A precise syntactic definition of by-need evaluation contexts such as in
+\citet{MoranSands:99} can be found as part of the proof in the Appendix.
+
+\citet[Lemma 4.1]{MoranSands:99} derive the call-by-need evaluation contexts
+$\pE$ from machine contexts $(μ,\hole,κ)$ of the Sestoft mark I machine; a
+variant of \Cref{fig:lk-semantics} that uses syntactic substitution of variables
+instead of delayed substitution and addresses, so $μ ∈ \Var \pfun \Exp$ and no
+closures are needed.
+
+For our language, these contexts can be defined as
+\[\begin{array}{lcl}
+  \pE ∈ \EContexts & ::= & \pA \mid \Let{\px}{\pe}{\pE} \mid \Let{\px}{\pE}{\pE[\px]} \\
+  \pA ∈ \AContexts & ::= & \hole \mid \pA~\px \mid \Case{\pA}{\Sel}
+\end{array}\]
+For completeness, we give a function $\mathit{syn}$ that translates from mark I
+machine contexts $(μ,κ)$ to evaluation contexts $\pE$.
+\[\begin{array}{lcl}
+  \mathit{syn} & : & (\Var \pfun \Exp) \times \Continuations \to \EContexts \\
+  \mathit{syn}([\px ↦ \pe],κ) & = & \Let{\px}{\pe}{\mathit{stk}(\hole,κ)} \\
+  \mathit{stk} & : & \AContexts \times \Continuations \to \EContexts \\
+  \mathit{stk}(\pA,\ApplyF(\px) \pushF κ) & = & \mathit{stk}(\pA~\px,κ) \\
+  \mathit{stk}(\pA,\SelF(\Sel) \pushF κ) & = & \mathit{stk}(\Case{\pA}{\Sel},κ) \\
+  \mathit{stk}(\pA,\UpdateF(\px) \pushF κ) & = & \Let{\px}{\pA}{\mathit{stk}(\hole, κ)[\px]} \\
+\end{array}\]
+Certainly the most interesting case is that of $\UpdateF$ frames.
+
+We encode evaluation contexts in Haskell as follows, overloading notation |fillC|:
+\begin{spec}
+data ACtxt = Hole | Apply ACtxt Name | Select ACtxt Alts
+data ECtxt = ACtxt ACtxt | ExtendHeap Name Expr ECtxt | UpdateHeap Name ACtxt Expr
+fillC :: ACtxt -> Expr -> Expr
+fillC Hole e = e
+fillC (Apply actxt x) e = App (fillC actxt e) x
+fillC (Select actxt alts) e = Case (fillC actxt e) alts
+fillC :: ECtxt -> Expr -> Expr
+fillC (ACtxt a) e = fillC a e
+fillC (ExtendHeap x e1 ectxt) e2 = Let x e1 (fillC ectxt e2)
+fillC (UpdateHeap x actxt e1) e2 = Let x (fillC actxt e1) e2
+\end{spec}
+
 \begin{lemma}[Context closure]
 \label{thm:usage-bound-vars-context}
 Let |ectxt| be a by-need evaluation context and |e| an expression with bound
@@ -130,7 +178,32 @@ variable |x|.
 Then |((evalUsg (fillC ectxt e) emp)^.φ ?! x) ⊑ Uω * ((evalUsg e ρe)^.φ !? x)|.
 \end{lemma}
 \begin{proof}
-  TODO
+Let us assume that none of the variables in which |e| is free occur in |ectxt|;
+otherwise we can rename.
+By induction on the size of |ectxt| and cases on |ectxt|:
+\begin{itemize}
+  \item \textbf{Case }|Hole|:
+    By reflexivity.
+  \item \textbf{Case }|Apply actxt x|:
+    Let |y| be a free varaible of |e|, which must be different to |x|.
+    \begin{spec}
+        (eval (fillC (Apply actxt x) e) ρ)^.φ ! y
+    =   {- Definition of |fillC| -}
+        (eval (App (fillC actxt e) x) ρ)^.φ ! y
+    =   {- Definition of |eval| -}
+        (apply (eval (fillC actxt e) ρ) (ρ ! x))^.φ ! y
+    =   {- Definition of |apply| -}
+        let MkUT φ v = eval (fillC actxt e) ρ in
+        case peel v of (u,v2) -> ((MkUT (φ + u*((ρ!x)^.φ)) v2)^.φ ! y)
+    =   {- Simplify -}
+        let MkUT φ v = eval (fillC actxt e) ρ in
+        case peel v of (u,v2) -> (φ + u*((ρ!x)^.φ)) ! y
+    =   {- |y| absent in |ρ ! x| -}
+        (eval (fillC actxt e) ρ)^.φ ! y
+    =   {- Induction hypothesis -}
+        (eval e ρ)^.φ ! y
+    \end{spec}
+\end{itemize}
 \end{proof}
 
 %It is a bit frustrating that we need multiply with |Uω| above because
@@ -2037,93 +2110,7 @@ By \Cref{thm:soundness-by-need}, it suffices to show the abstraction laws
 in \Cref{fig:abstraction-laws} as done in the proof for \Cref{thm:usage-abstracts-need-closed}.
 \end{proof}
 
-%TBD: Prove correct as absence analysis.
-%  1. Prove "context closure"; e.g., for eval contexts at most factor of Uω (annoying)
-%  2. Prove absence
-%
-%If usage analysis is to be used to inform, \eg, dead code removal in a compiler,
-%then the results it infers better generalise to arbitrary program contexts
-%in which the analysed expression |e| occurs.
-%Thus, it is useful to know the results are invariant under wrapping of
-%\emph{evaluation contexts} as in \Cref{defn:absence} of Absence.
-%A precise syntactic definition of by-need evaluation contexts such as in
-%\citet{MoranSands:99} can be found as part of the proof in the Appendix.
-%
-%\begin{toappendix}
-%\citet[Lemma 4.1]{MoranSands:99} derive the call-by-need evaluation contexts
-%$\pE$ from machine contexts $(μ,\hole,κ)$ of the Sestoft mark I machine; a
-%variant of \Cref{fig:lk-semantics} that uses syntactic substitution of variables
-%instead of delayed substitution and addresses, so $μ ∈ \Var \pfun \Exp$ and no
-%closures are needed.
-%
-%For our language, these contexts can be defined as
-%\[\begin{array}{lcl}
-%  \pE ∈ \EContexts & ::= & \pA \mid \Let{\px}{\pe}{\pE} \mid \Let{\px}{\pE}{\pE[\px]} \\
-%  \pA ∈ \AContexts & ::= & \hold \mid \pA~\px \mid \Case{\pA}{\Sel}
-%\end{array}\]
-%For completeness, we give a function $\mathit{syn}$ that translates from mark I
-%machine contexts $(μ,κ)$ to evaluation contexts $\pE$.
-%\[\begin{array}{lcl}
-%  \mathit{syn} & : & (\Var \pfun \Exp) \times \Continuations \to \EContexts \\
-%  \mathit{syn}([\px ↦ \pe],κ) & = & \Let{\px}{\pe}{\mathit{stk}(\hole,κ)} \\
-%  \mathit{stk} & : & \AContexts \times \Continuations \to \EContexts \\
-%  \mathit{stk}(\pA,\ApplyF(\px) \pushF κ) & = & \mathit{stk}(\pA~\px,κ) \\
-%  \mathit{stk}(\pA,\SelF(\Sel) \pushF κ) & = & \mathit{stk}(\Case{\pA}{\Sel},κ) \\
-%  \mathit{stk}(\pA,\UpdateF(\px) \pushF κ) & = & \Let{\px}{\pA}{\mathit{stk}(\hole, κ)[\px]} \\
-%\end{array}\]
-%Certainly the most interesting case is that of $\UpdateF$ frames.
-%
-%We encode evaluation contexts in Haskell as follows, overloading notation |fillC|:
-%\begin{spec}
-%data ACtxt = Hole | Apply ACtxt Name | Select ACtxt Alts
-%data ECtxt = ACtxt ACtxt | ExtendHeap Name Expr ECtxt | UpdateHeap Name ACtxt Expr
-%fillC :: ACtxt -> Expr -> Expr
-%fillC Hole e = e
-%fillC (Apply actxt x) e = App (fillC actxt e) x
-%fillC (Select actxt alts) e = Case (fillC actxt e) alts
-%fillC :: ECtxt -> Expr -> Expr
-%fillC (ACtxt a) e = fillC a e
-%fillC (ExtendHeap x e1 ectxt) e2 = Let x e1 (fillC ectxt e2)
-%fillC (UpdateHeap x actxt e1) e2 = Let x (fillC actxt e1) e2
-%\end{spec}
-%\end{toappendix}
-%
-%\begin{theoremrep}[Context closure]
-%  \label{thm:usage-context}
-%  Let |ectxt| be an arbitrary by-need evaluation context, where |fillC ectxt e|
-%  fills the hole in |ectxt| with |e|.
-%  Then |((eval e ρ :: UD)^.φ !? x) = ((eval (fillC ectxt e) ρ :: UD)^.φ) !? x| for
-%  every free variable |x| of |e| that does not occur in |ectxt|.
-%\end{theoremrep}
-%\begin{proof}
-%Let us assume that none of the variables in which |e| is free occur in |ectxt|;
-%otherwise we can rename.
-%By induction on the size of |ectxt| and cases on |ectxt|:
-%\begin{itemize}
-%  \item \textbf{Case }|Hole|:
-%    By reflexivity.
-%  \item \textbf{Case }|Apply actxt x|:
-%    Let |y| be a free varaible of |e|, which must be different to |x|.
-%    \begin{spec}
-%        (eval (fillC (Apply actxt x) e) ρ)^.φ ! y
-%    =   {- Definition of |fillC| -}
-%        (eval (App (fillC actxt e) x) ρ)^.φ ! y
-%    =   {- Definition of |eval| -}
-%        (apply (eval (fillC actxt e) ρ) (ρ ! x))^.φ ! y
-%    =   {- Definition of |apply| -}
-%        let MkUT φ v = eval (fillC actxt e) ρ in
-%        case peel v of (u,v2) -> ((MkUT (φ + u*((ρ!x)^.φ)) v2)^.φ ! y)
-%    =   {- Simplify -}
-%        let MkUT φ v = eval (fillC actxt e) ρ in
-%        case peel v of (u,v2) -> (φ + u*((ρ!x)^.φ)) ! y
-%    =   {- |y| absent in |ρ ! x| -}
-%        (eval (fillC actxt e) ρ)^.φ ! y
-%    =   {- Induction hypothesis -}
-%        (eval e ρ)^.φ ! y
-%    \end{spec}
-%\end{itemize}
-%\end{proof}
-
+\end{toappendix}
 
 %if False
 % Here is an attempt to recover a frame rule for |evalNeed|, but we didn't need it
