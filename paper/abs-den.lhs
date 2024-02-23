@@ -155,7 +155,7 @@
 \ifmain
 
 \begin{abstract}
-  We present \emph{denotational interpreters}:
+  We explore \emph{denotational interpreters}:
   denotational semantics that produce coinductive traces of a corresponding
   small-step operational semantics.
   By parameterising our denotational interpreter over the semantic domain
