@@ -193,7 +193,7 @@ A semantics such as |evalNeed| is \emph{adequate} \wrt the lazy Krivine machine
 in \Cref{fig:lk-semantics} if it \emph{preserves the observable termination
 properties}, by which we mean
 \begin{itemize}
-  \item |evalNeed e emp emp| produces a |T|race ending in a |Fun| or |Con| value
+  \item |(evalNeed e emp emp :: T _)| produces a trace ending in a |Fun| or |Con| value
     iff the \emph{maximal} (\ie, longest possible) LK trace $\init(\pe)
     \smallstep^* (\pv, \wild, \wild, \wild)$ is \emph{balanced}~\citep{Sestoft:97}, and
   \item |evalNeed e emp emp| produces a diverging trace iff the maximal LK trace
@@ -207,8 +207,9 @@ both the \emph{length} of the trace as well as information relating to the
 \emph{transition rule taken}:
 
 \begin{theoremrep}[Strong Adequacy]
-  Let |e| be a closed expression, |τ := evalNeed e emp emp| the
-  denotational by-need |T|race and $(σ_i)_{i∈\overline{n}} \triangleq
+  \label{thm:need-adequate-strong}
+  Let |e| be a closed expression, |τ := evalNeed e emp emp :: T _| the
+  denotational by-need trace and $(σ_i)_{i∈\overline{n}} \triangleq
   \init(\pe) \smallstep ...$ the maximal lazy Krivine trace.
   Then
   \begin{itemize}
@@ -225,17 +226,21 @@ both the \emph{length} of the trace as well as information relating to the
   and prove this equality by Löb induction.
   The representation function $α_{\STraces}$ induces a Galois insertion, retaining
   the observable properties of interest.
-  The full proof for a rigorous statement of this result can be found in the
+  The full proof for a rigorous reformulation of this result can be found in the
   Appendix.
 \end{proofsketch}
 \begin{proof}
-  A consequence of \Cref{thm:abs-length,thm:sem-correct,thm:sem-adequate}.
+  A consequence of \Cref{thm:abs-length,thm:need-abstracts-lk,thm:need-adequate}.
   Function $α_\Events$ in \Cref{fig:eval-correctness} encodes the intuition in
   which LK transitions abstract into |Event|s.
 \end{proof}
 
 \begin{toappendix}
-More formally, an LK trace is a trace in $(\smallstep)$ from
+We proceed from the bottom up, beginning with a definition of traces as
+mathematical sequences, then defining maximal traces, and then relating
+those maximal traces via \Cref{fig:eval-correctness} to |eval|.
+
+Formally, an LK trace is a trace in $(\smallstep)$ from
 \Cref{fig:lk-semantics}, \ie, a non-empty and potentially infinite sequence of
 LK states $(σ_i)_{i∈\overline{n}}$ (where $\overline{n} = \{ m ∈ ℕ \mid m < n
 \}$ when $n∈ℕ$, $\overline{ω} = ℕ$), such that $σ_i \smallstep σ_{i+1}$ for
@@ -346,11 +351,13 @@ An example for a diverging trace, where $ρ=[x↦\pa_1]$ and $μ=[\pa_1↦(ρ,x)
 Interiority guarantees that the particular initial stack $κ$ of a maximal trace
 is irrelevant to execution, so maximal traces that differ only in the initial
 stack are bisimilar.
+This is very much like the semantics of a called function (\ie, big-step
+evaluator) may not depend on the contents of the call stack.
 
 One class of maximal traces is of particular interest:
 The maximal trace starting in $\init(\pe)$!
-Whether it is infinite, stuck or balanced is the defining operational
-characteristic of $\pe$.
+Whether it is infinite, stuck or balanced is the defining \emph{termination
+observable} of $\pe$.
 If we can show that |eval e emp| distinguishes these behaviors of |e|, we have
 proven it an adequate replacement for the LK transition system.
 
@@ -359,8 +366,9 @@ our endeavour to prove |eval| adequate at |D (ByNeed T)|.
 It encodes that an \emph{abstraction} of every maximal LK trace can be recovered
 by running |eval| starting from the abstraction of an initial state.
 
-The family of abstraction functions makes precise the intuitive connection
-between the semantic objects in |eval| and the syntactic objects in
+The family of abstraction functions (they are really \emph{representation
+functions}, in the sense of \Cref{sec:soundness}) makes precise the intuitive
+connection between the definable entities in |eval| and the syntactic objects in
 the transition system.
 
 We will sometimes need to disambiguate the clashing definitions from
@@ -368,8 +376,6 @@ We will sometimes need to disambiguate the clashing definitions from
 We do so by adorning semantic objects with a tilde, so |tm := αHeap μ :: Heap (ByNeed τ)|
 denotes a semantic heap which in this instance is defined to be the abstraction
 of a syntactic heap |μ|.
-In a slight abuse of notation, we write |eval e tr tm| to mean |case eval e tr
-of ByNeed (StateT m) -> m tm|, as if |ByNeed| and |StateT| were type synonyms.
 
 Note first that $α_{\STraces}$ is defined by guarded recursion over
 the LK trace, in the following sense:
@@ -380,7 +386,7 @@ Now $ℕ_ω$ contains all natural numbers (where $n$ is encoded as
 |(S . pure{-"\!)^n "-} Z|) and the transfinite limit ordinal
 |ω = S (pure (S (pure ...)))|.
 We will assume that addition and subtraction are defined as on peano numbers,
-where |ω + _ = _ + ω = ω|.
+and |ω + _ = _ + ω = ω|.
 When $(σ_i)_{i∈\overline{n}} ∈ \STraces$ is an LK trace and $n > 1$, then
 $(σ_{i+1})_{i∈\overline{n-1}} ∈ \later \STraces$ is the guarded tail of the
 trace with an associated coinduction principle.
@@ -395,9 +401,9 @@ finite, inductive type).
 
 \begin{figure}
 \[\begin{array}{rcl}
-  α_\Environments([\many{\px ↦ \pa_{\py,i}}]) & = & [\many{|x| ↦ |step (Lookup y) (fetch a_yi)|}] \\
+  α_\Environments([\many{\px ↦ \pa_{\py,i}}]) & = & [\many{|x| ↦ |Step (Lookup y) (fetch a_yi)|}] \\
   α_\Heaps([\many{\pa ↦ (ρ,\pe)}]) & = & [\many{|a| ↦ |memo a (eval e (αEnv ρ))|}] \\
-  α_\States(\Lam{\px}{\pe},ρ,μ,κ) & = & |(Fun (\d -> step App2 (eval e (ext (αEnv ρ) x d))), αHeap μ)| \\
+  α_\States(\Lam{\px}{\pe},ρ,μ,κ) & = & |(Fun (\d -> Step App2 (eval e (ext (αEnv ρ) x d))), αHeap μ)| \\
   α_\States(K~\overline{\px},ρ,μ,κ) & = & |(Con k (map (αEnv ρ !) xs), αHeap μ)| \\
   α_\Events(σ) & = & \begin{cases}
     |Let1| & σ = (\Let{\px}{\wild}{\wild},\wild,μ,\wild), \pa_{\px,i} \not∈ \dom(μ) \\
@@ -424,15 +430,12 @@ The event abstraction function $α_\Events(σ)$ encodes how intensional
 information from small-step transitions is retained as |Event|s.
 Its semantics is entirely inconsequential for the adequacy result and we imagine
 that this function is tweaked on an as-needed basis depending on the particular
-trace property one is interested in capturing.
+trace property one is interested in observing.
 In our example, we focus on |Loookup| events that carry with them the |Name| of
 the let binding from whence a heap binding came -- in a somewhat informal way,
 we imagine that the semantics allocates addresses $\pa_{\px,i}$ in one arena per
 syntactic let binding $\px$, so that we can find the name of the let binding
 from the address at lookup sites.
-Again, the neglect in formalism has no effect on the adequacy result, but we
-will need to be more precise here when proving soundness of usage analysis,
-where the contents of the |Name| are interpreted semantically.
 
 Our first goal is to establish a few auxiliary lemmas showing what kind of
 properties of LK traces are preserved by $α_{\STraces}$ and in which way.
@@ -472,31 +475,34 @@ Let us warm up by defining a length function on traces:
     \item \textbf{Case |Z|}: Then we have either
       |τ = Ret ({-" α_\States(σ_0) "-})| or |τ = Ret Stuck|, both of which map
       to |Z| under |len|.
-    \item \textbf{Case |S (idiom m)|}: Then the
-      first case of $α_\States$ applies, hence $τ = σ \cons τ^{\later}$ for some
-      $σ∈\States, τ^{\later}∈\later \STraces$.
-      Now we apply the inductive hypothesis, as follows:
-      Let $(σ_{i+1})_{i∈\overline{m}} ∈ \later \STraces$ be the guarded
+    \item \textbf{Case |S (idiom m)|}: Then
+      |τ = Step _ ^^{-"\idiom{α_\STraces((σ_{i+1})_{i∈\overline{m}},\cont(σ_0))}"-}|,
+      where $(σ_{i+1})_{i∈\overline{m}} ∈ \later \STraces$ is the guarded
       tail of the LK trace $(σ_i)_{i∈\overline{n}}$.
-      Then we can apply $IH \aplater m \aplater (σ_{i+1})_{i∈\overline{m}}$ and
-      get a proof for $\later (|len tl| = m)$.
-      Now we can prove $n = |S (idiom m)| = |S (len tl)| = |len τ|$.
+      Now we apply the inductive hypothesis, as follows:
+      \[
+        (IH \aplater m \aplater (σ_{i+1})_{i∈\overline{m}}) \in \later (|len ({-" α_{\STraces}((σ_{i+1})_{i∈\overline{m}},\cont(σ_0)) "-})| = m).
+      \]
+      We use this fact and congruence to prove
+      \[
+         n = |S (idiom m)| = |S (len ({-" α_{\STraces}((σ_{i+1})_{i∈\overline{m}},\cont(σ_0)) "-}))| = |len ({-" α_{\STraces}((σ_{i})_{i∈\overline{n}},\cont(σ_0)) "-})|.
+      \]
   \end{itemize}
 \end{proof}
 
-\begin{lemma}[Preservation of characteristic]
+\begin{lemma}[Abstraction preserves termination observable]
   \label{thm:abs-max-trace}
   Let $(σ_i)_{i∈\overline{n}}$ be a maximal trace.
   Then $α_{\STraces}((σ_i)_{i∈\overline{n}}, cont(σ_0))$ is ...
   \begin{itemize}
-    \item ... infinite if and only if $(σ_i)_{i∈\overline{n}}$ is diverging
     \item ... ending with |Ret (Fun _)| or |Ret (Con _ _)| if and only if
-          $(σ_i)_{i∈\overline{n}}$ is balanced
-    \item ... ending with |Ret Stuck| if and only if $(σ_i)_{i∈\overline{n}}$ is stuck
+          $(σ_i)_{i∈\overline{n}}$ is balanced.
+    \item ... infinite if and only if $(σ_i)_{i∈\overline{n}}$ is diverging.
+    \item ... ending with |Ret Stuck| if and only if $(σ_i)_{i∈\overline{n}}$ is stuck.
   \end{itemize}
 \end{lemma}
 \begin{proof}
-  The first point follows by a similar inductive argument as in \Cref{thm:abs-length}.
+  The second point follows by a similar inductive argument as in \Cref{thm:abs-length}.
 
   In the other cases, we may assume that $n$ is finite.
   If $(σ_i)_{i∈\overline{n}}$ is balanced, then $σ_n$ is a return state with
@@ -516,14 +522,15 @@ For such a maximal |τ| we will say that it is balanced when it ends with
 |Ret v| for a |v /= Stuck|, stuck if ending in |Ret Stuck| and diverging if
 infinite.
 
-We are now ready to prove the main correctness predicate:
+We are now ready to prove the main soundness predicate, proving that |evalNeed|
+is an exact abstract interpretation of the LK machine:
 
-\begin{theorem}[Correctness of |eval|]
-  \label{thm:sem-correct}
+\begin{theorem}[|evalNeed| abstracts LK machine]
+  \label{thm:need-abstracts-lk}
   $\correct$ from \Cref{fig:eval-correctness} holds.
   That is, whenever $(σ_i)_{i∈\overline{n}}$ is a maximal LK trace with source
   state $(\pe,ρ,μ,κ)$, we have
-  $α_{\STraces}((σ_i)_{i∈\overline{n}},κ) = |eval e (αEnv ρ) (αHeap μ)|$.
+  $α_{\STraces}((σ_i)_{i∈\overline{n}},κ) = |evalNeed e (αEnv ρ) (αHeap μ)|$.
 \end{theorem}
 \begin{proof}
 By Löb induction, with $IH ∈ \later C$ as the hypothesis.
@@ -532,7 +539,7 @@ We will say that an LK state $σ$ is stuck if there is no applicable rule in the
 transition system (\ie, the singleton LK trace $σ$ is maximal and stuck).
 
 Now let $(σ_i)_{i∈\overline{n}}$ be a maximal LK trace with source state
-$σ_0=(\pe,ρ,μ,κ)$ and let |τ = eval e (αEnv ρ) (αHeap μ)|.
+$σ_0=(\pe,ρ,μ,κ)$ and let |τ = evalNeed e (αEnv ρ) (αHeap μ)|.
 Then the goal is to show $α_{\STraces}((σ_i)_{i∈\overline{n}},κ) = |τ|$.
 We do so by cases over $\pe$, abbreviating |tm := αHeap μ| and |tr := αEnv ρ|:
 \begin{itemize}
@@ -549,16 +556,16 @@ We do so by cases over $\pe$, abbreviating |tm := αHeap μ| and |tr := αEnv ρ
 
     To show that the tails equate, it suffices to show that they equate \emph{later}.
 
-    We can infer that |tm a_yi = memo a_yi (eval e' tr')| from the definition of
+    We can infer that |tm a_yi = memo a_yi (evalNeed2 e' tr')| from the definition of
     $α_\Heaps$, so
     \begin{spec}
-      fetch a_yi tm = tm a_yi tm = eval e' tr' tm >>= \case
+      fetch a_yi tm = tm a_yi tm = evalNeed e' tr' tm >>= \case
         (Stuck,  tm') -> Ret (Stuck, tm')
         (val,    tm') -> Step Update (Ret (val, ext tm' a_yi (memo a_yi (return val))))
     \end{spec}
 
     (Recall that we don't bother mentioning |StateT| and |ByNeed| wrappings.)
-    Let us define |tl := (idiom (eval e' tr' tm))| and apply the induction
+    Let us define |tl := (idiom (evalNeed e' tr' tm))| and apply the induction
     hypothesis $IH$ to the maximal trace starting at $σ_1$.
     This yields an equality
     \[
@@ -583,7 +590,7 @@ We do so by cases over $\pe$, abbreviating |tm := αHeap μ| and |tr := αEnv ρ
     By cases on $\pv$ and the |Domain (D (ByNeed T))| instance we can see that
     \begin{spec}
          Ret (val,ext tmm a_yi (memo a_yi (return val)))
-      =  Ret (val,ext tmm a_yi (memo a_yi (eval v trm)))
+      =  Ret (val,ext tmm a_yi (memo a_yi (evalNeed2 v trm)))
       =  αState σ_n
     \end{spec}
     and this equality concludes the proof.
@@ -591,7 +598,7 @@ We do so by cases over $\pe$, abbreviating |tm := αHeap μ| and |tr := αEnv ρ
   \item \textbf{Case $\pe~\px$}:
     The cases where $τ$ gets stuck or diverges before finishing evaluation of
     $\pe$ are similar to the variable case.
-    So let us focus on the situation when |tl := (idiom (eval e tr tm))|
+    So let us focus on the situation when |tl := (idiom (evalNeed e tr tm))|
     returns and let $σ_m$ be LK state at the end of the balanced trace
     $(σ_{i+1})_{i∈\overline{m-1}}$ through $\pe$ starting in stack
     $\ApplyF(\pa) \pushF κ$.
@@ -604,11 +611,11 @@ We do so by cases over $\pe$, abbreviating |tm := αHeap μ| and |tr := αEnv ρ
     $\Lam{\py}{\pe'}$, and $σ_{m+1} = (\pe',ρ_m[\py ↦ ρ(\px)],μ_m,κ)$.
 
     Likewise, |tl| ends in
-    |αState σ_m = Ret (Fun (\d -> step App2 (eval e' (ext trm y d))), tmm)|
+    |αState σ_m = Ret (Fun (\d -> step App2 (evalNeed2 e' (ext trm y d))), tmm)|
     (where $\tm_m$ corresponds to the heap in $σ_m$ in the usual way).
     The |fun| implementation of |Domain (D (ByNeed T))| applies the |Fun| value
     to the argument denotation |tr x|, hence it remains to show that
-    |tl2 := eval e' (ext trm y (tr x)) tmm| is equal to
+    |tl2 := evalNeed e' (ext trm y (tr x)) tmm| is equal to
     $α_{\STraces}((σ_{i+m+1})_{i∈\overline{k}}, κ)$ \emph{later},
     where $(σ_{i+m+1})_{i∈\overline{k}}$ is the maximal trace starting at
     $σ_{m+1}$.
@@ -642,13 +649,15 @@ We do so by cases over $\pe$, abbreviating |tm := αHeap μ| and |tr := αEnv ρ
 \end{itemize}
 \end{proof}
 
-\Cref{thm:sem-correct} and \Cref{thm:abs-max-trace} are the key to proving a
-strong version of adequacy for |eval|, where $σ$ is defined to be a
-\emph{final} state if $\ctrl(σ)$ is a value and $\cont(σ) = \StopF$.
+\Cref{thm:need-abstracts-lk} and \Cref{thm:abs-max-trace} are the key to
+proving the following theorem of adequacy, which formalises the intuitive
+notion of adequacy from before.
 
-\begin{theorem}[Total adequacy of |eval|]
-  \label{thm:sem-adequate}
-  Let |τ := runByNeed (eval e emp)|.
+(A state $σ$ is \emph{final} when $\ctrl(σ)$ is a value and $\cont(σ) = \StopF$.)
+
+\begin{theorem}[Adequacy of |evalNeed|]
+  \label{thm:need-adequate}
+  Let |τ := evalNeed e emp emp|.
   \begin{itemize}
     \item
       |τ| ends with |Ret (Fun _, _)| or |Ret (Con _ _, _)| (is balanced) iff there
@@ -668,7 +677,7 @@ strong version of adequacy for |eval|, where $σ$ is defined to be a
 \end{theorem}
 \begin{proof}
   There exists a maximal trace $(σ_i)_{i∈\overline{n}}$ starting
-  from $σ_0 = \init(\pe)$, and by \Cref{thm:sem-correct} we have
+  from $σ_0 = \init(\pe)$, and by \Cref{thm:need-abstracts-lk} we have
   $α_{\STraces}((σ_i)_{i∈\overline{n}},\StopF) = τ$.
   The correctness of |Event|s emitted follows directly from $α_\Events$.
   \begin{itemize}

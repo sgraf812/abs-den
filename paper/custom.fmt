@@ -44,6 +44,7 @@
 %format τ'
 %format τ1
 %format τ2
+%format τl = "\varcolor{\tau^{\later}}"
 %format ρ = "\varcolor{\rho}"
 %format ρ1
 %format ρ1'
@@ -100,7 +101,7 @@
 %format θ1
 %format θ2
 %format ω = "\varcolor{\omega}"
-%format Σ = "\concolor{\mathsf{\Sigma}}"
+%format Σ = "\conid{\mathrm{\Sigma}}"
 %format :-> = "\mathbin{:\rightharpoonup}"
 %format :->: = "\mathbin{:\rightarrow:}"
 %format ∈ = "\in"
