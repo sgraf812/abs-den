@@ -247,7 +247,7 @@ eval e ρ = case e of
   App e x  | x ∈ dom ρ  -> step App1 $
                apply (eval e ρ) (ρ ! x)
            | otherwise  -> stuck
-  Let x e1 e2 -> bind
+  Let x e1 e2 -> bind {-" \iffalse "-}x{-" \fi "-}
     (\d1 -> eval e1 (ext ρ x (step (Lookup x) d1)))
     (\d1 -> step Let1 (eval e2 (ext ρ x (step (Lookup x) d1))))
   ConApp k xs
@@ -277,7 +277,7 @@ class Domain d where
   select :: d -> (Tag :-> ([d] -> d)) ->  d
 
 class HasBind d where
-  bind :: (d -> d) -> (d -> d) -> d
+  bind :: {-" \iffalse "-}Name -> {-" \fi "-}(d -> d) -> (d -> d) -> d
 \end{code}
 \\[-2.5em]
 \subcaption{Interface of traces and values}
@@ -297,7 +297,7 @@ instance Monad τ => Domain (D τ) where
     _                        -> stuck
 
 ifPoly (instance HasBind DName where
-  bind rhs body = body (let d = rhs d in d)
+  bind # rhs body = body (let d = rhs d in d)
 \end{code}
 \\[-2.5em]
 \subcaption{Concrete by-name semantics for |DName|}
@@ -462,7 +462,7 @@ instance Trace (τ v) => Trace (ByName τ v) where
   step e = ByName . step e . unByName
 
 instance HasBind (D (ByName τ)) where
-  bind rhs body = body (fix rhs)
+  bind _ rhs body = body (fix rhs)
 \end{code}%
 %endif
 \\[-1em]
@@ -518,10 +518,10 @@ memoN a d = d >>= \v -> ByNeed (upd v)
          upd v      μ = step Update (return (v, ext μ a (memoN a (return v))))
 
 instance (Monad τ, forall v. Trace (τ v)) => HasBind (D (ByNeed τ)) where
-  bind rhs body = do  μ <- getN
-                      let a = nextFree μ
-                      putN (ext μ a (memoN a (rhs (fetchN a))))
-                      body (fetchN a)
+  bind # rhs body = do  μ <- getN
+                        let a = nextFree μ
+                        putN (ext μ a (memoN a (rhs (fetchN a))))
+                        body (fetchN a)
 \end{code}
 %if style == newcode
 \begin{code}
@@ -673,9 +673,9 @@ class Extract τ where getValue :: τ v -> v
 instance Extract T where getValue (Ret v) = v; getValue (Step _ τ) = getValue τ
 
 instance (Trace (D (ByValue τ)), Monad τ, Extract τ) => HasBind (D (ByValue τ)) where
-  bind rhs body = step Let0 (do  v1 <- d; body (return v1))
-                                 where  d = rhs (return v)          :: D (ByValue τ)
-                                        v = getValue (unByValue d)  :: Value (ByValue τ)
+  bind # rhs body = step Let0 (do  v1 <- d; body (return v1))
+                                   where  d = rhs (return v)          :: D (ByValue τ)
+                                          v = getValue (unByValue d)  :: Value (ByValue τ)
 \end{code}
 %if style == newcode
 \begin{code}
@@ -755,10 +755,10 @@ evalVInit e ρ μ = unByVInit (eval e ρ :: D (ByVInit T)) μ
 
 newtype ByVInit τ v = ByVInit { unByVInit :: Heap (ByVInit τ) -> τ (v, Heap (ByVInit τ)) }
 instance (Monad τ, forall v. Trace (τ v)) => HasBind (D (ByVInit τ)) where
-  bind rhs body = do  μ <- getV
-                      let a = nextFree μ
-                      putV (ext μ a stuck)
-                      step Let0 (memoV a (rhs (fetchV a))) >>= body . return
+  bind # rhs body = do  μ <- getV
+                        let a = nextFree μ
+                        putV (ext μ a stuck)
+                        step Let0 (memoV a (rhs (fetchV a))) >>= body . return
 \end{code}
 %if style == newcode
 \begin{code}
@@ -817,7 +817,7 @@ newtype Clairvoyant τ a = Clairvoyant (ParT τ a)
 runClair :: D (Clairvoyant T) -> T (Value (Clairvoyant T))
 
 instance (Extract τ, Monad τ, forall v. Trace (τ v)) => HasBind (D (Clairvoyant τ)) where
-  bind rhs body = Clairvoyant (skip <|> let') >>= body
+  bind # rhs body = Clairvoyant (skip <|> let') >>= body
     where  skip = return (Clairvoyant empty)
            let' = fmap return $ step Let0 $ ... ^^ fix ... rhs ... getValue ...
 \end{spec}
@@ -866,7 +866,7 @@ parFix f = ParT $ fix (unParT . f . getValue) >>= \case
     Fork _ _ -> pure (Fork (parFix (leftT . f)) (parFix (rightT . f)))
 
 instance (Extract τ, Monad τ, forall v. Trace (τ v)) => HasBind (D (Clairvoyant τ)) where
-  bind rhs body = Clairvoyant (skip <|> let') >>= body
+  bind _ rhs body = Clairvoyant (skip <|> let') >>= body
     where
       skip = return (Clairvoyant empty)
       let' = fmap return $ unClair $ step Let0 $ Clairvoyant $ parFix $ unClair . rhs . Clairvoyant . ParT . return

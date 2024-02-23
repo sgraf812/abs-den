@@ -11,6 +11,7 @@
 %format ^ =
 %format ^^ = " "
 %format ^^^ = "^"
+%format # = "_"
 %format com = "--"
 %format Lub(a) = "undefined"
 %format Cup(a) = "undefined"
@@ -33,6 +34,7 @@
 %format qquad = "\qquad"
 %format ^ = " "
 %format ^^ = "\;"
+%format # =
 
 %subst conid a = "\conid{" a "}"
 %subst varid a = "\varid{" a "}"

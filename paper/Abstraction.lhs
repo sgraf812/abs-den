@@ -204,7 +204,7 @@ instance Domain UD where
               |  (k,f) <- assocs fs ]
 
 instance HasBind UD where
-  bind rhs body = body (kleeneFix rhs)
+  bind # rhs body = body (kleeneFix rhs)
 \end{code}
 \end{minipage}%
 \begin{minipage}{0.3\textwidth}
@@ -283,7 +283,7 @@ instrumentation on a few examples.
 The next step is to \emph{statically approximate} this operational property,
 so that we do not need to \emph{run} potentially diverging programs in order to
 infer the property.
-We discuss how to do that in this Subsection.
+We discuss how to do that in this subsection.
 
 If we want to assess usage cardinality statically, we have to find a more
 abstract, finite representation of |Value|.%
@@ -471,7 +471,7 @@ instance Domain (Cts PolyType) where stuck = return (PT [] Wrong); {-" ... \iffa
 
 {-" \fi "-}
 instance HasBind (Cts PolyType) where
-  bind rhs body = generaliseTy (do
+  bind # rhs body = generaliseTy (do
     rhs_ty <- freshTyVar
     rhs_ty' <- rhs (return (PT [] rhs_ty)) >>= instantiatePolyTy
     emitCt (rhs_ty, rhs_ty')
@@ -684,7 +684,7 @@ data CT a = CT (State Cache a); type CD = CT CValue; runCFA :: CD -> CValue
 updFunCache :: Label -> (CD -> CD) -> CT (); cachedCall :: Label -> CValue -> CD
 
 instance HasBind CD where{-" ... \iffalse "-}
-  bind rhs body = go bottom >>= body . return
+  bind # rhs body = go bottom >>= body . return
     where
       go :: CValue -> CT CValue
       go v = do
