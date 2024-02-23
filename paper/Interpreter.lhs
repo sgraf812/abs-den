@@ -97,20 +97,9 @@ The choice of semantic domain determines the \emph{evaluation strategy}
 Yet different semantic domains give rise to useful \emph{summary-based} static
 analyses such as usage analysis in \Cref{sec:abstraction}, all from the same
 interpreter skeleton.
-Our generic denotational interpreter simplifies the soundness proofs of derived
-static analyses because it modularly decomposes into a large preservation proof
-(as in \Cref{sec:problem}), to be done once per semantics, and a comparatively
-small proof involving the analysis domain.
-\sg{I tried to improve, but fear it is even more inscrutible than before. Alternative:}
-Our generic denotational interpreter simplifies the soundness proofs of derived
-static analyses because the proof only involves the operations of the analysis
-domain rather than their composition in the interpreter and how they relate to
-the concrete semantics.
-%Proving a static analysis correct \wrt a dynamic semantics merely needs to prove
-%statements about the respective semantic domains, rather than the shared
-%skeleton (\cf \Cref{sec:soundness}), which is a drastic simplification compared
-%to hand-rolling a preservation-style proof as outlined in \Cref{sec:problem}
-\sven{This sentence is hard to understand without context. I suppose the point is: Our generic denotational simplifies the soundness proofs of derived static analyses, as the proofs require no reasoning about the genric interpreter, only about its instances.}
+Our generic denotational interpreter enable sharing of soundness proofs, thus
+drastically simplifying the soundness proof obligation per derived analysis
+(\Cref{sec:soundness}).
 
 Denotational interpreters can be implemented in any higher-order language such as OCaml, Scheme or Java with explicit thunks, but we picked Haskell for convenience.%
 \footnote{We getValue from this document a runnable Haskell file which we add as a Supplement, containing the complete definitions. Furthermore, the (terminating) interpreter outputs are directly generated from this getValue.}
@@ -169,13 +158,13 @@ One of the main features of these semantic domains is that they lack
 \emph{operational}, or, \emph{intensional detail} that is unnecessary to
 assigning each observationally distinct expression a distinct meaning.
 For example, it is not possible to observe evaluation cardinality, which
-is the whole point of analyses such as usage analysis.
+is the whole point of analyses such as usage analysis (\Cref{sec:abstraction}).
 
 A distinctive feature of our work is that our semantic domains are instead
 \emph{traces} that describe the \emph{steps} taken by an abstract machine, and
 that \emph{end} in semantic values.
 It is possible to describe usage cardinality as a property of the traces
-thus generated, as required for a correctness proof of usage analysis.
+thus generated, as required for a soundness proof of usage analysis.
 We choose |DName|, defined below, as the first example of such a semantic domain,
 because it is simple and illustrative of the approach.
 Instantiated at |DName|, our generic interpreter will produce precisely the
@@ -340,7 +329,7 @@ However, to derive both dynamic semantics and static analysis as instances of th
 generic interpreter |eval|, we need to vary the type of its semantic domain,
 which is naturally expressed using type-class overloading, thus:
 \[
-|eval  ::  (Trace d, Domain d, HasBind d) =>  Exp -> (Name :-> d) -> d|
+|eval  ::  (Trace d, Domain d, HasBind d) =>  Exp -> (Name :-> d) -> d|.
 \]
 We have parameterised the semantic domain |d| over three type classes |Trace|, |Domain| and |HasBind|, whose signatures are given in \Cref{fig:trace-classes}.%
 \footnote{One can think of these type classes as a fold-like final encoding~\citep{Carette:07} of a domain. However, the significance is in the \emph{decomposition} of the domain, not the choice of encoding.}
@@ -443,7 +432,7 @@ $\perform{eval (read "let zro = Z() in zro zro") emp :: D (ByName T)}$
 
 By varying the |HasBind| instance of our type |D|, we can endow our language
 |Exp| with different evaluation strategies.
-The appeal of that is firstly that it is possible to do so.
+The appeal of that is, firstly, that it is possible to do so!
 Furthermore, we thus introduce the --- to our knowledge --- first provably
 adequate denotational semantics for call-by-need.
 We will go on to prove usage analysis sound \wrt by-need evaluation in
@@ -615,7 +604,7 @@ recovered another form of call-by-name semantics based on mutable state instead
 of guarded fixpoints such as in |ByName| and |ByValue|
 \sven{I don't understand what we learn from this sentence that advances the storyline. The goal of this section is to understand |ByNeed| and not |ByName| or |ByValue|}
 \sg{The point is to say ``if we were to omit |memo|, this would be just another
-by-name semantics, which is something you already know.''. Would say this is
+by-name semantics, which is something you already know.''. Would you say this is
 an unnecessary point? Otherwise, how would you improve? Or is it just the
 contrasting of fixpoint combinators (guarded recursion vs. mutable state) that
 you find distracting?}
@@ -647,14 +636,14 @@ We have built similar interpreters for PCF, where the @rec@, @let@ and
 non-atomic argument constructs can simply reuse |bind| to recover a
 call-by-need semantics.
 The |Event| type needs semantics- and use-case-specific adjustment, though.}
-\sven{You need to better describe why this is a benefit of this approach:
-Traditionally, different evaluation strategies were described with separate
-interpreters. This has the following downsides ... Here we derive all these
-evaluation strategies from \emph{the same interpreter} by instantiating it
-differently. From this we gain ...}
-\sven{This needs to be moved to the top of the section 4.3 because it motivates
-the section} \\
-\sg{I might have sufficiently addressed this point now.}
+%\sven{You need to better describe why this is a benefit of this approach:
+%Traditionally, different evaluation strategies were described with separate
+%interpreters. This has the following downsides ... Here we derive all these
+%evaluation strategies from \emph{the same interpreter} by instantiating it
+%differently. From this we gain ...}
+%\sven{This needs to be moved to the top of the section 4.3 because it motivates
+%the section} \\
+%\sg{I might have sufficiently addressed this point now.}
 
 Here is an example evaluating $\Let{i}{(\Lam{y}{\Lam{x}{x}})~i}{i~i}$, starting
 in an empty heap:
