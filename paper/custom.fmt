@@ -56,6 +56,7 @@
 %format ρi = "\varcolor{\rho}_i"
 %format ρi'
 %format ρe = "\varcolor{\rho}_e"
+%format ρE = "\varcolor{\rho}_{E}"
 %format π = "\varcolor{\pi}"
 %format σ = "\varcolor{\sigma}"
 %format σ1
@@ -123,6 +124,7 @@
 %format eval3(d)(a)(b) = "\mathcal{S}_{" d "}\denot{" a "}_{" b "}"
 %format (ext rho (x) (d)) = rho "[" x "\mapsto" d "]"
 %format (exts rho (xs) (ds)) = rho "[\many{" xs "\mapsto" ds "}]"
+%format (singenv (x) (d)) = "[" x "\mapsto" d "]"
 %format (abssubst d (x) (φ)) = d "[" x "\Mapsto" φ "]"
 %format << = "\mathbin{\lhd}"
 %format ^. = "."
