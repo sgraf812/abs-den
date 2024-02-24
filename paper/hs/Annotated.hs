@@ -38,7 +38,7 @@ instance UVec Uses where {-" ... \iffalse "-}
 
 data UT v = MkUT Uses v
 instance Trace (UT v) where
-  step (Lookup x)  (MkUT φ v)  = MkUT (ext emp x U1 + φ) v
+  step (Lookup x)  (MkUT φ v)  = MkUT (singenv x U1 + φ) v
   step _           τ           = τ
 instance Monad UT where
   MkUT φ1 a >>= k = let MkUT φ2 b = k a in MkUT (φ1+φ2) b
@@ -76,7 +76,7 @@ m !? x  | x ∈ dom m  = m ! x
 
 instance Domain UD where
   stuck                                  = bottom
-  fun x {-" \iffalse "-}_{-" \fi "-} f   = case f (MkUT (ext emp x U1) (Rep Uω)) of
+  fun x {-" \iffalse "-}_{-" \fi "-} f   = case f (MkUT (singenv x U1) (Rep Uω)) of
     MkUT φ v -> MkUT (ext φ x U0) (UCons (φ !? x) v)
   apply (MkUT φ1 v1) (MkUT φ2 _)         = case peel v1 of
     (u, v2) -> MkUT (φ1 + u*φ2) v2
@@ -132,7 +132,7 @@ type AnnUD s = AnnUT s UD
 instance Domain (AnnUD s) where
   stuck = return stuck
   fun x _ f = do
-    MkUT φ v <- f (pure (MkUT (ext emp x U1) (Rep Uω)))
+    MkUT φ v <- f (pure (MkUT (singenv x U1) (Rep Uω)))
     pure (MkUT (ext φ x U0) (UCons (φ !? x) v))
   con l k ds = con l k <$> sequence ds
   apply f d = apply <$> f <*> d

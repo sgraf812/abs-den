@@ -79,7 +79,7 @@ instance UVec Uses where {-" ... \iffalse "-}
 \begin{code}
 data UT v = MkUT Uses v
 instance Trace (UT v) where
-  step (Lookup x)  (MkUT φ v)  = MkUT (ext emp x U1 + φ) v
+  step (Lookup x)  (MkUT φ v)  = MkUT (singenv x U1 + φ) v
   step _           τ           = τ
 instance Monad UT where
   return a = MkUT emp a
@@ -194,7 +194,7 @@ evalUsg e ρ = eval e ρ :: UD
 
 instance Domain UD where
   stuck                                  = bottom
-  fun x {-" \iffalse "-}_{-" \fi "-} f   = case f (MkUT (ext emp x U1) (Rep Uω)) of
+  fun x {-" \iffalse "-}_{-" \fi "-} f   = case f (MkUT (singenv x U1) (Rep Uω)) of
     MkUT φ v -> MkUT (ext φ x U0) (UCons (φ !? x) v)
   apply (MkUT φ1 v1) (MkUT φ2 _)         = case peel v1 of
     (u, v2) -> MkUT (φ1 + u*φ2) v2
@@ -310,7 +310,7 @@ intuition built in \Cref{sec:problem} transfers.
 %\sg{I now bring the same example as in Sec 2, but I don't want to go into too much detail here, because that won't yield much new insight.}
 Consider
 $|evalUsg (({-" \Let{x_2}{x_1}{\Let{k}{\Lam{y}{\Lam{z}{y}}}{k~x_3~x_2}} "-})) ρe|
- = \perform{evalUsg (read "let x_2 = x_1 in let k = λy.λz.y in k x_3 x_2") (Map.fromList [("x_1", MkUT (ext emp "x_1" U1) (Rep Uω)), ("x_3", MkUT (ext emp "x_3" U1) (Rep Uω))])}$,
+ = \perform{evalUsg (read "let x_2 = x_1 in let k = λy.λz.y in k x_3 x_2") (Map.fromList [("x_1", MkUT (singenv "x_1" U1) (Rep Uω)), ("x_3", MkUT (singenv "x_3" U1) (Rep Uω))])}$,
 the example expression from \Cref{sec:problem}.
 Usage analysis successfully infers that $x_3$ is used at most once and that
 $x_1$ is absent.
@@ -331,11 +331,11 @@ Let us briefly review how the summary for the right-hand side $\Lam{x}{x}$ of
 $i$ in the previous example is computed:
 \begin{spec}
    eval (Lam x (Var x)) ρ =  fun x (\d -> step App2 (eval (Var x) (ext ρ x d)))
-=  case step App2 (eval (Var x) (ext ρ x (MkUT (ext emp x U1) (Rep Uω))))  of MkUT φ v -> MkUT (ext φ x U0) (UCons (φ !? x) (Rep Uω))
-=  case MkUT (ext emp x U1) (Rep Uω)                                       of MkUT φ v -> MkUT (ext φ x U0) (UCons (φ !? x) (Rep Uω))
+=  case step App2 (eval (Var x) (ext ρ x (MkUT (singenv x U1) (Rep Uω))))  of MkUT φ v -> MkUT (ext φ x U0) (UCons (φ !? x) (Rep Uω))
+=  case MkUT (singenv x U1) (Rep Uω)                                       of MkUT φ v -> MkUT (ext φ x U0) (UCons (φ !? x) (Rep Uω))
 =  MkUT emp (UCons U1 (Rep Uω))
 \end{spec}
-The definition of |fun x| applies the lambda body to a \emph{proxy} |(MkUT (ext emp x U1) (Rep Uω))|
+The definition of |fun x| applies the lambda body to a \emph{proxy} |(MkUT (singenv x U1) (Rep Uω))|
 %\sven{Did you explain what $\epsilon$ is?}\sg{No, I did not. Thanks. Now we do (in Interpreter)}
 to summarise how the body uses its argument by way of looking at how it uses |x|.%
 \footnote{As before, the exact identity of |x| is exchangeable; we use it as a
@@ -566,7 +566,7 @@ addCt (l,r) subst = case (applySubst subst l, applySubst subst r) of
   (TyConApp k1 tys1, TyConApp k2 tys2) | k1 == k2 -> foldrM addCt subst (zip tys1 tys2)
   _ -> Nothing
   where
-    occurs x ty = applySubst (ext emp x ty) ty /= ty -- quick and dirty
+    occurs x ty = applySubst (singenv x ty) ty /= ty -- quick and dirty
 
 emitCt ct = Cts $ StateT $ \(names,subst) -> case addCt ct subst of
   Just subst' -> Just ((), (names, subst'))

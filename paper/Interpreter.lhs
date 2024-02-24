@@ -135,6 +135,7 @@ assocs :: (k :-> v) -> [(k,v)]
 emp = Map.empty
 ext ρ x d = Map.insert x d ρ
 exts ρ xs ds = foldl' (uncurry . ext) ρ (zip xs ds)
+singenv x d = Map.singleton x d
 (<<) = Map.map
 infixr 9 <<
 (!) = (Map.!)
