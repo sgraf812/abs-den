@@ -102,7 +102,7 @@ drastically simplifying the soundness proof obligation per derived analysis
 (\Cref{sec:soundness}).
 
 Denotational interpreters can be implemented in any higher-order language such as OCaml, Scheme or Java with explicit thunks, but we picked Haskell for convenience.%
-\footnote{We getValue from this document a runnable Haskell file which we add as a Supplement, containing the complete definitions. Furthermore, the (terminating) interpreter outputs are directly generated from this getValue.}
+\footnote{We extract from this document a runnable Haskell file which we add as a Supplement, containing the complete definitions. Furthermore, the (terminating) interpreter outputs are directly generated from this extract.}
 
 \begin{figure}
 \begin{minipage}{0.49\textwidth}
