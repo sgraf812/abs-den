@@ -1360,3 +1360,22 @@ series = {PLDI '88}
   numpages = {28},
   keywords = {refunctionalization, control-flow analysis, abstract machines, Scala}
 }
+
+@inproceedings{Atkey:13,
+author = {Atkey, Robert and McBride, Conor},
+title = {Productive coprogramming with guarded recursion},
+year = {2013},
+isbn = {9781450323260},
+publisher = {Association for Computing Machinery},
+address = {New York, NY, USA},
+url = {https://doi.org/10.1145/2500365.2500597},
+doi = {10.1145/2500365.2500597},
+abstract = {Total functional programming offers the beguiling vision that, just by virtue of the compiler accepting a program, we are guaranteed that it will always terminate. In the case of programs that are not intended to terminate, e.g., servers, we are guaranteed that programs will always be productive. Productivity means that, even if a program generates an infinite amount of data, each piece will be generated in finite time. The theoretical underpinning for productive programming with infinite output is provided by the category theoretic notion of final coalgebras. Hence, we speak of coprogramming with non-well-founded codata, as a dual to programming with well-founded data like finite lists and trees.Systems that offer facilities for productive coprogramming, such as the proof assistants Coq and Agda, currently do so through syntactic guardedness checkers. Syntactic guardedness checkers ensure that all self-recursive calls are guarded by a use of a constructor. Such a check ensures productivity. Unfortunately, these syntactic checks are not compositional, and severely complicate coprogramming.Guarded recursion, originally due to Nakano, is tantalising as a basis for a flexible and compositional type-based approach to coprogramming. However, as we show, by itself, guarded recursion is not suitable for coprogramming due to the fact that there is no way to make finite observations on pieces of infinite data. In this paper, we introduce the concept of clock variables that index Nakano's guarded recursion. Clock variables allow us to "close over" the generation of infinite data, and to make finite observations, something that is not possible with guarded recursion alone.},
+booktitle = {Proceedings of the 18th ACM SIGPLAN International Conference on Functional Programming},
+pages = {197–208},
+numpages = {12},
+keywords = {total functional programming, guarded recursion, corecursion, coalgebras},
+location = {Boston, Massachusetts, USA},
+series = {ICFP '13}
+}
+

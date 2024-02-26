@@ -55,45 +55,38 @@ languages at the time.
 Chiefly, it differentiates compositional interpreters that necessarily use
 higher-order functions of the meta language from those that do not, and are
 therefore non-compositional.
-Among its key contributions is \emph{defunctionalisation}, a key transformation
-for turning a definition of the former into one of the latter.
-Today, we would recognise compositional interpreters as (partial) denotational
-interpreters, whereas big-step interpreters capture the non-compositional
-variant.
-By giving by-name and by-value evaluation strategies for our denotational
-interpreter, our work is somewhat contradicting Reynolds' pitch that
-definitional interpreters inherit the evaluation strategy from their host
-language.
+%Among its key contributions is \emph{defunctionalisation}, a key transformation
+%for turning a definition of the former into one of the latter.
+The former correspond to (partial) denotational interpreters, whereas the latter
+correspond to big-step interpreters.
+%By giving by-name and by-value evaluation strategies for our denotational
+%interpreter, our work is somewhat contradicting Reynolds' pitch that
+%definitional interpreters inherit the evaluation strategy from their host
+%language.
 
 \citet{AgerDanvyMidtgaard:04} pick up on Reynold's idea and successively
-transform a partial denotational interpreter into a variant of the LK machine.
-Their denotational interpreter in Section 2.2 corresponds to the |ByNeed Identity|
-instantiation of |eval| we discussed in \Cref{sec:more-trace-types}
-and the syntactic constraints of \Cref{defn:syn-name} express the same
-information that closure conversion (which they recognise as a form of
-defunctionalisation) exploits when they turn the denotational interpreter into a
-definitional big-step interpreter in Section 2.3.
+transform a partial denotational interpreter into a variant of the LK machine,
+going the reverse route of \Cref{sec:adequacy}.
 
 \subsubsection*{Coinduction, Fuel and Mechanisation}
 \citet{LeroyGrall:09} show that a coinductive encoding of big-step semantics
 is able to encode diverging traces by proving it equivalent to a small-step
-semantics.
-Their Lemma 10 covers much the same ground as \Cref{thm:sem-adequate}, but
-for a non-compositional semantics.
+semantics, much like we did for a denotational semantics.
 \citet{Owens:16} recognise the usefulness of definitional interpreters for
 correctness proofs, albeit in big-step style and using a fuel-based encoding of
 infinite behaviors.
+The work of \citet{Atkey:13} had big influence on our use of the later modality
+and Löb induction.
 
-Our |T|race type is appropriate for tracking ``pure'' transition events,
+Our trace type |T| is appropriate for tracking ``pure'' transition events,
 but it is not up to the task of modelling user input, for example.
-It would be interesting to see whether use of guarded interaction
-trees~\citep{interaction-trees,gitrees} would be as simple to integrate into our
-framework as we expect them to.
+We expect that guarded interaction trees~\citep{interaction-trees,gitrees} would
+be very simple to integrate into our framework to help with that.
 
-While working out how to embed |eval| in Guarded Cubical Agda and then
-attempting mechanised proofs about |D (ByNeed T)|, we very soon decided that we
-were not up to the task, due to lack of automation and the general perceived
-tediousness of Cubical types.
+While working out how to embed |evalNeed| in Guarded Cubical Agda~\citep{tctt} and
+then attempting mechanised proofs about it, we very soon decided
+that we were not up to the task, not least due to lack of automation and the
+general perceived tediousness of Cubical types.
 Perhaps we shall try again with an encoding of guarded recursion rather than
 using a language where it is primitive.
 
@@ -105,14 +98,14 @@ an \emph{improvement}~\citep{MoranSands:99}.
 If we were to prove update avoidance~\citep{Gustavsson:98} correct, would we use
 our denotational interpreter to do so?
 We have spent some time on this issue and are torn:
-Defining a contextual improvement relation $\lessequiv$ on the
-semantic domain |D (ByNeed T)| invites all kinds of troubling concerns
-relating to the lack of full abstraction~\citep{Plotkin:77}, and if we
-were to define $\lessequiv$ on syntax, then what is the difference to
-\citet{MoranSands:99}, other than complicating matters?
+Defining a contextual improvement relation $\lessequiv$ based on |evalNeed|
+invites all kinds of troubling concerns relating to undefinable
+elements~\citep{Plotkin:77}, and if we were to define $\lessequiv$ on syntax,
+then what is the difference to \citet{MoranSands:99}, other than complicating
+matters?
 We think there is none, and hence we would stick to the established improvement
 relation $\lessequiv$.
-\Cref{thm:sem-adequate} can be used to translate trace properties from the realm
+\Cref{thm:need-adequate} can be used to translate trace properties from the realm
 of denotational interpreter to small-step semantics.
 
 \subsubsection*{Abstract Interpretation and Relational Analysis}
@@ -127,13 +120,15 @@ trace-generating semantics for a \emph{higher-order} language.
 The required changes to the domain definitions seemed daunting, to say the
 least.
 Our solution delegates this complexity to the underlying theory of guarded
-recursive type theory.
+recursive type theory~\citep{tctt}.
 
 We deliberately tried to provide a simple framework and thus stuck to cartesian
 (\ie, pointwise) abstraction of environments as in \citet[Chapter
 27]{Cousot:21}, but we expect relational abstractions to work just as well.
-Our shared denotational interpreter plays a similar role as the generic abstract
-interpreter in \citet[Chapter 21]{Cousot:21}.
+Our generic denotational interpreter is a higher-order generalisation of the
+generic abstract interpreter in \citet[Chapter 21]{Cousot:21}.
+Our abstraction laws in \Cref{fig:abstraction-laws} correspond to Definition 27.1
+and \Cref{thm:soundness-by-need-closed} to Theorem 27.4.
 
 \subsubsection*{Control-Flow Analysis}
 CFA~\citep{Shivers:91} computes a useful control-flow graph abstraction for
@@ -143,16 +138,16 @@ constant propagation or dead code elimination to the interprocedural setting.
 The contour depth parameter $k$ allows to trade precision for performance,
 although in practice it is often $k \leq 1$.
 
-\citet{MontaguJensen:21} derive CFA from small-step traces.
-Their chain of abstractions is inspiring and we think that a variant of our
-denotational interpreter would be a good fit for their collecting semantics.
-Specifically, the semantic inclusions of Lemma 2.10 that govern the
-transition to a big-step style interpreter follow simply by adequacy of our
-interpreter, \Cref{thm:sem-adequate}.
+%\citet{MontaguJensen:21} derive CFA from small-step traces.
+%Their chain of abstractions is inspiring and we think that a variant of our
+%denotational interpreter would be a good fit for their collecting semantics.
+%Specifically, the semantic inclusions of Lemma 2.10 that govern the
+%transition to a big-step style interpreter follow simply by adequacy of our
+%interpreter, \Cref{thm:sem-adequate}.
 
 Abstracting Abstract Machines~\citep{aam} is an ingenious recipe to derive
 a computable \emph{reachable states semantics}~\citep{Cousot:21} from any
-small-step semantics, by bounding the size of the store.
+small-step semantics, by bounding the size of the heap.
 %By bounding the size of the store, the freely choosably
 %$\widehat{\mathit{alloc}}$ function embodies a precision-performance trade-off.
 Many analyses such as control-flow analysis (and perhaps a variant of usage
@@ -162,16 +157,16 @@ is an analysis that can be built on CFA, without the need to define a custom
 summary mechanism encoded as a |Domain| instance.
 
 \citet{adi} and others apply the AAM recipe to big-step interpreters in the style
-of \citeauthor{Reynolds:72}, in order to share analysis code with the semantics.
-\citet{Wei:18} show de-/refunctionalisation correspondence between AAM and ADI,
-hinting at the existence of abstract denotational interpreters.
+of \citeauthor{Reynolds:72}. %, in order to share analysis code with the semantics.
+%\citet{Wei:18} show de-/refunctionalisation correspondence between AAM and ADI,
+%hinting at the existence of abstract denotational interpreters.
 \citet{Backhouse:04} and \citet{Keidel:18} show that in doing so, correctness of
 shared code follows by parametricity~\citep{Wadler:89}.
 We found it quite elegant to utilise parametricity in this way, but
 unfortunately the free theorem for our interpreter is too weak because it
 excludes the syntactic premises in \Cref{fig:by-name-soundness-lemmas}.
-Once the right correctness statement was established, the main proof became so
-simple that it could easily be automated.
+%Once the right correctness statement was established, the main proof became so
+%simple that it could easily be automated.
 
 Whenever AAM is involved, abstraction follows some monadic structure inherent to
 dynamic semantics~\citep{Sergey:13,adi}.
@@ -179,8 +174,7 @@ In our work, this is apparent in the |Domain (D τ)| instance depending on
 |Monad τ|.
 Decomposing such structure into a layer of reusable monad transformers has been
 the subject of \citet{Darais:15} and \citet{Keidel:19}.
-We hinted at the possiblity of reusable \emph{trace transformers} in
-\Cref{sec:interpreter}.
+The \emph{trace transformers} in \Cref{sec:interpreter} enable a similar reuse.
 Likewise, \citet{Keidel:23} discusses a sound, declarative approach to reuse
 fixpoint combinators which we hope to apply in implementations of our framework
 as well.
@@ -200,11 +194,11 @@ crediting the approach to untraceable reports by \citet{Allen:74} and
 \citet{SharirPnueli:78} were aware of both \cite{Cousot:77} and \cite{Allen:74},
 and generalised aliasing summaries into the ``functional approach'' to
 interprocedural data flow analysis, distinguishing it from the ``call strings
-approach''.
-The former models a procedure call by the abstract transformer function
-induced by the intraprocedural analysis, and hence requires computing fixpoints
-over function-valued lattices barring subsequent abstraction.
-The latter is a predecessor to $k$-CFA and has a simpler operational reading.
+approach'' (\ie $k$-CFA).
+%The former models a procedure call by the abstract transformer function
+%induced by the intraprocedural analysis, and hence requires computing fixpoints
+%over function-valued lattices barring subsequent abstraction.
+%The latter is a predecessor to $k$-CFA and has a simpler operational reading.
 
 That is not to say that the approaches cannot be combined;
 inter-modular analysis led \citet[Section 3.8.2]{Shivers:91} to implement
@@ -218,39 +212,27 @@ expressions and thus evaluation contexts is finite.
 \citet{Mangal:14} have shown that a summary-based analysis can be equivalent
 to $\infty$-CFA for arbitrary complete lattices and outperform 2-CFA in both
 precision and speed.
-
-To illustrate this, usage analysis based on $k$-CFA would need less explanation
-of its |Nop| summary, but in turn it would lose modularity and precision due to
-the use of call strings.
-For example, it is trivial for modular usage analysis to determine that |i|
-in $\Let{i}{\Lam{y}{y}}{i~x~x}$ uses |i| only once, \emph{in any context this
-expression is ever embedded}; this is due to compositionality.
-By contrast, $k$-CFA will have trouble with recursions where multiple
-activations of |i| are live simultaneously, \ie, in the Haskell expression
+\Cref{sec:summaries} demonstrates why summary-based analyses scale better.
+To illustrate why they can also be more preicse, consider the Haskell expression
 
 < let f n = let i y = y in if n == 0 then 0 else i (f (n-1) + 1) in f 42{-"."-}
 
 The definition of |f| is a complicated way to define the identity function.
 Nevertheless, it is evident that |i| is evaluated at most once, and
-usage analysis would infer this fact if we were to desugar and ANFise this
-expression into an |Exp|.
+|evalUsg| would infer this fact for the respective subexpression.
 On the other hand, $k$-CFA (for $k < 42$) would confuse different recursive
 activations of |i|, thus conservatively attributing evaluations multiple times,
 to the effect that |i| is not inferred as used at most once.
 
-Furthermore, as sufficiently discussed, summaries lead to modular analyses, in
-contrast to a call string approach.
-That is why we would favour a summary-based approach where possible.
-Furthermore, given a semantic description of abstract values, it is likely
-that the implementation of |Domain| can be synthesised using the approach of
-\citet{Kalita:2022}.
+%Given a semantic description of abstract values, it is likely
+%that the implementation of |Domain| can be synthesised using the approach of
+%\citet{Kalita:2022}.
 
-More interesting cardinality analyses involve the inference of summaries called
-\emph{demand transformers}~\citep{Sergey:14}.
-We have indeed been able to define a protoype of \citeauthor{Sergey:14}'s
-work as an instance of our denotational interpreter, however we omit discussion
-for space reasons.
-Its inner workings are most similar to Clairvoyant
+\subsubsection*{Cardinality Analysis} More interesting cardinality
+analyses involve the inference of summaries called \emph{demand
+transformers}~\citep{Sergey:14}, such as implemented in the Demand Analysis of
+the Glasgow Haskell Compiler.
+The inner workings of the analysis are most similar to Clairvoyant
 call-by-value~\citep{HackettHutton:19}, so it is a shame that the Clairvoyant
 instantiation leads to partiality.
 
