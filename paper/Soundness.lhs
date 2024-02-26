@@ -37,12 +37,11 @@ In \Cref{sec:problem} we argued that a proof for such a lemma drowned in
 semantic complexity unrelated to the analysis at hand, so the proof became
 tedious, hand-wavy and error-prone.
 
-Instead, we instantiate a generic soundness statement, one that can be reused
-across many static analyses instantiating our denotational interpreter, provided they
-are sound \wrt by-name and by-need evaluation.
-The analysis-specific proof of \Cref{thm:usage-abstracts-need-closed} mainly
-concerns the operations of the abstract |Domain|; in case of usage analysis,
-this proof takes about half a page.
+Instead, we instantiate a generic soundness statement, one
+that can be reused across many static analyses instantiating our denotational
+interpreter, provided they are sound \wrt by-name and by-need evaluation.
+%The analysis-specific proof mainly concerns the operations of the abstract
+%|Domain|; in case of usage analysis, this proof takes about half a page.
 The soundness statement can be understood in terms of \emph{abstract
 interpretation}, justifying our view of usage analysis as formally abstracting a
 concrete denotational interpreter.
@@ -136,7 +135,7 @@ This is the big picture of how we prove |φ !? x //= U0| from this fact:
                       \Arrow{\Cref{thm:usage-bound-vars-context}} \\
   {}\Longrightarrow{} & |Uω * (evalUsg e ρe)^.φ| = |Uω * φ| ⊒ [|x| ↦ |U1|]
                       \Arrow{|Uω * U0 = U0 ⊏ U1|} \\
-  {}\Longrightarrow{} & |φ !? //= U0|
+  {}\Longrightarrow{} & |φ !? x //= U0|
 \end{DispWithArrows}
 
 Step \labelcref{arrow:usg-instr} instruments the trace by applying the usage
@@ -158,7 +157,8 @@ The final step is just algebra.
 
 The main difference to the proof for \Cref{thm:absence-correct} is the use
 of the following abstraction lemma about the (still ominuous) |α|, replacing
-the previous analysis-specific preservation proof:
+the previous analysis-specific preservation proof:%
+\footnote{The Appendix needs to prove all statements for open expressions, of course.}
 
 \begin{lemmarep}[|evalUsg| abstracts |evalNeed|]
 \label{thm:usage-abstracts-need-closed}
@@ -252,9 +252,16 @@ its compactness; it is an instance of the general by-need correctness
 \end{figure}
 
 \subsection{Abstraction Laws for By-Need Soundness}
-To prove \Cref{thm:usage-abstracts-need-closed} for usage analysis,
-it is sufficient to prove the abstraction laws for |Trace|, |Domain| and
-|HasBind| instances of |UD| listed in \Cref{fig:abstraction-laws}.
+
+This subsection introduces a set of \emph{abstraction laws} concerning the
+abstract semantic domain of a static analysis.
+If the abstract domain |hat D| adheres to these laws, then the resulting static analysis
+|eval e emp :: hat D| is a sound abstraction \wrt by-need semantics
+|evalNeed e emp emp| (\Cref{thm:soundness-by-need-closed}).
+
+Specifically, to prove \Cref{thm:usage-abstracts-need-closed} for usage
+analysis, it is sufficient to prove the abstraction laws for |Trace|, |Domain|
+and |HasBind| instances of |UD| listed in \Cref{fig:abstraction-laws}.
 For a preliminary reading, it is best to ignore the syntactic premises above
 inference lines.
 
@@ -527,13 +534,13 @@ the analysis does not need to reason about the concrete semantics in order to
 soundly approximate a semantic trace property!
 The dynamic semantics can be encapsulated in a library.
 
-\sg{Related Work?}
-Finally, the Galois connection |nameNeed| in the Appendix is useful for an
-analysis such as usage analysis that is sound \wrt by-name \emph{and} by-need
-semantics.
-However, more practical analyses such as \citet{Sergey:14} are not sound \wrt
-by-name and need a slightly different kind of Galois connection inspired by
-clairvoyant call-by-value~\citep{HackettHutton:19} that we plan to investigate.
+%\sg{Related Work?}
+%Finally, the Galois connection |nameNeed| in the Appendix is useful for an
+%analysis such as usage analysis that is sound \wrt by-name \emph{and} by-need
+%semantics.
+%However, more practical analyses such as \citet{Sergey:14} are not sound \wrt
+%by-name and need a slightly different kind of Galois connection inspired by
+%clairvoyant call-by-value~\citep{HackettHutton:19} that we plan to investigate.
 
 \begin{toappendix}
 In the proof for \Cref{thm:usage-absence} we exploit that usage analysis is
