@@ -273,8 +273,12 @@ its source state:
   $\deep{κ}{(σ_i)_{i∈\overline{n}}}$ and $\interior{(σ_i)_{i∈\overline{n}}}$, respectively.
 \end{definition}
 
+Here is an example for each of the three cases.
+We will omit the first component of heap entries in our examples because they
+bear no semantic significance apart from instrumenting $\LookupT$ transitions,
+and it is confusing when the heap-bound expression is a variable $x$, \eg, $(y,ρ,x)$.
 \begin{example}
-  Let $ρ=[x↦\pa_1],μ=[\pa_1↦([], \Lam{y}{y})]$ and $κ$ an arbitrary
+  Let $ρ=[x↦\pa_1],μ=[\pa_1↦(\wild,[], \Lam{y}{y})]$ and $κ$ an arbitrary
   continuation. The trace
   \[
      (x, ρ, μ, κ) \smallstep (\Lam{y}{y}, ρ, μ, \UpdateF(\pa_1) \pushF κ) \smallstep (\Lam{y}{y}, ρ, μ, κ)
@@ -324,7 +328,7 @@ Consider the interior trace
 \]
 where $\ttrue$ is a data constructor.
 It is stuck, but its singleton suffix is balanced.
-An example for a diverging trace, where $ρ=[x↦\pa_1]$ and $μ=[\pa_1↦(ρ,x)]$, is
+An example for a diverging trace, where $ρ=[x↦\pa_1]$ and $μ=[\pa_1↦(\wild,ρ,x)]$, is
 \[
   (\Let{x}{x}{x}, [], [], κ) \smallstep (x, ρ, μ, κ) \smallstep (x, ρ, μ, \UpdateF(\pa_1) \pushF κ) \smallstep ...
 \]
@@ -401,25 +405,25 @@ finite, inductive type).
 
 \begin{figure}
 \[\begin{array}{rcl}
-  α_\Environments([\many{\px ↦ \pa_{\py,i}}]) & = & [\many{|x| ↦ |Step (Lookup y) (fetch a_yi)|}] \\
-  α_\Heaps([\many{\pa ↦ (ρ,\pe)}]) & = & [\many{|a| ↦ |memo a (eval e (αEnv ρ))|}] \\
-  α_\States(\Lam{\px}{\pe},ρ,μ,κ) & = & |(Fun (\d -> Step App2 (eval e (ext (αEnv ρ) x d))), αHeap μ)| \\
-  α_\States(K~\overline{\px},ρ,μ,κ) & = & |(Con k (map (αEnv ρ !) xs), αHeap μ)| \\
+  α_\Environments(μ, [\many{\px ↦ \pa}]) & = & [\many{|x| ↦ |Step (Lookup y) (fetch a)| \mid μ(\pa) = (\py,\wild,\wild)}] \\
+  α_\Heaps([\many{\pa ↦ (ρ,\pe)}]) & = & [\many{|a| ↦ |memo a (eval e (αEnv μ ρ))|}] \\
+  α_\States(\Lam{\px}{\pe},ρ,μ,κ) & = & |(Fun (\d -> Step App2 (eval e (ext (αEnv μ ρ) x d))), αHeap μ)| \\
+  α_\States(K~\overline{\px},ρ,μ,κ) & = & |(Con k (map (αEnv μ ρ !) xs), αHeap μ)| \\
   α_\Events(σ) & = & \begin{cases}
-    |Let1| & σ = (\Let{\px}{\wild}{\wild},\wild,μ,\wild), \pa_{\px,i} \not∈ \dom(μ) \\
-    |App1| & σ = (\wild~\px,\wild,\wild,\wild) \\
-    |Case1| & σ = (\Case{\wild}{\wild},\wild,\wild, \wild)\\
-    |Lookup y| & σ = (\px,ρ,\wild,\wild), ρ(\px) = \pa_{\py,i} \\
-    |App2| & σ = (\Lam{\wild}{\wild},\wild,\wild,\ApplyF(\wild) \pushF \wild) \\
-    |Case2| & σ = (K~\wild, \wild, \wild, \SelF(\wild,\wild) \pushF \wild) \\
-    |Update| & σ = (\pv,\wild,\wild,\UpdateF(\wild) \pushF \wild) \\
+    |Let1| & \text{when }σ = (\Let{\px}{\wild}{\wild},\wild,μ,\wild), \pa_{\px,i} \not∈ \dom(μ) \\
+    |App1| & \text{when }σ = (\wild~\px,\wild,\wild,\wild) \\
+    |Case1| & \text{when }σ = (\Case{\wild}{\wild},\wild,\wild, \wild)\\
+    |Lookup y| & \text{when }σ = (\px,ρ,μ,\wild), μ(ρ(\px)) = (\py,\wild,\wild) \\
+    |App2| & \text{when }σ = (\Lam{\wild}{\wild},\wild,\wild,\ApplyF(\wild) \pushF \wild) \\
+    |Case2| & \text{when }σ = (K~\wild, \wild, \wild, \SelF(\wild,\wild) \pushF \wild) \\
+    |Update| & \text{when }σ = (\pv,\wild,\wild,\UpdateF(\wild) \pushF \wild) \\
   \end{cases} \\
   α_{\STraces}((σ_i)_{i∈\overline{n}},κ) & = & \begin{cases}
-    |Step ({-" α_\Events(σ_0) "-}) (idiom (αSTraces (lktrace, κ)))| & n > 0 \\
-    |Ret ({-" α_\States(σ_0) "-})| & \ctrl(σ_0) \text{ value } \wedge \cont(σ_0) = κ \\
+    |Step ({-" α_\Events(σ_0) "-}) (idiom (αSTraces (lktrace, κ)))| & \text{when }n > 0 \\
+    |Ret ({-" α_\States(σ_0) "-})| & \text{when }\ctrl(σ_0) \text{ value } \wedge \cont(σ_0) = κ \\
     |Ret Stuck| & \text{otherwise} \\
   \end{cases} \\
-  \correct((σ_i)_{i∈\overline{n}}) & = & \maxtrace{(σ_i)_{i∈\overline{n}}} \Longrightarrow ∀((\pe,ρ,μ,κ) = σ_0).\ α_{\STraces}((σ_i)_{i∈\overline{n}},κ) = |eval e (αEnv ρ) (αHeap μ)| \\
+  \correct((σ_i)_{i∈\overline{n}}) & = & \maxtrace{(σ_i)_{i∈\overline{n}}} \Longrightarrow ∀((\pe,ρ,μ,κ) = σ_0).\ α_{\STraces}((σ_i)_{i∈\overline{n}},κ) = |eval e (αEnv μ ρ) (αHeap μ)| \\
 \end{array}\]
 \vspace{-1em}
 \caption{Correctness predicate for |eval|}
@@ -431,11 +435,13 @@ information from small-step transitions is retained as |Event|s.
 Its semantics is entirely inconsequential for the adequacy result and we imagine
 that this function is tweaked on an as-needed basis depending on the particular
 trace property one is interested in observing.
-In our example, we focus on |Loookup| events that carry with them the |Name| of
-the let binding from whence a heap binding came -- in a somewhat informal way,
-we imagine that the semantics allocates addresses $\pa_{\px,i}$ in one arena per
-syntactic let binding $\px$, so that we can find the name of the let binding
-from the address at lookup sites.
+In our example, we focus on |Lookup y| events that carry with them the |y ::
+Name| of the let binding that allocated the heap entry.
+This event corresponds precisely to a $\LookupT(\py)$ transition, so $α_\Events(σ)$
+maps $σ$ to |Lookup y| when $σ$ is about to make a $\LookupT(\py)$ transition.
+In that case, the focus expression must be $\px$ and $\py$ is the first
+component of the heap entry $μ(ρ(\px))$.
+The other cases are similar.
 
 Our first goal is to establish a few auxiliary lemmas showing what kind of
 properties of LK traces are preserved by $α_{\STraces}$ and in which way.
@@ -530,7 +536,7 @@ is an exact abstract interpretation of the LK machine:
   $\correct$ from \Cref{fig:eval-correctness} holds.
   That is, whenever $(σ_i)_{i∈\overline{n}}$ is a maximal LK trace with source
   state $(\pe,ρ,μ,κ)$, we have
-  $α_{\STraces}((σ_i)_{i∈\overline{n}},κ) = |evalNeed e (αEnv ρ) (αHeap μ)|$.
+  $α_{\STraces}((σ_i)_{i∈\overline{n}},κ) = |evalNeed e (αEnv μ ρ) (αHeap μ)|$.
 \end{theorem}
 \begin{proof}
 By Löb induction, with $IH ∈ \later C$ as the hypothesis.
@@ -539,9 +545,9 @@ We will say that an LK state $σ$ is stuck if there is no applicable rule in the
 transition system (\ie, the singleton LK trace $σ$ is maximal and stuck).
 
 Now let $(σ_i)_{i∈\overline{n}}$ be a maximal LK trace with source state
-$σ_0=(\pe,ρ,μ,κ)$ and let |τ = evalNeed e (αEnv ρ) (αHeap μ)|.
+$σ_0=(\pe,ρ,μ,κ)$ and let |τ = evalNeed e (αEnv μ ρ) (αHeap μ)|.
 Then the goal is to show $α_{\STraces}((σ_i)_{i∈\overline{n}},κ) = |τ|$.
-We do so by cases over $\pe$, abbreviating |tm := αHeap μ| and |tr := αEnv ρ|:
+We do so by cases over $\pe$, abbreviating |tm := αHeap μ| and |tr := αEnv μ ρ|:
 \begin{itemize}
   \item \textbf{Case $\px$}:
     Let us assume first that $σ_0$ is stuck. Then $\px \not∈ \dom(ρ)$ (because
@@ -549,22 +555,21 @@ We do so by cases over $\pe$, abbreviating |tm := αHeap μ| and |tr := αEnv ρ
     |τ = Ret Stuck| and the goal follows from
     \Cref{thm:abs-max-trace}.
 
-    Otherwise, $σ_1 \triangleq (\pe', ρ1, μ, \UpdateF(\pa) \pushF κ), σ_0 \smallstep σ_1$
-    via $\LookupT$, and $ρ(\px) = \pa_{\py,i}, μ(\pa) = (ρ1, \pe')$.
+    Otherwise, $σ_1 \triangleq (\pe', ρ_1, μ, \UpdateF(\pa) \pushF κ), σ_0 \smallstep σ_1$
+    via $\LookupT(\py)$, and $ρ(\px) = \pa, μ(\pa) = (\py, ρ_1, \pe')$.
     This matches the head of the action of |tr x|, which is of the form
-    |step (Lookup y) (fetch a_yi)|.
+    |step (Lookup y) (fetch a)|.
 
     To show that the tails equate, it suffices to show that they equate \emph{later}.
 
-    We can infer that |tm a_yi = memo a_yi (evalNeed2 e' tr')| from the definition of
+    We can infer that |tm a = memo a (evalNeed2 e' tr')| from the definition of
     $α_\Heaps$, so
     \begin{spec}
-      fetch a_yi tm = tm a_yi tm = evalNeed e' tr' tm >>= \case
+      fetch a tm = tm a tm = evalNeed e' tr' tm >>= \case
         (Stuck,  tm') -> Ret (Stuck, tm')
-        (val,    tm') -> Step Update (Ret (val, ext tm' a_yi (memo a_yi (return val))))
+        (val,    tm') -> Step Update (Ret (val, ext tm' a (memo a (return val))))
     \end{spec}
 
-    (Recall that we don't bother mentioning |StateT| and |ByNeed| wrappings.)
     Let us define |tl := (idiom (evalNeed e' tr' tm))| and apply the induction
     hypothesis $IH$ to the maximal trace starting at $σ_1$.
     This yields an equality
@@ -581,7 +586,7 @@ We do so by cases over $\pe$, abbreviating |tm := αHeap μ| and |tr := αEnv ρ
     by \Cref{thm:abs-max-trace} $(σ_{i+1})_{i∈\overline{m}}$ is balanced; hence
     $\cont(σ_m) = \UpdateF(\pa) \pushF κ$ and $\ctrl(σ_m)$ is a value.
     So $σ_m = (\pv,ρ_m,μ_m,\UpdateF(\pa) \pushF κ)$ and the
-    $\UpdateT$ transition fires, reaching $(\pv,ρ_m,μ_m[\pa ↦ (ρ_m, \pv)],κ)$
+    $\UpdateT$ transition fires, reaching $(\pv,ρ_m,μ_m[\pa ↦ (\py, ρ_m, \pv)],κ)$
     and this must be the target state $σ_n$ (so $m = n-2$), because it remains
     a return state and has continuation $κ$, so $(σ_i)_{i∈\overline{n}}$ is
     balanced.
@@ -589,8 +594,8 @@ We do so by cases over $\pe$, abbreviating |tm := αHeap μ| and |tr := αEnv ρ
     |Ret (val,tmm)|, updating the heap.
     By cases on $\pv$ and the |Domain (D (ByNeed T))| instance we can see that
     \begin{spec}
-         Ret (val,ext tmm a_yi (memo a_yi (return val)))
-      =  Ret (val,ext tmm a_yi (memo a_yi (evalNeed2 v trm)))
+         Ret (val,ext tmm a (memo a (return val)))
+      =  Ret (val,ext tmm a (memo a (evalNeed2 v trm)))
       =  αState σ_n
     \end{spec}
     and this equality concludes the proof.
@@ -638,8 +643,8 @@ We do so by cases over $\pe$, abbreviating |tm := αHeap μ| and |tr := αEnv ρ
 
   \item \textbf{Case $\Let{\px}{\pe_1}{\pe_2}$}:
     Let $σ_0 = (\Let{\px}{\pe_1}{\pe_2},ρ,μ,κ)$.
-    Then $σ_1 = (\pe_2, ρ1, μ',κ)$ by $\LetIT$, where $ρ1 = ρ[\px↦\pa_{\px,i}],
-    μ' = μ[\pa_{\px,i}↦(ρ1,\pe_1)]$.
+    Then $σ_1 = (\pe_2, ρ_1, μ',κ)$ by $\LetIT$, where $ρ_1 = ρ[\px↦\pa_{\px,i}],
+    μ' = μ[\pa_{\px,i}↦(\px,ρ_1,\pe_1)]$.
     Since the stack does not grow, maximality from the tail $(σ_{i+1})_{i∈\overline{n-1}}$
     transfers to $(σ_{i})_{i∈\overline{n}}$.
     Straightforward application of the induction hypothesis to

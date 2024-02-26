@@ -27,17 +27,18 @@ set = P . Set.singleton
 \section{Abstract Soundness}
 \label{sec:soundness}
 
-We will now prove that usage analysis infers absence in the sense of
-\Cref{defn:absence}, which is useful for dead code elimination.
+This section will finally link back to \Cref{sec:problem}
+and prove that usage analysis infers absence in the sense of
+\Cref{defn:absence}.
 In stark contrast to the proof for \Cref{thm:absence-correct},
 we do not need to show a usage analysis-specific preservation lemma to do so.
-This is an important simplification!
+\emph{We cannot stress enough how drastic a simplification this is!}
 In \Cref{sec:problem} we argued that a proof for such a lemma drowned in
 semantic complexity unrelated to the analysis at hand, so the proof became
 tedious, hand-wavy and error-prone.
 
 Instead, we instantiate a generic soundness statement, one that can be reused
-across many abstract instances of our denotational interpreter, provided they
+across many static analyses instantiating our denotational interpreter, provided they
 are sound \wrt by-name and by-need evaluation.
 The analysis-specific proof of \Cref{thm:usage-abstracts-need-closed} mainly
 concerns the operations of the abstract |Domain|; in case of usage analysis,
@@ -46,64 +47,98 @@ The soundness statement can be understood in terms of \emph{abstract
 interpretation}, justifying our view of usage analysis as formally abstracting a
 concrete denotational interpreter.
 
-\subsection{Usage Analysis Infers Absence}
+\subsection{A Much Simpler Proof That Usage Analysis Infers Absence}
 
-Let us link to \Cref{sec:problem} by restating and proving
-\Cref{thm:absence-correct} in terms of usage analysis.
-For that, we need to define the initial usage environment for an expression |e|
-as |ρe := exts emp x (MkUT (singenv x U1) (Rep Uω))|, with an entry for
-every free variable of |e|.
+In this subsection, we prove that usage analysis from \Cref{sec:abstraction}
+infers absence in the same sense as absence analysis from \Cref{sec:problem},
+emphasising the reduced complexity on the proof.
+
+The first step is to utilise adequacy (\Cref{thm:need-adequate-strong}) to
+leave behind the definition of absence in terms of the LK machine in favor
+of one using |evalNeed|:
+\begin{lemmarep}
+  \label{thm:absence-denotational}
+  |x| is used in |e| if and only if there exists a by-need evalution context
+  |ectxt| and expression |e'| such that
+  |evalNeed (fillC ectxt (Let x e' e)) emp emp = ... ^^ Step (Lookup x) ^^ ...| .
+  (Otherwise, |x| is absent in |e|.)
+\end{lemmarep}
+\begin{proof}
+Since |x| is used in |e|, there exists a trace
+\[
+  (\Let{\px}{\pe'}{\pe},ρ,μ,κ) \smallstep^* ... \smallstep[\LookupT(\px)] ...
+\]
+
+We proceed as follows:
+\begin{DispWithArrows}[fleqn,mathindent=0em]
+                          & (\Let{\px}{\pe'}{\pe},ρ,μ,κ) \smallstep^* ... \smallstep[\LookupT(\px)] ...
+                          \label{arrow:usg-context}
+                          \Arrow{$\pE \triangleq \mathit{trans}(\hole,ρ,μ,κ)$} \\
+  {}\Longleftrightarrow{} & \init(\pE[\Let{\px}{\pe'}{\pe}]) \smallstep^* ... \smallstep[\LookupT(\px)] ...
+                          \Arrow{Apply $α_{\STraces}$ (\Cref{fig:eval-correctness})} \\
+  {}\Longleftrightarrow{} & α_{\STraces}(\init(\pE[\Let{\px}{\pe'}{\pe}]) \smallstep^*, []) = | ... Step (Lookup x) ...|
+                          \Arrow{\Cref{thm:need-adequate-strong}} \\
+  {}\Longleftrightarrow{} & |evalNeed (fillC ectxt (Let x e' e)) emp emp| = |... Step (Lookup x) ...|
+\end{DispWithArrows}
+Note that the trace we start with is not necessarily an maximal trace,
+so step \labelcref{arrow:usg-context} finds a prefix that makes the trace maximal.
+We do so by reconstructing the syntactic \emph{evaluation context} $\pE$
+with $\mathit{trans}$ (\cf \Cref{thm:translation}) such that
+\[
+  \init(\pE[\Let{\px}{\pe'}{\pe}]) \smallstep^* (\Let{\px}{\pe'}{\pe},ρ,μ,κ)
+\]
+Then the trace above is contained in the maximal trace starting in
+$\init(\pE[\Let{\px}{\pe'}{\pe}])$ and it contains at least one $\LookupT(\px)$
+transition.
+
+The next two steps apply adequacy of |evalNeed| to the trace, making the shift
+from LK trace to denotational interpreter.
+\end{proof}
+
+Thus insulated from the LK machine, we may restate and prove
+\Cref{thm:absence-correct} for usage analysis.
+For that, we need to define the initial environment |ρe := exts emp x (MkUT
+(singenv x U1) (Rep Uω))| with an entry for every free variable |x| of |e|.
 
 \begin{theoremrep}[|evalUsg| infers absence]
   \label{thm:usage-absence}
   If |evalUsg e ρe = MkUT φ v| and |φ !? x = U0|,
   then |x| is absent in |e|.
 \end{theoremrep}
+\begin{proofsketch}
+If |x| is used in |e|, there is a trace |evalNeed (fillC ectxt (Let x e' e)) emp emp = ... ^^ Step (Lookup x) ^^ ...|.
+Define a function |α| paraphrased below that aggregates lookups
+in that trace per variable into a |φ' :: Uses|, just as usage instrumentation
+in \Cref{sec:usage-instrumentation}.
+Cearly, it is |φ' !? x ⊒ U1|, because there is at least one |Lookup x|.
+\Cref{thm:usage-abstracts-need-closed} below guarantees that the |φ| computed
+by |evalUsg| approximates |φ'|, so |φ !? x ⊒ φ' !? x ⊒ U1 //= U0|.
+\end{proofsketch}
 \begin{proof}
 We show the contraposition, that is,
-if |x| is used in |e|, then |φ !? x //= U0|, \ie, |U1 ⊑ φ !? x|.
+if |x| is used in |e|, then |φ !? x //= U0|.
 
-Since |x| is used in |e|, there exists a trace
+By \Cref{thm:absence-denotational}, there exists |ectxt|, |e'| such that
 \[
-  (\Let{\px}{\pe'}{\pe},ρ,μ,κ) \smallstep (\pe,ρ[\px↦\pa_{\px}],μ[\pa_{\px}↦(ρ[\px↦\pa_{\px}],\pe')],κ) \smallstep^* (\py,ρ'[\py↦\pa_{\px}],μ',κ').
+  |evalNeed (fillC ectxt (Let x e' e)) emp emp = ... ^^ Step (Lookup x) ^^ ...| .
 \]
 
-This is the big picture of how we prove |φ !? //= U0| from this fact:
+This is the big picture of how we prove |φ !? x //= U0| from this fact:
 \begin{DispWithArrows}[fleqn,mathindent=0em]
-                          & (\Let{\px}{\pe'}{\pe},ρ,μ,κ) \smallstep^* (\py,ρ'[\py↦\pa_{\px}],μ',κ') \smallstep[\LookupT(\pa_\px)] ...
-                          \label{arrow:usg-context}
-                          \Arrow{Context lemma} \\
-  {}\Longrightarrow{}     & \init(\pE[\Let{\px}{\pe'}{\pe}]) \smallstep^* (\py,ρ'[\py↦\pa_{\px}],μ',κ') \smallstep[\LookupT(\pa_\px)] ...
-                          \Arrow{Apply $α_{\STraces}$ (\Cref{fig:eval-correctness})} \\
-  {}\Longrightarrow{}     & α_{\STraces}(\init(\pE[\Let{\px}{\pe'}{\pe}]) \smallstep^*, []) = | ... Step (Lookup x) ...|
-                          \Arrow{Adequacy of |evalNeed|} \\
-  {}\Longleftrightarrow{} & |evalNeed (fillC ectxt (Let x e' e)) emp emp| = |... Step (Lookup x) ...|
-                          \label{arrow:usg-instr}
-                          \Arrow{Usage instrumentation} \\
-  {}\Longrightarrow{}     & |(α (set (evalNeed (fillC ectxt (Let x e' e)) emp emp)))^.φ| ⊒ [|x| ↦ |U1|]
-                          \label{arrow:usg-abs}
-                          \Arrow{\Cref{thm:usage-abstracts-need-closed}} \\
-  {}\Longrightarrow{}     & |(evalUsg (fillC ectxt (Let x e' e)) emp)^.φ| ⊒ [|x| ↦ |U1|]
-                          \label{arrow:usg-anal-context}
-                          \Arrow{\Cref{thm:usage-bound-vars-context}} \\
-  {}\Longrightarrow{}     & |Uω * (evalUsg e ρe)^.φ| = |Uω * φ| ⊒ [|x| ↦ |U1|]
-                          \Arrow{|Uω * U0 = U0 ⊏ U1|} \\
-  {}\Longrightarrow{}     & |φ !? //= U0|
+                      & |evalNeed (fillC ectxt (Let x e' e)) emp emp| = |... Step (Lookup x) ...|
+                      \label{arrow:usg-instr}
+                      \Arrow{Usage instrumentation} \\
+  {}\Longrightarrow{} & |(α (set (evalNeed (fillC ectxt (Let x e' e)) emp emp)))^.φ| ⊒ [|x| ↦ |U1|]
+                      \label{arrow:usg-abs}
+                      \Arrow{\Cref{thm:usage-abstracts-need-closed}} \\
+  {}\Longrightarrow{} & |(evalUsg (fillC ectxt (Let x e' e)) emp)^.φ| ⊒ [|x| ↦ |U1|]
+                      \label{arrow:usg-anal-context}
+                      \Arrow{\Cref{thm:usage-bound-vars-context}} \\
+  {}\Longrightarrow{} & |Uω * (evalUsg e ρe)^.φ| = |Uω * φ| ⊒ [|x| ↦ |U1|]
+                      \Arrow{|Uω * U0 = U0 ⊏ U1|} \\
+  {}\Longrightarrow{} & |φ !? //= U0|
 \end{DispWithArrows}
 
-Note that the trace we start with is not necessarily an interior trace,
-so step \labelcref{arrow:usg-context} finds a prefix that makes the trace interior.
-We do so by reconstructing the syntactic \emph{evaluation context} $\pE$
-(we will discuss how to do that after this proof) such that
-\[
-  (\pE[\Let{\px}{\pe'}{\pe}], [], [], \StopF) \smallstep^* (\Let{\px}{\pe'}{\pe},ρ,μ,κ)
-\]
-Then the trace above is contained in the maximal trace starting in
-$(\pE[\Let{\px}{\pe'}{\pe}], [], [], \StopF)$.
-It contains at least one $\LookupT$ transition that looks up $\pa_{\px}$.
-
-The next two steps apply adequacy of |evalNeed| to the trace, shifting from LK
-trace to denotational interpreter.
 Step \labelcref{arrow:usg-instr} instruments the trace by applying the usage
 abstraction function |α :<->: _ := nameNeed|.
 This function will replace every |Step| constructor
@@ -119,23 +154,15 @@ Finally, step \labelcref{arrow:usg-anal-context} applies
 \Cref{thm:usage-bound-vars-context}, which proves that absence information
 doesn't change when an expression is put in an arbitrary evaluation context.
 The final step is just algebra.
-
-%The abstraction |hat τ| is exactly the result of running the by-need
-%instrumentation induced by |UT|, \ie,
-%|hat τ = unByNeed (eval (fillC ectxt (Let x e' e)) emp :: D (ByNeed UT)) emp|.
-%(We are not going to prove this statement because it is immaterial to this
-%proof. In essence, every instrumentation induces an \emph{exact} abstract
-%interpretation implied by replacing |Step| with |step|.)
 \end{proof}
 
-The main difference to the proof for \Cref{thm:absence-correct} is the use of
-the following abstraction lemma, replacing the previous analysis-specific
-preservation proof:
+The main difference to the proof for \Cref{thm:absence-correct} is the use
+of the following abstraction lemma about the (still ominuous) |α|, replacing
+the previous analysis-specific preservation proof:
 
 \begin{lemmarep}[|evalUsg| abstracts |evalNeed|]
 \label{thm:usage-abstracts-need-closed}
-Let |e| be a closed expression and |α| the abstraction function of the Galois
-connection |nameNeed| defined in the Appendix.
+Let |e| be a closed expression and |α| the abstraction function paraphrased below.
 Then
 \[
   |α (set (evalNeed e emp emp)) ⊑ evalUsg e emp|.
@@ -224,7 +251,7 @@ its compactness; it is an instance of the general by-need correctness
   \label{fig:abstraction-laws}
 \end{figure}
 
-\subsection{Abstract By-Need Soundness}
+\subsection{Abstraction Laws for By-Need Soundness}
 To prove \Cref{thm:usage-abstracts-need-closed} for usage analysis,
 it is sufficient to prove the abstraction laws for |Trace|, |Domain| and
 |HasBind| instances of |UD| listed in \Cref{fig:abstraction-laws}.
@@ -542,6 +569,7 @@ Certainly the most interesting case is that of $\UpdateF$ frames, encoding
 by-need memoisation.
 This translation function has the following property:
 \begin{lemma}[Translation, without proof]
+  \label{thm:translation}
   $\init(\mathit{trans}(\hole,μ,κ)[\pe]) \smallstep^* (\pe,μ,κ)$,
   and all transitions in this trace are search transitions ($\AppIT$, $\CaseIT$,
   $\LetIT$, $\LookupT$).

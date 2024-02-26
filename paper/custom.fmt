@@ -226,7 +226,7 @@
 %format times = "\times"
 %format := = "\triangleq"
 %format αHeap(h) = "α_\Heaps(" h ")"
-%format αEnv(e) = "α_\Environments(" e ")"
+%format αEnv(h)(e) = "α_\Environments(" h "," e ")"
 %format αState(s) = "α_\States(" s ")"
 %format αSTraces(t) = "α_{\STraces}(" t ")"
 %format tr = "\varcolor{\tr}"

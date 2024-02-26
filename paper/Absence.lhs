@@ -364,16 +364,16 @@ I tried to leave some forward references to clarify.}
 
 \begin{theoremrep}[$\semabs{\wild}$ infers absence]
   \label{thm:absence-correct}
-  \sven{There must be "soundness" somewhere in the title}
-  \sg{The problem is that there is not a single notion of "soundness".
-  Later chapters silently assume that the analysis is sound if $α (\denot{\pe}) ⊑ \semabs{\pe}$.
-  But absence is stronger than that!
-  Absence means that $α (\denot{\pE[\pe]}) ⊑ \semabs{\pe}$ for every
-  evaluation context $\pE$ (corresponding to machine triples $(ρ,μ,κ)$), so
-  that we may do dead code elimination anywhere in the program.
-  That is a subtle point that I don't want to expand on here;
-  it is distracting for newcomers and somewhat obvious to experts of modular
-  analyses and program transformations.}
+%  \sven{There must be "soundness" somewhere in the title}
+%  \sg{The problem is that there is not a single notion of "soundness".
+%  Later chapters silently assume that the analysis is sound if $α (\denot{\pe}) ⊑ \semabs{\pe}$.
+%  But absence is stronger than that!
+%  Absence means that $α (\denot{\pE[\pe]}) ⊑ \semabs{\pe}$ for every
+%  evaluation context $\pE$ (corresponding to machine triples $(ρ,μ,κ)$), so
+%  that we may do dead code elimination anywhere in the program.
+%  That is a subtle point that I don't want to expand on here;
+%  it is distracting for newcomers and somewhat obvious to experts of modular
+%  analyses and program transformations.}
   If $\semabs{\pe}_{ρ_\pe} = \langle φ, \varsigma \rangle$ and $φ(\px) = \aA$,
   then $\px$ is absent in $\pe$.
 \end{theoremrep}
@@ -391,25 +391,14 @@ One plausible definition is in terms of the standard operational semantics in
   \label{defn:absence}
   A variable $\px$ is \emph{used} in an expression $\pe$
   if and only if there exists a trace
-  $(\Let{\px}{\pe'}{\pe},ρ,μ,κ) \smallstep (\pe,ρ[\px↦\pa],\wild,\wild) \smallstep^* (\py,ρ'[\py↦\pa],\wild,\wild)$
-  that is about to evaluate $\px$, \ie, look up its heap entry.
+  $(\Let{\px}{\pe'}{\pe},ρ,μ,κ) \smallstep^* ... \smallstep[\LookupT(\px)] ...$
+  that looks up the heap entry of $\px$, \ie, it evaluates $\px$.
   Otherwise, $\px$ is \emph{absent} in $\pe$.
 \end{definitionrep}
 
-\begin{toappendix}
-The elaborate setup of this definition ensures that $\pa$, the address that
-$\px$ binds, does not alias with anything defined in the initial heap $μ$ and
-thus not with anything in $ρ$ or $κ$.
-Unsurprisingly, the no-alias property is easily defeated during evaluation, as
-soon as $\px$ is passed as an argument, hence $\py$ can be chosen differently to
-$\px$ in \Cref{defn:absence}.
-
-It is quite important that this definition is closed under arbitrary evaluation
-contexts $(ρ,μ,κ)$, so that absence is compatible with a contextual
-equivalence relation such as contextual improvement~\citep{MoranSands:99}.
-\end{toappendix}
-
-The Appendix explains why this is a good definition.
+Note that absence is a property of many different traces, each embedding the
+expression $\pe$ in different machine contexts so as to justify rewrites via
+contextual improvement~\citep{MoranSands:99}.
 Furthermore, we must prove sound the summary mechanism, captured in the
 following \emph{substitution lemma}~\citep{tapl}:%
 \footnote{This statement amounts to $id ⊑ \mathit{app} \circ \mathit{fun}_x$,
@@ -419,7 +408,9 @@ $\semabs{\Lam{\px}{\pe~\px}}_ρ ⊑ \semabs{\pe}_ρ$.}
 
 \begin{toappendix}
 Note that for the proofs we assume the recursive let definition
-$\semabs{\Let{\px}{\pe_1}{\pe_2}}_ρ = \semabs{\pe_2}_{ρ[\px ↦ \lfp(\fn{θ}{\px \both \semabs{\pe_1}_{ρ[\px↦θ]}})]}$.
+\[
+  \semabs{\Let{\px}{\pe_1}{\pe_2}}_ρ = \semabs{\pe_2}_{ρ[\px ↦ \lfp(\fn{θ}{\px \both \semabs{\pe_1}_{ρ[\px↦θ]}})]}.
+\]
 The partial order on $\AbsTy$ necessary for computing the least fixpoint $\lfp$
 follows structurally from $\aA ⊏ \aU$ (\ie, product order, pointwise order).
 
@@ -696,16 +687,6 @@ For the purposes of the preservation proof, we will write $\tr$ with a tilde to
 denote that abstract environment of type $\Var \to \AbsTy$, to disambiguate it
 from a concrete environment $ρ$ from the LK machine.
 
-We need to presume that every heap entry is annotated with the let-bound
-variable from whence it was allocated; otherwise there is no way to map
-addresses to syntax.
-Hence we will write heap entries as triples $\pa↦(\px,ρ,\pe)$, where
-$\px$ is from the unique let binding $\Let{\px}{...}{...}$ in the program
-that allocated the heap entry.
-This information is born redundant, because $\px$ is the unique variable for
-which $\pa = ρ(\px)$, but it becomes non-redudant after heap update potentially
-replaces $(ρ,\pe)$ with the value.
-
 \begin{figure}
 \arraycolsep=0pt
 \[\begin{array}{rcl}
@@ -850,9 +831,9 @@ if $\px$ is used in $\pe$, then $φ(\px) = \aU$.
 
 Since $\px$ is used in $\pe$, there exists a trace
 \[
-  (\Let{\px}{\pe'}{\pe},ρ,μ,κ) \smallstep (\pe,ρ[\px↦\pa],μ[\pa↦(\px,ρ[\px↦\pa],\pe')],κ) \smallstep^* (\py,ρ'[\py↦\pa],μ',κ').
+  (\Let{\px}{\pe'}{\pe},ρ,μ,κ) \smallstep (\pe,ρ_1,μ_1,κ) \smallstep^* (\py,ρ'[\py↦\pa],μ',κ') \smallstep[\LookupT(\px)] ...,
 \]
-Let us abbreviate $ρ_1 \triangleq ρ[\px↦\pa]$, $μ_1 \triangleq μ[\pa↦(\px,ρ[\px↦\pa],\pe')]$.
+where $ρ_1 \triangleq ρ[\px↦\pa]$, $μ_1 \triangleq μ[\pa↦(\px,ρ[\px↦\pa],\pe')]$.
 Without loss of generality, we assume the trace prefix ends at the first lookup
 at $\pa$, so $μ'(\pa) = μ_1(\pa) = (\px, ρ_1,\pe')$.
 If that was not the case, we could just find a smaller prefix with this property.
@@ -909,7 +890,9 @@ and Lemmas below reference \citet{Sergey:14}):
   \item Instrument a standard call-by-need semantics (a variant of our reference
     in \Cref{sec:op-sem}) such that heap lookups decrement a per-address
     counter; when heap lookup is attempted and the counter is 0, the machine is stuck.
-    In \Cref{defn:absence}, no instrumentation is needed because absence is rather simple.
+    For absence, the instrumentation is simpler: the $\LookupT$
+    transition in \Cref{fig:lk-semantics} carries the let-bound variable the
+    heap binding of which we look up.
   \item Give a declarative type system that characterises the results of the
     analysis (\ie, $\semabs{\wild}$) in a lenient (upwards closed) way.
     In case of \Cref{thm:absence-correct}, we define an analysis function on
@@ -924,8 +907,8 @@ Alas, the effort in comprehending such a proof in detail, let alone formulating
 it, is enormous.
 \begin{itemize}
   \item
-    The instrumentation (1) is non-trivial; for example the semantics becomes
-    non-deterministic.
+    The instrumentation (1) can be semantically non-trivial; for example the
+    semantics in \citet{Sergey:14} becomes non-deterministic.
     Does this instrumentation still express the desired semantic property?
   \item Step (2) all but duplicates a complicated analysis
     definition (\ie, $\semabs{\wild}$) into a type system (in Figure 7) with
