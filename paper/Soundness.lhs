@@ -24,216 +24,43 @@ set = P . Set.singleton
 \end{code}
 %endif
 
-\section{Abstract Soundness}
+\section{Generic By-Name and By-Need Soundness}
 \label{sec:soundness}
 
-\sven{The storyline of Section 7.0 needs to be improved. Currently, you mix the explanation of what Section 7 proves with a comparision to the proof in Section 2. It is hard to understand these two things simulataneusly, especially, because you don't explain how you proved your result until the second paragraph. I would split these two things:
-\begin{enumerate}
-\item Explain what you have proved: We prove that the usage analysis infers absence
-\item Explain why the property that you have proved is important: the usage analysis can be used for compiler optimizations
-\item Explain on a high-level how you achieved that: We instantiate a generic soundness statement ...
-\item Finally, explain why Section 7's proof is better than Section 2's proof: we do not need to show usage analysis-specific preservation lemma.
-\end{enumerate}}
+%\sven{The storyline of Section 7.0 needs to be improved. Currently, you mix the explanation of what Section 7 proves with a comparision to the proof in Section 2. It is hard to understand these two things simulataneusly, especially, because you don't explain how you proved your result until the second paragraph. I would split these two things:
+%\begin{enumerate}
+%\item Explain what you have proved: We prove that the usage analysis infers absence
+%\item Explain why the property that you have proved is important: the usage analysis can be used for compiler optimizations
+%\item Explain on a high-level how you achieved that: We instantiate a generic soundness statement ...
+%\item Finally, explain why Section 7's proof is better than Section 2's proof: we do not need to show usage analysis-specific preservation lemma.
+%\end{enumerate}}
 
-This section will finally link back to \Cref{sec:problem}
-and prove that usage analysis infers absence in the sense of
-\Cref{defn:absence}\sven{Section title is more general then what you promis here. The section title makes you believe that you explain how soundness can be proved in general (for all analyses), but in the first sentence you refer to the usage analysis}\sven{Add one sentence motivating why proving that the usage analysis infering absence is important}.
-In stark contrast to the proof for \Cref{thm:absence-correct},
-we do not need to show a usage analysis-specific preservation lemma to do so.
-\emph{We cannot stress enough how drastic a simplification this is!}
-\sven{Try to avoid sentences with extreme emphasis. This makes you sound like Donald Trump and usually doesn't convince reviewers. Instead try to convince with arguments: Explain why it is easier}
-In \Cref{sec:problem} we argued that a proof for such a lemma drowned in
-semantic complexity unrelated to the analysis at hand, so the proof became
-tedious, hand-wavy and error-prone.
-
-Instead, we instantiate a generic soundness statement, one
-that can be reused across many static analyses instantiating our denotational
-interpreter, provided they are sound \wrt by-name and by-need evaluation.
-%The analysis-specific proof mainly concerns the operations of the abstract
-%|Domain|; in case of usage analysis, this proof takes about half a page.
-The soundness statement can be understood in terms of \emph{abstract
-interpretation}, justifying our view of usage analysis as formally abstracting a
-concrete denotational interpreter.
-
-\subsection{A Much Simpler Proof That Usage Analysis Infers Absence}
-
-In this subsection, we prove that usage analysis from \Cref{sec:abstraction}
-infers absence in the same sense as absence analysis from \Cref{sec:problem},
-emphasising the reduced complexity on the proof.
-
-\sven{This sentence is hard to understand since you explain \emph{how} you achieve someting before you explain \emph{what} you actually achieve.
-Better:
-\begin{enumerate}
-\item Explain what you are about to do: Redefine absence in terms of $\mathcal{S}$.
-\item Explain why this is important: To abstract away from the details of the LK machine
-\item Explain why this makes sense: by adequacy, $\mathcal{S}$ and the LK produce the same event sequences
-\end{enumerate}
-}
-The first step is to utilise adequacy (\Cref{thm:need-adequate-strong}) to
-leave behind the definition of absence in terms of the LK machine in favor
-of one using |evalNeed|\sven{Would it be possible to write the full word in the name of the semantics? "need" is much easier to understand without context than "ne"}:
-\begin{lemmarep}
-  \label{thm:absence-denotational}
-  \sven{This is a definition, not a lemma?}|x| is used in |e| if and only if there exists a by-need evalution context
-  |ectxt| and expression |e'| such that
-  |evalNeed (fillC ectxt (Let x e' e)) emp emp = ... ^^ Step (Lookup x) ^^ ...| \sven{Just write "the trace |evalNeed (fillC ectxt (Let x e' e)) emp emp| does not contain a |Lookup x| event.}.
-  (Otherwise, |x| is absent in |e|.)
-\end{lemmarep}
-\begin{proof}
-Since |x| is used in |e|, there exists a trace
+In this section we prove and apply a generic abstract interpretation theorem
+of the form
 \[
-  (\Let{\px}{\pe'}{\pe},ρ,μ,κ) \smallstep^* ... \smallstep[\LookupT(\px)] ...
+  |α (set (evalNeed e emp emp)) ⊑ (eval e emp :: hat D)|,
 \]
+where |hat D| is an abstract domain such as |UD| and |α| is an abstraction
+function entirely derived from type class instances on |hat D|.
+We will instantiate this statement at |UD| in order to prove that usage analysis
+infers absence, just as absence analysis in \Cref{sec:problem}.
+This proof will be much simpler than the proof for \Cref{thm:absence-correct}.
+%In \Cref{sec:problem} we argued that a proof for such a lemma drowned in
+%semantic complexity unrelated to the analysis at hand, so the proof became
+%tedious, hand-wavy and error-prone.
 
-We proceed as follows:
-\begin{DispWithArrows}[fleqn,mathindent=0em]
-                          & (\Let{\px}{\pe'}{\pe},ρ,μ,κ) \smallstep^* ... \smallstep[\LookupT(\px)] ...
-                          \label{arrow:usg-context}
-                          \Arrow{$\pE \triangleq \mathit{trans}(\hole,ρ,μ,κ)$} \\
-  {}\Longleftrightarrow{} & \init(\pE[\Let{\px}{\pe'}{\pe}]) \smallstep^* ... \smallstep[\LookupT(\px)] ...
-                          \Arrow{Apply $α_{\STraces}$ (\Cref{fig:eval-correctness})} \\
-  {}\Longleftrightarrow{} & α_{\STraces}(\init(\pE[\Let{\px}{\pe'}{\pe}]) \smallstep^*, []) = | ... Step (Lookup x) ...|
-                          \Arrow{\Cref{thm:need-adequate-strong}} \\
-  {}\Longleftrightarrow{} & |evalNeed (fillC ectxt (Let x e' e)) emp emp| = |... Step (Lookup x) ...|
-\end{DispWithArrows}
-Note that the trace we start with is not necessarily an maximal trace,
-so step \labelcref{arrow:usg-context} finds a prefix that makes the trace maximal.
-We do so by reconstructing the syntactic \emph{evaluation context} $\pE$
-with $\mathit{trans}$ (\cf \Cref{thm:translation}) such that
-\[
-  \init(\pE[\Let{\px}{\pe'}{\pe}]) \smallstep^* (\Let{\px}{\pe'}{\pe},ρ,μ,κ)
-\]
-Then the trace above is contained in the maximal trace starting in
-$\init(\pE[\Let{\px}{\pe'}{\pe}])$ and it contains at least one $\LookupT(\px)$
-transition.
+%This section will finally link back to \Cref{sec:problem}
+%and prove that usage analysis infers absence in the sense of
+%\Cref{defn:absence}\sven{Section title is more general then what you promis here. The section title makes you believe that you explain how soundness can be proved in general (for all analyses), but in the first sentence you refer to the usage analysis}\sven{Add one sentence motivating why proving that the usage analysis infering absence is important}.
 
-The next two steps apply adequacy of |evalNeed| to the trace, making the shift
-from LK trace to denotational interpreter.
-\end{proof}
-
-We define the by-need evaluation contexts for our language in the Appendix.
-Thus insulated from the LK machine, we may restate and prove
-\Cref{thm:absence-correct} for usage analysis\sven{You don't need to explain that Theorem 7 is independent of the LK machine. It is obvious now since you redefined absence above}.
-For that, we need to define the initial environment |ρe := exts emp x (MkUT
-(singenv x U1) (Rep Uω))| with an entry for every free variable |x| of |e|\sven{I would move this definition into theorem 7, since the initial environment is not used anywhere else}.
-
-\sven{The abstraction function $\alpha$ is fundamental to understand the proof  of Theorem 7 and Lemma 8. This warrants to introduce $\alpha$ beforehand. I would include something like this here: "The proof of the following Thoerem requires an abstraction function $\alpha: \mathit{P}(D_{\mathbf{need}}) \to D_{\mathbf{usage}}$ that aggregates lookups in a trace per variable into usage information |Uses| (add reference to formal definition in appendix). For example, $\alpha\{ [ Lookup(x) ], [ Lookup(y) ] \} = \ldots$."}
-
-\begin{theoremrep}[|evalUsg|\sven{Same here. Can we write "usage" instead of "usg"?} infers absence]
-  \label{thm:usage-absence}
-  If |evalUsg e ρe = MkUT φ v| and |φ !? x = U0|,
-  then |x| is absent in |e|.
-\end{theoremrep}
-\begin{proofsketch}
-If |x| is used in |e|, there is a trace |evalNeed (fillC ectxt (Let x e' e)) emp emp = ... ^^ Step (Lookup x) ^^ ...|.
-Define an abstraction function |α|\sven{show the type of $\alpha$. It's $\mathit{P}(D_{\mathbf{need}}) \to D_{\mathbf{usage}}$, correct?} that aggregates lookups
-in the trace per variable into |φ' :: Uses|, just as usage instrumentation
-in \Cref{sec:usage-instrumentation}\sven{broken reference}\sven{The reference to another section is not immediatly helpful to understand $\alpha$. I would replace this second clause with a short example: $\alpha\{ [ Lookup(x) ], [ Lookup(y) ] \} = \ldots$}.
-Clearly, it is |φ' !? x ⊒ U1|, because there is at least one |Lookup x|.
-\Cref{thm:usage-abstracts-need-closed} below guarantees that the |φ| computed
-by |evalUsg| approximates |φ'|, so |φ !? x ⊒ φ' !? x ⊒ U1 //= U0|.
-\sven{The proof sketch completely skips over the context lemma 38. This seems like an important detail that you should probably include.}
-\end{proofsketch}
-\begin{proof}
-We show the contraposition, that is,
-if |x| is used in |e|, then |φ !? x //= U0|.
-
-By \Cref{thm:absence-denotational}, there exists |ectxt|, |e'| such that
-\[
-  |evalNeed (fillC ectxt (Let x e' e)) emp emp = ... ^^ Step (Lookup x) ^^ ...| .
-\]
-
-This is the big picture of how we prove |φ !? x //= U0| from this fact:
-\begin{DispWithArrows}[fleqn,mathindent=0em]
-                      & |evalNeed (fillC ectxt (Let x e' e)) emp emp| = |... Step (Lookup x) ...|
-                      \label{arrow:usg-instr}
-                      \Arrow{Usage instrumentation} \\
-  {}\Longrightarrow{} & |(α (set (evalNeed (fillC ectxt (Let x e' e)) emp emp)))^.φ| ⊒ [|x| ↦ |U1|]
-                      \label{arrow:usg-abs}
-                      \Arrow{\Cref{thm:usage-abstracts-need-closed}} \\
-  {}\Longrightarrow{} & |(evalUsg (fillC ectxt (Let x e' e)) emp)^.φ| ⊒ [|x| ↦ |U1|]
-                      \label{arrow:usg-anal-context}
-                      \Arrow{\Cref{thm:usage-bound-vars-context}} \\
-  {}\Longrightarrow{} & |Uω * (evalUsg e ρe)^.φ| = |Uω * φ| ⊒ [|x| ↦ |U1|]
-                      \Arrow{|Uω * U0 = U0 ⊏ U1|} \\
-  {}\Longrightarrow{} & |φ !? x //= U0|
-\end{DispWithArrows}
-
-Step \labelcref{arrow:usg-instr} instruments the trace by applying the usage
-abstraction function |α :<->: _ := nameNeed|.
-This function will replace every |Step| constructor
-with the |step| implementation of |UT|;
-The |Lookup x| event on the right-hand side implies that its image under |α| is
-at least $[|x| ↦ |U1|]$.
-
-Step \labelcref{arrow:usg-abs} applies the central soundness
-\Cref{thm:usage-abstracts-need-closed} that is the main topic of this section,
-abstracting the dynamic trace property in terms of the static semantics.
-
-Finally, step \labelcref{arrow:usg-anal-context} applies
-\Cref{thm:usage-bound-vars-context}, which proves that absence information
-doesn't change when an expression is put in an arbitrary evaluation context.
-The final step is just algebra.
-\end{proof}
-
-The main difference to the proof for \Cref{thm:absence-correct} is the use
-of the following abstraction lemma about the (still ominuous) |α|, replacing
-the previous analysis-specific preservation proof:%
-\footnote{The Appendix needs to prove all statements for open expressions, of course.}
-
-\begin{lemmarep}[|evalUsg| abstracts |evalNeed|]
-\label{thm:usage-abstracts-need-closed}
-Let |e| be a closed expression and |α| the abstraction function paraphrased below.
-Then
-\[
-  |α (set (evalNeed e emp emp)) ⊑ evalUsg e emp|.
-\]
-\end{lemmarep}
-\begin{proof}
-By \Cref{thm:soundness-by-need-closed}, it suffices to show the abstraction laws
-in \Cref{fig:abstraction-laws}.
-\begin{itemize}
-  \item \textsc{Mono}:
-    Always immediate, since |⊔| and |+| are the only functions matching on |U|,
-    and these are monotonic.
-  \item \textsc{Unwind-Stuck}, \textsc{Intro-Stuck}:
-    Trivial, since |stuck = bottom|.
-  \item \textsc{Step-App}, \textsc{Step-Sel}, \textsc{Step-Inc}, \textsc{Update}:
-    Follows by unfolding |step|, |apply|, |select| and associativity of |+|.
-  \item \textsc{Beta-App}:
-    Follows from \Cref{thm:usage-subst}; see \Cref{eqn:usage-beta-app}.
-  \item \textsc{Beta-Sel}:
-    Follows by unfolding |select| and |con| and applying a lemma very similar to
-    \Cref{thm:usage-subst} multiple times.
-  \item \textsc{Bind-ByName}:
-    |kleeneFix| approximates the least fixpoint |lfp| since the iteratee |rhs|
-    is monotone.
-    We have said elsewhere that we omit a widening operator for |rhs| that
-    guarantees that |kleeneFix| terminates.
-\end{itemize}
-\end{proof}
-
-The significance of \Cref{thm:usage-abstracts-need-closed} is that it approximates a
-value computed from the \emph{dynamic by-need semantics} on the left-hand side
-with a result of the \emph{static analysis} on the right-hand side; it provides
-\Cref{thm:usage-absence} with an ``interface'' between semantic properties
-and static analysis.
-
-The alluded abstraction function |α| (defined as |nameNeed| in the Appendix) is
-completely determined by the |Trace|, |Domain| and |Lat| instance on |UD|.
-The gist is as follows:
-|α| eliminates every |Step ev ...| constructor in the by-need trace
-|evalNeed e emp emp| with a call to |step ev ...|, and eliminates every concrete
-|Value| at the end of the trace with a call to the corresponding |Domain|
-method.
-That is, |Fun| turns into |fun|, |Con| into |con|, and |Stuck| into |stuck|.
-
-The decisive advantage of \Cref{thm:usage-abstracts-need-closed} compared to the
-absence analysis-specific preservation lemma is that we do not need a separate
-dynamic semantics such as the LK machine and that large parts of its proof
-can be shared. We suggest to follow the link to its proof to appreciate
-its compactness; it is an instance of the general by-need correctness
-\Cref{thm:soundness-by-need-closed} we discuss next.
+%Instead, we instantiate a generic soundness statement, one
+%that can be reused across many static analyses instantiating our denotational
+%interpreter, provided they are sound \wrt by-name and by-need evaluation.
+%%The analysis-specific proof mainly concerns the operations of the abstract
+%%|Domain|; in case of usage analysis, this proof takes about half a page.
+%The soundness statement can be understood in terms of \emph{abstract
+%interpretation}, justifying our view of usage analysis as formally abstracting a
+%concrete denotational interpreter.
 
 \begin{figure}
   \[\begin{array}{c}
@@ -272,37 +99,49 @@ its compactness; it is an instance of the general by-need correctness
   \label{fig:abstraction-laws}
 \end{figure}
 
-\subsection{Abstraction Laws for By-Need Soundness}
+\subsection{Sound By-name and By-need Interpretation}
 
-\sven{Currently how the section 7.2 is motivated is very boring. It sounds like you presented the most interesting result with Theorem 7 and now you have some work left to do for Lemma 8.}
-
-This subsection introduces a set of \emph{abstraction laws} concerning the
-abstract semantic domain of a static analysis.
-If the abstract domain |hat D| adheres to these laws, then the resulting static analysis
-|eval e emp :: hat D| is a sound abstraction \wrt by-need semantics
-|evalNeed e emp emp| (\Cref{thm:soundness-by-need-closed}).
-
-Specifically, to prove \Cref{thm:usage-abstracts-need-closed} for usage
-analysis, it is sufficient to prove the abstraction laws for |Trace|, |Domain|
-and |HasBind| instances of |UD| listed in \Cref{fig:abstraction-laws}.
-For a preliminary reading, it is best to ignore the syntactic premises above
-inference lines.
-
-When |UD| satisfies all of the laws, we can prove
-\Cref{thm:usage-abstracts-need-closed} via the following proof rule that
-references the laws by name:
+This subsection is dedicated to the following proof rule for sound by-need
+interpretation, referring to the \emph{abstraction laws} in
+\Cref{fig:abstraction-laws} by name:%
+\footnote{The statements in the main body of the paper refer to closed
+expressions |e|, but of course we have proven more complex forms of these
+statements for open expressions as well.}
 \[\begin{array}{c}
   \inferrule{%
     \textsc{Mono} \\ \textsc{Step-App} \\ \textsc{Step-Sel} \\ \textsc{Unwind-Stuck} \\
     \textsc{Intro-Stuck} \\ \textsc{Beta-App} \\ \textsc{Beta-Sel} \\ \textsc{Bind-ByName} \\
     \textsc{Step-Inc} \\ \textsc{Update}
   }{%
-  |α (set (evalNeed e emp emp)) ⊑ evalUsg e emp|
+  |α (set (evalNeed e emp emp)) ⊑ (eval e emp :: hat D)|
   }
 \end{array}\]
 \noindent
-This rule is an instance of the following by-need abstraction theorem for closed
-expressions:
+In other words: prove the abstraction laws for an abstract domain |hat D| of
+your choosing and we give you for free a proof of sound abstract by-need
+interpretation for the static analysis |eval e emp :: hat D|!
+
+%The significance of \Cref{thm:usage-abstracts-need-closed} is that it approximates a
+%value computed from the \emph{dynamic by-need semantics} on the left-hand side
+%with a result of the \emph{static analysis} on the right-hand side; it provides
+%\Cref{thm:usage-absence} with an ``interface'' between semantic properties
+%and static analysis.
+
+This proof rule is \emph{opinionated} in so far as it fixes one particular
+abstraction function |α| (formally defined as |nameNeed| in the Appendix).
+In return the abstraction laws can be simplified drastically, as discussed at
+the end of this subsection.
+Function |α :: T (Value (ByNeed T), Heap ^^ ...) -> hat D| is completely
+determined by the |Trace|, |Domain| and |Lat| instance on |hat D|.
+The gist is as follows:
+|α| eliminates every |Step event| in the by-need trace
+|evalNeed e emp emp| with a call to |step event|, and eliminates every concrete
+|Value| at the end of the trace with a call to the corresponding |Domain|
+method.
+That is, |Fun| turns into |fun|, |Con| into |con|, and |Stuck| into |stuck|,
+considering the final heap for nested abstraction.
+This is the proof rule in full detail:
+
 \begin{theoremrep}[Sound By-need Interpretation]
 \label{thm:soundness-by-need-closed}
 Let |hat D| be a domain with instances for |Trace|, |Domain|, |HasBind| and
@@ -320,17 +159,25 @@ This is \Cref{thm:soundness-by-need} for the special case where environment and
 heap are empty.
 \end{proof}
 
-Let us unpack law $\textsc{Beta-App}$ to see how the laws are to be understood.
+Let us unpack law $\textsc{Beta-App}$ to see how the abstraction laws in
+\Cref{fig:abstraction-laws} are to be understood.
+For a preliminary reading, it is best to ignore the syntactic premises above
+inference lines.
 To prove $\textsc{Beta-App}$, one has to show that |forall f a x. f a ⊑ apply
-(fun x f) a| in the abstract domain |UD|.%
+(fun x f) a| in the abstract domain |hat D|.%
 \footnote{Again, the exact identity of |x| is irrelevant.
 We only use it as a De Bruijn level;
 it suffices that |x| is chosen fresh.}
 This states that summarising |f| through |fun|, then |apply|ing the summary to
-|a| must approximate a direct call to |f|.
-We have proven a syntactic form of this statement in \Cref{sec:problem} in
-the form of the substitution \Cref{thm:absence-subst}.
-We need a similar lemma for usage analysis:
+|a| must approximate a direct call to |f|;
+it amounts to proving correct the summary mechanism.%
+\footnote{To illustrate this point: if we were to pick dynamic |Value|s as the
+summary as in usage instrumentation |D (ByNeed UT)|, we would not need to show
+anything! Then |apply (return (Fun f)) a = f a|.}
+In \Cref{sec:problem}, we have proved a substitution \Cref{thm:absence-subst},
+which is a syntactic form of this statement.
+We will need a similar lemma for usage analysis below, and it is useful to
+illustrate the next point, so we prove it here:
 
 \begin{toappendix}
 \begin{abbreviation}[Field access]
@@ -532,7 +379,7 @@ Then we get, for |a := ρ ! y :: UD|,
   |f a = step App2 (eval e (ext ρ x a)) = eval e (ext ρ x a) ⊑ eval (Lam x e `App` y) ρ = apply (fun x f) a :: UD|.
 \end{equation}
 Without the syntactic premise of \textsc{Beta-App} to rule out undefinable
-entities, the rule cannot be proven for usage analysis; we give a counterexample
+entities in |UD -> UD|, the rule cannot be proved for usage analysis; we give a counterexample
 in the Appendix (\Cref{ex:syntactic-beta-app}).%
 \footnote{Finding domains where all entities $d$ are definable is the classic full
 abstraction problem~\citep{Plotkin:77}.}
@@ -542,7 +389,10 @@ constructor redexes, which is why it needs to duplicate much of the |cont|
 function in \Cref{fig:eval} into its premise.
 Rule \textsc{Bind-ByName} expresses that the abstract |bind| implementation must
 be sound for by-name evaluation, that is, it must approximate passing the least
-fixpoint |lfp| of the |rhs| functional to |body|.
+fixpoint |lfp| of the |rhs| functional to |body|.%
+\footnote{We expect that for sound by-value abstraction it suffices to replace
+\textsc{Bind-ByName} with a law \textsc{Bind-ByValue} mirroring the |bind|
+instance of |ByValue|, but have not attempted a formal proof.}
 The remaining rules are congruence rules involving |step| and |stuck| as well as
 the obvious monotonicity requirement for all involved operations.
 In the Appendix, we show a result similar to \Cref{thm:soundness-by-need-closed}
@@ -550,20 +400,192 @@ for by-name evaluation which does not require the by-need specific rules
 \textsc{Step-Inc} and \textsc{Update}.
 
 Note that none of the laws mention the concrete semantics or |α|.
-This is because both are known and the usual abstraction laws such as
-|α (apply d a) ⊑ hat apply (α d) (α a)| further decompose into \textsc{Beta-App}.
+This is how our opinionated approach pays off: because both concrete semantics
+and |α| are known, the usual abstraction laws such as |α (apply d a) ⊑ hat
+apply (α d) (α a)| further decompose into \textsc{Beta-App}.
 We think this is an important advantage to our approach, because the author of
 the analysis does not need to reason about the concrete semantics in order to
-soundly approximate a semantic trace property!
-The dynamic semantics can be encapsulated in a library.
+soundly approximate a semantic trace property expressed via |Trace| instance!
 
-%\sg{Related Work?}
-%Finally, the Galois connection |nameNeed| in the Appendix is useful for an
-%analysis such as usage analysis that is sound \wrt by-name \emph{and} by-need
-%semantics.
-%However, more practical analyses such as \citet{Sergey:14} are not sound \wrt
-%by-name and need a slightly different kind of Galois connection inspired by
-%clairvoyant call-by-value~\citep{HackettHutton:19} that we plan to investigate.
+\subsection{A Much Simpler Proof That Usage Analysis Infers Absence}
+
+Equipped with the generic soundness \Cref{thm:soundness-by-need-closed},
+we will prove in this subsection that usage analysis from \Cref{sec:abstraction}
+infers absence in the same sense as absence analysis from \Cref{sec:problem}.
+The reason we do so is to evaluate the proof complexity of our approach against
+the preservation-style proof framework in \Cref{sec:problem}.
+
+%\sven{This sentence is hard to understand since you explain \emph{how} you achieve someting before you explain \emph{what} you actually achieve.
+%Better:
+%\begin{enumerate}
+%\item Explain what you are about to do: Redefine absence in terms of $\mathcal{S}$.
+%\item Explain why this is important: To abstract away from the details of the LK machine
+%\item Explain why this makes sense: by adequacy, $\mathcal{S}$ and the LK produce the same event sequences
+%\end{enumerate}
+%}
+%\sg{I think it's better now. Thanks}
+The first step is to leave behind the definition of absence in terms of the LK
+machine in favor of one using |evalNeed|.
+That is a welcome simplification because it leaves us with a single semantic
+artefact --- the denotational interpreter --- instead of an operational
+semantics and a separate static analysis as in \Cref{sec:problem}.
+Thanks to adequacy (\Cref{thm:need-adequate-strong}), this new notion is not a
+redefinition but provably equivalent to \Cref{defn:absence}:
+\begin{lemmarep}[Denotational absence]
+  \label{thm:absence-denotational}
+  Variable |x| is used in |e| if and only if there exists a by-need evalution context
+  |ectxt| and expression |e'| such that the trace
+  |evalNeed (fillC ectxt (Let x e' e)) emp emp| contains a |Lookup x| event.
+  (Otherwise, |x| is absent in |e|.)
+\end{lemmarep}
+\begin{proof}
+Since |x| is used in |e|, there exists a trace
+\[
+  (\Let{\px}{\pe'}{\pe},ρ,μ,κ) \smallstep^* ... \smallstep[\LookupT(\px)] ...
+\]
+
+We proceed as follows:
+\begin{DispWithArrows}[fleqn,mathindent=0em]
+                          & (\Let{\px}{\pe'}{\pe},ρ,μ,κ) \smallstep^* ... \smallstep[\LookupT(\px)] ...
+                          \label{arrow:usg-context}
+                          \Arrow{$\pE \triangleq \mathit{trans}(\hole,ρ,μ,κ)$} \\
+  {}\Longleftrightarrow{} & \init(\pE[\Let{\px}{\pe'}{\pe}]) \smallstep^* ... \smallstep[\LookupT(\px)] ...
+                          \Arrow{Apply $α_{\STraces}$ (\Cref{fig:eval-correctness})} \\
+  {}\Longleftrightarrow{} & α_{\STraces}(\init(\pE[\Let{\px}{\pe'}{\pe}]) \smallstep^*, []) = | ... Step (Lookup x) ...|
+                          \Arrow{\Cref{thm:need-adequate-strong}} \\
+  {}\Longleftrightarrow{} & |evalNeed (fillC ectxt (Let x e' e)) emp emp| = |... Step (Lookup x) ...|
+\end{DispWithArrows}
+Note that the trace we start with is not necessarily an maximal trace,
+so step \labelcref{arrow:usg-context} finds a prefix that makes the trace maximal.
+We do so by reconstructing the syntactic \emph{evaluation context} $\pE$
+with $\mathit{trans}$ (\cf \Cref{thm:translation}) such that
+\[
+  \init(\pE[\Let{\px}{\pe'}{\pe}]) \smallstep^* (\Let{\px}{\pe'}{\pe},ρ,μ,κ)
+\]
+Then the trace above is contained in the maximal trace starting in
+$\init(\pE[\Let{\px}{\pe'}{\pe}])$ and it contains at least one $\LookupT(\px)$
+transition.
+
+The next two steps apply adequacy of |evalNeed| to the trace, making the shift
+from LK trace to denotational interpreter.
+\end{proof}
+
+We define the by-need evaluation contexts for our language in the Appendix.
+Thus insulated from the LK machine, we may restate and prove
+\Cref{thm:absence-correct} for usage analysis.
+
+\begin{lemmarep}[|evalUsg| abstracts |evalNeed|]
+\label{thm:usage-abstracts-need-closed}
+Let |e| be a closed expression and |α| the abstraction function of the Galois
+connection |nameNeed| from the Appendix.
+Then |α (set (evalNeed e emp emp)) ⊑ evalUsg e emp|.
+\end{lemmarep}
+\begin{proof}
+By \Cref{thm:soundness-by-need-closed}, it suffices to show the abstraction laws
+in \Cref{fig:abstraction-laws}.
+\begin{itemize}
+  \item \textsc{Mono}:
+    Always immediate, since |⊔| and |+| are the only functions matching on |U|,
+    and these are monotonic.
+  \item \textsc{Unwind-Stuck}, \textsc{Intro-Stuck}:
+    Trivial, since |stuck = bottom|.
+  \item \textsc{Step-App}, \textsc{Step-Sel}, \textsc{Step-Inc}, \textsc{Update}:
+    Follows by unfolding |step|, |apply|, |select| and associativity of |+|.
+  \item \textsc{Beta-App}:
+    Follows from \Cref{thm:usage-subst}; see \Cref{eqn:usage-beta-app}.
+  \item \textsc{Beta-Sel}:
+    Follows by unfolding |select| and |con| and applying a lemma very similar to
+    \Cref{thm:usage-subst} multiple times.
+  \item \textsc{Bind-ByName}:
+    |kleeneFix| approximates the least fixpoint |lfp| since the iteratee |rhs|
+    is monotone.
+    We have said elsewhere that we omit a widening operator for |rhs| that
+    guarantees that |kleeneFix| terminates.
+\end{itemize}
+\end{proof}
+
+\begin{theoremrep}[|evalUsg| infers absence]
+  \label{thm:usage-absence}
+  Let |ρe := singenvmany y (MkUT (singenv y U1) (Rep Uω))| be the initial
+  environment with an entry for every free variable |y| of an expression |e|.
+  If |evalUsg e ρe = MkUT φ v| and |φ !? x = U0|,
+  then |x| is absent in |e|.
+\end{theoremrep}
+\begin{proofsketch}
+If |x| is used in |e|, there is a trace |evalNeed (fillC ectxt (Let x e' e)) emp emp| containing a |Lookup x| event.
+The |nameNeed| abstraction
+function |α| induced by |UD| aggregates lookups in the trace into a |φ' :: Uses|, for example,
+  |α ({-" \LookupT(i) \smallstep \LookupT(x) \smallstep \LookupT(i) \smallstep \langle ... \rangle "-})
+    = MkUT [ i {-" ↦ "-} Uω, x {-" ↦ "-} U1 ] (...)|.
+Clearly, it is |φ' !? x ⊒ U1|, because there is at least one |Lookup x|.
+\Cref{thm:usage-abstracts-need-closed} and a context invariance
+\Cref{thm:usage-bound-vars-context} prove that the computed |φ|
+approximates |φ'|, so |φ !? x ⊒ φ' !? x ⊒ U1 //= U0|.
+\end{proofsketch}
+\begin{proof}
+We show the contraposition, that is,
+if |x| is used in |e|, then |φ !? x //= U0|.
+
+By \Cref{thm:absence-denotational}, there exists |ectxt|, |e'| such that
+\[
+  |evalNeed (fillC ectxt (Let x e' e)) emp emp = ... ^^ Step (Lookup x) ^^ ...| .
+\]
+
+This is the big picture of how we prove |φ !? x //= U0| from this fact:
+\begin{DispWithArrows}[fleqn,mathindent=0em]
+                      & |evalNeed (fillC ectxt (Let x e' e)) emp emp| = |... Step (Lookup x) ...|
+                      \label{arrow:usg-instr}
+                      \Arrow{Usage instrumentation} \\
+  {}\Longrightarrow{} & |(α (set (evalNeed (fillC ectxt (Let x e' e)) emp emp)))^.φ| ⊒ [|x| ↦ |U1|]
+                      \label{arrow:usg-abs}
+                      \Arrow{\Cref{thm:usage-abstracts-need-closed}} \\
+  {}\Longrightarrow{} & |(evalUsg (fillC ectxt (Let x e' e)) emp)^.φ| ⊒ [|x| ↦ |U1|]
+                      \label{arrow:usg-anal-context}
+                      \Arrow{\Cref{thm:usage-bound-vars-context}} \\
+  {}\Longrightarrow{} & |Uω * (evalUsg e ρe)^.φ| = |Uω * φ| ⊒ [|x| ↦ |U1|]
+                      \Arrow{|Uω * U0 = U0 ⊏ U1|} \\
+  {}\Longrightarrow{} & |φ !? x //= U0|
+\end{DispWithArrows}
+
+Step \labelcref{arrow:usg-instr} instruments the trace by applying the usage
+abstraction function |α :<->: _ := nameNeed|.
+This function will replace every |Step| constructor
+with the |step| implementation of |UT|;
+The |Lookup x| event on the right-hand side implies that its image under |α| is
+at least $[|x| ↦ |U1|]$.
+
+Step \labelcref{arrow:usg-abs} applies the central soundness
+\Cref{thm:usage-abstracts-need-closed} that is the main topic of this section,
+abstracting the dynamic trace property in terms of the static semantics.
+
+Finally, step \labelcref{arrow:usg-anal-context} applies
+\Cref{thm:usage-bound-vars-context}, which proves that absence information
+doesn't change when an expression is put in an arbitrary evaluation context.
+The final step is just algebra.
+\end{proof}
+
+Let us compare to the preservation-style proof framework in \Cref{sec:problem}.
+\begin{itemize}
+  \item
+    Where there were multiple separate \emph{semantic artefacts} such as a separate
+    small-step semantics and an extension of the absence analysis function to
+    machine configurations $σ$ in order to state a preservation lemma,
+    our proof only has a single semantic artefact that needs to be defined and
+    understood: the denotational interpreter, albeit with different instantiations.
+  \item
+%    The substitution lemma is common to both approaches and indispensable in
+%    proving the summary mechanism correct.
+    What is more important is that a simple proof for
+    \Cref{thm:usage-abstracts-need-closed} in half a page (we encourage the
+    reader to take a look) replaces a tedious, error-prone and incomplete (for a
+    lack of step indexing) \emph{proof for the preservation lemma}.
+    Of course, we lean on \Cref{thm:soundness-by-need-closed} to prove what
+    amounts to a preservation lemma; the difference is that our proof properly
+    accounts for heap update and can be shared with other analyses that are
+    sound \wrt by-name and by-need such as type analysis and 0CFA.
+\end{itemize}
+
+Thus, we achieve our goal of proving semantic distractions ``once and for all''.
 
 \begin{toappendix}
 In the proof for \Cref{thm:usage-absence} we exploit that usage analysis is
