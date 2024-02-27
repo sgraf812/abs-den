@@ -33,7 +33,7 @@ For proving adequacy of |evalNeed|, we give an abstraction function $α$ from
 small-step traces in the lazy Krivine machine (\Cref{fig:lk-semantics}) to
 denotational traces |T|, with |Events| and all, such that
 \[
-  |evalNeed e emp emp| = α(\init(\pe) \smallstep ...),
+  α(\init(\pe) \smallstep ...) = |evalNeed e emp emp|,
 \]
 where $\init(\pe) \smallstep ...$ denotes the \emph{maximal} (\ie longest
 possible) LK trace evaluating the closed expression $\pe$.
@@ -61,7 +61,7 @@ events, as expressed in the following Theorem:
   \end{itemize}
 \end{theoremrep}
 \begin{proofsketch}
-  Define $α$ by coinduction and prove $|evalNeed e emp emp| = α(\init(\pe) \smallstep ...)$ by Löb induction.
+  Define $α$ by coinduction and prove $α(\init(\pe) \smallstep ...) = |evalNeed e emp emp|$ by Löb induction.
   Then it suffices to prove that $α$ preserves the observable properties of
   interest.
   The full proof for a rigorous reformulation of this result can be found in the
