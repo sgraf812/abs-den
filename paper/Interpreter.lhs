@@ -49,7 +49,7 @@ instance {-# OVERLAPPING #-} Show a => Show (T (Maybe a)) where
   show (Ret (Just a)) = "\\langle "++show a++"\\rangle "
 instance Show (Value τ) where
   show (Fun _) = "\\lambda"
-  show (Con k _) = "Con(" ++ show k ++ ")"
+  show (Con k _) = "\\mathit{Con}(" ++ show k ++ ")"
   show Stuck = "\\lightning"
 instance (Show (τ v)) => Show (ByName τ v) where
   show (ByName τ) = show τ

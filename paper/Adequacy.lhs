@@ -575,7 +575,7 @@ notion of adequacy from before.
 
 \begin{theorem}[Totality]
 The interpreters |evalName e ρ| and |evalNeed e ρ μ| are defined for every
-input |e|, |ρ|, |μ|.
+|e|, |ρ|, |μ|.
 \end{theorem}
 \begin{proofsketch}
 In the Supplement, we provide an implementation of the generic interpreter
