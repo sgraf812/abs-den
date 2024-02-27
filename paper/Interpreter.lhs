@@ -349,10 +349,10 @@ $\perform{eval (read "let i = λx.x in i i") emp :: D (ByName T)}$,
 \\[\belowdisplayskip]
 \noindent
 where $\langle\lambda\rangle$
-\sven{Is it possible to spell out what the lambda is? Its just $\langle λx.x \rangle$, correct? I know that it its not possible in Haskell, but maybe just here in the paper.}
+%\sven{Is it possible to spell out what the lambda is? Its just $\langle λx.x \rangle$, correct? I know that it its not possible in Haskell, but maybe just here in the paper.}
 means that the trace ends in a |Fun| value.
-We cannot in general print |DName|s or |Fun|ctions thereof, but in this case the result would be $\langle \Lam{x}{x} \rangle$.
-\sg{Is this clarifying sentence helpful? I don't really think so...}
+We cannot print |DName|s or |Fun|ctions thereof, but in this case the result would be the value $\Lam{x}{x}$.
+%\sg{Is this clarifying sentence helpful? I don't really think so...}
 This is in direct correspondence to the earlier call-by-name small-step trace
 \labelcref{ex:trace} in \Cref{sec:op-sem}.
 
@@ -488,17 +488,17 @@ The old |DName| can be recovered as |D (ByName T)| and we refer to its
 interpreter instance as |evalName e ρ|.
 
 \begin{figure}
-\begin{flushleft}
-\sven{This is just the state monad. So why not define it by |newtype ByNeed
-τ v = ByNeed (State (Heap (ByNeed τ)) v)|. Then you could also omit the
-definitions of |get| and |put|.}
-\sg{Have a look at 0d104f30cdd5eb6 :).
-I like the current version much better because there is far less newtype
-wrapping, and there is nothing we gain by using |StateT|, other than Simon
-wondering how StateT and |getN|,|putN| expands.
-Do also note that we derive |Monad| etc. |via StateT|, so it's not even about
-reuse.}
-\end{flushleft}
+%\begin{flushleft}
+%\sven{This is just the state monad. So why not define it by |newtype ByNeed
+%τ v = ByNeed (State (Heap (ByNeed τ)) v)|. Then you could also omit the
+%definitions of |get| and |put|.}
+%\sg{Have a look at 0d104f30cdd5eb6 :).
+%I like the current version much better because there is far less newtype
+%wrapping, and there is nothing we gain by using |StateT|, other than Simon
+%wondering how StateT and |getN|,|putN| expands.
+%Do also note that we derive |Monad| etc. |via StateT|, so it's not even about
+%reuse.}
+%\end{flushleft}
 \begin{code}
 evalNeed e ρ μ = unByNeed (eval e ρ :: D (ByNeed T)) μ
 
@@ -541,6 +541,7 @@ deriving via StateT (Heap (ByNeed τ)) τ instance Monad τ    => Monad (ByNeed 
 \end{figure}
 
 \subsubsection{Call-by-need}
+\label{sec:by-need-instance}
 
 The use of a stateful heap is essential to the call-by-need evaluation strategy
 in order to enable memoisation.
@@ -586,12 +587,11 @@ The |Trace| instance of |ByNeed τ| simply forwards to that of |τ| (\ie, often
 |T|), pointwise over heaps.
 Doing so needs a |Trace| instance for |τ (Value (ByNeed τ), Heap (ByNeed τ))|, but we
 found it more succinct to use a quantified constraint |(forall v. Trace (τ
-v))|, that is, we require a |Trace (τ v)| instance for every choice of |v|
-\sven{This sentence seems like an implementation detail. Is this really worth discussing?}
-\sg{You mean the explanation of quantified constraints? This is mostly so
-placate people unfamiliar with this GHC extension or what it is supposed to do.
-We can leave it out/shorten it if you think this explanation is unnecessary.}
-.
+v))|, that is, we require a |Trace (τ v)| instance for every choice of |v|.
+%\sven{This sentence seems like an implementation detail. Is this really worth discussing?}
+%\sg{You mean the explanation of quantified constraints? This is mostly so
+%placate people unfamiliar with this GHC extension or what it is supposed to do.
+%We can leave it out/shorten it if you think this explanation is unnecessary.}
 Given that |τ| must also be a |Monad|, that is not an onerous requirement.
 
 The key part is again the implementation of |HasBind| for |D (ByNeed τ)|,
@@ -602,13 +602,13 @@ Both |rhs| and |body| are called with |fetchN a|, a denotation that looks up |a|
 in the heap and runs it.
 If we were to omit the |memo a| action explained next, we would thus have
 recovered another form of call-by-name semantics based on mutable state instead
-of guarded fixpoints such as in |ByName| and |ByValue|
-\sven{I don't understand what we learn from this sentence that advances the storyline. The goal of this section is to understand |ByNeed| and not |ByName| or |ByValue|}
-\sg{The point is to say ``if we were to omit |memo|, this would be just another
-by-name semantics, which is something you already know.''. Would you say this is
-an unnecessary point? Otherwise, how would you improve? Or is it just the
-contrasting of fixpoint combinators (guarded recursion vs. mutable state) that
-you find distracting?}
+of guarded fixpoints such as in |ByName| and |ByValue|.
+%\sven{I don't understand what we learn from this sentence that advances the storyline. The goal of this section is to understand |ByNeed| and not |ByName| or |ByValue|}
+%\sg{The point is to say ``if we were to omit |memo|, this would be just another
+%by-name semantics, which is something you already know.''. Would you say this is
+%an unnecessary point? Otherwise, how would you improve? Or is it just the
+%contrasting of fixpoint combinators (guarded recursion vs. mutable state) that
+%you find distracting?}
 The whole purpose of the |memo a d| combinator then is to \emph{memoise} the
 computation of |d| the first time we run the computation, via |fetchN a| in the
 |Var| case of |evalNeed|.
@@ -647,7 +647,7 @@ The |Event| type needs semantics- and use-case-specific adjustment, though.}
 %\sg{I might have sufficiently addressed this point now.}
 
 Here is an example evaluating $\Let{i}{(\Lam{y}{\Lam{x}{x}})~i}{i~i}$, starting
-in an empty heap:
+in an empty \hypertarget{ex:eval-need-trace2}{heap}:
 
 < ghci> evalNeed (read "let i = (λy.λx.x) i in i i") emp emp :: T (Value _, Heap _)
 $\perform{evalNeed (read "let i = (λy.λx.x) i in i i") emp emp :: T (Value _, Heap _)}$
@@ -722,8 +722,8 @@ The effect of |Ret (getValue (unByValue d))| is that of stripping all |Step|s fr
 \footnote{We could have defined |d| as one big guarded fixpoint |fix (rhs .
 return . getValue . unByValue)|, but some co-authors prefer to see the expanded
 form.}
-\sg{Is |let d = rhs (strip d); strip = return . getValue . unByValue in ...|
-perhaps a more intuitive decomposition than |d|/|v|? Simon?}
+%\sg{Is |let d = rhs (strip d); strip = return . getValue . unByValue in ...|
+%perhaps a more intuitive decomposition than |d|/|v|? Simon?}
 
 Since nothing about |getValue| is particularly special to |T|, it lives in its
 own type class |Extract| so that we get a |HasBind| instance for different
