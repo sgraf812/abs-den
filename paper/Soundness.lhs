@@ -94,6 +94,7 @@ The next two steps apply adequacy of |evalNeed| to the trace, making the shift
 from LK trace to denotational interpreter.
 \end{proof}
 
+We define the by-need evaluation contexts for our language in the Appendix.
 Thus insulated from the LK machine, we may restate and prove
 \Cref{thm:absence-correct} for usage analysis.
 For that, we need to define the initial environment |ρe := exts emp x (MkUT
