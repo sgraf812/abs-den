@@ -22,8 +22,48 @@ import Interpreter
 \end{code}
 %endif
 
-\section{Abstraction}
+\section{Static Analysis}
 \label{sec:abstraction}
+
+Instantiating our generic denotational interpreter with a finite semantic domain
+yields a static program analysis.
+In this section, we demonstrate this at the example of a summary-based
+\emph{usage analysis}, inferring the \emph{operational trace property} of usage
+cardinality.
+However, there are many more possible applications. For example, we have
+successfully realised the following analyses as denotational interpreters,
+demonstrating the versatility of our framework:
+\begin{itemize}
+  \item
+    \Cref{sec:type-analysis} defines a Hindley-Milner-style \emph{type analysis}
+    with let generalisation, inferring types such as
+    $\forall α_3.\ \mathtt{option}\;(α_3 \rightarrow α_3)$.
+    Polymorphic types act as summaries in the sense of the Introduction, and
+    fixpoints are solved via unification.
+  \item
+    \Cref{sec:0cfa} defines 0CFA \emph{control-flow analysis}~\citep{Shivers:91}
+    as an instance of our generic interpreter.
+    The summaries are sets of labelled expressions that evaluation might return.
+    These labels are given meaning in an abstract store.
+    For a function label, the abstract store maintains a single point
+    approximation of the function's abstract transformer.
+    As usual for vanilla 0CFA, the resulting stateful domain is \emph{not}
+    finite and thus non-modular.
+  \item
+    We have refactored relevant parts of \emph{Demand Analysis} in the Glasgow
+    Haskell Compiler into an abstract denotational interpreter as an artefact.
+    The resulting compiler bootstraps and passes the testsuite.%
+    \footnote{There is a small caveat: we did not try to optimise for compiler
+    performance in our proof of concept and hence it regresses in a few
+    compiler performance test cases.
+    None of the runtime performance test cases regress and the inferred
+    demand signatures stay unchanged.}
+    Demand Analysis is the real-world implementation of the cardinality analysis
+    work of \citep{Sergey:14}, implementing strictness analysis as well.
+    This is to demonstrate that our framework scales to real-world compilers.
+\end{itemize}
+
+\sg{Need to adjust the following}
 
 Denotational interpreters encourage a light-weight two-step approach to
 developing program analyses:
