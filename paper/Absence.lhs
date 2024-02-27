@@ -162,7 +162,7 @@ declares the free variables of $\pe$ with a pessimistic summary $\aU..$.
         \Arrow{Unfold $\semabs{\Let{\px}{\pe_1}{\pe_2}}$. NB: Lazy Let!} \\
   ={} & \semabs{k~x_1~x_2}_{ρ_\pe[k↦k \both \semabs{\Lam{y}{\Lam{z}{y}}}_{ρ_\pe}]}
         \Arrow{Unfold $\semabs{\wild}$, $ρ_1 \triangleq ρ_\pe[k↦k \! \both \! \semabs{\Lam{y}{\Lam{z}{y}}}_{ρ_\pe}]$} \\
-  ={} & \mathit{app}(\mathit{app}(ρ_1(k),ρ_1(x_1)))(ρ_1(x_2))
+  ={} & \mathit{app}(\mathit{app}(ρ_1(k))(ρ_1(x_1)))(ρ_1(x_2))
         \Arrow{Unfold $ρ_1(k)$} \\
   ={} & \mathit{app}(\mathit{app}(k \both \semabs{\Lam{y}{\Lam{z}{y}}}_{ρ_1})(ρ_1(x_1)))(ρ_1(x_2))
         \Arrow{Unfold $\semabs{\Lam{\px}{\pe}}$ twice, $\semabs{\px}$} \\
@@ -174,39 +174,26 @@ declares the free variables of $\pe$ with a pessimistic summary $\aU..$.
         \Arrow{Unfold $\mathit{app}$, simplify} \\
   ={} & \langle [k ↦ \aU,x_1↦\aU], \aU.. \rangle
 \end{DispWithArrows}
-\sven{The following explanation needs to be shorted. This analysis is not our contribution. Hence we don't need to explain the trace in full detail. I would focus on the following points:
-\begin{itemize}
-\item Explain how the summary for $\lambda y. \lambda z. y$ is computed.
-\item Explain how the summary is applied in $k x_1 x_2$.
-\item Discuss the end result.
-\end{itemize}
-}
 Let us look at the steps in a bit more detail.
 Step \labelcref{eq:abs-ex-let} extends the environment with
 an absence type for the let right-hand side of $k$.
 The steps up until \labelcref{eq:abs-ex-summarise} successively expose
 applications of the $\mathit{app}$ and $\mathit{fun}$ helper functions applied
 to environment entries for the involved variables.
-Step \labelcref{eq:abs-ex-summarise} then evaluates $\mathit{fun}_y(\fn{θ_y}{\mathit{fun}_z(\fn{θ_z}{θ_y})})$ which computes the summary, as follows:
-\[
-\langle (([y↦\aU])[z↦\aA])[y↦\aA], (([y↦\aU])[z↦\aA])(y) \sumcons [y↦\aU](z) \sumcons \aU.. \rangle = \langle [], \aU \sumcons \aA \sumcons \aU.. \rangle.
-\]
-\sven{I would not show this intermediate result, just the end result $\langle [], \aU \sumcons \aA \sumcons \aU.. \rangle$}
-(Mind the difference between literal notation $[y ↦ \aU]$ and function update $\wild [ z ↦ \aA]$.)
-The resulting absence type $\langle [], \aU \sumcons \aA \sumcons \aU.. \rangle$
-abstracts the expression $\Lam{y}{\Lam{z}{y}}$.
+Step \labelcref{eq:abs-ex-summarise} then computes the summary as part of the absence type
+$\mathit{fun}_y(\fn{θ_y}{\mathit{fun}_z(\fn{θ_z}{θ_y})}) = \langle [], \aU \sumcons \aA \sumcons \aU.. \rangle$.
+The $\Uses$ component is empty because $\Lam{y}{\Lam{z}{y}}$ has no free variables,
+and $k \both ...$ will add $[k↦\aU]$ as the single use.
 The $\mathit{app}$ steps \labelcref{eq:abs-apply1,eq:abs-apply2} simply zip up
-the uses of $ρ_1(x_1)$ and $ρ_1(x_2)$ with the $\Absence$ flags
-in the summary $\aU \sumcons \aA \sumcons \aU..$, adding the $\Uses$ from
-$ρ_1(x_1) = \langle [x_1 ↦ \aU], \aU.. \rangle$ but not from $ρ_1(x_2)$,
-because the first actual argument ($x_1$) is used whereas the second ($x_2$) is
-absent.
+the uses of arguments $ρ_1(x_1)$ and $ρ_1(x_2)$ with the $\Absence$ flags
+in the summary $\aU \sumcons \aA \sumcons \aU..$ as highlighted, adding the
+$\Uses$ from $ρ_1(x_1) = \langle [x_1 ↦ \aU], \aU.. \rangle$ but \emph{not}
+from $ρ_1(x_2)$, because the first actual argument ($x_1$) is used whereas the
+second ($x_2$) is absent.
 The join on $\Uses$ follows pointwise from the order $\aA ⊏ \aU$, \ie, $(φ_1
 ⊔ φ_2)(\px) \triangleq φ_1(\px) ⊔ φ_2(\px)$.
-For the final result, these $\Uses$ are combined with the use on $k$ stemming
-from the variable lookup in the application head.
 
-The analysis result $[k ↦ \aU,x_1↦\aU]$ declares $k$ and $x_1$ as
+The analysis result $[k ↦ \aU,x_1↦\aU]$ infers $k$ and $x_1$ as
 potentially used and $x_2$ as absent, despite it occuring in argument position,
 thanks to the summary mechanism.
 
@@ -227,18 +214,19 @@ thanks to the summary mechanism.
 %Thus, $\semabs{\wild}$ can be used in a compiler to enable absent code removal.
 
 \subsection{Function Summaries, Compositionality and Modularity}
+\label{sec:summaries}
 
-\sven{I don't understand the purpose of this section. This section motivates why summery-based analyses are useful, but this doesn't motivate the problem we are solving. The problem we solve is to prove summary-based analyses sound illustrated in Section 2.4. I would drop this section entirely.}
-
-\sg{Section 2 is about substantiating the claim in the Introduction that we
-have two established alternatives that are \emph{unappealing}:
-Alt (1): Proof despite structural mismatch. Implies complicated proofs. The bulk
-of this section is about substantiating this claim.
-Alt (2): Reformulate the analysis in terms of AAM/CFA. But then we give up on
-summaries and lose modularity. That's what I want to substantiate in this subsection.
-So I added the following paragraph.
-Perhaps I should move this entire subsection to Related Work and point to that at the end of 2.2?
-}
+%\sven{I don't understand the purpose of this section. This section motivates why summery-based analyses are useful, but this doesn't motivate the problem we are solving. The problem we solve is to prove summary-based analyses sound illustrated in Section 2.4. I would drop this section entirely.}
+%
+%\sg{Section 2 is about substantiating the claim in the Introduction that we
+%have two established alternatives that are \emph{unappealing}:
+%Alt (1): Proof despite structural mismatch. Implies complicated proofs. The bulk
+%of this section is about substantiating this claim.
+%Alt (2): Reformulate the analysis in terms of AAM/CFA. But then we give up on
+%summaries and lose modularity. That's what I want to substantiate in this subsection.
+%So I added the following paragraph.
+%Perhaps I should move this entire subsection to Related Work and point to that at the end of 2.2?
+%}
 
 Instead of coming up with a summary mechanism, we could simply have ``inlined''
 $k$ during analysis of the example above to see that $x_2$ is absent in a simple
@@ -263,7 +251,7 @@ is indeed important for a soundness proof and corresponds to a substitution
 \Cref{thm:absence-subst}.}
 
 To support efficient separate compilation, a compiler analysis must be
-\emph{modular}, and summaries are indispensable to achieving that.
+\emph{modular}, and summaries are indispensable in achieving that.
 Let us say that our example function $k = (\Lam{y}{\Lam{z}{y}})$ is defined in
 module A and there is a use site $(k~x_1~x_2)$ in module B.
 Then a \emph{modular analysis} must not reanalyse A.$k$ at its use site in B.
@@ -332,35 +320,34 @@ purely based on call strings.
 %correct; that is why they are capstone lemmas in type system soundness
 %proofs~\citep{tapl} and a crucial part in proving $\semabs{\wild}$ correct.
 
-\subsection{Problem: Proving Soundness of Summary-Base Analyses}
+\subsection{Problem: Proving Soundness of Summary-Based Analyses}
 
 In this subsection, we demonstrate the difficulty of proving summary-based
 analyses sound.
 
-\sven{The storyline can be streamlined. Right now the story is:
-\begin{itemize}
-\item To prove the absence analysis sound, we need to show Theorem 1.
-\item Why is it difficult to prove?
-\item But before we explain the difficulty, we must first define absence in Definition 2.
-\item Furthermore, before we explain the difficulty, we must also prove substitution in Lemma 3.
-\item Now we look at some existing proofs of such analyses and why they are difficult...
-\end{itemize}
-I propose the following storyline:
-\begin{itemize}
-\item To prove the absence analysis sound, we need to show Theorem 1.
-\item Theorem 1 (Combine theorem 1 and definition 2):
-  If $\semabs{\pe}_{ρ_\pe} = \langle φ, \varsigma \rangle$ and $φ(\px) = \aA$, implies $\px$ is absent in $\pe$.
-  $\px$ is absent in $\pe$ if there exists no trace ... that evaluates $\px$.
-\item The proof is in the appendix. The proof is exemplary for more ambitios proofs such as ...
-\item Here are the reasons why such proofs are difficult (1) ... (2) ... (3) ...
-\end{itemize}
-In the last point you can incorporate the substitution lemma and why it is difficult
-}
-
-\sg{We refer to Def 2 and Lemma 3 later on; they are a recurring scheme.
-Lemma 3 is not too difficult to prove and always necessary for a summary-based analysis.
-I tried to leave some forward references to clarify.}
-% Suppose that we were to prove $\semabs{\wild}$ correct. The following statement will do:
+%\sven{The storyline can be streamlined. Right now the story is:
+%\begin{itemize}
+%\item To prove the absence analysis sound, we need to show Theorem 1.
+%\item Why is it difficult to prove?
+%\item But before we explain the difficulty, we must first define absence in Definition 2.
+%\item Furthermore, before we explain the difficulty, we must also prove substitution in Lemma 3.
+%\item Now we look at some existing proofs of such analyses and why they are difficult...
+%\end{itemize}
+%I propose the following storyline:
+%\begin{itemize}
+%\item To prove the absence analysis sound, we need to show Theorem 1.
+%\item Theorem 1 (Combine theorem 1 and definition 2):
+%  If $\semabs{\pe}_{ρ_\pe} = \langle φ, \varsigma \rangle$ and $φ(\px) = \aA$, implies $\px$ is absent in $\pe$.
+%  $\px$ is absent in $\pe$ if there exists no trace ... that evaluates $\px$.
+%\item The proof is in the appendix. The proof is exemplary for more ambitios proofs such as ...
+%\item Here are the reasons why such proofs are difficult (1) ... (2) ... (3) ...
+%\end{itemize}
+%In the last point you can incorporate the substitution lemma and why it is difficult
+%}
+%
+%\sg{We refer to Def 2 and Lemma 3 later on; they are a recurring scheme.
+%Lemma 3 is not too difficult to prove and always necessary for a summary-based analysis.
+%I tried to leave some forward references to clarify.}
 
 \begin{theoremrep}[$\semabs{\wild}$ infers absence]
   \label{thm:absence-correct}
@@ -875,7 +862,7 @@ Building on these definitions, we may finally attempt the proof for
 \Cref{thm:absence-correct}.
 We suggest for the reader to have a cursory look by clicking on the theorem
 number, linking to the Appendix.
-The proof is exemplary of even more ambitious proofs such as in
+The proof is exemplary of far more ambitious proofs such as in
 \citet{Sergey:14} and \citet[Section 4]{Breitner:16}.
 Though seemingly disparate, these proofs all follow an established
 preservation-style proof technique at heart.%
@@ -891,8 +878,8 @@ and Lemmas below reference \citet{Sergey:14}):
     in \Cref{sec:op-sem}) such that heap lookups decrement a per-address
     counter; when heap lookup is attempted and the counter is 0, the machine is stuck.
     For absence, the instrumentation is simpler: the $\LookupT$
-    transition in \Cref{fig:lk-semantics} carries the let-bound variable the
-    heap binding of which we look up.
+    transition in \Cref{fig:lk-semantics} carries the let-bound variable that is
+    looked up.
   \item Give a declarative type system that characterises the results of the
     analysis (\ie, $\semabs{\wild}$) in a lenient (upwards closed) way.
     In case of \Cref{thm:absence-correct}, we define an analysis function on
@@ -982,10 +969,9 @@ $\semabs{\wild}$, as suggested above) demonstrates that we can
 \textbf{\emph{derive summary-based analyses as an abstract interpretation}} from
 our semantics.
 Since both semantics and analysis are derived from the same compositional
-generic interpreter, the soundness proof for usage analysis in
-\Cref{thm:usage-correct} takes no more than a substitution lemma and a bit of
-plumbing.
-Hence our \emph{Denotational Interpreter} does not only enjoy useful
+generic interpreter, the equivalent of the preservation proof for usage analysis
+in \Cref{thm:usage-abstracts-need-closed} takes no more than a substitution
+lemma and a bit of plumbing.
+Hence our \emph{denotational interpreter} does not only enjoy useful
 compositional semantics and analyses as instances, the soundness proofs become
-compositional as well, building on reusable evaluation-order-specific theorems
-such as \Cref{thm:soundness-by-name}.
+compositional in the semantic domain as well.
