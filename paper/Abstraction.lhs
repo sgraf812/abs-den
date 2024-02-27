@@ -25,13 +25,15 @@ import Interpreter
 \section{Static Analysis}
 \label{sec:abstraction}
 
-So far, our semantic domains all been \emph{infinite}, and hence our traces have
-also been potentially infinite.  However, by instantiating the \emph{same} generic
+So far, our semantic domains have all been \emph{infinite}, and our traces have
+been potentially infinite as well.
+However, by instantiating the \emph{same} generic
 denotational interpreter with a \emph{finite} semantic domain, we can run the
 interpreter on the program, at compile time, to yield a
-\emph{finite} trace.  This gives us a \emph{static program analysis}.
+\emph{finite} abstraction of a program trace.
+This gives us a \emph{static program analysis}.
 
-We can get a wide range of static analyses, simply by choosing an appropriate finite semantic domain in each case.
+We can get a wide range of static analyses, simply by choosing an appropriate semantic domain in each case.
 For example, we have successfully realised the following analyses as denotational interpreters:
 \begin{itemize}
   \item
@@ -47,8 +49,9 @@ For example, we have successfully realised the following analyses as denotationa
     These labels are given meaning in an abstract store.
     For a function label, the abstract store maintains a single point
     approximation of the function's abstract transformer.
-    As usual for vanilla 0CFA, the resulting stateful domain is \emph{not}
-    finite and thus non-modular.
+%    As usual for vanilla 0CFA, the resulting stateful domain is \emph{not}
+%    finite and thus non-modular.
+%    \sg{I think this raises more questions than it answers.}
   \item
     We have refactored relevant parts of \emph{Demand Analysis} in the Glasgow
     Haskell Compiler into an abstract denotational interpreter as an artefact.
@@ -222,7 +225,7 @@ instance Show UValue where
 
 
 The first step in defining a static analysis is to define a \emph{finite}
-semantic domain.  For usage analysis, our domain |UD = UT UValue|,
+semantic domain.  For usage analysis, our domain is |UD = UT UValue|,
 where |UT| is the type of traces, and |UValue| of values, much as before.
 Now we must make both traces and values finite (\Cref{fig:usage-analysis}).
 First, traces:
@@ -243,9 +246,15 @@ Usage analysis is a modest generalisation of absence analysis in \Cref{fig:absen
 a variable is absent ($\aA$) when it has usage |U0|, otherwise it is used ($\aU$).
 \slpj{Why generalise? It makes it a bit more complicated, and more importantly
 different, than Section 2.}
+\sg{The main reason (a year back) was to prove that we correctly approximate
+|U1| usages, which would not be possible in previous denotational semantics.
+Indeed, \Cref{thm:usage-abstracts-need-closed} proves that we do so successfully.
+But nowadays, Sec 2 proves against a small-step semantics, where the difference
+probably does not matter too much.
+Either way, I'm a bit hesitant to change it this close to submission.}
 
 The |step| method of the |UT| instance of the |Trace| class (\Cref{fig:usage-analysis})
-simply augments the usage of a variable |x| whenever the |Lookup x| event occurs.
+simply increments the usage of a variable |x| whenever the |Lookup x| event occurs.
 The addition operation is defined in type class instances |UVec U| and |UVec
 Uses|, together with scalar multiplication that will be useful in
 \Cref{sec:usage-analysis}.%
@@ -304,8 +313,9 @@ $\pe \triangleq \Let{id}{\Lam{x}{x}}{\Let{t}{(\Lam{y}{y})~id}{\Let{v}{Z()}{\Let{
 \label{fig:usage-instrumentation-examples}
 \end{table}
 
-Why is it important to invent |UT| instead of simply defining |Trace Uses|?
-\slpj{Answer: |Trace| is infinite!!!}
+Why is it important to invent |UT| instead of simply defining an instance |Trace Uses|?
+%\slpj{Answer: |Trace| is infinite!!!}
+%\sg{No, |Trace| is a type class. |T Uses| is probably what you were thinking of.}
 The reason is exciting: the |Monad| instance induces a |Domain| instance on |D
 (ByName UT)|, at which we can instantiate our generic interpreter to get an
 \emph{instrumentation} of |evalName| for free!
@@ -377,11 +387,11 @@ intuition built in \Cref{sec:problem} transfers.
 %\sven{I would have preferred a single trace as in L162. This makes it much clearer what the analysis does, because you can see the intermediate steps. Also it would be good if the example program could included slightly more complicated functions (not identity), so we can see the summary mechanism at work. Maybe the same example program as in L162?}
 %\sg{I now bring the same example as in Sec 2, but I don't want to go into too much detail here, because that won't yield much new insight.}
 Consider
-$|evalUsg (({-" \Let{x_2}{x_1}{\Let{k}{\Lam{y}{\Lam{z}{y}}}{k~x_3~x_2}} "-})) ρe|
- = \perform{evalUsg (read "let x_2 = x_1 in let k = λy.λz.y in k x_3 x_2") (Map.fromList [("x_1", MkUT (singenv "x_1" U1) (Rep Uω)), ("x_3", MkUT (singenv "x_3" U1) (Rep Uω))])}$,
+$|evalUsg (({-" \Let{k}{\Lam{y}{\Lam{z}{y}}}{k~x_1~x_2} "-})) ρe|
+ = \perform{evalUsg (read "let k = λy.λz.y in k x_1 x_2") (Map.fromList [("x_1", MkUT (singenv "x_1" U1) (Rep Uω)), ("x_2", MkUT (singenv "x_2" U1) (Rep Uω))])}$,
 the example expression from \Cref{sec:problem}.
-Usage analysis successfully infers that $x_3$ is used at most once and that
-$x_1$ is absent.
+Usage analysis successfully infers that $x_1$ is used at most once and that
+$x_2$ is absent.
 
 On the other hand,
 $|evalUsg (({-" \Let{i}{\Lam{x}{x}}{\Let{j}{\Lam{y}{y}}{i~i~j}} "-})) emp|
@@ -443,10 +453,7 @@ uses in case alternatives, one of which will be taken.
 The last ingredient to static analysis is the fixpoint strategy in |HasBind|,
 to be used for recursive let bindings.
 Since any |d::UD| is finite, we can no longer use a guarded fixpoint, so we will
-use least fixpoints%
-\footnote{The use of unification to compute fixpoints in Hindley-Milner type
-inference (\Cref{sec:type-analysis}) demonstrates that |kleeneFix| is not the
-only viable static strategy to compute fixpoints.}
+use least fixpoints
 (computed by |kleeneFix| in \Cref{fig:lat}) instead.
 The resulting definition of |HasBind| is safe for by-name and by-need semantics.%
 \footnote{Why is the use of \emph{least} fixpoints even correct?
@@ -460,11 +467,8 @@ on $\Absence$ flags.%
 \footnote{The keen reader may note that the least fixed-point does not
 always exist due to infinite ascending chains such as
 |UCons U1 (UCons U1 (... Rep U0))|.
-This can be easily worked around with appropriate widening measures.
-A very simple one is to turn |Rep U0| into |Rep Uω| when the |UValue|
-exceeds a certain constant depth.
-We simply assume that such a procedure is in effect and hence that all fixpoints
-exist.}
+This can be easily worked around with appropriate widening measures, for example
+by bounding the depth of |UValue|.}
 %\sven{The order should have been defined in the previous section where you introduce the types. Also I would not say anything about the orders if they are obvious as with $\AbsTy$.}
 %\sg{I think one short sentence does not hurt, especially for people with a
 %different background (\eg, type theory). Simon often wants me to point out even
