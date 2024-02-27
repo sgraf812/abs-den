@@ -249,7 +249,7 @@ finite, inductive type).
 \begin{figure}
 \[\begin{array}{rcl}
   α_\Environments(μ, [\many{\px ↦ \pa}]) & = & [\many{|x| ↦ |Step (Lookup y) (fetch a)| \mid μ(\pa) = (\py,\wild,\wild)}] \\
-  α_\Heaps([\many{\pa ↦ (ρ,\pe)}]) & = & [\many{|a| ↦ |memo a (eval e (αEnv μ ρ))|}] \\
+  \hspace{-1em} α_\Heaps([\many{\pa ↦ (\wild,ρ,\pe)}]) & = & [\many{|a| ↦ |memo a (eval e (αEnv μ ρ))|}] \\
   α_\States(\Lam{\px}{\pe},ρ,μ,κ) & = & |(Fun (\d -> Step App2 (eval e (ext (αEnv μ ρ) x d))), αHeap μ)| \\
   α_\States(K~\overline{\px},ρ,μ,κ) & = & |(Con k (map (αEnv μ ρ !) xs), αHeap μ)| \\
   α_\Events(σ) & = & \begin{cases}
@@ -266,7 +266,7 @@ finite, inductive type).
     |Ret ({-" α_\States(σ_0) "-})| & \text{when }\ctrl(σ_0) \text{ value } \wedge \cont(σ_0) = κ \\
     |Ret Stuck| & \text{otherwise} \\
   \end{cases} \\
-  \correct((σ_i)_{i∈\overline{n}}) & = & \maxtrace{(σ_i)_{i∈\overline{n}}} \Longrightarrow ∀((\pe,ρ,μ,κ) = σ_0).\ α_{\STraces}((σ_i)_{i∈\overline{n}},κ) = |eval e (αEnv μ ρ) (αHeap μ)| \\
+  \correct((σ_i)_{i∈\overline{n}}) & = & \maxtrace{(σ_i)_{i∈\overline{n}}} \Longrightarrow ∀((\pe,ρ,μ,κ) = σ_0).\ α_{\STraces}((σ_i)_{i∈\overline{n}},κ) = |evalNeed e (αEnv μ ρ) (αHeap μ)| \\
 \end{array}\]
 \vspace{-1em}
 \caption{Correctness predicate for |eval|}

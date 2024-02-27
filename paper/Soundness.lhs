@@ -61,7 +61,7 @@ In this subsection, we prove that usage analysis from \Cref{sec:abstraction}
 infers absence in the same sense as absence analysis from \Cref{sec:problem},
 emphasising the reduced complexity on the proof.
 
-\sven{This sentence is hard to understand since you explain \emph{how} you achieve someting before you explain \emph{what} you actually achieve. 
+\sven{This sentence is hard to understand since you explain \emph{how} you achieve someting before you explain \emph{what} you actually achieve.
 Better:
 \begin{enumerate}
 \item Explain what you are about to do: Redefine absence in terms of $\mathcal{S}$.
@@ -592,7 +592,7 @@ machine contexts  $(\hole,μ,κ)$ to evaluation contexts $\pE$.
   \mathit{trans}(\pE,[\many{\px ↦ \pe}],κ) & = & \Letmany{\px}{\pe}{\mathit{trans}(\pE,[],κ)} \\
   \mathit{trans}(\pE,[],\ApplyF(\px) \pushF κ) & = & \mathit{trans}(\pE~\px,[],κ) \\
   \mathit{trans}(\pE,[],\SelF(\Sel) \pushF κ) & = & \mathit{trans}(\Case{\pE}{\Sel},[],κ) \\
-  \mathit{trans}(\pE,[],\UpdateF(\px) \pushF κ) & = & \Let{\px}{\pE}{\mathit{stk}(\hole, κ)[\px]} \\
+  \mathit{trans}(\pE,[],\UpdateF(\px) \pushF κ) & = & \Let{\px}{\pE}{\mathit{trans}(\hole, [], κ)[\px]} \\
   \mathit{trans}(\pE,[],\StopF) & = & \pE \\
 \end{array}\]
 Certainly the most interesting case is that of $\UpdateF$ frames, encoding
@@ -625,7 +625,7 @@ fillC (UpdateHeap x ectxt e1) e2  = Let x (fillC ectxt e1) e2
 \begin{lemma}[Used variables are free]
   \label{thm:used-free}
   If |x| does not occur in |e| and in |ρ| (that is, |forall y. (ρ ! y)^.φ !?
-  x = A0|), then |(evalUsg e ρ)^.φ !? x = U0|.
+  x = U0|), then |(evalUsg e ρ)^.φ !? x = U0|.
 \end{lemma}
 \begin{proof}
   By induction on |e|.
@@ -1372,7 +1372,7 @@ The monotone function |f| defined as follows
 \begin{center}
 \begin{spec}
   f :: UD -> UD
-  f (MkUT φ _) = if φ !? y ⊑ 0 then MkUT emp (Rep Uω) else MkUT (singenv z U1) (Rep Uω)
+  f (MkUT φ _) = if φ !? y ⊑ U0 then MkUT emp (Rep Uω) else MkUT (singenv z U1) (Rep Uω)
 \end{spec}
 \end{center}
 violates |f a ⊑ apply (fun x f) a|.
