@@ -30,7 +30,7 @@ As before, all the proofs can be found in the Appendix.
 %Contribution.}
 
 For proving adequacy of |evalNeed|, we give an abstraction function $α$ from
-small-step traces in the lazy Krivine machine (\Cref{fig:lk-semantics}) into the
+small-step traces in the lazy Krivine machine (\Cref{fig:lk-semantics}) to
 denotational traces |T|, with |Events| and all, such that
 \[
   |evalNeed e emp emp| = α(\init(\pe) \smallstep ...),
