@@ -594,17 +594,18 @@ In other words, if every environment lookup produces a |Step| constructor, then
 our semantics is total by coinduction.
 Such an argument is quite natural to encode in guarded recursive types, hence
 our use of Guarded Cubical Agda is appealing.
+See \Cref{sec:totality-details} for the details of the encoding in Agda.
 \end{proofsketch}
 
-Encoding the productivity argument in Guarded Cubical Agda was far easier and is
-far more convincing than the traditional alternative of solving algebraic domain
-equations and proving continuity of all involved functions by hand.%
-\footnote{Of course, the underlying model of guarded recursive type
-theories is the topos of trees~\citep{gdtt}, which very much enjoys an
-approximation order and partiality.
-In essence, we are using guarded type theory as a meta language in the sense of
-\citet{Moggi:07}.}
-See \Cref{sec:totality-details} for the details of this encoding.
+%Encoding the productivity argument in Guarded Cubical Agda was far easier and is
+%far more convincing than the traditional alternative of solving algebraic domain
+%equations and proving continuity of all involved functions by hand.%
+%\footnote{Of course, the underlying model of guarded recursive type
+%theories is the topos of trees~\citep{gdtt}, which very much enjoys an
+%approximation order and partiality.
+%In essence, we are using guarded type theory as a meta language in the sense of
+%\citet{Moggi:07}.}
+%See \Cref{sec:totality-details} for the details of this encoding.
 
 \begin{toappendix}
 \subsection{Total Encoding in Guarded Cubical Agda}
