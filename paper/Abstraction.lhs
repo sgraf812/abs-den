@@ -226,11 +226,11 @@ semantic domain.  For usage analysis, our domain |UD = UT UValue|,
 where |UT| is the type of traces, and |UValue| of values, much as before.
 Now we must make both traces and values finite (\Cref{fig:usage-analysis}).
 First, traces:
-\begin{code}
+\begin{spec}
 data UT v  = MkUT Uses v
 type Uses  = Name :-> U
 data U     = U0 | U1 | Uω
-\end{code}
+\end{spec}
 A trace |UT v| returning a value |v| is no longer a potentially-infinite list:
 rather, it is simply a pair of the value |v| and a finite map |Uses| that
 maps the variables (both free and bound) of the expression to the \emph{usage} |U|
