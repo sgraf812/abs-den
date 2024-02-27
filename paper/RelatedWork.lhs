@@ -42,7 +42,7 @@ of big-step semantics --- excludes stuck and diverging traces.
 
 Our denotational interpreter bears strong resemblance to
 a denotational semantics~\citep{ScottStrachey:71},
-or a definitional interpreter~\citep{Reynolds:72}
+or to a definitional interpreter~\citep{Reynolds:72}
 featuring a finally encoded domain~\citep{Carette:07}
 using higher-order abstract syntax~\citep{Pfenning:88}.
 The key distinction to these approaches is that we generate small-step traces,
@@ -68,55 +68,49 @@ correspond to big-step interpreters.
 transform a partial denotational interpreter into a variant of the LK machine,
 going the reverse route of \Cref{sec:adequacy}.
 
-\subsubsection*{Coinduction, Fuel and Mechanisation}
+\subsubsection*{Coinduction and Fuel}
 \citet{LeroyGrall:09} show that a coinductive encoding of big-step semantics
 is able to encode diverging traces by proving it equivalent to a small-step
 semantics, much like we did for a denotational semantics.
-\citet{Owens:16} recognise the usefulness of definitional interpreters for
-correctness proofs, albeit in big-step style and using a fuel-based encoding of
-infinite behaviors.
-The work of \citet{Atkey:13} had big influence on our use of the later modality
-and Löb induction.
+%\citet{Owens:16} recognise the usefulness of definitional interpreters for
+%correctness proofs, albeit in big-step style and using a fuel-based encoding of
+%infinite behaviors.
+The work of \citet{Atkey:13,tctt} had big influence on our use of the later
+modality and Löb induction.
 
 Our trace type |T| is appropriate for tracking ``pure'' transition events,
 but it is not up to the task of modelling user input, for example.
 We expect that guarded interaction trees~\citep{interaction-trees,gitrees} would
 be very simple to integrate into our framework to help with that.
 
-While working out how to embed |evalNeed| in Guarded Cubical Agda~\citep{tctt} and
-then attempting mechanised proofs about it, we very soon decided
-that we were not up to the task, not least due to lack of automation and the
-general perceived tediousness of Cubical types.
-Perhaps we shall try again with an encoding of guarded recursion rather than
-using a language where it is primitive.
+%While working out how to embed |evalNeed| in Guarded Cubical Agda~\citep{tctt} and
+%then attempting mechanised proofs about it, we very soon decided
+%that we were not up to the task, not least due to lack of automation and the
+%general perceived tediousness of Cubical types.
+%Perhaps we shall try again with an encoding of guarded recursion rather than
+%using a language where it is primitive.
 
 \subsubsection*{Contextual Improvement}
 Abstract interpretation is useful to prove that an analysis approximates
 the right trace property, but it does not make any claim on whether a
 transformation conditional on some trace property is actually sound, yet alone
 an \emph{improvement}~\citep{MoranSands:99}.
-If we were to prove update avoidance~\citep{Gustavsson:98} correct, would we use
-our denotational interpreter to do so?
-We have spent some time on this issue and are torn:
-Defining a contextual improvement relation $\lessequiv$ based on |evalNeed|
-invites all kinds of troubling concerns relating to undefinable
-elements~\citep{Plotkin:77}, and if we were to define $\lessequiv$ on syntax,
-then what is the difference to \citet{MoranSands:99}, other than complicating
-matters?
-We think there is none, and hence we would stick to the established improvement
-relation $\lessequiv$.
-\Cref{thm:need-adequate} can be used to translate trace properties from the realm
-of denotational interpreter to small-step semantics.
+%If we were to prove update avoidance~\citep{Gustavsson:98} correct, would we use
+If we were to prove dead code elimination correct based on our notion of
+absence, would we use our denotational interpreter to do so?
+Probably not; we would try to conduct as much of the proof as possible in the
+equational theory, \ie, on syntax.
+If need be, we could always switch to denotational interpreters via
+\Cref{thm:need-adequate-strong}, just as in \Cref{thm:absence-denotational}.
+\citet{HackettHutton:19} have done so as well.
 
 \subsubsection*{Abstract Interpretation and Relational Analysis}
 \citet{Cousot:21} recently condensed his seminal work rooted in \citet{Cousot:77}.
 The book advocates a compositional, trace-generating semantics and then derives
-compositional analyses by calculational design, and was a huge inspiration to
-this work, especially earlier drafts.
-However, while \citet{Cousot:02} presumes a higher-order language with compositional
-semantics and \citet{Cousot:94} starts from a denotational semantics for lambda
-calculus, it was unclear to us how to derive a compositional,
-trace-generating semantics for a \emph{higher-order} language.
+compositional analyses by calculational design, inpiring us to attempt the same.
+However, while \citet{Cousot:94,Cousot:02} work with denotational semantics
+for higher-order language, it was unclear to us how to derive a compositional,
+\emph{trace-generating} semantics for a higher-order language.
 The required changes to the domain definitions seemed daunting, to say the
 least.
 Our solution delegates this complexity to the underlying theory of guarded
@@ -145,16 +139,16 @@ although in practice it is often $k \leq 1$.
 %transition to a big-step style interpreter follow simply by adequacy of our
 %interpreter, \Cref{thm:sem-adequate}.
 
-Abstracting Abstract Machines~\citep{aam} is an ingenious recipe to derive
+The Abstracting Abstract Machines~\citep{aam} derives
 a computable \emph{reachable states semantics}~\citep{Cousot:21} from any
 small-step semantics, by bounding the size of the heap.
 %By bounding the size of the store, the freely choosably
 %$\widehat{\mathit{alloc}}$ function embodies a precision-performance trade-off.
-Many analyses such as control-flow analysis (and perhaps a variant of usage
-analysis) arise as abstractions of reachable states.
-In fact, we think that for any trace property (\ie, |Trace| instance), there
-is an analysis that can be built on CFA, without the need to define a custom
-summary mechanism encoded as a |Domain| instance.
+Many analyses such as control-flow analysis arise as abstractions of reachable
+states.
+In fact, we think that CFA can be used to turn any finite |Trace| instance such
+as |UT| into a static analysis, without the need to define a custom summary
+mechanism.
 
 \citet{adi} and others apply the AAM recipe to big-step interpreters in the style
 of \citeauthor{Reynolds:72}. %, in order to share analysis code with the semantics.
@@ -164,7 +158,7 @@ of \citeauthor{Reynolds:72}. %, in order to share analysis code with the semanti
 shared code follows by parametricity~\citep{Wadler:89}.
 We found it quite elegant to utilise parametricity in this way, but
 unfortunately the free theorem for our interpreter is too weak because it
-excludes the syntactic premises in \Cref{fig:by-name-soundness-lemmas}.
+excludes the syntactic premises in \Cref{fig:abstraction-laws}.
 %Once the right correctness statement was established, the main proof became so
 %simple that it could easily be automated.
 
@@ -212,17 +206,18 @@ expressions and thus evaluation contexts is finite.
 \citet{Mangal:14} have shown that a summary-based analysis can be equivalent
 to $\infty$-CFA for arbitrary complete lattices and outperform 2-CFA in both
 precision and speed.
-\Cref{sec:summaries} demonstrates why summary-based analyses scale better.
-To illustrate why they can also be more preicse, consider the Haskell expression
-
-< let f n = let i y = y in if n == 0 then 0 else i (f (n-1) + 1) in f 42{-"."-}
-
-The definition of |f| is a complicated way to define the identity function.
-Nevertheless, it is evident that |i| is evaluated at most once, and
-|evalUsg| would infer this fact for the respective subexpression.
-On the other hand, $k$-CFA (for $k < 42$) would confuse different recursive
-activations of |i|, thus conservatively attributing evaluations multiple times,
-to the effect that |i| is not inferred as used at most once.
+%\Cref{sec:summaries} demonstrates why summary-based analyses scale better.
+%In the Appendix we argue why they can also be more precise
+%To illustrate why they can also be more preicse, consider the Haskell expression
+%
+%< let f n = let i y = y in if n == 0 then 0 else i (f (n-1) + 1) in f 42{-"."-}
+%
+%The definition of |f| is a complicated way to define the identity function.
+%Nevertheless, it is evident that |i| is evaluated at most once, and
+%|evalUsg| would infer this fact for the respective subexpression.
+%On the other hand, $k$-CFA (for $k < 42$) would confuse different recursive
+%activations of |i|, thus conservatively attributing evaluations multiple times,
+%to the effect that |i| is not inferred as used at most once.
 
 %Given a semantic description of abstract values, it is likely
 %that the implementation of |Domain| can be synthesised using the approach of
