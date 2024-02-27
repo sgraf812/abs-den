@@ -27,12 +27,21 @@ set = P . Set.singleton
 \section{Abstract Soundness}
 \label{sec:soundness}
 
+\sven{The storyline of Section 7.0 needs to be improved. Currently, you mix the explanation of what Section 7 proves with a comparision to the proof in Section 2. It is hard to understand these two things simulataneusly, especially, because you don't explain how you proved your result until the second paragraph. I would split these two things:
+\begin{enumerate}
+\item Explain what you have proved: We prove that the usage analysis infers absence
+\item Explain why the property that you have proved is important: the usage analysis can be used for compiler optimizations
+\item Explain on a high-level how you achieved that: We instantiate a generic soundness statement ...
+\item Finally, explain why Section 7's proof is better than Section 2's proof: we do not need to show usage analysis-specific preservation lemma.
+\end{enumerate}}
+
 This section will finally link back to \Cref{sec:problem}
 and prove that usage analysis infers absence in the sense of
-\Cref{defn:absence}.
+\Cref{defn:absence}\sven{Section title is more general then what you promis here. The section title makes you believe that you explain how soundness can be proved in general (for all analyses), but in the first sentence you refer to the usage analysis}\sven{Add one sentence motivating why proving that the usage analysis infering absence is important}.
 In stark contrast to the proof for \Cref{thm:absence-correct},
 we do not need to show a usage analysis-specific preservation lemma to do so.
 \emph{We cannot stress enough how drastic a simplification this is!}
+\sven{Try to avoid sentences with extreme emphasis. This makes you sound like Donald Trump and usually doesn't convince reviewers. Instead try to convince with arguments: Explain why it is easier}
 In \Cref{sec:problem} we argued that a proof for such a lemma drowned in
 semantic complexity unrelated to the analysis at hand, so the proof became
 tedious, hand-wavy and error-prone.
@@ -52,14 +61,22 @@ In this subsection, we prove that usage analysis from \Cref{sec:abstraction}
 infers absence in the same sense as absence analysis from \Cref{sec:problem},
 emphasising the reduced complexity on the proof.
 
+\sven{This sentence is hard to understand since you explain \emph{how} you achieve someting before you explain \emph{what} you actually achieve. 
+Better:
+\begin{enumerate}
+\item Explain what you are about to do: Redefine absence in terms of $\mathcal{S}$.
+\item Explain why this is important: To abstract away from the details of the LK machine
+\item Explain why this makes sense: by adequacy, $\mathcal{S}$ and the LK produce the same event sequences
+\end{enumerate}
+}
 The first step is to utilise adequacy (\Cref{thm:need-adequate-strong}) to
 leave behind the definition of absence in terms of the LK machine in favor
-of one using |evalNeed|:
+of one using |evalNeed|\sven{Would it be possible to write the full word in the name of the semantics? "need" is much easier to understand without context than "ne"}:
 \begin{lemmarep}
   \label{thm:absence-denotational}
-  |x| is used in |e| if and only if there exists a by-need evalution context
+  \sven{This is a definition, not a lemma?}|x| is used in |e| if and only if there exists a by-need evalution context
   |ectxt| and expression |e'| such that
-  |evalNeed (fillC ectxt (Let x e' e)) emp emp = ... ^^ Step (Lookup x) ^^ ...| .
+  |evalNeed (fillC ectxt (Let x e' e)) emp emp = ... ^^ Step (Lookup x) ^^ ...| \sven{Just write "the trace |evalNeed (fillC ectxt (Let x e' e)) emp emp| does not contain a |Lookup x| event.}.
   (Otherwise, |x| is absent in |e|.)
 \end{lemmarep}
 \begin{proof}
@@ -96,23 +113,26 @@ from LK trace to denotational interpreter.
 
 We define the by-need evaluation contexts for our language in the Appendix.
 Thus insulated from the LK machine, we may restate and prove
-\Cref{thm:absence-correct} for usage analysis.
+\Cref{thm:absence-correct} for usage analysis\sven{You don't need to explain that Theorem 7 is independent of the LK machine. It is obvious now since you redefined absence above}.
 For that, we need to define the initial environment |ρe := exts emp x (MkUT
-(singenv x U1) (Rep Uω))| with an entry for every free variable |x| of |e|.
+(singenv x U1) (Rep Uω))| with an entry for every free variable |x| of |e|\sven{I would move this definition into theorem 7, since the initial environment is not used anywhere else}.
 
-\begin{theoremrep}[|evalUsg| infers absence]
+\sven{The abstraction function $\alpha$ is fundamental to understand the proof  of Theorem 7 and Lemma 8. This warrants to introduce $\alpha$ beforehand. I would include something like this here: "The proof of the following Thoerem requires an abstraction function $\alpha: \mathit{P}(D_{\mathbf{need}}) \to D_{\mathbf{usage}}$ that aggregates lookups in a trace per variable into usage information |Uses| (add reference to formal definition in appendix). For example, $\alpha\{ [ Lookup(x) ], [ Lookup(y) ] \} = \ldots$."}
+
+\begin{theoremrep}[|evalUsg|\sven{Same here. Can we write "usage" instead of "usg"?} infers absence]
   \label{thm:usage-absence}
   If |evalUsg e ρe = MkUT φ v| and |φ !? x = U0|,
   then |x| is absent in |e|.
 \end{theoremrep}
 \begin{proofsketch}
 If |x| is used in |e|, there is a trace |evalNeed (fillC ectxt (Let x e' e)) emp emp = ... ^^ Step (Lookup x) ^^ ...|.
-Define a function |α| paraphrased below that aggregates lookups
-in that trace per variable into a |φ' :: Uses|, just as usage instrumentation
-in \Cref{sec:usage-instrumentation}.
-Cearly, it is |φ' !? x ⊒ U1|, because there is at least one |Lookup x|.
+Define an abstraction function |α|\sven{show the type of $\alpha$. It's $\mathit{P}(D_{\mathbf{need}}) \to D_{\mathbf{usage}}$, correct?} that aggregates lookups
+in the trace per variable into |φ' :: Uses|, just as usage instrumentation
+in \Cref{sec:usage-instrumentation}\sven{broken reference}\sven{The reference to another section is not immediatly helpful to understand $\alpha$. I would replace this second clause with a short example: $\alpha\{ [ Lookup(x) ], [ Lookup(y) ] \} = \ldots$}.
+Clearly, it is |φ' !? x ⊒ U1|, because there is at least one |Lookup x|.
 \Cref{thm:usage-abstracts-need-closed} below guarantees that the |φ| computed
 by |evalUsg| approximates |φ'|, so |φ !? x ⊒ φ' !? x ⊒ U1 //= U0|.
+\sven{The proof sketch completely skips over the context lemma 38. This seems like an important detail that you should probably include.}
 \end{proofsketch}
 \begin{proof}
 We show the contraposition, that is,
@@ -253,6 +273,8 @@ its compactness; it is an instance of the general by-need correctness
 \end{figure}
 
 \subsection{Abstraction Laws for By-Need Soundness}
+
+\sven{Currently how the section 7.2 is motivated is very boring. It sounds like you presented the most interesting result with Theorem 7 and now you have some work left to do for Lemma 8.}
 
 This subsection introduces a set of \emph{abstraction laws} concerning the
 abstract semantic domain of a static analysis.
