@@ -34,7 +34,7 @@
 %format qquad = "\qquad"
 %format ^ = " "
 %format ^^ = "\;"
-%format # =
+%format # = "\;"
 
 %subst conid a = "\conid{" a "}"
 %subst varid a = "\varid{" a "}"
