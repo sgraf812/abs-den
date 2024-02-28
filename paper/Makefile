@@ -14,9 +14,9 @@ appendix.pdf: abs-den.pdf
 abs-den-main.pdf: abs-den.pdf
 	nix run nixpkgs#pdftk -- abs-den.pdf cat 1-28 output abs-den-main.pdf
 
-supplemental.zip: Interpreter.hs StaticAnalysis.hs Soundness.hs hs/*.hs ../agda/*.agda
-	sh -c "cd ..; git archive -o paper/supplemental.zip --prefix=agda/ HEAD:agda"
-	nix run nixpkgs#zip -- -j supplemental.zip Interpreter.hs StaticAnalysis.hs Soundness.hs ./hs/{Annotated,Exp,Order,Sergey14}.hs
+supplement.zip: Interpreter.hs StaticAnalysis.hs Soundness.hs hs/*.hs ../agda/*.agda
+	sh -c "cd ..; git archive -o paper/supplement.zip --prefix=agda/ HEAD:agda"
+	nix run nixpkgs#zip -- -j supplement.zip Interpreter.hs StaticAnalysis.hs Soundness.hs ./hs/{Annotated,Exp,Order,Sergey14}.hs
 
 abs-den.tex: *.lhs *.fmt
 	LANG=C.UTF-8 lhs2TeX --poly -o $@ abs-den.lhs
@@ -53,7 +53,7 @@ watch-ext:
 watch-test:
 	ls [A-Z]*.lhs | entr -n make test
 
-submission: abs-den-main.pdf appendix.pdf supplemental.zip
+submission: abs-den-main.pdf appendix.pdf supplement.zip
 	@grep '^\\documentclass\[acmsmall,review,anonymous\]{acmart}' abs-den.lhs # Test for submission mode
 
 clean:
