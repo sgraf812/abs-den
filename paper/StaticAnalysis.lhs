@@ -25,15 +25,15 @@ import Interpreter
 \section{Static Analysis}
 \label{sec:abstraction}
 
-So far, our semantic domains have all been \emph{infinite}, and our traces have
-been potentially infinite as well.
-However, by instantiating the \emph{same} generic
-denotational interpreter with a \emph{finite} semantic domain, we can run the
-interpreter on the program, at compile time, to yield a
-\emph{finite} abstraction of a program trace.
+So far, our semantic domains have all been \emph{infinite}, simply because the
+dynamic traces they express are potentially infinite as well.
+However, by instantiating the \emph{same} generic denotational interpreter with
+a \emph{finite} semantic domain, we can run the interpreter on the program
+statically, at compile time, to yield a \emph{finite} abstraction of the dynamic
+behavior.
 This gives us a \emph{static program analysis}.
 
-We can get a wide range of static analyses, simply by choosing an appropriate semantic domain in each case.
+We can get a wide range of static analyses, simply by choosing an appropriate semantic domain.
 For example, we have successfully realised the following analyses as denotational interpreters:
 \begin{itemize}
   \item
@@ -66,35 +66,23 @@ For example, we have successfully realised the following analyses as denotationa
     This is to demonstrate that our framework scales to real-world compilers.
 \end{itemize}
 
-In this section, we demonstrate this idea in detail, using as our example
-the very simple \emph{usage analysis} described in \Cref{sec:absence}.
-We follow a two-step approach, which works equally well for all static analyses:
-\begin{itemize}
-\item The first step is to define a |Trace| instance for a type capturing the
-\emph{operational property} of interest (\Cref{sec:usage-instrumentation}).
-Doing so immediately yields an \emph{instrumentation} of the dynamic semantics
-for free, allowing for rapid prototyping.
-\item The second step is to specify a \emph{summary mechanism} in terms of a
-|Domain| instance and a fixpoint strategy (|HasBind|) so as to \emph{statically
-approximate} the operational property (\Cref{sec:usage-analysis}).
-Our generic interpreter then yields a static analysis for free.
-\end{itemize}
-The code for this analysis is given in \Cref{fig:usage-analysis}.
+In this section, we demonstrate this idea in detail, using a much simpler
+version of GHC's Demand Analysis: a summary-based \emph{usage analysis},
+the code of which is given in \Cref{fig:usage-analysis}.
+%We follow a two-step approach, which works equally well for all static analyses:
+%\begin{itemize}
+%\item The first step is to define a |Trace| instance for a type capturing the
+%\emph{operational property} of interest (\Cref{sec:usage-instrumentation}).
+%Doing so immediately yields an \emph{instrumentation} of the dynamic semantics
+%for free, allowing for rapid prototyping.
+%\item The second step is to specify a \emph{summary mechanism} in terms of a
+%|Domain| instance and a fixpoint strategy (|HasBind|) so as to \emph{statically
+%approximate} the operational property (\Cref{sec:usage-analysis}).
+%Our generic interpreter then yields a static analysis for free.
+%\end{itemize}
+%The code for this analysis is given in \Cref{fig:usage-analysis}.
 
-% \subsection{Applications other than Usage Analysis}
-%
-% Bear in mind that usage analysis is merely a storyline-critical example!
-% To demonstrate the versatility of our approach, we also
-% defined a compositional Hindley-Milner-style type analysis (\cf
-% \Cref{sec:type-analysis}) as well as 0CFA (\cf \Cref{sec:0cfa}) as an instance
-% of our generic denotational interpreter; you can find outlines in the Appendix
-% and the complete implementations in the supplied extract of this document.
-% Furthermore, we have refactored relevant parts of Demand Analysis in
-% the Glasgow Haskell Compiler (\ie, an analysis implementing the work of
-% \citep{Sergey:14}) into an abstract denotational interpreter to demonstrate that
-% our framework scales to real-world compilers.
-
-\subsection{Step One: Usage Instrumentation}
+\subsection{Trace Abstraction}
 \label{sec:usage-instrumentation}
 
 \begin{figure}
@@ -223,21 +211,29 @@ instance Show UValue where
 \label{fig:usage-analysis}
 \end{figure}
 
+In order to get a static usage analysis as an instance of our generic interpreter,
+we must define its finite semantic domain |UD|.
+Often, the first step in doing so is to replace the potentially infinite traces
+|T| in dynamic semantic domains such as |D (ByName T)| with a finite type such
+as |UT| in \Cref{fig:usage-analysis}.
+An abstract trace |data UT v = MkUT Uses v| is simply a pair of the value |v|
+and a finite map |Uses| that maps the variables (both free and bound) of the
+expression to the \emph{usage} |U| of that variable.
 
-The first step in defining a static analysis is to define a \emph{finite}
-semantic domain.  For usage analysis, our domain is |UD = UT UValue|,
-where |UT| is the type of traces, and |UValue| of values, much as before.
-Now we must make both traces and values finite (\Cref{fig:usage-analysis}).
-First, traces:
-\begin{spec}
-data UT v  = MkUT Uses v
-type Uses  = Name :-> U
-data U     = U0 | U1 | Uω
-\end{spec}
-A trace |UT v| returning a value |v| is no longer a potentially-infinite list:
-rather, it is simply a pair of the value |v| and a finite map |Uses| that
-maps the variables (both free and bound) of the expression to the \emph{usage} |U|
-of that variable.
+%The first step in defining a static analysis is to define a \emph{finite}
+%semantic domain.  For usage analysis, our domain is |UD = UT UValue|,
+%where |UT| is the type of traces, and |UValue| of values, much as before.
+%Now we must make both traces and values finite (\Cref{fig:usage-analysis}).
+%First, traces:
+%\begin{spec}
+%data UT v  = MkUT Uses v
+%type Uses  = Name :-> U
+%data U     = U0 | U1 | Uω
+%\end{spec}
+%A trace |UT v| returning a value |v| is no longer a potentially-infinite list:
+%rather, it is simply a pair of the value |v| and a finite map |Uses| that
+%maps the variables (both free and bound) of the expression to the \emph{usage} |U|
+%of that variable.
 The |U|sage |U0| means ``at most 0 times'', |U1| means ``at most 1 times'',
 % and |Uω| can be read as ``at most $ω$ times'', where $ω$ is the first limit
 % ordinal, greater than any natural number.
