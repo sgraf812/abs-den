@@ -1,7 +1,7 @@
 %options ghci -ihs -pgmL lhs2TeX -optL--pre -XPartialTypeSignatures
 % Need the -XPartialTypeSignatures for the CbNeed example, for some weird reason
-%include custom.fmt
 %if style == newcode
+%include custom.fmt
 \begin{code}
 {-# OPTIONS_GHC -Wno-simplifiable-class-constraints #-}
 {-# LANGUAGE DerivingStrategies #-}

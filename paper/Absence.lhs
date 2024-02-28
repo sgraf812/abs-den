@@ -1,5 +1,6 @@
 %if style == newcode
-> module Problem where
+%include custom.fmt
+> module Absence where
 %endif
 
 \section{The Problem We Solve}
