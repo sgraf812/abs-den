@@ -31,7 +31,7 @@ abs-den.tex: *.lhs *.fmt
 	$(PDFLATEX) $*
 
 diagnostic: abs-den.tex macros.tex
-	$(PDFLATEX) -draftmode abs-den | texlogfilter
+	$(PDFLATEX) -draftmode abs-den | texlogfilter --no-box
 
 quick: abs-den.tex macros.tex
 	$(PDFLATEX) -draftmode abs-den
