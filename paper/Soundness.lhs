@@ -421,8 +421,7 @@ the preservation-style proof framework in \Cref{sec:problem}.
 %\item Explain what you are about to do: Redefine absence in terms of $\mathcal{S}$.
 %\item Explain why this is important: To abstract away from the details of the LK machine
 %\item Explain why this makes sense: by adequacy, $\mathcal{S}$ and the LK produce the same event sequences
-%\end{enumerate}
-%}
+%\end{enumerate}}
 %\sg{I think it's better now. Thanks}
 The first step is to leave behind the definition of absence in terms of the LK
 machine in favor of one using |evalNeed|.

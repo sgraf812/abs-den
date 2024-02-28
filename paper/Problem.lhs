@@ -226,8 +226,8 @@ thanks to the summary mechanism.
 %Alt (2): Reformulate the analysis in terms of AAM/CFA. But then we give up on
 %summaries and lose modularity. That's what I want to substantiate in this subsection.
 %So I added the following paragraph.
-%Perhaps I should move this entire subsection to Related Work and point to that at the end of 2.2?
-%}
+%Perhaps I should move this entire subsection to Related Work and point to that at the end of 2.2?}
+
 
 Instead of coming up with a summary mechanism, we could simply have ``inlined''
 $k$ during analysis of the example above to see that $x_2$ is absent in a simple
@@ -343,8 +343,7 @@ analyses sound.
 %\item The proof is in the appendix. The proof is exemplary for more ambitios proofs such as ...
 %\item Here are the reasons why such proofs are difficult (1) ... (2) ... (3) ...
 %\end{itemize}
-%In the last point you can incorporate the substitution lemma and why it is difficult
-%}
+%In the last point you can incorporate the substitution lemma and why it is difficult}
 %
 %\sg{We refer to Def 2 and Lemma 3 later on; they are a recurring scheme.
 %Lemma 3 is not too difficult to prove and always necessary for a summary-based analysis.
