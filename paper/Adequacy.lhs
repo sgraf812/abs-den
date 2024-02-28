@@ -8,10 +8,10 @@ module Adequacy where
 
 \section{Totality and Semantic Adequacy}
 
-In this section, we prove that the |evalNeed| produces small-step traces of the
+In this section, we prove that |evalNeed2| produces small-step traces of the
 lazy Krivine machine and is indeed a \emph{denotational semantics}.%
 \footnote{Similar results for |evalName| and |evalVInit| should be derivative.}
-Excitingly, to our knowledge, |evalNeed| is the first denotational call-by-need
+Excitingly, to our knowledge, |evalNeed2| is the first denotational call-by-need
 semantics that was proven so!
 Specifically, denotational semantics must be total and adequate.
 \emph{Totality} says that the interpreter is well-defined for every input expression and \emph{adequacy} says that the interpreter produces similar traces as the reference semantics.
@@ -19,7 +19,7 @@ This is an important result because it allows us to switch between operational r
 of definitions such as absence in \Cref{defn:absence}.
 As before, all the proofs can be found in the Appendix.
 
-\subsection{Adequacy of |evalNeed|}
+\subsection{Adequacy of |evalNeed2|}
 \label{sec:adequacy}
 %\sven{Section title makes readers believe that you only proved adequancy of |ByNeed|, but you did it for |ByName| as well, right?}
 %\sg{No, just by-need, in fact.
@@ -29,7 +29,7 @@ As before, all the proofs can be found in the Appendix.
 %But ultimately I think that is too simple an exercise to count as an interesting
 %Contribution.}
 
-For proving adequacy of |evalNeed|, we give an abstraction function $α$ from
+For proving adequacy of |evalNeed2|, we give an abstraction function $α$ from
 small-step traces in the lazy Krivine machine (\Cref{fig:lk-semantics}) to
 denotational traces |T|, with |Events| and all, such that
 \[
@@ -371,10 +371,10 @@ For such a maximal |τ| we will say that it is balanced when it ends with
 |Ret v| for a |v /= Stuck|, stuck if ending in |Ret Stuck| and diverging if
 infinite.
 
-We are now ready to prove the main soundness predicate, proving that |evalNeed|
+We are now ready to prove the main soundness predicate, proving that |evalNeed2|
 is an exact abstract interpretation of the LK machine:
 
-\begin{theorem}[|evalNeed| abstracts LK machine]
+\begin{theorem}[|evalNeed2| abstracts LK machine]
   \label{thm:need-abstracts-lk}
   $\correct$ from \Cref{fig:eval-correctness} holds.
   That is, whenever $(σ_i)_{i∈\overline{n}}$ is a maximal LK trace with source
@@ -503,7 +503,7 @@ notion of adequacy from before.
 
 (A state $σ$ is \emph{final} when $\ctrl(σ)$ is a value and $\cont(σ) = \StopF$.)
 
-\begin{theorem}[Adequacy of |evalNeed|]
+\begin{theorem}[Adequacy of |evalNeed2|]
   \label{thm:need-adequate}
   Let |τ := evalNeed e emp emp|.
   \begin{itemize}
@@ -570,7 +570,7 @@ notion of adequacy from before.
 \end{proof}
 \end{toappendix}
 
-\subsection{Totality of |evalName| and |evalNeed|}
+\subsection{Totality of |evalName| and |evalNeed2|}
 \label{sec:totality}
 
 \begin{theorem}[Totality]
@@ -583,7 +583,7 @@ In the Supplement, we provide an implementation of the generic interpreter
 which offers a total type theory with \emph{guarded recursive
 types}~\citet{tctt}.
 Agda enforces that all encodable functions are total, therefore |evalName| and
-|evalNeed| must be total as well.
+|evalNeed2| must be total as well.
 
 The essential idea of the totality proof is that \emph{there is only a finite
 number of transitions between every $\LookupT$ transition}.
