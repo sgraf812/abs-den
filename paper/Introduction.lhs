@@ -100,8 +100,8 @@ We make the following contributions:
   in the lazy Krivine machine~\citep{Sestoft:97}, preserving its length as well
   as arbitrary operational information about each transition taken.
 \item By instantiating the generic interpreter with a finite, abstract semantic
-  domain in \Cref{sec:abstraction}, we recover usage analysis, a generalisation
-  of absence analysis in \Cref{sec:problem}, making use of summaries as well.
+  domain in \Cref{sec:abstraction}, we recover summary-based usage analysis, a generalisation
+  of absence analysis in \Cref{sec:problem}.
   %Such static analyses can be defined in two steps:
   %in the first, an operational property is encoded by a fold over the trace,
   %inducing an instrumented interpreter.
