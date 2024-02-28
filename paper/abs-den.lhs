@@ -225,7 +225,7 @@
 \maketitle
 
 %include Introduction.lhs
-%include Absence.lhs
+%include Problem.lhs
 %include OpSem.lhs
 %include Interpreter.lhs
 %include Adequacy.lhs
