@@ -298,7 +298,7 @@ instance Monad τ => Domain (D τ) where
     _                        -> stuck
 
 ifPoly (instance HasBind DName where
-  bind # rhs body = body (let d = rhs d in d)
+  bind # rhs body = let d = rhs d in body d
 \end{code}
 \\[-2.5em]
 \subcaption{Concrete by-name semantics for |DName|}

@@ -183,15 +183,14 @@ This states that summarising |f| through |fun|, then |apply|ing the summary to
 |a| must approximate a direct call to |f|;
 it amounts to proving correct the summary mechanism.%
 \footnote{To illustrate this point: if we were to pick dynamic |Value|s as the
-summary as in usage instrumentation |D (ByNeed UT)|, we would not need to show
-anything! Then |apply (return (Fun f)) a = f a|.}
+summary as in the ``collecting semantics'' |D (ByNeed UT)|, we would not need to
+show anything! Then |apply (return (Fun f)) a = f a|.}
 In \Cref{sec:problem}, we have proved a substitution \Cref{thm:absence-subst},
 which is a syntactic form of this statement.
 We will need a similar lemma for usage analysis below, and it is useful to
 illustrate the next point, so we prove it here:
 
 \begin{toappendix}
-\label{sec:soundness-appendix}
 \begin{abbreviation}[Field access]
   |(MkUT φ' v').φ := φ'|, |(MkUT φ' v').v = v'|.
 \end{abbreviation}
@@ -795,6 +794,7 @@ By induction on the size of |ectxt| and cases on |ectxt|:
 \end{proof}
 
 \subsection{Abstract Interpretation and Denotational Interpreters}
+\label{sec:abstract-interpretation}
 
 So far, we have seen how to \emph{use} the abstraction
 \Cref{thm:soundness-by-need-closed}, but its proof merely points to
@@ -864,7 +864,7 @@ connection |nameNeed| as exemplified in \Cref{thm:soundness-by-need-closed}.
 We like to describe a semantic trace property as a ``fold'', in terms of a
 |Trace| instance.
 For example, we collect a trace into a |Uses| in
-\Cref{sec:usage-instrumentation} and \Cref{thm:usage-abstracts-need-closed}.
+\Cref{sec:usage-trace-abstraction} and \Cref{thm:usage-abstracts-need-closed}.
 Of course such a fold (an inductive elimination procedure) has no meaning when
 the trace is infinite!
 Yet it is always clear what we mean: when the trace is infinite, we consider the

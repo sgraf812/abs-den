@@ -25,15 +25,15 @@ import Interpreter
 \section{Static Analysis}
 \label{sec:abstraction}
 
-So far, our semantic domains have all been \emph{infinite}, and our traces have
-been potentially infinite as well.
-However, by instantiating the \emph{same} generic
-denotational interpreter with a \emph{finite} semantic domain, we can run the
-interpreter on the program, at compile time, to yield a
-\emph{finite} abstraction of a program trace.
+So far, our semantic domains have all been \emph{infinite}, simply because the
+dynamic traces they express are potentially infinite as well.
+However, by instantiating the \emph{same} generic denotational interpreter with
+a \emph{finite} semantic domain, we can run the interpreter on the program
+statically, at compile time, to yield a \emph{finite} abstraction of the dynamic
+behavior.
 This gives us a \emph{static program analysis}.
 
-We can get a wide range of static analyses, simply by choosing an appropriate semantic domain in each case.
+We can get a wide range of static analyses, simply by choosing an appropriate semantic domain.
 For example, we have successfully realised the following analyses as denotational interpreters:
 \begin{itemize}
   \item
@@ -66,36 +66,12 @@ For example, we have successfully realised the following analyses as denotationa
     This is to demonstrate that our framework scales to real-world compilers.
 \end{itemize}
 
-In this section, we demonstrate this idea in detail, using as our example
-the very simple \emph{usage analysis} described in \Cref{sec:absence}.
-We follow a two-step approach, which works equally well for all static analyses:
-\begin{itemize}
-\item The first step is to define a |Trace| instance for a type capturing the
-\emph{operational property} of interest (\Cref{sec:usage-instrumentation}).
-Doing so immediately yields an \emph{instrumentation} of the dynamic semantics
-for free, allowing for rapid prototyping.
-\item The second step is to specify a \emph{summary mechanism} in terms of a
-|Domain| instance and a fixpoint strategy (|HasBind|) so as to \emph{statically
-approximate} the operational property (\Cref{sec:usage-analysis}).
-Our generic interpreter then yields a static analysis for free.
-\end{itemize}
-The code for this analysis is given in \Cref{fig:usage-analysis}.
+In this section, we demonstrate this idea in detail, using a much simpler
+version of GHC's Demand Analysis: a summary-based \emph{usage analysis},
+the code of which is given in \Cref{fig:usage-analysis}.
 
-% \subsection{Applications other than Usage Analysis}
-%
-% Bear in mind that usage analysis is merely a storyline-critical example!
-% To demonstrate the versatility of our approach, we also
-% defined a compositional Hindley-Milner-style type analysis (\cf
-% \Cref{sec:type-analysis}) as well as 0CFA (\cf \Cref{sec:0cfa}) as an instance
-% of our generic denotational interpreter; you can find outlines in the Appendix
-% and the complete implementations in the supplied extract of this document.
-% Furthermore, we have refactored relevant parts of Demand Analysis in
-% the Glasgow Haskell Compiler (\ie, an analysis implementing the work of
-% \citep{Sergey:14}) into an abstract denotational interpreter to demonstrate that
-% our framework scales to real-world compilers.
-
-\subsection{Step One: Usage Instrumentation}
-\label{sec:usage-instrumentation}
+\subsection{Trace Abstraction in |Trace UT|}
+\label{sec:usage-trace-abstraction}
 
 \begin{figure}
 \begin{minipage}{0.4\textwidth}
@@ -214,7 +190,7 @@ instance Applicative UT where
   (<*>) = ap
 
 instance Show UValue where
-  show (Rep u) = show u ++ ".."
+  show (Rep u) = "\\conid{Rep}\\;" ++ show u
   show (UCons u v) = show u ++ " \\sumcons " ++ show v
 \end{code}
 %endif
@@ -223,183 +199,112 @@ instance Show UValue where
 \label{fig:usage-analysis}
 \end{figure}
 
-
-The first step in defining a static analysis is to define a \emph{finite}
-semantic domain.  For usage analysis, our domain is |UD = UT UValue|,
-where |UT| is the type of traces, and |UValue| of values, much as before.
-Now we must make both traces and values finite (\Cref{fig:usage-analysis}).
-First, traces:
-\begin{spec}
-data UT v  = MkUT Uses v
-type Uses  = Name :-> U
-data U     = U0 | U1 | Uω
-\end{spec}
-A trace |UT v| returning a value |v| is no longer a potentially-infinite list:
-rather, it is simply a pair of the value |v| and a finite map |Uses| that
-maps the variables (both free and bound) of the expression to the \emph{usage} |U|
-of that variable.
-The |U|sage |U0| means ``at most 0 times'', |U1| means ``at most 1 times'',
-% and |Uω| can be read as ``at most $ω$ times'', where $ω$ is the first limit
-% ordinal, greater than any natural number.
+In order to recover usage analysis as an instance of our generic interpreter, we
+must define its finite semantic domain |UD|.
+Often, the first step in doing so is to replace the potentially infinite traces
+|T| in dynamic semantic domains such as |DName| with a finite type such
+as |UT| in \Cref{fig:usage-analysis}.
+A \emph{usage trace} |MkUT φ val :: UT v| is a pair of a value |val :: v|
+and a finite map |φ :: Uses|, mapping variables to a \emph{usage} |U|.
+The usage |φ !? x| assigned to |x| is meant to approximate the number of |Lookup x|
+events; |U0| means ``at most 0 times'', |U1| means ``at most 1 times'',
 and |Uω| means ``an unknown number of times''.
-Usage analysis is a modest generalisation of absence analysis in \Cref{fig:absence}:
-a variable is absent ($\aA$) when it has usage |U0|, otherwise it is used ($\aU$).
-\slpj{Why generalise? It makes it a bit more complicated, and more importantly
-different, than Section 2.}
-\sg{The main reason (a year back) was to prove that we correctly approximate
-|U1| usages, which would not be possible in previous denotational semantics.
-Indeed, \Cref{thm:usage-abstracts-need-closed} proves that we do so successfully.
-But nowadays, Sec 2 proves against a small-step semantics, where the difference
-probably does not matter too much.
-Either way, I'm a bit hesitant to change it this close to submission.}
+In this way, |UT| is an \emph{abstraction} of |T|: it squashes all |Lookup x|
+events into a single entry |φ !? x :: U| and discards all other events.
 
-The |step| method of the |UT| instance of the |Trace| class (\Cref{fig:usage-analysis})
-simply increments the usage of a variable |x| whenever the |Lookup x| event occurs.
-The addition operation is defined in type class instances |UVec U| and |UVec
-Uses|, together with scalar multiplication that will be useful in
-\Cref{sec:usage-analysis}.%
+Consider as an example the by-name trace evaluating $\pe \triangleq
+\Let{i}{\Lam{x}{x}}{\Let{j}{\Lam{y}{y}}{i~j~j}}$:
+\[\perform{evalName (read "let i = λx.x in let j = λy.y in i j j") emp}\]
+\noindent
+We would like to abstract this trace into |MkUT [i ↦ U1, j ↦ Uω] dots|.
+One plausible way to achieve this is to replace every |Step (Lookup x) dots|
+in the by-name trace with a call to |step (Lookup x) dots| from the |Trace UT|
+instance in \Cref{fig:usage-analysis}, quite similar to |foldr step| on lists.
+The |step| implementation increments the usage of |x| whenever a |Lookup x|
+event occurs.
+The addition operation used to carry out incrementation is defined in type class
+instances |UVec U| and |UVec Uses|, together with scalar multiplication.%
 \footnote{We think that |UVec| models |U|-modules. It is not a vector
 space because |U| lacks inverses, but the intuition is close enough.}
 For example, |U0 + u = u| and |U1 + U1 = Uω| in |U|, as well as |U0 * u = U0|,
 |Uω * U1 = Uω|.
 These operations lift to |Uses| pointwise, \eg,
-$(|Uω| * [|x| ↦ |U1|]) + [|y| ↦ |U1|] = [|x| ↦ |Uω|, |y| ↦ |U1|]$.
-\slpj{I'm not sure that re-using |(+)| is a good plan.  I keep running off to look for |Num| instances.}
+|[i ↦ U1] + (Uω * [j ↦ U1]) = [i ↦ U1, j ↦ Uω]|.
+%\slpj{I'm not sure that re-using |(+)| is a good plan.  I keep running off to look for |Num| instances.}
 
-% The first step in defining a static analysis is to define the operational
-% property that is worth approximating.
-% We argued in \Cref{sec:problem} that it is useful to have an upper bound on the
-% number of |Lookup| transitions occuring during evaluation of an expression,
-% for example to perform dead code elimination.
-% We refer to these upper bounds as \emph{usage cardinality} |U| in
-% \Cref{fig:usage-analysis}, and our goal is to aggregate these upper bounds per
-% let-bound variable, in a |φ :: Uses|, just as absence analysis did.
-
-Consider as an example the by-name trace evaluating $\pe \triangleq
-\Let{i}{\Lam{x}{x}}{\Let{j}{\Lam{y}{y}}{i~j}}$:
-\[\perform{evalName (read "let i = λx.x in let j = λy.y in i j") emp}\]
+Following through on the |foldr step| idea to abstract a |T| into |UT|
+amounts to what \citet{adi} call a \emph{collecting semantics} of the interpreter.
+Such semantics-specific collecting variants are easily achievable for us as
+well.
+It is as simple as defining a |Monad| instance on |UT| mirroring trace
+concatenation and then running our interpreter at, \eg, $|D (ByName UT)| \cong
+|UT (Value UT)|$ on expression $\pe$ from earlier:
+\[
+  |eval (({-"\Let{i}{\Lam{x}{x}}{\Let{j}{\Lam{y}{y}}{i~j~j}}"-})) emp| = \perform{eval (read "let i = λx.x in let j = λy.y in i j j") emp :: D (ByName UT)}| :: D (ByName UT)|.
+\]
 \noindent
-We would like to abstract this trace into $[|i| ↦ |U1|, |j| ↦ |U1|]|:: Uses|$.
-% To do that, we fold over the trace, starting with an empty |emp :: Uses|,
-% and whenever there is a |Step (Lookup x) τ|, we add $[|x| ↦ |U1|]$ to the
-% |Uses| corresponding to |τ|.
-% The addition operation is defined in type class instances |UVec U| and |UVec
-% Uses|, together with scalar multiplication that will be useful in
-% \Cref{sec:usage-analysis}.%
-% \footnote{We think that |UVec| models |U|-modules. It is not a vector
-% space because |U| lacks inverses, but the intuition is close enough.}
-% For example, |U0 + u = u| and |U1 + U1 = Uω| in |U|, as well as |U0 * u = U0|,
-% |Uω * U1 = Uω|.
-% These operations lift to |Uses| pointwise, \eg,
-% $(|Uω| * [|x| ↦ |U1|]) + [|y| ↦ |U1|] = [|x| ↦ |Uω|, |y| ↦ |U1|]$.
+It is nice to explore whether the |Trace| instance encodes the desired
+operational property in this way, but of little practical relevance because
+this interpreter instance will diverge whenever the input expression diverges.
+We fix this in the next subsection by introducing a finite |UValue| to replace
+|Value UT|.
 
-% %\sven{Start the paragraph with a high-level goal: "To abstract the concrete trace to usage information, we define a custom trace instance ..."}
-% The intuitive abstraction from |Step|s into |Uses| via fold above is encoded in
-% the |Trace| instance of the custom trace type |UT|.
-% Much like |T|, it forms a |Monad|; one that aggregates |Uses| via |(+)|.
-
-\begin{table}
-\begin{tabular}{clll}
-\toprule
-\#  & |d|              & |eval e emp :: d| \\
-\midrule
-(1) & |D (ByName UT)|  & $\perform{eval (read "let id = λx.x in let t = (λy.y) id in let v = Z() in let u = v in t t") emp :: D (ByName UT)}$ \\
-(2) & |D (ByValue UT)| & $\perform{eval (read "let id = λx.x in let t = (λy.y) id in let v = Z() in let u = v in t t") emp :: D (ByValue UT)}$ \\
-(3) & |D (ByNeed UT)|  & $\perform{unByNeed (eval (read "let id = λx.x in let t = (λy.y) id in let v = Z() in let u = v in t t") emp) emp :: UT (Value (ByNeed UT), Heap _)}$ \\
-\bottomrule
-\end{tabular}
-\caption{Comparing the usage instrumentation of different evaluation strategies on the expression \\
-$\pe \triangleq \Let{id}{\Lam{x}{x}}{\Let{t}{(\Lam{y}{y})~id}{\Let{v}{Z()}{\Let{u}{v}{t~t}}}}$.}
-\label{fig:usage-instrumentation-examples}
-\end{table}
-
-Why is it important to invent |UT| instead of simply defining an instance |Trace Uses|?
-%\slpj{Answer: |Trace| is infinite!!!}
-%\sg{No, |Trace| is a type class. |T Uses| is probably what you were thinking of.}
-The reason is exciting: the |Monad| instance induces a |Domain| instance on |D
-(ByName UT)|, at which we can instantiate our generic interpreter to get an
-\emph{instrumentation} of |evalName| for free!
-Indeed,
-$           |eval e emp :: D (ByName UT)|
-  = \perform{eval (read "let i = λx.x in let j = λy.y in i j") emp :: D (ByName UT)}$
-for the example expression $\pe$ from earlier.
-Thus, we finally reap the benefits of having defined |Domain| and |HasBind|
-instances in \Cref{sec:interp} polymorphically over the inner trace |τ|.
-\Cref{fig:usage-instrumentation-examples} lists the results of running
-the instrumented interpreter on another characteristic expression, with three
-different evaluation strategies |ByName|, |ByValue| and |ByNeed|.%
-\footnote{For |ByValue|, we additionally need |instance Extract UT where extract (MkUT _ v) = v|.}
-As can be seen, the by-need strategy only evaluates what is needed.
-The by-value strategy additionally uses the unused binding $v$ and the by-name
-strategy evaluates $id$ multiple times since the thunk $t$ is evaluated multiple times.
-
-Alas, even though the domain is finite,
-running the instrumented interpreter will diverge whenever the object
-program diverges.
-We fix that in Step Two, where we extend |UT| into a proper abstract domain |UD|
-for static analysis.
-
-\subsection{Step Two: Usage analysis}
+\subsection{Value Abstraction |UValue| and Summarisation in |Domain UD|}
 \label{sec:usage-analysis}
 
-\begin{figure}
-\begin{spec}
-class Eq a => Lat a where bottom :: a; (⊔) :: a -> a -> a;
-kleeneFix :: Lat a => (a -> a) -> a; qquad lub :: Lat a => [a] -> a
-kleeneFix f = go bottom where go x = let x' = f x in if x' ⊑ x then x' else go x'
-\end{spec}
-\\[-1em]
-\caption{Order theory and Kleene iteration}
-\label{fig:lat}
-\end{figure}
+In this subsection, we complement the finite trace type |UT| from the previous
+subsection with a corresponding finite semantic value type |UValue| to get the
+finite semantic domain |UD = UT UValue| in \Cref{fig:usage-analysis}, and thus a
+\emph{static usage analysis} |evalUsg| when we instantiate |eval| at |UD|.
 
+%If we want to assess usage cardinality statically, we have to find a more
+%abstract, finite representation of |Value|.%
+%\footnote{In particular, the negative recursive occurrence in
+%|Fun :: (τ (highlight Value τ) -> ...) -> Value τ| is disqualifying.}
 
-%\sven{Add an introductory sentence that explains what this section is about and what problem it solves}
-We have defined usage cardinality as an operational property via |Trace|
-instance, and checked that this property is indeed useful by running the
-instrumentation on a few examples.
-The next step is to \emph{statically approximate} this operational property,
-so that we do not need to \emph{run} potentially diverging programs in order to
-infer the property.
-We discuss how to do that in this subsection.
+The definition of |UValue| is just a copy of $\varsigma ∈ \Summary$ in
+\Cref{fig:absence} that lists argument usage |U| instead of $\Absence$ flags;
+the entire intuition transfers.
+For example, the |UValue| summarising $\Lam{y}{\Lam{z}{y}}$ is
+|UCons U1 (UCons U0 (Rep Uω))|, because the first argument is used once while
+the second is used 0 times.
+What we previously called absence types $θ ∈ \AbsTy$ in \Cref{fig:absence} is
+now the abstract semantic domain |UD|.
+It is now evident that usage analysis is a modest generalisation of absence
+analysis in \Cref{fig:absence}:
+a variable is absent ($\aA$) when it has usage |U0|, otherwise it is used
+($\aU$).
+%\slpj{Why generalise? It makes it a bit more complicated, and more importantly
+%different, than Section 2.}
+%\sg{The main reason (a year back) was to prove that we correctly approximate
+%|U1| usages, which would not be possible in previous denotational semantics.
+%Indeed, \Cref{thm:usage-abstracts-need-closed} proves that we do so successfully.
+%But nowadays, Sec 2 proves against a small-step semantics, where the difference
+%probably does not matter too much.
+%Either way, I'm a bit hesitant to change it this close to submission.}
 
-If we want to assess usage cardinality statically, we have to find a more
-abstract, finite representation of |Value|.%
-\footnote{In particular, the negative recursive occurrence in
-|Fun :: (τ (highlight Value τ) -> ...) -> Value τ| is disqualifying.}
-We address finiteness by defining |UValue| in \Cref{fig:usage-analysis} as a copy
-of $\Summary$ in \Cref{fig:absence} that lists argument usage |U| instead of
-$\Absence$ flags.
-Absence types in \Cref{fig:absence} are now called |UD| and constitute
-the abstract semantic domain for which we will define |Domain| and |HasBind|
-instances.
-
-\Cref{fig:usage-analysis} lists in fact all definitions it takes to derive a
-static usage analysis |evalUsg| as an instance of the generic interpreter!
-The resulting analysis is a strict generalisation of absence analysis, because
-it can infer ``at most once'' uses |U1| instead of going straight to ``many
-times'' $\aU$/|Uω|, and because it handles data types and recursive |let| as
-well.
-If we were to undo these enhancements and inlined all definitions into the
-generic interpreter, we would get the \emph{very same absence analysis}, so the
-intuition built in \Cref{sec:problem} transfers.
-
-%\sven{I would have preferred a single trace as in L162. This makes it much clearer what the analysis does, because you can see the intermediate steps. Also it would be good if the example program could included slightly more complicated functions (not identity), so we can see the summary mechanism at work. Maybe the same example program as in L162?}
-%\sg{I now bring the same example as in Sec 2, but I don't want to go into too much detail here, because that won't yield much new insight.}
 Consider
 $|evalUsg (({-" \Let{k}{\Lam{y}{\Lam{z}{y}}}{k~x_1~x_2} "-})) ρe|
  = \perform{evalUsg (read "let k = λy.λz.y in k x_1 x_2") (Map.fromList [("x_1", MkUT (singenv "x_1" U1) (Rep Uω)), ("x_2", MkUT (singenv "x_2" U1) (Rep Uω))])}$,
-the example expression from \Cref{sec:problem}.
+analysing the example expression from \Cref{sec:problem}.
 Usage analysis successfully infers that $x_1$ is used at most once and that
-$x_2$ is absent.
+$x_2$ is absent, because it does not occur in the reported |Uses|.
+
+%The resulting analysis is a strict generalisation of absence analysis, because
+%it can infer ``at most once'' uses |U1| instead of going straight to ``many
+%times'' $\aU$/|Uω|, and because it handles data types and recursive |let| as
+%well.
+%If we were to undo these enhancements and inlined all definitions into the
+%generic interpreter, we would get the \emph{very same absence analysis}, so the
+%intuition built in \Cref{sec:problem} transfers.
 
 On the other hand,
 $|evalUsg (({-" \Let{i}{\Lam{x}{x}}{\Let{j}{\Lam{y}{y}}{i~i~j}} "-})) emp|
  = \perform{evalUsg (read "let i = λx.x in let j = λy.y in i i j") emp}$
 demonstrates the limitations of the first-order summary mechanism.
-While the instrumentation would establish that $j$ is used only once, the
-analysis is unable to reason through the indirect call and conservatively
-reports that $j$ may be used many times.
+While the program trace would only have one lookup for $j$, the analysis is
+unable to reason through the indirect call and conservatively reports that $j$
+may be used many times.
 
 The |Domain| instance is responsible for implementing the summary mechanism.
 While |stuck| expressions do not evaluate anything and hence are denoted by
@@ -414,11 +319,9 @@ $i$ in the previous example is computed:
 =  MkUT emp (UCons U1 (Rep Uω))
 \end{spec}
 The definition of |fun x| applies the lambda body to a \emph{proxy} |(MkUT (singenv x U1) (Rep Uω))|
-%\sven{Did you explain what $\epsilon$ is?}\sg{No, I did not. Thanks. Now we do (in Interpreter)}
 to summarise how the body uses its argument by way of looking at how it uses |x|.%
 \footnote{As before, the exact identity of |x| is exchangeable; we use it as a
 De Bruijn level.}
-%\sven{Why do you map |x| to |U1|?}\sg{better?}
 Every use of |x|'s proxy will contribute a usage of |U1| on |x|, and multiple
 uses in the lambda body would accumulate to a usage of |Uω|.
 In this case there is only a single use of |x| and the final usage |φ !? x =
@@ -429,7 +332,7 @@ for lack of knowing the actual argument at call sites.
 The definition of |apply| to apply such summaries to an argument is nearly the
 same as in \Cref{fig:absence}, except for the use of |+| instead of $⊔$ to
 carry over |U1 + U1 = Uω|, and an explicit |peel| to view a |UValue| in terms
-of $\sumcons$ (it is |(Rep u) == UCons u (Rep u)|).
+of $\sumcons$ (it is |Rep u == UCons u (Rep u)|).
 The usage |u| thus pelt from the value determines how often the actual
 argument was evaluated, and multiplying the uses of the argument |φ2| with |u|
 accounts for that.
@@ -450,41 +353,68 @@ emp (Rep Uω)| as proxies for field denotations.
 The result uses anything the scrutinee expression used, plus the upper bound of
 uses in case alternatives, one of which will be taken.
 
-The last ingredient to static analysis is the fixpoint strategy in |HasBind|,
-to be used for recursive let bindings.
-Since any |d::UD| is finite, we can no longer use a guarded fixpoint, so we will
-use least fixpoints
-(computed by |kleeneFix| in \Cref{fig:lat}) instead.
-The resulting definition of |HasBind| is safe for by-name and by-need semantics.%
-\footnote{Why is the use of \emph{least} fixpoints even correct?
-The fact that we are approximating a safety property~\citep{Lamport:77}
-is important.
-We discuss this topic in \Cref{sec:safety-extension}.}
+Much more could be said about the way in which finiteness of |UD| rules out
+injective implementations of |fun x :: (UD -> UD) -> UD| and thus requires the
+aforementioned \emph{approximate} summary mechanism, but it is easy to get
+sidetracked in doing so.
+There is another potential source of approximation: the |HasBind|
+instance discussed next.
+
+\begin{figure}
+\begin{spec}
+class Eq a => Lat a where bottom :: a; (⊔) :: a -> a -> a;
+kleeneFix :: Lat a => (a -> a) -> a; qquad lub :: Lat a => [a] -> a
+kleeneFix f = go bottom where go x = let x' = f x in if x' ⊑ x then x' else go x'
+\end{spec}
+\\[-1em]
+\caption{Order theory and Kleene iteration}
+\label{fig:lat}
+\end{figure}
+
+\subsection{Finite Fixpoint Strategy in |HasBind UD| and Totality}
+
+The third and last ingredient to recover a static analysis is the fixpoint
+strategy in |HasBind UD|, to be used for recursive let bindings.
+
+For the dynamic semantics in \Cref{sec:interp} we made liberal use of
+\emph{guarded fixpoints}, that is, recursively defined values such as |let d =
+rhs d in body d| in |HasBind DName| (\Cref{fig:eval}).
+At least for |evalName| and |evalNeed2|, we have proved in \Cref{sec:adequacy}
+that these fixpoints always exist by a coinductive argument.
+Alas, among other things this argument relies on the |Step| constructor --- and
+thus the |step| method --- of the trace type |T| being \emph{lazy} in
+the tail of the trace!
+
+When we replaced |T| in favor of the finite, inductive type |UT| in
+\Cref{sec:usage-trace-abstraction} to get a collecting semantics |D (ByName
+UT)|, we got a partial interpreter.
+That was because the |step| implementation of |UT| is \emph{not} lazy, and hence
+the guarded fixpoint |let d = rhs d in body d| is not guaranteed to exist.
+
+In general, finite trace types cannot have a lazy |step| implementation, so
+finite domains such as |UD| require a different fixpoint strategy to ensure
+termination.
+Depending on the abstract domain, different fixpoint strategies can be employed.
+For an unusual example, in our type analysis \Cref{sec:type-analysis}, we
+generate and solve a constraint system via unification to define fixpoints.
+In case of |UD|, we compute least fixpoints by Kleene iteration |kleeneFix|
+in \Cref{fig:lat}.
 |kleeneFix| requires us to define an order on |UD|, which is induced
 by |U0 ⊏ U1 ⊏ Uω| in the same way that the order
 on $\AbsTy$ in \Cref{sec:absence} was induced from the order $\aA ⊏ \aU$
-on $\Absence$ flags.%
-\footnote{The keen reader may note that the least fixed-point does not
-always exist due to infinite ascending chains such as
-|UCons U1 (UCons U1 (... Rep U0))|.
-This can be easily worked around with appropriate widening measures, for example
-by bounding the depth of |UValue|.}
-%\sven{The order should have been defined in the previous section where you introduce the types. Also I would not say anything about the orders if they are obvious as with $\AbsTy$.}
-%\sg{I think one short sentence does not hurt, especially for people with a
-%different background (\eg, type theory). Simon often wants me to point out even
-%pointwise orderings...}
+on $\Absence$ flags.
+The iteration procedure terminates whenever the type class instances of |UD| are
+monotone and there are no infinite ascending chains in |UD|.
 
-%We have proven usage analysis correct by relating it to the instrumentation
-%roughly as follows\sven{Why show the soundness theorem here? Section 5 is about introducing the usage analysis and section 6 is about proving it sound. I would end this section here, leading over to the next section saying that we prove the analysis sound there.}:
-%\[
-%  |(eval e ρ :: D (ByName UT))^.φ ⊑ (eval e ρ :: UD)^.φ|,
-%\]
-%where we abbreviate the field access |(MkUT φ' v)^.φ := φ'|.
-%In other words: for an evaluation to weak-head normal form, our analysis never
-%underapproximates the |Uses| reported by the instrumentation.
-%The full, well-formed theorem is \Cref{thm:usage-correct} and it needs the
-%following substitution lemma, proving correct the summary mechanism implied by
-%|apply| and |fun|:
+The keen reader may feel indignant because our |UValue| indeed contains such
+infinite chains, for example, |UCons U1 (UCons U1 (UCons dots Rep U0))|!
+This is easily worked around in practice by employing appropriate widening
+measures such as bounding the depth of |UValue|.
+The resulting definition of |HasBind| is safe for by-name and by-need semantics.%
+\footnote{Nevermind totality; why is the use of \emph{least} fixpoints even correct?
+The fact that we are approximating a safety property~\citep{Lamport:77} is
+important.
+We discuss this topic in \Cref{sec:safety-extension}.}
 
 It is nice to define dynamic semantics and static analyses in the same
 framework, but another important benefit is that correctness proofs become
