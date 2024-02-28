@@ -120,6 +120,7 @@
 %format evalVInit(e)(r)(m) = "\mathcal{S}_{\mathbf{vinit}}\denot{" e "}_{" r "}("m")"
 %format evalClair(e)(r) = "\mathcal{S}_{\mathbf{clair}}\denot{" e "}_{" r "}"
 %format evalUsg(e)(r) = "\mathcal{S}_{\mathbf{usage}}\denot{" e "}_{" r "}"
+%format evalD(d)(e)(r) = "\mathcal{S}_{" d "}\denot{" e "}_{" r "}"
 %format evalC(a)(b) = "\mathcal{S}_{\mathcal{C}}\denot{" a "}_{" b "}"
 %format eval3(d)(a)(b) = "\mathcal{S}_{" d "}\denot{" a "}_{" b "}"
 %format (ext rho (x) (d)) = rho "[" x "\mapsto" d "]"
