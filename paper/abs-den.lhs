@@ -61,7 +61,7 @@
 \ifappendix
 \usepackage[appendix=inline]{apxproof}
 \else
-\usepackage[appendix=append]{apxproof}
+\usepackage[appendix=append,bibliography=common]{apxproof}
 \fi
 %\usepackage{array} % \newcolumntype
 \usepackage{enumitem} % label=(\alph*)

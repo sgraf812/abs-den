@@ -168,7 +168,7 @@ In our work, this is apparent in the |Domain (D τ)| instance depending on
 |Monad τ|.
 Decomposing such structure into a layer of reusable monad transformers has been
 the subject of \citet{Darais:15} and \citet{Keidel:19}.
-The \emph{trace transformers} in \Cref{sec:interpreter} enable a similar reuse.
+The \emph{trace transformers} in \Cref{sec:interp} enable a similar reuse.
 Likewise, \citet{Keidel:23} discusses a sound, declarative approach to reuse
 fixpoint combinators which we hope to apply in implementations of our framework
 as well.

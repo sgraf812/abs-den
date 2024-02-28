@@ -30,8 +30,8 @@ abs-den.tex: *.lhs *.fmt
 	$(PDFLATEX) -draftmode $*
 	$(PDFLATEX) $*
 
-once: abs-den.tex macros.tex
-	$(PDFLATEX) abs-den
+diagnostic: abs-den.tex macros.tex
+	$(PDFLATEX) -draftmode abs-den | texlogfilter
 
 quick: abs-den.tex macros.tex
 	$(PDFLATEX) -draftmode abs-den

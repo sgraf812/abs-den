@@ -660,10 +660,9 @@ functor~\citep{McBridePaterson:08} via functions
   \purelater : \forall A.\ A \to \later A \qquad \wild \aplater \wild : \forall A,B.\ \later (A \to B) \to \later A \to \later B,
 \]
 allowing us to apply a familiar framework of reasoning around $\later$.
-In order not to obscure our work with pointless symbol pushing
-in, \eg, \Cref{fig:sem}, we will often omit the idiom
-brackets~\citep{McBridePaterson:08} $\idiom{\wild}$
-to indicate where the $\later$ ``effects'' happen.
+In order not to obscure our work with pointless symbol pushing, we will often
+omit the idiom brackets~\citep{McBridePaterson:08} $\idiom{\wild}$ to indicate
+where the $\later$ ``effects'' happen.
 
 We will now outline the changes necessary to encode |eval| in Guarded Cubical
 Agda, a system implementing Ticked Cubical Type Theory~\citep{tctt}, as well
