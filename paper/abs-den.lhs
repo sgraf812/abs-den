@@ -14,7 +14,7 @@
 % https://github.com/borisveytsman/acmart/issues/406#issuecomment-667180341
 \PassOptionsToPackage{prologue,dvipsnames}{xcolor}
 
-\documentclass[acmsmall,review]{acmart}\settopmatter{printfolios=true,printccs=false,printacmref=false}
+\documentclass[acmsmall,review,anonymous]{acmart}\settopmatter{printfolios=true,printccs=false,printacmref=false}
 
 %% Journal information
 %%
@@ -176,46 +176,46 @@
 %% 2012 ACM Computing Classification System (CSS) concepts
 %% Generate at 'http://dl.acm.org/ccs/ccs.cfm'.
 \begin{CCSXML}
- <ccs2012>
+<ccs2012>
    <concept>
-       <concept_id>10011007.10011006.10011041</concept_id>
-       <concept_desc>Software and its engineering~Compilers</concept_desc>
+       <concept_id>10011007.10011006.10011039.10011311</concept_id>
+       <concept_desc>Software and its engineering~Semantics</concept_desc>
        <concept_significance>500</concept_significance>
        </concept>
    <concept>
-       <concept_id>10011007.10011006.10011073</concept_id>
-       <concept_desc>Software and its engineering~Software maintenance tools</concept_desc>
+       <concept_id>10011007.10010940.10010992.10010998.10011000</concept_id>
+       <concept_desc>Software and its engineering~Automated static analysis</concept_desc>
+       <concept_significance>500</concept_significance>
+       </concept>
+   <concept>
+       <concept_id>10011007.10011006.10011041</concept_id>
+       <concept_desc>Software and its engineering~Compilers</concept_desc>
        <concept_significance>300</concept_significance>
        </concept>
    <concept>
        <concept_id>10011007.10011006.10011008.10011024.10011035</concept_id>
        <concept_desc>Software and its engineering~Procedures, functions and subroutines</concept_desc>
-       <concept_significance>100</concept_significance>
-       </concept>
-   <concept>
-       <concept_id>10011007.10011006.10011008.10011024.10011032</concept_id>
-       <concept_desc>Software and its engineering~Constraints</concept_desc>
        <concept_significance>300</concept_significance>
        </concept>
    <concept>
        <concept_id>10011007.10011006.10011008.10011009.10011012</concept_id>
        <concept_desc>Software and its engineering~Functional languages</concept_desc>
-       <concept_significance>300</concept_significance>
+       <concept_significance>100</concept_significance>
        </concept>
    <concept>
-       <concept_id>10011007.10011006.10011008.10011009.10011021</concept_id>
-       <concept_desc>Software and its engineering~Multiparadigm languages</concept_desc>
-       <concept_significance>300</concept_significance>
+       <concept_id>10011007.10011006.10011073</concept_id>
+       <concept_desc>Software and its engineering~Software maintenance tools</concept_desc>
+       <concept_significance>100</concept_significance>
        </concept>
  </ccs2012>
 \end{CCSXML}
 
-\ccsdesc[500]{Software and its engineering~Compilers}
-\ccsdesc[300]{Software and its engineering~Software maintenance tools}
-\ccsdesc[100]{Software and its engineering~Procedures, functions and subroutines}
-\ccsdesc[300]{Software and its engineering~Constraints}
-\ccsdesc[300]{Software and its engineering~Functional languages}
-\ccsdesc[300]{Software and its engineering~Multiparadigm languages}
+\ccsdesc[500]{Software and its engineering~Semantics}
+\ccsdesc[500]{Software and its engineering~Automated static analysis}
+\ccsdesc[300]{Software and its engineering~Compilers}
+\ccsdesc[300]{Software and its engineering~Procedures, functions and subroutines}
+\ccsdesc[100]{Software and its engineering~Functional languages}
+\ccsdesc[100]{Software and its engineering~Software maintenance tools}
 %% End of generated code
 
 %% Keywords
