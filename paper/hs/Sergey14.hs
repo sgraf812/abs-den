@@ -6,7 +6,7 @@ import qualified Prelude
 import Exp
 import Order
 import Interpreter
-import Abstraction
+import StaticAnalysis
 import Data.Functor.Identity
 import Control.Monad.Trans.Writer
 import Control.Monad.Trans.Reader
@@ -64,13 +64,13 @@ instance Lat SubDemand where
   Prod dmds1 ⊔ Prod dmds2 = mkProd (dmds1⊔dmds2)
   _ ⊔ _ = Top
 
-instance UOps Demand where
+instance UVec Demand where
   Abs + d = d
   d + Abs = d
   (_u1:*sd1) + (_u2:*sd2) = Uω :* (sd1+sd2)
   _ * _ = error "unused"
 
-instance UOps SubDemand where
+instance UVec SubDemand where
   Top + _ = Top
   _ + Top = Top
   Seq + sd = sd
@@ -91,7 +91,7 @@ instance Show Demand where
   show (n :* sd) = show n ++ "*" ++ show sd
 
 type DmdEnv = Name :-> Demand
-instance UOps (Name :-> Demand) where {-" ... \iffalse "-}
+instance UVec (Name :-> Demand) where {-" ... \iffalse "-}
   (+) = Map.unionWith (+)
   u * m = Map.map (u *) m
 {-" \fi "-}
@@ -251,7 +251,7 @@ absDmdSummary :: Int -> Set Name -> DmdD -> DmdSummary
 absDmdSummary arty ns (DT d) = d ns (callSd arty)
 
 instance HasBind DmdD where
-  bind rhs body = DT $ \ns sd ->
+  bind _x rhs body = DT $ \ns sd ->
     let arty = arity ns (rhs nopD') in
 --    if trace (show arty) arty == 0
     if arty == 0
