@@ -14,7 +14,7 @@
 % https://github.com/borisveytsman/acmart/issues/406#issuecomment-667180341
 \PassOptionsToPackage{prologue,dvipsnames}{xcolor}
 
-\documentclass[acmsmall,review,anonymous]{acmart}\settopmatter{printfolios=true,printccs=false,printacmref=false}
+\documentclass[acmsmall,review,anonymous]{acmart}\settopmatter{printfolios=true}
 
 %% Journal information
 %%
