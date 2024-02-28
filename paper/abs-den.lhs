@@ -229,7 +229,7 @@
 %include OpSem.lhs
 %include Interpreter.lhs
 %include Adequacy.lhs
-%include Abstraction.lhs
+%include StaticAnalysis.lhs
 %include Soundness.lhs
 %include RelatedWork.lhs
 

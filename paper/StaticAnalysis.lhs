@@ -6,7 +6,7 @@
 {-# OPTIONS_GHC -Wno-noncanonical-monad-instances #-}
 {-# LANGUAGE LambdaCase #-}
 
-module Abstraction where
+module StaticAnalysis where
 
 import Prelude hiding ((+), (*))
 import qualified Data.Map as Map
