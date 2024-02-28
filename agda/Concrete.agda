@@ -36,6 +36,11 @@ data T (A : Set) : Set where
 data Value (τ : Set → Set) : Set
 
 {-# NO_POSITIVITY_CHECK #-}
+  -- This pragma is only necessary because of a bug in Agda.
+  -- (We cannot link to the issue without risking deanonymisation.)
+  -- Its purpose is to hide the dependency on Value from the
+  -- totality checker; doing so is fine because it occurs
+  -- under a Later.
 data LookupD (D : Set) : Set where
   stepLookup : Var → ▹ D → LookupD D
   -- An LookupD is effectively a subtype of D.
@@ -129,6 +134,11 @@ Addr = ℕ
 record ByNeed (τ : Set → Set) (v : Set) : Set
 
 {-# NO_POSITIVITY_CHECK #-}
+  -- This pragma is only necessary because of a bug in Agda.
+  -- (We cannot link to the issue without risking deanonymisation.)
+  -- Its purpose is to hide the dependency on Value from the
+  -- totality checker; doing so is fine because it occurs
+  -- under a Later.
 data HeapD (τ : Set → Set) : Set where
   heapD : ▹(D τ) → HeapD τ
 
@@ -158,7 +168,7 @@ step-ByNeed : ∀ {τ} {v} {{_ : ∀ {V} → Trace (τ V)}} → Event → ▹(By
 step-ByNeed {τ} {v} e m = mkByNeed (λ μ → step e (λ α → ByNeed.get (m α) μ))
   -- NB: If we were able to switch the order of λ μ and λ α this code would still compile
   --     and we would not need the postulate no-α-in-μ.
-  --     Alas, we are stuck with the current encoding because of the abstractions involved: 
+  --     Alas, we are stuck with the current encoding because of the abstractions involved:
   --     We can't push the λ α into the surrounding ByNeed.
 
 instance
