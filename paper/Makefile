@@ -5,15 +5,6 @@ main: abs-den.pdf
 
 .PHONY: main quick watch clean
 
-abs-den-ext.tex: abs-den.tex # this *inlines* the appendix.
-	cat abs-den.tex | sed -e 's/^%\\extended/\\extended/g' > abs-den-ext.tex
-
-appendix.pdf: abs-den.pdf
-	nix run nixpkgs#pdftk -- abs-den.pdf cat 29-end output appendix.pdf
-
-abs-den-main.pdf: abs-den.pdf
-	nix run nixpkgs#pdftk -- abs-den.pdf cat 1-28 output abs-den-main.pdf
-
 supplement.zip: Interpreter.hs StaticAnalysis.hs Soundness.hs hs/*.hs ../agda/*.agda
 	sh -c "cd ..; git archive -o paper/supplement.zip --prefix=agda/ HEAD:agda"
 	nix run nixpkgs#zip -- -j supplement.zip Interpreter.hs StaticAnalysis.hs Soundness.hs ./hs/{Annotated,Exp,Order,Sergey14}.hs
@@ -53,7 +44,8 @@ watch-ext:
 watch-test:
 	ls [A-Z]*.lhs | entr -n make test
 
-submission: abs-den-main.pdf appendix.pdf supplement.zip
+submission: abs-den.pdf supplement.zip
+	@grep '^\\usepackage\[appendix=append,bibliography=common\]{apxproof}' abs-den.lhs # Test for correct apxproof settings
 	@grep '^\\documentclass\[acmsmall,review,anonymous\]{acmart}' abs-den.lhs # Test for submission mode
 
 clean:

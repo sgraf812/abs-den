@@ -37,32 +37,11 @@
 %% issue of PACMPL.
 \citestyle{acmauthoryear}   %% For author/year citations
 
-% Some conditional build stuff for handling the Appendix
-
-\newif\ifmain
-\newif\ifappendix
-
-% Builds only the main paper by default.
-\maintrue
-\appendixfalse
-% But we provide a switch to build the Appendix only.
-\def\appendixonly{\mainfalse{}\appendixtrue{}}
-
-% .. so that you can comment out the following line to build the Appendix only
-% This is done by the `make appendix.pdf` target.
-%\appendixonly
-
-% Same thing for an extended version that includes the Appendix
-\def\extended{\maintrue{}\appendixtrue{}}
-%\extended
-
 %%%%%%%
 
-\ifappendix
-\usepackage[appendix=inline]{apxproof}
-\else
 \usepackage[appendix=append,bibliography=common]{apxproof}
-\fi
+\renewcommand{\appendixprelim}{\clearpage\onecolumn\appendix\section*{Start of Appendix}} % Clearly mark the begin of the Appendix inserted by apxproof
+
 %\usepackage{array} % \newcolumntype
 \usepackage{enumitem} % label=(\alph*)
 \usepackage{ifdraft}
@@ -152,8 +131,6 @@
 }
 \email{sven.keidel@@tu-darmstadt.de}
 
-\ifmain
-
 \begin{abstract}
   We explore \emph{denotational interpreters}:
   denotational semantics that produce coinductive traces of a corresponding
@@ -240,7 +217,5 @@
 
 \clearpage
 \bibliography{references}
-
-\fi % \ifmain
 
 \end{document}
