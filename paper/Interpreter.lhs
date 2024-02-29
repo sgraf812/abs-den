@@ -215,7 +215,7 @@ instance Monad T where
 \end{minipage}
 \noindent
 A trace |T| either returns a value (|Ret|) or makes a small-step transition (|Step|).
-Each step |Step ev rest| is decorated with an event |ev|, which describes what happpens in that step.
+Each step |Step ev rest| is decorated with an event |ev|, which describes what happens in that step.
 For example, event |Lookup x| describes the lookup of variable |x :: Name| in the environment.
 Note that the choice of |Event| is use-case (\ie analysis) specific and suggests
 a spectrum of intensionality, with |data Event = Unit| on the more abstract end
@@ -376,7 +376,7 @@ given a denotation for the right-hand side.
 The concrete implementation for |bind| given in \Cref{fig:trace-instances}
 computes a |d| such that |d = rhs d| and passes the recursively-defined |d| to
 |body|.%
-\footnote{Such a |d| correponds to the \emph{guarded fixpoint} of |rhs|.
+\footnote{Such a |d| corresponds to the \emph{guarded fixpoint} of |rhs|.
 Strict languages can define this fixpoint as |d () = rhs (d ())|.}
 Doing so yields a call-by-name evaluation strategy, because the trace |d|
 will be unfolded at every occurrence of |x| in the right-hand side |e1|.
@@ -545,7 +545,7 @@ deriving via StateT (Heap (ByNeed τ)) τ instance Monad τ    => Monad (ByNeed 
 
 The use of a stateful heap is essential to the call-by-need evaluation strategy
 in order to enable memoisation.
-So how do we vary |θ| such that |D θ| accomodates state?
+So how do we vary |θ| such that |D θ| accommodates state?
 We certainly cannot perform the heap update by updating entries in |ρ|,
 because those entries are immutable once inserted, and we do not want to change
 the generic interpreter.
@@ -596,7 +596,7 @@ Given that |τ| must also be a |Monad|, that is not an onerous requirement.
 
 The key part is again the implementation of |HasBind| for |D (ByNeed τ)|,
 because that is the only place where thunks are allocated.
-The implemention of |bind| designates a fresh heap address |a|
+The implementation of |bind| designates a fresh heap address |a|
 to hold the denotation of the right-hand side.
 Both |rhs| and |body| are called with |fetchN a|, a denotation that looks up |a|
 in the heap and runs it.

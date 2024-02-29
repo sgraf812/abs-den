@@ -107,7 +107,7 @@ If need be, we could always switch to denotational interpreters via
 \subsubsection*{Abstract Interpretation and Relational Analysis}
 \citet{Cousot:21} recently condensed his seminal work rooted in \citet{Cousot:77}.
 The book advocates a compositional, trace-generating semantics and then derives
-compositional analyses by calculational design, inpiring us to attempt the same.
+compositional analyses by calculational design, inspiring us to attempt the same.
 However, while \citet{Cousot:94,Cousot:02} work with denotational semantics
 for higher-order language, it was unclear to us how to derive a compositional,
 \emph{trace-generating} semantics for a higher-order language.

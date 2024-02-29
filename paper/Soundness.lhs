@@ -295,7 +295,7 @@ Now we proceed by induction on |e| and only consider non-|stuck| cases.
 
   \item \textbf{Case} |App e z|:
     Consider first the case |x = z|.
-    This case is examplary of the tedious calculation required to bring
+    This case is exemplary of the tedious calculation required to bring
     the substitution outside.
     We abbreviate |prx x := MkUT (singenv x U1) (Rep Uω)|.
     \begin{spec}
@@ -443,7 +443,7 @@ Thanks to adequacy (\Cref{thm:need-adequate-strong}), this new notion is not a
 redefinition but provably equivalent to \Cref{defn:absence}:
 \begin{lemmarep}[Denotational absence]
   \label{thm:absence-denotational}
-  Variable |x| is used in |e| if and only if there exists a by-need evalution context
+  Variable |x| is used in |e| if and only if there exists a by-need evaluation context
   |ectxt| and expression |e'| such that the trace
   |evalNeed (fillC ectxt (Let x e' e)) emp emp| contains a |Lookup x| event.
   (Otherwise, |x| is absent in |e|.)
@@ -783,10 +783,10 @@ By induction on the size of |ectxt| and cases on |ectxt|:
     |UpdateHeap| is why it is necessary to multiply with |Uω| above;
     in the context $\Let{x}{\hole}{x~x}$, a variable $y$ put in the hole
     would really be evaluated twice under call-by-name (where
-    $\Let{x}{\hole}{x~x}$ is \emph{not} an evalution context).
+    $\Let{x}{\hole}{x~x}$ is \emph{not} an evaluation context).
 
-    This unforunately means that the used-once results do not generalise
-    to arbitrary by-need evalution contexts and it would be unsound
+    This unfortunately means that the used-once results do not generalise
+    to arbitrary by-need evaluation contexts and it would be unsound
     to elide update frames for $y$ based on the inferred use of $y$ in
     $\Let{y}{...}{\pe}$; for $\pe \triangleq y$ we would infer that $y$
     is used at most once, but that is wrong in context $\Let{x}{\hole}{x~x}$.
@@ -957,7 +957,7 @@ prefix |τ2| of |τ| we have $|τ2| ∈ P ∩ \Traces^{*}$.
 Hence the goal follows by assumption that $P ∩ \Traces^{*} ⊆ |γ|(|hat d|)$.
 \end{proof}
 
-From now on, we tacitcly assume that all trace properties of interest are safety
+From now on, we tacitly assume that all trace properties of interest are safety
 properties, and that any Galois connection defined in Haskell has been extended
 to infinite traces via \Cref{thm:safety-extension}.
 Any such Galois connection can be used to approximate guarded fixpoints via
@@ -1558,7 +1558,7 @@ If |evalNeed e ρ1 μ1 = many (Step ev) (evalNeed v ρ2 μ2)|, then |μ1 ~> μ2|
 \end{lemma}
 \begin{proof}
 By Löb induction and cases on |e|.
-Since there is no approximation yet, all occuring closure sets in |needenv| are
+Since there is no approximation yet, all occurring closure sets in |needenv| are
 singletons.
 \begin{itemize}
   \item \textbf{Case} |Var x|:
@@ -1889,7 +1889,7 @@ By Löb induction, we assume that both properties hold \emph{later}.
 \end{itemize}
 \end{proof}
 
-With that, we can finally prove that heap progressio npreserves environment
+With that, we can finally prove that heap progression preserves environment
 abstraction:
 
 \begin{lemma}[Heap progression preserves abstraction]
@@ -2300,7 +2300,7 @@ in \Cref{fig:abstraction-laws} as done in the proof for \Cref{thm:usage-abstract
 % so far. Perhaps the notion of equivalence modulo readdressing permutations
 % opens up possilibities for making ~> a partial order as well.
 % We don't seem to need it, though.
-For the next lemma, we need to identify heaps modulo $α$, \ie, \emph{readressing},
+For the next lemma, we need to identify heaps modulo $α$, \ie, \emph{readdressing},
 in the following sense: $|μ1| =_α |μ2|$ iff there exists a permutation |σ ::
 Addr -> Addr| such that |heap σ μ1 = μ2|, where
 \begin{center}
@@ -2313,7 +2313,7 @@ Addr -> Addr| such that |heap σ μ1 = μ2|, where
 We will make use of the overloaded notation |σ μ := heap σ μ|, |σ ρ := env σ ρ|
 for convenience.
 
-\sg{I think we can show antisymmetry and confluence modulo readressing,
+\sg{I think we can show antisymmetry and confluence modulo readdressing,
 compensating for the deterministic allocator that is |nextFree|. I don't plan
 to prove that, though.}
 
@@ -2350,7 +2350,7 @@ By Löb induction and cases on |e|.
 \end{itemize}
 \end{proof}
 
-From now on we identify heaps and ambient environments modulo readressing.
+From now on we identify heaps and ambient environments modulo readdressing.
 Furthermore, let |μ `oplus` μ'| denote the disjoint extension of |μ| with
 the bindings in |μ'| (each of which may scope over |μ| and thus |μ'| is not a
 realisable heap).

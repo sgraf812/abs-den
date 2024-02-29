@@ -232,7 +232,7 @@ as |data ℕ_ω = Z || S (Later ℕ_ω)|.
 Now $ℕ_ω$ contains all natural numbers (where $n$ is encoded as
 |(S . pure{-"\!)^n "-} Z|) and the transfinite limit ordinal
 |ω = S (pure (S (pure ...)))|.
-We will assume that addition and subtraction are defined as on peano numbers,
+We will assume that addition and subtraction are defined as on Peano numbers,
 and |ω + _ = _ + ω = ω|.
 When $(σ_i)_{i∈\overline{n}} ∈ \STraces$ is an LK trace and $n > 1$, then
 $(σ_{i+1})_{i∈\overline{n-1}} ∈ \later \STraces$ is the guarded tail of the
@@ -615,7 +615,7 @@ Whereas traditional theories of coinduction require syntactic productivity
 checks~\citep{Coquand:94}, imposing tiresome constraints on the form of guarded
 recursive functions, the appeal of guarded type theories is that productivity
 is instead proven semantically, in the type system.
-Compared to the alterntaive of \emph{sized types}~\citep{Hughes:96}, guarded
+Compared to the alternative of \emph{sized types}~\citep{Hughes:96}, guarded
 types don't require complicated algebraic manipulations of size parameters;
 however perhaps sized types would work just as well.
 Any fuel-based (or step-indexed) approach is equivalent to our use of guarded

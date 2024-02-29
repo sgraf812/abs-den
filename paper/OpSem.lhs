@@ -77,7 +77,7 @@ The initial machine state for a closed expression $\pe$ is given by the
 injection function $\init(\pe) = (\pe,[],[],\StopF)$ and
 the final machine states are of the form $(\pv,\wild,\wild,\StopF)$.
 We bake into $σ∈\States$ the simplifying invariant of \emph{well-addressedness}:
-Any address $\pa$ occuring in $ρ$, $κ$ or the range of $μ$ must be an element of
+Any address $\pa$ occurring in $ρ$, $κ$ or the range of $μ$ must be an element of
 $\dom(μ)$.
 It is easy to see that the transition system maintains this invariant and that
 it is still possible to observe scoping errors which are thus confined to lookup

@@ -118,7 +118,7 @@ For example, function $f \triangleq \Lam{x}{y}$ has absence type $\langle [y ↦
 Mapping $[y ↦ \aU]$ indicates that $f$ may use its free variable $y$.
 The literal notation $[y ↦ \aU]$ maps any variable other than $y$ to $\aA$.
 Furthermore, summary $\aA \sumcons \repU$ indicates that $f$'s first argument is absent and all further arguments are potentially used.
-The summary $\repU$ denotes an infinite repitition of $\aU$, as expressed by the
+The summary $\repU$ denotes an infinite repetition of $\aU$, as expressed by the
 non-syntactic equality $\repU \equiv \aU \sumcons \repU$.
 
 % \sven{You don't need to convince readers that the absence analysis is meaningful. Better focus on giving an example of summeries.}
@@ -194,7 +194,7 @@ The join on $\Uses$ follows pointwise from the order $\aA ⊏ \aU$, \ie, $(φ_1
 ⊔ φ_2)(\px) \triangleq φ_1(\px) ⊔ φ_2(\px)$.
 
 The analysis result $[k ↦ \aU,x_1↦\aU]$ infers $k$ and $x_1$ as
-potentially used and $x_2$ as absent, despite it occuring in argument position,
+potentially used and $x_2$ as absent, despite it occurring in argument position,
 thanks to the summary mechanism.
 
 %Since $\semabs{\wild}$ computes least fixpoints at recursive let bindings,
@@ -339,7 +339,7 @@ analyses sound.
 %\item Theorem 1 (Combine theorem 1 and definition 2):
 %  If $\semabs{\pe}_{ρ_\pe} = \langle φ, \varsigma \rangle$ and $φ(\px) = \aA$, implies $\px$ is absent in $\pe$.
 %  $\px$ is absent in $\pe$ if there exists no trace ... that evaluates $\px$.
-%\item The proof is in the appendix. The proof is exemplary for more ambitios proofs such as ...
+%\item The proof is in the appendix. The proof is exemplary for more ambitious proofs such as ...
 %\item Here are the reasons why such proofs are difficult (1) ... (2) ... (3) ...
 %\end{itemize}
 %In the last point you can incorporate the substitution lemma and why it is difficult}
@@ -422,7 +422,7 @@ syntactic substitution:
   $\semabs{(\Lam{\px}{\pe})~\py}_ρ = (\semabs{\pe}_{ρ[\px↦\langle [\px↦\aU], \repU \rangle]})[\px \Mapsto ρ(\py).φ]$.
 \end{lemma}
 \begin{proof}
-Follows by unfolding the application and lamda case and then refolding abstract substitution.
+Follows by unfolding the application and lambda case and then refolding abstract substitution.
 \end{proof}
 
 \begin{lemma}
@@ -477,7 +477,7 @@ $\semabs{\Let{\pz}{(\Lam{\px}{\pe_1})~\py}{(\Lam{\px}{\pe_2})~\py}}_ρ = \semabs
 The key of this lemma is that it is equivalent to postpone the abstract
 substitution from the let RHS $\pe_1$ to the let body $\pe_2$.
 This can easily be proved by induction on $\pe_2$, which we omit here, but
-indicate the respective step below as ``handwaving''.
+indicate the respective step below as ``hand-waving''.
 Note that we assume the (more general) recursive let semantics as defined at the
 begin of this section.
 
@@ -487,7 +487,7 @@ begin of this section.
   ={} & \semabs{(\Lam{\px}{\pe_2})~\py}_{ρ[\pz↦\lfp(\fn{θ}{\pz \both \semabs{(\Lam{\px}{\pe_1})~\py}_{ρ[\pz ↦ θ]}})]}
       \Arrow{\Cref{thm:abs-syn-subst}} \\
   ={} & (\semabs{\pe_2}_{ρ[\px↦\langle [\px ↦ \aU], \repU \rangle,\pz↦\lfp(\fn{θ}{\pz \both (\semabs{\pe_1}_{ρ[\px↦\langle [\px ↦ \aU], \repU \rangle, \pz ↦ θ]})[\px \Mapsto ρ(\py).φ]})]})[\px \Mapsto ρ(\py).φ]
-      \Arrow{Handwaving above} \\
+      \Arrow{Hand-waving above} \\
   ={} & (\semabs{\pe_2}_{ρ[\px↦\langle [\px ↦ \aU], \repU \rangle,\pz↦\lfp(\fn{θ}{\pz \both \semabs{\pe_1}_{ρ[\px↦\langle [\px ↦ \aU], \repU \rangle, \pz ↦ θ]}})]})[\px \Mapsto ρ(\py).φ]
       \Arrow{Refold $\semabs{\wild}$} \\
   ={} & (\semabs{\Let{\pz}{\pe_1}{\pe_2}}_{ρ[\px↦\langle [\px ↦ \aU], \repU \rangle]})[\px \Mapsto ρ(\py).φ]
@@ -661,7 +661,7 @@ By induction on $\pe$.
     ={} & \semabs{\pe_2}_{ρ[\py↦\lfp(\fn{θ}{\py \both (\semabs{\pe_1}_{{ρ_Δ}[\py ↦ \langle [\py ↦ \aU], θ.\varsigma \rangle]})[\many{\px \Mapsto ρ(\px).φ}, \py \Mapsto θ.φ]})]}
         \Arrow{Again, backwards} \\
     ={} & \semabs{\pe_2}_{ρ[\py↦\lfp(\fn{θ}{\py \both (\semabs{\pe_1}_{{ρ_Δ}[\py ↦ θ]})[\many{\px \Mapsto ρ(\px).φ}]})]} \\
-        & \text{\emph{Similarly for $\pe_2$, handwaving to push out the subst as in \Cref{thm:push-let-absence}}} \\
+        & \text{\emph{Similarly for $\pe_2$, hand-waving to push out the subst as in \Cref{thm:push-let-absence}}} \\
     ={} & (\semabs{\pe_2}_{ρ_Δ[\py↦\lfp(\fn{θ}{\py \both \semabs{\pe_1}_{{ρ_Δ}[\py ↦ θ]}})]})[\many{\px \Mapsto ρ(\px).φ}]
         \Arrow{Refold $\semabs{\wild}$} \\
     ={} & (\semabs{\Let{\py}{\pe_1}{\pe_2}}_{ρ_Δ})[\many{\px \Mapsto ρ(\px).φ}]

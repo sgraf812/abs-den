@@ -411,7 +411,7 @@ infinite chains, for example, |UCons U1 (UCons U1 (UCons dots Rep U0))|!
 This is easily worked around in practice by employing appropriate widening
 measures such as bounding the depth of |UValue|.
 The resulting definition of |HasBind| is safe for by-name and by-need semantics.%
-\footnote{Nevermind totality; why is the use of \emph{least} fixpoints even correct?
+\footnote{Never mind totality; why is the use of \emph{least} fixpoints even correct?
 The fact that we are approximating a safety property~\citep{Lamport:77} is
 important.
 We discuss this topic in \Cref{sec:safety-extension}.}

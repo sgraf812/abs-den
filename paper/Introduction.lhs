@@ -27,7 +27,7 @@ In order to prove the analysis sound, it is helpful to pick a language
 semantics that is also compositional, such as a \emph{denotational
 semantics}~\citep{ScottStrachey:71}; then the semantics and the analysis ``line
 up'' and the soundness proof is relatively straightforward.
-Indeed, one can often break up the proof into manageable subgoals by regarding
+Indeed, one can often break up the proof into manageable sub goals by regarding
 the analysis as an \emph{abstract interpretation} of the compositional
 semantics~\citep{Cousot:21}.
 %particularly when the abstract operations of the
