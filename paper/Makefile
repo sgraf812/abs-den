@@ -48,5 +48,20 @@ submission: abs-den.pdf supplement.zip
 	@grep '^\\usepackage\[appendix=append,bibliography=common\]{apxproof}' abs-den.lhs # Test for correct apxproof settings
 	@grep '^\\documentclass\[acmsmall,review,anonymous\]{acmart}' abs-den.lhs # Test for submission mode
 
+# For submission to arXiv
+arxiv.zip: abs-den.tex macros.tex utf8-symbols.sty references.bib
+	@rm -rf arxiv.zip
+	@mkdir -p arxiv/
+	@# We need to convince arxiv to use pdflatex
+	echo "\pdfoutput=1" | cat - $< > arxiv/$<
+	bibtex abs-den
+	cp abs-den.bbl arxiv/
+	cp macros.tex arxiv/
+	cp utf8-symbols.sty arxiv/
+	@# Also arxiv uses hypertex, which doesn't really work for us because we are using cleveref
+	echo "nohypertex" > arxiv/00README.XXX
+	cd arxiv && zip -r ../arxiv.zip .; cd ..
+	@rm -rf arxiv
+
 clean:
 	git clean -fxd

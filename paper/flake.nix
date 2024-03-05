@@ -20,6 +20,7 @@
             gnumake
             lhs2tex
             texlive
+            zip
           ];
           builder = "${pkgs.bash}/bin/bash";
           args = [ "-c" ''
