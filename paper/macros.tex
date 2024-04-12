@@ -1,5 +1,5 @@
 % Theorems
-\theoremstyle{plain} % Theorem/Definition/... in bold serif
+%\theoremstyle{plain} % Theorem/Definition/... in bold serif
 \newtheoremrep{theorem}{Theorem}
 \newtheoremrep{lemma}[theorem]{Lemma}
 \newtheoremrep{corollary}[theorem]{Corollary}
@@ -16,14 +16,6 @@
 
 \counterwithin*{equation}{section}
 
-% Abbrev
-\newcommand\ie{i.e.\xspace}
-\newcommand\eg{e.g.\xspace}
-\newcommand\cf{cf.\xspace}
-\newcommand\etc{etc.\xspace}
-\newcommand\vs{vs.\xspace}
-\newcommand\wrt{wrt.\xspace}
-
 % Comments and notes
 \makeatletter
 \newcommand\ifnonanon[1]{%
@@ -37,16 +29,12 @@
 \newenvironment{slpjenv}{\em SLPJ:}{}
 \newcommand{\sg}[1]{\ifnonanon{\textcolor{blue}{\emph{SG: #1}}}{}}
 \newcommand{\sven}[1]{\ifnonanon{\textcolor{blue}{\emph{Sven: #1}}}{}}
-\newcommand{\todo}[1]{\ifnonanon{\textcolor{red}{TODO: #1}}{}}
 
 % Auxiliary
 \newcommand{\many}[1]{\overline{#1}}
 \newcommand{\wild}{\ensuremath{\mathunderscore}}
 \newcommand{\pfun}{\rightharpoonup}
-\newcommand{\ruleform}[1]{\fbox{$#1$}}
-\newcommand{\highlight}[1]{\setlength{\fboxsep}{2pt}\colorbox[gray]{0.8}{\ensuremath{#1}}}
 \newcommand{\nelems}[1]{\lvert#1\rvert}
-\newcommand{\restrict}[1]{{|_{#1}}}
 \newcommand{\fn}[2]{\ensuremath{λ#1.\ #2}}
 %\newcommand{\fn}[2]{#1 ↦ #2}
 \newcommand{\constfn}[1]{\fn{\mathunderscore}{#1}}
@@ -171,20 +159,6 @@
 % Math
 \newcommand{\pow}[1]{\wp(#1)}
 \newcommand{\Nat}{\mathbb{N}}
-\DeclareMathSymbol{\bbcolon}{\mathpunct}{bbold}{"3A}
-\DeclareMathSymbol{\bbquestionmark}{\mathpunct}{bbold}{"3F}
-\DeclareMathSymbol{\bblparen}{\mathpunct}{bbold}{"28}
-\DeclareMathSymbol{\bbrparen}{\mathpunct}{bbold}{"29}
-\newcommand{\ternary}[3]{\mathop{\bblparen} #1 \mathrel{\bbquestionmark} #2 \mathrel{\bbcolon} #3 \mathop{\bbrparen}}
-
-% Order theory
-\DeclareMathOperator*{\lub}{\sqcup}
-\DeclareMathOperator*{\Lub}{\bigsqcup}
-\DeclareMathOperator*{\glb}{\sqcap}
-\DeclareMathOperator*{\Glb}{\bigsqcap}
-\newcommand{\fix}{\mathop\mathsf{fix}}
-\newcommand{\lfp}{\mathop\mathsf{lfp}}
-\newcommand{\gfp}{\mathop\mathsf{gfp}}
 
 % Absence
 \newcommand{\Absence}{\mathsf{Absence}}
