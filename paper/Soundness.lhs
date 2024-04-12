@@ -1,7 +1,7 @@
-%options ghci -ihs -pgmL lhs2TeX -optL--pre -XPartialTypeSignatures
+%options ghci -i./abs-den/paper/hs -pgmL lhs2TeX -optL--pre -XPartialTypeSignatures
 
 %if style == newcode
-%include custom.fmt
+%include lhs-preamble.fmt
 \begin{code}
 {-# OPTIONS_GHC -Wno-unused-matches #-}
 

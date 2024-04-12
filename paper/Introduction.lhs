@@ -44,7 +44,7 @@ the stack and heap, and sees program execution as a sequence of machine states.
 Now we have two unappealing alternatives:
 \begin{itemize}
 \item Develop a difficult, ad-hoc soundness proof, one that links a
-  non-compositional operational semantics with a compositional analysis.
+  non-\nolinebreak\hspace{0pt}compositional operational semantics with a compositional analysis.
 \item Reimagine and reimplement the analysis as an abstraction of the
   reachable states of an operational semantics.
   This is the essence of the \emph{Abstracting Abstract Machines} (AAM)
