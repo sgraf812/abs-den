@@ -228,7 +228,7 @@ instances |UVec U| and |UVec Uses|, together with scalar multiplication.%
 space because |U| lacks inverses, but the intuition is close enough.}
 For example, |U0 + u = u| and |U1 + U1 = Uω| in |U|, as well as |U0 * u = U0|,
 |Uω * U1 = Uω|.
-These operations lift to |Uses| pointwise, \eg,
+These operations lift to |Uses| pointwise, \eg
 |[i ↦ U1] + (Uω * [j ↦ U1]) = [i ↦ U1, j ↦ Uω]|.
 %\slpj{I'm not sure that re-using |(+)| is a good plan.  I keep running off to look for |Num| instances.}
 
@@ -237,7 +237,7 @@ amounts to what \citet{adi} call a \emph{collecting semantics} of the interprete
 Such semantics-specific collecting variants are easily achievable for us as
 well.
 It is as simple as defining a |Monad| instance on |UT| mirroring trace
-concatenation and then running our interpreter at, \eg, $|D (ByName UT)| \cong
+concatenation and then running our interpreter at, \eg $|D (ByName UT)| \cong
 |UT (Value UT)|$ on expression $\pe$ from earlier:
 \[
   |eval (({-"\Let{i}{\Lam{x}{x}}{\Let{j}{\Lam{y}{y}}{i~j~j}}"-})) emp| = \perform{eval (read "let i = λx.x in let j = λy.y in i j j") emp :: D (ByName UT)}| :: D (ByName UT)|.
@@ -864,7 +864,7 @@ summary.
 At call sites in |apply|, we will iterate over each function label and attempt a
 |cachedCall|.
 In doing so, we look up the label's transformer and sees if the single point
-is applicable for the incoming value |v|, \eg, if |v ⊑ v1|, and if so return the
+is applicable for the incoming value |v|, \eg if |v ⊑ v1|, and if so return the
 cached result |v2| straight away.
 Otherwise, the transformer stored for the label is evaluated at |v| and the
 result is cached as the new summary.

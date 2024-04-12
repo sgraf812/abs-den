@@ -190,7 +190,7 @@ in the summary $\aU \sumcons \aA \sumcons \repU$ as highlighted, adding the
 $\Uses$ from $ρ_1(x_1) = \langle [x_1 ↦ \aU], \repU \rangle$ but \emph{not}
 from $ρ_1(x_2)$, because the first actual argument ($x_1$) is used whereas the
 second ($x_2$) is absent.
-The join on $\Uses$ follows pointwise from the order $\aA ⊏ \aU$, \ie, $(φ_1
+The join on $\Uses$ follows pointwise from the order $\aA ⊏ \aU$, \ie $(φ_1
 ⊔ φ_2)(\px) \triangleq φ_1(\px) ⊔ φ_2(\px)$.
 
 The analysis result $[k ↦ \aU,x_1↦\aU]$ infers $k$ and $x_1$ as
@@ -293,8 +293,8 @@ purely based on call strings.
 %\footnote{Note that in contrast to let-bound names, the syntactic parameter
 %$\px$ is used as a convenient proxy for a De Bruijn level, if you wonder about
 %the scoping semantics.}
-%which \emph{summarises} (\ie, abstracts)
-%$f^\sharp_{ρ,\pe,\px}$ into something finite (\ie, not a function).
+%which \emph{summarises} (\ie abstracts)
+%$f^\sharp_{ρ,\pe,\px}$ into something finite (\ie not a function).
 %The produced summary is concretised back in $\semabs{\pe~\px}$ through
 %$\mathit{app}$ which encodes the adjoint (``reverse'') operation.
 %More concretely, $f^\sharp_{ρ,\pe,\px}(θ) ⊑
@@ -378,7 +378,7 @@ One plausible definition is in terms of the standard operational semantics in
   A variable $\px$ is \emph{used} in an expression $\pe$
   if and only if there exists a trace
   $(\Let{\px}{\pe'}{\pe},ρ,μ,κ) \smallstep^* ... \smallstep[\LookupT(\px)] ...$
-  that looks up the heap entry of $\px$, \ie, it evaluates $\px$.
+  that looks up the heap entry of $\px$, \ie it evaluates $\px$.
   Otherwise, $\px$ is \emph{absent} in $\pe$.
 \end{definitionrep}
 
@@ -398,7 +398,7 @@ Note that for the proofs we assume the recursive let definition
   \semabs{\Let{\px}{\pe_1}{\pe_2}}_ρ = \semabs{\pe_2}_{ρ[\px ↦ \lfp(\fn{θ}{\px \both \semabs{\pe_1}_{ρ[\px↦θ]}})]}.
 \]
 The partial order on $\AbsTy$ necessary for computing the least fixpoint $\lfp$
-follows structurally from $\aA ⊏ \aU$ (\ie, product order, pointwise order).
+follows structurally from $\aA ⊏ \aU$ (\ie product order, pointwise order).
 
 \begin{abbreviation}
   The syntax $θ.φ$ for an $\AbsTy$ $θ = \langle φ, \varsigma \rangle$
@@ -880,12 +880,12 @@ and Lemmas below reference \citet{Sergey:14}):
     transition in \Cref{fig:lk-semantics} carries the let-bound variable that is
     looked up.
   \item Give a declarative type system that characterises the results of the
-    analysis (\ie, $\semabs{\wild}$) in a lenient (upwards closed) way.
+    analysis (\ie $\semabs{\wild}$) in a lenient (upwards closed) way.
     In case of \Cref{thm:absence-correct}, we define an analysis function on
     machine configurations for the proof.
   \item Prove that evaluation of well-typed terms in the instrumented
     semantics is bisimilar to evaluation of the term in the standard semantics,
-    \ie, does not get stuck when the standard semantics would not.
+    \ie does not get stuck when the standard semantics would not.
     A classic \emph{logical relation}~\citep{Nielson:99}.
     In our case, we prove that evaluation preserves the analysis result.
 \end{enumerate}
@@ -897,11 +897,11 @@ it, is enormous.
     semantics in \citet{Sergey:14} becomes non-deterministic.
     Does this instrumentation still express the desired semantic property?
   \item Step (2) all but duplicates a complicated analysis
-    definition (\ie, $\semabs{\wild}$) into a type system (in Figure 7) with
+    definition (\ie $\semabs{\wild}$) into a type system (in Figure 7) with
     subtle adjustments expressing invariants for the preservation proof.
   \item
     Furthermore, step (2) extends this type system to small-step machine
-    configurations (in Figure 13), \ie, stacks and heaps, the scoping of which
+    configurations (in Figure 13), \ie stacks and heaps, the scoping of which
     is mutually recursive.%
     \footnote{We believe that this extension can always be derived systematically from a
     context lemma~\citep[Lemma 3.2]{MoranSands:99} and imitating what the type
@@ -954,7 +954,7 @@ This begs the question if we could have started from a compositional
 denotational semantics.
 While we could have done so for absence or strictness analysis, denotational
 semantics is insufficient to express \emph{operational properties} such as
-\emph{usage cardinality}, \ie, ``$\pe$ evaluates $\px$ at most $u$ times'',
+\emph{usage cardinality}, \ie ``$\pe$ evaluates $\px$ at most $u$ times'',
 but usage cardinality is the entire point of the analysis in \citet{Sergey:14}.%
 \footnote{Useful applications of the ``at most once'' cardinality are given in
 \citet{Turner:95,Sergey:14}, motivating inlining into function bodies that are

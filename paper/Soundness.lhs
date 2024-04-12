@@ -523,7 +523,7 @@ in \Cref{fig:abstraction-laws}.
 \begin{proofsketch}
 If |x| is used in |e|, there is a trace |evalNeed (fillC ectxt (Let x e' e)) emp emp| containing a |Lookup x| event.
 The abstraction function |abstract| induced by |UD| aggregates lookups in the
-trace into a |φ' :: Uses|, \eg,
+trace into a |φ' :: Uses|, \eg
   |abstract ({-" \LookupT(i) \smallstep \LookupT(x) \smallstep \LookupT(i) \smallstep \langle ... \rangle "-})
     = MkUT [ i {-" ↦ "-} Uω, x {-" ↦ "-} U1 ] (...)|.
 Clearly, it is |φ' !? x ⊒ U1|, because there is at least one |Lookup x|.
@@ -827,7 +827,7 @@ e ρ)|, provides the strongest trace property that a given program |(e,ρ)|
 satisfies.
 In this setting, we extend the original Galois connection to the signature of
 |eval3 Traces e| \emph{parametrically},%
-\footnote{``Parametrically'' in the sense of \citet{Backhouse:04}, \ie, the
+\footnote{``Parametrically'' in the sense of \citet{Backhouse:04}, \ie the
 structural properties of a Galois connection follow as a free theorem.}
 to
 \[
@@ -868,7 +868,7 @@ For example, we collect a trace into a |Uses| in
 Of course such a fold (an inductive elimination procedure) has no meaning when
 the trace is infinite!
 Yet it is always clear what we mean: when the trace is infinite, we consider the
-meaning of the fold as the limit (\ie, least fixpoint) of its finite prefixes.
+meaning of the fold as the limit (\ie least fixpoint) of its finite prefixes.
 In this subsection, we discuss when and why this meaning is correct.
 
 Suppose for a second that we were only interested in the trace component of our
@@ -883,7 +883,7 @@ $\Traces^{\infty}$), for example at
 
 Computing with such an |α| is of course inacceptable for a \emph{static} analysis.
 Usually this is resolved by approximating the fixpoint by the least fixpoint of
-the abstracted iteratee, \eg, |lfp (α . Step (Lookup x) . γ)|.
+the abstracted iteratee, \eg |lfp (α . Step (Lookup x) . γ)|.
 It is however not the case that this yields a sound approximation of infinite
 traces for \emph{arbitrary} trace properties.
 A classic counterexample is the property
@@ -2300,7 +2300,7 @@ in \Cref{fig:abstraction-laws} as done in the proof for \Cref{thm:usage-abstract
 % so far. Perhaps the notion of equivalence modulo readdressing permutations
 % opens up possilibities for making ~> a partial order as well.
 % We don't seem to need it, though.
-For the next lemma, we need to identify heaps modulo $α$, \ie, \emph{readdressing},
+For the next lemma, we need to identify heaps modulo $α$, \ie \emph{readdressing},
 in the following sense: $|μ1| =_α |μ2|$ iff there exists a permutation |σ ::
 Addr -> Addr| such that |heap σ μ1 = μ2|, where
 \begin{center}

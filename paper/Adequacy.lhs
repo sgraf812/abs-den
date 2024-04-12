@@ -55,7 +55,7 @@ events, as expressed in the following Theorem:
   \begin{itemize}
     \item |τ| preserves the observable termination properties of $\init(\pe) \smallstep ...$
       in the above sense.
-    \item |τ| preserves the length (\ie, number of |Step|s) of $\init(\pe) \smallstep ...$ (\ie, number of transitions).
+    \item |τ| preserves the length (\ie number of |Step|s) of $\init(\pe) \smallstep ...$ (\ie number of transitions).
     \item every |ev :: Event| in |τ = many (Step ev ^^ ...)| corresponds to the
       transition rule taken in $\init(\pe) \smallstep ...$.
   \end{itemize}
@@ -84,7 +84,7 @@ mathematical sequences, then defining maximal traces, and then relating
 those maximal traces via \Cref{fig:eval-correctness} to |eval|.
 
 Formally, an LK trace is a trace in $(\smallstep)$ from
-\Cref{fig:lk-semantics}, \ie, a non-empty and potentially infinite sequence of
+\Cref{fig:lk-semantics}, \ie a non-empty and potentially infinite sequence of
 LK states $(σ_i)_{i∈\overline{n}}$ (where $\overline{n} = \{ m ∈ ℕ \mid m < n
 \}$ when $n∈ℕ$, $\overline{ω} = ℕ$), such that $σ_i \smallstep σ_{i+1}$ for
 $i,(i+1)∈\overline{n}$.
@@ -119,7 +119,7 @@ its source state:
 Here is an example for each of the three cases.
 We will omit the first component of heap entries in our examples because they
 bear no semantic significance apart from instrumenting $\LookupT$ transitions,
-and it is confusing when the heap-bound expression is a variable $x$, \eg, $(y,ρ,x)$.
+and it is confusing when the heap-bound expression is a variable $x$, \eg $(y,ρ,x)$.
 \begin{example}
   Let $ρ=[x↦\pa_1],μ=[\pa_1↦(\wild,[], \Lam{y}{y})]$ and $κ$ an arbitrary
   continuation. The trace
@@ -198,7 +198,7 @@ An example for a diverging trace, where $ρ=[x↦\pa_1]$ and $μ=[\pa_1↦(\wild
 Interiority guarantees that the particular initial stack $κ$ of a maximal trace
 is irrelevant to execution, so maximal traces that differ only in the initial
 stack are bisimilar.
-This is very much like the semantics of a called function (\ie, big-step
+This is very much like the semantics of a called function (\ie big-step
 evaluator) may not depend on the contents of the call stack.
 
 One class of maximal traces is of particular interest:
@@ -385,7 +385,7 @@ is an exact abstract interpretation of the LK machine:
 By Löb induction, with $IH ∈ \later C$ as the hypothesis.
 
 We will say that an LK state $σ$ is stuck if there is no applicable rule in the
-transition system (\ie, the singleton LK trace $σ$ is maximal and stuck).
+transition system (\ie the singleton LK trace $σ$ is maximal and stuck).
 
 Now let $(σ_i)_{i∈\overline{n}}$ be a maximal LK trace with source state
 $σ_0=(\pe,ρ,μ,κ)$ and let |τ = evalNeed e (αEnv μ ρ) (αHeap μ)|.
@@ -649,7 +649,7 @@ The most exciting consequence is that changing the |Fun| data constructor to
 coinductive data type,%
 \footnote{The reason why the positive occurrence of |D τ| does not need to be
 guarded is that the type of |Fun| can more formally be encoded by a mixed
-inductive-coinductive type, \eg,
+inductive-coinductive type, \eg
 $|Value τ| = \fix X.\ \lfp Y.\ ...~||~|Fun|~(X \to Y)~||~...$ }
 whereas syntactic approaches to coinduction reject any negative recursive
 occurrence.

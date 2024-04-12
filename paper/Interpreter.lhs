@@ -402,13 +402,13 @@ $\perform{takeName 9 $ eval (read "let w = λy. y y in w w") emp :: T (Maybe (Va
 The reason |eval| is productive is due to the coinductive nature of |T|'s
 definition in Haskell.%
 \footnote{In a strict language, we need to introduce a thunk in
-the definition of |Step|, \eg, @Step of event * (unit -> 'a t)@.}
+the definition of |Step|, \eg @Step of event * (unit -> 'a t)@.}
 Productivity requires that the monadic bind operator |(>>=)| for |T|
 guards the recursion, as in the delay monad of \citet{Capretta:05}.
 
 Data constructor values are printed as $Con(K)$, where $K$ indicates the
 |Tag|.
-Data types allow for interesting ways (type errors) to get |Stuck| (\ie, the
+Data types allow for interesting ways (type errors) to get |Stuck| (\ie the
 \textbf{wrong} value of \citet{Milner:78}), printed as $\lightning$:
 
 < ghci> eval (read "let zro = Z() in let one = S(zro) in case one of { S(z) -> z }") emp :: DName
@@ -583,7 +583,7 @@ whose key operations |getN| and |putN| are given in \Cref{fig:by-need}.
 So the denotation of an expression is no longer a trace, but rather a
 \emph{stateful function returning a trace} with state |Heap (ByNeed τ)| in
 which to allocate call-by-need thunks.
-The |Trace| instance of |ByNeed τ| simply forwards to that of |τ| (\ie, often
+The |Trace| instance of |ByNeed τ| simply forwards to that of |τ| (\ie often
 |T|), pointwise over heaps.
 Doing so needs a |Trace| instance for |τ (Value (ByNeed τ), Heap (ByNeed τ))|, but we
 found it more succinct to use a quantified constraint |(forall v. Trace (τ
@@ -618,7 +618,7 @@ Repeated access to the same variable will run the replacement |memo a (return
 v)|, which immediately yields |v| after performing a |step Update| that does
 nothing.%
 \footnote{More serious semantics would omit updates after the first
-evaluation as an \emph{optimisation}, \ie, update with |ext μ a (return v)|,
+evaluation as an \emph{optimisation}, \ie update with |ext μ a (return v)|,
 but doing so complicates relating the semantics to \Cref{fig:lk-semantics},
 where omission of update frames for values behaves differently.
 For now, our goal is not to formalise this optimisation, but rather to show
@@ -705,7 +705,7 @@ As its first action, |bind| yields a |Let0| event, announcing in the trace that
 the right-hand side of a |let| is to be evaluated.
 Then monadic bind |v1 <- d; body (return v1)| yields steps from the right-hand
 side |d| until its value |v1 :: Value (ByValue τ)| is reached, which is then
-passed |return|ed (\ie, wrapped in |Ret|) to the let |body|.
+passed |return|ed (\ie wrapped in |Ret|) to the let |body|.
 Note that the steps in |d| are yielded \emph{eagerly}, and only once, rather
 than duplicating the trace at every use site in |body|, as the by-name form
 |body d| would.
@@ -741,7 +741,7 @@ with a value.
 
 Alas, this model of call-by-value does not yield a total interpreter!
 Consider the case when the right-hand side accesses its value before yielding
-one, \eg,
+one, \eg
 
 < ghci> takeT 5 $ evalValue (read "let x = x in x x") emp
 $\LetOT\xhookrightarrow{\hspace{1.1ex}}\LookupT(x)\xhookrightarrow{\hspace{1.1ex}}\LetIT\xhookrightarrow{\hspace{1.1ex}}\AppIT\xhookrightarrow{\hspace{1.1ex}}\LookupT(x)\xhookrightarrow{\hspace{1.1ex}}\texttt{\textasciicircum{}CInterrupted}$
@@ -936,7 +936,7 @@ infinite executions.
 %
 %Our simple trace type |T| has served us well so far, allowing us to study a
 %variety of total denotational interpreters for all major evaluation strategies
-%(\eg, |ByName|, |ByNeed|, |ByVInit|).
+%(\eg |ByName|, |ByNeed|, |ByVInit|).
 %It is of course possible in Haskell to abandon totality, discard all events and
 %use plain |data Identity a = Identity a| as the trace type accompanied by the
 %definition |instance Trace Identity where step _ = id|.

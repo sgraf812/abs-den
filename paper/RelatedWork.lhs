@@ -99,7 +99,7 @@ an \emph{improvement}~\citep{MoranSands:99}.
 If we were to prove dead code elimination correct based on our notion of
 absence, would we use our denotational interpreter to do so?
 Probably not; we would try to conduct as much of the proof as possible in the
-equational theory, \ie, on syntax.
+equational theory, \ie on syntax.
 If need be, we could always switch to denotational interpreters via
 \Cref{thm:need-adequate-strong}, just as in \Cref{thm:absence-denotational}.
 \citet{HackettHutton:19} have done so as well.
@@ -117,7 +117,7 @@ Our solution delegates this complexity to the underlying theory of guarded
 recursive type theory~\citep{tctt}.
 
 We deliberately tried to provide a simple framework and thus stuck to cartesian
-(\ie, pointwise) abstraction of environments as in \citet[Chapter
+(\ie pointwise) abstraction of environments as in \citet[Chapter
 27]{Cousot:21}, but we expect relational abstractions to work just as well.
 Our generic denotational interpreter is a higher-order generalisation of the
 generic abstract interpreter in \citet[Chapter 21]{Cousot:21}.
