@@ -118,7 +118,7 @@ We make the following contributions:
   None of the proof obligations mention the generic interpreter, and, more
   remarkably, none of the laws mention the concrete semantics or the Galois
   connection either!
-  This enables to prove usage analysis sound \wrt the by-name
+  This enables us to prove usage analysis sound \wrt the by-name
   and by-need semantics in half a page, building on reusable
   semantics-specific theorems.
 \item

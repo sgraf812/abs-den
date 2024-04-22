@@ -139,8 +139,8 @@
   and then varying it, we recover \emph{dynamic semantics} with different
   evaluation strategies as well as \emph{summary-based static analyses} such as type
   analysis, all from the same generic interpreter.
-  Among our contributions is the first provably adequate denotational semantics
-  for call-by-need, in a strong, compositional sense.
+  Among our contributions is the first denotational semantics for call-by-need
+  that is provably adequate in a strong, compositional sense.
   The generated traces lend themselves well to describe \emph{operational properties}
   such as how often a variable is evaluated, and hence enable static analyses
   abstracting these operational properties.

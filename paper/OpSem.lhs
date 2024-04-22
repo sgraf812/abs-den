@@ -52,8 +52,8 @@ It is a Lazy Krivine (LK) machine implementing call-by-need.
 (A close sibling for call-by-value would be a CESK machine \citep{Felleisen:87}.)
 A reasonable call-by-name semantics can be recovered by removing the $\UpdateT$
 rule and the pushing of update frames in $\LookupT$.
-Furthermore, we will ignore $\CaseIT$ and $\CaseET$ in this section because we
-do not consider data types for now.
+%Furthermore, we will ignore $\CaseIT$ and $\CaseET$ in this section because we
+%do not consider data types for now.
 
 The configurations $σ$ in this transition system resemble abstract machine
 states, consisting of a control expression $\pe$, an environment $ρ$ mapping

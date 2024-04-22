@@ -233,8 +233,8 @@ $k$ during analysis of the example above to see that $x_2$ is absent in a simple
 first-order sense.
 The \emph{call strings} approach to interprocedural program
 analysis~\citep{SharirPnueli:78} turns this idea into a static analysis,
-and the AAM recipe could be used to derive a call strings-based absence analysis
-that is sound by construction.
+and the AAM recipe could be used to derive an absence analysis based on call
+strings that is sound by construction.
 In this subsection, we argue that following this paths gives up on modularity,
 and thus leads to scalability problems in a compiler.
 
@@ -259,8 +259,8 @@ Our analysis $\semabs{\wild}$ facilitates that easily, because it can
 serialise the summarised $\AbsTy$ for $k$ into module A's signature file.
 Do note that this would not have been possible for the functional
 $(\fn{θ_y}{\fn{θ_z}{θ_y}}) : \AbsTy \to \AbsTy \to \AbsTy$ that describes the
-inline expansion of $k$, which a call strings-based analysis would need to
-invoke at every use site.
+inline expansion of $k$, which a call-strings-based absence analysis would need
+to invoke at every use site.
 
 The same way summaries enable efficient \emph{inter}-module compilation,
 they enable efficient \emph{intra}-module compilation for \emph{compositional}
@@ -922,7 +922,7 @@ it, is enormous.
     information in step (3), we noticed that we actually got stuck in the $\UpdateT$
     case, and would need to redo the proof using step-indexing~\citep{AppelMcAllester:01}.
     In our experience this case hides the thorniest of surprises; that was
-    our experience while proving \Cref{thm:soundness-by-need} which gives a
+    our experience while proving \Cref{thm:eval-preserves-need} which gives a
     proper account.
 
     Although the proof in \citet{Sergey:14} is perceived as detailed and

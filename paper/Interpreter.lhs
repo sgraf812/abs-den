@@ -97,7 +97,7 @@ The choice of semantic domain determines the \emph{evaluation strategy}
 Yet different semantic domains give rise to useful \emph{summary-based} static
 analyses such as usage analysis in \Cref{sec:abstraction}, all from the same
 interpreter skeleton.
-Our generic denotational interpreter enable sharing of soundness proofs, thus
+Our generic denotational interpreter enables sharing of soundness proofs, thus
 drastically simplifying the soundness proof obligation per derived analysis
 (\Cref{sec:soundness}).
 
@@ -169,15 +169,8 @@ thus generated, as required for a soundness proof of usage analysis.
 We choose |DName|, defined below, as the first example of such a semantic domain,
 because it is simple and illustrative of the approach.
 Instantiated at |DName|, our generic interpreter will produce precisely the
-traces of the by-name variant of the Krivine machine in \Cref{fig:lk-semantics}.
-%In \Cref{sec:evaluation-strategies} we will give semantic domains for by-value
-%and by-need semantics as well, and in \Cref{sec:abstraction} we obtain static
-%analyses as instances\sven{This is off topic. Right now the reader wants to see
-%the definition of |DName| and understand it. I would move this sentence to the
-%end of Sec 4.1.}.
-
-We can define the semantic domain |DName| for a call-by-\textbf{\textit{na}}me variant
-of our language as follows:%
+traces of the by-\textbf{\textrm{na}}me variant of the Krivine machine in
+\Cref{fig:lk-semantics}.%
 \footnote{For a realistic implementation, we would define |D| as a |newtype| to
 keep type class resolution decidable and non-overlapping. We will however stick
 to a |type| synonym in this presentation in order to elide noisy wrapping and
@@ -227,7 +220,7 @@ such as (guarded) interaction trees~\citep{interaction-trees,gitrees}.}
 
 A trace in |DName = T (Value T)| eventually terminates with a |Value| that is
 either stuck (|Stuck|), a function waiting to be applied to a domain value
-(|Fun|), or a constructor constructor application giving the denotations of its
+(|Fun|), or a constructor application giving the denotations of its
 fields (|Con|).
 %|Value| is thus just a standard denotational encoding of its syntactic counterpart |Lam|/|ConApp|, devoid of any syntax. \slpj{I don't know what that sentence adds or even means. Omit?}
 %\sg{I clarified, mentioining |Lam|/|ConApp|. This point is one of the main distinctions between operational semantics and denotational semantics.}
@@ -305,7 +298,7 @@ ifPoly (instance HasBind DName where
   \label{fig:trace-instances}
 \end{minipage}%
 \\[-0.5em]
-\caption{Abstract Denotational Interpreter}
+\caption{Denotational Interpreter}
   \label{fig:eval}
 \end{figure}
 
