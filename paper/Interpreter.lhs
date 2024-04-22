@@ -674,9 +674,9 @@ class Extract τ where getValue :: τ v -> v
 instance Extract T where getValue (Ret v) = v; getValue (Step _ τ) = getValue τ
 
 instance (Trace (D (ByValue τ)), Monad τ, Extract τ) => HasBind (D (ByValue τ)) where
-  bind # rhs body = step Let0 (do  v1 <- d; body (return v1))
-                                   where  d = rhs (return v)          :: D (ByValue τ)
-                                          v = getValue (unByValue d)  :: Value (ByValue τ)
+  bind # rhs body = step Let0 (do  let  d = rhs (return v)          :: D (ByValue τ)
+                                        v = getValue (unByValue d)  :: Value (ByValue τ)
+                                   v1 <- d; body (return v1))
 \end{code}
 %if style == newcode
 \begin{code}

@@ -104,7 +104,7 @@ program semantics that conservatively approximates semantic absence.%
 the special case of non-recursive let.
 The generalised definition for recursive as well as non-recursive let is
 $\semabs{\Let{\px}{\pe_1}{\pe_2}}_ρ = \semabs{\pe_2}_{ρ[\px ↦ \lfp(\fn{θ}{\px \both \semabs{\pe_1}_{ρ[\px↦θ]}})]}$.}
-It takes an environment $ρ \in \Var \pfun \Absence$ containing absence
+It takes an environment $ρ \in \Var \pfun \AbsTy$ containing absence
 information about the free variables of $\pe$ and returns
 an \emph{absence type} $\langle φ, \varsigma \rangle \in \AbsTy$; an abstract
 representation of $\pe$.
@@ -265,18 +265,19 @@ invoke at every use site.
 The same way summaries enable efficient \emph{inter}-module compilation,
 they enable efficient \emph{intra}-module compilation for \emph{compositional}
 static analyses such as $\semabs{\wild}$.%
-\footnote{\citet{Cousot:02} understand modularity as degrees of compositionality.}
+\footnote{\citet{Cousot:02} understand modularity as degrees of compositionality;
+a compositional analysis is thus modular.}
 Compositionality implies that $\semabs{\Let{f}{\Lam{x}{\pe_{\mathit{big}}}}{f~f~f~f}}$
-is a function of $\semabs{\Lam{x}{\pe_{\mathit{big}}}}$, itself a function of
-$\semabs{\pe_{\mathit{big}}}$.
-In order to satisfy the scalability requirements of a compiler and
-guarantee termination of the analysis in the first place, it is
-important not to repeat the work of analysing $\semabs{\pe_{\mathit{big}}}$
-at every use site of $f$.
-Thus, it is necessary to summarise $\semabs{\Lam{x}{\pe_{\mathit{big}}}}$ into
-a finite $\AbsTy$, rather than to call the inline expansion
-of type $\AbsTy \to \AbsTy$ multiple times, ruling out an analysis that is
-purely based on call strings.
+is a function of $\semabs{\Lam{x}{\pe_{\mathit{big}}}}$, and the summary mechanism
+prevents having to reanalyse $\pe_{\mathit{big}}$ repeatedly for each call of $f$.
+%In order to satisfy the scalability requirements of a compiler and
+%guarantee termination of the analysis in the first place, it is
+%important not to repeat the work of analysing $\semabs{\pe_{\mathit{big}}}$
+%at every use site of $f$.
+%Thus, it is necessary to summarise $\semabs{\Lam{x}{\pe_{\mathit{big}}}}$ into
+%a finite $\AbsTy$, rather than to call the inline expansion
+%of type $\AbsTy \to \AbsTy$ multiple times, ruling out an analysis that is
+%purely based on call strings.
 
 %This summary mechanism is manifest in the $\mathit{fun}$ and $\mathit{app}$
 %functions we deliberately extracted out, encoding a contract between function
