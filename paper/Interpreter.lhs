@@ -895,6 +895,7 @@ runClair (Clairvoyant m) = headParT m >>= \case
 \end{figure}
 
 \subsubsection{Clairvoyant Call-by-value}
+\label{sec:clair}
 
 Clairvoyant call-by-value~\citep{HackettHutton:19} is an approach to
 call-by-need semantics that exploits non-determinism and a cost model to absolve

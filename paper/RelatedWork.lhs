@@ -34,6 +34,10 @@ G-machine~\citep{Johnsson:84}.
 We improve on \citeauthor{Josephs:89}'s work in that our encoding is
 simpler, rigorously defined (\Cref{sec:totality}) and proven adequate \wrt
 \citeauthor{Sestoft:97}'s by-need semantics (\Cref{sec:adequacy}).
+\citet{HackettHutton:19} define a denotational cost semantics for call-by-need,
+but unfortunately we fail to see how their approach can be extended to
+totally generate detailed by-need small-step traces, \cf \Cref{sec:clair}.
+
 \citet{Sestoft:97} related the derivations of
 \citeauthor{Launchbury:93}'s big-step natural semantics for our language to
 the subset of \emph{balanced} small-step LK traces.
@@ -109,7 +113,7 @@ If need be, we could always switch to denotational interpreters via
 The book advocates a compositional, trace-generating semantics and then derives
 compositional analyses by calculational design, inspiring us to attempt the same.
 However, while \citet{Cousot:94,Cousot:02} work with denotational semantics
-for higher-order language, it was unclear to us how to derive a compositional,
+for a higher-order language, it was unclear to us how to derive a compositional,
 \emph{trace-generating} semantics for a higher-order language.
 The required changes to the domain definitions seemed daunting, to say the
 least.
@@ -139,7 +143,7 @@ although in practice it is often $k \leq 1$.
 %transition to a big-step style interpreter follow simply by adequacy of our
 %interpreter, \Cref{thm:sem-adequate}.
 
-The Abstracting Abstract Machines~\citep{aam} derives
+Abstracting Abstract Machines~\citep{aam} derives
 a computable \emph{reachable states semantics}~\citep{Cousot:21} from any
 small-step semantics, by bounding the size of the heap.
 %By bounding the size of the store, the freely choosably
@@ -227,9 +231,8 @@ precision and speed.
 analyses involve the inference of summaries called \emph{demand
 transformers}~\citep{Sergey:14}, such as implemented in the Demand Analysis of
 the Glasgow Haskell Compiler.
-The inner workings of the analysis are most similar to Clairvoyant
-call-by-value~\citep{HackettHutton:19}, so it is a shame that the Clairvoyant
-instantiation leads to partiality.
+It is very similar to Clairvoyant call-by-value~\citep{HackettHutton:19}, so it
+is a shame that the Clairvoyant instantiation leads to partiality.
 
 %\subsubsection*{Denotational Semantics}
 %Recent work on \emph{Clairvoyant call-by-value}
