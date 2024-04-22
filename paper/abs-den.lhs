@@ -140,10 +140,10 @@
   evaluation strategies as well as \emph{summary-based static analyses} such as type
   analysis, all from the same generic interpreter.
   Among our contributions is the first provably adequate denotational semantics
-  for call-by-need.
+  for call-by-need, in a strong, compositional sense.
   The generated traces lend themselves well to describe \emph{operational properties}
-  such as evaluation cardinality, and hence to static analyses abstracting these
-  operational properties.
+  such as how often a variable is evaluated, and hence enable static analyses
+  abstracting these operational properties.
   Since static analysis and dynamic semantics share the same generic interpreter
   definition, soundness proofs via abstract interpretation decompose into
   showing small abstraction laws about the abstract domain, thus obviating
