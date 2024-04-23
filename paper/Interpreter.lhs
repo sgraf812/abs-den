@@ -890,7 +890,7 @@ runClair (Clairvoyant m) = headParT m >>= \case
 \subsubsection{Clairvoyant Call-by-value}
 \label{sec:clair}
 
-Clairvoyant call-by-value~\citep{HackettHutton:19} is an approach to
+Clairvoyant call-by-value~\citep{HackettHutton:19} is an alternative to
 call-by-need semantics that exploits non-determinism and a cost model to absolve
 of the heap.
 We can instantiate our interpreter to generate the shortest clairvoyant
@@ -909,8 +909,8 @@ The first example discards $f$, but the second needs it, so the trace starts
 with an additional $\LetOT$ event.
 Similar to |ByValue|, the interpreter is not total so it is unfit as a
 denotational semantics without a complicated domain theoretic judgment.
-Furthermore, the decision whether or not a $\LetOT$ is needed can be delayed for
-an infinite amount of time, as exemplified by
+Furthermore, the decision whether or not a $\LetOT$ step is needed can be
+delayed for an infinite amount of time, as exemplified by
 
 < ghci> evalClair (read "let i = Z() in let w = λy.y y in w w") emp :: T (Value (Clairvoyant T))
 %$\perform{evalClair (read "let i = Z() in let w = λy.y y in w w") emp :: T (Value (Clairvoyant T))}$
