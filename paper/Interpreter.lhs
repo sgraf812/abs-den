@@ -344,7 +344,7 @@ $\perform{eval (read "let i = λx.x in i i") emp :: D (ByName T)}$,
 where $\langle\lambda\rangle$
 %\sven{Is it possible to spell out what the lambda is? Its just $\langle λx.x \rangle$, correct? I know that it its not possible in Haskell, but maybe just here in the paper.}
 means that the trace ends in a |Fun| value.
-We cannot print |DName|s or |Fun|ctions thereof, but in this case the result would be the value $\Lam{x}{x}$.
+We cannot print |DName| or |Fun|ctions thereof, but in this case the result would be the value $\Lam{x}{x}$.
 %\sg{Is this clarifying sentence helpful? I don't really think so...}
 This is in direct correspondence to the earlier call-by-name small-step trace
 \labelcref{ex:trace} in \Cref{sec:op-sem}.
@@ -604,7 +604,7 @@ of guarded fixpoints such as in |ByName| and |ByValue|.
 %you find distracting?}
 The whole purpose of the |memo a d| combinator then is to \emph{memoise} the
 computation of |d| the first time we run the computation, via |fetchN a| in the
-|Var| case of |evalNeed|.
+|Var| case of |evalNeed2|.
 So |memo a d| yields from |d| until it has reached a value, and then |upd|ates
 the heap after an additional |Update| step.
 Repeated access to the same variable will run the replacement |memo a (return
@@ -695,7 +695,7 @@ side by mutual recursion with |v :: Value (ByValue τ)| that we will discuss
 shortly.
 
 As its first action, |bind| yields a |Let0| event, announcing in the trace that
-the right-hand side of a |let| is to be evaluated.
+the right-hand side of a |Let| is to be evaluated.
 Then monadic bind |v1 <- d; body (return v1)| yields steps from the right-hand
 side |d| until its value |v1 :: Value (ByValue τ)| is reached, which is then
 passed |return|ed (\ie wrapped in |Ret|) to the let |body|.
