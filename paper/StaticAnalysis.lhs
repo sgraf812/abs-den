@@ -28,9 +28,9 @@ import Interpreter
 So far, our semantic domains have all been \emph{infinite}, simply because the
 dynamic traces they express are potentially infinite as well.
 However, by instantiating the \emph{same} generic denotational interpreter with
-a \emph{finite} semantic domain, we can run the interpreter on the program
-statically, at compile time, to yield a \emph{finite} abstraction of the dynamic
-behavior.
+a semantic domain in which every element is \emph{finite data}, we can run the
+interpreter on the program statically, at compile time, to yield a \emph{finite}
+abstraction of the dynamic behavior.
 This gives us a \emph{static program analysis}.
 
 We can get a wide range of static analyses, simply by choosing an appropriate semantic domain.
@@ -200,9 +200,9 @@ instance Show UValue where
 \end{figure}
 
 In order to recover usage analysis as an instance of our generic interpreter, we
-must define its finite semantic domain |UD|.
+must define its finitely represented semantic domain |UD|.
 Often, the first step in doing so is to replace the potentially infinite traces
-|T| in dynamic semantic domains such as |DName| with a finite type such
+|T| in dynamic semantic domains such as |DName| with finite data such
 as |UT| in \Cref{fig:usage-analysis}.
 A \emph{usage trace} |MkUT φ val :: UT v| is a pair of a value |val :: v|
 and a finite map |φ :: Uses|, mapping variables to a \emph{usage} |U|.
@@ -246,15 +246,15 @@ concatenation and then running our interpreter at, \eg $|D (ByName UT)| \cong
 It is nice to explore whether the |Trace| instance encodes the desired
 operational property in this way, but of little practical relevance because
 this interpreter instance will diverge whenever the input expression diverges.
-We fix this in the next subsection by introducing a finite |UValue| to replace
-|Value UT|.
+We fix this in the next subsection by introducing a finitely represented
+|UValue| to replace |Value UT|.
 
 \subsection{Value Abstraction |UValue| and Summarisation in |Domain UD|}
 \label{sec:usage-analysis}
 
-In this subsection, we complement the finite trace type |UT| from the previous
-subsection with a corresponding finite semantic value type |UValue| to get the
-finite semantic domain |UD = UT UValue| in \Cref{fig:usage-analysis}, and thus a
+In this subsection, we complement the trace type |UT| from the previous
+subsection with a corresponding semantic value type |UValue| to get the
+finitely represented semantic domain |UD = UT UValue| in \Cref{fig:usage-analysis}, and thus a
 \emph{static usage analysis} |evalUsg| when we instantiate |eval| at |UD|.
 
 %If we want to assess usage cardinality statically, we have to find a more
@@ -353,10 +353,10 @@ emp (Rep Uω)| as proxies for field denotations.
 The result uses anything the scrutinee expression used, plus the upper bound of
 uses in case alternatives, one of which will be taken.
 
-Much more could be said about the way in which finiteness of |UD| rules out
-injective implementations of |fun x :: (UD -> UD) -> UD| and thus requires the
-aforementioned \emph{approximate} summary mechanism, but it is easy to get
-sidetracked in doing so.
+Much more could be said about the way in which the finite representation of the
+type |UD| rules out injective implementations of |fun x :: (UD -> UD) -> UD| and
+thus requires the aforementioned \emph{approximate} summary mechanism, but it is
+easy to get sidetracked in doing so.
 There is another potential source of approximation: the |HasBind|
 instance discussed next.
 
@@ -385,15 +385,15 @@ Alas, among other things this argument relies on the |Step| constructor --- and
 thus the |step| method --- of the trace type |T| being \emph{lazy} in
 the tail of the trace!
 
-When we replaced |T| in favor of the finite, inductive type |UT| in
+When we replaced |T| in favor of the finite data type |UT| in
 \Cref{sec:usage-trace-abstraction} to get a collecting semantics |D (ByName
 UT)|, we got a partial interpreter.
 That was because the |step| implementation of |UT| is \emph{not} lazy, and hence
 the guarded fixpoint |let d = rhs d in body d| is not guaranteed to exist.
 
-In general, finite trace types cannot have a lazy |step| implementation, so
-finite domains such as |UD| require a different fixpoint strategy to ensure
-termination.
+In general, finite data trace types cannot have a lazy |step|
+implementation, so finite data domains such as |UD| require a different fixpoint
+strategy to ensure termination.
 Depending on the abstract domain, different fixpoint strategies can be employed.
 For an unusual example, in our type analysis \Cref{sec:type-analysis}, we
 generate and solve a constraint system via unification to define fixpoints.
