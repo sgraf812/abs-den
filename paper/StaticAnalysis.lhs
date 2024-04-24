@@ -62,7 +62,7 @@ For example, we have successfully realised the following analyses as denotationa
     None of the runtime performance test cases regress and the inferred
     demand signatures stay unchanged.}
     Demand Analysis is the real-world implementation of the cardinality analysis
-    work of \citep{Sergey:14}, implementing strictness analysis as well.
+    work of \citet{Sergey:14}, implementing strictness analysis as well.
     This is to demonstrate that our framework scales to real-world compilers.
 \end{itemize}
 

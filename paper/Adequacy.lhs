@@ -55,7 +55,7 @@ events, as expressed in the following Theorem:
   \begin{itemize}
     \item |τ| preserves the observable termination properties of $\init(\pe) \smallstep ...$
       in the above sense.
-    \item |τ| preserves the length of $\init(\pe) \smallstep ...$ (\ie number of |Step| transitions).
+    \item |τ| preserves the length of $\init(\pe) \smallstep ...$ (\ie number of |Step|s equals number of $\smallstep$).
     \item every |ev :: Event| in |τ = many (Step ev ^^ ...)| corresponds to the
       transition rule taken in $\init(\pe) \smallstep ...$.
   \end{itemize}

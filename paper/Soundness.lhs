@@ -182,7 +182,7 @@ it suffices that |x| is chosen fresh.}
 This states that summarising |f| through |fun|, then |apply|ing the summary to
 |a| must approximate a direct call to |f|;
 it amounts to proving correct the summary mechanism.%
-\footnote{To illustrate this point: if we were to pick dynamic |Value|s as the
+\footnote{To illustrate this point: If we were to pick dynamic |Value|s as the
 summary as in the ``collecting semantics'' |D (ByNeed UT)|, we would not need to
 show anything! Then |apply (return (Fun f)) a = f a|.}
 In \Cref{sec:problem}, we have proved a substitution \Cref{thm:absence-subst},
@@ -245,7 +245,7 @@ Now we can finally prove the substitution lemma:
 \end{lemmarep}
 \begin{proof}
 We need to assume that |x| is absent in the range of |ρ|.
-This is a ``freshness assumption'' relating to the identify of |x| that in
+This is a ``freshness assumption'' relating to the identity of |x| that in
 practice is always respected by |evalUsg|.
 
 Now we proceed by induction on |e| and only consider non-|stuck| cases.
@@ -410,10 +410,11 @@ In the Appendix, we show a result similar to \Cref{thm:soundness-by-need-closed}
 for by-name evaluation which does not require the by-need specific rules
 \textsc{Step-Inc} and \textsc{Update}.
 
-Note that none of the laws mention the concrete semantics or |α|.
-This is how our opinionated approach pays off: because both concrete semantics
-and |α| are known, the usual abstraction laws such as |α (apply d a) ⊑ hat
-apply (α d) (α a)| further decompose into \textsc{Beta-App}.
+Note that none of the laws mention the concrete semantics or the abstraction
+function |abstract|. This is how our opinionated approach pays off: because both
+concrete semantics and |abstract| are known, the usual abstraction laws such as
+|abstract (apply d a) ⊑ hat apply (abstract d) (abstract a)| further decompose
+into \textsc{Beta-App}.
 We think this is an important advantage to our approach, because the author of
 the analysis does not need to reason about the concrete semantics in order to
 soundly approximate a semantic trace property expressed via |Trace| instance!
@@ -426,15 +427,39 @@ infers absence in the same sense as absence analysis from \Cref{sec:problem}.
 The reason we do so is to evaluate the proof complexity of our approach against
 the preservation-style proof framework in \Cref{sec:problem}.
 
-%\sven{This sentence is hard to understand since you explain \emph{how} you achieve someting before you explain \emph{what} you actually achieve.
-%Better:
-%\begin{enumerate}
-%\item Explain what you are about to do: Redefine absence in terms of $\mathcal{S}$.
-%\item Explain why this is important: To abstract away from the details of the LK machine
-%\item Explain why this makes sense: by adequacy, $\mathcal{S}$ and the LK produce the same event sequences
-%\end{enumerate}}
-%\sg{I think it's better now. Thanks}
-The first step is to leave behind the definition of absence in terms of the LK
+Specifically, \Cref{thm:soundness-by-need-closed} makes it very simple to relate
+by-need semantics with usage analysis:
+
+\begin{lemmarep}[|evalUsg| abstracts |evalNeed2|]
+\label{thm:usage-abstracts-need-closed}
+Let |e| be a closed expression and |abstract| the abstraction function above.
+Then |abstract (evalNeed2 e emp) ⊑ evalUsg e emp|.
+\end{lemmarep}
+\begin{proof}
+By \Cref{thm:soundness-by-need-closed}, it suffices to show the abstraction laws
+in \Cref{fig:abstraction-laws}.
+\begin{itemize}
+  \item \textsc{Mono}:
+    Always immediate, since |⊔| and |+| are the only functions matching on |U|,
+    and these are monotonic.
+  \item \textsc{Unwind-Stuck}, \textsc{Intro-Stuck}:
+    Trivial, since |stuck = bottom|.
+  \item \textsc{Step-App}, \textsc{Step-Sel}, \textsc{Step-Inc}, \textsc{Update}:
+    Follows by unfolding |step|, |apply|, |select| and associativity of |+|.
+  \item \textsc{Beta-App}:
+    Follows from \Cref{thm:usage-subst}; see \Cref{eqn:usage-beta-app}.
+  \item \textsc{Beta-Sel}:
+    Follows by unfolding |select| and |con| and applying a lemma very similar to
+    \Cref{thm:usage-subst} multiple times.
+  \item \textsc{Bind-ByName}:
+    |kleeneFix| approximates the least fixpoint |lfp| since the iteratee |rhs|
+    is monotone.
+    We have said elsewhere that we omit a widening operator for |rhs| that
+    guarantees that |kleeneFix| terminates.
+\end{itemize}
+\end{proof}
+
+The next step is to leave behind the definition of absence in terms of the LK
 machine in favor of one using |evalNeed2|.
 That is a welcome simplification because it leaves us with a single semantic
 artefact --- the denotational interpreter --- instead of an operational
@@ -446,7 +471,7 @@ redefinition but provably equivalent to \Cref{defn:absence}:
   Variable |x| is used in |e| if and only if there exists a by-need evaluation context
   |ectxt| and expression |e'| such that the trace
   |evalNeed (fillC ectxt (Let x e' e)) emp emp| contains a |Lookup x| event.
-  (Otherwise, |x| is absent in |e|.)
+  Otherwise, |x| is absent in |e|.
 \end{lemmarep}
 \begin{proof}
 Since |x| is used in |e|, there exists a trace
@@ -483,35 +508,6 @@ from LK trace to denotational interpreter.
 We define the by-need evaluation contexts for our language in the Appendix.
 Thus insulated from the LK machine, we may restate and prove
 \Cref{thm:absence-correct} for usage analysis.
-
-\begin{lemmarep}[|evalUsg| abstracts |evalNeed2|]
-\label{thm:usage-abstracts-need-closed}
-Let |e| be a closed expression and |abstract| the abstraction function above.
-Then |abstract (evalNeed2 e emp) ⊑ evalUsg e emp|.
-\end{lemmarep}
-\begin{proof}
-By \Cref{thm:soundness-by-need-closed}, it suffices to show the abstraction laws
-in \Cref{fig:abstraction-laws}.
-\begin{itemize}
-  \item \textsc{Mono}:
-    Always immediate, since |⊔| and |+| are the only functions matching on |U|,
-    and these are monotonic.
-  \item \textsc{Unwind-Stuck}, \textsc{Intro-Stuck}:
-    Trivial, since |stuck = bottom|.
-  \item \textsc{Step-App}, \textsc{Step-Sel}, \textsc{Step-Inc}, \textsc{Update}:
-    Follows by unfolding |step|, |apply|, |select| and associativity of |+|.
-  \item \textsc{Beta-App}:
-    Follows from \Cref{thm:usage-subst}; see \Cref{eqn:usage-beta-app}.
-  \item \textsc{Beta-Sel}:
-    Follows by unfolding |select| and |con| and applying a lemma very similar to
-    \Cref{thm:usage-subst} multiple times.
-  \item \textsc{Bind-ByName}:
-    |kleeneFix| approximates the least fixpoint |lfp| since the iteratee |rhs|
-    is monotone.
-    We have said elsewhere that we omit a widening operator for |rhs| that
-    guarantees that |kleeneFix| terminates.
-\end{itemize}
-\end{proof}
 
 \begin{theoremrep}[|evalUsg| infers absence]
   \label{thm:usage-absence}
@@ -592,9 +588,8 @@ Let us compare to the preservation-style proof framework in \Cref{sec:problem}.
     amounts to a preservation lemma; the difference is that our proof properly
     accounts for heap update and can be shared with other analyses that are
     sound \wrt by-name and by-need such as type analysis and 0CFA.
+    Thus, we achieve our goal of proving semantic distractions ``once and for all''.
 \end{itemize}
-
-Thus, we achieve our goal of proving semantic distractions ``once and for all''.
 
 \begin{toappendix}
 In the proof for \Cref{thm:usage-absence} we exploit that usage analysis is
