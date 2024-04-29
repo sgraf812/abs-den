@@ -68,7 +68,28 @@ inputs lead to total outputs, to rule out that the output contains bottoms.
 It is a path not taken because guarded recursive types are simply more
 appealing.
 
->
+> Interestingly, the authors make several remarks on whether this was an
+> appropriate choice, since, after all, they are interested in safety
+> properties.
+
+Yes, and we feel we should make clear here that the conclusion is that a guarded
+formulation is *ideal* to formulate safety properties, because predicates
+defined by Löb induction define safety properties; see [2,3] for details.
+We expand on the topic a bit in Appendix D.2, where it can satiate hungry minds.
+
+> Why didn't you start with a semantics of partial traces in the first place?
+> This would have saved you the difficult work of dealing with co-inductive
+> traces.
+
+First off, a *prefix trace semantics* such as in [4] can be recovered from our
+*maximal trace semantics* (to use terminology from Cousot [5]) simply by taking
+the prefix closure of the maximal trace, so they are equally expressive for the
+language considered [5].
+That said, it is *far more intuitive* to generate the maximal traces instead,
+because then you do not need to come up with a language to lift operations
+to sets. Compare page TODO to page TODO for a taste.
+
+
 1. Figure 13, MONO: This is in practice very constraining, and can rule out several useful analyses. Widening breaks MONO.
   - We are a bit unsure what kind of widening operators you had in mind.
     Yes, widening operators may well be non-monotonic, but they are not part
@@ -158,4 +179,8 @@ bfSince
     we do not define any non-standard equivalence relation,
 
 
-[1] Kevin Backhouse, Roland Backhouse, Safety of abstract interpretations for free, via logical relations and Galois connections, 2004
+[1] Backhouse and Backhouse, Safety of abstract interpretations for free, via logical relations and Galois connections, 2004
+
+[2] Birkedal and Bizjak, Lecture Notes on Iris: Higher-Order Concurrent Separation Logic, https://iris-project.org/tutorial-pdfs/iris-lecture-notes.pdf
+
+[3] Spies et al., Transfinite Iris: resolving an existential dilemma of step-indexed separation logic, PLDI 2021
