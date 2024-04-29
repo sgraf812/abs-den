@@ -1,0 +1,537 @@
+ICFP 2024 Paper #42 Reviews and Comments
+===========================================================================
+Paper #42 Abstracting Denotational Interpreters
+
+
+Review #42A
+===========================================================================
+
+Overall merit
+-------------
+D. Reject
+
+Reviewer Expertise
+------------------
+X. I am an expert in this area
+
+Reviewer Confidence
+-------------------
+3. Good: I am reasonably sure of my assessment
+
+Paper summary
+-------------
+This paper describes a method to derive correct by construction
+abstract interpreters for higher-order languages that compute
+summary-based analyses, by defining a generic denotational interpreter.
+One instance of the interpreter produces possibly-infinite traces of
+executions, and it is showed that it adequately describes call by need
+evaluation (respectively, call by name for another instance). The
+correspondence is proved with respect to a variant of the LK machine.
+A class of other instances, that must respect "abstraction laws",
+implement provably correct abstractions of the former instance. The
+authors describe as an example an instance of their framework that
+defines a usage static analysis for a λ-calculus endowed with a call
+by need semantics. They also mention a larger-scale implementation in
+the Glasgow Haskell Compiler, and other instances of their framework
+that perform Hindley-Milner type inference, and 0-CFA analysis. A
+large part of the paper's claims is formalized in Guarded Cubical
+Agda.
+
+Assessment of the paper
+-----------------------
+The paper is globally hard to read, mainly because of the lack of a
+clear separation between the body of the article and its appendices.
+The authors should strive to obtain a self-contained article body.
+Moreover, the writing looks unfinished, since the paper lacks a
+conclusion and a description of future work.
+
+While the idea of defining an interpreter that is parameterized over
+the interpretation of the language's constructs is nice, it is not
+novel. The interpreter merely resembles a fold over the syntax tree,
+which is a common technique to all denotational semantics of programs.
+The parametrization over the semantics of basic language constructs
+is, for example, very common in categorical semantics, where
+interpretations are defined for any category that satisfies some
+properties.
+
+The choices for the decomposition of the interpreter is non-standard,
+sometimes surprising. In particular, the reason why the interpreter is
+interspersed with calls to `step` should be justified more clearly. In
+particular, are the calls to `step` inserted only for soundness
+reasons (wrt. the traces of the LK abstract machine), or for
+termination reasons (so that the code is guarded and thus accepted by
+Agda)? It seems the interpreter that is presented could be obtained as
+a particular instance of a standard denotational semantics, that is
+oblivious to the interpretation domain of traces (and thus that does
+not call `step` at all).
+
+The authors interpret programs as the maximal traces they produce.
+Such traces can be infinite for diverging programs, i.e., they belong
+to a co-inductive type. This creates issues with
+guardedness/productivity, and proofs are subtle because they make use
+of Löb induction, so it is a good idea that the authors mechanized
+them. Interestingly, the authors make several remarks on whether this
+was an appropriate choice, since, after all, they are interested in
+safety properties. Moreover, it seems the appendix contains an
+abstraction of the traces into sets of (finite) partial traces.
+Considering such partial traces was the approach of [1]. Why didn't
+you start with a semantics of partial traces in the first place? This
+would have saved you the difficult work of dealing with co-inductive
+traces.
+
+Most of the paper is devoted to 1- the explanation of why the authors'
+approach for proving soundness of analyses is simpler than more
+syntactic approaches, and to 2- the description of the absence/usage
+analysis. In comparison, too short a space is reserved to explain how
+their framework can be used to actually prove the soundness of an
+analysis, and why their framework is correct. This leaves several
+important questions unaddressed, which makes the argumentation little
+convincing.
+
+In particular:
+
+1- In figure 13, you require that all the functions of the type
+   classes Trace, Domain and HasBind must be monotonic (with respect
+   to the pre-order of the abstract domain). This is in practice very
+   constraining, and can rule out several useful analyses. In
+   particular, as soon as you make use of widening (which you claim
+   you employ in the implementation of `bind`), monotonicity will most
+   likely be broken. It is indeed well-known that widening on
+   intervals, for example, is not monotonic. What is usually required
+   is that transfer functions in the abstract domain must
+   over-approximate the transfer functions in the concrete domain, and
+   that the transfer functions in the concrete domain are monotonic
+   (which is usually satisfied, as the concrete transfer functions are
+   most of the time join morphisms from sets to sets).
+
+2- It is extremely surprising that the soundness of the pre-order of
+   the abstract domain is never mentioned or required. This is usually
+   stated either as a Galois connection, or as the monotonicity of the
+   concretization function or of the abstraction function. The
+   soundness of the abstract pre-order is crucial to the soundness of
+   a static analyzer, and crucial to the soundness of your `lfp`
+   function. Without this soundness condition, one could take the
+   total relation for the abstract pre-order ⊑. This would validate
+   all of the abstraction laws that you prescribe, whatever the
+   implementation of the abstract transfer functions. Therefore,
+   Theorem 6, as it is currently stated, is very likely to be
+   incorrect.
+
+3- Theorem 6 mentions the `abstract` function, that is never defined.
+   This is worrisome. Sentences like "`abstract` is entirely derived
+   from type class instances" or "the precise definition of `abstract`
+   can be found in the proof of the following theorem" without any
+   further details do not provide a single clue of how it could be
+   defined. Because this is a central piece of the soundness argument,
+   you must give its definition to the reader. It is not acceptable to
+   ask the reader to search in the appendix for this definition,
+   that is buried inside a proof.
+
+4- Can the abstraction laws be proved in a modular way? At least three
+   of them (Beta-App, Beta-Sel and Bind-ByName) seem to be problematic
+   in this respect, because they mention the analysis function
+   (SD[e]ρ). Their proofs seem to require a substitution lemma
+   (Lemma 7) as the authors indicate. This means that to prove these
+   two rules, one must know the whole analysis function, and reason on
+   it as a whole. In the case of Bind-ByName, one also has to reason
+   about `lfp`. I presume this is not easy... It seems that your
+   abstraction laws are a form of preservation proof at the abstract
+   level, but then we are back to a syntactic proof method! This is in
+   stark contrast with the abstract interpretation approach, where
+   each transfer function can be proved correct independently of each
+   other, and where generic theorems ensure the soundness of the least
+   fixed point computation, for example.
+
+Finally, it seems the authors use the vocable "summary-based analysis"
+to denote two very different things. On the one hand, they refer to
+the technique of analyzing once and for all the code of the function,
+so that the calls of a function only have to instantiate the summary
+(similarly to what type systems do). In this sense, a summary denotes
+all the possible future uses of a function, and its computation is not
+driven by the uses of the function, and a summary is computed only
+once. On the other hand, they refer to the technique of representing
+all the ways a function might have been called in a program in the
+past (similarly to what CFAs do). In this sense, a summary denotes all
+the possible uses of a function by a program, and its computation is
+driven by the uses, and a summary might require multiple analyses of a
+function body until a fixpoint is found (and it seems the functions in
+the FunCache of your 0CFA are precisely there so that they can be
+called multiple times!). These are two very different things. The
+authors, however, blur this important distinction, because they give
+instances of their framework that fit in the first category (usage
+analysis, Hindley-Milner) of other instances that fit in the second
+category (0CFA). The authors have to clarify this point in a future
+version.
+
+[1] Cousot, Patrick and Cousot, Radhia
+    An abstract interpretation framework for termination.
+    2012.
+
+Questions for authors’ response
+-------------------------------
+- Please elaborate on the connections with interaction trees, that also
+  represent the traces of programs as a co-inductive value [1,2]. They
+  are also used to give denotational semantics to programs, and
+  provide some intensional information about a program's behavior.
+
+- Same question with game semantics.
+
+- How does this paper compare to work that also use sets of traces for
+  the λ-calculus to derive CFA, e.g. [3]?
+
+- Which parts have you mechanized in Agda? Which parts are not
+  mechanized?
+
+- Please also answer the questions raised or issues mentioned in the
+  "Assessment of the paper" section.
+
+[1] Li-yao Xia, Yannick Zakowski, Paul He, Chung-Kil Hur, Gregory
+    Malecha, Benjamin C. Pierce, and Steve Zdancewic.
+    Interaction trees: representing recursive and impure programs in Coq.
+    POPL 2019.
+
+[2] Dan Frumin, Amin Timany, and Lars Birkedal.
+    Modular Denotational Semantics for Effects with Guarded Interaction Trees.
+    POPL 2024.
+
+[3] Montagu, Benoît and Jensen, Thomas
+    Trace-Based Control-Flow Analysis.
+    PLDI 2021.
+
+Comments for authors
+--------------------
+- The definition of figure 1 is not explained.
+
+- Line 146: this footnote, at this place in the text begs the question
+  of whether this fixpoint is well defined (does it exist? in which
+  partially-ordered set?)
+
+- Lines 155-166: the example is explained step by step, but this is
+  hardly informative. It provides no explanation or no intuition of
+  why this computation makes sense for absence analysis.
+
+- Line 175: the pre-order relation ⊑ should probably be introduced and
+  explained earlier
+
+- Lines 263-271: this is obscure. The text depends too heavily on the
+  contents of the appendix.
+
+- Figure 2, rule Let1: at this point, we notice that let bindings are
+  recursive, it seems, as opposed to the let bindings of the language
+  of section 2.1. A surprise for the reader.
+
+- Figure 2, rule Look(y): recording the variable `y` is a difference
+  with the LK or the MarkII machines. The cases where x <> y are
+  interesting for the reader, and the last example of section 3
+  illustrate such a case. It is however not explained, and the reader
+  has to understand/discover this point alone.
+
+- Figure 5: you have chosen that `fun` takes a variable as a first
+  parameter (the bound variable of the function). Why didn't you make
+  similar choices for constructs that also involve bound variables?
+  (bind, select)
+
+- Figure 6 is useless, since the reader has to complete the definition
+  by herself!
+
+- The statement of Theorem 4 (Strong Adequacy) and its proof are too
+  sketchy. I am not sure what the theorem statement really means.
+
+- Line 908: "Occurrences of x must make do with the top value".
+  I don't understand the sentence.
+
+- Lines 923-926: "Much more could be said about..." Either say it, or
+  do not mention it at all. I have no idea what you have in mind.
+
+- Line 930 (footnote 24): please explain what you mean.
+
+- Figure 12: it is very upsetting that `lub` is not used at all in
+  this definition...
+
+- Line 958: "The keen reader may feel indignant..." It is generally a
+  good idea to avoid the reader entering a state of anger. Please
+  rephrase the explanation so that it does not happen.
+
+- Lines 960-961: "This is easily worked around in practice by
+  employing appropriate widening measures such as bounding the depth
+  of ValueU". Could you please give the definition, then, if you
+  actually had to implement such measures? Does it have consequences
+  about monotonicity?
+
+- Lines 978-979 (footnote 25): "Never mind totality; why is the use of
+  least fixpoints even correct?". Is this an remark that was targeted
+  to the authors discussing a point while writing the paper, or is is
+  targeted to the reader? Should the reader give you the answer?
+  Please rephrase.
+
+- Figure 13: please explain rules Unwind-Stuck and Intro-Stuck. The
+  use of join in those rules seems rather surprising.
+
+- Lines 1004-1007: this is obscure.
+
+- Lines 1012-1015: this is not a proof rule. Please state what you
+  mean precisely.
+
+- Line 1018: "opinionated". Please use a more scientific vocabulary.
+  This is not a blog post.
+
+- Lines 1022-1023: "considering the final heap for nested abstraction
+  (the subtle details are best left to the Appendix)". I don't have
+  the slightest idea of what you mean...
+
+- Lines 1142-1147: "... but it does not make any claim on whether a
+  transformation conditional on some trace property is actually sound,
+  yet alone an improvement, etc". Again, this is obscure. Please
+  explain. I don't understand why your interpreter would not be
+  appropriate for dead code elimination either.
+
+- Lines 1169-1170: "we think that CFA can be used to turn any finite
+  Trace instance such as TU into a static analysis without the need to
+  define a custom summary mechanism". I don't understand what you have
+  in mind.
+
+- Lines 1197-1201: What do you mean? That you are not able to model
+  demand transformers?
+
+
+
+Review #42B
+===========================================================================
+
+Overall merit
+-------------
+B. OK paper, but I will not champion it
+
+Reviewer Expertise
+------------------
+Y. I am knowledgeable in this area, but not an expert
+
+Reviewer Confidence
+-------------------
+3. Good: I am reasonably sure of my assessment
+
+Paper summary
+-------------
+The paper defines a generic interpreter for an untyped λ-calculus with
+recursive let-bindings.  The interpreter generates a trace in the lazy
+Krivine machine i.e.  each evaluation `step' is decorated with the
+name of a machine transition.  The interpreter is parametric in the
+semantic domain, a type plus a handful of semantic operations,
+abstracted away using three type-classes.
+
+A suitable instantiation of the semantic domain allows different
+evaluation strategies (with call-by-name, call-by-need and
+call-by-value) and various static analyses (usage analysis, type
+analysis and 0CFA control-flow analysis) to be implemented.  The
+authors claim that one of these instantiations is the first provably
+adequate denotational semantics for call-by-need.  As all of these
+instantiations share the same generic interpreter, soundness proofs
+can be couched solely in terms of properties of the semantic
+operations (called abstraction laws), while the plumbing is done only
+once and for all.
+
+Assessment of the paper
+-----------------------
+The introduction (§2) is simply great: the problem is clearly stated,
+the solution well motivated and justified.  (Someone has read Leslie
+Lamport's ``State the Problem Before Describing the Solution'' and
+taken it to heart.) After reading the first six pages I meant to
+champion the paper but in the end I didn't.  Here is why:
+
+The paper is humongous: 55 (!) pages, that is, the main body plus a 30
+page appendix.  (Even then the authors write ``we omit large parts of
+the implementation and the Domain instance for space reasons.''). I
+couldn't help feeling that the authors wanted to achieve too much:
+they present 5 different evaluation strategies, and 4 different types
+of static analyses (well, actually, only one is described in the main
+body of the text, the others are related to the appendix).  Can I
+profitably read the paper without repeatedly consulting the appendix?
+I am not so sure.
+
+I assume (but I may be wrong) that the main goal of the paper is to
+provide a generic framework for summary-based *static analyses* and to
+demonstrate the benefit of this approach (modularity, short soundness
+proofs etc).  Alas, the main body of the paper only details a single
+analysis (the absence analysis of §2 is a special case of the usage
+analysis in §6), which doesn't really serve the paper's main goal.
+Instead, 5 different dynamic semantics are presented. Why? In
+particular, as two (?) of them are unfit as a denotational semantics
+(Call-by-value, Clairvoyant Call-by-value).  Since the basis of the
+generic interpreter (the reference semantics) is the *lazy* krivine
+machine, these endeavours seem to be misguided.  (Perhaps, you should
+also abstract away from the Event type, supporting different abstract
+machines.) Instead, I would have liked to see a second or a third
+static analysis (strictness analysis?) to support the modularity
+claims.
+
+The authors present two artefacts: a Haskell implementation of the
+generic interpreter and the various instances, and an Agda (well,
+Guarded Cubical Agda) implementation of the generic interpreter and
+its instances at ByName and ByNeed (sadly, the Agda code doesn't
+typecheck, see below).  I was disappointed to learn that the latter
+artefact is only used to show that the ByName/ByNeed instances are
+well-defined.  In particular, it is *not* used to show semantic
+adequacy.  To be fair: the appendix contains all the proofs, but these
+seem to be pencil-and-paper proofs (which I didn't check).
+
+To be clear: I like the paper a lot, but not enough to champion it.
+
+Comments for authors
+--------------------
+As I said, the introduction (§2) is simply great.  The remainder of
+the paper could do with some more high-level sign-posting:
+
+· What is the source language? It took me a while to figure out that
+  let-bindings are recursive (this may be obvious for readers with a
+  Haskell background, but less obvious for those with a Standard ML or
+  Agda background).  Likewise, it took me a while to realise that the
+  source language is untyped.  Tell me!
+
+· What exactly do you achieve? In particular, what's the relation
+  between the Agda artefacts and the Haskell artefacts — the Agda code
+  is subtly (?) different to guarantee well-definedness.  Which
+  theorems enjoy ``only'' pencil-and-paper proofs — what's the
+  setting?  set theory? domain theory (CPOs)?, which theorems are
+  fully mechanised?
+
+There are too many footnotes for my taste. (Resist the temptation to
+include everything you know about the domain.)  Instead, spend more
+time on the basic/core definitions: carefully explaining the source
+language, the generic interpreter, the machine etc.
+
+The source language and the abstract machine support sum types, but
+you never (?) use them in your examples.  Why not ditch them?  Rather
+tellingly you write ``we will ignore Case and Case in this section
+because we do not consider data types for now.'' Strangely, ``this
+section'' is the section where you *introduce* the machine.
+
+Why do you first define the semantic domain for a call-by-name variant
+of your language and only then define the interpreter?  Surely, the
+interpreter is independent of that instance.  Fig. 5 again mixes the
+two, which put me on the wrong track for a while.  The generic
+interpreter labels the evaluation `steps' with rule names of the lazy
+krivine machine.  It would be nice if you actually use the same names
+(i.e. in Fig.2 and in data Event).  I was expecting to see every Event
+constructor in the definition of the Abstract Denotational
+Interpreter.  Alas, Let_0 and Update do not make an appearance, which
+seems odd.
+
+Sadly, the Agda code doesn't typecheck.
+---
+Concrete.agda:181,54-58
+The term α, given as an argument to the guarded value
+  d▹ : Tick → D (ByNeed τ)
+can not be used as a @tick argument, since it does not mention any
+@tick variables.
+when checking that the expression d▹ α has type
+ByNeed _τ_540 _v_541
+---
+I use Agda version 2.6.4.3. Also the code contains a few postulates
+(are these really parameters to the development?), and a dangerous
+pragma: NO_POSITIVITY_CHECK.
+
+
+
+Review #42C
+===========================================================================
+
+Overall merit
+-------------
+A. Good paper, I will champion it
+
+Reviewer Expertise
+------------------
+X. I am an expert in this area
+
+Reviewer Confidence
+-------------------
+3. Good: I am reasonably sure of my assessment
+
+Paper summary
+-------------
+This paper presents a generic "denotational interpreter" for a core
+functional language and various semantic domains that carry
+intensional information characterizing operational aspects of the
+interpreted program.  Domains are presented for call-by-name, -need,
+and -value, and the computed semantics correspond to traces of
+well-known abstract machines.  The generic interpreter and semantic
+domains are defined both in Haskell and Cubical Agda.  The
+instantiations of these denotational interpreters are proven total and
+adequate (corresponding to the reference machines).
+
+The combination of denotational style semantics (defined
+compositionally over the syntax of expressions) and the computation of
+intensional traces characteristic of operational semantics enables a
+nice "best of both worlds" approaches compositionally defined semantic
+artifacts with compositional proofs that nonetheless are able to
+characterize operational aspects of programs.
+
+Importantly, the paper shows that the generic interpreter can be
+instantiated with domains for sound computable approximations of the
+operational behaviors of programs, i.e. program analyses.  The paper
+argues this approach lends to more nicely structured proofs of
+soundness due to a shared interpreter structure and static analyses
+that are naturally modular and don't require reanalysis of code at
+each use site.
+
+A number of representative static analyses are defined using the
+framework of the paper such as a type analysis, 0CFA, and a demand
+analysis.  To demonstrate the scalability of the approach, the demand
+analysis is implemented for GHC, showing the technique works in the
+context of a mature, real-world compiler.
+
+Assessment of the paper
+-----------------------
+Strengths:
+
++ The paper synthesizes, crystallizes, and improves upon several
+  existing themes in the literature on abstraction interpretation of
+  functional languages.  Notably, the paper offers a rather nice
+  successor to the Abstracting Definitional Interpreters work of
+  Darais and notably provides a much nicer story for soundness proofs.
+
++ The paper contributes a novel, concise, and adequate denotational
+  semantics for call-by-need.
+
++ The approach scales to real languages and compilers, namely Haskell
+  and GHC.
+
++ The embedding of the approach with Cubical Agda suggests that the
+  approach is amenable to mechanical certification.
+
++ The paper is well written, the technical details appear correct, and
+  the results are well situated with respect to the existing
+  literature.
+
+Weaknesses:
+
++ Some important details of the demand analysis for GHC are omitted.
+
++ The paper could do a better job acknowledging limitations.
+
+Questions for authors’ response
+-------------------------------
+One piece of the paper that stood out to me as not well integrated was
+the section 4.3.5 on Clairvoyant Call-by-value.  In the end we see
+that the definition is not denotational, but why this point is
+relevant or interesting is never really addressed, except for a
+passing reference in the final sentences of the paper saying that the
+workings of the demand analysis are similar to the Clairvoyant CBV and
+that it's a shame the instantiation is partial.
+
+Can you elaborate on why the Clairvoyant semantics is important to the
+paper?
+
+Can you explain what's meant by the last discussion in the paper?  It
+sounds as though the implementation of the GHC demand analysis does
+not satisfy the totality requirement.  Is that the case and what are
+the consequences?
+
+A related question is: does the approach continue to work in
+situations where the denotational interpreter is not total (and
+therefore not really denotational) but the abstraction of it is?  Does
+this have an impact on the soundness proofs?  (My guess would be this
+works just fine.)
+
+(In general, more description of the scaled-up implementation of
+demand analysis in GHC would be interesting to this reader.)
