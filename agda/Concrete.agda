@@ -207,4 +207,3 @@ instance
 
 eval-by-need : Exp → T (Value (ByNeed T) × Heap (ByNeed T))
 eval-by-need e = ByNeed.get (S⟦ e ⟧ empty-pfun) empty-pfun
-

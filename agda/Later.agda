@@ -27,7 +27,7 @@ postulate
 ▹_ A = (@tick x : Tick) -> A  -- NB: x not free in A
 
 ▸_ : ∀ {l} → ▹ Set l → Set l
-▸ A = (@tick x : Tick) → A x -- NB: x occurs in A 
+▸ A = (@tick x : Tick) → A x -- NB: x occurs in A
 
 -- This is Barr's tick constant, to force a finite nesting of ▹s.
 -- Unfortunatley, the type checker doesn't know how to use it safely,
@@ -39,7 +39,7 @@ next x _ = x
 
 _⊛_ : ▹ (A → B) → ▹ A → ▹ B
 _⊛_ f x a = f a (x a)
-infixr 21 _⊛_ 
+infixr 21 _⊛_
 
 map▹ : (f : A → B) → ▹ A → ▹ B
 map▹ f x α = f (x α)
