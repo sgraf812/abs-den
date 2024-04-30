@@ -178,7 +178,7 @@ instance
 -- | See step-ByNeed why this postulate is OK.
 postulate no-α-in-μ : ∀ {τ} (f : Heap (ByNeed τ) → ▹(τ (Value (ByNeed τ) × Heap (ByNeed τ))))
                     → Σ (▹(D (ByNeed τ)))
-                         (λ d▹ → ∀ μ α → ByNeed.get (d▹ α) μ ≡ f μ α)
+                         (λ d▹ → ∀ μ (@tick α : Tick) → ByNeed.get (d▹ α) μ ≡ f μ α)
 
 fetch : ∀ {τ} {{_ : Monad τ}} → Addr → ▹(D (ByNeed τ))
 fetch {τ} a = fst (no-α-in-μ (λ μ → aux μ (fst (well-addressed μ a))))
