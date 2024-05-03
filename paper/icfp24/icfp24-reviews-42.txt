@@ -535,3 +535,154 @@ works just fine.)
 
 (In general, more description of the scaled-up implementation of
 demand analysis in GHC would be interesting to this reader.)
+
+
+
+Rebuttal Response by Author [<sgraf1337@gmail.com>] (2202 words)
+---------------------------------------------------------------------------
+We thank the reviewers for the helpful feedback and comments. Below we discuss each reviewers questions and feedback in turn.
+
+# Overview
+
+In the light of advice from all three reviews we accept that we were perhaps too carried away in our discussion of evaluation strategies in Section 4 (wonderful though it is that our framework is so expressive).  We are open to moving the Clairvoyant call-by-value strategy to the Appendix, freeing up space to present more details about static analyses.
+
+We will clarify that we only used Agda to prove totality of the interpreter and proved all other statements using pen and paper.
+
+# Reviewer A
+
+#### RA.1: Widening most likely breaks monotonicity
+This is a legitimate concern. However, based on our experience, we believe that requiring monotonicity is not nearly as constraining as alluded to by the reviewer, because all widening strategies we considered were monotone (example in "Widening" below). Moreover, even if some particular widening strategy violates the monotonicity requirement, we expect that it can be relaxed and the proofs adjusted accordingly, at the expense of more complicated abstraction laws.
+
+#### RA.2: It is extremely surprising that the soundness of the pre-order of the abstract domain is never mentioned or required. [...] Therefore, Theorem 6, as it is currently stated, is very likely to be incorrect.
+We do not believe that Theorem 6 is incorrect and are unsure what "soundness of the pre-order" means. If this question concerns the precise definition and lawfulness of the pre-order (i.e. reflexivity and transitivity), see “Order” below.
+
+#### RA.3: Theorem 6 mentions the abstract function, that is never defined. .. It is not acceptable to ask the reader to search in the appendix for this definition, that is buried inside a proof.
+We agree. We will fix this by giving its definition in the main body and referring to the underlying abstraction function on open expressions `nameNeed` in Appendix D.3.
+
+#### RA.4: Can the abstraction laws be proved in a modular way?
+Modularity of proofs depends on the analysis in question. Some first-order analyses like forward arity analysis [Gill 1996] admit modular proofs. Although the presented substitution lemma for usage analysis is non-modular, an alternative modular proof for summary application (f a ⊑ apply (fun x f) a) that characterises f more abstractly is conceivable. However as writers of a proof framework, we cannot anticipate all the proofs conducted with it; hence we must provide the strongest (syntactic) characterisation of f in rules such as Beta-App. Furthermore, even a non-modular proof is far better than the situation described in Section 1!
+
+#### RA.5: Finally, it seems the authors use the term "summary-based analysis" to denote two very different things.
+We agree that these are two different things, and we'll clarify the distinction in our revision.  (Our primary usage is the first, that is, compute a monovariant summary once per definition, not polyvariant summaries once per call, as in 0CFA.)
+
+#### RA.6: While the idea of defining an interpreter that is parameterized over the interpretation of the language's constructs is nice, it is not novel.
+True enough, but this was not our claim. Our contribution is in demonstrating that we can instantiate such an interpreter to
+
+1. return *traces* of a small-step machine that express precise operational behaviour (e.g. heaps, thunk updates etc);
+2. express diverse *evaluation strategies*;
+3. be abstractable to express *summary-based* analyses.
+
+Prior work does not do any of these three.
+
+#### RA.7: How does this paper compare to work that also use sets of traces for the λ-calculus to derive CFA, e.g. [3]?
+We think that a variant of our denotational interpreter would be a good fit for the collecting semantics in [3]. The semantic inclusions of Lemma 2.10 that govern the transition to a big-step interpreter follow simply by adequacy of our interpreter, Theorem 4.
+
+#### RA.8: Please elaborate on the connections with interaction trees
+Interaction trees (ITs) can implement the `Trace` instance in dynamic semantics to replace the vanilla trace type `T`. We would implement `step` via a `Vis`ible transition in the IT that does not need input (like a `putStrLn` effect). Concretely: `step evt d = Vis evt (\() -> d)`.
+In the paper, we compare to ITs on line 439 and lines 1137.5-1139.5.
+Interaction trees are preferable to `T` when the object language has means for input (e.g. reading from the terminal), which our object language does not have.
+
+#### RA.9: Same question with game semantics.
+Both our work as well as Game semantics have disparate notions of a trace, but there is no immediate connection.
+Game semantics would be interesting to define a non-standard semantic equivalence relation on denotations, which we (consciously) do not. That is why we define absence in terms of syntactic evaluation contexts, for example.
+
+#### RA.10: Why didn't you start with a semantics of partial traces in the first place?
+We respectfully disagree with the suggestion that using partial traces would simplify this work.  On the contrary, we find it simpler to work with maximal traces.
+In contrast to [1], our object language is deterministic. In that case we can simply take the prefix closure of the maximal trace generated by our fixpoint (maximal) trace semantics (4.3 in [1]) to recover an equivalent partial trace semantics as in 4.2 of [1]. Chapter 17.2 in [Cousot 2021] discusses the equivalence.
+
+#### RA.11: The choices for the decomposition of the interpreter is non-standard, sometimes surprising.
+Indeed it is a surprising decomposition! That is why we provide evidence for its usefulness in the paper. Perhaps another decomposition works as well, but our design worked well for us.
+
+Guarding the recursion is essential for totality of the interpreter, as explained in the proof sketch of Theorem 5. To repeat line 785 and following, while some steps are only inserted for adequacy wrt. the LK machine, at least the steps before variable lookup are necessary to guarantee totality. That is, removing `step` from the interface would give up on totality.
+
+Proving well-definedness and totality via traditional algebraic domains requires proving that all operations are monotone and ω-continuous, and that all total inputs lead to total outputs, to rule out that the output contains bottom. It is a path not taken because synthetic guarded domains are simply more appealing and less difficult to work with.
+
+# Reviewer B
+
+#### RB.1: The Agda code doesn’t typecheck
+We are delighted that the reviewer had a look at our Agda supplement and pointed out this issue. Our code type-checks with Agda version 2.6.2.2. We will provide an artifact with that version of Agda, but we also managed to fix the issue in 2.6.4; more details in “Agda” below.
+
+#### RB.2: Too many footnotes
+Agreed. We will try to remove some footnotes for the revised version.
+
+#### RB.3: The source language and the abstract machine support sum types, but you never use them in your examples.
+We do have a short example using sum types on line 530 and we find `select` a type class method worth presenting. We will remove the confusing sentence in lines 325-326.
+
+#### RB.4: Why do you first define the semantic domain for a call-by-name variant of your language and only then define the interpreter?
+We did so because we found it hard to introduce the interpreter definition without discussing what it should return first.
+
+#### RB.5: It would be nice if you actually use the same names (i.e. in Fig.2 and in data Event
+We will rename the events Update and Lookup to match Fig. 2.
+
+#### RB.6: Even then the authors write ``we omit large parts of the implementation and the Domain instance for space reasons.''
+If there is interest in a more detailed Appendix C.1, we are open to including more of its implementation that is redundantly provided in the supplement (in `StaticAnalysis.hs`).
+
+# Reviewer C
+
+#### RC.1: Some important details of the demand analysis for GHC are omitted.
+Good point. We will submit the adjusted Demand Analysis for artefact evaluation and will explain these adjustments in more detail (see “Demand Analysis” below).
+
+#### RC.2: Can you elaborate on why the Clairvoyant semantics is important to the paper? Can you explain what's meant by the last discussion in the paper?
+Originally, we wanted to prove Demand Analysis sound against the Clairvoyant call-by-value (CCbV) semantics. Such a proof would carry over to the (cost equivalent) call-by-need semantics. However, since we do not prove Demand Analysis sound, there is not really a point to introducing CCbV and we are open to moving it to the Appendix. More detail regarding the connection between Demand Analysis and CCbV in “Clairvoyant call-by-value” below.
+
+#### RC.3: Does the approach continue to work in situations where the denotational interpreter is not total but the abstraction of it is?
+Totality of a concrete interpreter instance has no bearing on totality of related static analyses and vice versa, so totality of Demand Analysis is independent of totality of CCbV. However, any correctness result derived by relation to CCbV might not hold for partial inputs.
+
+# Detailed explanations
+
+## Widening
+Here is an example of a monotone widening strategy for usage analysis. We define `bind rhs body = body (kleeneFix (trim 42 . rhs))`, where `trim 42` ensures that any ValueU such as `u1:u2:…:u100:Rep U1` is trimmed to finite length 42, `u1:u2:…:u42:Rep Uω`. This definition of `bind` is monotonic *despite* the fact that it employs widening to guarantee convergence of fixpoint iteration.
+
+## Order
+The definition of ⊑ in the usage domain follows structurally from the order `U0 ⊏ U1 ⊏ Uω` (line 954.5), where *structurally* means pointwise, product-wise, etc.. These partial orders are widely accepted as standard and their lawfulness follow by parametricity, as detailed in [Backhouse and Backhouse 2004]. The only non-structural ordering is for ValueU because of the additional syntactic equality as explained on lines 151 and line 912.
+
+## Agda
+The development is fixed for Agda 2.6.4 by adding a type annotation to `α` in line 181 of Concrete.agda, so
+```
+                     	(λ d▹ → ∀ μ (@tick α : Tick) → ByNeed.get (d▹ α) μ ≡ f μ α)
+```
+(This inferene regression seems unfortunate.) The `NO_POSITIVITY_CHECK` pragma is necessary because the positivity checker does not (yet) know about guarded types. The postulates could well be expressed as parameters to the development. These issues sum up why we did not attempt to formalise more in Agda: We are inexperienced in doing so and building our research on the (largely untested and unmaintained) guarded cubical variant did not seem like an efficient use of our time. We would be happy to discuss and share what we have, though!
+If possible, we would like to formalise all our proofs in Agda’s variant of ticked cubical type theory.
+
+## Demand Analysis
+We strive to submit the scaled-up implementation in GHC for artefact evaluation.
+To get a feeling, this is the extended Domain type class shared between the denotational interpreter for GHC Core (which ANFises on-the-fly and, amazingly, works for reasonable programs) and Demand Analysis:
+```
+class Domain d where
+  stuck :: d
+  erased :: d
+  lit :: Literal -> d
+  global :: Id -> d
+  classOp :: Id -> Class -> d
+  primOp :: Id -> PrimOp -> d
+  fun :: Id -> (d -> d) -> d
+  con :: DataCon -> [d] -> d
+  apply :: d -> d -> d
+  applyTy :: d -> d
+  select :: d -> CoreExpr -> Id -> [DAlt d] -> d
+  keepAlive :: [d] -> d -- Used for coercion FVs, unfolding and RULE FVs
+  seq_ :: d -> d -> d -- Just like `select a (const False) wildCardId [(DEFAULT, [], \_a _ds -> b)]`, but we don't have available the type of `a`.
+type DAlt d = (AltCon, [Id], d -> [d] -> d)
+```
+The new methods are all due to special Core forms and its type erasure procedure. For `HasBind`, we need to generalise `bind` to mutual recursive binding groups:
+```
+data BindHint = BindArg Id | BindLet CoreBind
+class HasBind d where
+  bind :: BindHint -> [[d] -> d] -> ([d] -> d) -> d
+```
+
+## Clairvoyant call-by-value
+CCbV is an evaluation strategy that “guesses” through non-determinism whether a let binding will later be needed, and either (A) drops the binding when it is not needed, or (B) evaluates it by-value when it will be needed. This is quite similar to Demand Analysis, which, for an expression `let x = e1 in e2`, conservatively approximates this guess on the evaluation cardinality of `x` in order to either (a) discard uses in `e1` when `x` is absent in `e2`, (b) treat all strict uses in `e1` as globally strict when `x` is used strictly in `e2`, or otherwise (c) treat all uses in `e1` as lazy. One can see that (A) corresponds to (a), (B) corresponds to (b) and (c) is the lub of (a) and (b). Thus, it would be natural to relate Demand Analysis to a clairvoyant semantics for a soundness proof, but annoyingly, such a proof would carry no meaning for programs that diverge under CCbV.
+As future work we hope that CCbV can inspire a set of abstraction laws that can be used to prove Demand Analysis correct in terms of the call-by-need semantics, using a slightly different Galois connection than nameNeed in Fig. 18.
+
+# References
+
+[1] Cousot and Cousot, An abstract interpretation framework for termination. 2012.
+
+[3] Montagu and Jensen, Trace-Based Control-Flow Analysis. PLDI 2021.
+
+[Cousot 2021] Cousot, Principles of Abstract Interpretation. MIT Press, 2021.
+
+[Backhouse and Backhouse 2004] Backhouse and Backhouse, Safety of abstract interpretations for free, via logical relations and Galois connections. 2004.
+
+[Gill 1996] Gill, Cheap deforestation for non-strict functional languages. PhD thesis, University of Glasgow, 1996.
