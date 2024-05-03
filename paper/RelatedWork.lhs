@@ -136,12 +136,12 @@ constant propagation or dead code elimination to the interprocedural setting.
 The contour depth parameter $k$ allows to trade precision for performance,
 although in practice it is often $k \leq 1$.
 
-%\citet{MontaguJensen:21} derive CFA from small-step traces.
-%Their chain of abstractions is inspiring and we think that a variant of our
-%denotational interpreter would be a good fit for their collecting semantics.
-%Specifically, the semantic inclusions of Lemma 2.10 that govern the
-%transition to a big-step style interpreter follow simply by adequacy of our
-%interpreter, \Cref{thm:sem-adequate}.
+\citet{MontaguJensen:21} derive CFA from small-step traces.
+We think that a variant of our denotational interpreter would be a good fit for
+their collecting semantics.
+Specifically, the semantic inclusions of Lemma 2.10 that govern the transition
+to a big-step style interpreter follow simply by adequacy of our interpreter,
+\Cref{thm:sem-adequate}.
 
 Abstracting Abstract Machines~\citep{aam} derives
 a computable \emph{reachable states semantics}~\citep{Cousot:21} from any
@@ -150,9 +150,9 @@ small-step semantics, by bounding the size of the heap.
 %$\widehat{\mathit{alloc}}$ function embodies a precision-performance trade-off.
 Many analyses such as control-flow analysis arise as abstractions of reachable
 states.
-In fact, we think that CFA can be used to turn any finite |Trace| instance such
-as |UT| into a static analysis, without the need to define a custom summary
-mechanism.
+%In fact, we think that CFA can be used to turn any finite |Trace| instance such
+%as |UT| into a static analysis, without the need to define a custom summary
+%mechanism.
 
 \citet{adi} and others apply the AAM recipe to big-step interpreters in the style
 of \citeauthor{Reynolds:72}. %, in order to share analysis code with the semantics.
@@ -247,8 +247,13 @@ precision and speed.
 analyses involve the inference of summaries called \emph{demand
 transformers}~\citep{Sergey:14}, such as implemented in the Demand Analysis of
 the Glasgow Haskell Compiler.
-It is very similar to Clairvoyant call-by-value~\citep{HackettHutton:19}, so it
-is a shame that the Clairvoyant instantiation leads to partiality.
+It is very similar to Clairvoyant call-by-value (CCbV)~\citep{HackettHutton:19},
+suggesting that the former is an abstract interpretation of the latter.
+Since CCbV is cost equivalent to call-by-need, such an abstraction relationship
+could be used to prove that Demand Analysis infers operational properties such
+as absence in call-by-need.
+Alas, since the Clairvoyant instantiation of our denotational interpreter is
+partial, such a proof would carry no meaning for partial inputs.
 
 %\subsubsection*{Denotational Semantics}
 %Recent work on \emph{Clairvoyant call-by-value}

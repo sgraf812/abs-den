@@ -88,11 +88,11 @@ Rev A
   explain. I don't understand why your interpreter would not be
   appropriate for dead code elimination either.
 
-- [ ] Lines 1169-1170: "we think that CFA can be used to turn any finite
+- [x] Lines 1169-1170: "we think that CFA can be used to turn any finite
   Trace instance such as TU into a static analysis without the need to
   define a custom summary mechanism". I don't understand what you have
   in mind.
 
-- [ ] Lines 1197-1201: What do you mean? That you are not able to model
+- [x] Lines 1197-1201: What do you mean? That you are not able to model
   demand transformers?
 
