@@ -46,11 +46,8 @@ We will instantiate the theorem at |UD| in order to prove that usage analysis
 |evalUsg e ρ = evalD UD e ρ| infers absence, just as absence analysis in
 \Cref{sec:problem}.
 This proof will be much simpler than the proof for \Cref{thm:absence-correct}.
-
-This section will only discuss abstraction of closed
-terms in a high-level, top-down way, but of course the underlying
-\Cref{thm:soundness-by-need} in the Appendix considers open terms and is best
-approached bottom-up.
+The main body will only discuss abstraction of closed terms, but the underlying
+\Cref{thm:soundness-by-need} in the Appendix considers open terms as well.
 
 %In \Cref{sec:problem} we argued that a proof for such a lemma drowned in
 %semantic complexity unrelated to the analysis at hand, so the proof became
@@ -95,12 +92,12 @@ approached bottom-up.
       \end{spec}}\end{minipage}}{%
       |(alts ! k) (map (ρ1 !) ys) ⊑ select (con k (map (ρ1 !) ys)) alts|} \\
     \\[-0.5em]
-    \inferrule[\textsc{Bind-ByName}]{|rhs d1 = eval3 (hat D) e1 (ext ρ x (step (Lookup x) d1))|\\ |body d1 = step Let1 (eval3 (hat D) e2 (ext ρ x d1))|}{|body (lfp rhs) ⊑ bind rhs body|}
+    \inferrule[\textsc{Bind-ByName}]{|rhs d1 = eval3 (hat D) e1 (ext ρ x (step (Look x) d1))|\\ |body d1 = step Let1 (eval3 (hat D) e2 (ext ρ x d1))|}{|body (lfp rhs) ⊑ bind rhs body|}
   \end{array}\]
   \fcolorbox{lightgray}{white}{$\begin{array}{c}
     \inferrule[\textsc{Step-Inc}]{}{|d ⊑ step ev d|}
     \qquad
-    \inferrule[\textsc{Update}]{}{|step Update d = d|} \\
+    \inferrule[\textsc{Update}]{}{|step Upd d = d|} \\
   \end{array}$}
   \caption{By-name and \fcolorbox{lightgray}{white}{by-need} abstraction laws for type class instances of abstract domain |hat D|}
   \label{fig:abstraction-laws}
@@ -108,8 +105,8 @@ approached bottom-up.
 
 \subsection{Sound By-name and By-need Interpretation}
 
-This subsection is dedicated to the following proof rule for sound by-need
-interpretation, referring to the \emph{abstraction laws} in
+This subsection is dedicated to the following derived inference rule for sound
+by-need interpretation, referring to the \emph{abstraction laws} in
 \Cref{fig:abstraction-laws} by name:
 \[\begin{array}{c}
   \inferrule{%
@@ -131,20 +128,42 @@ interpretation for the static analysis |eval3 (hat D) e emp|!
 %\Cref{thm:usage-absence} with an ``interface'' between semantic properties
 %and static analysis.
 
-This proof rule is \emph{opinionated}, in so far as \emph{we} get to determine
-the abstraction function |abstract| based on the |Trace|, |Domain| and |Lat|
-instance on your |hat D|.
-The gist is as follows:
-|abstract| eliminates every |Step evt| in the by-need trace with a call to
-|step evt|, and eliminates every concrete |Value| at the end of the trace with
-a call to the corresponding |Domain| method.
-That is, |Fun| turns into |fun|, |Con| into |con|, and |Stuck| into |stuck|,
-considering the final heap for nested abstraction (the subtle details are best
-left to the Appendix).
+\begin{figure}
+\begin{code}
+freezeHeap = ...  -- See Appendix
+β (Step e d)           = step e (β d)
+β (Ret (Stuck, μ))     = stuck
+β (Ret (Fun f, μ))     = fun {-"\iffalse"-}"" ""{-"\fi"-} (\(hat d) -> Lub (β (f d μ) | d ∈ γE (hat d)))  where unused (  _   :<->: γE)  = untyped (freezeHeap μ)
+β (Ret (Con k ds, μ))  = con {-"\iffalse"-}""{-"\fi"-} k (map (\d -> αE (set d)) ds)                      where           αE  :<->: _    = freezeHeap μ
+abstract d = β (d emp)
+\end{code}
+\caption{Galois connection for sound by-name and by-need abstraction}
+\label{fig:name-need-gist}
+\end{figure}
+
+Note that \emph{we} get to determine the abstraction function |abstract| based
+on the |Trace|, |Domain| and |Lat| instance on \emph{your} |hat D|.
+We replicate the gist of |abstract| in \Cref{fig:name-need-gist} and refer
+to the Appendix for the detailed definition (\Cref{fig:name-need}).
+Function |abstract| runs its denotation in the empty heap |emp| and hands over
+to a \emph{representation function}~\citep[Section 4.3]{Nielson:99} |β| that
+folds the trace into an abstract domain element in |hat D|.
+It eliminates every |Step evt| in the by-need trace with a call to |step evt|,
+and eliminates every concrete |Value| at the end of the trace with a call to the
+corresponding |Domain| method.
+The final heap |μ| is then ``frozen'' into a Galois connection |freezeHeap μ|
+(defined in the Appendix) that abstracts entries in concrete environments |ρ !
+x| into entries of abstract environments |hat ρ ! x|, resolving all |fetch a|
+operations using heap entries |μ ! a|.
+For a |Con| value, every field denotation |d| (which came from a
+concrete environment, so |d = ρ ! x| for some definable |ρ| and |x|) is
+abstracted, while for |Fun| values, an abstract argument denotation |hat d|
+(which the caller fetched from an abstract environment as |hat ρ ! y|) is
+concretised to call the concrete function |f|, and the resulting trace is
+recursively abstracted via |β| afterwards.
+
 Thanks to fixing |abstract|, the abstraction laws can be simplified drastically,
 as discussed at the end of this subsection.
-The precise definition of |abstract| can be found in the proof of the following
-theorem, embodying the proof rule above:
 
 \begin{theoremrep}[Sound By-need Interpretation]
 \label{thm:soundness-by-need-closed}
@@ -157,15 +176,6 @@ D)| is an abstract interpreter that is sound \wrt |abstract|, that is,
 \]
 \end{theoremrep}
 \begin{proof}
-The definition of |abstract| is in terms of the Galois connection |nameNeed|
-from \Cref{fig:name-need}.
-Let |α| be the abstraction function from |nameNeed|; then we define
-\begin{spec}
-abstract d = α (set (d emp))
-\end{spec}
-I.e., we simply run |d| in the initial empty heap.
-Do note that |abstract| does not work for open expressions because of this.
-
 When we inline |abstract|, the goal is simply \Cref{thm:soundness-by-need} for
 the special case where environment and heap are empty.
 \end{proof}
@@ -175,10 +185,7 @@ Let us unpack law $\textsc{Beta-App}$ to see how the abstraction laws in
 For a preliminary reading, it is best to ignore the syntactic premises above
 inference lines.
 To prove $\textsc{Beta-App}$, one has to show that |forall f a x. f a ⊑ apply
-(fun x f) a| in the abstract domain |hat D|.%
-\footnote{Again, the exact identity of |x| is irrelevant.
-We only use it as a De Bruijn level;
-it suffices that |x| is chosen fresh.}
+(fun x f) a| in the abstract domain |hat D|.
 This states that summarising |f| through |fun|, then |apply|ing the summary to
 |a| must approximate a direct call to |f|;
 it amounts to proving correct the summary mechanism.%
@@ -368,11 +375,11 @@ Now we proceed by induction on |e| and only consider non-|stuck| cases.
     \begin{spec}
         evalUsg (Let z e1 e2) (ext ρ x (ρ ! y))
     =   {- Unfold |evalUsg| -}
-        bind  (\d1 -> evalUsg e1 (ext (ext ρ x (ρ ! y)) z (step (Lookup z) d1)))
-              (\d1 -> step Let1 (evalUsg e2 (ext (ext ρ x (ρ ! y)) z (step (Lookup z) d1))))
+        bind  (\d1 -> evalUsg e1 (ext (ext ρ x (ρ ! y)) z (step (Look z) d1)))
+              (\d1 -> step Let1 (evalUsg e2 (ext (ext ρ x (ρ ! y)) z (step (Look z) d1))))
     =   {- Induction hypothesis; note that |x| is absent in |ρ| and thus the fixpoint -}
-        bind  (\d1 -> evalUsg (Lam x e1 `App` y) (ext z (step (Lookup z) d1)))
-              (\d1 -> step Let1 (evalUsg (Lam x e2 `App` y) (ext z (step (Lookup z) d1))))
+        bind  (\d1 -> evalUsg (Lam x e1 `App` y) (ext z (step (Look z) d1)))
+              (\d1 -> step Let1 (evalUsg (Lam x e2 `App` y) (ext z (step (Look z) d1))))
     =   {- Refold |evalUsg| -}
         evalUsg (Let z (Lam x e1 `App` y) (Lam x e1 `App` y)) ρ
     =   {- \Cref{thm:push-let-usage} -}
@@ -382,18 +389,20 @@ Now we proceed by induction on |e| and only consider non-|stuck| cases.
 \end{proof}
 
 In order to apply this lemma in step $⊑$ below, it is important that the
-premise provides us with the syntactic definition of |f d := step App2 (eval3
-UD e (ext ρ x d))|.
+premise provides the \emph{strongest characterisation} of |f| in terms of the
+syntactic definition |f d := step App2 (eval3 UD e (ext ρ x d))|.
 Then we get, for |a := ρ ! y :: UD|,
 \begin{equation}
   \label{eqn:usage-beta-app}
-  |f a = step App2 (eval3 UD e (ext ρ x a)) = eval3 UD e (ext ρ x a) ⊑ eval3 UD (Lam x e `App` y) ρ = apply (fun x f) a|.
+  \hspace{-1ex}
+  |f a = step App2 (eval3 UD e (ext ρ x a)) = eval3 UD e (ext ρ x a) ⊑ eval3 UD (Lam x e `App` y) ρ = apply (fun x f) a|
 \end{equation}
 Without the syntactic premise of \textsc{Beta-App} to rule out undefinable
 entities in |UD -> UD|, the rule cannot be proved for usage analysis; we give a counterexample
 in the Appendix (\Cref{ex:syntactic-beta-app}).%
 \footnote{Finding domains where all entities $d$ are definable is the classic full
 abstraction problem~\citep{Plotkin:77}.}
+We discuss concerns of proof modularity in \Cref{sec:related-work}.
 
 Rule \textsc{Beta-Sel} states a similar substitution property for data
 constructor redexes, which is why it needs to duplicate much of the |cont|
@@ -405,7 +414,12 @@ fixpoint |lfp| of the |rhs| functional to |body|.%
 \textsc{Bind-ByName} with a law \textsc{Bind-ByValue} mirroring the |bind|
 instance of |ByValue|, but have not attempted a formal proof.}
 The remaining rules are congruence rules involving |step| and |stuck| as well as
-the obvious monotonicity requirement for all involved operations.
+a monotonicity requirement for all involved operations.
+These rules follow the mantra ``evaluation improves approximation''; for example,
+rule \textsc{Intro-Stuck} expresses that applying a constructor or scrutinising
+a function evaluates to (and thus approximates) a stuck term, and
+\textsc{Unwind-Stuck} expresses that stuckness unwinds through |apply| and
+|select| stack frames.
 In the Appendix, we show a result similar to \Cref{thm:soundness-by-need-closed}
 for by-name evaluation which does not require the by-need specific rules
 \textsc{Step-Inc} and \textsc{Update}.
@@ -470,7 +484,7 @@ redefinition but provably equivalent to \Cref{defn:absence}:
   \label{thm:absence-denotational}
   Variable |x| is used in |e| if and only if there exists a by-need evaluation context
   |ectxt| and expression |e'| such that the trace
-  |evalNeed (fillC ectxt (Let x e' e)) emp emp| contains a |Lookup x| event.
+  |evalNeed (fillC ectxt (Let x e' e)) emp emp| contains a |Look x| event.
   Otherwise, |x| is absent in |e|.
 \end{lemmarep}
 \begin{proof}
@@ -486,9 +500,9 @@ We proceed as follows:
                           \Arrow{$\pE \triangleq \mathit{trans}(\hole,ρ,μ,κ)$} \\
   {}\Longleftrightarrow{} & \init(\pE[\Let{\px}{\pe'}{\pe}]) \smallstep^* ... \smallstep[\LookupT(\px)] ...
                           \Arrow{Apply $α_{\STraces}$ (\Cref{fig:eval-correctness})} \\
-  {}\Longleftrightarrow{} & α_{\STraces}(\init(\pE[\Let{\px}{\pe'}{\pe}]) \smallstep^*, []) = | ... Step (Lookup x) ...|
+  {}\Longleftrightarrow{} & α_{\STraces}(\init(\pE[\Let{\px}{\pe'}{\pe}]) \smallstep^*, []) = | ... Step (Look x) ...|
                           \Arrow{\Cref{thm:need-adequate-strong}} \\
-  {}\Longleftrightarrow{} & |evalNeed (fillC ectxt (Let x e' e)) emp emp| = |... Step (Lookup x) ...|
+  {}\Longleftrightarrow{} & |evalNeed (fillC ectxt (Let x e' e)) emp emp| = |... Step (Look x) ...|
 \end{DispWithArrows}
 Note that the trace we start with is not necessarily an maximal trace,
 so step \labelcref{arrow:usg-context} finds a prefix that makes the trace maximal.
@@ -517,12 +531,12 @@ Thus insulated from the LK machine, we may restate and prove
   then |x| is absent in |e|.
 \end{theoremrep}
 \begin{proofsketch}
-If |x| is used in |e|, there is a trace |evalNeed (fillC ectxt (Let x e' e)) emp emp| containing a |Lookup x| event.
+If |x| is used in |e|, there is a trace |evalNeed (fillC ectxt (Let x e' e)) emp emp| containing a |Look x| event.
 The abstraction function |abstract| induced by |UD| aggregates lookups in the
 trace into a |φ' :: Uses|, \eg
   |abstract ({-" \LookupT(i) \smallstep \LookupT(x) \smallstep \LookupT(i) \smallstep \langle ... \rangle "-})
     = MkUT [ i {-" ↦ "-} Uω, x {-" ↦ "-} U1 ] (...)|.
-Clearly, it is |φ' !? x ⊒ U1|, because there is at least one |Lookup x|.
+Clearly, it is |φ' !? x ⊒ U1|, because there is at least one |Look x|.
 \Cref{thm:usage-abstracts-need-closed} and a context invariance
 \Cref{thm:usage-bound-vars-context} prove that the computed |φ|
 approximates |φ'|, so |φ !? x ⊒ φ' !? x ⊒ U1 //= U0|.
@@ -533,12 +547,12 @@ if |x| is used in |e|, then |φ !? x //= U0|.
 
 By \Cref{thm:absence-denotational}, there exists |ectxt|, |e'| such that
 \[
-  |evalNeed (fillC ectxt (Let x e' e)) emp emp = ... ^^ Step (Lookup x) ^^ ...| .
+  |evalNeed (fillC ectxt (Let x e' e)) emp emp = ... ^^ Step (Look x) ^^ ...| .
 \]
 
 This is the big picture of how we prove |φ !? x //= U0| from this fact:
 \begin{DispWithArrows}[fleqn,mathindent=0em]
-                      & |evalNeed (fillC ectxt (Let x e' e)) emp emp| = |... Step (Lookup x) ...|
+                      & |evalNeed (fillC ectxt (Let x e' e)) emp emp| = |... Step (Look x) ...|
                       \label{arrow:usg-instr}
                       \Arrow{Usage instrumentation} \\
   {}\Longrightarrow{} & |(α (set (evalNeed (fillC ectxt (Let x e' e)) emp emp)))^.φ| ⊒ [|x| ↦ |U1|]
@@ -556,7 +570,7 @@ Step \labelcref{arrow:usg-instr} instruments the trace by applying the usage
 abstraction function |α :<->: _ := nameNeed|.
 This function will replace every |Step| constructor
 with the |step| implementation of |UT|;
-The |Lookup x| event on the right-hand side implies that its image under |α| is
+The |Look x| event on the right-hand side implies that its image under |α| is
 at least $[|x| ↦ |U1|]$.
 
 Step \labelcref{arrow:usg-abs} applies the central soundness
@@ -725,13 +739,13 @@ By induction on the size of |ectxt| and cases on |ectxt|:
     =   {- Definition of |fillC| -}
         (evalUsg (Let y e1 (fillC ectxt e)) ρE)^.φ !? x
     =   {- Definition of |evalUsg| -}
-        (evalUsg (fillC ectxt e) (ext ρE y (step (Lookup y) (kleeneFix (\d -> evalUsg e1 (ext ρE y (step (Lookup y) d)))))))^.φ !? x
+        (evalUsg (fillC ectxt e) (ext ρE y (step (Look y) (kleeneFix (\d -> evalUsg e1 (ext ρE y (step (Look y) d)))))))^.φ !? x
     ⊑   {- Abstract substitution; \Cref{thm:usage-subst} -}
         (abssubst (evalUsg (fillC ectxt e) (ext ρE y (MkUT (singenv y U1) (Rep Uω)))) y (
-          step (Lookup y) (kleeneFix (\d -> evalUsg e1 (ext ρE y (step (Lookup y) d)))))) ^.φ !? x
+          step (Look y) (kleeneFix (\d -> evalUsg e1 (ext ρE y (step (Look y) d)))))) ^.φ !? x
     =   {- Unfold |abssubst|, |(MkUT φ v)^.φ = φ| -}
         let MkUT φ  _ = evalUsg (fillC ectxt e) (ext ρE y (MkUT (singenv y U1) (Rep Uω))) in
-        let MkUT φ2 _ = step (Lookup y) (kleeneFix (\d -> evalUsg e1 (ext ρE y (step (Lookup y) d)))) in
+        let MkUT φ2 _ = step (Look y) (kleeneFix (\d -> evalUsg e1 (ext ρE y (step (Look y) d)))) in
         (ext φ y U0 + (φ !? y)*φ2) !? x
     =   {- |x| absent in |φ2|, see above -}
         let MkUT φ  _ = evalUsg (fillC ectxt e) (ext ρE y (MkUT (singenv y U1) (Rep Uω))) in
@@ -749,19 +763,19 @@ By induction on the size of |ectxt| and cases on |ectxt|:
     =   {- Definition of |fillC| -}
         (evalUsg (Let y (fillC ectxt e) e1) ρE)^.φ !? x
     =   {- Definition of |evalUsg| -}
-        (evalUsg e1 (ext ρE y (step (Lookup y) (kleeneFix (\d -> evalUsg (fillC ectxt e) (ext ρE y (step (Lookup y) d)))))))^.φ !? x
+        (evalUsg e1 (ext ρE y (step (Look y) (kleeneFix (\d -> evalUsg (fillC ectxt e) (ext ρE y (step (Look y) d)))))))^.φ !? x
     ⊑   {- Abstract substitution; \Cref{thm:usage-subst} -}
         (abssubst (evalUsg e1 (ext ρE y (MkUT (singenv y U1) (Rep Uω)))) y (
-          step (Lookup y) (kleeneFix (\d -> evalUsg (fillC ectxt e) (ext ρE y (step (Lookup y) d)))))) ^.φ !? x
+          step (Look y) (kleeneFix (\d -> evalUsg (fillC ectxt e) (ext ρE y (step (Look y) d)))))) ^.φ !? x
     =   {- Unfold |abssubst|, |(MkUT φ v)^.φ = φ| -}
         let MkUT φ  _ = evalUsg e1 (ext ρE y (MkUT (singenv y U1) (Rep Uω))) in
-        let MkUT φ2 _ = step (Lookup y) (kleeneFix (\d -> evalUsg (fillC ectxt e) (ext ρE y (step (Lookup y) d)))) in
+        let MkUT φ2 _ = step (Look y) (kleeneFix (\d -> evalUsg (fillC ectxt e) (ext ρE y (step (Look y) d)))) in
         (ext φ y U0 + (φ !? y)*φ2) !? x
     =   {- |φ !? y ⊑ Uω|, |x| absent in |φ|, see above -}
-        let MkUT φ2 _ = step (Lookup y) (kleeneFix (\d -> evalUsg (fillC ectxt e) (ext ρE y (step (Lookup y) d)))) in
+        let MkUT φ2 _ = step (Look y) (kleeneFix (\d -> evalUsg (fillC ectxt e) (ext ρE y (step (Look y) d)))) in
         Uω * φ2 !? x
     =   {- Refold |(MkUT φ v)^.φ| -}
-        Uω * (step (Lookup y) (kleeneFix (\d -> evalUsg (fillC ectxt e) (ext ρE y (step (Lookup y) d)))))^.φ !? x
+        Uω * (step (Look y) (kleeneFix (\d -> evalUsg (fillC ectxt e) (ext ρE y (step (Look y) d)))))^.φ !? x
     =   {- |x //= y| -}
         Uω * (kleeneFix (\d -> evalUsg (fillC ectxt e) (ext ρE y d)))^.φ !? x
     =   {- Argument below -}
@@ -874,11 +888,11 @@ $(\pow{\Traces},⊆) \galois{|α|}{|γ|} (|hat D|, ⊑)$.
 Alas, although the abstraction function |α| is well-defined as a mathematical
 function, it most certainly is \emph{not} computable at infinite inputs (in
 $\Traces^{\infty}$), for example at
-|fix (Step (Lookup x)) = Step (Lookup x) (Step (Lookup x) ...)|!
+|fix (Step (Look x)) = Step (Look x) (Step (Look x) ...)|!
 
 Computing with such an |α| is of course inacceptable for a \emph{static} analysis.
 Usually this is resolved by approximating the fixpoint by the least fixpoint of
-the abstracted iteratee, \eg |lfp (α . Step (Lookup x) . γ)|.
+the abstracted iteratee, \eg |lfp (α . Step (Look x) . γ)|.
 It is however not the case that this yields a sound approximation of infinite
 traces for \emph{arbitrary} trace properties.
 A classic counterexample is the property
@@ -1042,7 +1056,7 @@ trace (αT :<->: γT) (αE :<->: γE) = repr β where
 Note how |trace| expects two Galois connections: The first one is applicable
 in the ``recursive case'' and the second one applies to (the powerset over)
 |named (D (ByName T))|, a subtype of |D (ByName T)|.
-Every |d :: (named (ByName T))| is of the form |Step (Lookup x) (eval e ρ)| for
+Every |d :: (named (ByName T))| is of the form |Step (Look x) (eval e ρ)| for
 some |x|, |e|, |ρ|, characterising domain elements that end up in an
 environment or are passed around as arguments or in fields.
 We have seen a similar characterisation in the Agda encoding of
@@ -1056,7 +1070,7 @@ We utilise the |trace| combinator to define |byName| abstraction as its
 (guarded) fixpoint:
 \begin{code}
 env :: (Trace (hat d), Domain (hat d), Lat (hat d)) => GC (Pow (named (D (ByName T)))) (named (hat d))
-env = untyped (repr β where β (Step (Lookup x) (eval e ρ)) = step (Lookup x) (eval e (β << ρ)))
+env = untyped (repr β where β (Step (Look x) (eval e ρ)) = step (Look x) (eval e (β << ρ)))
 
 byName :: (Trace (hat d), Domain (hat d), Lat (hat d)) => GC (Pow (D (ByName T))) (hat d)
 byName = (αT . powMap unByName) :<->: (powMap ByName . γT) where αT :<->: γT = trace byName env
@@ -1064,7 +1078,7 @@ byName = (αT . powMap unByName) :<->: (powMap ByName . γT) where αT :<->: γT
 There is a need to clear up the domain and range of |env|.
 Since its domain is sets of elements from |named (D (ByName T))|, its range
 |named d| is the (possibly infinite) join over abstracted elements that
-look like |step (Lookup x) (eval e (β << ρ))| for some ``closure'' |x|, |e|, |ρ|.
+look like |step (Look x) (eval e (β << ρ))| for some ``closure'' |x|, |e|, |ρ|.
 Although we have ``sworn off'' operational semantics for abstraction, we
 defunctionalise environments into syntax to structure the vast semantic domain
 in this way, thus working around the full abstraction problem~\citep{Plotkin:77}.
@@ -1079,7 +1093,7 @@ More formally,
   \begin{itemize}
     \item |named (hat D) d| iff there exists a set |Clo| of syntactic closures such
       that \\
-      |d = Lub (step (Lookup x) (eval e ρ1 :: (hat D)) || (x,e,ρ1) ∈ Clo && Later (nameenv (hat D) ρ1))|,
+      |d = Lub (step (Look x) (eval e ρ1 :: (hat D)) || (x,e,ρ1) ∈ Clo && Later (nameenv (hat D) ρ1))|,
       and
     \item |nameenv (hat D) ρ| iff for all |x|, |named (hat D) (ρ ! x)|.
   \end{itemize}
@@ -1122,15 +1136,15 @@ By Löb induction and cases on |e|, using the representation function
 \begin{itemize}
   \item \textbf{Case} |Var x|:
     By assumption, we know that
-    |evalName x ρ1 = Step (Lookup y) (evalName e' ρ3) = many (Step ev) (evalName v ρ2)|
+    |evalName x ρ1 = Step (Look y) (evalName e' ρ3) = many (Step ev) (evalName v ρ2)|
     for some |y|, |e'|, |ρ3|,
-    so that |many ev = Lookup y : many ev1| for some |ev1| by determinism.
+    so that |many ev = Look y : many ev1| for some |ev1| by determinism.
     \begin{spec}
         many (step ev) (eval v (βE << ρ2))
-    =   {- |many ev = Lookup y : many ev1| -}
-        step (Lookup y) (many (step ev1) (eval v (βE << ρ2)))
+    =   {- |many ev = Look y : many ev1| -}
+        step (Look y) (many (step ev1) (eval v (βE << ρ2)))
     ⊑   {- Induction hypothesis at |ev1|, |ρ3| as above -}
-        step (Lookup y) (eval e' (βE << ρ3))
+        step (Look y) (eval e' (βE << ρ3))
     =   {- Refold |βE|, |ρ3 ! x| -}
         βE (ρ1 ! x)
     =   {- Refold |eval x (βE << ρ1)| -}
@@ -1177,18 +1191,18 @@ By Löb induction and cases on |e|, using the representation function
     =   {- |many ev = Let1 : many ev1| -}
         step Let1 (many (step ev1) (eval v (βE << ρ2)))
     ⊑   {- Induction hypothesis at |ev1| -}
-        step Let1 (eval e2 (ext (βE << ρ1) x (βE (Step (Lookup x) (fix (\d1 -> evalName e1 (ext ρ1 x (Step (Lookup x) d1))))))))
+        step Let1 (eval e2 (ext (βE << ρ1) x (βE (Step (Look x) (fix (\d1 -> evalName e1 (ext ρ1 x (Step (Look x) d1))))))))
     =   {- Partially roll |fix| -}
-        step Let1 (eval e2 (ext (βE << ρ1) x (βE (fix (\d1 -> Step (Lookup x) (evalName e1 (ext ρ1 x d1)))))))
+        step Let1 (eval e2 (ext (βE << ρ1) x (βE (fix (\d1 -> Step (Look x) (evalName e1 (ext ρ1 x d1)))))))
     ⊑   {- \Cref{thm:guarded-fixpoint-abstraction} -}
-        step Let1 (eval e2 (ext (βE << ρ1) x (lfp (\(hat d1) -> step (Lookup x) (eval e1 (ext (βE << ρ1) x (αE (γE (hat d1)))))))))
+        step Let1 (eval e2 (ext (βE << ρ1) x (lfp (\(hat d1) -> step (Look x) (eval e1 (ext (βE << ρ1) x (αE (γE (hat d1)))))))))
     ⊑   {- |αE . γE ⊑ id| -}
-        step Let1 (eval e2 (ext (βE << ρ1) x (lfp (\(hat d1) -> step (Lookup x) (eval e1 (ext (βE << ρ1) x (hat d1)))))))
+        step Let1 (eval e2 (ext (βE << ρ1) x (lfp (\(hat d1) -> step (Look x) (eval e1 (ext (βE << ρ1) x (hat d1)))))))
     =   {- Partially unroll |lfp| -}
-        step Let1 (eval e2 (ext (βE << ρ1) x (step (Lookup x) (lfp (\(hat d1) -> eval e1 (ext (βE << ρ1) x (step (Lookup x) (hat d1))))))))
+        step Let1 (eval e2 (ext (βE << ρ1) x (step (Look x) (lfp (\(hat d1) -> eval e1 (ext (βE << ρ1) x (step (Look x) (hat d1))))))))
     ⊑   {- Assumption \textsc{Bind-ByName} -}
-        bind  (\(hat d1) -> eval e1 (ext ((βE << ρ1)) x (step (Lookup x) (hat d1))))
-              (\(hat d1) -> step Let1 (eval e2 (ext ((βE << ρ1)) x (step (Lookup x) (hat d1)))))
+        bind  (\(hat d1) -> eval e1 (ext ((βE << ρ1)) x (step (Look x) (hat d1))))
+              (\(hat d1) -> step Let1 (eval e2 (ext ((βE << ρ1)) x (step (Look x) (hat d1)))))
     =   {- Refold |eval (Let x e1 e2) (βE << ρ1)| -}
         eval (Let x e1 e2) (βE << ρ1)
     \end{spec}
@@ -1222,9 +1236,9 @@ We will prove this goal by Löb induction and cases on |e|.
     \begin{spec}
         βT (ρ ! x)
     =   {- |nameenv (Pow (D (ByName T))) (set << ρ)|, Unfold |βT| -}
-        step (Lookup y) (βT (evalName e' ρ'))
+        step (Look y) (βT (evalName e' ρ'))
     ⊑   {- Induction hypothesis -}
-        step (Lookup y) (eval e' (βE << ρ'))
+        step (Look y) (eval e' (βE << ρ'))
     =   {- Refold |βE| -}
         βE (ρ ! x)
     \end{spec}
@@ -1352,21 +1366,21 @@ We will prove this goal by Löb induction and cases on |e|.
     \begin{spec}
         βT (evalName (Let x e1 e2) ρ)
     =   {- Unfold |eval| -}
-        βT (bind  (\d1 -> evalName e1 (ext ρ x (Step (Lookup x) d1)))
-                  (\d1 -> Step Let1 (evalName e2 (ext ρ x (Step (Lookup x) d1)))))
+        βT (bind  (\d1 -> evalName e1 (ext ρ x (Step (Look x) d1)))
+                  (\d1 -> Step Let1 (evalName e2 (ext ρ x (Step (Look x) d1)))))
     =   {- Unfold |bind|, |βT| -}
-        step Let1 (βT (evalName e2 (ext ρ x (Step (Lookup x) (fix (\d1 -> evalName e1 (ext ρ x (Step (Lookup x) d1))))))))
+        step Let1 (βT (evalName e2 (ext ρ x (Step (Look x) (fix (\d1 -> evalName e1 (ext ρ x (Step (Look x) d1))))))))
     ⊑   {- Induction hypothesis -}
-        step Let1 (eval e2 (ext (βE << ρ) x (βE (Step (Lookup x) (fix (\d1 -> evalName e1 (ext ρ x (Step (Lookup x) d1))))))))
+        step Let1 (eval e2 (ext (βE << ρ) x (βE (Step (Look x) (fix (\d1 -> evalName e1 (ext ρ x (Step (Look x) d1))))))))
     \end{spec}
     And from hereon, the proof is identical to the |Let| case of
     \Cref{thm:eval-preserves}:
     \begin{spec}
     ⊑   {- By \Cref{thm:guarded-fixpoint-abstraction}, as in the proof for \Cref{thm:eval-preserves} -}
-        step Let1 (eval e2 (ext (βE << ρ) x (step (Lookup x) (lfp (\(hat d1) -> eval e1 (ext (βE << ρ) x (step (Lookup x) (hat d1))))))))
+        step Let1 (eval e2 (ext (βE << ρ) x (step (Look x) (lfp (\(hat d1) -> eval e1 (ext (βE << ρ) x (step (Look x) (hat d1))))))))
     ⊑   {- Assumption \textsc{Bind-ByName}, with |hat ρ = βE << ρ| -}
-        bind  (\d1 -> eval e1 (ext (βE << ρ) x (step (Lookup x) d1)))
-              (\d1 -> step Let1 (eval e2 (ext (βE << ρ) x (step (Lookup x) d1))))
+        bind  (\d1 -> eval e1 (ext (βE << ρ) x (step (Look x) d1)))
+              (\d1 -> step Let1 (eval e2 (ext (βE << ρ) x (step (Look x) d1))))
     =   {- Refold |eval (Let x e1 e2) (βE << ρ)| -}
         eval (Let x e1 e2) (βE << ρ)
     \end{spec}
@@ -1415,8 +1429,8 @@ To see that, let |a := MkUT (singenv y U1) (Rep Uω) :: UD| and consider
 \begin{figure}
 \begin{code}
 freezeHeap :: (Trace (hat d), Domain (hat d), Lat (hat d)) => needheap -> GC (needd ) (named (hat d))
-freezeHeap μ = untyped (repr β where β (Step (Lookup x) (fetch a))  |  memo a (evalNeed2 e ρ) <- μ ! a
-                                                                    =  step (Lookup x) (eval e (β << ρ)))
+freezeHeap μ = untyped (repr β where β (Step (Look x) (fetch a))  |  memo a (evalNeed2 e ρ) <- μ ! a
+                                                                  =  step (Look x) (eval e (β << ρ)))
 
 nameNeed  ::  (Trace (hat d), Domain (hat d), Lat (hat d)) =>  GC (Pow (T (Value (ByNeed T), needheap))) (hat d)
 nameNeed = repr β where
@@ -1439,9 +1453,9 @@ so).
 A sound by-name analysis must only satisfy the two additional abstraction laws
 \textsc{Step-Inc} and \textsc{Update} in \Cref{fig:abstraction-laws} to yield
 sound results for by-need as well.
-These laws make intuitive sense, because |Update| events cannot be observed in a
+These laws make intuitive sense, because |Upd| events cannot be observed in a
 by-name trace and hence must be ignored.
-Other than |Update| steps, by-need evaluation makes fewer steps than by-name
+Other than |Upd| steps, by-need evaluation makes fewer steps than by-name
 evaluation, so \textsc{Step-Inc} asserts that dropping steps never invalidates
 the result.
 
@@ -1457,7 +1471,7 @@ be ``frozen'' into a corresponding by-name environment.
 This operation forms a Galois connection |freezeHeap| in \Cref{fig:name-need},
 where |needd| serves a similar purpose as |named (hat d)| from
 \Cref{defn:syn-name}, restricting environment entries to the syntactic by-need
-form |Step (Lookup x) (fetch a)| and heap entries in |needheap| to |memo a (eval
+form |Step (Look x) (fetch a)| and heap entries in |needheap| to |memo a (eval
 e ρ)|.
 
 \begin{definition}[Syntactic by-need heaps and environments, address domain]
@@ -1467,9 +1481,9 @@ e ρ)|.
   \emph{syntactic}, defined by mutual guarded recursion as
   \begin{itemize}
     \item |needd d| iff there exists a set |Clo| of syntactic closures such that \\
-      |d = Cup (Step (Lookup x) (fetch a) || (x,a) ∈ Clo)|.
+      |d = Cup (Step (Look x) (fetch a) || (x,a) ∈ Clo)|.
     \item |needenv ρ| iff for all |x|, |needd (ρ ! x)|.
-    \item |adom d := set (a || Step (Lookup y) (fetch a) ∈ d)|
+    \item |adom d := set (a || Step (Look y) (fetch a) ∈ d)|
     \item |adom ρ := Cup (adom (ρ ! x) || x ∈ dom ρ)|.
     \item |needheap μ| iff for all |a|, there is a set |Clo| of syntactic closures such that \\
       |μ ! a = Cup (memo a (evalNeed2 e ρ) || Later ((e,ρ) ∈ Clo && needenv ρ && adom ρ ⊆ dom μ))|.
@@ -1537,7 +1551,7 @@ a lack of full abstraction.
 %and |eval e ρ1 μ1 = many (Step ev) (eval v ρ2 (ext μ2 a (memo a (eval e ρ1)))|
 %for some |e|, |ρ1|, |v|, |ρ2|.
 %Then
-%|eval x (singenv x (step (Lookup x) (fetch a))) μ1 = step (Lookup x) (many (step ev) (step Update (eval v ρ2 μ2)))|,
+%|eval x (singenv x (step (Look x) (fetch a))) μ1 = step (Look x) (many (step ev) (step Upd (eval v ρ2 μ2)))|,
 %hence by \Cref{thm:eval-progression} |μ1 ~> μ2|.
 %\end{proof}
 
@@ -1561,22 +1575,22 @@ singletons.
     \begin{spec}
         (ρ1 ! x) μ1
     =   {- |needenv ρ1|, some |y|, |a| -}
-        Step (Lookup y) (fetch a μ1)
+        Step (Look y) (fetch a μ1)
     =   {- Unfold |fetch| -}
-        Step (Lookup y) ((μ1 ! a) μ1)
+        Step (Look y) ((μ1 ! a) μ1)
     =   {- |needheap μ|, some |e|, |ρ3| -}
-        Step (Lookup y) (memo a (evalNeed e ρ3 μ1))
+        Step (Look y) (memo a (evalNeed e ρ3 μ1))
     =   {- Unfold |memo| -}
-        Step (Lookup y) (evalNeed e ρ3 μ1 >>= upd)
+        Step (Look y) (evalNeed e ρ3 μ1 >>= upd)
     =   {- |evalNeed e ρ3 μ1 = many (Step ev1) (evalNeed v ρ2 μ3)| for some |μ3|, unfold |>>=|, |upd| -}
-        Step (Lookup y) (many (Step ev1) (evalNeed v ρ2 μ3 >>= \v μ3 ->
-          Step Update (Ret (v, ext μ3 a (memo a (return v))))))
+        Step (Look y) (many (Step ev1) (evalNeed v ρ2 μ3 >>= \v μ3 ->
+          Step Upd (Ret (v, ext μ3 a (memo a (return v))))))
     \end{spec}
     Now let |sv :: Value (ByNeed T)| be the semantic value such that |evalNeed v ρ2 μ3 = Ret (sv, μ3)|.
     \begin{spec}
     =   {- |evalNeed v ρ2 μ3 = Ret (sv, μ3)| -}
-        Step (Lookup y) (many (Step ev1) (Step Update (Ret (sv, ext μ3 a (memo a (return sv))))))
-    =   {- Refold |evalNeed v ρ2|, |many ev = [Lookup y] ++ many ev1 ++ [Update]| -}
+        Step (Look y) (many (Step ev1) (Step Upd (Ret (sv, ext μ3 a (memo a (return sv))))))
+    =   {- Refold |evalNeed v ρ2|, |many ev = [Look y] ++ many ev1 ++ [Upd]| -}
         many (Step ev) (evalNeed v ρ2 (ext μ3 a (memo a (evalNeed2 v ρ2))))
     =   {- Determinism of |evalNeed|, assumption -}
         many (Step ev) (evalNeed v ρ2 μ2)
@@ -1604,19 +1618,19 @@ singletons.
     \begin{spec}
         evalNeed (Let x e1 e2) ρ1 μ1
     =   {- Unfold |evalNeed| -}
-        bind  (\d1 -> evalNeed e1 (ext ρ1 x (step (Lookup x) d1)))
-              (\d1 -> step Let1 (evalNeed e2 (ext ρ1 x (step (Lookup x) d1))))
+        bind  (\d1 -> evalNeed e1 (ext ρ1 x (step (Look x) d1)))
+              (\d1 -> step Let1 (evalNeed e2 (ext ρ1 x (step (Look x) d1))))
               μ1
     =   {- Unfold |bind|, |a := nextFree μ| with $|a| \not\in |dom μ|$ -}
-        step Let1 (evalNeed e2 (ext ρ1 x (step (Lookup x) (fetch a)))
-                               (ext μ1 a (memo a (evalNeed2 e1 (ext ρ1 x (step (Lookup x) (fetch a)))))))
+        step Let1 (evalNeed e2 (ext ρ1 x (step (Look x) (fetch a)))
+                               (ext μ1 a (memo a (evalNeed2 e1 (ext ρ1 x (step (Look x) (fetch a)))))))
     \end{spec}
     At this point, we can apply the induction hypothesis to |evalNeed e2 (ext ρ1 x
-    (step (Lookup x) (fetch a)))| to conclude that
-    |ext μ1 a (memo a (evalNeed2 e1 (ext ρ1 x (step (Lookup x) (fetch a))))) ~> μ2|.
+    (step (Look x) (fetch a)))| to conclude that
+    |ext μ1 a (memo a (evalNeed2 e1 (ext ρ1 x (step (Look x) (fetch a))))) ~> μ2|.
 
     On the other hand, we have
-    |μ1 ~> ext μ1 a (memo a (evalNeed2 e1 (ext ρ1 x (step (Lookup x) (fetch a)))))|
+    |μ1 ~> ext μ1 a (memo a (evalNeed2 e1 (ext ρ1 x (step (Look x) (fetch a)))))|
     by rule \progresstoext (note that $|a| \not∈ |dom μ|$), so the goal follows
     by \progresstotrans.
 \end{itemize}
@@ -1658,12 +1672,12 @@ as well.
 By Löb induction and cases on |e|.
 \begin{itemize}
   \item \textbf{Case} |Var x|:
-     It is |evalNeed x ρ1 μ1 = Step (Lookup y) (memo a1 (evalNeed e1 ρ3 μ1))| for the
+     It is |evalNeed x ρ1 μ1 = Step (Look y) (memo a1 (evalNeed e1 ρ3 μ1))| for the
      suitable |a1|,|y|.
      Furthermore, it must be $|a| \not= |a1|$, because otherwise, |memo a| would
      have updated |a| with |evalNeed2 v ρ2|.
      Then we also have
-     \[|evalNeed x ρ1 (ext μ1 a d) = Step (Lookup y) (memo a1 (evalNeed e1 ρ3 (ext μ1 a d)))|.\]
+     \[|evalNeed x ρ1 (ext μ1 a d) = Step (Look y) (memo a1 (evalNeed e1 ρ3 (ext μ1 a d)))|.\]
      The goal follows from applying the induction hypothesis and realising that
      |μ2 ! a1| has been updated consistently with |memo a1 (evalNeed2 v ρ2)|.
   \item \textbf{Case} |Lam x e|, |ConApp k xs|: Easy to see for |μ1 = μ2|.
@@ -1677,7 +1691,7 @@ By Löb induction and cases on |e|.
   \item \textbf{Case} |Case e alts|: Similar to |App|.
   \item \textbf{Case} |Let x e1 e2|:
     We have |evalNeed (Let x e1 e2) ρ1 μ1 = step Let1 (evalNeed e2 ρ1' μ1')|,
-    where |ρ1' := ext ρ1 x (step (Lookup x) (fetch a1))|, |a1 := nextFree μ1|,
+    where |ρ1' := ext ρ1 x (step (Look x) (fetch a1))|, |a1 := nextFree μ1|,
     |μ1' := ext μ1 a1 (memo a1 (evalNeed2 e1 ρ1'))|.
     We have $|a| \not= |a1|$ by a property of |nextFree|, and applying the
     induction hypothesis yields
@@ -1696,14 +1710,14 @@ then |αE μ d = αE (ext μ a d2) d|.
 \end{lemma}
 \begin{proof}
 By Löb induction.
-Since |needd d|, we have |d = Cup (step (Lookup y) (fetch a1))|
+Since |needd d|, we have |d = Cup (step (Look y) (fetch a1))|
 and |a1 ∈ dom μ|.
 Let |memo a1 (evalNeed2 e ρ) := μ ! a1 = (ext μ a d2) ! a|.
 Then |adom ρ ⊆ dom μ| due to |needheap μ| and the goal follows by the
 induction hypothesis:
 \begin{align*}
-  |αE μ d| & = |Lub (step (Lookup y) (eval e (αE μ << ρ)))| \\
-           & = |Lub (step (Lookup y) (eval e (αE (ext μ a d2) << ρ))) = αE (ext μ a d2) d|
+  |αE μ d| & = |Lub (step (Look y) (eval e (αE μ << ρ)))| \\
+           & = |Lub (step (Look y) (eval e (αE (ext μ a d2) << ρ))) = αE (ext μ a d2) d|
 \end{align*}
 \end{proof}
 
@@ -1748,16 +1762,16 @@ By Löb induction, we assume that both properties hold \emph{later}.
     We can use the IH \labelcref{thm:memo-improves} to prove that
     |βE (ext μ2 a (memo a (evalNeed2 v ρ2))) d ⊑ βE μ2 d|
     for all |d| such that |adom d ⊆ adom μ2|.
-    This is simple to see unless |d = Step (Lookup y) (fetch a)|, in
+    This is simple to see unless |d = Step (Look y) (fetch a)|, in
     which case we have:
     \begin{spec}
-        βE (ext μ2 a (memo a (evalNeed2 v ρ2))) (Step (Lookup y) (fetch a))
+        βE (ext μ2 a (memo a (evalNeed2 v ρ2))) (Step (Look y) (fetch a))
     = {- Unfold |βE| -}
-        step (Lookup y) (eval v (βE (ext μ2 a (memo a (evalNeed2 v ρ2))) << ρ2))
+        step (Look y) (eval v (βE (ext μ2 a (memo a (evalNeed2 v ρ2))) << ρ2))
     ⊑ {- IH \labelcref{thm:memo-improves} -}
-        step (Lookup y) (eval e (βE μ2 << ρ1))
+        step (Look y) (eval e (βE μ2 << ρ1))
     = {- Refold |βE| -}
-        βE μ2 (step (Lookup y) (fetch a))
+        βE μ2 (step (Look y) (fetch a))
     \end{spec}
 
     This is enough to show the goal:
@@ -1775,14 +1789,14 @@ By Löb induction, we assume that both properties hold \emph{later}.
     By Löb induction and cases on |e|.
     \begin{itemize}
       \item \textbf{Case} |Var x|:
-        Let |a| be the address such that |ρ1 ! x = Step (Lookup y) (fetch a)|.
+        Let |a| be the address such that |ρ1 ! x = Step (Look y) (fetch a)|.
         Note that |μ1 ! a = memo a _|, so the result has been memoised in
         |μ2|, and by \Cref{thm:update-once} in |μ3| as well.
         Hence the entry in |μ3| must be of the form |μ3 ! a = memo a (evalNeed2 v ρ2)|.
         \begin{spec}
             eval v (βE μ3 << ρ2)
         ⊑   {- Assumption \textsc{Step-Inc} -}
-            step (Lookup y) (eval v (βE μ3 << ρ2))
+            step (Look y) (eval v (βE μ3 << ρ2))
         =   {- Refold |βE| for the appropriate |y| -}
             (βE μ3 << ρ1) ! x
         =   {- Refold |eval| -}
@@ -1812,7 +1826,7 @@ By Löb induction, we assume that both properties hold \emph{later}.
       \item \textbf{Case} |Case e alts|: Similar to |App|.
       \item \textbf{Case} |Let x e1 e2|:
         Then |evalNeed (Let x e1 e2) ρ1 μ1 = Step Let1 (evalNeed e2 ρ4 μ4)|, where
-        |a := nextFree μ1|, |ρ4 := ext ρ1 x (Step (Lookup x) (fetch a))|,
+        |a := nextFree μ1|, |ρ4 := ext ρ1 x (Step (Look x) (fetch a))|,
         |μ4 := ext μ1 a (memo a (evalNeed2 e1 ρ4))|.
         Observe that |μ4 ~> μ2 ~> μ3|.
 
@@ -1832,10 +1846,10 @@ By Löb induction, we assume that both properties hold \emph{later}.
         If that is the case, we get
         \begin{spec}
         =   {- Unfold |βE μ3 (ρ4 ! x)|, |μ3 ! a = μ4 ! a| -}
-            step Let1 (eval e2 (ext (βE μ3 << ρ1) x (lfp (\(hat d1) -> step (Lookup x) (eval e1 (ext (βE μ3 << ρ1) x (hat d1)))))))
+            step Let1 (eval e2 (ext (βE μ3 << ρ1) x (lfp (\(hat d1) -> step (Look x) (eval e1 (ext (βE μ3 << ρ1) x (hat d1)))))))
         ⊑   {- Assumption \textsc{Bind-ByName} -}
-            bind  (\(hat d1) -> eval e1 (ext ((βE μ3 << ρ1)) x (step (Lookup x) (hat d1))))
-                  (\(hat d1) -> step Let1 (eval e2 (ext ((βE μ3 << ρ1)) x (step (Lookup x) (hat d1)))))
+            bind  (\(hat d1) -> eval e1 (ext ((βE μ3 << ρ1)) x (step (Look x) (hat d1))))
+                  (\(hat d1) -> step Let1 (eval e2 (ext ((βE μ3 << ρ1)) x (step (Look x) (hat d1)))))
         =   {- Refold |eval| -}
             eval (Let x e1 e2) (βE μ3 << ρ1)
         \end{spec}
@@ -1874,9 +1888,9 @@ By Löb induction, we assume that both properties hold \emph{later}.
         We this identity below:
         \begin{spec}
         =   {- Unfold |βE μ3 (ρ4 ! x)|, |μ3 ! a = memo a (evalNeed2 v1 ρ3)| -}
-            step Let1 (eval e2 (ext (βE μ3 << ρ1) x (lfp (\(hat d1) -> step (Lookup x) (eval v1 (ext (βE μ3 << ρ3) x (hat d1)))))))
+            step Let1 (eval e2 (ext (βE μ3 << ρ1) x (lfp (\(hat d1) -> step (Look x) (eval v1 (ext (βE μ3 << ρ3) x (hat d1)))))))
         ⊑   {- |eval v1 (βE μ3 << ρ3) ⊑ eval e1 (βE μ3 << ρ4)|, unfold |βE μ3 (ρ4 ! x)| -}
-            step Let1 (eval e2 (ext (βE μ3 << ρ1) x (lfp (\(hat d1) -> step (Lookup x) (eval e1 (ext (βE μ3 << ρ1) x (hat d1)))))))
+            step Let1 (eval e2 (ext (βE μ3 << ρ1) x (lfp (\(hat d1) -> step (Look x) (eval e1 (ext (βE μ3 << ρ1) x (hat d1)))))))
         ⊑   {- ... as above ... -}
             eval (Let x e1 e2) (βE μ3 << ρ1)
         \end{spec}
@@ -1900,17 +1914,17 @@ abstraction:
 \begin{proof}
 By Löb induction.
 Let us assume that |μ1 ~> μ2| and |adom d ⊆ dom μ1|.
-Since |needd d|, we have |d = Cup (Step (Lookup y) (fetch a))|.
+Since |needd d|, we have |d = Cup (Step (Look y) (fetch a))|.
 Similar to \Cref{thm:soundness-by-name}, it suffices to show the goal for a
-single |d = Step (Lookup y) (fetch a)| for some |y|, |a| and the representation
+single |d = Step (Look y) (fetch a)| for some |y|, |a| and the representation
 function |βE μ := αE μ << set|.
 
 Furthermore, let us abbreviate |memo a (evalNeed2 ei ρi) := μi ! a|.
 The goal is to show
 \[
-  |step (Lookup y) (eval e2 (βE μ2 << ρ2)) ⊑ step (Lookup y) (eval e1 (βE μ1 << ρ1))|,
+  |step (Look y) (eval e2 (βE μ2 << ρ2)) ⊑ step (Look y) (eval e1 (βE μ1 << ρ1))|,
 \]
-Monotonicity allows us to drop the |step (Lookup x)| context
+Monotonicity allows us to drop the |step (Look x)| context
 \[
   |Later (eval e2 (βE μ2 << ρ2) ⊑ eval e1 (βE μ1 << ρ1))|.
 \]
@@ -1940,16 +1954,16 @@ induction hypothesis, which is freely applicable under the ambient |Later|.
 
     We can use Lemma \labelcref{thm:memo-improves} to prove that
     |βE μ2 d ⊑ βE μ3 d| for all |d| such that |adom d ⊆ adom μ2|.
-    This is simple to see unless |d = Step (Lookup y) (fetch a)|, in
+    This is simple to see unless |d = Step (Look y) (fetch a)|, in
     which case we have:
     \begin{spec}
-        βE μ2 (Step (Lookup y) (fetch a))
+        βE μ2 (Step (Look y) (fetch a))
     = {- Unfold |βE| -}
-        step (Lookup y) (eval v (βE μ2 << ρ2))
+        step (Look y) (eval v (βE μ2 << ρ2))
     ⊑ {- Lemma \labelcref{thm:memo-improves} -}
-        step (Lookup y) (eval e (βE μ3 << ρ1))
+        step (Look y) (eval e (βE μ3 << ρ1))
     = {- Refold |βE| -}
-        βE μ3 (step (Lookup y) (fetch a))
+        βE μ3 (step (Look y) (fetch a))
     \end{spec}
 
     We can finally show the goal |βE μ2 d ⊑ βE μ1 d| for all |d| such that
@@ -1986,11 +2000,11 @@ By Löb induction and cases on |e|, using the representation function
   \item \textbf{Case} |Var x|:
     By assumption, we know that
     \begin{spec}
-      evalNeed x ρ1 μ1 = Step (Lookup y) (memo a (evalNeed e1 ρ3 μ1)) = many (Step ev) (evalNeed v ρ2 μ2)
+      evalNeed x ρ1 μ1 = Step (Look y) (memo a (evalNeed e1 ρ3 μ1)) = many (Step ev) (evalNeed v ρ2 μ2)
     \end{spec}
     for some |y|, |a|, |e1|, |ρ3|,
-    such that |ρ1 = step (Lookup y) (fetch a)|, |μ1 ! a = memo a (evalNeed2 e1 ρ3)| and
-    |many ev = [Lookup y] ++ many ev1 ++ [Update]| for some |ev1| by determinism.
+    such that |ρ1 = step (Look y) (fetch a)|, |μ1 ! a = memo a (evalNeed2 e1 ρ3)| and
+    |many ev = [Look y] ++ many ev1 ++ [Upd]| for some |ev1| by determinism.
 
     The step below that uses \Cref{thm:value-improves} does so at |e1| and
     |μ2 ~> μ2| to get |eval v (βE μ2 << ρ2) ⊑ eval e1 (βE μ2 << ρ3)|,
@@ -1998,14 +2012,14 @@ By Löb induction and cases on |e|, using the representation function
     |(βE μ2 << ρ2) ⊑ (βE (ext μ2 a (memo a (evalNeed2 e1 ρ3))) << ρ2)|.
     \begin{spec}
         many (step ev) (eval v (βE μ2 << ρ2))
-    =   {- |many ev = [Lookup y] ++ many ev1 ++ [Update]| -}
-        step (Lookup y) (many (step ev1) (step Update (eval v (βE μ2 << ρ2))))
+    =   {- |many ev = [Look y] ++ many ev1 ++ [Upd]| -}
+        step (Look y) (many (step ev1) (step Upd (eval v (βE μ2 << ρ2))))
     =   {- Assumption \textsc{Update} -}
-        step (Lookup y) (many (step ev1) (eval v (βE μ2 << ρ2)))
+        step (Look y) (many (step ev1) (eval v (βE μ2 << ρ2)))
     ⊑   {- \Cref{thm:value-improves} at |e1| implies |(βE μ2 << ρ2) ⊑ (βE (ext μ2 a (memo a (evalNeed2 e1 ρ3))) << ρ2)|  -}
-        step (Lookup y) (many (step ev1) (eval v (βE (ext μ2 a (memo a (evalNeed2 e1 ρ3))) << ρ2)))
+        step (Look y) (many (step ev1) (eval v (βE (ext μ2 a (memo a (evalNeed2 e1 ρ3))) << ρ2)))
     ⊑   {- \Cref{thm:eval-preserves-need} -}
-        step (Lookup y) (eval e1 (βE μ1 << ρ3))
+        step (Look y) (eval e1 (βE μ1 << ρ3))
     =   {- Refold |βE|, |ρ3 ! x| -}
         βE (ρ1 ! x)
     =   {- Refold |eval x (βE μ1 << ρ1)| -}
@@ -2017,13 +2031,13 @@ By Löb induction and cases on |e|, using the representation function
     \begin{spec}
       evalNeed (Let x e1 e2) ρ1 μ1 = Step Let1 (evalNeed e2 ρ3 μ3) = Step Let1 (many (Step ev1) (evalNeed v ρ2 μ2)),
     \end{spec}
-    where |ρ3 := ext ρ1 x (step (Lookup x) (fetch a))|,
+    where |ρ3 := ext ρ1 x (step (Look x) (fetch a))|,
     |a := nextFree μ1|,
     |μ3 := ext μ1 a (memo a (evalNeed2 e1 ρ3))|.
 
     Then |(βE μ3 << ρ3) ! y = (βE μ1 << ρ1) ! y| whenever $|x| \not= |y|$
     by \Cref{thm:ext-freeze-heap},
-    and |(βE μ3 << ρ3) ! x = step (Lookup x) (eval e1 (βE μ3 << ρ3))|.
+    and |(βE μ3 << ρ3) ! x = step (Look x) (eval e1 (βE μ3 << ρ3))|.
 
     We prove the goal, thus
     \begin{spec}
@@ -2035,12 +2049,12 @@ By Löb induction and cases on |e|, using the representation function
     =   {- Rearrange |βE μ3| by above reasoning -}
         step Let1 (eval e2 (ext (βE μ1 << ρ1) x (βE μ3 (ρ3 ! x))) μ3)
     =   {- Expose fixpoint, rewriting |βE μ3 << ρ3| to |ext (βE μ1 << ρ1) x (βE μ3 (ρ3 ! x))| -}
-        step Let1 (eval e2 (ext (βE μ1 << ρ1) x (lfp (\(hat d1) -> step (Lookup x) (eval e1 (ext (βE μ1 << ρ1) x (hat d1)))))))
+        step Let1 (eval e2 (ext (βE μ1 << ρ1) x (lfp (\(hat d1) -> step (Look x) (eval e1 (ext (βE μ1 << ρ1) x (hat d1)))))))
     =   {- Partially unroll |lfp| -}
-        step Let1 (eval e2 (ext (βE μ1 << ρ1) x (step (Lookup x) (lfp (\(hat d1) -> eval e1 (ext (βE μ1 << ρ1) x (step (Lookup x) (hat d1))))))))
+        step Let1 (eval e2 (ext (βE μ1 << ρ1) x (step (Look x) (lfp (\(hat d1) -> eval e1 (ext (βE μ1 << ρ1) x (step (Look x) (hat d1))))))))
     ⊑   {- Assumption \textsc{Bind-ByName} -}
-        bind  (\(hat d1) -> eval e1 (ext ((βE μ1 << ρ1)) x (step (Lookup x) (hat d1))))
-              (\(hat d1) -> step Let1 (eval e2 (ext ((βE μ1 << ρ1)) x (step (Lookup x) (hat d1)))))
+        bind  (\(hat d1) -> eval e1 (ext ((βE μ1 << ρ1)) x (step (Look x) (hat d1))))
+              (\(hat d1) -> step Let1 (eval e2 (ext ((βE μ1 << ρ1)) x (step (Look x) (hat d1)))))
     =   {- Refold |eval (Let x e1 e2) (βE μ1 << ρ1)| -}
         eval (Let x e1 e2) (βE μ1 << ρ1)
     \end{spec}
@@ -2143,17 +2157,17 @@ We proceed by cases over |e|.
     \begin{spec}
         βT ((ρ ! x) μ)
     =   {- |needenv ρ|, Unfold |βT| -}
-        step (Lookup y) (βT (fetch a μ))
+        step (Look y) (βT (fetch a μ))
     =   {- |needheap μ| -}
-        step (Lookup y) (βT (memo a (evalNeed e1 ρ1 μ)))
+        step (Look y) (βT (memo a (evalNeed e1 ρ1 μ)))
     \end{spec}
     By assumption, |memo a (evalNeed e1 ρ1 μ)| diverges or gets stuck and the result
     is equivalent to |evalNeed e1 ρ1 μ|.
     \begin{spec}
     =   {- Diverging or stuck -}
-        step (Lookup y) (βT (evalNeed e1 ρ2 μ))
+        step (Look y) (βT (evalNeed e1 ρ2 μ))
     ⊑   {- Induction hypothesis -}
-        step (Lookup y) (eval e1 (βE μ << ρ1))
+        step (Look y) (eval e1 (βE μ << ρ1))
     =   {- Refold |βE| -}
         βE μ (ρ ! x)
     \end{spec}
@@ -2245,13 +2259,13 @@ We proceed by cases over |e|.
     \begin{spec}
       evalNeed (Let x e1 e2) ρ μ = Step Let1 (evalNeed e2 ρ1 μ1),
     \end{spec}
-    where |ρ1 := ext ρ x (step (Lookup x) (fetch a))|,
+    where |ρ1 := ext ρ x (step (Look x) (fetch a))|,
     |a := nextFree μ|,
     |μ1 := ext μ a (memo a (evalNeed2 e1 ρ1))|.
 
     Then |(βE μ1 << ρ1) ! y = (βE μ << ρ) ! y| whenever $|x| \not= |y|$
     by \Cref{thm:ext-freeze-heap},
-    and |(βE μ1 << ρ1) ! x = step (Lookup x) (eval e1 (βE μ1 << ρ1))|.
+    and |(βE μ1 << ρ1) ! x = step (Look x) (eval e1 (βE μ1 << ρ1))|.
     \begin{spec}
         βT (evalNeed (Let x e1 e2) ρ μ)
     =   {- Unfold |evalNeed| -}
@@ -2261,12 +2275,12 @@ We proceed by cases over |e|.
     ⊑   {- Induction hypothesis, unfolding |ρ1| -}
         step Let1 (eval e2 (ext (βE μ1 << ρ) x (βE μ1 (ρ1 ! x))))
     =   {- Expose fixpoint, rewriting |βE μ1 (ρ1 ! x)| to |ext (βE μ << ρ) x (βE μ1 (ρ1 ! x))| using \Cref{thm:ext-freeze-heap} -}
-        step Let1 (eval e2 (ext (βE μ << ρ) x (lfp (\(hat d1) -> step (Lookup x) (eval e1 (ext (βE μ << ρ) x (hat d1)))))))
+        step Let1 (eval e2 (ext (βE μ << ρ) x (lfp (\(hat d1) -> step (Look x) (eval e1 (ext (βE μ << ρ) x (hat d1)))))))
     =   {- Partially unroll fixpoint -}
-        step Let1 (eval e2 (ext (βE μ << ρ) x (step (Lookup x) (lfp (\(hat d1) -> eval e1 (ext (βE μ << ρ) x (step (Lookup x) (hat d1))))))))
+        step Let1 (eval e2 (ext (βE μ << ρ) x (step (Look x) (lfp (\(hat d1) -> eval e1 (ext (βE μ << ρ) x (step (Look x) (hat d1))))))))
     ⊑   {- Assumption \textsc{Bind-ByName}, with |hat ρ = βE μ << ρ| -}
-        bind  (\d1 -> eval e1 (ext (βE μ << ρ) x (step (Lookup x) d1)))
-              (\d1 -> step Let1 (eval e2 (ext (βE μ << ρ) x (step (Lookup x) d1))))
+        bind  (\d1 -> eval e1 (ext (βE μ << ρ) x (step (Look x) d1)))
+              (\d1 -> step Let1 (eval e2 (ext (βE μ << ρ) x (step (Look x) d1))))
     =   {- Refold |eval (Let x e1 e2) (βE μ << ρ)| -}
         eval (Let x e1 e2) (βE μ << ρ)
     \end{spec}
@@ -2301,7 +2315,7 @@ Addr -> Addr| such that |heap σ μ1 = μ2|, where
 \begin{center}
 \begin{spec}
   heap σ μ  = [ σ a ↦ memo (σ a) (eval e (env σ ρ)) | memo a (eval e ρ) <- μ ]
-  env σ ρ   = [ x ↦ step (Lookup y) (fetch (σ a)) | step (Lookup y) (fetch a) <- ρ ]
+  env σ ρ   = [ x ↦ step (Look y) (fetch (σ a)) | step (Look y) (fetch a) <- ρ ]
 \end{spec}
 \end{center}
 \noindent
@@ -2324,9 +2338,9 @@ and |eval e (σ1 ρ1) (σ1 μ1) = many (Step (σ1 ev)) (eval v (σ2 ρ2) (σ2 μ
 By Löb induction and cases on |e|.
 \begin{itemize}
   \item \textbf{Case} |Var x|:
-    It is |σ1 ρ1 ! x = step (Lookup y) (fetch (σ1 a))|
+    It is |σ1 ρ1 ! x = step (Look y) (fetch (σ1 a))|
     and   |σ1 μ1 ! σ1 a = memo (σ1 a) (eval e1 (σ1 ρ3))|,
-    so |eval x (σ1 ρ1) (σ1 μ1) = Step (Lookup y) (memo (σ1 a) (eval e1 (σ1 ρ3)) (σ1 μ1))|.
+    so |eval x (σ1 ρ1) (σ1 μ1) = Step (Look y) (memo (σ1 a) (eval e1 (σ1 ρ3)) (σ1 μ1))|.
     We apply the induction hypothesis to |eval e1 ρ3|.
     The subsequent update transition updates |σ1 a| with |memo (σ1 a) (eval v (σ2 ρ2))|,
     which is exactly what |σ2 μ2 ! σ1 a = σ1 μ2 ! σ1 a| looks like.
@@ -2360,7 +2374,7 @@ if and only if |eval e ρ1 (μ1 `oplus` μ') = many (Step ev) (eval v ρ2 (μ2 `
 By Löb induction and cases on |e|.
 \begin{itemize}
   \item \textbf{Case} |Var x|:
-     It is |eval x ρ1 μ1 = Step (Lookup y) (memo a (eval e1 ρ3 μ1))| for the
+     It is |eval x ρ1 μ1 = Step (Look y) (memo a (eval e1 ρ3 μ1))| for the
      suitable |a|,|y|.
      We can apply the induction hypothesis to |e1|, since |adom ρ3 ⊆ dom μ1|
      by |needheap μ1|.

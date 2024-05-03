@@ -85,8 +85,8 @@ in $ρ$.
 
 We conclude with two example traces. The first one evaluates $\Let{i}{\Lam{x}{x}}{i~i}$:
 \begin{align} \label{ex:trace}
-  \arraycolsep2pt
-  &\begin{array}{lclclclclc}
+  &\arraycolsep3pt
+  \begin{array}{lclclclclc}
   (\Let{i}{\Lam{x}{x}}{i~i}, [], [], \StopF) & \smallstep[\LetIT] & (i~i, ρ_1, μ, \StopF) & \smallstep[\AppIT] & (i, ρ_1, μ, κ) & \smallstep[\LookupT(i)] \\
   \highlight{(\Lam{x}{x}, ρ_1, μ, \UpdateF(\pa_1) \pushF κ)} & \highlight{\smallstep[\UpdateT]} & (\Lam{x}{x}, ρ_1, μ, κ) & \smallstep[\AppET] & (x, ρ_2, μ, \StopF) & \smallstep[\LookupT(i)] \\
   \highlight{(\Lam{x}{x}, ρ_1, μ, \UpdateF(\pa_1) \pushF \StopF)} & \highlight{\smallstep[\UpdateT]} & (\Lam{x}{x}, ρ_1, μ, \StopF)
@@ -96,6 +96,9 @@ We conclude with two example traces. The first one evaluates $\Let{i}{\Lam{x}{x}
   \end{array} \notag
 \end{align}
 The corresponding by-name trace simply omits the highlighted update steps.
+The last $\LookupT(i)$ transition exemplifies that the lambda-bound variable in
+control differs from the let-bound variable used to identify the heap entry.
+
 The second example evaluates $\pe \triangleq \Let{i}{(\Lam{y}{\Lam{x}{x}})~i}{i~i}$,
 demonstrating memoisation of $i$:
 \begin{align} \label{ex:trace2}
@@ -122,8 +125,8 @@ demonstrating memoisation of $i$:
   \smallstep[\UpdateT]
   (\Lam{x}{x}, ρ_2, μ_2, \StopF)
   \end{array} \\ \notag
-  &\qquad\text{where } \arraycolsep1pt \begin{array}{llll}
-    ρ_1 = [i ↦ \pa_1], & ρ_2 = [i ↦ \pa_1, y ↦ \pa_1], & \multicolumn{2}{l}{ρ_3 = [i ↦ \pa_1, y ↦ \pa_1, x ↦ \pa_1],} \\
-    μ_1 = (ρ_1, (i,\Lam{y}{\Lam{x}{x}})~i), & μ_2 = [\pa_1 ↦ (i,ρ_2,\Lam{x}{x})], & κ_1 = \ApplyF(\pa_1) \pushF \StopF, & κ_2 = \UpdateF (\pa_1) \pushF κ_1
+  &\qquad\text{where } \arraycolsep1pt \begin{array}{ll}
+    ρ_1 = [i ↦ \pa_1], & μ_1 = [\pa_1 ↦ (i, ρ_1, (\Lam{y}{\Lam{x}{x}})~i)], ρ_3 = [i ↦ \pa_1, y ↦ \pa_1, x ↦ \pa_1] \\
+    ρ_2 = [i ↦ \pa_1, y ↦ \pa_1], & μ_2 = [\pa_1 ↦ (i,ρ_2,\Lam{x}{x})], κ_1 = \ApplyF(\pa_1) \pushF \StopF, κ_2 = \UpdateF (\pa_1) \pushF κ_1
   \end{array} \notag
 \end{align}

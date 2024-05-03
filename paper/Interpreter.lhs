@@ -32,14 +32,14 @@ instance {-# OVERLAPPING #-} Show (Maybe (Value τ)) where
 instance {-# OVERLAPPING #-} Show (Identity (Value (ByName Identity))) where
   show (Identity a) = "\\langle " ++ show a ++ "\\rangle "
 instance Show Event where
-  show (Lookup x) = "\\LookupT(" ++ x ++ ")"
+  show (Look x) = "\\LookupT(" ++ x ++ ")"
   show App1 = "\\AppIT"
   show App2 = "\\AppET"
   show Case1 = "\\CaseIT"
   show Case2 = "\\CaseET"
   show Let0 = "\\LetOT"
   show Let1 = "\\LetIT"
-  show Update = "\\UpdateT"
+  show Upd = "\\UpdateT"
 instance Show a => Show (T a) where
   show (Step e t) = show e ++ "\\xhookrightarrow{\\hspace{1.1ex}}" ++ show t
   show (Ret a) = "\\langle "++show a++"\\rangle "
@@ -89,8 +89,7 @@ generic \emph{denotational interpreter}%
 We find it fitting, because a denotational interpreter is both a
 \emph{denotational semantics}~\citep{ScottStrachey:71} as well as a total
 \emph{definitional interpreter}~\citep{Reynolds:72}.}
-for a functional language which we can instantiate with different semantic
-domains.
+for a functional language which we instantiate with different semantic domains.
 The choice of semantic domain determines the \emph{evaluation strategy}
 (call-by-name, call-by-value, call-by-need) and the degree to which
 \emph{operational detail} can be observed.
@@ -102,7 +101,7 @@ drastically simplifying the soundness proof obligation per derived analysis
 (\Cref{sec:soundness}).
 
 Denotational interpreters can be implemented in any higher-order language such as OCaml, Scheme or Java with explicit thunks, but we picked Haskell for convenience.%
-\footnote{We extract from this document a runnable Haskell file which we add as a Supplement, containing the complete definitions. Furthermore, the (terminating) interpreter outputs are directly generated from this extract.}
+\footnote{We extract from this document runnable Haskell files which we add as a Supplement, containing the complete definitions. Furthermore, the (terminating) interpreter outputs are directly generated from this extract.}
 
 \begin{figure}
 \begin{minipage}{0.49\textwidth}
@@ -180,7 +179,7 @@ unwrapping of constructors.}
 \begin{code}
 type D τ = τ (Value τ);   type DName = D T
 data T v = Step Event (T v) | Ret v
-data Event  =  Lookup Name | Update | App1 | App2
+data Event  =  Look Name | Upd | App1 | App2
             |  Let0 | Let1 | Case1 | Case2
 data Value τ = Stuck | Fun (D τ -> D τ) | Con Tag [D τ]
 \end{code}
@@ -209,7 +208,7 @@ instance Monad T where
 \noindent
 A trace |T| either returns a value (|Ret|) or makes a small-step transition (|Step|).
 Each step |Step ev rest| is decorated with an event |ev|, which describes what happens in that step.
-For example, event |Lookup x| describes the lookup of variable |x :: Name| in the environment.
+For example, event |Look x| describes the lookup of variable |x :: Name| in the environment.
 Note that the choice of |Event| is use-case (\ie analysis) specific and suggests
 a spectrum of intensionality, with |data Event = Unit| on the more abstract end
 of the spectrum and arbitrary syntactic detail attached to each of |Event|'s
@@ -242,8 +241,8 @@ eval e ρ = case e of
                apply (eval e ρ) (ρ ! x)
            | otherwise  -> stuck
   Let x e1 e2 -> bind {-" \iffalse "-}x{-" \fi "-}
-    (\d1 -> eval e1 (ext ρ x (step (Lookup x) d1)))
-    (\d1 -> step Let1 (eval e2 (ext ρ x (step (Lookup x) d1))))
+    (\d1 -> eval e1 (ext ρ x (step (Look x) d1)))
+    (\d1 -> step Let1 (eval e2 (ext ρ x (step (Look x) d1))))
   ConApp k xs
     | all (∈ dom ρ) xs, length xs == conArity k
     -> con {-" \iffalse "-}(label e){-" \fi "-} k (map (ρ !) xs)
@@ -326,7 +325,7 @@ which is naturally expressed using type-class overloading, thus:
 |eval  ::  (Trace d, Domain d, HasBind d) =>  Exp -> (Name :-> d) -> d|.
 \]
 We have parameterised the semantic domain |d| over three type classes |Trace|, |Domain| and |HasBind|, whose signatures are given in \Cref{fig:trace-classes}.%
-\footnote{One can think of these type classes as a fold-like final encoding~\citep{Carette:07} of a domain. However, the significance is in the \emph{decomposition} of the domain, not the choice of encoding.}
+%\footnote{One can think of these type classes as a fold-like final encoding~\citep{Carette:07} of a domain. However, the significance is in the \emph{decomposition} of the domain, not the choice of encoding.}
 Each of the three type classes offer knobs that we will tweak to derive
 different evaluation strategies as well as static analyses.
 
@@ -356,6 +355,8 @@ Finally, we use |fun| to build the returned denotation; the details necessarily 
 While the lambda-bound |x::Name| passed to |fun| is ignored in in the
 |Domain DName| instance of the concrete by-name semantics, it is useful for
 abstract domains such as that of usage analysis (\Cref{sec:abstraction}).
+(We refrain from passing field binders in |select| and let binders in |bind| as
+well, because the analyses considered do not need them.)
 The other cases follow a similar pattern; they each do some work, before handing
 off to type class methods to do the domain-specific work.
 
@@ -509,7 +510,7 @@ fetchN :: Monad τ => Addr -> D (ByNeed τ); fetchN a = getN >>= \μ -> μ ! a
 memoN :: forall τ. (Monad τ, forall v. Trace (τ v)) => Addr -> D (ByNeed τ) -> D (ByNeed τ)
 memoN a d = d >>= \v -> ByNeed (upd v)
   where  upd Stuck  μ = return (Stuck :: Value (ByNeed τ), μ)
-         upd v      μ = step Update (return (v, ext μ a (memoN a (return v))))
+         upd v      μ = step Upd (return (v, ext μ a (memoN a (return v))))
 
 instance (Monad τ, forall v. Trace (τ v)) => HasBind (D (ByNeed τ)) where
   bind # rhs body = do  μ <- getN
@@ -556,8 +557,8 @@ Heap)|$.
 Our trace transformer |ByNeed| in \Cref{fig:by-need} solves this type equation
 via |θ := ByNeed T|.
 It embeds a standard state transformer monad,%
-\footnote{Indeed, we derive its monad instance |via StateT (Heap (ByNeed τ))
-τ|~\citep{Blondal:18}.}
+%\footnote{Indeed, we derive its monad instance |via StateT (Heap (ByNeed τ))
+%τ|~\citep{Blondal:18}.}
 whose key operations |getN| and |putN| are given in \Cref{fig:by-need}.
 
 %\sven{The storyline of this subsection can be improved.
@@ -606,9 +607,9 @@ The whole purpose of the |memo a d| combinator then is to \emph{memoise} the
 computation of |d| the first time we run the computation, via |fetchN a| in the
 |Var| case of |evalNeed2|.
 So |memo a d| yields from |d| until it has reached a value, and then |upd|ates
-the heap after an additional |Update| step.
+the heap after an additional |Upd| step.
 Repeated access to the same variable will run the replacement |memo a (return
-v)|, which immediately yields |v| after performing a |step Update| that does
+v)|, which immediately yields |v| after performing a |step Upd| that does
 nothing.%
 \footnote{More serious semantics would omit updates after the first
 evaluation as an \emph{optimisation}, \ie update with |ext μ a (return v)|,
@@ -624,12 +625,12 @@ in a state transformer |ByNeed|, without modifying the main |eval| function at
 all.
 In doing so, we provide the simplest encoding of a denotational by-need semantics
 that we know of.%
-\footnote{It is worth noting that nothing in our approach is particularly specific to |Exp| or
-|Value|!
-We have built similar interpreters for PCF, where the @rec@, @let@ and
-non-atomic argument constructs can simply reuse |bind| to recover a
-call-by-need semantics.
-The |Event| type needs semantics- and use-case-specific adjustment, though.}
+%\footnote{It is worth noting that nothing in our approach is particularly specific to |Exp| or
+%|Value|!
+%We have built similar interpreters for PCF, where the @rec@, @let@ and
+%non-atomic argument constructs can simply reuse |bind| to recover a
+%call-by-need semantics.
+%The |Event| type needs semantics- and use-case-specific adjustment, though.}
 %\sven{You need to better describe why this is a benefit of this approach:
 %Traditionally, different evaluation strategies were described with separate
 %interpreters. This has the following downsides ... Here we derive all these
@@ -709,12 +710,12 @@ consider the case |τ = T|.
 Then |return = Ret| and we get |d = rhs (Ret v)| for the value |v| at the end of
 the trace |d|, as computed by the type class instance method |getValue :: T v ->
 v|.%
-\footnote{The keen reader may have noted that we could use |Extract| to define a
-|MonadFix| instance for deterministic |τ|.}
+%\footnote{The keen reader may have noted that we could use |Extract| to define a
+%|MonadFix| instance for deterministic |τ|.}
 The effect of |Ret (getValue (unByValue d))| is that of stripping all |Step|s from |d|.%
-\footnote{We could have defined |d| as one big guarded fixpoint |fix (rhs .
-return . getValue . unByValue)|, but some co-authors prefer to see the expanded
-form.}
+%\footnote{We could have defined |d| as one big guarded fixpoint |fix (rhs .
+%return . getValue . unByValue)|, but some co-authors prefer to see the expanded
+%form.}
 %\sg{Is |let d = rhs (strip d); strip = return . getValue . unByValue in ...|
 %perhaps a more intuitive decomposition than |d|/|v|? Simon?}
 

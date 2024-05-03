@@ -96,9 +96,9 @@ be very simple to integrate into our framework to help with that.
 
 \subsubsection*{Contextual Improvement}
 Abstract interpretation is useful to prove that an analysis approximates
-the right trace property, but it does not make any claim on whether a
-transformation conditional on some trace property is actually sound, yet alone
-an \emph{improvement}~\citep{MoranSands:99}.
+the right trace property, but it does not help to prove an \emph{optimisation}
+conditional on some trace property sound, yet alone an
+\emph{improvement}~\citep{MoranSands:99}.
 %If we were to prove update avoidance~\citep{Gustavsson:98} correct, would we use
 If we were to prove dead code elimination correct based on our notion of
 absence, would we use our denotational interpreter to do so?
@@ -176,6 +176,22 @@ The \emph{trace transformers} in \Cref{sec:interp} enable a similar reuse.
 Likewise, \citet{Keidel:23} discusses a sound, declarative approach to reuse
 fixpoint combinators which we hope to apply in implementations of our framework
 as well.
+
+\subsubsection*{Proof Modularity}
+A big advantage of the big-step framework of \citet{Keidel:18} is that its
+soundness proofs are \emph{modular}, that is, a change to the |ConApp| case of
+|evalUsg| does not invalidate the soundness proof for function application.
+Our proof of \textsc{Beta-App} via a substitution lemma is simple but
+unfortunately not modular in this sense, because |evalUsg| occurs in the
+statement of \Cref{thm:usage-subst}, which is proven by induction on |e|.
+However, an alternative modular proof is conceivable.
+That would require finding a weaker and more abstract characterisation of |f|
+such that \textsc{Beta-App} can be proved without depending on the definition of
+|evalUsg|.
+Finding such abstract characterisations is trivial for first-order analyses
+without summary mechanisms, so their proofs tend to be automatically modular.
+As framework authors we cannot anticipate all viable abstract characterisations,
+hence we supply the strongest syntactic characterisation.
 
 %TODO: Process
 %Conversely, \citet{aam,adi,Keidel:18} have successfully applied abstract interpretation

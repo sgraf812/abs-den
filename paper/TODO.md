@@ -1,52 +1,98 @@
-# Structure
+* [ ] Clarify what is formalised in Agda
 
-## Introduction
+Rev A
+-----
 
-- Start by pointing out the structural mismatch problem, and how denotational
-  semantics is useful to formalise a bunch of practically relevant analyses
-  (DONE)
-- After AAM, stress the
-  development on Abstract Definitional Interpreters more and say why it is not
-  an option.
-    + (Later: There exist **coinductive big-step semantics** that are equally expressive
-      as small-step semantics (eg, they distinguish divergence from stuckness))
-    + **Abstracting Definitional interpreters** offers a recipe to derive
-      sound analysis from a shared definitional interpreter based on such a
-      big-step semantics
-    + (Perhaps later: There are even Definitional interpreters such as the meta-circular one
-      by Reynolds and the one by Ager are structurally defined, we call these
-      **Denotational Interpreters**...)
-    - ... but the meta language is not total. Often, such interpreters loop
-      indefinitely for non-terminating programs.
-      Proving totality of the concrete interpreter is a massive undertaking.
-      The problem is exacerbated for denotational interpreters due to
-      higher-order functions.
-      Thus, these definitional interpreters are no replacement for a formal
-      semantics.
-- Our Solution:
-  - A specific class of Definitional Interpreters we call *Denotational Interpreter*,
-    definable in a total language
-    with guarded recursive types such as Guarded Cubical Agda.
-    Denotational interpreters produce potentially infinite traces that are
-    adequate wrt. a standard small-step operational semantics.
-  - Through our final encoding of traces and values, this definitional
-    interpreter enjoys a variety of concrete and abstract interpretations
-    in the sense of Cousot and ADI.
+- [-] The definition of figure 1 is not explained.
 
-## Problem
+- [x] Line 146: this footnote, at this place in the text begs the question
+  of whether this fixpoint is well defined (does it exist? in which
+  partially-ordered set?)
 
-- 2.1 Usage analysis
-- 2.2 Simple proof of correctness, both of analysis and transformation
-- 2.3 Divergence, Safety properties (divergence = ⊥ means observe safety properties)
-- 2.4 Operational detail
-- 2.5 Structural mismatch for oeprational semantics -- Lacks a strong argument!!
-      Esp. given what the proofs ultimately looked like. Much the same as
-      for OpSem, I think, because we abandoned trace equivalence in favor of
-      contextual equivalence.
-      With ADI and our approach, it is quite simple to show α(S[[e]]) computes
-      an upper bound on the number of lookup transitions.
-      It is *not* any simpler to prove improvement from that fact -- experience
-      shows it's best to stick to operational semantics/improvement.
-      Nothing gets simpler because we currently lack ergonomic equivalence relations
-      that imply contextual improvement and equivalence.
--
+- [-] Lines 155-166: the example is explained step by step, but this is
+  hardly informative. It provides no explanation or no intuition of
+  why this computation makes sense for absence analysis.
+
+- [-] Line 175: the pre-order relation ⊑ should probably be introduced and
+  explained earlier
+
+- [-] Lines 263-271: this is obscure. The text depends too heavily on the
+  contents of the appendix.
+
+- [x] Figure 2, rule Let1: at this point, we notice that let bindings are
+  recursive, it seems, as opposed to the let bindings of the language
+  of section 2.1. A surprise for the reader.
+
+- [x] Figure 2, rule Look(y): recording the variable `y` is a difference
+  with the LK or the MarkII machines. The cases where x <> y are
+  interesting for the reader, and the last example of section 3
+  illustrate such a case. It is however not explained, and the reader
+  has to understand/discover this point alone.
+
+- [x] Figure 5: you have chosen that `fun` takes a variable as a first
+  parameter (the bound variable of the function). Why didn't you make
+  similar choices for constructs that also involve bound variables?
+  (bind, select)
+
+- [-] Figure 6 is useless, since the reader has to complete the definition
+  by herself!
+
+- [-] The statement of Theorem 4 (Strong Adequacy) and its proof are too
+  sketchy. I am not sure what the theorem statement really means.
+
+- [x] Line 908: "Occurrences of x must make do with the top value".
+  I don't understand the sentence.
+
+- [x] Lines 923-926: "Much more could be said about..." Either say it, or
+  do not mention it at all. I have no idea what you have in mind.
+
+- [x] Line 930 (footnote 24): please explain what you mean.
+
+- [?] Figure 12: it is very upsetting that `lub` is not used at all in
+  this definition...
+
+- [x] Line 958: "The keen reader may feel indignant..." It is generally a
+  good idea to avoid the reader entering a state of anger. Please
+  rephrase the explanation so that it does not happen.
+
+- [x] Lines 960-961: "This is easily worked around in practice by
+  employing appropriate widening measures such as bounding the depth
+  of ValueU". Could you please give the definition, then, if you
+  actually had to implement such measures? Does it have consequences
+  about monotonicity?
+
+- [x] Lines 978-979 (footnote 25): "Never mind totality; why is the use of
+  least fixpoints even correct?". Is this an remark that was targeted
+  to the authors discussing a point while writing the paper, or is is
+  targeted to the reader? Should the reader give you the answer?
+  Please rephrase.
+
+- [x] Figure 13: please explain rules Unwind-Stuck and Intro-Stuck. The
+  use of join in those rules seems rather surprising.
+
+- [x] Lines 1004-1007: this is obscure.
+
+- [x] Lines 1012-1015: this is not a proof rule. Please state what you
+  mean precisely.
+
+- [x] Line 1018: "opinionated". Please use a more scientific vocabulary.
+  This is not a blog post.
+
+- [x] Lines 1022-1023: "considering the final heap for nested abstraction
+  (the subtle details are best left to the Appendix)". I don't have
+  the slightest idea of what you mean...
+
+- [-] Lines 1142-1147: "... but it does not make any claim on whether a
+  transformation conditional on some trace property is actually sound,
+  yet alone an improvement, etc". Again, this is obscure. Please
+  explain. I don't understand why your interpreter would not be
+  appropriate for dead code elimination either.
+
+- [ ] Lines 1169-1170: "we think that CFA can be used to turn any finite
+  Trace instance such as TU into a static analysis without the need to
+  define a custom summary mechanism". I don't understand what you have
+  in mind.
+
+- [ ] Lines 1197-1201: What do you mean? That you are not able to model
+  demand transformers?
+

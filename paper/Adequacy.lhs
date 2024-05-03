@@ -248,7 +248,7 @@ finite, inductive type).
 
 \begin{figure}
 \[\begin{array}{rcl}
-  α_\Environments(μ, [\many{\px ↦ \pa}]) & = & [\many{|x| ↦ |Step (Lookup y) (fetch a)| \mid μ(\pa) = (\py,\wild,\wild)}] \\
+  α_\Environments(μ, [\many{\px ↦ \pa}]) & = & [\many{|x| ↦ |Step (Look y) (fetch a)| \mid μ(\pa) = (\py,\wild,\wild)}] \\
   \hspace{-1em} α_\Heaps([\many{\pa ↦ (\wild,ρ,\pe)}]) & = & [\many{|a| ↦ |memo a (eval e (αEnv μ ρ))|}] \\
   α_\States(\Lam{\px}{\pe},ρ,μ,κ) & = & |(Fun (\d -> Step App2 (eval e (ext (αEnv μ ρ) x d))), αHeap μ)| \\
   α_\States(K~\overline{\px},ρ,μ,κ) & = & |(Con k (map (αEnv μ ρ !) xs), αHeap μ)| \\
@@ -256,10 +256,10 @@ finite, inductive type).
     |Let1| & \text{when }σ = (\Let{\px}{\wild}{\wild},\wild,μ,\wild), \pa_{\px,i} \not∈ \dom(μ) \\
     |App1| & \text{when }σ = (\wild~\px,\wild,\wild,\wild) \\
     |Case1| & \text{when }σ = (\Case{\wild}{\wild},\wild,\wild, \wild)\\
-    |Lookup y| & \text{when }σ = (\px,ρ,μ,\wild), μ(ρ(\px)) = (\py,\wild,\wild) \\
+    |Look y| & \text{when }σ = (\px,ρ,μ,\wild), μ(ρ(\px)) = (\py,\wild,\wild) \\
     |App2| & \text{when }σ = (\Lam{\wild}{\wild},\wild,\wild,\ApplyF(\wild) \pushF \wild) \\
     |Case2| & \text{when }σ = (K~\wild, \wild, \wild, \SelF(\wild,\wild) \pushF \wild) \\
-    |Update| & \text{when }σ = (\pv,\wild,\wild,\UpdateF(\wild) \pushF \wild) \\
+    |Upd| & \text{when }σ = (\pv,\wild,\wild,\UpdateF(\wild) \pushF \wild) \\
   \end{cases} \\
   α_{\STraces}((σ_i)_{i∈\overline{n}},κ) & = & \begin{cases}
     |Step ({-" α_\Events(σ_0) "-}) (idiom (αSTraces (lktrace, κ)))| & \text{when }n > 0 \\
@@ -278,10 +278,10 @@ information from small-step transitions is retained as |Event|s.
 Its semantics is entirely inconsequential for the adequacy result and we imagine
 that this function is tweaked on an as-needed basis depending on the particular
 trace property one is interested in observing.
-In our example, we focus on |Lookup y| events that carry with them the |y ::
+In our example, we focus on |Look y| events that carry with them the |y ::
 Name| of the let binding that allocated the heap entry.
 This event corresponds precisely to a $\LookupT(\py)$ transition, so $α_\Events(σ)$
-maps $σ$ to |Lookup y| when $σ$ is about to make a $\LookupT(\py)$ transition.
+maps $σ$ to |Look y| when $σ$ is about to make a $\LookupT(\py)$ transition.
 In that case, the focus expression must be $\px$ and $\py$ is the first
 component of the heap entry $μ(ρ(\px))$.
 The other cases are similar.
@@ -401,7 +401,7 @@ We do so by cases over $\pe$, abbreviating |tm := αHeap μ| and |tr := αEnv μ
     Otherwise, $σ_1 \triangleq (\pe', ρ_1, μ, \UpdateF(\pa) \pushF κ), σ_0 \smallstep σ_1$
     via $\LookupT(\py)$, and $ρ(\px) = \pa, μ(\pa) = (\py, ρ_1, \pe')$.
     This matches the head of the action of |tr x|, which is of the form
-    |step (Lookup y) (fetch a)|.
+    |step (Look y) (fetch a)|.
 
     To show that the tails equate, it suffices to show that they equate \emph{later}.
 
@@ -410,7 +410,7 @@ We do so by cases over $\pe$, abbreviating |tm := αHeap μ| and |tr := αEnv μ
     \begin{spec}
       fetch a tm = tm a tm = evalNeed e' tr' tm >>= \case
         (Stuck,  tm') -> Ret (Stuck, tm')
-        (val,    tm') -> Step Update (Ret (val, ext tm' a (memo a (return val))))
+        (val,    tm') -> Step Upd (Ret (val, ext tm' a (memo a (return val))))
     \end{spec}
 
     Let us define |tl := (idiom (evalNeed e' tr' tm))| and apply the induction
@@ -433,7 +433,7 @@ We do so by cases over $\pe$, abbreviating |tm := αHeap μ| and |tr := αEnv μ
     and this must be the target state $σ_n$ (so $m = n-2$), because it remains
     a return state and has continuation $κ$, so $(σ_i)_{i∈\overline{n}}$ is
     balanced.
-    Likewise, the continuation argument of |>>=| does a |Step Update| on
+    Likewise, the continuation argument of |>>=| does a |Step Upd| on
     |Ret (val,tmm)|, updating the heap.
     By cases on $\pv$ and the |Domain (D (ByNeed T))| instance we can see that
     \begin{spec}
@@ -674,14 +674,14 @@ The full, type-checked development is available in the Supplement.
     |step :: Event -> Later d -> d|.
   \item
     All |D|s that will be passed to lambdas, put into the environment or
-    stored in fields need to have the form |step (Lookup x) d| for some
+    stored in fields need to have the form |step (Look x) d| for some
     |x::Name| and a delayed |d :: Later (D τ)|.
     This is enforced as follows:
     \begin{enumerate}
       \item
         The |Domain| type class gains an additional predicate parameter |p :: D -> Set|
         that will be instantiated by the semantics to a predicate that checks
-        that the |D| has the required form |step (Lookup x) d| for some
+        that the |D| has the required form |step (Look x) d| for some
         |x::Name|, |d :: Later (D τ)|.
       \item
         Then the method types of |Domain| use a Sigma type to encode conformance
@@ -693,7 +693,7 @@ The full, type-checked development is available in the Supplement.
         |Fun :: (Name times Later (D τ) -> D τ) -> Value τ|, breaking the
         previously discussed negative recursive cycle by a $\later$, and
         expecting |x::Name|, |d::Later (D τ)| such that the original |D τ| can
-        be recovered as |step (Lookup x) d|.
+        be recovered as |step (Look x) d|.
         This is in contrast to the original definition |Fun :: (D τ -> D τ) ->
         Value τ| which would \emph{not} type-check.
         One can understand |Fun| as carrying the ``closure'' resulting from
@@ -705,7 +705,7 @@ The full, type-checked development is available in the Supplement.
     Expectedly, |HasBind| becomes more complicated because it encodes the
     fixpoint combinator.
     We settled on |bind :: Later (Later D → D) → (Later D → D) → D|.
-    We tried rolling up |step (Lookup x) _| in the definition of |eval|
+    We tried rolling up |step (Look x) _| in the definition of |eval|
     to get a simpler type |bind :: (Σ D p → D) → (Σ D p → D) → D|,
     but then had trouble defining |ByNeed| heaps independently of the concrete
     predicate |p|.

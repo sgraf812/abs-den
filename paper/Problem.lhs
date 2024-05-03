@@ -14,8 +14,9 @@ removal of dead bindings in a compiler.
 
 \subsection{Object Language}
 
-To set the stage, we start by defining the object language of this work, a
-lambda calculus with \emph{recursive} let bindings and algebraic data types:
+To set the stage, we start by defining the object language of this work, an
+untyped lambda calculus with \emph{recursive} let bindings and algebraic data
+types:
 \[
 \arraycolsep=3pt
 \begin{array}{rrclcrrclcl}
@@ -30,8 +31,9 @@ are restricted to be variables, so the difference between lazy and eager
 semantics is manifest in the semantics of $\mathbf{let}$.
 Note that $\Lam{x}{x}$ (with an overbar) denotes syntax, whereas $\fn{x}{x+1}$
 denotes an anonymous mathematical function.
-In this section, only the highlighted parts are relevant, but the interpreter
-definition in \Cref{sec:interp} supports data types as well.
+In this section, only the highlighted parts are relevant and $\mathbf{let}$ is
+considered non-recursive, but the interpreter definition in \Cref{sec:interp}
+supports data types and recursive $\mathbf{let}$ as well.
 Throughout the paper we assume that all bound program variables are distinct.
 % Rationale for this:
 % While shadowing is fine for the semantics, the analyses don't cope well with
@@ -99,11 +101,14 @@ Otherwise, the variable $\px$ is \emph{used} in $\pe$.
 %not just in a WHNF evaluation of $\pe$.
 
 \Cref{fig:absence} defines an absence analysis $\semabs{\pe}_ρ$ for lazy
-program semantics that conservatively approximates semantic absence.%
-\footnote{For illustrative purposes, our analysis definition only works for
-the special case of non-recursive let.
-The generalised definition for recursive as well as non-recursive let is
-$\semabs{\Let{\px}{\pe_1}{\pe_2}}_ρ = \semabs{\pe_2}_{ρ[\px ↦ \lfp(\fn{θ}{\px \both \semabs{\pe_1}_{ρ[\px↦θ]}})]}$.}
+program semantics that conservatively approximates semantic absence.
+For illustrative purposes, our analysis definition only works for
+the special case of non-recursive $\mathbf{let}$, but later sections will assume
+recursive let semantics.%
+\footnote{Given an order that we will define in due course, the
+generalised definition for recursive as well as non-recursive let is
+$\semabs{\Let{\px}{\pe_1}{\pe_2}}_ρ = \semabs{\pe_2}_{ρ[\px ↦
+\lfp(\fn{θ}{\px \both \semabs{\pe_1}_{ρ[\px↦θ]}})]}$.}
 It takes an environment $ρ \in \Var \pfun \AbsTy$ containing absence
 information about the free variables of $\pe$ and returns
 an \emph{absence type} $\langle φ, \varsigma \rangle \in \AbsTy$; an abstract
@@ -246,9 +251,9 @@ via $\mathit{fun}$ and $\mathit{app}$.
 The former approximates a functional $(\fn{θ}{...}) : \AbsTy \to \AbsTy$ into
 a finite $\AbsTy$, and $\mathit{app}$ encodes the adjoint (``reverse'')
 operation.%
-\footnote{Proving that $\mathit{fun}$ and $\mathit{app}$ form a Galois connection
-is indeed important for a soundness proof and corresponds to a substitution
-\Cref{thm:absence-subst}.}
+%\footnote{Proving that $\mathit{fun}$ and $\mathit{app}$ form a Galois connection
+%is indeed important for a soundness proof and corresponds to a substitution
+%\Cref{thm:absence-subst}.}
 
 To support efficient separate compilation, a compiler analysis must be
 \emph{modular}, and summaries are indispensable in achieving that.
@@ -265,8 +270,8 @@ to invoke at every use site.
 The same way summaries enable efficient \emph{inter}-module compilation,
 they enable efficient \emph{intra}-module compilation for \emph{compositional}
 static analyses such as $\semabs{\wild}$.%
-\footnote{\citet{Cousot:02} understand modularity as degrees of compositionality;
-a compositional analysis is thus modular.}
+%\footnote{\citet{Cousot:02} understand modularity as degrees of compositionality;
+%a compositional analysis is thus modular.}
 Compositionality implies that $\semabs{\Let{f}{\Lam{x}{\pe_{\mathit{big}}}}{f~f~f~f}}$
 is a function of $\semabs{\Lam{x}{\pe_{\mathit{big}}}}$, and the summary mechanism
 prevents having to reanalyse $\pe_{\mathit{big}}$ repeatedly for each call of $f$.
@@ -388,10 +393,10 @@ expression $\pe$ in different machine contexts so as to justify rewrites via
 contextual improvement~\citep{MoranSands:99}.
 Furthermore, we must prove sound the summary mechanism, captured in the
 following \emph{substitution lemma}~\citep{tapl}:%
-\footnote{This statement amounts to $id ⊑ \mathit{app} \circ \mathit{fun}_x$,
-one half of a Galois connection.
-The other half $\mathit{fun}_x \circ \mathit{app} ⊑ id$ is eta-expansion
-$\semabs{\Lam{\px}{\pe~\px}}_ρ ⊑ \semabs{\pe}_ρ$.}
+%\footnote{This statement amounts to $id ⊑ \mathit{app} \circ \mathit{fun}_x$,
+%one half of a Galois connection.
+%The other half $\mathit{fun}_x \circ \mathit{app} ⊑ id$ is eta-expansion
+%$\semabs{\Lam{\px}{\pe~\px}}_ρ ⊑ \semabs{\pe}_ρ$.}
 
 \begin{toappendix}
 Note that for the proofs we assume the recursive let definition
@@ -866,9 +871,9 @@ The proof is exemplary of far more ambitious proofs such as in
 \citet{Sergey:14} and \citet[Section 4]{Breitner:16}.
 Though seemingly disparate, these proofs all follow an established
 preservation-style proof technique at heart.%
-\footnote{A ``mundane approach`` according to \citet[Section
-4.1]{Nielson:99}, applicable to \emph{trace properties}, but not to
-\emph{hyperproperties}~\citep{ClarksonSchneider:10}.}
+%\footnote{A ``mundane approach`` according to \citet[Section
+%4.1]{Nielson:99}, applicable to \emph{trace properties}, but not to
+%\emph{hyperproperties}~\citep{ClarksonSchneider:10}.}
 The proof of \citet{Sergey:14} for a generalisation of $\semabs{\wild}$
 is roughly structured as follows (non-clickable references to Figures
 and Lemmas below reference \citet{Sergey:14}):

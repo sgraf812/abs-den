@@ -98,7 +98,7 @@ instance UVec Uses where {-" ... \iffalse "-}
 \begin{code}
 data UT v = MkUT Uses v
 instance Trace (UT v) where
-  step (Lookup x)  (MkUT φ v)  = MkUT (singenv x U1 + φ) v
+  step (Look x)  (MkUT φ v)  = MkUT (singenv x U1 + φ) v
   step _           τ           = τ
 instance Monad UT where
   return a = MkUT emp a
@@ -206,10 +206,10 @@ Often, the first step in doing so is to replace the potentially infinite traces
 as |UT| in \Cref{fig:usage-analysis}.
 A \emph{usage trace} |MkUT φ val :: UT v| is a pair of a value |val :: v|
 and a finite map |φ :: Uses|, mapping variables to a \emph{usage} |U|.
-The usage |φ !? x| assigned to |x| is meant to approximate the number of |Lookup x|
+The usage |φ !? x| assigned to |x| is meant to approximate the number of |Look x|
 events; |U0| means ``at most 0 times'', |U1| means ``at most 1 times'',
 and |Uω| means ``an unknown number of times''.
-In this way, |UT| is an \emph{abstraction} of |T|: it squashes all |Lookup x|
+In this way, |UT| is an \emph{abstraction} of |T|: it squashes all |Look x|
 events into a single entry |φ !? x :: U| and discards all other events.
 
 Consider as an example the by-name trace evaluating $\pe \triangleq
@@ -217,15 +217,15 @@ Consider as an example the by-name trace evaluating $\pe \triangleq
 \[\perform{evalName (read "let i = λx.x in let j = λy.y in i j j") emp}\]
 \noindent
 We would like to abstract this trace into |MkUT [i ↦ U1, j ↦ Uω] dots|.
-One plausible way to achieve this is to replace every |Step (Lookup x) dots|
-in the by-name trace with a call to |step (Lookup x) dots| from the |Trace UT|
+One plausible way to achieve this is to replace every |Step (Look x) dots|
+in the by-name trace with a call to |step (Look x) dots| from the |Trace UT|
 instance in \Cref{fig:usage-analysis}, quite similar to |foldr step| on lists.
-The |step| implementation increments the usage of |x| whenever a |Lookup x|
+The |step| implementation increments the usage of |x| whenever a |Look x|
 event occurs.
 The addition operation used to carry out incrementation is defined in type class
 instances |UVec U| and |UVec Uses|, together with scalar multiplication.%
-\footnote{We think that |UVec| models |U|-modules. It is not a vector
-space because |U| lacks inverses, but the intuition is close enough.}
+%\footnote{We think that |UVec| models |U|-modules. It is not a vector
+%space because |U| lacks inverses, but the intuition is close enough.}
 For example, |U0 + u = u| and |U1 + U1 = Uω| in |U|, as well as |U0 * u = U0|,
 |Uω * U1 = Uω|.
 These operations lift to |Uses| pointwise, \eg
@@ -326,8 +326,8 @@ Every use of |x|'s proxy will contribute a usage of |U1| on |x|, and multiple
 uses in the lambda body would accumulate to a usage of |Uω|.
 In this case there is only a single use of |x| and the final usage |φ !? x =
 U1| from the lambda body will be prepended to the summarised value.
-Occurrences of |x| must make do with the top value |(Rep Uω)| from |x|'s proxy
-for lack of knowing the actual argument at call sites.
+Occurrences of |x| unleash the uninformative top value (|Rep Uω|) from |x|'s
+proxy for lack of knowing the actual argument at call sites.
 
 The definition of |apply| to apply such summaries to an argument is nearly the
 same as in \Cref{fig:absence}, except for the use of |+| instead of $⊔$ to
@@ -342,10 +342,10 @@ $|evalUsg (({-" \Let{z}{Z()}{\Case{S(z)}{S(n) → n}} "-})) emp|
  = \perform{evalUsg (read "let z = Z() in case S(z) of { S(n) -> n }") emp}$
 illustrates the summary mechanism for data types.
 Our analysis imprecisely infers that |z| might be used many times when it is
-only used once.
-That is because we tried to keep |UValue| intentionally simple, so our analysis
-assumes that every data constructor uses its fields many times.%
-\footnote{It is clear how to do a better job at least for products; see \citet{Sergey:14}.}
+only used once.%
+\footnote{Following \citet{Sergey:14} we could model \emph{demand} as
+a property of evaluation contexts and propagate uses of field binders to the
+scrutinee's fields to do better.}
 This is achieved in |con| by repeatedly |apply|ing to the top value |(Rep Uω)|,
 as if a data constructor was a lambda-bound variable.
 Dually, |select| does not need to track how fields are used and can pass |MkUT
@@ -353,10 +353,9 @@ emp (Rep Uω)| as proxies for field denotations.
 The result uses anything the scrutinee expression used, plus the upper bound of
 uses in case alternatives, one of which will be taken.
 
-Much more could be said about the way in which the finite representation of the
-type |UD| rules out injective implementations of |fun x :: (UD -> UD) -> UD| and
-thus requires the aforementioned \emph{approximate} summary mechanism, but it is
-easy to get sidetracked in doing so.
+Note that the finite representation of the type |UD| rules out injective
+implementations of |fun x :: (UD -> UD) -> UD| and thus requires the
+aforementioned \emph{approximate} summary mechanism.
 There is another potential source of approximation: the |HasBind|
 instance discussed next.
 
@@ -403,18 +402,18 @@ in \Cref{fig:lat}.
 by |U0 ⊏ U1 ⊏ Uω| in the same way that the order
 on $\AbsTy$ in \Cref{sec:absence} was induced from the order $\aA ⊏ \aU$
 on $\Absence$ flags.
+
 The iteration procedure terminates whenever the type class instances of |UD| are
 monotone and there are no infinite ascending chains in |UD|.
-
-The keen reader may feel indignant because our |UValue| indeed contains such
-infinite chains, for example, |UCons U1 (UCons U1 (UCons dots Rep U0))|!
-This is easily worked around in practice by employing appropriate widening
-measures such as bounding the depth of |UValue|.
+Alas, our |UValue| indeed contains such infinite chains, for example, |UCons U1
+(UCons U1 (UCons dots Rep U0))|!
+This is easily worked around in practice by employing appropriate monotone
+widening measures such as trimming any |UValue| at depth 10 to flat |Rep Uω|.
 The resulting definition of |HasBind| is safe for by-name and by-need semantics.%
-\footnote{Never mind totality; why is the use of \emph{least} fixpoints even correct?
-The fact that we are approximating a safety property~\citep{Lamport:77} is
-important.
-We discuss this topic in \Cref{sec:safety-extension}.}
+%\footnote{Never mind totality; why is the use of \emph{least} fixpoints even correct?
+%The fact that we are approximating a safety property~\citep{Lamport:77} is
+%important.
+%We discuss this topic in \Cref{sec:safety-extension}.}
 
 It is nice to define dynamic semantics and static analyses in the same
 framework, but another important benefit is that correctness proofs become
