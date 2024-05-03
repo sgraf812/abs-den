@@ -129,14 +129,14 @@ interpretation for the static analysis |eval3 (hat D) e emp|!
 %and static analysis.
 
 \begin{figure}
-\begin{code}
+\begin{spec}
 freezeHeap = ...  -- See Appendix
 β (Step e d)           = step e (β d)
 β (Ret (Stuck, μ))     = stuck
 β (Ret (Fun f, μ))     = fun {-"\iffalse"-}"" ""{-"\fi"-} (\(hat d) -> Lub (β (f d μ) | d ∈ γE (hat d)))  where unused (  _   :<->: γE)  = untyped (freezeHeap μ)
 β (Ret (Con k ds, μ))  = con {-"\iffalse"-}""{-"\fi"-} k (map (\d -> αE (set d)) ds)                      where           αE  :<->: _    = freezeHeap μ
 abstract d = β (d emp)
-\end{code}
+\end{spec}
 \caption{Galois connection for sound by-name and by-need abstraction}
 \label{fig:name-need-gist}
 \end{figure}
