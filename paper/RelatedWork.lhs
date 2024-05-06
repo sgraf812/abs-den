@@ -184,22 +184,22 @@ soundness proofs are \emph{modular}, that is, a change to the |ConApp| case of
 Our proof of \textsc{Beta-App} via a substitution lemma is simple but
 unfortunately not modular in this sense, because |evalUsg| occurs in the
 statement of \Cref{thm:usage-subst}, which is proven by induction on |e|.
+
 However, an alternative modular proof is conceivable.
 That would require finding a weaker and more abstract characterisation of |f|
 such that \textsc{Beta-App} can be proved without depending on the definition of
 |evalUsg|.
 Finding such abstract characterisations is trivial for first-order analyses
 without summary mechanisms, so their proofs tend to be automatically modular.
-As framework authors we cannot anticipate all viable abstract characterisations,
-hence we supply the strongest syntactic characterisation.
-
-%TODO: Process
-%Conversely, \citet{aam,adi,Keidel:18} have successfully applied abstract interpretation
-%to non-compositional (small-step or big-step) operational semantics to derive
-%interprocedural analyses based on reachable states abstractions.
-%The resulting analyses are likewise non-compositional, non-modular and generally
-%devoid of summary mechanisms, however, and thus likely much different to
-%$\semabs{\wild}$.
+Furthermore, we can recognise |f| as an instance of the type
+|forall d. (Trace d, Domain d, HasBind d) => d -> d| which comes with strong
+parametricity guarantees (of the meta language), such as definability in terms
+of SK calculus and type class methods.
+Such a (weaker) characterisation does not depend on the particular
+implementation of |f| at all, as in \citet{Keidel:18}.
+However, as framework authors we cannot anticipate all viable abstract
+characterisations, hence we supply the strongest syntactic characterisation,
+implying the parametric characterisation.
 
 \subsubsection*{Summaries of Functionals \vs Call Strings}
 \citet{Lomet:77} used procedure summaries to capture aliasing effects,
