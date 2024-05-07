@@ -96,3 +96,27 @@ Rev A
 - [x] Lines 1197-1201: What do you mean? That you are not able to model
   demand transformers?
 
+Rev B
+-----
+
+- [x] What is the source language? It took me a while to figure out that
+  let-bindings are recursive (this may be obvious for readers with a
+  Haskell background, but less obvious for those with a Standard ML or
+  Agda background).  Likewise, it took me a while to realise that the
+  source language is untyped.  Tell me!
+
+- [ ] What exactly do you achieve? In particular, what's the relation
+  between the Agda artefacts and the Haskell artefacts — the Agda code
+  is subtly (?) different to guarantee well-definedness.  Which
+  theorems enjoy ``only'' pencil-and-paper proofs — what's the
+  setting?  set theory? domain theory (CPOs)?, which theorems are
+  fully mechanised?
+
+- [x] There are too many footnotes for my taste.
+
+- [ ] Add more on static analysis
+
+Rev C
+-----
+
+- [ ] (Remove CCbV?)
