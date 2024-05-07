@@ -269,7 +269,7 @@ to invoke at every use site.
 
 The same way summaries enable efficient \emph{inter}-module compilation,
 they enable efficient \emph{intra}-module compilation for \emph{compositional}
-static analyses such as $\semabs{\wild}$.%
+static analyses such as $\semabs{\wild}$.
 %\footnote{\citet{Cousot:02} understand modularity as degrees of compositionality;
 %a compositional analysis is thus modular.}
 Compositionality implies that $\semabs{\Let{f}{\Lam{x}{\pe_{\mathit{big}}}}{f~f~f~f}}$
@@ -870,7 +870,7 @@ number, linking to the Appendix.
 The proof is exemplary of far more ambitious proofs such as in
 \citet{Sergey:14} and \citet[Section 4]{Breitner:16}.
 Though seemingly disparate, these proofs all follow an established
-preservation-style proof technique at heart.%
+preservation-style proof technique at heart.
 %\footnote{A ``mundane approach`` according to \citet[Section
 %4.1]{Nielson:99}, applicable to \emph{trace properties}, but not to
 %\emph{hyperproperties}~\citep{ClarksonSchneider:10}.}
@@ -926,7 +926,7 @@ it, is enormous.
     While proving that a single step $σ_1 \smallstep σ_2$ preserves analysis
     information in step (3), we noticed that we actually got stuck in the $\UpdateT$
     case, and would need to redo the proof using step-indexing~\citep{AppelMcAllester:01}.
-    In our experience this case hides the thorniest of surprises; that was
+    This case hides the thorniest of surprises; at least that was
     our experience while proving \Cref{thm:eval-preserves-need} which gives a
     proper account.
 
