@@ -3,22 +3,22 @@
 > module Problem where
 %endif
 
-\section{The Problem We Solve}
+\section{Problem Statement}
 \label{sec:problem}
 
 What is so difficult about proving a compositional, summary-based analysis sound
 \wrt a non-compositional small-step operational semantics?
-We will demonstrate the challenges in this section, by way of a simplified \emph{absence
+I will demonstrate the challenges in this section, by way of a simplified \emph{absence
 analysis}~\citep{SPJ:94}, a higher-order form of neededness analysis to inform
 removal of dead bindings in a compiler.
 
 \subsection{Object Language}
 
-To set the stage, we start by defining the object language of this work, an
-untyped lambda calculus with \emph{recursive} let bindings and algebraic data
-types:
+To set the stage, I start by defining the object language of this chapter, an
+\emph{untyped} lambda calculus with \emph{recursive} let bindings and algebraic
+data types:
 \[
-\arraycolsep=3pt
+\arraycolsep=2pt
 \begin{array}{rrclcrrclcl}
   \text{Variables}    & \px, \py & ∈ & \Var        &     & \quad \text{Constructors} &        K & ∈ & \Con        &     & \text{with arity $α_K ∈ ℕ$} \\
   \text{Values}       &      \pv & ∈ & \Val        & ::= & \highlight{\Lam{\px}{\pe}} \mid K~\many{\px}^{α_K} \\
@@ -34,7 +34,7 @@ denotes an anonymous mathematical function.
 In this section, only the highlighted parts are relevant and $\mathbf{let}$ is
 considered non-recursive, but the interpreter definition in \Cref{sec:interp}
 supports data types and recursive $\mathbf{let}$ as well.
-Throughout the paper we assume that all bound program variables are distinct.
+Throughout this chapter we assume that all bound program variables are distinct.
 % Rationale for this:
 % While shadowing is fine for the semantics, the analyses don't cope well with
 % shadowing. Also Lookup events carry a Name and it becomes more complicated to
@@ -45,10 +45,19 @@ Throughout the paper we assume that all bound program variables are distinct.
 \label{sec:absence}
 
 \begin{figure}
-  %\fboxsep=0pt\fbox{%
+  \abovedisplayskip=0pt
+  \[\begin{array}{cc}
+  \arraycolsep=0pt
+  \begin{array}{rclcl}
+    a & {}∈{} & \Absence & {}::={} & \aA \mid \aU \\
+    φ & {}∈{} & \Uses    & {}={} & \Var \to \Absence \\
+    \varsigma & {}∈{}    & \Summary & {}::={} & a \sumcons \varsigma \mid \rep{a} \\
+    θ & {}∈{} & \AbsTy   & {}::={} & \langle φ, \varsigma \rangle \\
+    \\[-0.9em]
+    \multicolumn{3}{r}{\rep{a}} &\equiv& a \sumcons \rep{a} \\
+  \end{array} &
+  \end{array}\]
   \[\ruleform{ \semabs{\wild}_{\wild} \colon \Exp → (\Var \pfun \AbsTy) → \AbsTy }\]
-  \\[-0.5em]
-  \begin{minipage}[t]{0.47\textwidth}
   \arraycolsep=0pt
   \abovedisplayskip=0pt
   \[\begin{array}{rcl}
@@ -57,41 +66,19 @@ Throughout the paper we assume that all bound program variables are distinct.
     \semabs{\pe~\px}_ρ & {}={} & \mathit{app}(\semabs{\pe}_{ρ})(ρ(\px)) \\
     \semabs{\Let{\px}{\pe_1}{\pe_2}}_ρ & {}={} & \semabs{\pe_2}_{ρ[\px ↦ \px \both \semabs{\pe_1}_ρ]} \\
     \\[-0.8em]
-    \multicolumn{3}{c}{\mathit{fun}_{\px}( f) {}={} \langle φ[\px↦\aA], φ(\px) \sumcons \varsigma \rangle} \\
-    \multicolumn{3}{c}{\qquad\qquad\text{where } \langle φ, \varsigma \rangle = f(\langle [\px↦\aU], \repU \rangle)} \\
-    \multicolumn{3}{c}{\mathit{app}(\langle φ_f, a \sumcons \varsigma \rangle)(\langle φ_a, \wild \rangle) = \langle φ_f ⊔ (a * φ_a), \varsigma \rangle} \\
+    \mathit{fun}_{\px}( f) &=& \langle φ[\px↦\aA], φ(\px) \sumcons \varsigma \rangle \\
+    \multicolumn{2}{r}{\text{where }} & \langle φ, \varsigma \rangle = f(\langle [\px↦\aU], \repU \rangle) \\
+    \mathit{app}(\langle φ_f, a \sumcons \varsigma \rangle)(\langle φ_a, \wild \rangle) &=& \langle φ_f ⊔ (a * φ_a), \varsigma \rangle \\
+    \\[-0.8em]
+    \aA * φ &=& [] \\
+    \aU * φ &=& φ  \\
+    \px \both \langle φ, \varsigma \rangle &=& \langle φ[\px↦\aU], \varsigma \rangle
   \end{array}\]
-  \end{minipage}%
-  %}%
-  \hfill
-  %\fboxsep=0pt\fbox{%
-  \begin{minipage}[t]{0.50\textwidth}
-  \arraycolsep=0pt
-  \abovedisplayskip=0pt
-  \[\begin{array}{c}
-  \begin{array}{rclcl}
-    a & {}∈{} & \Absence & {}::={} & \aA \mid \aU \\
-    φ & {}∈{} & \Uses    & {}={} & \Var \to \Absence \\
-    \varsigma & {}∈{}    & \Summary & {}::={} & a \sumcons \varsigma \mid \rep{a} \\
-    θ & {}∈{} & \AbsTy   & {}::={} & \langle φ, \varsigma \rangle \\
-    \\[-0.9em]
-    \multicolumn{5}{c}{\rep{a} \equiv a \sumcons \rep{a}} \\
-  \end{array} \\
-  \\[-0.9em]
-  \begin{array}{l}
-    \aA * φ = [] \quad
-    \aU * φ = φ  \\
-    \px \both \langle φ, \varsigma \rangle = \langle φ[\px↦\aU], \varsigma \rangle
-  \end{array}
-  \\[-0.5em]
-  \end{array}\]
-  \end{minipage}%
-  %}%
   \caption{Absence analysis}
   \label{fig:absence}
 \end{figure}
 
-In order to define and explore absence analysis in this subsection, we must
+In order to define and explore absence analysis in this subsection, I must
 clarify what absence means, semantically.
 A variable $\px$ is \emph{absent} in an expression $\pe$ when
 $\pe$ never evaluates $\px$, regardless of the context in which $\pe$
@@ -102,10 +89,10 @@ Otherwise, the variable $\px$ is \emph{used} in $\pe$.
 
 \Cref{fig:absence} defines an absence analysis $\semabs{\pe}_ρ$ for lazy
 program semantics that conservatively approximates semantic absence.
-For illustrative purposes, our analysis definition only works for
+For illustrative purposes, my analysis definition only works for
 the special case of non-recursive $\mathbf{let}$, but later sections will assume
 recursive let semantics.%
-\footnote{Given an order that we will define in due course, the
+\footnote{Given an order that I will define in due course, the
 generalised definition for recursive as well as non-recursive let is
 $\semabs{\Let{\px}{\pe_1}{\pe_2}}_ρ = \semabs{\pe_2}_{ρ[\px ↦
 \lfp(\fn{θ}{\px \both \semabs{\pe_1}_{ρ[\px↦θ]}})]}$.}
@@ -158,27 +145,28 @@ non-syntactic equality $\repU \equiv \aU \sumcons \repU$.
 %$\px$ uses only $\px$, and that any actual argument it is applied to is used,
 %indicated by argument summary $\repU$\ .
 
-We illustrate the analysis at the example expression
-$\pe \triangleq \Let{k}{\Lam{y}{\Lam{z}{y}}}{k~x_1~x_2}$, where the initial
+Let us trace the analysis on the example expression
+\hfuzz=1em$\pe \triangleq \Let{k}{\Lam{y}{\Lam{z}{y}}}{k\,x_1\,x_2}$,
+where the initial
 environment for $\pe$, $ρ_\pe(\px) \triangleq \langle [\px ↦ \aU], \repU \rangle$,
 declares the free variables of $\pe$ with a pessimistic summary $\repU$.
-\begin{DispWithArrows}[fleqn,mathindent=0em]
-      & \semabs{\Let{k}{\Lam{y}{\Lam{z}{y}}}{k~x_1~x_2}}_{ρ_{\pe}} \label{eq:abs-ex-let}
-        \Arrow{Unfold $\semabs{\Let{\px}{\pe_1}{\pe_2}}$. NB: Lazy Let!} \\
-  ={} & \semabs{k~x_1~x_2}_{ρ_\pe[k↦k \both \semabs{\Lam{y}{\Lam{z}{y}}}_{ρ_\pe}]}
-        \Arrow{Unf. $\semabs{\wild}$, $ρ_1 \triangleq ρ_\pe[k↦k \! \both \! \semabs{\Lam{y}{\Lam{z}{y}}}_{ρ_\pe}]$} \\
-  ={} & \mathit{app}(\mathit{app}(ρ_1(k))(ρ_1(x_1)))(ρ_1(x_2))
-        \Arrow{Unfold $ρ_1(k)$} \\
-  ={} & \mathit{app}(\mathit{app}(k \both \semabs{\Lam{y}{\Lam{z}{y}}}_{ρ_1})(ρ_1(x_1)))(ρ_1(x_2))
-        \Arrow{Unfold $\semabs{\Lam{\px}{\pe}}$ twice, $\semabs{\px}$} \\
-  ={} & \mathit{app}(\mathit{app}(k \both \mathit{fun}_{y}(\fn{θ_y}{\mathit{fun}_{z}(\fn{θ_z}{θ_y})}))(...))(...) \label{eq:abs-ex-summarise}
-        \Arrow{Unfold $\mathit{fun}$ twice, simplify} \\
-  ={} & \mathit{app}(\mathit{app}(\langle [k ↦ \aU], \highlight{\aU} \sumcons \aA \sumcons \repU \rangle)(\highlight{ρ_1(x_1)}))(...) \label{eq:abs-apply1}
-        \Arrow{Unfold $\mathit{app}$, $ρ_1(x_1)=ρ_{\pe}(x_1)$, simplify} \\
-  ={} & \mathit{app}(\langle [k ↦ \aU,x_1↦\aU], \highlight{\aA} \sumcons \repU \rangle)(\highlight{ρ_1(x_2)}) \label{eq:abs-apply2}
-        \Arrow{Unfold $\mathit{app}$, simplify} \\
+\begin{align}
+      & \semabs{\Let{k}{\Lam{y}{\Lam{z}{y}}}{k~x_1~x_2}}_{ρ_{\pe}} \label{eq:abs-ex-let} \\
+      & |{- Unfold $\semabs{\Let{\px}{\pe_1}{\pe_2}}$. NB: Lazy Let! -}| \notag \\
+  ={} & \semabs{k~x_1~x_2}_{ρ_\pe[k↦k \both \semabs{\Lam{y}{\Lam{z}{y}}}_{ρ_\pe}]} \\
+      & |{- Unf. $\semabs{\wild}$, $ρ_1 \triangleq ρ_\pe[k↦k \! \both \! \semabs{\Lam{y}{\Lam{z}{y}}}_{ρ_\pe}]$ -}| \notag \\
+  ={} & \mathit{app}(\mathit{app}(ρ_1(k))(ρ_1(x_1)))(ρ_1(x_2)) \\
+      & |{- Unfold $ρ_1(k)$ -}| \notag \\
+  ={} & \mathit{app}(\mathit{app}(k \both \semabs{\Lam{y}{\Lam{z}{y}}}_{ρ_1})(ρ_1(x_1)))(ρ_1(x_2)) \\
+      & |{- Unfold $\semabs{\Lam{\px}{\pe}}$ twice, $\semabs{\px}$ -}| \notag \\
+  ={} & \mathit{app}(\mathit{app}(k \both \mathit{fun}_{y}(\fn{θ_y}{\mathit{fun}_{z}(\fn{θ_z}{θ_y})}))(...))(...) \label{eq:abs-ex-summarise} \\
+      & |{- Unfold $\mathit{fun}$ twice, simplify -}| \notag \\
+  ={} & \mathit{app}(\mathit{app}(\langle [k ↦ \aU], \highlight{\aU} \sumcons \aA \sumcons \repU \rangle)(\highlight{ρ_1(x_1)}))(...) \label{eq:abs-apply1} \\
+      & |{- Unfold $\mathit{app}$, $ρ_1(x_1)=ρ_{\pe}(x_1)$, simplify -}| \notag \\
+  ={} & \mathit{app}(\langle [k ↦ \aU,x_1↦\aU], \highlight{\aA} \sumcons \repU \rangle)(\highlight{ρ_1(x_2)}) \label{eq:abs-apply2} \\
+      & |{- Unfold $\mathit{app}$, simplify -}| \notag \\
   ={} & \langle [k ↦ \aU,x_1↦\aU], \repU \rangle
-\end{DispWithArrows}
+\end{align}
 Let us look at the steps in a bit more detail.
 Step \labelcref{eq:abs-ex-let} extends the environment with
 an absence type for the let right-hand side of $k$.
@@ -233,31 +221,31 @@ thanks to the summary mechanism.
 %Perhaps I should move this entire subsection to Related Work and point to that at the end of 2.2?}
 
 
-Instead of coming up with a summary mechanism, we could simply have ``inlined''
+Instead of coming up with a summary mechanism, I could simply have ``inlined''
 $k$ during analysis of the example above to see that $x_2$ is absent in a simple
 first-order sense.
 The \emph{call strings} approach to interprocedural program
 analysis~\citep{SharirPnueli:78} turns this idea into a static analysis,
 and the AAM recipe could be used to derive an absence analysis based on call
 strings that is sound by construction.
-In this subsection, we argue that following this paths gives up on modularity,
+In this subsection, I argue that following this paths gives up on modularity,
 and thus leads to scalability problems in a compiler.
 
-Let us clarify that by a \emph{summary mechanism}, we mean a mechanism for
+Let me clarify that by a \emph{summary mechanism}, I mean a mechanism for
 approximating the semantics of a function call in terms of the domain of a
 static analysis, often yielding a symbolic, finite representation.
-In the definition of $\semabs{\wild}$, we took care to explicate the mechanism
+In the definition of $\semabs{\wild}$, I took care to explicate the mechanism
 via $\mathit{fun}$ and $\mathit{app}$.
 The former approximates a functional $(\fn{θ}{...}) : \AbsTy \to \AbsTy$ into
 a finite $\AbsTy$, and $\mathit{app}$ encodes the adjoint (``reverse'')
 operation.%
-%\footnote{Proving that $\mathit{fun}$ and $\mathit{app}$ form a Galois connection
-%is indeed important for a soundness proof and corresponds to a substitution
-%\Cref{thm:absence-subst}.}
+\footnote{Proving that $\mathit{fun}$ and $\mathit{app}$ form a Galois connection
+is indeed important for a soundness proof and corresponds to a substitution
+\Cref{thm:absence-subst}.}
 
 To support efficient separate compilation, a compiler analysis must be
 \emph{modular}, and summaries are indispensable in achieving that.
-Let us say that our example function $k = (\Lam{y}{\Lam{z}{y}})$ is defined in
+Let us say that our example function $k = \Lam{y}{\Lam{z}{y}}$ is defined in
 module A and there is a use site $(k~x_1~x_2)$ in module B.
 Then a \emph{modular analysis} must not reanalyse A.$k$ at its use site in B.
 Our analysis $\semabs{\wild}$ facilitates that easily, because it can
@@ -269,9 +257,9 @@ to invoke at every use site.
 
 The same way summaries enable efficient \emph{inter}-module compilation,
 they enable efficient \emph{intra}-module compilation for \emph{compositional}
-static analyses such as $\semabs{\wild}$.
-%\footnote{\citet{Cousot:02} understand modularity as degrees of compositionality;
-%a compositional analysis is thus modular.}
+static analyses such as $\semabs{\wild}$.%
+\footnote{\citet{Cousot:02} understand modularity as degrees of compositionality;
+a compositional analysis is thus modular.}
 Compositionality implies that $\semabs{\Let{f}{\Lam{x}{\pe_{\mathit{big}}}}{f~f~f~f}}$
 is a function of $\semabs{\Lam{x}{\pe_{\mathit{big}}}}$, and the summary mechanism
 prevents having to reanalyse $\pe_{\mathit{big}}$ repeatedly for each call of $f$.
@@ -328,7 +316,7 @@ prevents having to reanalyse $\pe_{\mathit{big}}$ repeatedly for each call of $f
 
 \subsection{Problem: Proving Soundness of Summary-Based Analyses}
 
-In this subsection, we demonstrate the difficulty of proving summary-based
+In this subsection, I demonstrate the difficulty of proving summary-based
 analyses sound.
 
 %\sven{The storyline can be streamlined. Right now the story is:
@@ -399,7 +387,7 @@ following \emph{substitution lemma}~\citep{tapl}:%
 %$\semabs{\Lam{\px}{\pe~\px}}_ρ ⊑ \semabs{\pe}_ρ$.}
 
 \begin{toappendix}
-Note that for the proofs we assume the recursive let definition
+Note that for the proofs I assume the recursive let definition
 \[
   \semabs{\Let{\px}{\pe_1}{\pe_2}}_ρ = \semabs{\pe_2}_{ρ[\px ↦ \lfp(\fn{θ}{\px \both \semabs{\pe_1}_{ρ[\px↦θ]}})]}.
 \]
@@ -415,7 +403,7 @@ follows structurally from $\aA ⊏ \aU$ (\ie product order, pointwise order).
 
 \begin{definition}[Abstract substitution]
   \label{defn:abs-subst}
-  We call $φ[\px \Mapsto φ'] \triangleq φ[\px↦\aA] ⊔ (φ(\px) * φ')$ the
+  I call $φ[\px \Mapsto φ'] \triangleq φ[\px↦\aA] ⊔ (φ(\px) * φ')$ the
   \emph{abstract substitution} operation on $\Uses$
   and overload this notation for $\AbsTy$, so that
   $(\langle φ, \varsigma \rangle)[\px \Mapsto φ_\py] \triangleq \langle φ[\px \Mapsto φ_\py], \varsigma \rangle$.
@@ -482,9 +470,9 @@ $\semabs{\Let{\pz}{(\Lam{\px}{\pe_1})~\py}{(\Lam{\px}{\pe_2})~\py}}_ρ = \semabs
 \begin{proof}
 The key of this lemma is that it is equivalent to postpone the abstract
 substitution from the let RHS $\pe_1$ to the let body $\pe_2$.
-This can easily be proved by induction on $\pe_2$, which we omit here, but
+This can easily be proved by induction on $\pe_2$, which I omit here, but
 indicate the respective step below as ``hand-waving''.
-Note that we assume the (more general) recursive let semantics as defined at the
+Note that I assume the (more general) recursive let semantics as defined at the
 begin of this section.
 
 \begin{DispWithArrows*}[fleqn,mathindent=1em]
@@ -675,7 +663,7 @@ By induction on $\pe$.
 \end{itemize}
 \end{proof}
 
-For the purposes of the preservation proof, we will write $\tr$ with a tilde to
+For the purposes of the preservation proof, I will write $\tr$ with a tilde to
 denote that abstract environment of type $\Var \to \AbsTy$, to disambiguate it
 from a concrete environment $ρ$ from the LK machine.
 
@@ -695,7 +683,7 @@ from a concrete environment $ρ$ from the LK machine.
   \label{fig:absence-ext}
 \end{figure}
 
-In \Cref{fig:absence-ext}, we give the extension of $\semabsS{\wild}$ to whole
+In \Cref{fig:absence-ext}, I give the extension of $\semabsS{\wild}$ to whole
 machine configurations $σ$.
 Although $\semabsS{\wild}$ looks like an entirely new definition, it is
 actually derivative of $\semabs{\wild}$ via a context lemma à la
@@ -707,7 +695,7 @@ hence a fixpoint is needed.
 For safety properties such as absence, a least fixpoint is appropriate.
 Apply frames on the stack correspond to the application case of $\semabs{\wild}$
 and invoke the summary mechanism.
-Update frames are ignored because our analysis is not heap-sensitive.
+Update frames are ignored because my analysis is not heap-sensitive.
 
 Now we can prove that $\semabsS{\wild}$ is preserved/improves during reduction:
 
@@ -801,7 +789,7 @@ By cases on the transition.
     derivation) of the trace $σ' \smallstep^* σ_1$ to show \Cref{eqn:absent-upd}.
 
     This reasoning was not specific to $\semabs{\wild}$ at all.
-    We will show a more general result in Lemma \labelcref{thm:memo-improves}
+    I will show a more general result in Lemma \labelcref{thm:memo-improves}
     that can be reused across many more analyses.
 
     Assuming \Cref{eqn:absent-upd} has been proved, we proceed
@@ -832,7 +820,7 @@ If that was not the case, we could just find a smaller prefix with this property
 
 Let us abbreviate $\tr \triangleq (α(μ_1) \circ ρ_1)$.
 Under the above assumptions, $\tr(\py).φ(\px) = \aU$ implies $\px = \py$ for all
-$\py$, because $μ_1(\pa)$ is the only heap entry in which $\px$ occurs by our
+$\py$, because $μ_1(\pa)$ is the only heap entry in which $\px$ occurs by the
 shadowing assumptions on syntax.
 By unfolding $\semabsS{\wild}$ and $\semabs{\py}$ we can see that
 \[
@@ -865,8 +853,8 @@ They are necessary components in a soundness proof, and substitution is not
 too difficult to prove for a simple summary mechanism.
 Building on these definitions, we may finally attempt the proof for
 \Cref{thm:absence-correct}.
-We suggest for the reader to have a cursory look by clicking on the theorem
-number, linking to the Appendix.
+I suggest for the reader to have a cursory look, either by clicking on the theorem
+number linking to the Appendix or going to \cpageref{proof:absence-correct}.
 The proof is exemplary of far more ambitious proofs such as in
 \citet{Sergey:14} and \citet[Section 4]{Breitner:16}.
 Though seemingly disparate, these proofs all follow an established
@@ -879,7 +867,7 @@ is roughly structured as follows (non-clickable references to Figures
 and Lemmas below reference \citet{Sergey:14}):
 
 \begin{enumerate}
-  \item Instrument a standard call-by-need semantics (a variant of our reference
+  \item Instrument a standard call-by-need semantics (a variant of my reference
     in \Cref{sec:op-sem}) such that heap lookups decrement a per-address
     counter; when heap lookup is attempted and the counter is 0, the machine is stuck.
     For absence, the instrumentation is simpler: the $\LookupT$
@@ -887,13 +875,13 @@ and Lemmas below reference \citet{Sergey:14}):
     looked up.
   \item Give a declarative type system that characterises the results of the
     analysis (\ie $\semabs{\wild}$) in a lenient (upwards closed) way.
-    In case of \Cref{thm:absence-correct}, we define an analysis function on
+    In case of \Cref{thm:absence-correct}, I define an analysis function on
     machine configurations for the proof.
   \item Prove that evaluation of well-typed terms in the instrumented
     semantics is bisimilar to evaluation of the term in the standard semantics,
     \ie does not get stuck when the standard semantics would not.
     A classic \emph{logical relation}~\citep{Nielson:99}.
-    In our case, we prove that evaluation preserves the analysis result.
+    In my case, I prove that evaluation preserves the analysis result.
 \end{enumerate}
 Alas, the effort in comprehending such a proof in detail, let alone formulating
 it, is enormous.
@@ -909,26 +897,25 @@ it, is enormous.
     Furthermore, step (2) extends this type system to small-step machine
     configurations (in Figure 13), \ie stacks and heaps, the scoping of which
     is mutually recursive.%
-    \footnote{We believe that this extension can always be derived systematically from a
+    \footnote{I believe that this extension can always be derived systematically from a
     context lemma~\citep[Lemma 3.2]{MoranSands:99} and imitating what the type
     system does on the closed expression derivable from a configuration via the
     context lemma.}
     Another page worth of Figures; the amount of duplicated proof artifacts is
     staggering.
-    In our case, the analysis function on machine configurations is about as
+    In my case, the analysis function on machine configurations is about as
     long as on expressions.
   \item
     This is all setup before step (3) proves interesting properties about the
     semantic domain of the analysis.
     Among the more interesting properties is the \emph{substitution lemma} A.8
-    to be applied during beta reduction; exactly as in our proof.
+    to be applied during beta reduction; exactly as in my proof.
   \item
     While proving that a single step $σ_1 \smallstep σ_2$ preserves analysis
-    information in step (3), we noticed that we actually got stuck in the $\UpdateT$
+    information in step (3), I actually got stuck in the $\UpdateT$
     case, and would need to redo the proof using step-indexing~\citep{AppelMcAllester:01}.
-    This case hides the thorniest of surprises; at least that was
-    our experience while proving \Cref{thm:eval-preserves-need} which gives a
-    proper account.
+    This case hides the thorniest of surprises; at least that was my experience
+    while proving \Cref{thm:eval-preserves-need} which gives a proper account.
 
     Although the proof in \citet{Sergey:14} is perceived as detailed and
     rigorous, it is quite terse in the corresponding \textsc{EUpd} case of the
@@ -956,9 +943,9 @@ Abstract interpretation provides such a framework.
 Alas, the book of \citet{Cousot:21} starts from a \emph{compositional} semantics
 to derive compositional analyses, but small-step operational semantics are
 non-compositional!
-This begs the question if we could have started from a compositional
+This begs the question if I could have started from a compositional
 denotational semantics.
-While we could have done so for absence or strictness analysis, denotational
+While I could have done so for absence or strictness analysis, denotational
 semantics is insufficient to express \emph{operational properties} such as
 \emph{usage cardinality}, \ie ``$\pe$ evaluates $\px$ at most $u$ times'',
 but usage cardinality is the entire point of the analysis in \citet{Sergey:14}.%
@@ -966,17 +953,17 @@ but usage cardinality is the entire point of the analysis in \citet{Sergey:14}.%
 \citet{Turner:95,Sergey:14}, motivating inlining into function bodies that are
 called at most once, for example.}
 
-For these reasons, we set out to find a \textbf{\emph{compositional semantics
+For these reasons, I set out to find a \textbf{\emph{compositional semantics
 that exhibits operational detail}} just like the trace-generating semantics of
-\citet{Cousot:21}, and were successful.
+\citet{Cousot:21}, and was successful.
 The example of usage analysis in \Cref{sec:abstraction} (generalising
 $\semabs{\wild}$, as suggested above) demonstrates that we can
 \textbf{\emph{derive summary-based analyses as an abstract interpretation}} from
-our semantics.
+my semantics.
 Since both semantics and analysis are derived from the same compositional
 generic interpreter, the equivalent of the preservation proof for usage analysis
 in \Cref{thm:usage-abstracts-need-closed} takes no more than a substitution
 lemma and a bit of plumbing.
-Hence our \emph{denotational interpreter} does not only enjoy useful
+Hence my \emph{denotational interpreter} does not only enjoy useful
 compositional semantics and analyses as instances, the soundness proofs become
 compositional in the semantic domain as well.
