@@ -178,10 +178,11 @@ Questions to be addressed by author response
 
 Review #227B
 ===========================================================================
+* Updated: Sep 20, 2023, 2:30:10 PM UTC
 
 Overall merit
 -------------
-A. Strong accept: I will argue for acceptance.
+C. Weak reject: I lean towards rejection.
 
 Reviewer expertise
 ------------------
@@ -222,6 +223,10 @@ domain theory to construct a semantics that can distinguish between
 diverging and getting stuck, and that can be enhanced to carry
 information that corresponds to events, such as reading a variable, in
 the machine.
+
+UPDATE AFTER OTHER REVIEWS AND AUTHOR RESPONSE
+
+This scope of the changes needed for this paper is too large for a revision for POPL, so I now lean towards rejecting the paper. However, proposed changes are good ones and I encourage the authors to submit the paper for publication again in the not-too-distance future.
 
 Detailed comments for authors
 -----------------------------
@@ -311,6 +316,7 @@ LICS 2016.
 
 Review #227C
 ===========================================================================
+* Updated: Sep 30, 2023, 12:48:34 PM UTC
 
 Overall merit
 -------------
@@ -376,6 +382,12 @@ Detailed comments for authors
 * 869: "tacit assumption that all elements are lazy". Please be clearer about this, and whenever possible make the assumptions explicit. Do you mean to redefine the domain to contain only the lazy items?
 
 * In the fig. 3 semantics, it took me a bit to see where the negative occurrences are in the mutually recursive domain definitions, which would prevent a more standard set-theoretic coinductive semantics. Please clarify those for the reader.
+
+--
+Post-response comment: Thank you for the explanations. While the use of guarded recursive types seems like a very reasonable option here, I am still unconvinced that traditional domain theory would incur major problems for your application. AFAIS, in most of the cases continuity can be established "by construction", using continuity-preserving combinators. From a formal perspective, there are also libraries in proof assistants that support these, e.g., https://isabelle.in.tum.de/library/HOL/HOLCF/README.html 
+and 
+https://link.springer.com/chapter/10.1007/978-3-642-03359-9_10 
+So I believe that a future version of this paper would benefit from either dropping this claim or better substantiating it.
 
 Questions to be addressed by author response
 --------------------------------------------
@@ -458,3 +470,319 @@ L871 Section 5.2 considers quotienting the trace-based semantics to recapture so
 L991 "we have reason to doubt ... is fully abstract" Indeed!
 
 L1056 Sections 6.3 and 6.4 on proving that the intensional "at most once" analysis justifies an actually improving transformation are the most interesting part of the paper, but the authors themselves say they're not entirely happy with the proof. The bits don't quite seem to connect the way one would like.
+
+
+
+Response by Author [Sebastian Graf <sgraf1337@gmail.com>]
+---------------------------------------------------------------------------
+First off, we wholeheartedly would like to thank the reviewers.
+And we really mean it; these reviews were incredibly thorough, illuminating and
+encouraging, handing out good advice on how to better position this paper.
+Thank you so much!
+
+# Overview
+
+We intend to follow the suggestion of moving this paper closer to previous work
+around "Abstracting Definitional Interpreters" by Darais et al. and press less
+on the (trace) semantic aspect of our work.
+
+# Change List
+
+In the light of these rewiews we plan to make a substantial revision of the paper as follows:
+
+- New working title for our paper "Abstracting *denotational* interpreters"; see "Denotational Semantics vs. Definitional Interpreters" below
+- Build explicitly on "Abstracting Definitional Interpreters", by factoring the semantics into two:
+  * A translation into a monadic form.
+  * Various instantiations of the underlying monad, such as one emitting traces.
+  This will connect the paper much more clearly to earlier work.
+- Rather than introducing a new form of trace equivalance, we will instead directly use Moran and Sands' contextual improvement relation.  Doing so will again more closely connect our work with earlier works, and also avoid introducing distracting new concepts.
+- We expect that these changes will give us a bit more space, which we will use to add more concrete examples and some explanations we give below.
+- The main contributions of the paper remain unchanged, namely
+    - Solving the structural mismatch problem between semantics and analysis
+    - A denotational semantics (template) defined compositionally by guarded recursion that allows to observe arbitrary operational detail through type class instantiation
+    - Relating abstracting instantiations of this denotational interpreter to our usage analysis to prove it correct
+
+More minor points: We will
+- Retract claims about novelty wrt. trace semantics and denotational call-by-need, and generally do a better job of relating the paper to earlier work.
+- Better explain why we enjoy Guarded Domain Theory/Ticked Cubical Type Theory (see "Rust vs. Assembler" below)
+
+These changes directly address the referees' main concerns, namely that it is not "well situated" (referee D) with respect to earlier work.  Moreover, as sketched above, we plan to do so not by beefing up related work, but rather by making systemic changes to the narrative of the paper.
+
+These changes are therefore substantial, not cosmetic, but we are confident that we can accomplish them before the revision deadline, and thereby turn ABCC into ABBB (at least).  If we fail to do so,
+we would be positively happy for the PC to reject the paper at that stage.
+
+# Detailed Response
+
+We'll start with common points, then give answers to the reviewers' individual questions.
+
+## Denotational Semantics vs. Definitional Interpreters
+
+Reviewer A provoked an interesting discussion around the difference
+between Denotational Semantics (DS) and Definitional Interpreters (DI).
+To the authors, those terms feel a bit squishy, but DS seems broadly
+associated with giving meaning to a defined language in *math*, whereas
+DI gives meaning to a defined language in *another (programming) language*.
+
+We think that our approach occupies both niches; it uses higher-order
+capabilities of the defining language (and shares this trait with Reynolds'
+meta-circular DI), but at the same time the defining language (of Ticked Cubical
+Type Theory) is *total*, enjoying a type system amenable to proving correct the
+foundations of mathematics. We find it not far-fetched to say that this language
+is by-and-large equivalent to *math*, hence the DI is also a DS.
+The term "Denotational Interpreter" (used for example by Matthew Might [here](https://matt.might.net/articles/writing-an-interpreter-substitution-denotational-big-step-small-step/))
+seems particularly fitting to describe our niche,
+not least because we strongly believe that a monadic version of the interpreter
+(an idea we previously dismissed as needlessly abstract) could be easily
+instrumented in the same way as in the "Abstracting Definitional Interpreters" work.
+
+We think this is in line with Reviewer D saying:
+
+> I do think there's something here that's worth communicating, or reminding
+> people of. It's not that there's a new approach to denotational semantics,
+> but rather that 80s style denotational methods (the use of guarded domains
+> rather than Scott domains or w-cpos being, I believe, entirely optional for
+> these purposes) can easily be instrumented to be adequate for capturing the
+> correctness of some intensional analyses, in particular cost for call by need
+
+Besides compositionality, Denotational Interpreters have another significant
+advantage over DIs defined in non-total languages (such as Scheme or Haskell):
+They simplify/enable correctness proofs of optimisations (improvement lemmas)!
+Without totality, the very first thing you'd have to prove is whether the DI
+is actually total (in some appropriate coinductive sense), a feat that might be
+impossible if the object program diverges, depending on your interpreter.
+Secondly, Ticked Cubical Type Theory allows to write mechanised proofs in the
+same language as the defining language of the interpreter.
+
+## Trace equivalence and improvement
+
+As some have suspected, the submitted definition for trace equivalence is
+broken.
+In particular, heap extension does not preserve $μ_1 \equiv μ_2$, because the
+extended $A$ gives the observer better means to differentiate heap entries.
+I don't want to go into details here, but we think we were able to fix that
+particular issue. Nevertheless, we no longer think it wise to define our own
+equivalence relation (not least due to our ignorance of Game semantics) and
+decided to use (the standard notion of) contextual improvement throughout.
+Perhaps we will give an account of our custom trace equivalence in the Appendix
+if time permits.
+
+## Guarded Domain Theory vs. just Domain Theory, or Rust vs. Assembler
+
+The main point why we like using Guarded Domain Theory over order-theoretic
+Domain Theory is not one of expressivity: As Reviewers C and D correctly
+observed, all objects are effortlessly encodable in CPOs.
+Indeed, our work started out that way: We essentially had the same definitions
+without the later modality and we were pretty sure that those domain equations
+had solutions, because it was just polynomial functors and functions thereof.
+A modest proof obligation.
+But then there would be another proof obligation that was far less modest:
+
+*Is our semantics function even continuous?*
+
+In order to answer that, we'd have to clarify many aspects of evaluation order
+in math notation.
+Usually, this is solved by encoding the semantics in lambda calculus or some
+higher language. Indeed, we experimented with a model implementation in ML
+and planned to hand-wave our way around the issue.
+Ultimately, our goal was to prove that all values returned by the function were
+total in the domain theoretic sense.
+(E.g., no denoted value is less than any other domain element.
+Note that an infinite trace can't be the bottom element!
+That's a fundamental difference to the usual denotational semantics, we think.)
+
+And then we could finally continue where our paper can start due to the
+guarantees provided by Ticked Cubical Type Theory.
+But how would we guarantee that the properties we prove actually hold up for the
+ML model?
+
+To draw a connection to higher programming languages:
+It is not interesting to ask whether one could rewrite a Rust program in Assembler,
+because sure you can!
+But in doing so you lose quite a few safety properties that come for free if you
+had picked Rust to start with (the absence of undefined behavior, for example).
+Ticked Cubical Type Theory is like a higher programming language compared to
+bit flipping in Domain Theory.
+Since Ticked Cubical Type Theory needs Guarded Domain Theory as substrate, the
+latter is what we pick.
+
+## Individual Responses
+
+### Reviewer A
+
+> Is Fig. 1(b) a definitional interpreter?
+
+Yes, in the sense of Reynolds' meta-circular interpreter.
+Crucially, we exploit higher-order functions in the defining
+language, unlike "Abstracting Definitional Interpreters".
+
+It is also a denotational semantics, see above. Otherwise we wouldn't be
+able to prove Theorem 2 or any of the contextual improvement lemmas, because
+we would have to consider the (often informal and non-total) semantics of
+the defining language.
+
+The style of this semantics is reminiscent of Scott and Strachey's
+"Toward a Mathematical Semantics for Computer Languages"
+(which predates Reynolds' work). Perhaps we will cite that instead.
+
+> Do you have an example of two programs that are trace equivalent, but that do not reduce to the same value with a call-by-name evaluation strategy?
+
+(This point becomes moot after we remove the custom equivalence relation.)
+We don't think there is one; they should be prohibited by Corollary 38, because those terms should be contextually equal, errors in proofs notwithstanding.
+That said; since the heap equality *is* broken, we can't extend heaps and won't actually be able to show Corollary 38.
+A revised version could, but we'll focus on standard contextual improvement instead.
+
+> Is it the case that the two programs provided in the paragraph on full abstraction above are not trace equivalent?
+
+We'd think we could prove those terms equivalent with the definition (that we will no longer be using).
+
+Given equal heaps $μ_1,μ_2$ which contain an address $a_f$ for $f$ (assuming that the environment on both terms is $[f ↦ a_f]$), we ultimately have to show the goal $dom(μ_1) ⊦ <Con(K,a_1,a_1),μ_1[a_1↦d_1]> \sim <Con(K,a_1,a_2),μ_2[a_1↦d_1,a_2↦d_2]>$.
+We can do so with the Con rule. The more interesting part concerns the second field, where there is an address mismatch.
+    There we have to show $dom(μ_1) ⊦ d1(μ_1[a_1↦d_1]) \sim d2(μ1[a_1↦d_1,a_2↦d_2])$, where $d_2 := S[[f~True]]_{[f↦a_f,x↦a_1,y↦a_2]}$ and $d_1 := S[[f~True]]_{[f↦a_f,x↦a_1]}$.
+    I'd say that these traces equate: The terms aren't even free in x or y, (hence dead) and nothing can observe the difference in heaps.
+
+> Is it possible to present the denotational semantics of Figure 3 as a monadic
+  definitional interpreter derived from Launchbury's natural semantics?
+
+We sure hope so and are eager to try.
+Although we would rather start from Ager's definitional interpreter using
+higher-order functions of the defining language than Launchbury's big-step
+semantics (which recurses non-structurally in the application case and in the
+Var case).
+
+> How do you compare the eventful trace semantics of Figure 5 with the trace
+  semantics that can be derived using the Abstracting definitional interpreter
+  methodology?
+
+The Collecting Trace Semantics of the Abstracting definitional interpreter approach generates /stateful/ rather than /eventful/ traces.
+The distinction is not fundamental, because one can recover the transition taken from a detailed stateful trace.
+That said, we'd prefer the focus on declarative events over capturing every detail of operational states.
+In other words: We will attempt to derive the eventful semantics in Fig. 5 by a similar technique as in "Abstracting Definitional Interpreters"
+
+### Reviewer B
+
+> What's the relationship between the trace semantics of this paper and the prior work on trace semantics in the following papers?
+
+A trace is generally a potentially infinite list of states some transition system progresses through.
+For our use case, we emit the transitions that this transition system takes.
+That is also the way [Cousot 2021] uses this term; he would call our semantics a "Maximal Trace Semantics" (or, rather "Structural Fixpoint Maximal Trace Semantics").
+By contrast, the Game Semantics literature seems to refer to "Trace Semantics" as a history of the interaction between an observer and a (semantic denotation of a) program.
+By quantifying over all possible traces/interactions of the observer with
+the program, one apparently can recover a semantic equivalence relation that
+coincides with contextual equivalence (a property called "Full Abstraction").
+The latter way is how the first, second and fourth references interpret Trace Semantics, immediately in context with Full Abstraction.
+In the third one, a more general framework is chosen; the states in the trace stem from a coalgebra.
+In light of the inherent overload of terminology we are convinced that eschewing the term "Trace Semantics" is for the better.
+
+### Reviewer C
+
+> What would go wrong when trying to recast your semantics from figs. 3 and 5 to use Scott domains?
+
+Nothing! See "Guarded Domain Theory vs. just Domain Theory" above.
+It would just take much more convincing that the equations make sense
+and compose; one of the main drawbacks that according to Wright and
+Felleisen in "A Syntactic Approach to Type Soundness" were part of the
+push factors of denotational semantics. Quoting from 2.3:
+
+> For example, in introducing references to Milner’s functional
+language, Damas changed the domain equations for the denotational
+semantics to accommodate a store component, necessitating a completely
+different strategy for induction.
+
+Too much churn caused just by solving domain equations.
+
+> There are operational approaches to semantics that target compositionality, such as Peter Mosses's modular SOS. How does your vision compare to these?
+
+We only skimmed the paper briefly, but the beta reduction rule in section
+6.1 where they exemplify their framework uses substitution and hence is not
+"compositional" in the denotational semantics sense (which actually means
+"structurally recursive" as a function definition).
+Thus it lacks the key property we want to exploit.
+
+> How much of the meta-theory presented here has been formalised in Guarded Cubical Agda?
+
+Nothing, unfortunately. We only use it to typecheck the semantics, for the
+reasons above.
+We managed to encode the address space parameter $A$ in the types of
+denotations, though, lending us a firm grip on "well-addressedness". Our
+attempts to formalise the heap forcing relation from Section 5 faltered
+because of general unfamiliarity with Agda, the non-optional Cubical
+component and lacking productivity.
+
+> There are some design decisions that seem strange, and are not explained in
+the paper. One is to restrict applications to their righthand sides being
+variables rather than arbitrary expressions. The reader is left wondering
+whether this has been done in order to avoid some technical complications.
+Another choice is the inclusion of algebraic datatypes in the calculus --
+are they interesting in any way w.r.t. the developed meta-theory?
+
+The syntactic form is called A-normal form.
+It is particularly appealing to us because it confines the choice of
+evaluation strategy to Let binding -- Give a semantics for strict let and
+your language becomes a strict one. That's how you would adopt this approach
+for a call-by-value language
+(very roughly; need to let-bind non-trivial application heads as well).
+Furthermore, ANF allows for less duplication in the application case and
+it is not a significant restriction in practice to desugar.
+See also the cited work by [Sestoft 1997].
+Data types are there so that we can observe type errors (stuckness) other than scoping errors
+and write more useful programs.
+
+We intend to clarify both points.
+
+> Please explain why you need let-rec at the meta-level, in particular why you evaluate d1 using rho' rather that rho.
+
+We are modelling the semantics of a recursive Let, so we need x to be in the environment of e1.
+This is also done for example in Reynolds' meta-circular interpreter of "Definitional Intepreters".
+If space would have permitted, we'd have used an explicit fix operator instead.
+I both cases, the `fix` is over a completely different partial order.
+
+> On identifying trace-based heaps modulo "consistent readdressing": Is this an informal identification? How does your Agda formalisation handle this?
+
+We are embarassed to say that we haven't spend too much time on the problem.
+Arguably it should be enough for every domain element to take an additional
+address permutation ι to apply to any address it looks up in the heap.
+We will think more about this problem once we decide to bring carry over parts
+of Section 5 into the revised submission.
+
+> There is an extra horizontal line there. Similarly on line 1035.
+
+Actually, that's overline notation: https://groups.csail.mit.edu/mac/users/gjs/6.945/readings/Steele-MIT-April-2017.pdf
+
+> Do you mean to redefine the domain to contain only the lazy items?
+
+Yes, we intended to mean that.
+
+> In the fig. 3 semantics, it took me a bit to see where the negative occurrences are in the mutually recursive domain definitions, which would prevent a more standard set-theoretic coinductive semantics. Please clarify those for the reader.
+
+We actually wrote something along those lines on l434:
+
+> This is so that the transitive negative occurrence arising through DL → H → D
+
+But perhaps we can make this point more prominent.
+
+### Reviewer D
+
+Many fair points that we agree with.
+
+> muddled story about divergence, errors, continuity and ⊥
+
+Yes, we will probably retract or revise our statements in that section.
+
+> This intro to guarded domain theory (or type theory) doesn't seem entirely accurate
+
+We can see what you mean and will try to move the focus to the fact that
+we don't need to worry about continuity and domain equations as long as
+the definition type-checks.
+
+> Joseph "The Semantics of Lazy Functional Languages" TCS 1989
+
+Thanks for the pointer! Indeed, very much same style, although we like our presentation better.
+We will give it a proper account.
+
+
+
+Comment @A1 by Administrator
+---------------------------------------------------------------------------
+METAREVIEW
+
+We thank the authors for their detailed response. While the paper has not received enough support for publication in POPL this year, we believe that this work has potential. We hope that the reviews will be helpful when preparing a future resubmission. We recommend highlighting the novel contribution in a more focussed way, and providing a deeper and more accurate comparison with related work.
