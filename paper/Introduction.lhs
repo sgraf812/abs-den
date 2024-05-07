@@ -2,8 +2,8 @@
 > module Introduction where
 %endif
 
-\section{Introduction}
-\label{sec:introduction}
+%\section{Introduction}
+%\label{sec:introduction}
 
 A \emph{static program analysis} infers facts about a program, such
 as ``this program is well-typed'', ``this higher-order function is always called
@@ -62,7 +62,8 @@ Now we have two unappealing alternatives:
   %is pretty succinct and convincing.}
 \end{itemize}
 
-In this paper, we resolve the tension by exploring \emph{denotational
+\paragraph{Contributions.}
+In this chapter, I resolve the tension by exploring \emph{denotational
 interpreters}: total, mathematical objects that live at the intersection of
 structurally-defined \emph{definitional interpreters}~\citep{Reynolds:72} and
 denotational semantics.
@@ -73,20 +74,19 @@ Static analyses arise as instantiations of the same generic interpreter,
 enabling succinct, shared soundness proofs just like for AAM or big-step
 definitional interpreters~\citep{adi,Keidel:18}.
 However, the shared, compositional structure enables a wide range of summary
-mechanisms in static analyses that we think are beyond the reach of
+mechanisms in static analyses that I think are beyond the reach of
 non-compositional reachable-states abstractions like AAM.
 
-We make the following contributions:
 \begin{itemize}
 \item
-  We use a concrete example (absence analysis) to argue for
+  I use a concrete example (absence analysis) to argue for
   the usefulness of compositional, summary-based analysis in \Cref{sec:problem}
-  and we demonstrate the difficulty of conducting an ad-hoc soundness proof
+  and I demonstrate the difficulty of conducting an ad-hoc soundness proof
   \wrt a non-compositional small-step operational semantics.
-\item \Cref{sec:interp} walks through the definition of our generic
+\item \Cref{sec:interp} walks through the definition of my generic
   denotational interpreter and its type class algebra in Haskell.
-  We demonstrate the ease with which different instances of our interpreter
-  endow our object language with call-by-name, call-by-need and call-by-value
+  I demonstrate the ease with which different instances of my interpreter
+  endow the object language with call-by-name, call-by-need and call-by-value
   evaluation strategies, each producing (abstractions of) small-step
   abstract machine traces.
 \item A concrete instantiation of a denotational interpreter is \emph{total}
@@ -95,12 +95,12 @@ We make the following contributions:
   \Cref{sec:totality} proves that the by-name and by-need instantiations are
   total by embedding the generic interpreter and its instances in Guarded Cubical
   Agda.
-\item \Cref{sec:adequacy} proves that the by-need instantiation of our
+\item \Cref{sec:adequacy} proves that the by-need instantiation of my
   denotational interpreter adequately generates an abstraction of a trace
   in the lazy Krivine machine~\citep{Sestoft:97}, preserving its length as well
   as arbitrary operational information about each transition taken.
 \item By instantiating the generic interpreter with a finite, abstract semantic
-  domain in \Cref{sec:abstraction}, we recover summary-based usage analysis, a generalisation
+  domain in \Cref{sec:abstraction}, I recover summary-based usage analysis, a generalisation
   of absence analysis in \Cref{sec:problem}.
   %Such static analyses can be defined in two steps:
   %in the first, an operational property is encoded by a fold over the trace,
@@ -108,19 +108,32 @@ We make the following contributions:
   %In the second step, the semantic domain is finitised and equipped with a
   %summary mechanism, inducing a static analysis approximating the instrumentation.
   Further examples in the Appendix comprise Type Analysis and 0CFA control-flow
-  analysis, demonstrating the wide range of applicability of our framework.
+  analysis, demonstrating the wide range of applicability of my framework.
   %We have refactored the Demand Analysis of the Glasgow Haskell Compiler into
   %a abstract denotational interpreter to demonstrate a real-world use case.
-\item In \Cref{sec:soundness}, we apply abstract interpretation to characterise
+\item In \Cref{sec:soundness}, I apply abstract interpretation to characterise
   a set of abstraction laws that the type class instances of an abstract
   domain must satisfy in order to soundly approximate by-name and by-need
   interpretation.
   None of the proof obligations mention the generic interpreter, and, more
   remarkably, none of the laws mention the concrete semantics or the Galois
   connection either!
-  This enables us to prove usage analysis sound \wrt the by-name
+  This enables a soundness proof for usage analysis \wrt the by-name
   and by-need semantics in half a page, building on reusable
   semantics-specific theorems.
 \item
-  We compare to the enormous body of related approaches in \Cref{sec:related-work}.
+  I compare to the enormous body of related approaches in \Cref{sec:related-work}.
 \end{itemize}
+
+\paragraph{Acknowledgements.}
+The work in this chapter is an extended version of~\citet{abs2024}.
+For years, I have been working with Simon Peyton Jones on GHC's optimisation
+passes, its Demand Analysis in particular.
+This chapter establishes a framework as a first step towards describing the
+results of our work.
+Naturally, Simon was involved in iteratively improving the narrative of
+this chapter, however the technical contributions are exclusively my own.
+Our third author, Sven Keidel, was a helpful ``guinea pig'' reader, pointing out
+many ways in which to improve the scientific writing.
+Sven also lended a unique perspective of an expert on static analysis who was
+not quite familiar with the style of analyses that GHC developers internalised.
