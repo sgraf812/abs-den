@@ -342,6 +342,9 @@ analyses sound.
 %Lemma 3 is not too difficult to prove and always necessary for a summary-based analysis.
 %I tried to leave some forward references to clarify.}
 
+\begin{toappendix}
+\label{sec:problem-proofs-problem}
+\end{toappendix}
 \begin{theoremrep}[$\semabs{\wild}$ infers absence]
   \label{thm:absence-correct}
 %  \sven{There must be "soundness" somewhere in the title}
@@ -358,7 +361,7 @@ analyses sound.
   then $\px$ is absent in $\pe$.
 \end{theoremrep}
 \begin{proof}
-  See \hyperlink{proof:absence-correct}{the proof at the end of this section}.
+See \hyperlink{proof:absence-correct}{the proof at the end of this section}.
 \end{proof}
 
 What are the main obstacles to prove it?
@@ -392,7 +395,7 @@ Note that for the proofs I assume the recursive let definition
   \semabs{\Let{\px}{\pe_1}{\pe_2}}_ρ = \semabs{\pe_2}_{ρ[\px ↦ \lfp(\fn{θ}{\px \both \semabs{\pe_1}_{ρ[\px↦θ]}})]}.
 \]
 The partial order on $\AbsTy$ necessary for computing the least fixpoint $\lfp$
-follows structurally from $\aA ⊏ \aU$ (\ie product order, pointwise order).
+follows structurally from $\aA ⊏ \aU$, as described in \Cref{sec:problem}.
 
 \begin{abbreviation}
   The syntax $θ.φ$ for an $\AbsTy$ $θ = \langle φ, \varsigma \rangle$
@@ -403,9 +406,10 @@ follows structurally from $\aA ⊏ \aU$ (\ie product order, pointwise order).
 
 \begin{definition}[Abstract substitution]
   \label{defn:abs-subst}
-  I call $φ[\px \Mapsto φ'] \triangleq φ[\px↦\aA] ⊔ (φ(\px) * φ')$ the
-  \emph{abstract substitution} operation on $\Uses$
-  and overload this notation for $\AbsTy$, so that
+  The operation
+  \[ φ[\px \Mapsto φ'] \triangleq φ[\px↦\aA] ⊔ (φ(\px) * φ') \]
+  is called the \emph{abstract substitution} operation on $\Uses$
+  and it is overloaded for $\AbsTy$, so that
   $(\langle φ, \varsigma \rangle)[\px \Mapsto φ_\py] \triangleq \langle φ[\px \Mapsto φ_\py], \varsigma \rangle$.
 \end{definition}
 
@@ -422,9 +426,7 @@ Follows by unfolding the application and lambda case and then refolding abstract
 \begin{lemma}
 \label{thm:lambda-bound-absent}
 Lambda-bound uses do not escape their scope. That is, when $\px$ is lambda-bound in $\pe$, it is
-\[
-  (\semabs{\pe}_ρ).φ(\px) = \aA.
-\]
+$(\semabs{\pe}_ρ).φ(\px) = \aA.$
 \end{lemma}
 \begin{proof}
 By induction on $\pe$. In the lambda case, any use of $\px$ is cleared to $\aA$
@@ -435,34 +437,35 @@ when returning.
 \label{thm:lambda-commutes-absence}
 $\semabs{(\Lam{\px}{\Lam{\py}{\pe}})~\pz}_ρ = \semabs{\Lam{\py}{((\Lam{\px}{\pe})~\pz)}}_ρ$.
 \end{lemma}
-\begin{proof}
-\begin{DispWithArrows*}[fleqn,mathindent=0em]
-      & \semabs{(\Lam{\px}{\Lam{\py}{\pe}})~\pz}_ρ
-      \Arrow{Unfold $\semabs{\wild}$, \Cref{thm:abs-syn-subst}} \\
-  ={} & (\mathit{fun}_\py(\fn{θ_\py}{\semabs{\pe}_{ρ[\px↦\langle [\px↦\aU], \repU \rangle,\py↦θ_\py]}}))[\px \Mapsto ρ(\pz).φ]
-      \Arrow{$ρ(\pz)(\py) = \aA$ by \Cref{thm:lambda-bound-absent}, $\px \not= \py \not= \pz$} \\
-  ={} & \mathit{fun}_\py(\fn{θ_\py}{(\semabs{\pe}_{ρ[\px↦\langle [\px↦\aU], \repU \rangle,\py↦θ_\py]})[\px \Mapsto ρ(\pz).φ]})
-      \Arrow{Refold $\semabs{\wild}$} \\
+\begin{proof}\raisegroup
+\begin{align*}
+      & \semabs{(\Lam{\px}{\Lam{\py}{\pe}})~\pz}_ρ \\
+      & |{- Unfold $\semabs{\wild}$, \Cref{thm:abs-syn-subst} -}| \\
+  ={} & (\mathit{fun}_\py(\fn{θ_\py}{\semabs{\pe}_{ρ[\px↦\langle [\px↦\aU], \repU \rangle,\py↦θ_\py]}}))[\px \Mapsto ρ(\pz).φ] \\
+      & |{- $ρ(\pz)(\py) = \aA$ by \Cref{thm:lambda-bound-absent}, $\px \not= \py \not= \pz$ -}| \\
+  ={} & \mathit{fun}_\py(\fn{θ_\py}{(\semabs{\pe}_{ρ[\px↦\langle [\px↦\aU], \repU \rangle,\py↦θ_\py]})[\px \Mapsto ρ(\pz).φ]}) \\
+      & |{- Refold $\semabs{\wild}$ -}| \\
   ={} & \semabs{\Lam{\py}{((\Lam{\px}{\pe})~\pz)}}_ρ
-\end{DispWithArrows*}
+\end{align*}
 \end{proof}
 
 \begin{lemma}
 \label{thm:push-app-absence}
 $\semabs{(\Lam{\px}{\pe})~\py~\pz}_ρ = \semabs{(\Lam{\px}{\pe~\pz})~\py}_ρ$.
 \end{lemma}
-\begin{proof}
-\begin{DispWithArrows*}[fleqn,mathindent=0em]
-      & \semabs{(\Lam{\px}{\pe})~\py~\pz}_ρ
-      \Arrow{Unfold $\semabs{\wild}$, \Cref{thm:abs-syn-subst}} \\
-  ={} & \mathit{app}((\semabs{\pe}_{ρ[\langle [\px↦\aU], \repU \rangle]})[\px \Mapsto ρ(\py).φ])(ρ(\pz))
-      \Arrow{$ρ(\pz)(\px) = \aA$ by \Cref{thm:lambda-bound-absent}, $\py \not= \px \not= \pz$} \\
-  ={} & \mathit{app}(\semabs{\pe}_{ρ[\langle [\px↦\aU], \repU \rangle]})(ρ(\pz))[\px \Mapsto ρ(\py).φ]
-      \Arrow{Refold $\semabs{\wild}$} \\
+\begin{proof}\raisegroup
+\begin{align*}
+      & \semabs{(\Lam{\px}{\pe})~\py~\pz}_ρ \\
+      & |{- Unfold $\semabs{\wild}$, \Cref{thm:abs-syn-subst} -}| \\
+  ={} & \mathit{app}((\semabs{\pe}_{ρ[\langle [\px↦\aU], \repU \rangle]})[\px \Mapsto ρ(\py).φ])(ρ(\pz)) \\
+      & |{- $ρ(\pz)(\px) = \aA$ by \Cref{thm:lambda-bound-absent}, $\py \not= \px \not= \pz$ -}| \\
+  ={} & \mathit{app}(\semabs{\pe}_{ρ[\langle [\px↦\aU], \repU \rangle]})(ρ(\pz))[\px \Mapsto ρ(\py).φ] \\
+      & |{- Refold $\semabs{\wild}$ -}| \\
   ={} & \semabs{(\Lam{\px}{\pe~\pz})~\py}_ρ
-\end{DispWithArrows*}
+\end{align*}
 \end{proof}
 
+\pagebreak
 \begin{lemma}
 \label{thm:push-let-absence}
 $\semabs{\Let{\pz}{(\Lam{\px}{\pe_1})~\py}{(\Lam{\px}{\pe_2})~\py}}_ρ = \semabs{(\Lam{\px}{\Let{\pz}{\pe_1}{\pe_2}})~\py}_ρ$.
@@ -474,20 +477,21 @@ This can easily be proved by induction on $\pe_2$, which I omit here, but
 indicate the respective step below as ``hand-waving''.
 Note that I assume the (more general) recursive let semantics as defined at the
 begin of this section.
-
-\begin{DispWithArrows*}[fleqn,mathindent=1em]
+\begin{align*}
       & \semabs{\Let{\pz}{(\Lam{\px}{\pe_1})~\py}{(\Lam{\px}{\pe_2})~\py}}_ρ
-      \Arrow{Unfold $\semabs{\wild}$} \\
+      \\ & |{- Unfold $\semabs{\wild}$ -}| \\
   ={} & \semabs{(\Lam{\px}{\pe_2})~\py}_{ρ[\pz↦\lfp(\fn{θ}{\pz \both \semabs{(\Lam{\px}{\pe_1})~\py}_{ρ[\pz ↦ θ]}})]}
-      \Arrow{\Cref{thm:abs-syn-subst}} \\
-  ={} & (\semabs{\pe_2}_{ρ[\px↦\langle [\px ↦ \aU], \repU \rangle,\pz↦\lfp(\fn{θ}{\pz \both (\semabs{\pe_1}_{ρ[\px↦\langle [\px ↦ \aU], \repU \rangle, \pz ↦ θ]})[\px \Mapsto ρ(\py).φ]})]})[\px \Mapsto ρ(\py).φ]
-      \Arrow{Hand-waving above} \\
-  ={} & (\semabs{\pe_2}_{ρ[\px↦\langle [\px ↦ \aU], \repU \rangle,\pz↦\lfp(\fn{θ}{\pz \both \semabs{\pe_1}_{ρ[\px↦\langle [\px ↦ \aU], \repU \rangle, \pz ↦ θ]}})]})[\px \Mapsto ρ(\py).φ]
-      \Arrow{Refold $\semabs{\wild}$} \\
+      \\ & |{- \Cref{thm:abs-syn-subst} -}| \\
+  ={} & (\semabs{\pe_2}_{ρ[\px↦\langle [\px ↦ \aU], \repU \rangle,\pz↦θ_{\pz}]})[\px \Mapsto ρ(\py).φ]
+      \\ & \text{where } θ_{\pz} = \lfp(\fn{θ}{\pz \both (\semabs{\pe_1}_{ρ[\px↦\langle [\px ↦ \aU], \repU \rangle, \pz ↦ θ]})[\px \Mapsto ρ(\py).φ]})
+      \\ & |{- Hand-waving above -}| \\
+  ={} & (\semabs{\pe_2}_{ρ[\px↦\langle [\px ↦ \aU], \repU \rangle,\pz↦θ_{\pz}']})[\px \Mapsto ρ(\py).φ]
+      \\ & \text{where } θ_{\pz}' = \lfp(\fn{θ}{\pz \both \semabs{\pe_1}_{ρ[\px↦\langle [\px ↦ \aU], \repU \rangle, \pz ↦ θ]}})
+      \\ & |{- Refold $\semabs{\wild}$ -}| \\
   ={} & (\semabs{\Let{\pz}{\pe_1}{\pe_2}}_{ρ[\px↦\langle [\px ↦ \aU], \repU \rangle]})[\px \Mapsto ρ(\py).φ]
-      \Arrow{\Cref{thm:abs-syn-subst}} \\
+      \\ & |{- \Cref{thm:abs-syn-subst} -}| \\
   ={} & \semabs{(\Lam{\px}{\Let{\pz}{\pe_1}{\pe_2}})~\py}_ρ
-\end{DispWithArrows*}
+\end{align*}
 \end{proof}
 \end{toappendix}
 
@@ -502,89 +506,89 @@ By induction on $\pe$.
     When $\px \not= \pz$, then $\pz$ is bound outside the lambda and can't
     possibly use $\px$, so $ρ(\pz).φ(\px) = \aA$.
     We have
-    \begin{DispWithArrows*}[fleqn,mathindent=4em]
+    \begin{align*}
         & \semabs{\pz}_{ρ[\px↦ρ(\py)]}
-        \Arrow{$\px \not= \pz$} \\
+        \\ & |{- $\px \not= \pz$ -}| \\
     ={} & ρ(\pz)
-        \Arrow{Refold $\semabs{\wild}$} \\
+        \\ & |{- Refold $\semabs{\wild}$ -}| \\
     ={} & \semabs{\pz}_{ρ[\px↦\langle [\px ↦ \aU], \repU \rangle]}
-        \Arrow{$ρ(\pz).φ(\px) = \aA$} \\
+        \\ & |{- $ρ(\pz).φ(\px) = \aA$ -}| \\
     ={} & (\semabs{\pz}_{ρ[\px↦\langle [\px ↦ \aU], \repU \rangle]})[\px \Mapsto ρ(\py).φ]
-        \Arrow{\Cref{thm:abs-syn-subst}} \\
+        \\ & |{- \Cref{thm:abs-syn-subst} -}| \\
     ={} & \semabs{(\Lam{\px}{\pz})~\py}_ρ
-    \end{DispWithArrows*}
+    \end{align*}
     Otherwise, we have $\px = \pz$,
     thus $ρ(\px) = \langle [\px ↦ \aU], \varsigma = \repU \rangle$,
     and thus
-    \begin{DispWithArrows*}[fleqn,mathindent=4em]
+    \begin{align*}
         & \semabs{\pz}_{ρ[\px↦ρ(\py)]}
-        \Arrow{$\px = \pz$} \\
+        \\ & |{- $\px = \pz$ -}| \\
     ={} & ρ(\py)
-        \Arrow{$\varsigma ⊑ \repU$} \\
+        \\ & |{- $\varsigma ⊑ \repU$ -}| \\
     ⊑{} & \langle ρ(\py).φ, \repU \rangle
-        \Arrow{Definition of $\wild[\wild\Mapsto\wild]$} \\
+        \\ & |{- Definition of $\wild[\wild\Mapsto\wild]$ -}| \\
     ={} & (\langle [\px ↦ \aU], \repU \rangle)[\px ↦ ρ(\py).φ]
-        \Arrow{Refold $\semabs{\wild}$} \\
+        \\ & |{- Refold $\semabs{\wild}$ -}| \\
     ={} & (\semabs{\pz}_{ρ[\px↦\langle [\px ↦ \aU], \repU \rangle]})[\px \Mapsto ρ(\py).φ]
-        \Arrow{\Cref{thm:abs-syn-subst}} \\
+        \\ & |{- \Cref{thm:abs-syn-subst} -}| \\
     ={} & \semabs{(\Lam{\px}{\pz})~\py}_ρ
-    \end{DispWithArrows*}
+    \end{align*}
 
   \item \textbf{Case }$\Lam{\pz}{\pe'}$:
-    \begin{DispWithArrows*}[fleqn,mathindent=4em]
+    \raisegroup\begin{align*}
         & \semabs{\Lam{\pz}{\pe'}}_{ρ[\px↦ρ(\py)]}
-        \Arrow{Unfold $\semabs{\wild}$} \\
+        \\ & |{- Unfold $\semabs{\wild}$ -}| \\
     ={} & \mathit{fun}_\pz(\fn{θ_\pz}{\semabs{\pe'}_{ρ[\pz↦θ_\pz, \px↦ρ(\py)]}})
-        \Arrow{Induction hypothesis, monotonicity} \\
+        \\ & |{- Induction hypothesis, monotonicity -}| \\
     ⊑{} & \mathit{fun}_\pz(\fn{θ_\pz}{\semabs{(\Lam{\px}{\pe'})~\py}_{ρ[\pz↦θ_\pz]}})
-        \Arrow{Refold $\semabs{\wild}$} \\
+        \\ & |{- Refold $\semabs{\wild}$ -}| \\
     ={} & \semabs{\Lam{\pz}{((\Lam{\px}{\pe'})~\py)}}_ρ
-        \Arrow{\Cref{thm:lambda-commutes-absence}} \\
+        \\ & |{- \Cref{thm:lambda-commutes-absence} -}| \\
     ={} & \semabs{(\Lam{\px}{\Lam{\pz}{\pe'}})~\py}_ρ
-    \end{DispWithArrows*}
+    \end{align*}
 
   \item \textbf{Case }$\pe'~\pz$:
     When $\px = \pz$:
-    \begin{DispWithArrows*}[fleqn,mathindent=4em]
+    \begin{align*}
         & \semabs{\pe'~\pz}_{ρ[\px↦ρ(\py)]}
-        \Arrow{Unfold $\semabs{\wild}$} \\
+        \\ & |{- Unfold $\semabs{\wild}$ -}| \\
     ={} & \mathit{app}(\semabs{\pe'}_{ρ[\px↦ρ(\py)]})(ρ(\py))
-        \Arrow{Induction hypothesis, monotonicity} \\
+        \\ & |{- Induction hypothesis, monotonicity -}| \\
     ⊑{} & \mathit{app}(\semabs{(\Lam{\px}{\pe'})~\py}_ρ)(ρ(\py))
-        \Arrow{Refold $\semabs{\wild}$} \\
+        \\ & |{- Refold $\semabs{\wild}$ -}| \\
     ={} & \semabs{(\Lam{\px}{\pe'})~\py~\py}_ρ
-        \Arrow{\Cref{thm:push-app-absence}} \\
+        \\ & |{- \Cref{thm:push-app-absence} -}| \\
     ={} & \semabs{(\Lam{\px}{\pe'~\py})~\py}_ρ
-        \Arrow{Compositionality in $(\Lam{\px}{\pe'~\hole})~\py$} \\
+        \\ & |{- Compositionality in $(\Lam{\px}{\pe'~\hole})~\py$ -}| \\
     ={} & \semabs{(\Lam{\px}{\pe'~\px})~\py}_ρ
-        \Arrow{$\px = \pz$} \\
+        \\ & |{- $\px = \pz$ -}| \\
     ={} & \semabs{(\Lam{\px}{\pe'~\pz})~\py}_ρ
-    \end{DispWithArrows*}
+    \end{align*}
     When $\px \not= \pz$:
-    \begin{DispWithArrows*}[fleqn,mathindent=4em]
+    \raisegroup\begin{align*}
         & \semabs{\pe'~\pz}_{ρ[\px↦ρ(\py)]}
-        \Arrow{Unfold $\semabs{\wild}$} \\
+        \\ & |{- Unfold $\semabs{\wild}$ -}| \\
     ={} & \mathit{app}(\semabs{\pe'}_{ρ[\px↦ρ(\py)]})(ρ(\pz))
-        \Arrow{Induction hypothesis, monotonicity} \\
+        \\ & |{- Induction hypothesis, monotonicity -}| \\
     ⊑{} & \mathit{app}(\semabs{(\Lam{\px}{\pe'})~\py}_ρ)(ρ(\pz))
-        \Arrow{Refold $\semabs{\wild}$} \\
+        \\ & |{- Refold $\semabs{\wild}$ -}| \\
     ={} & \semabs{(\Lam{\px}{\pe'})~\py~\pz}_ρ
-        \Arrow{\Cref{thm:push-app-absence}} \\
+        \\ & |{- \Cref{thm:push-app-absence} -}| \\
     ={} & \semabs{(\Lam{\px}{\pe'~\pz})~\py}_ρ
-    \end{DispWithArrows*}
+    \end{align*}
 
   \item \textbf{Case }$\Let{\pz}{\pe_1}{\pe_2}$:
-    \begin{DispWithArrows*}[fleqn,mathindent=4em]
+    \begin{align*}
         & \semabs{\Let{\pz}{\pe_1}{\pe_2}}_{ρ[\px↦ρ(\py)]}
-        \Arrow{Unfold $\semabs{\wild}$} \\
+        \\ & |{- Unfold $\semabs{\wild}$ -}| \\
     ={} & \semabs{\pe_2}_{ρ[\px↦ρ(\py),\pz↦\lfp(\fn{θ}{\pz \both \semabs{\pe_1}_{ρ[\px↦ρ(\py),\pz ↦ θ]}})]}
-        \Arrow{Induction hypothesis, monotonicity} \\
+        \\ & |{- Induction hypothesis, monotonicity -}| \\
     ⊑{} & \semabs{(\Lam{\px}{\pe_2})~\py}_{ρ[\pz↦\lfp(\fn{θ}{\pz \both \semabs{(\Lam{\px}{\pe_1})~\py}_{ρ[\pz ↦ θ]}})]}
-        \Arrow{Refold $\semabs{\wild}$} \\
+        \\ & |{- Refold $\semabs{\wild}$ -}| \\
     ={} & \semabs{\Let{\pz}{(\Lam{\px}{\pe_1})~\py}{(\Lam{\px}{\pe_2})~\py}}_ρ
-        \Arrow{\Cref{thm:push-let-absence}} \\
+        \\ & |{- \Cref{thm:push-let-absence} -}| \\
     ={} & \semabs{(\Lam{\px}{\Let{\pz}{\pe_1}{\pe_2}})~\py}_ρ
-    \end{DispWithArrows*}
+    \end{align*}
 \end{itemize}
 \end{proof}
 
@@ -613,53 +617,53 @@ By induction on $\pe$.
     We assert $\semabs{\py}_ρ = ρ(\py) = ρ_Δ(\py)[\py \Mapsto ρ(\py).φ]$ by simple unfolding.
 
   \item \textbf{Case $\pe = \pe'~\py$}:
-    \begin{DispWithArrows*}[fleqn,mathindent=3em]
+    \begin{align*}
           & \semabs{\pe'~\py}_ρ
-          \Arrow{Unfold $\semabs{\wild}$} \\
+          \\ & |{- Unfold $\semabs{\wild}$ -}| \\
       ={} & \mathit{app}(\semabs{\pe'}_ρ,ρ(\py))
-          \Arrow{Induction hypothesis, variable case} \\
+          \\ & |{- Induction hypothesis, variable case -}| \\
       ={} & \mathit{app}((\semabs{\pe'}_{ρ_Δ})[\many{\px \Mapsto ρ(\px).φ}], ρ_Δ(\py)[\many{\px \Mapsto ρ(\px).φ}]).
-          \Arrow{$⊔$ and $*$ commute with $\wild[\wild\Mapsto\wild]$} \\
+          \\ & |{- $⊔$ and $*$ commute with $\wild[\wild\Mapsto\wild]$ -}| \\
       ={} & \mathit{app}(\semabs{\pe'}_{ρ_Δ},ρ_Δ(\py))[\many{\px \Mapsto ρ(\px).φ}]
-          \Arrow{Refold $\semabs{\wild}$} \\
+          \\ & |{- Refold $\semabs{\wild}$ -}| \\
       ={} & (\semabs{\pe'~\py}_{ρ_Δ})[\many{\px \Mapsto ρ(\px).φ}]
-    \end{DispWithArrows*}
+    \end{align*}
 
   \item \textbf{Case $\pe = \Lam{\py}{\pe'}$}:
     Note that $\px \not= \py$ because $\py$ is not free in $\pe$.
-    \begin{DispWithArrows*}[fleqn,mathindent=3em]
+    \begin{align*}
           & \semabs{\Lam{\py}{\pe'}}_ρ
-          \Arrow{Unfold $\semabs{\wild}$} \\
-      ={} & \mathit{lam}_\py(\fn{θ}{\semabs{\pe'}_{ρ[\py↦θ]}})
-          \Arrow{Property of $\mathit{lam}_\py$} \\
-      ={} & \mathit{lam}_\py(\fn{θ}{(\semabs{\pe'}_{{ρ}[\py↦\langle [\py ↦ \aU], \repU \rangle]})})
-        \Arrow{Induction hypothesis} \\
-      ={} & \mathit{lam}_\py(\fn{θ}{(\semabs{\pe'}_{{ρ_Δ}[\py↦\langle [\py ↦ \aU], \repU \rangle]})[\many{\px \Mapsto ρ(\px).φ}, \py \Mapsto [\py ↦ \aU]]})
-          \Arrow{$θ[\py \Mapsto [\py ↦ \aU]] = θ$} \\
-      ={} & \mathit{lam}_\py(\fn{θ}{(\semabs{\pe'}_{{ρ_Δ}[\py↦\langle [\py ↦ \aU], \repU \rangle]})[\many{\px \Mapsto ρ(\px).φ}]})
-          \Arrow{$θ[\py \Mapsto [\py ↦ \aU]] = θ$} \\
-      ={} & \mathit{lam}_\py(\fn{θ}{(\semabs{\pe'}_{{ρ_Δ}[\py↦θ]})[\many{\px \Mapsto ρ(\px).φ}]})
-          \Arrow{Property of $\mathit{lam}_\py$} \\
-      ={} & \mathit{lam}_\py(\fn{θ}{\semabs{\pe'}_{{ρ_Δ}[\py↦θ]}})[\many{\px \Mapsto ρ(\px).φ}]
-          \Arrow{Refold $\semabs{\wild}$} \\
+          \\ & |{- Unfold $\semabs{\wild}$ -}| \\
+      ={} & \mathit{fun}_\py(\fn{θ}{\semabs{\pe'}_{ρ[\py↦θ]}})
+          \\ & |{- Property of $\mathit{fun}_\py$ -}| \\
+      ={} & \mathit{fun}_\py(\fn{θ}{(\semabs{\pe'}_{{ρ}[\py↦\langle [\py ↦ \aU], \repU \rangle]})})
+        \\ & |{- Induction hypothesis -}| \\
+      ={} & \mathit{fun}_\py(\fn{θ}{(\semabs{\pe'}_{{ρ_Δ}[\py↦\langle [\py ↦ \aU], \repU \rangle]})[\many{\px \Mapsto ρ(\px).φ}, \py \Mapsto [\py ↦ \aU]]})
+          \\ & |{- $θ[\py \Mapsto [\py ↦ \aU]] = θ$ -}| \\
+      ={} & \mathit{fun}_\py(\fn{θ}{(\semabs{\pe'}_{{ρ_Δ}[\py↦\langle [\py ↦ \aU], \repU \rangle]})[\many{\px \Mapsto ρ(\px).φ}]})
+          \\ & |{- $θ[\py \Mapsto [\py ↦ \aU]] = θ$ -}| \\
+      ={} & \mathit{fun}_\py(\fn{θ}{(\semabs{\pe'}_{{ρ_Δ}[\py↦θ]})[\many{\px \Mapsto ρ(\px).φ}]})
+          \\ & |{- Property of $\mathit{fun}_\py$ -}| \\
+      ={} & \mathit{fun}_\py(\fn{θ}{\semabs{\pe'}_{{ρ_Δ}[\py↦θ]}})[\many{\px \Mapsto ρ(\px).φ}]
+          \\ & |{- Refold $\semabs{\wild}$ -}| \\
       ={} & (\semabs{\Lam{\py}{\pe'}}_{ρ_Δ})[\many{\px \Mapsto ρ(\px).φ}]
-    \end{DispWithArrows*}
+    \end{align*}
 
   \item \textbf{Case }$\Let{\py}{\pe_1}{\pe_2}$:
     Note that $\px \not= \py$ because $\py$ is not free in $\pe$.
-    \begin{DispWithArrows*}[fleqn,mathindent=4em]
+    \begin{align*}
         & \semabs{\Let{\py}{\pe_1}{\pe_2}}_ρ
-        \Arrow{Unfold $\semabs{\wild}$} \\
+        \\ & |{- Unfold $\semabs{\wild}$ -}| \\
     ={} & \semabs{\pe_2}_{ρ[\py↦\lfp(\fn{θ}{\py \both \semabs{\pe_1}_{ρ[\py ↦ θ]}})]}
-        \Arrow{Induction hypothesis} \\
+        \\ & |{- Induction hypothesis -}| \\
     ={} & \semabs{\pe_2}_{ρ[\py↦\lfp(\fn{θ}{\py \both (\semabs{\pe_1}_{{ρ_Δ}[\py ↦ \langle [\py ↦ \aU], θ.\varsigma \rangle]})[\many{\px \Mapsto ρ(\px).φ}, \py \Mapsto θ.φ]})]}
-        \Arrow{Again, backwards} \\
+        \\ & |{- Again, backwards -}| \\
     ={} & \semabs{\pe_2}_{ρ[\py↦\lfp(\fn{θ}{\py \both (\semabs{\pe_1}_{{ρ_Δ}[\py ↦ θ]})[\many{\px \Mapsto ρ(\px).φ}]})]} \\
-        & \text{\emph{Similarly for $\pe_2$, hand-waving to push out the subst as in \Cref{thm:push-let-absence}}} \\
+        & |{- Similarly for $\pe_2$, push out the subst as in \Cref{thm:push-let-absence} -}| \\
     ={} & (\semabs{\pe_2}_{ρ_Δ[\py↦\lfp(\fn{θ}{\py \both \semabs{\pe_1}_{{ρ_Δ}[\py ↦ θ]}})]})[\many{\px \Mapsto ρ(\px).φ}]
-        \Arrow{Refold $\semabs{\wild}$} \\
+        \\ & |{- Refold $\semabs{\wild}$ -}| \\
     ={} & (\semabs{\Let{\py}{\pe_1}{\pe_2}}_{ρ_Δ})[\many{\px \Mapsto ρ(\px).φ}]
-    \end{DispWithArrows*}
+    \end{align*}
 \end{itemize}
 \end{proof}
 
@@ -711,47 +715,47 @@ By cases on the transition.
       (\Let{\py}{\pe_1}{\pe_2},ρ,μ,κ) \smallstep (\pe_2,ρ[\py↦\pa],μ[\pa↦(\py,ρ[\py↦\pa],\pe_1)],κ).
     \]
     Abbreviating $ρ_1 \triangleq ρ[\py↦\pa], μ_1 \triangleq μ[\pa ↦ (\py,ρ_1,\pe_1)$, we have
-    \begin{DispWithArrows*}[fleqn,mathindent=3em]
-           & \semabsS{σ_1} \Arrow{Unfold $\semabsS{σ_1}$} \\
-      {}={}& \mathit{apps}_μ(κ)(\semabs{\Let{\py}{\pe_1}{\pe_2}}_{α(μ) \circ ρ}) \Arrow{Unfold $\semabs{\Let{\py}{\pe_1}{\pe_2}}$} \\
-      {}={}& \mathit{apps}_μ(κ)(\semabs{\pe_2}_{(α(μ) \circ ρ)[\py↦\py \both \lfp(\fn{θ}{\semabs{\pe_1}_{(α(μ) \circ ρ)[\py↦θ]}})]}) \Arrow{Move fixpoint outwards, refold $α$} \\
-      {}={}& \mathit{apps}_{μ_1}(κ)(\semabs{\pe_2}_{α(μ_1) \circ ρ_1}) \Arrow{Refold $\semabsS{σ_2}$} \\
+    \begin{align*}
+           & \semabsS{σ_1} \\ & |{- Unfold $\semabsS{σ_1}$ -}| \\
+      {}={}& \mathit{apps}_μ(κ)(\semabs{\Let{\py}{\pe_1}{\pe_2}}_{α(μ) \circ ρ}) \\ & |{- Unfold $\semabs{\Let{\py}{\pe_1}{\pe_2}}$ -}| \\
+      {}={}& \mathit{apps}_μ(κ)(\semabs{\pe_2}_{(α(μ) \circ ρ)[\py↦\py \both \lfp(\fn{θ}{\semabs{\pe_1}_{(α(μ) \circ ρ)[\py↦θ]}})]}) \\ & |{- Move fixpoint outwards, refold $α$ -}| \\
+      {}={}& \mathit{apps}_{μ_1}(κ)(\semabs{\pe_2}_{α(μ_1) \circ ρ_1}) \\ & |{- Refold $\semabsS{σ_2}$ -}| \\
       {}={}& \semabsS{σ_2}
-    \end{DispWithArrows*}
+    \end{align*}
 
   \item \textbf{Case }$\AppIT$:
     Then $(\pe'~\py,ρ,μ,κ) \smallstep (\pe',ρ,μ,\ApplyF(ρ(\py)) \pushF κ)$.
-    \begin{DispWithArrows*}[fleqn,mathindent=3em]
-           & \semabsS{σ_1} \Arrow{Unfold $\semabsS{σ_1}$} \\
-      {}={}& \mathit{apps}_μ(κ)(\semabs{\pe'~\py}_{α(μ) \circ ρ}) \Arrow{Unfold $\semabs{\pe'~\py}_{(α(μ) \circ ρ)}$} \\
-      {}={}& \mathit{apps}_μ(κ)(\mathit{app}(\semabs{\pe'}_{α(μ) \circ ρ}, α(μ)(ρ(\py)))) \Arrow{Rearrange} \\
-      {}={}& \mathit{apps}_μ(\ApplyF(ρ(\py)) \pushF κ)(\semabs{\pe'}_{α(μ) \circ ρ}) \Arrow{Refold $\semabsS{σ_2}$} \\
+    \begin{align*}
+           & \semabsS{σ_1} \\ & |{- Unfold $\semabsS{σ_1}$ -}| \\
+      {}={}& \mathit{apps}_μ(κ)(\semabs{\pe'~\py}_{α(μ) \circ ρ}) \\ & |{- Unfold $\semabs{\pe'~\py}_{(α(μ) \circ ρ)}$ -}| \\
+      {}={}& \mathit{apps}_μ(κ)(\mathit{app}(\semabs{\pe'}_{α(μ) \circ ρ}, α(μ)(ρ(\py)))) \\ & |{- Rearrange -}| \\
+      {}={}& \mathit{apps}_μ(\ApplyF(ρ(\py)) \pushF κ)(\semabs{\pe'}_{α(μ) \circ ρ}) \\ & |{- Refold $\semabsS{σ_2}$ -}| \\
       {}={}& \semabsS{σ_2}
-    \end{DispWithArrows*}
+    \end{align*}
 
   \item \textbf{Case }$\AppET$:
     Then $(\Lam{\py}{\pe'},ρ,μ,\ApplyF(\pa) \pushF κ) \smallstep (\pe',ρ[\py↦\pa],μ,κ)$.
-    \begin{DispWithArrows*}[fleqn,mathindent=3em]
-           & \semabsS{σ_1} \Arrow{Unfold $\semabsS{σ_1}$} \\
-      {}={}& \mathit{apps}_μ(\ApplyF(\pa) \pushF κ)(\semabs{\Lam{\py}{\pe'}}_{α(μ) \circ ρ}) \Arrow{Unfold $\mathit{apps}$} \\
-      {}={}& \mathit{apps}_μ(κ)(\mathit{app}(\semabs{\Lam{\py}{\pe'}}_{α(μ) \circ ρ}, α(μ)(\pa))) \Arrow{Unfold RHS of \Cref{thm:absence-subst}} \\
-      {}⊒{}& \mathit{apps}_μ(κ)(\semabs{\pe'}_{(α(μ) \circ ρ)[\py↦α(μ)(\pa)]}) \Arrow{Rearrange} \\
-      {}={}& \mathit{apps}_μ(κ)(\semabs{\pe'}_{(α(μ) \circ ρ[\py↦\pa])}) \Arrow{Refold $\semabsS{σ_2}$} \\
+    \begin{align*}
+           & \semabsS{σ_1} \\ & |{- Unfold $\semabsS{σ_1}$ -}| \\
+      {}={}& \mathit{apps}_μ(\ApplyF(\pa) \pushF κ)(\semabs{\Lam{\py}{\pe'}}_{α(μ) \circ ρ}) \\ & |{- Unfold $\mathit{apps}$ -}| \\
+      {}={}& \mathit{apps}_μ(κ)(\mathit{app}(\semabs{\Lam{\py}{\pe'}}_{α(μ) \circ ρ}, α(μ)(\pa))) \\ & |{- Unfold RHS of \Cref{thm:absence-subst} -}| \\
+      {}⊒{}& \mathit{apps}_μ(κ)(\semabs{\pe'}_{(α(μ) \circ ρ)[\py↦α(μ)(\pa)]}) \\ & |{- Rearrange -}| \\
+      {}={}& \mathit{apps}_μ(κ)(\semabs{\pe'}_{(α(μ) \circ ρ[\py↦\pa])}) \\ & |{- Refold $\semabsS{σ_2}$ -}| \\
       {}={}& \semabsS{σ_2}
-    \end{DispWithArrows*}
+    \end{align*}
 
   \item \textbf{Case }$\LookupT$:
     Then $\pe = \py$, $\pa \triangleq ρ(\py)$, $(\pz,ρ',\pe') \triangleq μ(\pa)$ and
     $(\py,ρ,μ,κ) \smallstep (\pe',ρ',μ,\UpdateF(\pa) \pushF κ)$.
-    \begin{DispWithArrows*}[fleqn,mathindent=3em]
-           & \semabsS{σ_1} \Arrow{Unfold $\semabsS{σ_1}$} \\
-      {}={}& \mathit{apps}_μ(κ)(\semabs{\py}_{α(μ) \circ ρ}) \Arrow{Unfold $\semabs{\py}$} \\
-      {}={}& \mathit{apps}_μ(κ)((α(μ) \circ ρ)(\py)) \Arrow{Unfold $α$} \\
-      {}={}& \mathit{apps}_μ(κ)(\pz \both \semabs{\pe'}_{α(μ) \circ ρ'}) \Arrow{Drop $[\pz↦\aU]$} \\
-      {}⊒{}& \mathit{apps}_μ(κ)(\semabs{\pe'}_{α(μ) \circ ρ'}) \Arrow{Definition of $\mathit{apps}_μ$} \\
-      {}={}& \mathit{apps}_μ(\UpdateF(\pa) \pushF κ)(\semabs{\pe'}_{α(μ) \circ ρ'}) \Arrow{Refold $\semabsS{σ_2}$} \\
+    \begin{align*}
+           & \semabsS{σ_1} \\ & |{- Unfold $\semabsS{σ_1}$ -}| \\
+      {}={}& \mathit{apps}_μ(κ)(\semabs{\py}_{α(μ) \circ ρ}) \\ & |{- Unfold $\semabs{\py}$ -}| \\
+      {}={}& \mathit{apps}_μ(κ)((α(μ) \circ ρ)(\py)) \\ & |{- Unfold $α$ -}| \\
+      {}={}& \mathit{apps}_μ(κ)(\pz \both \semabs{\pe'}_{α(μ) \circ ρ'}) \\ & |{- Drop $[\pz↦\aU]$ -}| \\
+      {}⊒{}& \mathit{apps}_μ(κ)(\semabs{\pe'}_{α(μ) \circ ρ'}) \\ & |{- Definition of $\mathit{apps}_μ$ -}| \\
+      {}={}& \mathit{apps}_μ(\UpdateF(\pa) \pushF κ)(\semabs{\pe'}_{α(μ) \circ ρ'}) \\ & |{- Refold $\semabsS{σ_2}$ -}| \\
       {}={}& \semabsS{σ_2}
-    \end{DispWithArrows*}
+    \end{align*}
 
   \item \textbf{Case }$\UpdateT$:
     Then $(\pv, ρ, μ[\pa↦(\py,ρ',\pe')], \UpdateF(\pa) \pushF κ) \smallstep (\pv,ρ,μ[\pa↦(\py,ρ,\pv)],κ)$.
@@ -793,18 +797,18 @@ By cases on the transition.
     that can be reused across many more analyses.
 
     Assuming \Cref{eqn:absent-upd} has been proved, we proceed
-    \begin{DispWithArrows*}[fleqn,mathindent=3em]
-           & \semabsS{σ_1} \Arrow{Unfold $\semabsS{σ_1}$} \\
-      {}={}& \mathit{apps}_μ(\UpdateF(\pa) \pushF κ)(\semabs{\pv}_{α(μ) \circ ρ}) \Arrow{Definition of $\mathit{apps}_μ$} \\
-      {}={}& \mathit{apps}_μ(κ)(\semabs{\pv}_{α(μ) \circ ρ}) \Arrow{Above argument that $\semabs{\pv}_{α(μ) \circ ρ} ⊑ \semabs{\pe'}_{α(μ') \circ ρ'}$} \\
-      {}⊒{}& \mathit{apps}_{μ[\pa↦(\py,ρ,\pv)]}(κ)(\semabs{\pv}_{α(μ[\pa↦(\py,ρ,\pv)]) \circ ρ}) \Arrow{Refold $\semabsS{σ_2}$} \\
+    \begin{align*}
+           & \semabsS{σ_1} \\ & |{- Unfold $\semabsS{σ_1}$ -}| \\
+      {}={}& \mathit{apps}_μ(\UpdateF(\pa) \pushF κ)(\semabs{\pv}_{α(μ) \circ ρ}) \\ & |{- Definition of $\mathit{apps}_μ$ -}| \\
+      {}={}& \mathit{apps}_μ(κ)(\semabs{\pv}_{α(μ) \circ ρ}) \\ & |{- Above argument that $\semabs{\pv}_{α(μ) \circ ρ} ⊑ \semabs{\pe'}_{α(μ') \circ ρ'}$ -}| \\
+      {}⊒{}& \mathit{apps}_{μ[\pa↦(\py,ρ,\pv)]}(κ)(\semabs{\pv}_{α(μ[\pa↦(\py,ρ,\pv)]) \circ ρ}) \\ & |{- Refold $\semabsS{σ_2}$ -}| \\
       {}={}& \semabsS{σ_2}
-    \end{DispWithArrows*}
+    \end{align*}
 \end{itemize}
 \end{proof}
 
 \noindent
-We conclude with the \hypertarget{proof:absence-correct}{proof} for \Cref{thm:absence-correct}:
+We conclude with the \pagetarget{proof:absence-correct}{proof} for \Cref{thm:absence-correct}:
 \begin{proof}
 We show the contraposition, that is,
 if $\px$ is used in $\pe$, then $φ(\px) = \aU$.
@@ -823,9 +827,10 @@ Under the above assumptions, $\tr(\py).φ(\px) = \aU$ implies $\px = \py$ for al
 $\py$, because $μ_1(\pa)$ is the only heap entry in which $\px$ occurs by the
 shadowing assumptions on syntax.
 By unfolding $\semabsS{\wild}$ and $\semabs{\py}$ we can see that
-\[
-  [\px ↦ \aU] ⊑ α(μ_1)(\pa).φ = α(μ')(\pa).φ = \semabs{\py}_{α(μ') \circ ρ'[\py↦\pa]}.φ ⊑ (\semabsS{(\py,ρ'[\py↦\pa],μ',κ')}).φ.
-\]
+\[\begin{array}{r@@{}c@@{}l}
+  [\px ↦ \aU] ⊑ α(μ_1)(\pa).φ = α(μ')(\pa).φ & {}={} & \semabs{\py}_{α(μ') \circ ρ'[\py↦\pa]}.φ \\
+                                             & {}⊑{} & (\semabsS{(\py,ρ'[\py↦\pa],μ',κ')}).φ.
+\end{array}\]
 By \Cref{thm:preserve-absent}, we also have
 \[
   (\semabsS{(\py,ρ'[\py↦\pa],μ',κ')}).φ ⊑ (\semabsS{(\pe,ρ_1,μ_1,κ)}).φ.
@@ -835,13 +840,13 @@ Since there was no other heap entry for $\px$ and $\pa$ cannot occur in $κ$ or
 $ρ$ due to well-addressedness, we have $[\px ↦ \aU] ⊑ (\semabsS{(\pe,ρ_1,μ_1,κ)}).φ$ if
 and only if $[\px ↦ \aU] ⊑ (\semabs{\pe}_{\tr}).φ$.
 With \Cref{thm:diag-fact}, we can decompose
-\begin{DispWithArrows*}[fleqn,mathindent=1em]
-       & [\px ↦ \aU] \Arrow{Above result} \\
-  {}⊑{}& (\semabs{\pe}_{\tr}).φ \Arrow{$\tr_Δ(\px) \triangleq \langle [\px ↦ \aU], \tr(\px).\varsigma \rangle$, \Cref{thm:diag-fact}} \\
-  {}={}& ((\semabs{\pe}_{\tr_Δ})[\many{\py \Mapsto \tr(\py).φ}]).φ \Arrow{$\varsigma ⊑ \repU$, hence $\tr_Δ ⊑ \tr_\pe$} \\
-  {}⊑{}& ((\semabs{\pe}_{\tr_\pe})[\many{\py \Mapsto \tr(\py).φ}]).φ \Arrow{Definition of $\wild[\wild \Mapsto \wild]$} \\
+\begin{align*}
+       & [\px ↦ \aU] \\ & |{- Above result -}| \\
+  {}⊑{}& (\semabs{\pe}_{\tr}).φ \\ & |{- $\tr_Δ(\px) \triangleq \langle [\px ↦ \aU], \tr(\px).\varsigma \rangle$, \Cref{thm:diag-fact} -}| \\
+  {}={}& ((\semabs{\pe}_{\tr_Δ})[\many{\py \Mapsto \tr(\py).φ}]).φ \\ & |{- $\varsigma ⊑ \repU$, hence $\tr_Δ ⊑ \tr_\pe$ -}| \\
+  {}⊑{}& ((\semabs{\pe}_{\tr_\pe})[\many{\py \Mapsto \tr(\py).φ}]).φ \\ & |{- Definition of $\wild[\wild \Mapsto \wild]$ -}| \\
   {}={}& \Lub \{ \tr(\py).φ \mid \semabs{\pe}_{\tr_\pe}.φ(\py) = \aU \}
-\end{DispWithArrows*}
+\end{align*}
 But since $\tr(\py).φ(\px) = \aU$ implies $\px = \py$ (refer to definition of
 $\tr$), we must have $(\semabs{\pe}_{\tr_\pe}).φ(\px) = \aU$, as required.
 \end{proof}
@@ -854,7 +859,7 @@ too difficult to prove for a simple summary mechanism.
 Building on these definitions, we may finally attempt the proof for
 \Cref{thm:absence-correct}.
 I suggest for the reader to have a cursory look, either by clicking on the theorem
-number linking to the Appendix or going to \cpageref{proof:absence-correct}.
+number linking to the Appendix or going to page \pageref{proof:absence-correct}.
 The proof is exemplary of far more ambitious proofs such as in
 \citet{Sergey:14} and \citet[Section 4]{Breitner:16}.
 Though seemingly disparate, these proofs all follow an established
@@ -863,8 +868,7 @@ preservation-style proof technique at heart.
 %4.1]{Nielson:99}, applicable to \emph{trace properties}, but not to
 %\emph{hyperproperties}~\citep{ClarksonSchneider:10}.}
 The proof of \citet{Sergey:14} for a generalisation of $\semabs{\wild}$
-is roughly structured as follows (non-clickable references to Figures
-and Lemmas below reference \citet{Sergey:14}):
+is roughly structured as follows:
 
 \begin{enumerate}
   \item Instrument a standard call-by-need semantics (a variant of my reference
@@ -891,8 +895,9 @@ it, is enormous.
     semantics in \citet{Sergey:14} becomes non-deterministic.
     Does this instrumentation still express the desired semantic property?
   \item Step (2) all but duplicates a complicated analysis
-    definition (\ie $\semabs{\wild}$) into a type system (in Figure 7) with
-    subtle adjustments expressing invariants for the preservation proof.
+    definition (\ie $\semabs{\wild}$) into a type system (in Figure 7 of
+    \citet{Sergey:14}) with subtle adjustments expressing invariants for the
+    preservation proof.
   \item
     Furthermore, step (2) extends this type system to small-step machine
     configurations (in Figure 13), \ie stacks and heaps, the scoping of which
@@ -908,8 +913,9 @@ it, is enormous.
   \item
     This is all setup before step (3) proves interesting properties about the
     semantic domain of the analysis.
-    Among the more interesting properties is the \emph{substitution lemma} A.8
-    to be applied during beta reduction; exactly as in my proof.
+    Among the more interesting properties in the proof of \citet{Sergey:14}
+    is the \emph{substitution lemma} A.8 to be applied during beta reduction;
+    exactly as in my proof.
   \item
     While proving that a single step $σ_1 \smallstep σ_2$ preserves analysis
     information in step (3), I actually got stuck in the $\UpdateT$
