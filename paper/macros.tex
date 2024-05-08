@@ -68,11 +68,16 @@
 \end{minipage}%
 \\[-0.5\baselineskip]
 }
+\newcommand{\pagetarget}[2]{%
+  \phantomsection%
+  \label{#1}%
+  \hypertarget{#1}{#2}%
+}
 
 % Syntax
 %% LC
-\newcommand{\Con}{\mathsf{Con}}
-\newcommand{\Var}{\mathsf{Var}}
+\renewcommand{\Con}{\mathsf{Con}} % defined in LYG, hence renew
+\renewcommand{\Var}{\mathsf{Var}} % defined in LYG, hence renew
 \newcommand{\Exp}{\mathsf{Exp}}
 \newcommand{\Ctx}{\mathsf{Ctx}}
 \newcommand{\Val}{\mathsf{Val}}
@@ -108,7 +113,7 @@
 \newcommand{\Events}{\mathbb{Ev}}
 %% Traces
 \newcommand{\Traces}{\mathbb{T}}
-\newcommand{\cons}{\mathbin{::}}
+\renewcommand{\cons}{\mathbin{::}} % defined in LYG, hence renew
 \newcommand{\ctrl}{\mathit{ctrl}}
 \newcommand{\cont}{\mathit{cont}}
 \newcommand{\init}{\mathit{init}}
@@ -126,9 +131,6 @@
 \newcommand{\Continuations}{\mathbb{K}}
 \newcommand{\EContexts}{\mathbb{EC}}
 \newcommand{\AContexts}{\mathbb{AC}}
-\newcommand{\Domain}[1]{{\mathbb{D}^{#1}}}
-\newcommand{\ScottD}{\Domain{}}
-\newcommand{\UsgD}{\Domain{u}}
 \newcommand{\tr}{{\ensuremath{\tilde{ρ}}}}
 \newcommand{\tm}{{\ensuremath{\tilde{μ}}}}
 \newcommand{\ttau}{{\ensuremath{\tilde{τ}}}}
@@ -155,15 +157,15 @@
 \newcommand{\Uses}{\mathsf{Uses}}
 \newcommand{\Summary}{\mathsf{Summary}}
 \newcommand{\sumcons}{\mathbin{\bbcolon}}
-\newcommand{\rep}[1]{\mathsf{Rep}~#1}
+\renewcommand{\rep}[1]{\mathsf{Rep}~#1} % defined in LYG, hence renew
 \newcommand{\repA}{\mathsf{Rep}~\aA}
 \newcommand{\repU}{\mathsf{Rep}~\aU}
 \newcommand{\both}{\mathbin{\&}}
-\newcommand{\Env}{\mathsf{Env}}
+\renewcommand{\Env}{\mathsf{Env}} % defined in LYG, hence renew
 \newcommand{\aA}{\mathsf{A}}
 \newcommand{\aU}{\mathrlap{\mathsf{U}}\hphantom{\aA}}
 \newcommand{\AbsTy}{\mathsf{AbsTy}}
-\newcommand{\denot}[1]{\llbracket {#1} \rrbracket}
+\renewcommand{\denot}[1]{\llbracket {#1} \rrbracket} % defined in LYG, hence renew
 \newcommand{\semabs}[1]{\mathcal{A}\denot{#1}}
 \newcommand{\semabsK}[1]{\mathcal{K}\denot{#1}}
 \newcommand{\semabsS}[1]{\mathcal{C}\denot{#1}}
