@@ -324,7 +324,7 @@ which is naturally expressed using type-class overloading, thus:
 \[
 |eval  ::  (Trace d, Domain d, HasBind d) =>  Exp -> (Name :-> d) -> d|.
 \]
-We have parameterised the semantic domain |d| over three type classes |Trace|, |Domain| and |HasBind|, whose signatures are given in \Cref{fig:trace-classes}.%
+We have parameterised the semantic domain |d| over three type classes |Trace|, |Domain| and |HasBind|, whose signatures are given in \Cref{fig:trace-classes}.
 %\footnote{One can think of these type classes as a fold-like final encoding~\citep{Carette:07} of a domain. However, the significance is in the \emph{decomposition} of the domain, not the choice of encoding.}
 Each of the three type classes offer knobs that we will tweak to derive
 different evaluation strategies as well as static analyses.
@@ -557,7 +557,7 @@ Heap)|$.
 
 Our trace transformer |ByNeed| in \Cref{fig:by-need} solves this type equation
 via |θ := ByNeed T|.
-It embeds a standard state transformer monad,%
+It embeds a standard state transformer monad,
 %\footnote{Indeed, we derive its monad instance |via StateT (Heap (ByNeed τ))
 %τ|~\citep{Blondal:18}.}
 whose key operations |getN| and |putN| are given in \Cref{fig:by-need}.
@@ -710,7 +710,7 @@ and its value |v|,
 consider the case |τ = T|.
 Then |return = Ret| and we get |d = rhs (Ret v)| for the value |v| at the end of
 the trace |d|, as computed by the type class instance method |getValue :: T v ->
-v|.%
+v|.
 %\footnote{The keen reader may have noted that we could use |Extract| to define a
 %|MonadFix| instance for deterministic |τ|.}
 The effect of |Ret (getValue (unByValue d))| is that of stripping all |Step|s from |d|.%
