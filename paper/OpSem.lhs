@@ -8,43 +8,55 @@
 \begin{figure}
 \[\begin{array}{c}
  \arraycolsep3pt
- \begin{array}{rrclcl@@{\hspace{1.5em}}rrcrclcl}
+ \begin{array}{rrclcl}
   \text{Addresses}     & \pa & ∈ & \Addresses     & \simeq & ℕ
-  &
-  \text{States}        & σ   & ∈ & \States        & =      & \Exp \times \Environments \times \Heaps \times \Continuations
   \\
-  \text{Environments}  & ρ   & ∈ & \Environments  & =      & \Var \pfun \Addresses
-  &
-  \text{Heaps}         & μ   & ∈ & \Heaps         & =      & \Addresses \pfun \Var \times \Environments \times \Exp
+  \text{States}        & σ   & ∈ & \States        & =    & \Exp \times \Environments \times \Heaps \times \Continuations
   \\
-  \text{Continuations} & κ   & ∈ & \Continuations & ::=    & \multicolumn{7}{l}{\StopF \mid \ApplyF(\pa) \pushF κ \mid \SelF(ρ,\SelArity) \pushF κ \mid \UpdateF(\pa) \pushF κ} \\
+  \text{Environments}  & ρ   & ∈ & \Environments  & =    & \Var \pfun \Addresses
+  \\
+  \text{Heaps}         & μ   & ∈ & \Heaps         & =    & \Addresses \pfun \Var \times \Environments \times \Exp
+  \\
+  \text{Continuations} & κ   & ∈ & \Continuations & ::=  & \StopF \mid \ApplyF(\pa) \pushF κ \mid \UpdateF(\pa) \pushF κ \\
+                       &     &   &                & \mid & \SelF(ρ,\SelArity) \pushF κ \\
  \end{array} \\
  \\[-0.5em]
 \end{array}\]
-
-\newcolumntype{L}{>{$}l<{$}} % math-mode version of "l" column type
-\newcolumntype{R}{>{$}r<{$}} % math-mode version of "r" column type
-\newcolumntype{C}{>{$}c<{$}} % math-mode version of "c" column type
-\resizebox{\textwidth}{!}{%
-\begin{tabular}{LR@@{\hspace{0.4em}}C@@{\hspace{0.4em}}LL}
-\toprule
-\text{Rule} & σ_1 & \smallstep & σ_2 & \text{where} \\
-\midrule
-\LetIT & (\Let{\px}{\pe_1}{\pe_2},ρ,μ,κ) & \smallstep & (\pe_2,ρ',μ[\pa↦(\px,ρ',\pe_1)], κ) & \pa \not∈ \dom(μ),\ ρ'\! = ρ[\px↦\pa] \\
-\AppIT & (\pe~\px,ρ,μ,κ) & \smallstep & (\pe,ρ,μ,\ApplyF(\pa) \pushF κ) & \pa = ρ(\px) \\
-\CaseIT & (\Case{\pe_s}{\Sel[r]},ρ,μ,κ) & \smallstep & (\pe_s,ρ,μ,\SelF(ρ,\Sel[r]) \pushF κ) & \\
-\LookupT(\py) & (\px, ρ, μ, κ) & \smallstep & (\pe, ρ', μ, \UpdateF(\pa) \pushF κ) & \pa = ρ(\px),\ (\py,ρ',\pe) = μ(\pa) \\
-\AppET & (\Lam{\px}{\pe},ρ,μ, \ApplyF(\pa) \pushF κ) & \smallstep & (\pe,ρ[\px ↦ \pa],μ,κ) &  \\
-\CaseET & (K'~\many{y},ρ,μ, \SelF(ρ',\Sel) \pushF κ) & \smallstep & (\pe_i,ρ'[\many{\px_i ↦ \pa}],μ,κ) & K_i = K',\ \many{\pa = ρ(\py)} \\
-\UpdateT & (\pv, ρ, μ, \UpdateF(\pa) \pushF κ) & \smallstep & (\pv, ρ, μ[\pa ↦ (\px,ρ,\pv)], κ) & μ(\pa) = (\px,\wild,\wild) \\
-\bottomrule
-\end{tabular}
-} % resizebox
+\[ \ruleform{ σ_1 \smallstep σ_2 } \]
+\[\begin{array}{c}
+  \inferrule*[left=$\LetIT$]
+    {\pa \not∈ \dom(μ) \\ ρ' = ρ[\px↦\pa]}
+    {(\Let{\px}{\pe_1}{\pe_2},ρ,μ,κ) \smallstep (\pe_2,ρ',μ[\pa↦(\px,ρ',\pe_1)], κ)}
+  \\ \\[-0.5em]
+  \inferrule*[left=$\AppIT$]
+    {\pa = ρ(\px)}
+    {(\pe~\px,ρ,μ,κ) \smallstep (\pe,ρ,μ,\ApplyF(\pa) \pushF κ)}
+  \\ \\[-0.5em]
+  \inferrule*[left=$\AppET$]
+    { \\ }
+    {(\Lam{\px}{\pe},ρ,μ, \ApplyF(\pa) \pushF κ) \smallstep (\pe,ρ[\px ↦ \pa],μ,κ)}
+  \\ \\[-0.5em]
+  \inferrule*[left=$\LookupT(\py)$]
+    {\pa = ρ(\px) \\ (\py,ρ',\pe) = μ(\pa)}
+    {(\px, ρ, μ, κ) \smallstep (\pe, ρ', μ, \UpdateF(\pa) \pushF κ)}
+  \\ \\[-0.5em]
+  \inferrule*[left=$\UpdateT$]
+    {μ(\pa) = (\px,\wild,\wild)}
+    {(\pv, ρ, μ, \UpdateF(\pa) \pushF κ) \smallstep (\pv, ρ, μ[\pa ↦ (\px,ρ,\pv)], κ)}
+  \\ \\[-0.5em]
+  \inferrule*[left=$\CaseIT$]
+    { \\ }
+    {(\Case{\pe_s}{\Sel[r]},ρ,μ,κ) \smallstep (\pe_s,ρ,μ,\SelF(ρ,\Sel[r]) \pushF κ)}
+  \\ \\[-0.5em]
+  \inferrule*[left=$\CaseET$]
+    {K_i = K',\ \many{\pa = ρ(\py)}}
+    {(K'~\many{y},ρ,μ, \SelF(ρ',\Sel) \pushF κ) \smallstep (\pe_i,ρ'[\many{\px_i ↦ \pa}],μ,κ)}
+\end{array}\]
 \caption{Lazy Krivine transition semantics $\smallstep$}
   \label{fig:lk-semantics}
 \end{figure}
 
-Before we get to introduce our novel denotational interpreters, let us
+Before I introduce my novel denotational interpreters, let us
 recall the semantic ground truth of this work and others \citep{Sergey:14,
 Breitner:16}: The Mark II machine of \citet{Sestoft:97} given in
 \Cref{fig:lk-semantics}, a small-step operational semantics.
@@ -60,7 +72,7 @@ states, consisting of a control expression $\pe$, an environment $ρ$ mapping
 lexically-scoped variables to their current heap address, a heap $μ$ listing a
 closure for each address, and a stack of continuation frames $κ$.
 There is one harmless non-standard extension: For $\LookupT$
-transitions, we take note of the let-bound variable $\py$ which allocated the
+transitions, I take note of the let-bound variable $\py$ which allocated the
 heap binding that the machine is about to look up. The association from address
 to let-bound variable is maintained in the first component of a heap entry
 triple and requires slight adjustments of the $\LetIT$, $\LookupT$ and
@@ -76,7 +88,7 @@ maps $a$ to $b$ and is otherwise equal to $f$.
 The initial machine state for a closed expression $\pe$ is given by the
 injection function $\init(\pe) = (\pe,[],[],\StopF)$ and
 the final machine states are of the form $(\pv,\wild,\wild,\StopF)$.
-We bake into $σ∈\States$ the simplifying invariant of \emph{well-addressedness}:
+I bake into $σ∈\States$ the simplifying invariant of \emph{well-addressedness}:
 Any address $\pa$ occurring in $ρ$, $κ$ or the range of $μ$ must be an element of
 $\dom(μ)$.
 It is easy to see that the transition system maintains this invariant and that
@@ -85,48 +97,36 @@ in $ρ$.
 
 We conclude with two example traces. The first one evaluates $\Let{i}{\Lam{x}{x}}{i~i}$:
 \begin{align} \label{ex:trace}
-  &\arraycolsep3pt
-  \begin{array}{lclclclclc}
-  (\Let{i}{\Lam{x}{x}}{i~i}, [], [], \StopF) & \smallstep[\LetIT] & (i~i, ρ_1, μ, \StopF) & \smallstep[\AppIT] & (i, ρ_1, μ, κ) & \smallstep[\LookupT(i)] \\
-  \highlight{(\Lam{x}{x}, ρ_1, μ, \UpdateF(\pa_1) \pushF κ)} & \highlight{\smallstep[\UpdateT]} & (\Lam{x}{x}, ρ_1, μ, κ) & \smallstep[\AppET] & (x, ρ_2, μ, \StopF) & \smallstep[\LookupT(i)] \\
-  \highlight{(\Lam{x}{x}, ρ_1, μ, \UpdateF(\pa_1) \pushF \StopF)} & \highlight{\smallstep[\UpdateT]} & (\Lam{x}{x}, ρ_1, μ, \StopF)
-  \end{array} \\ \notag
-  &\qquad \text{where} \begin{array}{llll}
-    κ = \ApplyF(\pa_1) \pushF \StopF, & ρ_1 = [i ↦ \pa_1], & ρ_2 = [i ↦ \pa_1, x ↦ \pa_1], & μ = [\pa_1 ↦ (i, ρ_1,\Lam{x}{x})] \\
-  \end{array} \notag
+  \arraycolsep3pt
+  \begin{array}{cll}
+  \multicolumn{2}{l}{(\Let{i}{\Lam{x}{x}}{i~i}, [], [], \StopF)} & \text{where} \\
+    \quad \smallstep[\LetIT] & (i~i, ρ_1, μ, \StopF) & \quad ρ_1 = [i ↦ \pa_1] \\
+    \quad \smallstep[\AppIT] & (i, ρ_1, μ, κ)        & \quad μ = [\pa_1 ↦ (i, ρ_1,\Lam{x}{x})] \\
+    \quad \smallstep[\LookupT(i)] & \highlight{(\Lam{x}{x}, ρ_1, μ, \UpdateF(\pa_1) \pushF κ)} & \quad κ = \ApplyF(\pa_1) \pushF \StopF \\
+    \quad \highlight{\smallstep[\UpdateT]} & (\Lam{x}{x}, ρ_1, μ, κ) \\
+    \quad \smallstep[\AppET] & (x, ρ_2, μ, \StopF) & \quad ρ_2 = [i ↦ \pa_1, x ↦ \pa_1] \\
+    \quad \smallstep[\LookupT(i)] & \highlight{(\Lam{x}{x}, ρ_1, μ, \UpdateF(\pa_1) \pushF \StopF)} \\
+    \quad \highlight{\smallstep[\UpdateT]} & (\Lam{x}{x}, ρ_1, μ, \StopF)
+  \end{array}
 \end{align}
 The corresponding by-name trace simply omits the highlighted update steps.
 The last $\LookupT(i)$ transition exemplifies that the lambda-bound variable in
 control differs from the let-bound variable used to identify the heap entry.
 
 The second example evaluates $\pe \triangleq \Let{i}{(\Lam{y}{\Lam{x}{x}})~i}{i~i}$,
-demonstrating memoisation of $i$:
+demonstrating recursive $\mathbf{let}$ semantics and memoisation of $i$:
 \begin{align} \label{ex:trace2}
-  &\begin{array}{l}
-  (\pe, [], [], \StopF)
-  \smallstep[\LetIT]
-  (i~i, ρ_1, μ_1, \StopF)
-  \smallstep[\AppIT]
-  (i, ρ_1, μ_1, κ_1)
-  \smallstep[\LookupT(i)]
-  ((\Lam{y}{\Lam{x}{x}})~i, ρ_1, μ_1, κ_2)
-  \\
-  \smallstep[\AppIT]
-  (\Lam{y}{\Lam{x}{x}}, ρ_1, μ_1, \ApplyF(\pa_1) \pushF κ_2)
-  \smallstep[\AppET]
-  (\Lam{x}{x}, ρ_2, μ_1, κ_2)
-  \smallstep[\UpdateT]
-  (\Lam{x}{x}, ρ_2, μ_2, κ_1)
-  \\
-  \smallstep[\AppET]
-  (x, ρ_3, μ_2, \StopF)
-  \smallstep[\LookupT(i)]
-  (\Lam{x}{x}, ρ_2, μ_2, \UpdateF(\pa_1) \pushF \StopF)
-  \smallstep[\UpdateT]
-  (\Lam{x}{x}, ρ_2, μ_2, \StopF)
-  \end{array} \\ \notag
-  &\qquad\text{where } \arraycolsep1pt \begin{array}{ll}
-    ρ_1 = [i ↦ \pa_1], & μ_1 = [\pa_1 ↦ (i, ρ_1, (\Lam{y}{\Lam{x}{x}})~i)], ρ_3 = [i ↦ \pa_1, y ↦ \pa_1, x ↦ \pa_1] \\
-    ρ_2 = [i ↦ \pa_1, y ↦ \pa_1], & μ_2 = [\pa_1 ↦ (i,ρ_2,\Lam{x}{x})], κ_1 = \ApplyF(\pa_1) \pushF \StopF, κ_2 = \UpdateF (\pa_1) \pushF κ_1
-  \end{array} \notag
+  \arraycolsep3pt
+  \begin{array}{clll}
+  \multicolumn{2}{l}{(\pe, [], [], \StopF)}                                                  & \text{where} \\
+    \quad \smallstep[\LetIT]      & (i~i, ρ_1, μ_1, \StopF)                                  &  \quad ρ_1 = [i ↦ \pa_1] \\
+    \quad \smallstep[\AppIT]      & (i, ρ_1, μ_1, \ApplyF(\pa_1) \pushF \StopF)              &  \quad μ_1 = [\pa_1 ↦ (i, ρ_1, (\Lam{y}{\Lam{x}{x}})~i)] \\
+    \quad \smallstep[\LookupT(i)] & ((\Lam{y}{\Lam{x}{x}})~i, ρ_1, μ_1, κ)                   &  \quad κ = \UpdateF (\pa_1) \pushF \ApplyF(\pa_1) \pushF \StopF \\
+    \quad \smallstep[\AppIT]      & (\Lam{y}{\Lam{x}{x}}, ρ_1, μ_1, \ApplyF(\pa_1) \pushF κ) \\
+    \quad \smallstep[\AppET]      & (\Lam{x}{x}, ρ_2, μ_1, κ)                                &  \quad ρ_2 = [i ↦ \pa_1, y ↦ \pa_1] \\
+    \quad \smallstep[\UpdateT]    & (\Lam{x}{x}, ρ_2, μ_2, \ApplyF(\pa_1) \pushF \StopF)     &  \quad μ_2 = [\pa_1 ↦ (i,ρ_2,\Lam{x}{x})] \\
+    \quad \smallstep[\AppET]      & (x, ρ_3, μ_2, \StopF)                                    &  \quad ρ_3 = [i ↦ \pa_1, y ↦ \pa_1, x ↦ \pa_1] \\
+    \quad \smallstep[\LookupT(i)] & (\Lam{x}{x}, ρ_2, μ_2, \UpdateF(\pa_1) \pushF \StopF) \\
+    \quad \smallstep[\UpdateT]    & (\Lam{x}{x}, ρ_2, μ_2, \StopF)
+  \end{array}
 \end{align}
