@@ -50,7 +50,7 @@ instance {-# OVERLAPPING #-} Show a => Show (T (Maybe a)) where
 instance Show (Value τ) where
   show (Fun _) = "\\lambda"
   show (Con k _) = "\\mathit{Con}(" ++ show k ++ ")"
-  show Stuck = "\\lightning"
+  show Stuck = "\\mbox{\\lightning}"
 instance (Show (τ v)) => Show (ByName τ v) where
   show (ByName τ) = show τ
 instance Show (ByNeed τ a) where
@@ -66,7 +66,7 @@ instance (Show a, forall a. Show a => Show (τ a)) => Show (Fork (ParT τ) a) wh
 instance (Show a, forall a. Show a => Show (m a)) => Show (ParT m a) where
   show (ParT m) = show m
 instance {-# OVERLAPPING #-} (Show v) => Show (Addr :-> v) where
-  showsPrec _ = showListWith (\(k,v) -> shows k . showString "\\!\\! \\mapsto \\!\\! " . shows v) . Map.toList
+  showsPrec _ = showListWith (\(k,v) -> shows k . showString "\\mapsto " . shows v) . Map.toList
 instance {-# OVERLAPPING #-} (Show v) => Show (Name :-> v) where
   showsPrec _ = showListWith (\(k,v) -> showString "\\mathit{" . showString k . showString "} \\! \\mapsto \\! " . shows v) . Map.toList
 
@@ -83,51 +83,52 @@ takeName n (ByName τ) = takeT n τ
 \section{A Denotational Interpreter}
 \label{sec:interp}
 
-In this section, we present the main contribution of this work, namely a
+In this section, I present the main contribution of this chapter, namely a
 generic \emph{denotational interpreter}%
 \footnote{This term was coined by \citet{Might:10}.
-We find it fitting, because a denotational interpreter is both a
+I find the term fitting, because a denotational interpreter is both a
 \emph{denotational semantics}~\citep{ScottStrachey:71} as well as a total
 \emph{definitional interpreter}~\citep{Reynolds:72}.}
-for a functional language which we instantiate with different semantic domains.
+for a functional language which I instantiate with different semantic domains.
 The choice of semantic domain determines the \emph{evaluation strategy}
 (call-by-name, call-by-value, call-by-need) and the degree to which
 \emph{operational detail} can be observed.
 Yet different semantic domains give rise to useful \emph{summary-based} static
 analyses such as usage analysis in \Cref{sec:abstraction}, all from the same
 interpreter skeleton.
-Our generic denotational interpreter enables sharing of soundness proofs, thus
+My generic denotational interpreter enables sharing of soundness proofs, thus
 drastically simplifying the soundness proof obligation per derived analysis
 (\Cref{sec:soundness}).
 
-Denotational interpreters can be implemented in any higher-order language such as OCaml, Scheme or Java with explicit thunks, but we picked Haskell for convenience.%
-\footnote{We extract from this document runnable Haskell files which we add as a Supplement, containing the complete definitions. Furthermore, the (terminating) interpreter outputs are directly generated from this extract.}
+Denotational interpreters can be implemented in any higher-order language such as OCaml, Scheme or Java with explicit thunks, but I picked Haskell as implementation language for convenience.%
+\footnote{I extract from this document runnable Haskell files which I add as an Appendix, containing the complete definitions. Furthermore, the (terminating) interpreter outputs are directly generated from this extract.}
 
 \begin{figure}
-\begin{minipage}{0.49\textwidth}
+\begin{centering}
 \begin{spec}
-data Exp
-  =  Var Name | Let Name Exp Exp
-  |  Lam Name Exp | App Exp Name
-  |  ConApp Tag [Name] | Case Exp Alts
-type Name = String
-type Alts = Tag :-> ([Name],Exp)
-data Tag = ...; conArity :: Tag -> Int
+data Exp  =  Var Name | Lam Name Exp | App Exp Name
+          |  Let Name Exp Exp | ConApp Tag [Name] | Case Exp Alts
+type Name  = String
+type Alts  = Tag :-> ([Name],Exp)
+data Tag   = ...; conArity :: Tag -> Int
 \end{spec}
+\end{centering}
+\\[-2.5\baselineskip]
 \caption{Syntax}
 \label{fig:syntax}
-\end{minipage}%
-\begin{minipage}{0.51\textwidth}
+\end{figure}
+\begin{figure}
+\begin{centering}
 \begin{code}
-type (:->) = Map; emp :: Ord k => k :-> v
-ext :: Ord k => (k :-> v) -> k -> v -> (k :-> v)
-exts :: Ord k  => (k :-> v) -> [k] -> [v]
-               -> (k :-> v)
-(!) :: Ord k => (k :-> v) -> k -> v
-dom :: Ord k => (k :-> v) -> Set k
-(∈) :: Ord k => k -> Set k -> Bool
-(<<) :: (b -> c) -> (a :-> b) -> (a :-> c)
-assocs :: (k :-> v) -> [(k,v)]
+type (:->) = Map
+emp     :: Ord k => k :-> v
+ext     :: Ord k => (k :-> v) -> k -> v -> (k :-> v)
+exts    :: Ord k => (k :-> v) -> [k] -> [v] -> (k :-> v)
+(!)     :: Ord k => (k :-> v) -> k -> v
+dom     :: Ord k => (k :-> v) -> Set k
+(∈)     :: Ord k => k -> Set k -> Bool
+(<<)    :: (b -> c) -> (a :-> b) -> (a :-> c)
+assocs  :: (k :-> v) -> [(k,v)]
 \end{code}
 %if style == newcode
 \begin{code}
@@ -143,9 +144,10 @@ dom = Map.keysSet
 assocs = Map.assocs
 \end{code}
 %endif
+\end{centering}
+\\[-2.5\baselineskip]
 \caption{Environments}
 \label{fig:map}
-\end{minipage}
 \end{figure}
 
 \subsection{Semantic Domain} \label{sec:dna}
@@ -160,37 +162,36 @@ assigning each observationally distinct expression a distinct meaning.
 For example, it is not possible to observe evaluation cardinality, which
 is the whole point of analyses such as usage analysis (\Cref{sec:abstraction}).
 
-A distinctive feature of our work is that our semantic domains are instead
+A distinctive feature of my work is that the semantic domains are instead
 \emph{traces} that describe the \emph{steps} taken by an abstract machine, and
 that \emph{end} in semantic values.
 It is possible to describe usage cardinality as a property of the traces
 thus generated, as required for a soundness proof of usage analysis.
-We choose |DName|, defined below, as the first example of such a semantic domain,
+I choose |DName|, defined below, as the first example of such a semantic domain,
 because it is simple and illustrative of the approach.
-Instantiated at |DName|, our generic interpreter will produce precisely the
+Instantiated at |DName|, the generic interpreter will produce precisely the
 traces of the by-\textbf{\textrm{na}}me variant of the Krivine machine in
 \Cref{fig:lk-semantics}.%
-\footnote{For a realistic implementation, we would define |D| as a |newtype| to
-keep type class resolution decidable and non-overlapping. We will however stick
+\footnote{For a realistic implementation, I would define |D| as a |newtype| to
+keep type class resolution decidable and non-overlapping. I will however stick
 to a |type| synonym in this presentation in order to elide noisy wrapping and
 unwrapping of constructors.}
 
-\begin{minipage}{0.62\textwidth}
 \begin{code}
-type D τ = τ (Value τ);   type DName = D T
+type DName = D T
+type D τ = τ (Value τ);
 data T v = Step Event (T v) | Ret v
 data Event  =  Look Name | Upd | App1 | App2
             |  Let0 | Let1 | Case1 | Case2
 data Value τ = Stuck | Fun (D τ -> D τ) | Con Tag [D τ]
 \end{code}
-\end{minipage}
-\begin{minipage}{0.38\textwidth}
 \begin{spec}
 instance Monad T where
   return v = Ret v
   Ret v >>= k = k v
   Step e τ >>= k = Step e (τ >>= k)
 \end{spec}
+
 %if style == newcode
 \begin{code}
 instance Functor T where
@@ -204,7 +205,6 @@ instance Monad T where
   Step e τ >>= k = Step e (τ >>= k)
 \end{code}
 %endif
-\end{minipage}
 \noindent
 A trace |T| either returns a value (|Ret|) or makes a small-step transition (|Step|).
 Each step |Step ev rest| is decorated with an event |ev|, which describes what happens in that step.
@@ -213,8 +213,8 @@ Note that the choice of |Event| is use-case (\ie analysis) specific and suggests
 a spectrum of intensionality, with |data Event = Unit| on the more abstract end
 of the spectrum and arbitrary syntactic detail attached to each of |Event|'s
 constructors at the intensional end of the spectrum.%
-\footnote{If our language had facilities for input/output and more general
-side-effects, we could have started from a more elaborate trace construction
+\footnote{If my language had facilities for input/output and more general
+side-effects, I could have started from a more elaborate trace construction
 such as (guarded) interaction trees~\citep{interaction-trees,gitrees}.}
 
 A trace in |DName = T (Value T)| eventually terminates with a |Value| that is
@@ -228,36 +228,7 @@ We postpone worries about well-definedness and totality of this encoding to
 \Cref{sec:totality}.
 
 \begin{figure}
-\begin{minipage}{0.55\textwidth}
-\begin{code}
-eval  ::  (Trace d, Domain d, HasBind d)
-      =>  Exp -> (Name :-> d) -> d
-eval e ρ = case e of
-  Var x  | x ∈ dom ρ  -> ρ ! x
-         | otherwise  -> stuck
-  Lam x body -> fun x {-" \iffalse "-}(label e){-" \fi "-} $ \d ->
-    step App2 (eval body ((ext ρ x d)))
-  App e x  | x ∈ dom ρ  -> step App1 $
-               apply (eval e ρ) (ρ ! x)
-           | otherwise  -> stuck
-  Let x e1 e2 -> bind {-" \iffalse "-}x{-" \fi "-}
-    (\d1 -> eval e1 (ext ρ x (step (Look x) d1)))
-    (\d1 -> step Let1 (eval e2 (ext ρ x (step (Look x) d1))))
-  ConApp k xs
-    | all (∈ dom ρ) xs, length xs == conArity k
-    -> con {-" \iffalse "-}(label e){-" \fi "-} k (map (ρ !) xs)
-    | otherwise
-    -> stuck
-  Case e alts -> step Case1 $
-    select (eval e ρ) (cont << alts)
-    where
-       cont (xs, er) ds  |  length xs == length ds
-                         =  step Case2 (eval er (exts ρ xs ds))
-                         |  otherwise
-                         =  stuck
-\end{code}
-\end{minipage}%
-\begin{minipage}{0.44\textwidth}
+\begin{centering}
 \begin{code}
 class Trace d where
   step :: Event -> d -> d
@@ -272,9 +243,14 @@ class Domain d where
 class HasBind d where
   bind :: {-" \iffalse "-}Name -> {-" \fi "-}(d -> d) -> (d -> d) -> d
 \end{code}
-\\[-2.5em]
-\subcaption{Interface of traces and values}
-  \label{fig:trace-classes}
+\end{centering}
+\\[-2.5\baselineskip]
+\caption{Interface of traces and values}
+\label{fig:trace-classes}
+\end{figure}
+
+\begin{figure}
+\begin{centering}
 \begin{code}
 instance Trace (T v) where
   step = Step
@@ -283,7 +259,8 @@ instance Monad τ => Domain (D τ) where
   stuck = return Stuck
   fun _ {-" \iffalse "-}_{-" \fi "-} f = return (Fun f)
   apply  d a = d >>= \v -> case v of
-    Fun f -> f a; _ -> stuck
+    Fun f  -> f a
+    _      -> stuck
   con {-" \iffalse "-}_{-" \fi "-} k ds = return (Con k ds)
   select dv alts = dv >>= \v -> case v of
     Con k ds | k ∈ dom alts  -> (alts ! k) ds
@@ -292,13 +269,34 @@ instance Monad τ => Domain (D τ) where
 ifPoly (instance HasBind DName where
   bind # rhs body = let d = rhs d in body d
 \end{code}
-\\[-2.5em]
-\subcaption{Concrete by-name semantics for |DName|}
-  \label{fig:trace-instances}
-\end{minipage}%
-\\[-0.5em]
+\end{centering}
+\\[-2.5\baselineskip]
+\caption{Concrete by-name semantics for |DName|}
+\label{fig:trace-instances}
+\end{figure}
+
+\begin{figure}
+\hfuzz=3em
+\begin{code}
+eval      ::  (Trace d, Domain d, HasBind d) =>  Exp -> (Name :-> d) -> d
+eval e ρ  =   case e of
+  Var x  | x ∈ dom ρ  -> ρ ! x
+         | otherwise  -> stuck
+  Lam x body -> fun x {-" \iffalse "-}(label e){-" \fi "-} $ \d -> step App2 (eval body ((ext ρ x d)))
+  App e x  | x ∈ dom ρ  -> step App1 $ apply (eval e ρ) (ρ ! x)
+           | otherwise  -> stuck
+  Let x e1 e2 -> bind {-" \iffalse "-}x{-" \fi "-}  (\d1 -> eval e1 (ext ρ x (step (Look x) d1)))
+                                                    (\d1 -> step Let1 (eval e2 (ext ρ x (step (Look x) d1))))
+  ConApp k xs  | all (∈ dom ρ) xs, length xs == conArity k  -> con {-" \iffalse "-}(label e){-" \fi "-} k (map (ρ !) xs)
+               | otherwise                                  -> stuck
+  Case e alts -> step Case1 $ select (eval e ρ) (cont << alts)
+    where
+       cont (xs, er) ds  |  length xs == length ds   =  step Case2 (eval er (exts ρ xs ds))
+                         |  otherwise                =  stuck
+\end{code}
+\\[-2.5\baselineskip]
 \caption{Denotational Interpreter}
-  \label{fig:eval}
+\label{fig:eval}
 \end{figure}
 
 \subsection{The Interpreter}
@@ -308,30 +306,30 @@ often written |dsem e ρ|, to give an expression |e :: Exp| a meaning, or
 \emph{denotation}, in terms of some semantic domain |D|.
 The environment |ρ :: Name :-> D| gives meaning to the free variables of |e|,
 by mapping each free variable to its denotation in |D|.
-We sketch the Haskell encoding of |Exp| in \Cref{fig:syntax} and the API of
+I sketch the Haskell encoding of |Exp| in \Cref{fig:syntax} and the API of
 environments and sets in \Cref{fig:map}.
-For concise notation, we will use a small number of infix operators: |(:->)| as
+For concise notation, I will use a small number of infix operators: |(:->)| as
 a synonym for finite |Map|s, with |m ! x| for looking up |x| in |m|, |emp| for
 the empty map, |ext m x d| for updates, |assocs m| for a list of key-value pairs
 in |m|, |f << m| for mapping |f| over every value in |m|, |dom m| for the set of
 keys present in the map, and |(`elem`)| for membership tests in that set.
 
-Our denotational interpreter |eval :: Exp -> (Name :-> DName) -> DName| can
+The denotational interpreter |eval :: Exp -> (Name :-> DName) -> DName| can
 have a similar type as |dsem|.
 However, to derive both dynamic semantics and static analysis as instances of the same
-generic interpreter |eval|, we need to vary the type of its semantic domain,
+generic interpreter |eval|, I need to vary the type of its semantic domain,
 which is naturally expressed using type-class overloading, thus:
 \[
 |eval  ::  (Trace d, Domain d, HasBind d) =>  Exp -> (Name :-> d) -> d|.
 \]
-We have parameterised the semantic domain |d| over three type classes |Trace|, |Domain| and |HasBind|, whose signatures are given in \Cref{fig:trace-classes}.
-%\footnote{One can think of these type classes as a fold-like final encoding~\citep{Carette:07} of a domain. However, the significance is in the \emph{decomposition} of the domain, not the choice of encoding.}
-Each of the three type classes offer knobs that we will tweak to derive
+I have parameterised the semantic domain |d| over three type classes |Trace|, |Domain| and |HasBind|, whose signatures are given in \Cref{fig:trace-classes}.%
+\footnote{One can think of these type classes as a fold-like final encoding~\citep{Carette:07} of a domain. However, the significance is in the \emph{decomposition} of the domain, not the choice of encoding.}
+Each of the three type classes offer knobs that I will tweak to derive
 different evaluation strategies as well as static analyses.
 
-\Cref{fig:eval} gives the complete definition of |eval| together with instances for domain |DName| that we introduced in \Cref{sec:dna}.
+\Cref{fig:eval} gives the complete definition of |eval| together with instances for domain |DName| that I introduced in \Cref{sec:dna}.
 Together this is enough to actually run the denotational interpreter to produce traces.
-We use |read :: String -> Exp| as a parsing function, and a |Show| instance for
+I use |read :: String -> Exp| as a parsing function, and a |Show| instance for
 |D τ| that displays traces.
 For example, we can evaluate the expression $\Let{i}{\Lam{x}{x}}{i~i}$ like
 this:
@@ -346,7 +344,7 @@ means that the trace ends in a |Fun| value.
 We cannot print |DName| or |Fun|ctions thereof, but in this case the result would be the value $\Lam{x}{x}$.
 %\sg{Is this clarifying sentence helpful? I don't really think so...}
 This is in direct correspondence to the earlier call-by-name small-step trace
-\labelcref{ex:trace} in \Cref{sec:op-sem}.
+\labelcref{ex:trace} on \cpageref{ex:trace}.
 
 The definition of |eval|, given in \Cref{fig:eval}, is by structural recursion over the input expression.
 For example, to get the denotation of |Lam x body|, we must recursively invoke |eval| on |body|, extending the environment to bind |x| to its denotation.
@@ -355,7 +353,7 @@ Finally, we use |fun| to build the returned denotation; the details necessarily 
 While the lambda-bound |x::Name| passed to |fun| is ignored in the
 |Domain DName| instance of the concrete by-name semantics, it is useful for
 abstract domains such as that of usage analysis (\Cref{sec:abstraction}).
-(We refrain from passing field binders or other syntactic tokens in |select|
+(I refrain from passing field binders or other syntactic tokens in |select|
 and let binders in |bind| as well, because the analyses considered do not need
 them.)
 The other cases follow a similar pattern; they each do some work, before handing
@@ -378,8 +376,8 @@ will be unfolded at every occurrence of |x| in the right-hand side |e1|.
 We will shortly see examples of eager evaluation strategies that will yield from
 |d| inside |bind| instead of calling |body| immediately.
 
-We conclude this subsection with a few examples.
-First we demonstrate that our interpreter is \emph{productive}:
+I conclude this subsection with a few examples.
+First I demonstrate that the interpreter is \emph{productive}:
 we can observe prefixes of diverging traces without risking a looping
 interpreter.
 To observe prefixes, we use a function |takeT :: Int -> T v -> T (Maybe v)|:
@@ -389,11 +387,10 @@ with |Nothing| (printed as $...$) if it goes on for longer.
 < ghci> takeT 5 $ eval (read "let x = x in x") emp :: T (Maybe (Value T))
 $\perform{takeName 5 $ eval (read "let x = x in x") emp :: T (Maybe (Value (ByName T)))}$
 
-< ghci> takeT 9 $ eval (read "let w = λy. y y in w w") emp :: T (Maybe (Value T))
-$\perform{takeName 9 $ eval (read "let w = λy. y y in w w") emp :: T (Maybe (Value (ByName T)))}$
+< ghci> takeT 7 $ eval (read "let w = λy. y y in w w") emp :: T (Maybe (Value T))
+$\perform{takeName 7 $ eval (read "let w = λy. y y in w w") emp :: T (Maybe (Value (ByName T)))}$
 \\[\belowdisplayskip]
 \noindent
-
 The reason |eval| is productive is due to the coinductive nature of |T|'s
 definition in Haskell.%
 \footnote{In a strict language, we need to introduce a thunk in
@@ -404,13 +401,14 @@ guards the recursion, as in the delay monad of \citet{Capretta:05}.
 Data constructor values are printed as $Con(K)$, where $K$ indicates the
 |Tag|.
 Data types allow for interesting ways (type errors) to get |Stuck| (\ie the
-\textbf{wrong} value of \citet{Milner:78}), printed as $\lightning$:
+\textbf{wrong} value of \citet{Milner:78}), printed as \lightning:
 
-< ghci> eval (read "let zro = Z() in let one = S(zro) in case one of { S(z) -> z }") emp :: DName
-$\perform{eval (read "let zro = Z() in let one = S(zro) in case one of { S(zz) -> zz }") emp :: D (ByName T)}$
-
-< ghci> eval (read "let zro = Z() in zro zro") emp :: DName
-$\perform{eval (read "let zro = Z() in zro zro") emp :: D (ByName T)}$
+{\let\oldtt\ttfamily\relax\renewcommand{\ttfamily}{\small\oldtt}
+< ghci> eval (read "let z = Z() in let o = S(z) in case o of{S(n) -> n}") emp :: DName
+$\perform{eval (read "let z = Z() in let o = S(z) in case o of { S(n) -> n }") emp :: D (ByName T)}$
+}
+< ghci> eval (read "let z = Z() in z z") emp :: DName
+$\perform{eval (read "let z = Z() in z z") emp :: D (ByName T)}$
 
 \subsection{More Evaluation Strategies}
 \label{sec:evaluation-strategies}
@@ -426,28 +424,34 @@ $\perform{eval (read "let zro = Z() in zro zro") emp :: D (ByName T)}$
 %\sg{See slack; Let's motivate Unified Understanding and leave the rest. (See below.)
 %Sadly, no time nor space to substantiate those claims.}
 
-By varying the |HasBind| instance of our type |D|, we can endow our language
+By varying the |HasBind| instance of the type |D|, we can endow our language
 |Exp| with different evaluation strategies.
 The appeal of that is, firstly, that it is possible to do so!
-Furthermore, we thus introduce the --- to our knowledge --- first provably
+Furthermore, I thus introduce the --- to my knowledge --- first provably
 adequate denotational semantics for call-by-need.
-We will go on to prove usage analysis sound \wrt by-need evaluation in
+I will go on to prove usage analysis sound \wrt by-need evaluation in
 \Cref{sec:soundness}.
-The different by-value semantics demonstrate versatility, in that our
+The different by-value semantics demonstrate versatility, in that my
 approach is applicable to strict languages as well and thus can be used to study
 the differences between by-need and by-value evaluation.
 
-Following a similar approach as~\citet{adi}, we maximise reuse by instantiating
+Following a similar approach as~\citet{adi}, I maximise reuse by instantiating
 the same |D| at different wrappers of |T|, rather than reinventing |Value| and |T|.
 
 \begin{figure}
+\begin{centering}
 \begin{spec}
 evalName e ρ = eval e ρ :: D (ByName T)
 newtype ByName τ v = ByName { unByName :: τ v }
-instance Monad τ => Monad (ByName τ) where ...
-instance Trace (τ v) => Trace (ByName τ v) where ...
-instance HasBind (D (ByName τ)) where ...
+instance Monad τ => Monad (ByName τ) where
+  return = ByName . return
+  ByName m >>= f = ByName (m >>= unByName . f)
+instance Trace (τ v) => Trace (ByName τ v) where
+  step e = ByName . step e . unByName
+instance HasBind (D (ByName τ)) where
+  bind # rhs body = let d = rhs d in body d
 \end{spec}
+\end{centering}
 %if style == newcode
 \begin{code}
 evalName e ρ = eval e ρ :: D (ByName T)
@@ -461,14 +465,14 @@ instance HasBind (D (ByName τ)) where
   bind _ rhs body = body (fix rhs)
 \end{code}%
 %endif
-\\[-1em]
+\\[-2.5\baselineskip]
 \caption{Redefinition of call-by-name semantics from \Cref{fig:trace-instances}}
 \label{fig:by-name}
 \end{figure}
 
 \subsubsection{Call-by-name}
 
-We redefine
+Let us redefine
 %\sven{Redefinitions are very confusing, because readers may miss them. Why don't we present this as the original definition of |DName| to begin with?}
 %\sg{I'm hesitant because the reader then is exposed early to a deep stack
 %of type synonyms/newtypes. We would need to write |ByName T (Maybe (Value
@@ -479,7 +483,7 @@ in \Cref{fig:by-name},
 %\sg{Doubtful that doing so saves much space, and the implications |Trace τ => Trace (ByName τ)| and |Monad τ => ByName τ| are still useful.}
 so called because |ByName τ| inherits its |Monad| and |Trace|
 instance from |τ| and in reminiscence of \citet{Darais:15}.
-The old |DName| can be recovered as |D (ByName T)| and we refer to its
+The old |DName| can be recovered as |D (ByName T)| and I refer to its
 interpreter instance as |evalName e ρ|.
 
 \begin{figure}
@@ -494,19 +498,26 @@ interpreter instance as |evalName e ρ|.
 %Do also note that we derive |Monad| etc. |via StateT|, so it's not even about
 %reuse.}
 %\end{flushleft}
+\hfuzz=3em
 \begin{code}
 evalNeed e ρ μ = unByNeed (eval e ρ :: D (ByNeed T)) μ
 
-type Addr = Int; type Heap τ = Addr :-> D τ; nextFree :: Heap τ -> Addr
-newtype ByNeed τ v = ByNeed { unByNeed :: Heap (ByNeed τ) -> τ (v, Heap (ByNeed τ)) }
+type Addr    = Int
+type Heap τ  = Addr :-> D τ; nextFree :: Heap τ -> Addr
+newtype ByNeed τ v
+  = ByNeed { unByNeed :: Heap (ByNeed τ) -> τ (v, Heap (ByNeed τ)) }
 
-getN  :: Monad τ => ByNeed τ (Heap (ByNeed τ));         getN    = ByNeed (\ μ -> return (μ, μ))
-putN  :: Monad τ => Heap (ByNeed τ) -> ByNeed τ (); ^^  putN μ  = ByNeed (\ _ -> return ((), μ))
+getN    ::  Monad τ => ByNeed τ (Heap (ByNeed τ))
+getN    =   ByNeed (\ μ -> return (μ, μ))
+putN    ::  Monad τ => Heap (ByNeed τ) -> ByNeed τ ()
+putN μ  =   ByNeed (\ _ -> return ((), μ))
 ifPoly(instance Monad τ => Monad (ByNeed τ) where ...)
 
-instance (forall v. Trace (τ v)) => Trace (ByNeed τ v) where step e m = ByNeed (step e . unByNeed m)
+instance (forall v. Trace (τ v)) => Trace (ByNeed τ v) where
+  step e m = ByNeed (step e . unByNeed m)
 
-fetchN :: Monad τ => Addr -> D (ByNeed τ); fetchN a = getN >>= \μ -> μ ! a
+fetchN :: Monad τ => Addr -> D (ByNeed τ)
+fetchN a = getN >>= \μ -> μ ! a
 
 memoN :: forall τ. (Monad τ, forall v. Trace (τ v)) => Addr -> D (ByNeed τ) -> D (ByNeed τ)
 memoN a d = d >>= \v -> ByNeed (upd v)
@@ -530,7 +541,7 @@ deriving via StateT (Heap (ByNeed τ)) τ instance Monad τ    => Applicative (B
 deriving via StateT (Heap (ByNeed τ)) τ instance Monad τ    => Monad (ByNeed τ)
 \end{code}
 %endif
-\\[-1em]
+\\[-2.5\baselineskip]
 \caption{Call-by-need}
 \label{fig:by-need}
 \end{figure}
@@ -555,7 +566,7 @@ of |x| returns the value directly.
 In other words, we need a representation $|D θ| \cong |Heap -> T (Value θ,
 Heap)|$.
 
-Our trace transformer |ByNeed| in \Cref{fig:by-need} solves this type equation
+My trace transformer |ByNeed| in \Cref{fig:by-need} solves this type equation
 via |θ := ByNeed T|.
 It embeds a standard state transformer monad,
 %\footnote{Indeed, we derive its monad instance |via StateT (Heap (ByNeed τ))
@@ -580,9 +591,9 @@ So the denotation of an expression is no longer a trace, but rather a
 which to allocate call-by-need thunks.
 The |Trace| instance of |ByNeed τ| simply forwards to that of |τ| (\ie often
 |T|), pointwise over heaps.
-Doing so needs a |Trace| instance for |τ (Value (ByNeed τ), Heap (ByNeed τ))|, but we
+Doing so needs a |Trace| instance for |τ (Value (ByNeed τ), Heap (ByNeed τ))|, but I
 found it more succinct to use a quantified constraint |(forall v. Trace (τ
-v))|, that is, we require a |Trace (τ v)| instance for every choice of |v|.
+v))|, that is, I require a |Trace (τ v)| instance for every choice of |v|.
 %\sven{This sentence seems like an implementation detail. Is this really worth discussing?}
 %\sg{You mean the explanation of quantified constraints? This is mostly so
 %placate people unfamiliar with this GHC extension or what it is supposed to do.
@@ -595,7 +606,7 @@ The implementation of |bind| designates a fresh heap address |a|
 to hold the denotation of the right-hand side.
 Both |rhs| and |body| are called with |fetchN a|, a denotation that looks up |a|
 in the heap and runs it.
-If we were to omit the |memo a| action explained next, we would thus have
+If I were to omit the |memo a| action explained next, I would thus have
 recovered another form of call-by-name semantics based on mutable state instead
 of guarded fixpoints such as in |ByName| and |ByValue|.
 %\sven{I don't understand what we learn from this sentence that advances the storyline. The goal of this section is to understand |ByNeed| and not |ByName| or |ByValue|}
@@ -616,16 +627,16 @@ nothing.%
 evaluation as an \emph{optimisation}, \ie update with |ext μ a (return v)|,
 but doing so complicates relating the semantics to \Cref{fig:lk-semantics},
 where omission of update frames for values behaves differently.
-For now, our goal is not to formalise this optimisation, but rather to show
+For now, my goal is not to formalise this optimisation, but rather to show
 adequacy \wrt an established semantics.}
 
 Although the code is carefully written, it is worth stressing how
 compact and expressive it is.
-We were able to move from traces to stateful traces just by wrapping traces |T|
+I was able to move from traces to stateful traces just by wrapping traces |T|
 in a state transformer |ByNeed|, without modifying the main |eval| function at
 all.
-In doing so, we provide the simplest encoding of a denotational by-need semantics
-that we know of.%
+In doing so, I provide the simplest encoding of a denotational by-need semantics
+that I know of.%
 %\footnote{It is worth noting that nothing in our approach is particularly specific to |Exp| or
 %|Value|!
 %We have built similar interpreters for PCF, where the @rec@, @let@ and
@@ -645,7 +656,7 @@ Here is an example evaluating $\Let{i}{(\Lam{y}{\Lam{x}{x}})~i}{i~i}$, starting
 in an empty \hypertarget{ex:eval-need-trace2}{heap}:
 
 < ghci> evalNeed (read "let i = (λy.λx.x) i in i i") emp emp :: T (Value _, Heap _)
-$\perform{evalNeed (read "let i = (λy.λx.x) i in i i") emp emp :: T (Value _, Heap _)}$
+{$\thickmuskip=0mu\small\perform{evalNeed (read "let i = (λy.λx.x) i in i i") emp emp :: T (Value _, Heap _)}$}
 \\[\belowdisplayskip]
 \noindent
 This trace is in clear correspondence to the earlier by-need LK trace
@@ -657,6 +668,7 @@ This work is cached, so that the second $\LookupT$ bracket does not do any beta
 reduction.
 
 \begin{figure}
+\begin{centering}
 \begin{code}
 evalValue e ρ = eval e ρ :: D (ByValue T)
 
@@ -666,13 +678,19 @@ instance Trace (τ v) => Trace (ByValue τ v) where {-" ... \iffalse "-}
   step e (ByValue τ) = ByValue (step e τ) {-" \fi "-}
 
 class Extract τ where getValue :: τ v -> v
-instance Extract T where getValue (Ret v) = v; getValue (Step _ τ) = getValue τ
+instance Extract T where
+  getValue (Ret v)     = v
+  getValue (Step _ τ)  = getValue τ
 
-instance (Trace (D (ByValue τ)), Monad τ, Extract τ) => HasBind (D (ByValue τ)) where
-  bind # rhs body = step Let0 (do  let  d = rhs (return v)          :: D (ByValue τ)
-                                        v = getValue (unByValue d)  :: Value (ByValue τ)
-                                   v1 <- d; body (return v1))
+instance  (Trace (D (ByValue τ)), Monad τ, Extract τ)
+          => HasBind (D (ByValue τ)) where
+  bind # rhs body = step Let0 $ do
+    let  d = rhs (return v)          :: D (ByValue τ)
+         v = getValue (unByValue d)  :: Value (ByValue τ)
+    v1 <- d
+    body (return v1)
 \end{code}
+\end{centering}
 %if style == newcode
 \begin{code}
 deriving instance Functor τ     => Functor (ByValue τ)
@@ -680,7 +698,7 @@ deriving instance Applicative τ => Applicative (ByValue τ)
 deriving instance Monad τ       => Monad (ByValue τ)
 \end{code}
 %endif
-\\[-1em]
+\\[-2.5\baselineskip]
 \caption{Call-by-value }
 \label{fig:by-value}
 \end{figure}
@@ -693,7 +711,7 @@ use site.
 
 The call-by-value evaluation strategy is implemented with the |ByValue| trace transformer shown in \Cref{fig:by-value}.
 Function |bind| defines a denotation |d :: D (ByValue τ)| of the right-hand
-side by mutual recursion with |v :: Value (ByValue τ)| that we will discuss
+side by mutual recursion with |v :: Value (ByValue τ)| that I will discuss
 shortly.
 
 As its first action, |bind| yields a |Let0| event, announcing in the trace that
@@ -727,7 +745,7 @@ types of |Trace|s, such as more abstract ones in \Cref{sec:abstraction}.
 Let us trace $\Let{i}{(\Lam{y}{\Lam{x}{x}})~i}{i~i}$ for call-by-value:
 
 < ghci> evalValue (read "let i = (λy.λx.x) i in i i") emp
-$\perform{evalValue (read "let i = (λy.λx.x) i in i i") emp}$
+$\thickmuskip=4mu\perform{evalValue (read "let i = (λy.λx.x) i in i i") emp}$
 \\[\belowdisplayskip]
 \noindent
 The beta reduction of $(\Lam{y}{\Lam{x}{x}})~i$ now happens once within the
@@ -749,7 +767,8 @@ denotational semantics.
 \begin{code}
 evalVInit e ρ μ = unByVInit (eval e ρ :: D (ByVInit T)) μ
 
-newtype ByVInit τ v = ByVInit { unByVInit :: Heap (ByVInit τ) -> τ (v, Heap (ByVInit τ)) }
+newtype ByVInit τ v
+  = ByVInit { unByVInit :: Heap (ByVInit τ) -> τ (v, Heap (ByVInit τ)) }
 instance (Monad τ, forall v. Trace (τ v)) => HasBind (D (ByVInit τ)) where
   bind # rhs body = do  μ <- getV
                         let a = nextFree μ
@@ -778,7 +797,7 @@ memoV a d = d >>= \v -> ByVInit (upd v)
          upd v      μ = return (v, ext μ a (memoV a (return v)))
 \end{code}
 %endif
-\\[-1em]
+\\[-2.5\baselineskip]
 \caption{Call-by-value with lazy initialisation}
 \label{fig:by-value-init}
 \end{figure}
@@ -787,13 +806,13 @@ memoV a d = d >>= \v -> ByVInit (upd v)
 \label{sec:lazy-init}
 
 %\sven{Why do you discuss this after call-by-need? The storyline would be more cohesive if this subsection would appear directly after call-by-value.}
-Recall that our simple |ByValue| transformer above yields a potentially looping
+Recall that my simple |ByValue| transformer above yields a potentially looping
 interpreter.
 Typical strict languages work around this issue in either of two ways:
 They enforce termination of the RHS statically (OCaml, ML), or they use
 \emph{lazy initialisation} techniques~\citep{Nakata:10,Nakata:06} (Scheme,
 recursive modules in OCaml).
-We recover a total interpreter using the semantics in \citet{Nakata:10},
+We can recover a total interpreter using the semantics in \citet{Nakata:10},
 building on the same encoding as |ByNeed| and initialising the heap with a
 \emph{black hole}~\citep{stg} |stuck| in |bind| as in \Cref{fig:by-value-init}.
 
@@ -805,14 +824,16 @@ $\perform{evalVInit (read "let x = x in x x") emp emp :: T (Value _, Heap _)}$
 \begin{spec}
 evalClair e ρ = runClair $ eval e ρ :: T (Value (Clairvoyant T))
 
-data Fork f a = Empty | Single a | Fork (f a) (f a); data ParT m a = ParT (m (Fork (ParT m) a))
+data Fork f a = Empty | Single a | Fork (f a) (f a)
+data ParT m a = ParT (m (Fork (ParT m) a))
 instance Monad τ => Alternative (ParT τ) where
   empty = ParT (pure Empty); l <|> r = ParT (pure (Fork l r))
 
 newtype Clairvoyant τ a = Clairvoyant (ParT τ a)
 runClair :: D (Clairvoyant T) -> T (Value (Clairvoyant T))
 
-instance (Extract τ, Monad τ, forall v. Trace (τ v)) => HasBind (D (Clairvoyant τ)) where
+instance  (Extract τ, Monad τ, forall v. Trace (τ v))
+          => HasBind (D (Clairvoyant τ)) where
   bind # rhs body = Clairvoyant (skip <|> let') >>= body
     where  skip = return (Clairvoyant empty)
            let' = fmap return $ step Let0 $ ... ^^ fix ... rhs ... getValue ...
@@ -884,7 +905,7 @@ runClair (Clairvoyant m) = headParT m >>= \case
   Just t  -> pure t
 \end{code}
 %endif
-\\[-1em]
+\\[-2.5\baselineskip]
 \caption{Clairvoyant Call-by-value}
 \label{fig:clairvoyant-by-value}
 \end{figure}
@@ -895,16 +916,16 @@ runClair (Clairvoyant m) = headParT m >>= \case
 Clairvoyant call-by-value~\citep{HackettHutton:19} is an alternative to
 call-by-need semantics that exploits non-determinism and a cost model to absolve
 of the heap.
-We can instantiate our interpreter to generate the shortest clairvoyant
+We can instantiate my interpreter to generate the shortest clairvoyant
 call-by-value trace as well, as sketched out in \Cref{fig:clairvoyant-by-value}.
 Doing so yields an evaluation strategy that either skips or speculates let
 bindings, depending on whether or not the binding is needed:
 
-< ghci> evalClair (read "let f = λx.x in let g = λy.f in g") emp :: T (Value (Clairvoyant T))
-$\perform{evalClair (read "let f = λx.x in let g = λy.f in g") emp :: T (Value (Clairvoyant T))}$
+< ghci> evalClair (read "let f = λx.x in let g = λy.f in g") emp
+$\perform{evalClair (read "let f = λx.x in let g = λy.f in g") emp}$
 
-< ghci> evalClair (read "let f = λx.x in let g = λy.f in g g") emp :: T (Value (Clairvoyant T))
-$\perform{evalClair (read "let f = λx.x in let g = λy.f in g g") emp :: T (Value (Clairvoyant T))}$
+< ghci> evalClair (read "let f = λx.x in let g = λy.f in g g") emp
+$\thickmuskip=4mu\perform{evalClair (read "let f = λx.x in let g = λy.f in g g") emp}$
 \\[\belowdisplayskip]
 \noindent
 The first example discards $f$, but the second needs it, so the trace starts
@@ -914,8 +935,8 @@ denotational semantics without a complicated domain theoretic judgment.
 Furthermore, the decision whether or not a $\LetOT$ step is needed can be
 delayed for an infinite amount of time, as exemplified by
 
-< ghci> evalClair (read "let i = Z() in let w = λy.y y in w w") emp :: T (Value (Clairvoyant T))
-%$\perform{evalClair (read "let i = Z() in let w = λy.y y in w w") emp :: T (Value (Clairvoyant T))}$
+< ghci> evalClair (read "let i = Z() in let w = λy.y y in w w") emp
+%$\perform{evalClair (read "let i = Z() in let w = λy.y y in w w") emp}$
 \texttt{\textasciicircum{}CInterrupted}
 \\[\belowdisplayskip]
 \noindent
