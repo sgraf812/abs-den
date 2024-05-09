@@ -67,7 +67,7 @@ In this chapter, I resolve the tension by exploring \emph{denotational
 interpreters}: total, mathematical objects that live at the intersection of
 structurally-defined \emph{definitional interpreters}~\citep{Reynolds:72} and
 denotational semantics.
-Our denotational interpreters generate small-step traces embellished with
+My denotational interpreters generate small-step traces embellished with
 arbitrary operational detail and enjoy a straightforward encoding in typical
 higher-order programming languages.
 Static analyses arise as instantiations of the same generic interpreter,
