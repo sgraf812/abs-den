@@ -352,7 +352,7 @@ The definition of |eval|, given in \Cref{fig:eval}, is by structural recursion o
 For example, to get the denotation of |Lam x body|, we must recursively invoke |eval| on |body|, extending the environment to bind |x| to its denotation.
 We wrap that body denotation in |step App2|, to prefix the trace of |body| with an |App2| event whenever the function is invoked, where |step| is a method of class |Trace|.
 Finally, we use |fun| to build the returned denotation; the details necessarily depend on the |Domain|, so |fun| is a method of class |Domain|.
-While the lambda-bound |x::Name| passed to |fun| is ignored in in the
+While the lambda-bound |x::Name| passed to |fun| is ignored in the
 |Domain DName| instance of the concrete by-name semantics, it is useful for
 abstract domains such as that of usage analysis (\Cref{sec:abstraction}).
 (We refrain from passing field binders in |select| and let binders in |bind| as
