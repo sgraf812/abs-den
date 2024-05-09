@@ -1,4 +1,4 @@
-%options ghci -i./abs-den/paper/hs -pgmL lhs2TeX -optL--pre -XPartialTypeSignatures
+%options ghci -package containers -package transformers -i./abs-den/paper/hs -pgmL lhs2TeX -optL--pre -XPartialTypeSignatures
 
 %if style == newcode
 %include lhs-preamble.fmt

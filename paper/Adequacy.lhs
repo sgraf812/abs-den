@@ -1,9 +1,5 @@
-%options ghci -ihs -pgmL lhs2TeX -optL--pre -XPartialTypeSignatures
-
 %if style == newcode
-\begin{code}
-module Adequacy where
-\end{code}
+> module Adequacy where
 %endif
 
 \section{Totality and Semantic Adequacy}
