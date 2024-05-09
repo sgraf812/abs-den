@@ -34,7 +34,7 @@ denotes an anonymous mathematical function.
 In this section, only the highlighted parts are relevant and $\mathbf{let}$ is
 considered non-recursive, but the interpreter definition in \Cref{sec:interp}
 supports data types and recursive $\mathbf{let}$ as well.
-Throughout this chapter we assume that all bound program variables are distinct.
+Throughout this chapter it is assumed that all bound program variables are distinct.
 % Rationale for this:
 % While shadowing is fine for the semantics, the analyses don't cope well with
 % shadowing. Also Lookup events carry a Name and it becomes more complicated to
@@ -245,10 +245,10 @@ is indeed important for a soundness proof and corresponds to a substitution
 
 To support efficient separate compilation, a compiler analysis must be
 \emph{modular}, and summaries are indispensable in achieving that.
-Let us say that our example function $k = \Lam{y}{\Lam{z}{y}}$ is defined in
+Let us say that the example function $k = \Lam{y}{\Lam{z}{y}}$ is defined in
 module A and there is a use site $(k~x_1~x_2)$ in module B.
 Then a \emph{modular analysis} must not reanalyse A.$k$ at its use site in B.
-Our analysis $\semabs{\wild}$ facilitates that easily, because it can
+The analysis $\semabs{\wild}$ facilitates that easily, because it can
 serialise the summarised $\AbsTy$ for $k$ into module A's signature file.
 Do note that this would not have been possible for the functional
 $(\fn{θ_y}{\fn{θ_z}{θ_y}}) : \AbsTy \to \AbsTy \to \AbsTy$ that describes the
