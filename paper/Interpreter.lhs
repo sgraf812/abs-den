@@ -355,8 +355,9 @@ Finally, we use |fun| to build the returned denotation; the details necessarily 
 While the lambda-bound |x::Name| passed to |fun| is ignored in the
 |Domain DName| instance of the concrete by-name semantics, it is useful for
 abstract domains such as that of usage analysis (\Cref{sec:abstraction}).
-(We refrain from passing field binders in |select| and let binders in |bind| as
-well, because the analyses considered do not need them.)
+(We refrain from passing field binders or other syntactic tokens in |select|
+and let binders in |bind| as well, because the analyses considered do not need
+them.)
 The other cases follow a similar pattern; they each do some work, before handing
 off to type class methods to do the domain-specific work.
 
