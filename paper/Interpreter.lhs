@@ -104,6 +104,7 @@ Denotational interpreters can be implemented in any higher-order language such a
 \footnote{I extract from this document runnable Haskell files which I add as an Appendix, containing the complete definitions. Furthermore, the (terminating) interpreter outputs are directly generated from this extract.}
 
 \begin{figure}
+\belowdisplayskip=0pt
 \begin{centering}
 \begin{spec}
 data Exp  =  Var Name | Lam Name Exp | App Exp Name
@@ -113,11 +114,11 @@ type Alts  = Tag :-> ([Name],Exp)
 data Tag   = ...; conArity :: Tag -> Int
 \end{spec}
 \end{centering}
-\\[-2.5\baselineskip]
 \caption{Syntax}
 \label{fig:syntax}
 \end{figure}
 \begin{figure}
+\belowdisplayskip=0pt
 \begin{centering}
 \begin{code}
 type (:->) = Map
@@ -145,7 +146,6 @@ assocs = Map.assocs
 \end{code}
 %endif
 \end{centering}
-\\[-2.5\baselineskip]
 \caption{Environments}
 \label{fig:map}
 \end{figure}
@@ -228,6 +228,7 @@ We postpone worries about well-definedness and totality of this encoding to
 \Cref{sec:totality}.
 
 \begin{figure}
+\belowdisplayskip=0pt
 \begin{centering}
 \begin{code}
 class Trace d where
@@ -244,12 +245,12 @@ class HasBind d where
   bind :: {-" \iffalse "-}Name -> {-" \fi "-}(d -> d) -> (d -> d) -> d
 \end{code}
 \end{centering}
-\\[-2.5\baselineskip]
 \caption{Interface of traces and values}
 \label{fig:trace-classes}
 \end{figure}
 
 \begin{figure}
+\belowdisplayskip=0pt
 \begin{centering}
 \begin{code}
 instance Trace (T v) where
@@ -270,12 +271,12 @@ ifPoly (instance HasBind DName where
   bind # rhs body = let d = rhs d in body d
 \end{code}
 \end{centering}
-\\[-2.5\baselineskip]
 \caption{Concrete by-name semantics for |DName|}
 \label{fig:trace-instances}
 \end{figure}
 
 \begin{figure}
+\belowdisplayskip=0pt
 \hfuzz=3em
 \begin{code}
 eval      ::  (Trace d, Domain d, HasBind d) =>  Exp -> (Name :-> d) -> d
@@ -294,7 +295,6 @@ eval e ρ  =   case e of
        cont (xs, er) ds  |  length xs == length ds   =  step Case2 (eval er (exts ρ xs ds))
                          |  otherwise                =  stuck
 \end{code}
-\\[-2.5\baselineskip]
 \caption{Denotational Interpreter}
 \label{fig:eval}
 \end{figure}
@@ -439,6 +439,7 @@ Following a similar approach as~\citet{adi}, I maximise reuse by instantiating
 the same |D| at different wrappers of |T|, rather than reinventing |Value| and |T|.
 
 \begin{figure}
+\belowdisplayskip=0pt
 \begin{centering}
 \begin{spec}
 evalName e ρ = eval e ρ :: D (ByName T)
@@ -465,7 +466,6 @@ instance HasBind (D (ByName τ)) where
   bind _ rhs body = body (fix rhs)
 \end{code}%
 %endif
-\\[-2.5\baselineskip]
 \caption{Redefinition of call-by-name semantics from \Cref{fig:trace-instances}}
 \label{fig:by-name}
 \end{figure}
@@ -499,6 +499,7 @@ interpreter instance as |evalName e ρ|.
 %reuse.}
 %\end{flushleft}
 \hfuzz=3em
+\belowdisplayskip=0pt
 \begin{code}
 evalNeed e ρ μ = unByNeed (eval e ρ :: D (ByNeed T)) μ
 
@@ -541,7 +542,6 @@ deriving via StateT (Heap (ByNeed τ)) τ instance Monad τ    => Applicative (B
 deriving via StateT (Heap (ByNeed τ)) τ instance Monad τ    => Monad (ByNeed τ)
 \end{code}
 %endif
-\\[-2.5\baselineskip]
 \caption{Call-by-need}
 \label{fig:by-need}
 \end{figure}
@@ -668,6 +668,7 @@ This work is cached, so that the second $\LookupT$ bracket does not do any beta
 reduction.
 
 \begin{figure}
+\belowdisplayskip=0pt
 \begin{centering}
 \begin{code}
 evalValue e ρ = eval e ρ :: D (ByValue T)
@@ -698,7 +699,6 @@ deriving instance Applicative τ => Applicative (ByValue τ)
 deriving instance Monad τ       => Monad (ByValue τ)
 \end{code}
 %endif
-\\[-2.5\baselineskip]
 \caption{Call-by-value }
 \label{fig:by-value}
 \end{figure}
@@ -764,6 +764,7 @@ This loops forever unproductively, rendering the interpreter unfit as a
 denotational semantics.
 
 \begin{figure}
+\belowdisplayskip=0pt
 \begin{code}
 evalVInit e ρ μ = unByVInit (eval e ρ :: D (ByVInit T)) μ
 
@@ -797,7 +798,6 @@ memoV a d = d >>= \v -> ByVInit (upd v)
          upd v      μ = return (v, ext μ a (memoV a (return v)))
 \end{code}
 %endif
-\\[-2.5\baselineskip]
 \caption{Call-by-value with lazy initialisation}
 \label{fig:by-value-init}
 \end{figure}
@@ -821,6 +821,7 @@ $\perform{evalVInit (read "let x = x in x x") emp emp :: T (Value _, Heap _)}$
 
 
 \begin{figure}
+\belowdisplayskip=0pt
 \begin{spec}
 evalClair e ρ = runClair $ eval e ρ :: T (Value (Clairvoyant T))
 
@@ -905,7 +906,6 @@ runClair (Clairvoyant m) = headParT m >>= \case
   Just t  -> pure t
 \end{code}
 %endif
-\\[-2.5\baselineskip]
 \caption{Clairvoyant Call-by-value}
 \label{fig:clairvoyant-by-value}
 \end{figure}
