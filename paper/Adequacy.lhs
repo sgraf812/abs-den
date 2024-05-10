@@ -9,13 +9,14 @@ lazy Krivine machine and is indeed a \emph{denotational semantics}.%
 \footnote{Similar results for |evalName| and |evalVInit| should be derivative.}
 Excitingly, to my knowledge, |evalNeed2| is the first denotational call-by-need
 semantics that was proven so!
+
 Specifically, denotational semantics must be total and adequate.
 \emph{Totality} says that the interpreter is well-defined for every input expression and \emph{adequacy} says that the interpreter produces similar traces as the reference semantics.
 This is an important result because it allows us to switch between operational reference semantics and denotational interpreter as needed, thus guaranteeing compatibility
 of definitions such as absence in \Cref{defn:absence}.
 
 I will first discuss the results informally in
-\Cref{sec:adequacy,sec:totality} before giving a formal account in
+\Cref{sec:adequacy,sec:totality} before giving a formal account culminating in
 \Cref{sec:totality-formal,sec:adequacy-formal}.
 As before, all the proofs can be found in the Appendix.
 
@@ -107,23 +108,23 @@ my use of Guarded Cubical Agda is appealing.
 This concludes the high-level, informal discussion of adequacy and totality
 results for |evalNeed2|.
 We will now take a more in-depth tour to justify these claims.
-It is sensible to first discuss totality in \Cref{sec:totality-formal}, because
-it introduces definitions by \emph{guarded recursion} and associated proofs by
-\emph{Löb induction}, both of which I use extensively in all later proofs in
-this chapter.
+This tour will start by recalling the limitations of inductive and coinductive
+definitions when it comes to formalising programming language semantics in
+\Cref{sec:limit-ind-coind}.
+\Cref{sec:gtt} then explains how guarded recursive types address these
+limitations and hence are a good fit to model denotational semantics.
+Finally, \Cref{sec:totality-formal} will describe how |evalNeed2| can be encoded
+in Guarded Cubical Agda.
+While the previous three subsections motivate and introduce definitions by
+\emph{guarded recursion} in some detail, the adequacy proof in
+\Cref{sec:adequacy-formal} showcases associated proofs by \emph{Löb induction}.
+I will use both guarded recursion and Löb induction extensively in many proofs
+later in this chapter.
 
 \pagebreak
 
-\subsection{Total Encoding in Guarded Cubical Agda}
-\label{sec:totality-formal}
-
-The purpose of this subsection is to understand how |evalName| and
-|evalNeed2| can be encoded in Guarded Cubical Agda~\citep{tctt} to prove them
-total.
-The Agda code (which type-checks with Agda 2.6.2.2) that documents this proof
-can be found in the Appendix \sg{where? link to page}.
-
-\subsubsection{Totality by Induction and Coinduction}
+\subsection{Limitations of Induction and Coinduction}
+\label{sec:limit-ind-coind}
 
 Let us first recall what problem coinductive types solve and why
 their use in formalisation is comparatively rare compared to inductive types.
@@ -135,15 +136,15 @@ finite depth, admitting a termination proof by \emph{well-founded induction} on
 that depth.
 
 But many total functions prevalent in lazy programming languages,
-such as |map (+ 1) :: [Int] -> [Int]| in Haskell, \emph{are not recursive in
+such as |map (+ 2) :: [Int] -> [Int]| in Haskell, \emph{are not recursive in
 this sense}!
-The reason for that is that lazy input data such as |[0..]| can be of
+The reason for that is that lazy input data such as |[1..]| can be of
 infinite depth, hence violating the finite depth precondition.
-That is, induction is insufficient to prove that |list := map (+ 1) [0..]| is a
+That is, induction is insufficient to prove that |list := map (+ 2) [1..]| is a
 total definition!
 It \emph{is} total by \emph{coinduction}, though, because the definition
-of |map (+ 1)| is \emph{productive}:
-To evaluate |head list|, only a finite computation |(1 + 1)| needs to be carried
+of |map (+ 2)| is \emph{productive}:
+To evaluate |head list|, only a finite computation |(1 + 2)| needs to be carried
 out, and similarly for |list !! 10|, or \emph{any} finite prefix of |list|.
 This is because the recursive call in the definition of |map| is \emph{guarded}
 by the list constructor |(:)|:
@@ -164,9 +165,9 @@ part of an inductive value and thus what is a valid inductive definition,
 but it is far more complicated to check what constitutes a valid coinductive
 definition.
 Hence, although most theorem provers \emph{do} admit definitions by coinduction
-such as |map| that satisfy syntactic productivity checks~\citep{Coquand:94},
-syntactic productivity is easily defeated by refactorings as simple as
-extracting local bindings:
+such as |map| that satisfy simple syntactic productivity
+checks~\citep{Coquand:94}, syntactic productivity is easily defeated by
+refactorings such as extracting local bindings:
 \begin{spec}
   map f  []      = []
   map f  (x:xs)  = f x  : rest
@@ -176,42 +177,45 @@ Here, |rest| occurs in guarded position and hence the recursive call to
 |map| occurs in guarded position as well, but guardedness of the recursive
 call is no longer syntactically evident and hence rejected by theorem provers
 such as Rocq\footnote{Formerly Coq.} or Agda.
+It is fair to say that syntactic productivity checks are a severe limitation of
+current implementations of coinduction, and render coinductive definitions far
+less useful than inductive definitions.
 
 This is particularly embarassing for expressing dynamic processes such as
 program semantics, because their natural implementation is in terms of
-potentially infinite program traces, which are best expressed coinductively.
+potentially infinite program traces which are best expressed coinductively.
 
 In fact, our data type |T| is exactly such a coinductive data type, and hence
 we would like |evalNeed2| to be a coinductive definition as well.
 It is however impossible to show that |evalNeed2| syntactically guards all
 its recursive calls, because we do not even see the |Step| constructor
-syntactically in the definition of |eval|!
-Thus to prove |evalNeed2| total by coinduction in Rocq or Agda, we would need to
-manually specialise and inline many definitions into |eval|.
+syntactically in the definition of |eval|, only calls to the type class
+method |step|!
+Thus, to prove |evalNeed2| total by coinduction in Rocq or Agda, we would need to
+manually specialise and inline many type class methods into |eval|.
 Alas, any such manual transformation diminishes the confidence in the proof
 method!
 
-\subsubsection{Negative Occurrences and (Co-)Induction}
-
-There is another problem why |evalNeed2| cannot easily be proven total by
+There is another limitation why |evalNeed2| cannot easily be proven total by
 coinduction:
+Recall that |D τ = τ (highlight Value τ)|.
 Finite traces in the semantic domain |D (ByNeed T)| end in a |Value (ByNeed T)|,
 and the data constructor |Fun :: (highlight (D τ) -> D τ) -> Value τ| has a
-negative recursive occurrence of |Value τ| (recall that |D τ = τ (highlight
-Value τ)|)!
+negative recursive occurrence of |Value τ|!
 This constructor is disallowed in inductive as well as traditional coinductive
 data type definitions, which one reason why denotational semantics traditionally
-made use of algebraic domain theory, sized types~\citep{Hughes:96} or fuel-based
-encodings to prove totality.
+made use of algebraic domain theory~\citep{Scott:70}, sized
+types~\citep{Hughes:96} or fuel-based encodings to prove totality.
 
-\subsubsection{Guarded Type Theory}
+\subsection{Guarded Type Theory}
+\label{sec:gtt}
 
 Fortunately, \emph{guarded type theories} both lift the syntactic productivity
 restriction as well as allow restricted forms of negative recursion in data
 types.
 
 Guarded type theories postpone the productivity check to the type system, where
-it becomes a \emph{semantic} rather than \emph{syntactic} property.
+it becomes a \emph{semantic} instead of a \emph{syntactic} property.
 This enables compositional reasoning about productivity, and of course stability
 under type-preserving refactorings such as extraction of the |rest| auxiliary
 definition in the revised implementation of |map| above.
@@ -257,11 +261,18 @@ In order not to obscure our work with pointless symbol pushing, we will often
 omit the idiom brackets~\citep{McBridePaterson:08} $\idiom{\wild}$ to indicate
 where the $\later$ ``effects'' happen.
 
-We will now outline the changes necessary to encode |eval| in Guarded Cubical
-Agda, which implements Ticked Cubical Type Theory~\citep{tctt}, as well
-as the concrete instances |D (ByName T)| and |D (ByNeed T)| from
+\subsection{Total Encoding in Guarded Cubical Agda}
+\label{sec:totality-formal}
+
+The purpose of this subsection is to understand how |evalName| and
+|evalNeed2| can be proved total by encoding them in Guarded Cubical Agda, which
+implements Ticked Cubical Type Theory~\citep{tctt}.
+The Agda code (which type-checks with Agda 2.6.2.2) that documents this proof
+can be found in the Appendix \sg{where? link to page}.
+
+To understand the Agda code, we will outline the changes necessary to encode
+|eval| as well as the concrete instances |D (ByName T)| and |D (ByNeed T)| from
 \Cref{fig:trace-instances,fig:by-need}.
-The full, type-checked development is available in the Appendix \sg{link!}.
 \begin{itemize}
   \item We need to delay in |step|; thus its definition in |Trace| changes to
     |step :: Event -> Later d -> d|.
