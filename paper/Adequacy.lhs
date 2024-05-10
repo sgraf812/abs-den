@@ -4,15 +4,19 @@
 
 \section{Totality and Semantic Adequacy}
 
-In this section, we prove that |evalNeed2| produces small-step traces of the
+In this section, I prove that |evalNeed2| produces small-step traces of the
 lazy Krivine machine and is indeed a \emph{denotational semantics}.%
 \footnote{Similar results for |evalName| and |evalVInit| should be derivative.}
-Excitingly, to our knowledge, |evalNeed2| is the first denotational call-by-need
+Excitingly, to my knowledge, |evalNeed2| is the first denotational call-by-need
 semantics that was proven so!
 Specifically, denotational semantics must be total and adequate.
 \emph{Totality} says that the interpreter is well-defined for every input expression and \emph{adequacy} says that the interpreter produces similar traces as the reference semantics.
 This is an important result because it allows us to switch between operational reference semantics and denotational interpreter as needed, thus guaranteeing compatibility
 of definitions such as absence in \Cref{defn:absence}.
+
+I will first discuss the results informally in
+\Cref{sec:adequacy,sec:totality} before giving a formal account in
+\Cref{sec:totality-formal,sec:adequacy-formal}.
 As before, all the proofs can be found in the Appendix.
 
 \subsection{Adequacy of |evalNeed2|}
@@ -25,8 +29,9 @@ As before, all the proofs can be found in the Appendix.
 %But ultimately I think that is too simple an exercise to count as an interesting
 %Contribution.}
 
-For proving adequacy of |evalNeed2|, we give an abstraction function $α$ from
-small-step traces in the lazy Krivine machine (\Cref{fig:lk-semantics}) to
+For proving adequacy of |evalNeed2|, I give an abstraction function $α$%
+\footnote{More formally, I give a \emph{representation function}~\citep[Section 4.3]{Nielson:99} which induces a powerset-valued, exact Galois connection.}
+from small-step traces in the lazy Krivine machine (\Cref{fig:lk-semantics}) to
 denotational traces |T|, with |Events| and all, such that
 \[
   α(\init(\pe) \smallstep ...) = |evalNeed e emp emp|,
@@ -41,40 +46,284 @@ It turns out that function $α$ preserves a number of important
 observable properties, such as termination behavior (\ie stuck, diverging, or
 balanced execution~\citep{Sestoft:97}), length of the trace and transition
 events, as expressed in the following Theorem:
-
+\pagebreak
 \begin{theoremrep}[Strong Adequacy]
   \label{thm:need-adequate-strong}
   Let |e| be a closed expression, |τ := evalNeed e emp emp| the
-  denotational by-need trace and $\init(\pe) \smallstep ...$ the maximal lazy
-  Krivine trace.
+  denotational by-need trace and $\init(\pe) \smallstep ...$ the maximal LK trace.
   Then
   \begin{itemize}
-    \item |τ| preserves the observable termination properties of $\init(\pe) \smallstep ...$
-      in the above sense.
-    \item |τ| preserves the length of $\init(\pe) \smallstep ...$ (\ie number of |Step|s equals number of $\smallstep$).
-    \item every |ev :: Event| in |τ = many (Step ev ^^ ...)| corresponds to the
-      transition rule taken in $\init(\pe) \smallstep ...$.
+    \item |τ| preserves the observable termination properties of $\init(\pe) \smallstep ...$~.
+    \item |τ| preserves the length of $\init(\pe) \smallstep ...$.
+    \item every |ev :: Event| in |τ = many (Step ev ^^ ...)| refers to a
+      transition rule in $\init(\pe) \smallstep ...$~.
   \end{itemize}
 \end{theoremrep}
 \begin{proofsketch}
   Define $α$ by guarded recursion and prove $α(\init(\pe) \smallstep ...) = |evalNeed e emp emp|$ by Löb induction.
   Then it suffices to prove that $α$ preserves the observable properties of
   interest.
-  The full proof for a rigorous reformulation of this result can be found in the
-  Appendix.
+  The full proof appealing to \Cref{sec:adequacy-formal} can be found on
+  \cpageref{proof:need-adequate-strong}.
 \end{proofsketch}
 \begin{proof}
-  We formally define as $α(\init(\pe) \smallstep ...) \triangleq α_{\STraces}(\init(\pe) \smallstep ..., \StopF)$,
+  \pagetarget{proof:need-adequate-strong}{We} formally define $α(\init(\pe)
+  \smallstep ...) \triangleq α_{\STraces}(\init(\pe) \smallstep ..., \StopF)$,
   where $α_{\STraces}$ is defined in \Cref{fig:eval-correctness}.
 
   Then $|evalNeed e emp emp| = α(\init(\pe) \smallstep ...)$ follows directly
   from \Cref{thm:need-abstracts-lk}.
-  The preservation results in are a consequence of \Cref{thm:abs-length,thm:need-adequate};
+  The preservation results are a consequence of \Cref{thm:abs-length,thm:need-adequate};
   function $α_\Events$ in \Cref{fig:eval-correctness} encodes the intuition in
   which LK transitions abstract into |Event|s.
 \end{proof}
 
-\begin{toappendix}
+\subsection{Totality of |evalName| and |evalNeed2|}
+\label{sec:totality}
+
+\begin{theorem}[Totality]
+The interpreters |evalName e ρ| and |evalNeed e ρ μ| are defined for every
+|e|, |ρ|, |μ|.
+\end{theorem}
+\begin{proofsketch}
+In the Appendix \sg{where?}, I provide an implementation of the generic
+interpreter |eval| and its instances at |ByName| and |ByNeed| in Guarded
+Cubical Agda, which offers a total type theory with \emph{guarded recursive
+types}~\citet{tctt}.
+Agda enforces that all encodable functions are total, therefore |evalName| and
+|evalNeed2| must be total as well.
+
+The essential idea of the totality proof is that \emph{there is only a finite
+number of transitions between every $\LookupT$ transition}.
+%\footnote{Our experiments with a denotational interpreter for
+%PCF~\citep{Plotkin:77} indicate that this statement holds for PCF as well if
+%$\UnrollT$ transitions introduced by the fixpoint operator were included.}
+In other words, if every environment lookup produces a |Step| constructor, then
+the semantics is total by coinduction.
+Such an argument is quite natural to encode in guarded recursive types, hence
+my use of Guarded Cubical Agda is appealing.
+\end{proofsketch}
+
+This concludes the high-level, informal discussion of adequacy and totality
+results for |evalNeed2|.
+We will now take a more in-depth tour to justify these claims.
+It is sensible to first discuss totality in \Cref{sec:totality-formal}, because
+it introduces definitions by \emph{guarded recursion} and associated proofs by
+\emph{Löb induction}, both of which I use extensively in all later proofs in
+this chapter.
+
+\pagebreak
+
+\subsection{Total Encoding in Guarded Cubical Agda}
+\label{sec:totality-formal}
+
+The purpose of this subsection is to understand how |evalName| and
+|evalNeed2| can be encoded in Guarded Cubical Agda~\citep{tctt} to prove them
+total.
+The Agda code (which type-checks with Agda 2.6.2.2) that documents this proof
+can be found in the Appendix \sg{where? link to page}.
+
+\subsubsection{Totality by Induction and Coinduction}
+
+Let us first recall what problem coinductive types solve and why
+their use in formalisation is comparatively rare compared to inductive types.
+
+It is common in functional programming languages and theorem provers to define
+functions by recursion on an inductive data type parameter.
+Such functions are automatically total, because inductive data is always of
+finite depth, admitting a termination proof by \emph{well-founded induction} on
+that depth.
+
+But many total functions prevalent in lazy programming languages,
+such as |map (+ 1) :: [Int] -> [Int]| in Haskell, \emph{are not recursive in
+this sense}!
+The reason for that is that lazy input data such as |[0..]| can be of
+infinite depth, hence violating the finite depth precondition.
+That is, induction is insufficient to prove that |list := map (+ 1) [0..]| is a
+total definition!
+It \emph{is} total by \emph{coinduction}, though, because the definition
+of |map (+ 1)| is \emph{productive}:
+To evaluate |head list|, only a finite computation |(1 + 1)| needs to be carried
+out, and similarly for |list !! 10|, or \emph{any} finite prefix of |list|.
+This is because the recursive call in the definition of |map| is \emph{guarded}
+by the list constructor |(:)|:
+\begin{spec}
+  map f  (x:xs)  = f x  : map f xs
+\end{spec}
+While induction defines total objects (\eg functions, proofs) by
+\emph{destructing} an inductive \emph{input} value,
+coinduction defines total objects by \emph{constructing} a coinductive
+\emph{output} value.
+Induction permits recursive calls only on the \emph{input's parts} at
+\emph{any position} in the function body, while coinduction permits recursive
+calls only in \emph{guarded position}, such as in recursive fields of a
+coinductive data constructor, but with \emph{any input} whatsoever.
+
+It is fairly simple for a human or a computer to check what constitutes a
+part of an inductive value and thus what is a valid inductive definition,
+but it is far more complicated to check what constitutes a valid coinductive
+definition.
+Hence, although most theorem provers \emph{do} admit definitions by coinduction
+such as |map| that satisfy syntactic productivity checks~\citep{Coquand:94},
+syntactic productivity is easily defeated by refactorings as simple as
+extracting local bindings:
+\begin{spec}
+  map f  []      = []
+  map f  (x:xs)  = f x  : rest
+    where rest = map f xs
+\end{spec}
+Here, |rest| occurs in guarded position and hence the recursive call to
+|map| occurs in guarded position as well, but guardedness of the recursive
+call is no longer syntactically evident and hence rejected by theorem provers
+such as Rocq\footnote{Formerly Coq.} or Agda.
+
+This is particularly embarassing for expressing dynamic processes such as
+program semantics, because their natural implementation is in terms of
+potentially infinite program traces, which are best expressed coinductively.
+
+In fact, our data type |T| is exactly such a coinductive data type, and hence
+we would like |evalNeed2| to be a coinductive definition as well.
+It is however impossible to show that |evalNeed2| syntactically guards all
+its recursive calls, because we do not even see the |Step| constructor
+syntactically in the definition of |eval|!
+Thus to prove |evalNeed2| total by coinduction in Rocq or Agda, we would need to
+manually specialise and inline many definitions into |eval|.
+Alas, any such manual transformation diminishes the confidence in the proof
+method!
+
+\subsubsection{Negative Occurrences and (Co-)Induction}
+
+There is another problem why |evalNeed2| cannot easily be proven total by
+coinduction:
+Finite traces in the semantic domain |D (ByNeed T)| end in a |Value (ByNeed T)|,
+and the data constructor |Fun :: (highlight (D τ) -> D τ) -> Value τ| has a
+negative recursive occurrence of |Value τ| (recall that |D τ = τ (highlight
+Value τ)|)!
+This constructor is disallowed in inductive as well as traditional coinductive
+data type definitions, which one reason why denotational semantics traditionally
+made use of algebraic domain theory, sized types~\citep{Hughes:96} or fuel-based
+encodings to prove totality.
+
+\subsubsection{Guarded Type Theory}
+
+Fortunately, \emph{guarded type theories} both lift the syntactic productivity
+restriction as well as allow restricted forms of negative recursion in data
+types.
+
+Guarded type theories postpone the productivity check to the type system, where
+it becomes a \emph{semantic} rather than \emph{syntactic} property.
+This enables compositional reasoning about productivity, and of course stability
+under type-preserving refactorings such as extraction of the |rest| auxiliary
+definition in the revised implementation of |map| above.
+
+The fundamental innovation of guarded recursive type theory is the integration
+of the ``later'' modality $\later$~\citep{Nakano:00} which allows to define
+coinductive data types with negative recursive occurrences such as in the data
+constructor |Fun| that we have identified as problematic above.
+
+The way that is achieved is roughly as follows: The type $\later T$
+represents data of type $T$ that will become available after a finite amount
+of computation, such as unrolling one layer of a fixpoint definition.
+It comes with a general fixpoint combinator $\fix : \forall A.\ (\later A \to
+A) \to A$ that can be used to define both coinductive \emph{types} (via guarded
+recursive functions on the universe of types~\citep{BirkedalMogelbergEjlers:13})
+as well as guarded recursive \emph{terms} inhabiting said types.
+The classic example is that of infinite streams:
+\[
+  Str = ℕ \times \later Str \qquad ones = \fix (r : \later Str).\ (1,r),
+\]
+where $ones : Str$ is the constant stream of $1$.
+In particular, $Str$ is the fixpoint of a locally contractive functor $F(X) =
+ℕ \times \later X$.
+According to \citet{BirkedalMogelbergEjlers:13}, any type expression in simply
+typed lambda calculus defines a locally contractive functor as long as any
+occurrence of $X$ is under a $\later$.
+The most exciting consequence is that changing the |Fun| data constructor to
+|Fun :: (Later (D τ) -> D τ) -> Value τ| makes |Value τ| a well-defined type,%
+\footnote{The reason why the positive occurrence of |D τ| does not need to be
+guarded is that the type of |Fun| can more formally be encoded by a mixed
+inductive-coinductive type, \eg
+$|Value τ| = \fix X.\ \lfp Y.\ ...~||~|Fun|~(X \to Y)~||~...$ }
+whereas traditional coinductive theories reject \emph{any} negative recursive
+occurrence.
+
+As a type constructor, $\later$ is an applicative
+functor~\citep{McBridePaterson:08} via functions
+\[
+  \purelater : \forall A.\ A \to \later A \qquad \wild \aplater \wild : \forall A,B.\ \later (A \to B) \to \later A \to \later B,
+\]
+allowing us to apply a familiar framework of reasoning around $\later$.
+In order not to obscure our work with pointless symbol pushing, we will often
+omit the idiom brackets~\citep{McBridePaterson:08} $\idiom{\wild}$ to indicate
+where the $\later$ ``effects'' happen.
+
+We will now outline the changes necessary to encode |eval| in Guarded Cubical
+Agda, which implements Ticked Cubical Type Theory~\citep{tctt}, as well
+as the concrete instances |D (ByName T)| and |D (ByNeed T)| from
+\Cref{fig:trace-instances,fig:by-need}.
+The full, type-checked development is available in the Appendix \sg{link!}.
+\begin{itemize}
+  \item We need to delay in |step|; thus its definition in |Trace| changes to
+    |step :: Event -> Later d -> d|.
+  \item
+    All |D|s that will be passed to lambdas, put into the environment or
+    stored in fields need to have the form |step (Look x) d| for some
+    |x::Name| and a delayed |d :: Later (D τ)|.
+    This is enforced as follows:
+    \begin{enumerate}
+      \item
+        The |Domain| type class gains an additional predicate parameter |p :: D -> Set|
+        that will be instantiated by the semantics to a predicate that checks
+        that the |D| has the required form |step (Look x) d| for some
+        |x::Name|, |d :: Later (D τ)|.
+      \item
+        Then the method types of |Domain| use a Sigma type to encode conformance
+        to |p|.
+        For example, the type of |Fun| changes to |(Σ D p -> D) -> D|.
+      \item
+        The reason why we need to encode this fact is that the guarded recursive
+        data type |Value| has a constructor the type of which amounts to
+        |Fun :: (Name times Later (D τ) -> D τ) -> Value τ|, breaking the
+        previously discussed negative recursive cycle by a $\later$, and
+        expecting |x::Name|, |d::Later (D τ)| such that the original |D τ| can
+        be recovered as |step (Look x) d|.
+        This is in contrast to the original definition |Fun :: (D τ -> D τ) ->
+        Value τ| which would \emph{not} type-check.
+        One can understand |Fun| as carrying the ``closure'' resulting from
+        \emph{defunctionalising}~\citep{Reynolds:72} a |Σ D p|, and that this
+        defunctionalisation is presently necessary in Agda to eliminate negative
+        cycles.
+    \end{enumerate}
+  \item
+    Expectedly, |HasBind| becomes more complicated because it encodes the
+    fixpoint combinator.
+    We settled on |bind :: Later (Later D → D) → (Later D → D) → D|.
+    (We tried rolling up |step (Look x) _| in the definition of |eval|
+    to get a simpler type |bind :: (Σ D p → D) → (Σ D p → D) → D|,
+    but then had trouble defining |ByNeed| heaps independently of the concrete
+    predicate |p|.)
+  \item
+    Higher-order mutable state is among the classic motivating examples for
+    guarded recursive types.
+    As such it is no surprise that the state-passing of the mutable |Heap| in
+    the implementation of |ByNeed| requires breaking of a recursive cycle
+    by delaying heap entries, |Heap τ = Addr :-> Later (D τ)|.
+  \item
+    We need to pass around |Tick| binders in |eval| in a way that the type
+    checker is satisfied; a simple exercise.
+    We find it remarkable how non-invasive these adjustment are!
+\end{itemize}
+
+Thus we have proven that |eval| is a total, mathematical function, and
+fast and loose equational reasoning about |eval| is not only \emph{morally}
+correct~\citep{Danielsson:06}, but simply \emph{correct}.
+Furthermore, since evaluation order doesn't matter in Agda and hence for |eval|,
+we could have defined it in a strict language (lowering |Later a| as |() -> a|)
+just as well.
+
+\subsection{Proof of Adequacy For |evalNeed2|}
+\label{sec:adequacy-formal}
+
 We proceed from the bottom up, beginning with a definition of traces as
 mathematical sequences, then defining maximal traces, and then relating
 those maximal traces via \Cref{fig:eval-correctness} to |eval|.
@@ -564,165 +813,3 @@ notion of adequacy from before.
       \end{itemize}
   \end{itemize}
 \end{proof}
-\end{toappendix}
-
-\subsection{Totality of |evalName| and |evalNeed2|}
-\label{sec:totality}
-
-\begin{theorem}[Totality]
-The interpreters |evalName e ρ| and |evalNeed e ρ μ| are defined for every
-|e|, |ρ|, |μ|.
-\end{theorem}
-\begin{proofsketch}
-In the Supplement, we provide an implementation of the generic interpreter
-|eval| and its instances at |ByName| and |ByNeed| in Guarded Cubical Agda,
-which offers a total type theory with \emph{guarded recursive
-types}~\citet{tctt}.
-Agda enforces that all encodable functions are total, therefore |evalName| and
-|evalNeed2| must be total as well.
-
-The essential idea of the totality proof is that \emph{there is only a finite
-number of transitions between every $\LookupT$ transition}.
-%\footnote{Our experiments with a denotational interpreter for
-%PCF~\citep{Plotkin:77} indicate that this statement holds for PCF as well if
-%$\UnrollT$ transitions introduced by the fixpoint operator were included.}
-In other words, if every environment lookup produces a |Step| constructor, then
-our semantics is total by coinduction.
-Such an argument is quite natural to encode in guarded recursive types, hence
-our use of Guarded Cubical Agda is appealing.
-See \Cref{sec:totality-details} for the details of the encoding in Agda.
-\end{proofsketch}
-
-%Encoding the productivity argument in Guarded Cubical Agda was far easier and is
-%far more convincing than the traditional alternative of solving algebraic domain
-%equations and proving continuity of all involved functions by hand.%
-%\footnote{Of course, the underlying model of guarded recursive type
-%theories is the topos of trees~\citep{gdtt}, which very much enjoys an
-%approximation order and partiality.
-%In essence, we are using guarded type theory as a meta language in the sense of
-%\citet{Moggi:07}.}
-%See \Cref{sec:totality-details} for the details of this encoding.
-
-\begin{toappendix}
-\subsection{Total Encoding in Guarded Cubical Agda}
-\label{sec:totality-details}
-
-Whereas traditional theories of coinduction require syntactic productivity
-checks~\citep{Coquand:94}, imposing tiresome constraints on the form of guarded
-recursive functions, the appeal of guarded type theories is that productivity
-is instead proven semantically, in the type system.
-Compared to the alternative of \emph{sized types}~\citep{Hughes:96}, guarded
-types don't require complicated algebraic manipulations of size parameters;
-however perhaps sized types would work just as well.
-Any fuel-based (or step-indexed) approach is equivalent to our use of guarded
-type theory, but we find that the latter is a more direct (and thus preferable)
-encoding.
-
-The fundamental innovation of guarded recursive type theory is the integration
-of the ``later'' modality $\later$ which allows to define coinductive data
-types with negative recursive occurrences such as in the data constructor |Fun
-:: (highlight (D τ) -> D τ) -> Value τ| (recall that |D τ = τ (highlight Value τ)|), as
-first realised by \citet{Nakano:00}.
-The way that is achieved is roughly as follows: The type $\later T$
-represents data of type $T$ that will become available after a finite amount
-of computation, such as unrolling one layer of a fixpoint definition.
-It comes with a general fixpoint combinator $\fix : \forall A.\ (\later A \to
-A) \to A$ that can be used to define both coinductive \emph{types} (via guarded
-recursive functions on the universe of types~\citep{BirkedalMogelbergEjlers:13})
-as well as guarded recursive \emph{terms} inhabiting said types.
-The classic example is that of infinite streams:
-\[
-  Str = ℕ \times \later Str \qquad ones = \fix (r : \later Str).\ (1,r),
-\]
-where $ones : Str$ is the constant stream of $1$.
-In particular, $Str$ is the fixpoint of a locally contractive functor $F(X) =
-ℕ \times \later X$.
-According to \citet{BirkedalMogelbergEjlers:13}, any type expression in simply
-typed lambda calculus defines a locally contractive functor as long as any
-occurrence of $X$ is under a $\later$.
-The most exciting consequence is that changing the |Fun| data constructor to
-|Fun :: (Later (D τ) -> D τ) -> Value τ| makes |Value τ| a well-defined
-coinductive data type,%
-\footnote{The reason why the positive occurrence of |D τ| does not need to be
-guarded is that the type of |Fun| can more formally be encoded by a mixed
-inductive-coinductive type, \eg
-$|Value τ| = \fix X.\ \lfp Y.\ ...~||~|Fun|~(X \to Y)~||~...$ }
-whereas syntactic approaches to coinduction reject any negative recursive
-occurrence.
-
-As a type constructor, $\later$ is an applicative
-functor~\citep{McBridePaterson:08} via functions
-\[
-  \purelater : \forall A.\ A \to \later A \qquad \wild \aplater \wild : \forall A,B.\ \later (A \to B) \to \later A \to \later B,
-\]
-allowing us to apply a familiar framework of reasoning around $\later$.
-In order not to obscure our work with pointless symbol pushing, we will often
-omit the idiom brackets~\citep{McBridePaterson:08} $\idiom{\wild}$ to indicate
-where the $\later$ ``effects'' happen.
-
-We will now outline the changes necessary to encode |eval| in Guarded Cubical
-Agda, a system implementing Ticked Cubical Type Theory~\citep{tctt}, as well
-as the concrete instances |D (ByName T)| and |D (ByNeed T)| from
-\Cref{fig:trace-instances,fig:by-need}.
-The full, type-checked development is available in the Supplement.
-\begin{itemize}
-  \item We need to delay in |step|; thus its definition in |Trace| changes to
-    |step :: Event -> Later d -> d|.
-  \item
-    All |D|s that will be passed to lambdas, put into the environment or
-    stored in fields need to have the form |step (Look x) d| for some
-    |x::Name| and a delayed |d :: Later (D τ)|.
-    This is enforced as follows:
-    \begin{enumerate}
-      \item
-        The |Domain| type class gains an additional predicate parameter |p :: D -> Set|
-        that will be instantiated by the semantics to a predicate that checks
-        that the |D| has the required form |step (Look x) d| for some
-        |x::Name|, |d :: Later (D τ)|.
-      \item
-        Then the method types of |Domain| use a Sigma type to encode conformance
-        to |p|.
-        For example, the type of |Fun| changes to |(Σ D p -> D) -> D|.
-      \item
-        The reason why we need to encode this fact is that the guarded recursive
-        data type |Value| has a constructor the type of which amounts to
-        |Fun :: (Name times Later (D τ) -> D τ) -> Value τ|, breaking the
-        previously discussed negative recursive cycle by a $\later$, and
-        expecting |x::Name|, |d::Later (D τ)| such that the original |D τ| can
-        be recovered as |step (Look x) d|.
-        This is in contrast to the original definition |Fun :: (D τ -> D τ) ->
-        Value τ| which would \emph{not} type-check.
-        One can understand |Fun| as carrying the ``closure'' resulting from
-        \emph{defunctionalising}~\citep{Reynolds:72} a |Σ D p|, and that this
-        defunctionalisation is presently necessary in Agda to eliminate negative
-        cycles.
-    \end{enumerate}
-  \item
-    Expectedly, |HasBind| becomes more complicated because it encodes the
-    fixpoint combinator.
-    We settled on |bind :: Later (Later D → D) → (Later D → D) → D|.
-    We tried rolling up |step (Look x) _| in the definition of |eval|
-    to get a simpler type |bind :: (Σ D p → D) → (Σ D p → D) → D|,
-    but then had trouble defining |ByNeed| heaps independently of the concrete
-    predicate |p|.
-  \item
-    Higher-order mutable state is among the classic motivating examples for
-    guarded recursive types.
-    As such it is no surprise that the state-passing of the mutable |Heap| in
-    the implementation of |ByNeed| requires breaking of a recursive cycle
-    by delaying heap entries, |Heap τ = Addr :-> Later (D τ)|.
-  \item
-    We need to pass around |Tick| binders in |eval| in a way that the type
-    checker is satisfied; a simple exercise.
-    We find it remarkable how non-invasive these adjustment are!
-\end{itemize}
-
-Thus we have proven that |eval| is a total, mathematical function, and
-fast and loose equational reasoning about |eval| is not only \emph{morally}
-correct~\citep{Danielsson:06}, but simply \emph{correct}.
-Furthermore, since evaluation order doesn't matter in Agda and hence for |eval|,
-we could have defined it in a strict language (lowering |Later a| as |() -> a|)
-just as well.
-\end{toappendix}
-
-
