@@ -1,3 +1,4 @@
+\begin{code}
 {-# OPTIONS --cubical --guarded --rewriting #-}
 
 -- | Definitions and instances for T, Value, D, ByName, ByNeed
@@ -207,3 +208,4 @@ instance
 
 eval-by-need : Exp → T (Value (ByNeed T) × Heap (ByNeed T))
 eval-by-need e = ByNeed.get (S⟦ e ⟧ empty-pfun) empty-pfun
+\end{code}

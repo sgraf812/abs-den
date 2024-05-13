@@ -1,3 +1,4 @@
+\begin{code}
 {-# OPTIONS --guarded --cubical --rewriting #-}
 module Later where
 
@@ -70,3 +71,4 @@ transpLater A u0 a = transp (\ i → A i a) i0 (u0 a)
 
 hcompLater : ∀ (A : ▹ Set) φ (u : I → Partial φ (▸ A)) → (u0 : ▸ A [ φ ↦ u i0 ]) → ▸ A
 hcompLater A φ u u0 a = hcomp (\ { i (φ = i1) → u i 1=1 a }) (outS u0 a)
+\end{code}
