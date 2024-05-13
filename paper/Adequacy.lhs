@@ -61,7 +61,7 @@ events, as expressed in the following Theorem:
   \end{itemize}
 \end{theoremrep}
 \begin{proofsketch}
-  Define $α$ by coinduction and prove $α(\init(\pe) \smallstep ...) = |evalNeed e emp emp|$ by Löb induction.
+  Define $α$ by guarded recursion and prove $α(\init(\pe) \smallstep ...) = |evalNeed e emp emp|$ by Löb induction.
   Then it suffices to prove that $α$ preserves the observable properties of
   interest.
   The full proof for a rigorous reformulation of this result can be found in the
