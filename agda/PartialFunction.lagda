@@ -1,3 +1,4 @@
+\begin{code}
 {-# OPTIONS --cubical #-}
 module PartialFunction where
 
@@ -5,7 +6,7 @@ open import Cubical.Relation.Nullary.Base
 open import Cubical.Foundations.Prelude hiding (_[_↦_])
 open import Cubical.Data.Empty.Base
 open import Data.Maybe
-open import Data.List 
+open import Data.List
 open import Data.Product
 open import Function.Base
 
@@ -49,11 +50,11 @@ _[_↦*_] {A} {B} {{dec}} ρ xs as = aux (Data.List.zip xs as)
 
 pmap : ∀ {A B : Set} → (A ⇀ B) → List A ⇀ List B
 pmap f [] = just []
-pmap {_} {B} f (a ∷ as) with f a 
+pmap {_} {B} f (a ∷ as) with f a
 ... | nothing = nothing
 ... | just b  = aux b (pmap f as)
   where
     aux : B → Maybe (List B) → Maybe (List B)
     aux b nothing = nothing
     aux b (just bs) = just (b ∷ bs)
- 
+\end{code}

@@ -1,3 +1,4 @@
+\begin{code}
 {-# OPTIONS --cubical --guarded --rewriting #-}
 module Semantics where
 
@@ -74,4 +75,4 @@ S⟦_⟧_ {D} e ρ = fix sem' e ρ
         where
           alt : Con × List Var × Exp → Con × (List (Σ D is-look) → D)
           alt (k , xs , eᵣ) = (k , (λ ds → step case2 (λ α → recurse▹ α eᵣ (ρ [ xs ↦* ds ]))))
- 
+\end{code}
