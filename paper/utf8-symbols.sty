@@ -1,35 +1,54 @@
 \usepackage{inputenc}[utf8]
 \usepackage{alphabeta}
+\usepackage{newunicodechar}
 
-\DeclareUnicodeCharacter{00D7}{\ensuremath{\times}} % "×"
-\DeclareUnicodeCharacter{03F6}{\ensuremath{\revepsilon}} % "϶"
-\DeclareUnicodeCharacter{2115}{\ensuremath{\mathbb{N}}} % "ℕ"
-\DeclareUnicodeCharacter{21A6}{\ensuremath{\mapsto}} % "↦"
-\DeclareUnicodeCharacter{2192}{\ensuremath{\to}} % "→"
-\DeclareUnicodeCharacter{21D2}{\ensuremath{\Rightarrow}} % "⇒"
-\DeclareUnicodeCharacter{27F9}{\ensuremath{\Longrightarrow}} % "⟹"
-\DeclareUnicodeCharacter{2200}{\ensuremath{\forall}} % "∀"
-\DeclareUnicodeCharacter{2203}{\ensuremath{\exists}} % "∃"
-\DeclareUnicodeCharacter{2208}{\ensuremath{\in}} % "∈"
-\DeclareUnicodeCharacter{2227}{\ensuremath{\wedge}} % "∧"
-\DeclareUnicodeCharacter{2228}{\ensuremath{\vee}} % "∨"
-\DeclareUnicodeCharacter{2229}{\ensuremath{\cap}} % "∩"
-\DeclareUnicodeCharacter{222A}{\ensuremath{\cup}} % "∪"
-\DeclareUnicodeCharacter{2264}{\ensuremath{\leq}} % "≤"
-\DeclareUnicodeCharacter{2265}{\ensuremath{\geq}} % "≥"
-\DeclareUnicodeCharacter{2282}{\ensuremath{\subset}} % "⊂"
-\DeclareUnicodeCharacter{2283}{\ensuremath{\supset}} % "⊃"
-\DeclareUnicodeCharacter{2286}{\ensuremath{\subseteq}} % "⊆"
-\DeclareUnicodeCharacter{2287}{\ensuremath{\supseteq}} % "⊇"
-\DeclareUnicodeCharacter{228F}{\ensuremath{\sqsubset}} % "⊏"
-\DeclareUnicodeCharacter{2290}{\ensuremath{\sqsupset}} % "⊐"
-\DeclareUnicodeCharacter{2291}{\ensuremath{\sqsubseteq}} % "⊑"
-\DeclareUnicodeCharacter{2292}{\ensuremath{\sqsupseteq}} % "⊒"
-\DeclareUnicodeCharacter{2293}{\ensuremath{\sqcap}} % "⊓"
-\DeclareUnicodeCharacter{2294}{\ensuremath{\sqcup}} % "⊔"
-\DeclareUnicodeCharacter{22A3}{\ensuremath{\dashv}} % "⊣"
-\DeclareUnicodeCharacter{22A4}{\ensuremath{\top}} % "⊤"
-\DeclareUnicodeCharacter{22A5}{\ensuremath{\bot}} % "⊥"
-\DeclareUnicodeCharacter{22A6}{\ensuremath{\vdash}} % "⊦"
-\DeclareUnicodeCharacter{266F}{\ensuremath{\sharp}} % "♯"
-\DeclareUnicodeCharacter{1F5F2}{\ensuremath{\lightning}} % "🗲"
+\newunicodechar{×}{\ensuremath{\times}}
+\newunicodechar{ℕ}{\ensuremath{\mathbb{N}}}
+\newunicodechar{϶}{\ensuremath{\revepsilon}}
+\newunicodechar{↦}{\ensuremath{\mapsto}}
+\newunicodechar{→}{\ensuremath{\to}}
+\newunicodechar{⇒}{\ensuremath{\Rightarrow}}
+\newunicodechar{⟹}{\ensuremath{\Longrightarrow}}
+\newunicodechar{∀}{\ensuremath{\forall}}
+\newunicodechar{∃}{\ensuremath{\exists}}
+\newunicodechar{∈}{\ensuremath{\in}}
+\newunicodechar{∧}{\ensuremath{\wedge}}
+\newunicodechar{∨}{\ensuremath{\vee}}
+\newunicodechar{∩}{\ensuremath{\cap}}
+\newunicodechar{∪}{\ensuremath{\cup}}
+\newunicodechar{≤}{\ensuremath{\leq}}
+\newunicodechar{≥}{\ensuremath{\geq}}
+\newunicodechar{⊂}{\ensuremath{\subset}}
+\newunicodechar{⊃}{\ensuremath{\supset}}
+\newunicodechar{⊆}{\ensuremath{\subseteq}}
+\newunicodechar{⊇}{\ensuremath{\supseteq}}
+\newunicodechar{⊏}{\ensuremath{\sqsubset}}
+\newunicodechar{⊐}{\ensuremath{\sqsupset}}
+\newunicodechar{⊑}{\ensuremath{\sqsubseteq}}
+\newunicodechar{⊒}{\ensuremath{\sqsupseteq}}
+\newunicodechar{⊓}{\ensuremath{\sqcap}}
+\newunicodechar{⊔}{\ensuremath{\sqcup}}
+\newunicodechar{⊣}{\ensuremath{\dashv}}
+\newunicodechar{⊤}{\ensuremath{\top}}
+\newunicodechar{⊥}{\ensuremath{\bot}}
+\newunicodechar{⊦}{\ensuremath{\vdash}}
+\newunicodechar{♯}{\ensuremath{\sharp}}
+\newunicodechar{🗲}{\ensuremath{\lightning}}
+\newunicodechar{≡}{\ensuremath{\equiv}}
+\newunicodechar{≣}{\ensuremath{\mathrel{\clipbox{2.5pt 0pt}{$\equiv\equiv$}}}}
+\newunicodechar{₁}{\ensuremath{_1}}
+\newunicodechar{₂}{\ensuremath{_2}}
+\newunicodechar{₃}{\ensuremath{_3}}
+\newunicodechar{ₛ}{\ensuremath{_s}}
+\newunicodechar{ᵣ}{\ensuremath{_r}}
+\newunicodechar{▹}{\ensuremath{\triangleright}}
+\newunicodechar{▸}{\ensuremath{\later}}
+\newunicodechar{⋄}{\ensuremath{\diamond}}
+\newunicodechar{⊛}{\ensuremath{\aplater}}
+\newunicodechar{⇀}{\ensuremath{\rightharpoonup}}
+\newunicodechar{ℓ}{\ensuremath{\ell}}
+\newunicodechar{∎}{\ensuremath{\blacksquare}}
+\newunicodechar{∷}{\ensuremath{\mathbin{::}}}
+\newunicodechar{∘}{\ensuremath{\circ}}
+\newunicodechar{⟦}{\ensuremath{\llbracket}}
+\newunicodechar{⟧}{\ensuremath{\rrbracket}}
