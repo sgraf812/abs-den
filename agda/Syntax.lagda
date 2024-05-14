@@ -1,3 +1,10 @@
+\subsection*{Syntax}
+
+What follows is a straightforward encoding of expression syntax
+\AgdaDatatype{Exp}.
+I use natural numbers to identify variables and constructors, because it is
+simpler than using strings in Agda.
+
 \begin{code}
 {-# OPTIONS --cubical #-}
 open import Cubical.Core.Everything hiding (_[_↦_])
@@ -42,4 +49,3 @@ findAlt K ((K' , vs , rhs) ∷ xs) with decEq-ℕ K K'
 ... | yes _ = just (vs , rhs)
 ... | no  _ = findAlt K xs
 \end{code}
-

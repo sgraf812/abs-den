@@ -1,3 +1,13 @@
+\subsection*{Guarded Cubical Agda Prelude}
+The following module is copied from the
+``example''%
+\footnote{https://github.com/agda/agda/blob/master/test/Succeed/LaterPrims.agda}
+linked from the Agda user's guide on Guarded Cubical.%
+\footnote{\url{https://agda.readthedocs.io/en/v2.6.2.2/language/guarded-cubical.html}}
+It can be considered part of the builtins or ``runtime system'' of Guarded
+Cubical Agda; I had no part in defining it.
+
+\hfuzz=2em
 \begin{code}
 {-# OPTIONS --guarded --cubical --rewriting #-}
 module Later where
@@ -20,7 +30,6 @@ private
     l : Level
     A B : Set l
 
--- We postulate Tick as it is supposed to be an abstract sort.
 postulate
   Tick : LockU
 
@@ -29,11 +38,6 @@ postulate
 
 ▸_ : ∀ {l} → ▹ Set l → Set l
 ▸ A = (@tick x : Tick) → A x -- NB: x occurs in A
-
--- This is Barr's tick constant, to force a finite nesting of ▹s.
--- Unfortunatley, the type checker doesn't know how to use it safely,
--- hence we mark it as unsafe.
-postulate unsafe⋄ : Tick
 
 next : A → ▹ A
 next x _ = x
@@ -45,8 +49,6 @@ infixr 21 _⊛_
 map▹ : (f : A → B) → ▹ A → ▹ B
 map▹ f x α = f (x α)
 
--- The behaviour of fix is encoded with rewrite rules, following the
--- definitional equalities of TCTT.
 postulate
   dfix : ∀ {l} {A : Set l} → (f : ▹ A → A) → I → ▹ A
   dfix-beta : ∀ {l} {A : Set l} → (f : ▹ A → A) → dfix f i1 ≣ next (f (dfix f i0))
@@ -69,6 +71,7 @@ later-ext eq i a = eq a i
 transpLater : ∀ (A : I → ▹ Set) → ▸ (A i0) → ▸ (A i1)
 transpLater A u0 a = transp (\ i → A i a) i0 (u0 a)
 
-hcompLater : ∀ (A : ▹ Set) φ (u : I → Partial φ (▸ A)) → (u0 : ▸ A [ φ ↦ u i0 ]) → ▸ A
+hcompLater :  ∀ (A : ▹ Set) φ (u : I → Partial φ (▸ A))
+              → (u0 : ▸ A [ φ ↦ u i0 ]) → ▸ A
 hcompLater A φ u u0 a = hcomp (\ { i (φ = i1) → u i 1=1 a }) (outS u0 a)
 \end{code}

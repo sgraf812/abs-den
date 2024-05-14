@@ -1,3 +1,13 @@
+\subsection*{Concrete domain instances \AgdaDatatype{ByName}, \AgdaDatatype{ByNeed}}
+
+Separately from the denotational interpreter, we can prove that its
+instances at \AgdaDatatype{ByName} and \AgdaDatatype{ByNeed} are well-defined as
+well.
+
+In order to do so, I first need to define the concrete type \AgdaFunction{D},
+which needs the concrete trace type \AgdaDatatype{T} as well as the concrete
+value type \AgdaDatatype{Value}.
+
 \begin{code}
 {-# OPTIONS --cubical --guarded --rewriting #-}
 
@@ -36,31 +46,54 @@ data T (A : Set) : Set where
 
 data Value (τ : Set → Set) : Set
 
+D : (Set → Set) → Set
+D τ = τ (Value τ)
+\end{code}
+
+As explained in \Cref{sec:totality-formal}, a notable difference to the
+definition of \AgdaDatatype{Value} in the main body is that I need to break the
+negative occurrence in \AgdaField{fun} by the use of \emph{later} $▹$.
+Doing so is permitted in guarded type theory.
+Unfortunately, Agda's positivity checker does not currently support
+the later modality, so I have to deactivate it via a potentially
+dangerous-looking pragma in the definition that follows.
+Note that the use of this pragma is solely so that the positivity
+checker does not try to recurse through the occurrence of $▹ D$.
+
+\begin{code}
 {-# NO_POSITIVITY_CHECK #-}
-  -- This pragma is only necessary because of a bug in Agda.
-  -- (We cannot link to the issue without risking deanonymisation.)
-  -- Its purpose is to hide the dependency on Value from the
-  -- totality checker; doing so is fine because it occurs
-  -- under a Later.
 data LookupD (D : Set) : Set where
   stepLookup : Var → ▹ D → LookupD D
-  -- An LookupD is effectively a subtype of D.
-  -- Think of `stepLookup x d' : LookupD` as a `d : D`
-  -- such that `d = step (lookup x) d'`.
-  -- We simply have no type safe way to say the latter,
-  -- hence this weird encoding.
-  -- Here is the corresponding bijection:
+\end{code}
 
+I have reported this bug to the Agda maintainers.%
+\footnote{\url{https://github.com/agda/agda/issues/6587}}
+
+Note that a $\AgdaDatatype{LookupD}~D$ is effectively a subtype of $D$.
+One should think of $\AgdaField{stepLookup}~x~d'$ as a $d$ such that
+$d = \AgdaField{step}~(\AgdaInductiveConstructor{lookup}~x)~d'$.
+
+Actually, I would prefer to simply \emph{say} the latter via
+$\AgdaFunction{Σ}~D~\AgdaFunction{is-look}$, as in the type of \AgdaField{fun},
+but there currently is no type-safe way to say that.
+
+Defining the bijection myself is easy, enough, though:
+
+\begin{code}
 toSubtype : ∀ {D} {{_ : Trace D}} → LookupD D → Σ D is-look
 toSubtype {{_}} (stepLookup x d▹) = (step (lookup x) d▹ , x , d▹ , refl)
 
 fromSubtype : ∀ {D} {{_ : Trace D}} → Σ D is-look → LookupD D
 fromSubtype {{_}} (_ , x , d▹ , _) = stepLookup x d▹
+\end{code}
 
--- The concrete D
-D : (Set → Set) → Set
-D τ = τ (Value τ)
+Hence I define the data constructors \AgdaInductiveConstructor{fun-V} and
+\AgdaInductiveConstructor{con-V} of \AgdaDatatype{Value} in terms of
+\AgdaDatatype{LookupD} and apply the bijection when defining the
+type class instance for \AgdaDatatype{Domain}.
+The rest is exactly as in \Cref{sec:interp}.
 
+\begin{code}
 data Value T where
   stuck-V : Value T
   fun-V : (LookupD (D T) → D T) → Value T
@@ -109,7 +142,13 @@ select-Value {τ} dv alts = dv >>= aux alts
 instance
   domain-Value : ∀ {τ} {{_ : Monad τ}} {{_ : Trace (D τ)}} → Domain (D τ) is-look
   domain-Value = record { stuck = stuck-Value; fun = fun-Value; apply = apply-Value; con = con-Value; select = select-Value }
+\end{code}
 
+This is already enough to define the \AgdaDatatype{ByName} interpreter.
+The instance of \AgdaDatatype{HasBind} is particularly interesting, because it
+employs the guarded fixpoint combinator \AgdaPrimitive{fix}:
+
+\begin{code}
 record ByName (τ : Set → Set) (v : Set) : Set where
   constructor mkByName
   field get : τ v
@@ -128,18 +167,25 @@ instance
 
 eval-by-name : Exp → D (ByName T)
 eval-by-name e = S⟦ e ⟧ empty-pfun
+\end{code}
 
+For the \AgdaDatatype{ByNeed} instance, I need to define heaps.
+Heaps represent higher-order state, the total modelling of which is one of the
+main motivations for guarded type theory.
+As such, the heap is also the place where I need to break another negative
+recursive occurrence through the use of the \emph{later} modality and
+locally deactivating the positivity checker.
+Furthermore, I postulate the existence of a bump allocator \AgdaFunction{nextFree}
+as well as the well-addressedness invariant from \Cref{sec:op-sem}, that is,
+any address allocated is in the domain of the heap.
+
+\begin{code}
 Addr : Set
 Addr = ℕ
 
 record ByNeed (τ : Set → Set) (v : Set) : Set
 
 {-# NO_POSITIVITY_CHECK #-}
-  -- This pragma is only necessary because of a bug in Agda.
-  -- (We cannot link to the issue without risking deanonymisation.)
-  -- Its purpose is to hide the dependency on Value from the
-  -- totality checker; doing so is fine because it occurs
-  -- under a Later.
 data HeapD (τ : Set → Set) : Set where
   heapD : ▹(D τ) → HeapD τ
 
@@ -147,7 +193,11 @@ Heap : (Set → Set) → Set
 Heap τ = Addr ⇀ HeapD τ
 postulate nextFree : ∀ {τ} → Heap τ → Addr
 postulate well-addressed : ∀ {τ} (μ : Heap τ) (a : Addr) → ∃[ d ] (μ a ≡ just d)
+\end{code}
 
+Finally, I may give the definition of \AgdaDatatype{ByNeed}.
+
+\begin{code}
 record ByNeed τ v where
   constructor mkByNeed
   field get : Heap (ByNeed τ) → τ (v × Heap (ByNeed τ))
@@ -167,15 +217,20 @@ instance
 
 step-ByNeed : ∀ {τ} {v} {{_ : ∀ {V} → Trace (τ V)}} → Event → ▹(ByNeed τ v) → ByNeed τ v
 step-ByNeed {τ} {v} e m = mkByNeed (λ μ → step e (λ α → ByNeed.get (m α) μ))
-  -- NB: If we were able to switch the order of λ μ and λ α this code would still compile
-  --     and we would not need the postulate no-α-in-μ.
-  --     Alas, we are stuck with the current encoding because of the abstractions involved:
-  --     We can't push the λ α into the surrounding ByNeed.
 
 instance
   trace-ByNeed : ∀ {τ} {v} {{_ : ∀ {V} → Trace (τ V)}} → Trace (ByNeed τ v)
   trace-ByNeed = record { step = step-ByNeed  }
+\end{code}
 
+What is a bit
+
+If we were able to switch the order of λ μ and λ α this code would still compile
+and we would not need the postulate no-α-in-μ.
+Alas, we are stuck with the current encoding because of the abstractions involved:
+We can't push the λ α into the surrounding ByNeed.
+
+\begin{code}
 -- | See step-ByNeed why this postulate is OK.
 postulate no-α-in-μ : ∀ {τ} (f : Heap (ByNeed τ) → ▹(τ (Value (ByNeed τ) × Heap (ByNeed τ))))
                     → Σ (▹(D (ByNeed τ)))
