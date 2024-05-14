@@ -1,3 +1,8 @@
+\subsection*{Partial Functions}
+
+What follows is just a simple helper module to model environments as partial
+functions with finite support.
+
 \begin{code}
 {-# OPTIONS --cubical #-}
 module PartialFunction where
@@ -17,29 +22,14 @@ infix 1 _⇀_
 empty-pfun : ∀{A B : Set} → A ⇀ B
 empty-pfun _ = nothing
 
-_[_↦_] : ∀{A B : Set} {{dec : {x y : A} → Dec (x ≡ y)}} → (A ⇀ B) → A → B → (A ⇀ B)
+_[_↦_] :  ∀ {A B : Set} {{dec : {x y : A} → Dec (x ≡ y)}}
+          → (A ⇀ B) → A → B → (A ⇀ B)
 _[_↦_] {{dec}} ρ x b y with dec {x} {y}
 ... | yes _ = just b
 ... | no  _ = ρ y
 
-apply-↦ : ∀{A B : Set} {{dec : {x y : A} → Dec (x ≡ y)}} {b : B} (f : A ⇀ B) (a : A) → (f [ a ↦ b ]) a ≡ just b
-apply-↦ {A} {_} {{dec}} {b} f a with dec {a} {a}
-... | yes _ = refl
-... | no np = rec (np refl)
--- {-# REWRITE apply-↦ #-}
-
-idem-↦ : ∀{A B : Set} {{dec : {x y : A} → Dec (x ≡ y)}} {b : B} {f : A ⇀ B} {a : A} → f a ≡ just b → f [ a ↦ b ] ≡ f
-idem-↦ {A} {_} {{dec}} {b} {f} {a} fa≡justb = funExt aux
-  where
-    aux : (x : A) → (f [ a ↦ b ]) x ≡ f x
-    aux x with dec {a} {x}
-    ... | no  np  = refl
-    ... | yes a≡x = just b ≡⟨ sym fa≡justb ⟩ f a ≡⟨ cong f a≡x ⟩ f x ∎
-
-idem-↦₂ : ∀{A B : Set} {{dec : {x y : A} → Dec (x ≡ y)}} {b : B} (f : A ⇀ B) (a : A) → (f [ a ↦ b ]) [ a ↦ b ] ≡ f [ a ↦ b ]
-idem-↦₂ {A} {_} {{dec}} {b} f a = idem-↦ (apply-↦ f a)
-
-_[_↦*_] : ∀{A B : Set} {{dec : {x y : A} → Dec (x ≡ y)}} → (A ⇀ B) → List A → List B → (A ⇀ B)
+_[_↦*_] :  ∀ {A B : Set} {{dec : {x y : A} → Dec (x ≡ y)}}
+           → (A ⇀ B) → List A → List B → (A ⇀ B)
 _[_↦*_] {A} {B} {{dec}} ρ xs as = aux (Data.List.zip xs as)
   where
     aux : List (A × B) → (A ⇀ B)
