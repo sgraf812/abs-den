@@ -33,45 +33,32 @@ private
 postulate
   Tick : LockU
 
-▹_ : ∀ {l} → Set l → Set l
-▹_ A = (@tick x : Tick) -> A  -- NB: x not free in A
+▸_ : ∀ {l} → Set l → Set l
+▸ A = (@tick x : Tick) → A    -- NB: similar to `Reader Tick`
 
-▸_ : ∀ {l} → ▹ Set l → Set l
-▸ A = (@tick x : Tick) → A x -- NB: x occurs in A
-
-next : A → ▹ A
+next : A → ▸ A
 next x _ = x
 
-_⊛_ : ▹ (A → B) → ▹ A → ▹ B
+_⊛_ : ▸ (A → B) → ▸ A → ▸ B
 _⊛_ f x a = f a (x a)
 infixr 21 _⊛_
 
-map▹ : (f : A → B) → ▹ A → ▹ B
-map▹ f x α = f (x α)
+map▸ : (f : A → B) → ▸ A → ▸ B
+map▸ f x α = f (x α)
 
 postulate
-  dfix : ∀ {l} {A : Set l} → (f : ▹ A → A) → I → ▹ A
-  dfix-beta : ∀ {l} {A : Set l} → (f : ▹ A → A) → dfix f i1 ≣ next (f (dfix f i0))
+  dfix : ∀ {l} {A : Set l} → (f : ▸ A → A) → I → ▸ A
+  dfix-beta : ∀ {l} {A : Set l} → (f : ▸ A → A) → dfix f i1 ≣ next (f (dfix f i0))
 
 {-# REWRITE dfix-beta #-}
 
-pfix : ∀ {l} {A : Set l} → (f : ▹ A → A) → dfix f i0 ≡ next (f (dfix f i0))
+pfix : ∀ {l} {A : Set l} → (f : ▸ A → A) → dfix f i0 ≡ next (f (dfix f i0))
 pfix f i = dfix f i
 
 abstract
-  fix : ∀ {l} {A : Set l} → (f : ▹ A → A) → A
+  fix : ∀ {l} {A : Set l} → (f : ▸ A → A) → A
   fix f = f (pfix f i0)
 
-  fix-eq : ∀ {l} {A : Set l} → (f : ▹ A → A) → fix f ≡ f (next (fix f))
+  fix-eq : ∀ {l} {A : Set l} → (f : ▸ A → A) → fix f ≡ f (next (fix f))
   fix-eq f = cong f (pfix f)
-
-later-ext : ∀ {A : ▹ Set} → {f g : ▸ A} → (▸ \ a → f a ≡ g a) → f ≡ g
-later-ext eq i a = eq a i
-
-transpLater : ∀ (A : I → ▹ Set) → ▸ (A i0) → ▸ (A i1)
-transpLater A u0 a = transp (\ i → A i a) i0 (u0 a)
-
-hcompLater :  ∀ (A : ▹ Set) φ (u : I → Partial φ (▸ A))
-              → (u0 : ▸ A [ φ ↦ u i0 ]) → ▸ A
-hcompLater A φ u u0 a = hcomp (\ { i (φ = i1) → u i 1=1 a }) (outS u0 a)
 \end{code}
