@@ -653,7 +653,7 @@ that I know of.%
 %\sg{I might have sufficiently addressed this point now.}
 
 Here is an example evaluating $\Let{i}{(\Lam{y}{\Lam{x}{x}})~i}{i~i}$, starting
-in an empty \hypertarget{ex:eval-need-trace2}{heap}:
+in an empty \pagetarget{ex:eval-need-trace2}{heap}:
 
 < ghci> evalNeed (read "let i = (λy.λx.x) i in i i") emp emp :: T (Value _, Heap _)
 {$\thickmuskip=0mu\small\perform{evalNeed (read "let i = (λy.λx.x) i in i i") emp emp :: T (Value _, Heap _)}$}
