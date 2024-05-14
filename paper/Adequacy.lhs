@@ -15,7 +15,7 @@ Specifically, denotational semantics must be total and adequate.
 This is an important result because it allows us to switch between operational reference semantics and denotational interpreter as needed, thus guaranteeing compatibility
 of definitions such as absence in \Cref{defn:absence}.
 
-I will first discuss the results informally in
+I will start with an informal overview of the results in
 \Cref{sec:adequacy,sec:totality} before giving a formal account culminating in
 \Cref{sec:totality-formal,sec:adequacy-formal}.
 As before, all the proofs can be found in the Appendix.
@@ -30,18 +30,19 @@ As before, all the proofs can be found in the Appendix.
 %But ultimately I think that is too simple an exercise to count as an interesting
 %Contribution.}
 
-For proving adequacy of |evalNeed2|, I give an abstraction function $α$%
-\footnote{More formally, I give a \emph{representation function}~\citep[Section 4.3]{Nielson:99} which induces a powerset-valued, exact Galois connection.}
-from small-step traces in the lazy Krivine machine (\Cref{fig:lk-semantics}) to
+For proving adequacy of |evalNeed2|, I give an abstraction function%
+\footnote{More formally, I give a \emph{representation function}~\citep[Section 4.3]{Nielson:99} which induces a powerset-valued Galois connection.}
+$α$ from small-step traces in the lazy Krivine machine (\Cref{fig:lk-semantics}) to
 denotational traces |T|, with |Events| and all, such that
 \[
   α(\init(\pe) \smallstep ...) = |evalNeed e emp emp|,
 \]
 where $\init(\pe) \smallstep ...$ denotes the \emph{maximal} (\ie longest
 possible) LK trace evaluating the closed expression $\pe$.
-For example, for the LK trace \labelcref{ex:trace2}, $α$ produces
-the trace at the end of
-\hyperlink{ex:eval-need-trace2}{\Cref*{sec:by-need-instance}}.
+For example, for the LK trace \labelcref{ex:trace2} on \cpageref{ex:trace2},
+$α$ produces the trace at the end of
+\hyperlink{ex:eval-need-trace2}{\Cref*{sec:by-need-instance}}
+on \cpageref{ex:eval-need-trace2}.
 
 It turns out that function $α$ preserves a number of important
 observable properties, such as termination behavior (\ie stuck, diverging, or
@@ -55,16 +56,17 @@ events, as expressed in the following Theorem:
   Then
   \begin{itemize}
     \item |τ| preserves the observable termination properties of $\init(\pe) \smallstep ...$~.
-    \item |τ| preserves the length of $\init(\pe) \smallstep ...$.
+    \item |τ| preserves the length of $\init(\pe) \smallstep ...$~.
     \item every |ev :: Event| in |τ = many (Step ev ^^ ...)| refers to a
       transition rule in $\init(\pe) \smallstep ...$~.
   \end{itemize}
 \end{theoremrep}
 \begin{proofsketch}
-  Define $α$ by guarded recursion and prove $α(\init(\pe) \smallstep ...) = |evalNeed e emp emp|$ by Löb induction.
+  Define $α$ by \emph{guarded recursion} and apply Löb induction to prove
+  $α(\init(\pe) \smallstep ...) = |evalNeed e emp emp|$.
   Then it suffices to prove that $α$ preserves the observable properties of
   interest.
-  The full proof appealing to \Cref{sec:adequacy-formal} can be found on
+  The full proof appealing to \Cref{thm:need-abstracts-lk} can be found on
   \cpageref{proof:need-adequate-strong}.
 \end{proofsketch}
 \begin{proof}
@@ -87,10 +89,10 @@ The interpreters |evalName e ρ| and |evalNeed e ρ μ| are defined for every
 |e|, |ρ|, |μ|.
 \end{theorem}
 \begin{proofsketch}
-In the Appendix \sg{where?}, I provide an implementation of the generic
+In the Appendix on \cpageref{sec:agda}, I provide an implementation of the generic
 interpreter |eval| and its instances at |ByName| and |ByNeed| in Guarded
 Cubical Agda, which offers a total type theory with \emph{guarded recursive
-types}~\citet{tctt}.
+types}~\citep{tctt}.
 Agda enforces that all encodable functions are total, therefore |evalName| and
 |evalNeed2| must be total as well.
 
@@ -116,10 +118,10 @@ limitations and hence are a good fit to model denotational semantics.
 Finally, \Cref{sec:totality-formal} will describe how |evalNeed2| can be encoded
 in Guarded Cubical Agda.
 While the previous three subsections motivate and introduce definitions by
-\emph{guarded recursion} in some detail, the adequacy proof in
-\Cref{sec:adequacy-formal} showcases associated proofs by \emph{Löb induction}.
+guarded recursion in some detail, the adequacy proof in
+\Cref{sec:adequacy-formal} showcases associated proofs by Löb induction.
 I will use both guarded recursion and Löb induction extensively in many proofs
-later in this chapter.
+of \Cref{sec:soundness}.
 
 \pagebreak
 
@@ -138,14 +140,15 @@ that depth.
 But many total functions prevalent in lazy programming languages,
 such as |map (+ 2) :: [Int] -> [Int]| in Haskell, \emph{are not recursive in
 this sense}!
-The reason for that is that lazy input data such as |[1..]| can be of
-infinite depth, hence violating the finite depth precondition.
-That is, induction is insufficient to prove that |list := map (+ 2) [1..]| is a
-total definition!
+The reason for that is that lazy input data such as the infinite list |[1..]|
+which evaluates to |[1,2,3,...]| can be of infinite depth, hence violating the
+finite depth precondition.
+That is, a direct proof by induction that |list := map (+ 2)
+[1..]| is a total definition is not possible!
 It \emph{is} total by \emph{coinduction}, though, because the definition
 of |map (+ 2)| is \emph{productive}:
 To evaluate |head list|, only a finite computation |(1 + 2)| needs to be carried
-out, and similarly for |list !! 10|, or \emph{any} finite prefix of |list|.
+out, and similarly for |list !! 10|, or any finite prefix of |list|.
 This is because the recursive call in the definition of |map| is \emph{guarded}
 by the list constructor |(:)|:
 \begin{spec}
@@ -169,17 +172,23 @@ such as |map| that satisfy simple syntactic productivity
 checks~\citep{Coquand:94}, syntactic productivity is easily defeated by
 refactorings such as extracting local bindings:
 \begin{spec}
-  map f  []      = []
-  map f  (x:xs)  = f x  : rest
-    where rest = map f xs
+  map2 f  []      = []
+  map2 f  (x:xs)  = f x  : rest
+    where rest = map2 f xs
 \end{spec}
 Here, |rest| occurs in guarded position and hence the recursive call to
-|map| occurs in guarded position as well, but guardedness of the recursive
+|map2| occurs in guarded position as well, but guardedness of the recursive
 call is no longer syntactically evident and hence rejected by theorem provers
 such as Rocq\footnote{Formerly Coq.} or Agda.
-It is fair to say that syntactic productivity checks are a severe limitation of
-current implementations of coinduction, and render coinductive definitions far
-less useful than inductive definitions.
+
+That is in constrast to inductive definitions, where it is simple to anticipate
+the arguments of recursive calls.
+The recursive call to |map2| is still decreasing in the input list, and it is
+often simple enough to leave the code in a form where the decreasing recursive
+call is evident.
+So it is fair to say that \textbf{\emph{syntactic productivity checks are a severe
+limitation}} of current implementations of coinduction and render coinductive
+definitions far less useful than inductive definitions.
 
 This is particularly embarassing for expressing dynamic processes such as
 program semantics, because their natural implementation is in terms of
@@ -201,11 +210,11 @@ coinduction:
 Recall that |D τ = τ (highlight Value τ)|.
 Finite traces in the semantic domain |D (ByNeed T)| end in a |Value (ByNeed T)|,
 and the data constructor |Fun :: (highlight (D τ) -> D τ) -> Value τ| has a
-negative recursive occurrence of |Value τ|!
+\textbf{\emph{negative recursive occurrence}} of |Value τ|!
 This constructor is disallowed in inductive as well as traditional coinductive
 data type definitions, which one reason why denotational semantics traditionally
 made use of algebraic domain theory~\citep{Scott:70}, sized
-types~\citep{Hughes:96} or fuel-based encodings to prove totality.
+types~\citep{Hughes:96} or other fuel-based encodings to prove totality.
 
 \subsection{Guarded Type Theory}
 \label{sec:gtt}
@@ -218,26 +227,33 @@ Guarded type theories postpone the productivity check to the type system, where
 it becomes a \emph{semantic} instead of a \emph{syntactic} property.
 This enables compositional reasoning about productivity, and of course stability
 under type-preserving refactorings such as extraction of the |rest| auxiliary
-definition in the revised implementation of |map| above.
+definition in the revised implementation |map2| above.
 
 The fundamental innovation of guarded recursive type theory is the integration
-of the ``later'' modality $\later$~\citep{Nakano:00} which allows to define
+of the \emph{later} modality $\later$~\citep{Nakano:00} which allows to define
 coinductive data types with negative recursive occurrences such as in the data
 constructor |Fun| that we have identified as problematic above.
 
 The way that is achieved is roughly as follows: The type $\later T$
 represents data of type $T$ that will become available after a finite amount
-of computation, such as unrolling one layer of a fixpoint definition.
-It comes with a general fixpoint combinator $\fix : \forall A.\ (\later A \to
-A) \to A$ that can be used to define both coinductive \emph{types} (via guarded
-recursive functions on the universe of types~\citep{BirkedalMogelbergEjlers:13})
-as well as guarded recursive \emph{terms} inhabiting said types.
+of computation, such as unrolling one layer of a fixpoint definition or
+one |(:)| constructor of an infinite stream such as |map (2 +) [1..]|.
+While peeling off one layer is a finite computation, there may be an infinite
+number of such layers in turn.
+Consuming the entirety of such an infinite layering is impossible, but it
+is possible to observe any finite prefix in a total manner.
+
+The \emph{later} modality comes with a general fixpoint combinator
+$\fix : \forall A.\ (\later A \to A) \to A$ that can be used to define both
+coinductive \emph{types} (via guarded recursive functions on the universe
+of types~\citep{BirkedalMogelbergEjlers:13}) as well as guarded recursive
+\emph{terms} inhabiting said types.
 The classic example is that of infinite streams:
 \[
-  Str = ℕ \times \later Str \qquad ones = \fix (r : \later Str).\ (1,r),
+  \mathit{Str} = ℕ \times \later \mathit{Str} \qquad \mathit{ones} = \fix (r : \later \mathit{Str}).\ (1,r),
 \]
-where $ones : Str$ is the constant stream of $1$.
-In particular, $Str$ is the fixpoint of a locally contractive functor $F(X) =
+where $\mathit{ones} : \mathit{Str}$ is the constant stream of $1$.
+In particular, $\mathit{Str}$ is the fixpoint of a locally contractive functor $F(X) =
 ℕ \times \later X$.
 According to \citet{BirkedalMogelbergEjlers:13}, any type expression in simply
 typed lambda calculus defines a locally contractive functor as long as any
@@ -267,8 +283,8 @@ where the $\later$ ``effects'' happen.
 The purpose of this subsection is to understand how |evalName| and
 |evalNeed2| can be proved total by encoding them in Guarded Cubical Agda, which
 implements Ticked Cubical Type Theory~\citep{tctt}.
-The Agda code (which type-checks with Agda 2.6.2.2) that documents this proof
-can be found in the Appendix \sg{where? link to page}.
+The Agda code that documents this proof
+can be found in the Appendix on \cpageref{sec:agda}.
 
 To understand the Agda code, we will outline the changes necessary to encode
 |eval| as well as the concrete instances |D (ByName T)| and |D (ByNeed T)| from
@@ -283,9 +299,9 @@ To understand the Agda code, we will outline the changes necessary to encode
     This is enforced as follows:
     \begin{enumerate}
       \item
-        The |Domain| type class gains an additional predicate parameter |p :: D -> Set|
+        The |Domain d| type class gains an additional predicate parameter |p :: d -> Set|
         that will be instantiated by the semantics to a predicate that checks
-        that the |D| has the required form |step (Look x) d| for some
+        that the |d| has the required form |step (Look x) d| for some
         |x::Name|, |d :: Later (D τ)|.
       \item
         Then the method types of |Domain| use a Sigma type to encode conformance
