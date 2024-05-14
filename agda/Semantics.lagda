@@ -59,20 +59,20 @@ record Domain (D : Set) (p : D → Set) : Set where
     select : D → List (Var × (List (Σ D p) → D)) → D
 open Domain {{...}} public
 
-record HasBind (D : Set) : Set where
+record HasBind (D : Set) (q : ▸ D  → Set) : Set where
   field
-    bind : ▸(▸ D → D) → (▸ D → D) → D
+    bind : ▸(Σ (▸ D) q → D) → (Σ (▸ D) q → D) → D
 open HasBind {{...}} public
 \end{code}
 
 I will instantiate this predicate with the following predicate
-\AgdaFunction{is-look}, which simply expresses that any $d$ that ends
+\AgdaFunction{is-env}, which simply expresses that any $d$ that ends
 up in an environment must be of the form $\AgdaField{step}~(\AgdaInductiveConstructor{lookup}~x)~\mathit{d▸}$ for some $x$ and
 $\mathit{d▸}$.
 
 \begin{code}
-is-look : ∀ {D} {{trc : Trace D}} → (▸ D → Set) → D → Set
-is-look {D} p d = ∃[ x ] ∃[ d▸ ] (d ≡ step {D} (lookup x) d▸ × p d▸)
+is-env : ∀ {D} {{trc : Trace D}} → (▸ D → Set) → D → Set
+is-env {D} q d = ∃[ x ] ∃[ d▸ ] (d ≡ step {D} (lookup x) d▸ × q d▸)
 \end{code}
 
 \pagebreak
@@ -82,7 +82,7 @@ The definition differs in three ways:
 \begin{itemize}
 \setlength{\itemsep}{0pt}
 \item
-  I need to prove \AgdaFunction{is-look} when a let binding introduces new
+  I need to prove \AgdaFunction{is-env} when a let binding introduces new
   bindings to the environment.
 \item
   I omit tests comparing data constructor arity because that is not particularly
@@ -97,11 +97,11 @@ The definition differs in three ways:
 
 \hfuzz=2.5em
 \begin{code}
-S⟦_⟧_ :  ∀ {D p} {{_ : Trace D}} {{_ : Domain D (is-look p)}} {{_ : HasBind D}}
-         → Exp → (Var ⇀ Σ D (is-look p)) → D
-S⟦_⟧_ {D p} e ρ = fix sem e ρ
+S⟦_⟧_ :  ∀ {D q} {{_ : Trace D}} {{_ : Domain D (is-env q)}} {{_ : HasBind D q}}
+         → Exp → (Var ⇀ Σ D (is-env q)) → D
+S⟦_⟧_ {D} {q} e ρ = fix sem e ρ
   where
-    sem : ▸(Exp → (Var ⇀ Σ D (is-look p)) → D) → Exp → (Var ⇀ Σ D (is-look p)) → D
+    sem : ▸(Exp → (Var ⇀ Σ D (is-env q)) → D) → Exp → (Var ⇀ Σ D (is-env q)) → D
     sem recurse▸ (ref x) ρ with ρ x
     ... | nothing      = stuck
     ... | just (d , _) = d
@@ -111,17 +111,17 @@ S⟦_⟧_ {D p} e ρ = fix sem e ρ
     ... | nothing = stuck
     ... | just d  = step app1 (λ α → apply (recurse▸ α e ρ) d)
     sem recurse▸ (let' x e₁ e₂) ρ =
-      bind  (λ α d₁ →
-              recurse▸ α e₁ (ρ [ x ↦ (step (lookup x) d₁ , x , d₁ , refl) ]))
-            (λ d₁ → step let1 (λ α →
-              recurse▸ α e₂ (ρ [ x ↦ (step (lookup x) d₁ , x , d₁ , refl) ])))
+      bind  (λ α (d₁ , q) →
+              recurse▸ α e₁ (ρ [ x ↦ (step (lookup x) d₁ , x , d₁ , refl , q) ]))
+            (λ (d₁ , q) → step let1 (λ α →
+              recurse▸ α e₂ (ρ [ x ↦ (step (lookup x) d₁ , x , d₁ , refl , q) ])))
     sem recurse▸ (conapp K xs) ρ with pmap ρ xs
     ... | nothing = stuck
     ... | just ds = con K ds
     sem recurse▸ (case' eₛ alts) ρ =
       step case1 (λ α → select (recurse▸ α eₛ ρ) (List.map alt alts))
         where
-          alt : Con × List Var × Exp → Con × (List (Σ D (is-look p)) → D)
+          alt : Con × List Var × Exp → Con × (List (Σ D (is-env q)) → D)
           alt (k , xs , eᵣ) = (k , (λ ds →
             step  case2 (λ α → recurse▸ α eᵣ (ρ [ xs ↦* ds ]))))
 \end{code}
