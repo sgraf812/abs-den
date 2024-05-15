@@ -1,4 +1,3 @@
-\pagebreak
 \subsection*{Denotational Interpreter}
 
 Finally, I can define the generic denotational interpreter from \Cref{fig:eval}

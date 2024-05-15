@@ -1,9 +1,9 @@
 \subsection*{Guarded Cubical Agda Prelude}
 The following module is copied from the
 ``example''%
-\footnote{https://github.com/agda/agda/blob/master/test/Succeed/LaterPrims.agda}
+\footnote{https://github.com/agda/agda/blob/1c449e23b/test/Succeed/LaterPrims.agda}
 linked from the Agda user's guide on Guarded Cubical.%
-\footnote{\url{https://agda.readthedocs.io/en/v2.6.2.2/language/guarded-cubical.html}}
+\footnote{\url{https://agda.readthedocs.io/en/v2.6.4/language/guarded-cubical.html}}
 It can be considered part of the builtins or ``runtime system'' of Guarded
 Cubical Agda; I had no part in defining it.
 
@@ -38,7 +38,7 @@ postulate
   Tick : LockU
 
 ▸_ : ∀ {l} → Set l → Set l
-▸_ A = (@tick x : Tick) -> A
+▸ A = (@tick x : Tick) -> A
 
 next : A → ▸ A
 next x _ = x
