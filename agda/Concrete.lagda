@@ -202,7 +202,7 @@ record ByNeedD : Set
 
 {-# NO_POSITIVITY_CHECK #-}
 data HeapD : Set where
-  heapD : ▸ ByNeedD → HeapD
+  heapD : (d▸ : ▸ ByNeedD) → HeapD
 
 Heap : Set
 Heap = Addr ⇀ HeapD
@@ -212,35 +212,31 @@ postulate well-addressed : (μ : Heap) (a : Addr) → ∃[ d ] (μ a ≡ just d)
 definable-by-need : ▸ ByNeedD → Set
 definable-by-need _ = Unit
 
-record ByNeedD where
-  constructor mkByNeed
-  field get : Heap → T (Value ByNeedD definable-by-need × Heap)
 \end{code}
 
 Finally, I may give the definition of \AgdaDatatype{ByNeed}.
 
 \begin{code}
-return-ByNeed : ∀ {v} → v → Heap → T (v × Heap)
-return-ByNeed v = λ μ → return (v , μ)
+StateT : Set → (Set → Set) → Set → Set
+StateT s m a = s → m (a × s)
 
-{-
-_>>=-ByNeed_ : ∀ {τ} {{_ : Monad τ}} {a} {b} → ByNeed τ a → (a → ByNeed τ b) → ByNeed τ b
-_>>=-ByNeed_ {τ} {a} {b} m k = mkByNeed (λ μ → ByNeed.get m μ >>= aux)
-  where
-    aux : (a × Heap (ByNeed τ)) → τ (b × Heap (ByNeed τ))
-    aux (a , μ') = ByNeed.get (k a) μ'
+return-StateT : ∀ {s m} {{_ : Monad m}} {a} → a → StateT s m a
+return-StateT a s = return (a , s)
 
-instance
-  monad-ByNeed : ∀ {τ} {{_ : Monad τ}} → Monad (ByNeed τ)
-  monad-ByNeed = record { return = return-ByNeed; _>>=_ = _>>=-ByNeed_ }
-
-step-ByNeed : ∀ {τ} {v} {{_ : ∀ {V} → Trace (τ V)}} → Event → ▸(ByNeed τ v) → ByNeed τ v
-step-ByNeed {τ} {v} e m = mkByNeed (λ μ → step e (λ α → ByNeed.get (m α) μ))
+_>>=-StateT_ : ∀ {s m} {{_ : Monad m}} {a} {b} → StateT s m a → (a → StateT s m b) → StateT s m b
+_>>=-StateT_ m k s = m s >>= λ (a , s') → k a s'
 
 instance
-  trace-ByNeed : ∀ {τ} {v} {{_ : ∀ {V} → Trace (τ V)}} → Trace (ByNeed τ v)
-  trace-ByNeed = record { step = step-ByNeed  }
--}
+  monad-StateT : ∀ {τ} {{_ : Monad τ}} → Monad (λ v → Heap → T (v × Heap))
+  monad-StateT = record { return = return-StateT; _>>=_ = _>>=-StateT_ }
+
+record ByNeedD where
+  constructor mkByNeed
+  field get : StateT Heap T (Value ByNeedD definable-by-need)
+
+instance
+  trace-ByNeed : Trace ByNeedD
+  trace-ByNeed = record { step = λ e d▸ → mkByNeed (λ μ → step e (λ α → ByNeedD.get (d▸ α) μ))  }
 \end{code}
 
 What is a bit
@@ -251,15 +247,18 @@ Alas, we are stuck with the current encoding because of the abstractions involve
 We can't push the λ α into the surrounding ByNeed.
 
 \begin{code}
-{-
 -- | See step-ByNeed why this postulate is OK.
 --postulate
 --  no-α-in-μ : ∀ {τ} (f : Heap (ByNeed τ) → ▸(τ (Value (ByNeed τ) × Heap (ByNeed τ))))
 --            → Σ  (▸(D (ByNeed τ)))
 --                (λ d▸ → ∀ μ (@tick α : Tick) → ByNeed.get (d▸ α) μ ≡ (λ μ (@tick α : Tick) →  μ α)
 
-fetch : ∀ {τ} {{_ : Monad τ}} → Addr → ▸ ▸ (D (ByNeed τ))
-fetch {τ} a = λ α → λ μ → λ α2 → aux μ (fst (well-addressed μ a)) α
+test : ∀ {A B} → (▸ A → ▸ B) → ▸ (A → B)
+test f α a = f (λ _ → a) α
+
+{-
+fetch : ∀ {τ} {{_ : Monad τ}} → Addr → ▸ (D (ByNeed τ))
+fetch {τ} a = λ α → λ μ → aux μ (fst (well-addressed μ a)) α
   where
     aux : Heap (ByNeed τ) → HeapD (ByNeed τ) → ▸(τ (Value (ByNeed τ) × Heap (ByNeed τ)))
     aux μ (heapD d▸) α = ByNeed.get (d▸ α) μ
@@ -272,9 +271,11 @@ memo {τ} a d▸ = fix memo' d▸
     memo' rec▸ d▸ α₁ = do
       v ← d▸ α₁
       step update (λ _α₂ → mkByNeed (λ μ → return (v , μ [ a ↦ heapD (rec▸ α₁ (λ _ → return v)) ])))
+-}
 
-bind-ByNeed : ∀ {τ} {{_ : Monad τ}} {{_ : ∀ {V} → Trace (τ V)}} → ▸(▸(D (ByNeed τ)) → D (ByNeed τ)) → (▸(D (ByNeed τ)) → D (ByNeed τ)) → D (ByNeed τ)
-bind-ByNeed {τ} rhs body = do
+{-
+bind-ByNeed : ▸(▸ ByNeedD → ByNeedD) → (▸ ByNeedD → ByNeedD) → ByNeedD
+bind-ByNeed rhs body = do
   a ← mkByNeed (λ μ → return (nextFree μ , μ))
   mkByNeed (λ μ → return (42 , μ [ a ↦ heapD (memo a (λ α → rhs α (fetch a α))) ]))
   step let1 (λ α → mkByNeed (λ μ → ByNeed.get (body (fetch a α))))
