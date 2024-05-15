@@ -7,7 +7,7 @@ I do so without defining any concrete instances; the $\conid{ByName}$ and
 $\conid{ByNeed}$ variants will follows in another module.
 
 \begin{code}
-{-# OPTIONS --cubical --guarded --rewriting #-}
+{-# OPTIONS --cubical --guarded #-}
 module Semantics where
 
 open import Later
@@ -66,13 +66,13 @@ open HasBind {{...}} public
 \end{code}
 
 I will instantiate this predicate with the following predicate
-\AgdaFunction{is-look}, which simply expresses that any $d$ that ends
+\AgdaFunction{is-env}, which simply expresses that any $d$ that ends
 up in an environment must be of the form $\AgdaField{step}~(\AgdaInductiveConstructor{lookup}~x)~\mathit{d▸}$ for some $x$ and
 $\mathit{d▸}$.
 
 \begin{code}
-is-look : ∀ {D} {{trc : Trace D}} → D → Set
-is-look {D} d = ∃[ x ] ∃[ d▸ ] (d ≡ step {D} (lookup x) d▸)
+is-env : ∀ {D} {{trc : Trace D}} → D → Set
+is-env {D} d = ∃[ x ] ∃[ d▸ ] (d ≡ step {D} (lookup x) d▸)
 \end{code}
 
 \pagebreak
@@ -82,7 +82,7 @@ The definition differs in three ways:
 \begin{itemize}
 \setlength{\itemsep}{0pt}
 \item
-  I need to prove \AgdaFunction{is-look} when a let binding introduces new
+  I need to prove \AgdaFunction{is-env} when a let binding introduces new
   bindings to the environment.
 \item
   I omit tests comparing data constructor arity because that is not particularly
@@ -97,11 +97,11 @@ The definition differs in three ways:
 
 \hfuzz=2.5em
 \begin{code}
-S⟦_⟧_ :  ∀ {D} {{_ : Trace D}} {{_ : Domain D is-look}} {{_ : HasBind D}}
-         → Exp → (Var ⇀ Σ D is-look) → D
+S⟦_⟧_ :  ∀ {D} {{_ : Trace D}} {{_ : Domain D is-env}} {{_ : HasBind D}}
+         → Exp → (Var ⇀ Σ D is-env) → D
 S⟦_⟧_ {D} e ρ = fix sem e ρ
   where
-    sem : ▸(Exp → (Var ⇀ Σ D is-look) → D) → Exp → (Var ⇀ Σ D is-look) → D
+    sem : ▸(Exp → (Var ⇀ Σ D is-env) → D) → Exp → (Var ⇀ Σ D is-env) → D
     sem recurse▸ (ref x) ρ with ρ x
     ... | nothing      = stuck
     ... | just (d , _) = d
@@ -121,7 +121,7 @@ S⟦_⟧_ {D} e ρ = fix sem e ρ
     sem recurse▸ (case' eₛ alts) ρ =
       step case1 (λ α → select (recurse▸ α eₛ ρ) (List.map alt alts))
         where
-          alt : Con × List Var × Exp → Con × (List (Σ D is-look) → D)
+          alt : Con × List Var × Exp → Con × (List (Σ D is-env) → D)
           alt (k , xs , eᵣ) = (k , (λ ds →
             step  case2 (λ α → recurse▸ α eᵣ (ρ [ xs ↦* ds ]))))
 \end{code}

@@ -7,14 +7,18 @@ linked from the Agda user's guide on Guarded Cubical.%
 It can be considered part of the builtins or ``runtime system'' of Guarded
 Cubical Agda; I had no part in defining it.
 
+Note the definition of the \emph{later} modality $▸$ in terms of a \emph{tick
+abstraction}.
+This definition can be thought of as the \AgdaDatatype{Reader Tick} monad,
+only that the monad instance is impossible to define with tick abstraction
+because it would lead to an unsound system.
+We will however use it mostly as if $▸ A$ were just an ordinary function
+returning $A$.
+
 \hfuzz=2em
 \begin{code}
-{-# OPTIONS --guarded --cubical --rewriting #-}
+{-# OPTIONS --guarded --cubical #-}
 module Later where
-
-open import Agda.Builtin.Equality renaming (_≡_ to _≣_)
-open import Agda.Builtin.Equality.Rewrite
-open import Agda.Builtin.Sigma
 
 open import Cubical.Core.Everything
 open import Cubical.Foundations.Everything
@@ -34,7 +38,7 @@ postulate
   Tick : LockU
 
 ▸_ : ∀ {l} → Set l → Set l
-▸_ A = (@tick x : Tick) -> A  -- NB: x not free in A
+▸_ A = (@tick x : Tick) -> A
 
 next : A → ▸ A
 next x _ = x
@@ -47,18 +51,8 @@ map▸ : (f : A → B) → ▸ A → ▸ B
 map▸ f x α = f (x α)
 
 postulate
-  dfix : ∀ {l} {A : Set l} → (f : ▸ A → A) → I → ▸ A
-  dfix-beta : ∀ {l} {A : Set l} → (f : ▸ A → A) → dfix f i1 ≣ next (f (dfix f i0))
+  dfix : ∀ {l} {A : Set l} → (▸ A → A) → ▸ A
 
-{-# REWRITE dfix-beta #-}
-
-pfix : ∀ {l} {A : Set l} → (f : ▸ A → A) → dfix f i0 ≡ next (f (dfix f i0))
-pfix f i = dfix f i
-
-abstract
-  fix : ∀ {l} {A : Set l} → (f : ▸ A → A) → A
-  fix f = f (pfix f i0)
-
-  fix-eq : ∀ {l} {A : Set l} → (f : ▸ A → A) → fix f ≡ f (next (fix f))
-  fix-eq f = cong f (pfix f)
+fix : ∀ {l} {A : Set l} → (▸ A → A) → A
+fix f = f (dfix f)
 \end{code}
