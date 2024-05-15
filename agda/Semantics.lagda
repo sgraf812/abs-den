@@ -47,7 +47,7 @@ data Event : Set where
 
 record Trace (T : Set) : Set where
   field
-    step : Event → ▹ T → T
+    step : Event → ▸ T → T
 open Trace {{...}} public
 
 record Domain (D : Set) (p : D → Set) : Set where
@@ -61,18 +61,18 @@ open Domain {{...}} public
 
 record HasBind (D : Set) : Set where
   field
-    bind : ▹(▹ D → D) → (▹ D → D) → D
+    bind : ▸(▸ D → D) → (▸ D → D) → D
 open HasBind {{...}} public
 \end{code}
 
 I will instantiate this predicate with the following predicate
 \AgdaFunction{is-look}, which simply expresses that any $d$ that ends
-up in an environment must be of the form $\AgdaField{step}~(\AgdaInductiveConstructor{lookup}~x)~\mathit{d▹}$ for some $x$ and
-$\mathit{d▹}$.
+up in an environment must be of the form $\AgdaField{step}~(\AgdaInductiveConstructor{lookup}~x)~\mathit{d▸}$ for some $x$ and
+$\mathit{d▸}$.
 
 \begin{code}
 is-look : ∀ {D} {{trc : Trace D}} → D → Set
-is-look {D} d = ∃[ x ] ∃[ d▹ ] (d ≡ step {D} (lookup x) d▹)
+is-look {D} d = ∃[ x ] ∃[ d▸ ] (d ≡ step {D} (lookup x) d▸)
 \end{code}
 
 \pagebreak
@@ -101,27 +101,27 @@ S⟦_⟧_ :  ∀ {D} {{_ : Trace D}} {{_ : Domain D is-look}} {{_ : HasBind D}}
          → Exp → (Var ⇀ Σ D is-look) → D
 S⟦_⟧_ {D} e ρ = fix sem e ρ
   where
-    sem : ▹(Exp → (Var ⇀ Σ D is-look) → D) → Exp → (Var ⇀ Σ D is-look) → D
-    sem recurse▹ (ref x) ρ with ρ x
+    sem : ▸(Exp → (Var ⇀ Σ D is-look) → D) → Exp → (Var ⇀ Σ D is-look) → D
+    sem recurse▸ (ref x) ρ with ρ x
     ... | nothing      = stuck
     ... | just (d , _) = d
-    sem recurse▹ (lam x body) ρ =
-      fun (λ d → step app2 (λ α → recurse▹ α body (ρ [ x ↦ d ])))
-    sem recurse▹ (app e x) ρ with ρ x
+    sem recurse▸ (lam x body) ρ =
+      fun (λ d → step app2 (λ α → recurse▸ α body (ρ [ x ↦ d ])))
+    sem recurse▸ (app e x) ρ with ρ x
     ... | nothing = stuck
-    ... | just d  = step app1 (λ α → apply (recurse▹ α e ρ) d)
-    sem recurse▹ (let' x e₁ e₂) ρ =
+    ... | just d  = step app1 (λ α → apply (recurse▸ α e ρ) d)
+    sem recurse▸ (let' x e₁ e₂) ρ =
       bind  (λ α d₁ →
-              recurse▹ α e₁ (ρ [ x ↦ (step (lookup x) d₁ , x , d₁ , refl) ]))
+              recurse▸ α e₁ (ρ [ x ↦ (step (lookup x) d₁ , x , d₁ , refl) ]))
             (λ d₁ → step let1 (λ α →
-              recurse▹ α e₂ (ρ [ x ↦ (step (lookup x) d₁ , x , d₁ , refl) ])))
-    sem recurse▹ (conapp K xs) ρ with pmap ρ xs
+              recurse▸ α e₂ (ρ [ x ↦ (step (lookup x) d₁ , x , d₁ , refl) ])))
+    sem recurse▸ (conapp K xs) ρ with pmap ρ xs
     ... | nothing = stuck
     ... | just ds = con K ds
-    sem recurse▹ (case' eₛ alts) ρ =
-      step case1 (λ α → select (recurse▹ α eₛ ρ) (List.map alt alts))
+    sem recurse▸ (case' eₛ alts) ρ =
+      step case1 (λ α → select (recurse▸ α eₛ ρ) (List.map alt alts))
         where
           alt : Con × List Var × Exp → Con × (List (Σ D is-look) → D)
           alt (k , xs , eᵣ) = (k , (λ ds →
-            step  case2 (λ α → recurse▹ α eᵣ (ρ [ xs ↦* ds ]))))
+            step  case2 (λ α → recurse▸ α eᵣ (ρ [ xs ↦* ds ]))))
 \end{code}

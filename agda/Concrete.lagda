@@ -42,7 +42,7 @@ open Monad {{...}} public
 
 data T (A : Set) : Set where
   ret-T : A → T A
-  step-T : Event → ▹ T A → T A
+  step-T : Event → ▸ T A → T A
 
 data Value (τ : Set → Set) : Set
 
@@ -52,18 +52,18 @@ D τ = τ (Value τ)
 
 As explained in \Cref{sec:totality-formal}, a notable difference to the
 definition of \AgdaDatatype{Value} in the main body is that I need to break the
-negative occurrence in \AgdaField{fun} by the use of \emph{later} $▹$.
+negative occurrence in \AgdaField{fun} by the use of \emph{later} $▸$.
 Doing so is permitted in guarded type theory.
 Unfortunately, Agda's positivity checker does not currently support
 the later modality, so I have to deactivate it via a potentially
 dangerous-looking pragma in the definition that follows.
 Note that the use of this pragma is solely so that the positivity
-checker does not try to recurse through the occurrence of $▹ D$.
+checker does not try to recurse through the occurrence of $▸ D$.
 
 \begin{code}
 {-# NO_POSITIVITY_CHECK #-}
 data LookupD (D : Set) : Set where
-  stepLookup : Var → ▹ D → LookupD D
+  stepLookup : Var → ▸ D → LookupD D
 \end{code}
 
 I have reported this bug to the Agda maintainers.%
@@ -81,10 +81,10 @@ Defining the bijection myself is easy, enough, though:
 
 \begin{code}
 toSubtype : ∀ {D} {{_ : Trace D}} → LookupD D → Σ D is-look
-toSubtype {{_}} (stepLookup x d▹) = (step (lookup x) d▹ , x , d▹ , refl)
+toSubtype {{_}} (stepLookup x d▸) = (step (lookup x) d▸ , x , d▸ , refl)
 
 fromSubtype : ∀ {D} {{_ : Trace D}} → Σ D is-look → LookupD D
-fromSubtype {{_}} (_ , x , d▹ , _) = stepLookup x d▹
+fromSubtype {{_}} (_ , x , d▸ , _) = stepLookup x d▸
 \end{code}
 
 Hence I define the data constructors \AgdaInductiveConstructor{fun-V} and
@@ -163,7 +163,7 @@ instance
 
 instance
   has-bind-ByName : ∀ {τ} {v} → HasBind (ByName τ v)
-  has-bind-ByName {τ} = record { bind = λ rhs body → body (λ α → fix (λ rhs▹ → rhs α rhs▹)) }
+  has-bind-ByName {τ} = record { bind = λ rhs body → body (λ α → fix (λ rhs▸ → rhs α rhs▸)) }
 
 eval-by-name : Exp → D (ByName T)
 eval-by-name e = S⟦ e ⟧ empty-pfun
@@ -186,8 +186,9 @@ Addr = ℕ
 record ByNeed (τ : Set → Set) (v : Set) : Set
 
 {-# NO_POSITIVITY_CHECK #-}
-data HeapD (τ : Set → Set) : Set where
-  heapD : ▹(D τ) → HeapD τ
+record HeapD (τ : Set → Set) : Set where
+  constructor heapD
+  field get : ▸(D τ)
 
 Heap : (Set → Set) → Set
 Heap τ = Addr ⇀ HeapD τ
@@ -215,7 +216,7 @@ instance
   monad-ByNeed : ∀ {τ} {{_ : Monad τ}} → Monad (ByNeed τ)
   monad-ByNeed = record { return = return-ByNeed; _>>=_ = _>>=-ByNeed_ }
 
-step-ByNeed : ∀ {τ} {v} {{_ : ∀ {V} → Trace (τ V)}} → Event → ▹(ByNeed τ v) → ByNeed τ v
+step-ByNeed : ∀ {τ} {v} {{_ : ∀ {V} → Trace (τ V)}} → Event → ▸(ByNeed τ v) → ByNeed τ v
 step-ByNeed {τ} {v} e m = mkByNeed (λ μ → step e (λ α → ByNeed.get (m α) μ))
 
 instance
@@ -231,27 +232,30 @@ Alas, we are stuck with the current encoding because of the abstractions involve
 We can't push the λ α into the surrounding ByNeed.
 
 \begin{code}
--- | See step-ByNeed why this postulate is OK.
-postulate no-α-in-μ : ∀ {τ} (f : Heap (ByNeed τ) → ▹(τ (Value (ByNeed τ) × Heap (ByNeed τ))))
-                    → Σ (▹(D (ByNeed τ)))
-                         (λ d▹ → ∀ μ (@tick α : Tick) → ByNeed.get (d▹ α) μ ≡ f μ α)
+stepLookupFetch : ∀ {τ} {{_ : Monad τ}} {{_ : ∀ {V} → Trace (τ V)}} → Var → Addr → D (ByNeed τ)
+stepLookupFetch {τ} x a = mkByNeed (λ μ →
+  let d▸ = HeapD.get (fst (well-addressed μ a)) in
+  step (lookup x) (λ α → ByNeed.get (d▸ α) μ))
 
-fetch : ∀ {τ} {{_ : Monad τ}} → Addr → ▹(D (ByNeed τ))
-fetch {τ} a = fst (no-α-in-μ (λ μ → aux μ (fst (well-addressed μ a))))
+postulate
+  unsafe-swap-tick       : ∀ {A B : Set} → (A → ▸ B) → ▸ (A → B)
+  unsafe-swap-tick-impl  : ∀ {A B : Set} {f : A → ▸ B} {μ α} → unsafe-swap-tick f α μ ≡ f μ α
+
+fetch : ∀ {τ} {{_ : Monad τ}} → Addr → ▸(D (ByNeed τ))
+fetch {τ} a = map▸ mkByNeed (unsafe-swap-tick (λ μ →
+  let d▸ = HeapD.get (fst (well-addressed μ a)) in
+  (λ α → ByNeed.get (d▸ α) μ)))
+
+memo : ∀ {τ} {{_ : Monad τ}} {{_ : ∀ {V} → Trace (τ V)}} → Addr → ▸(D (ByNeed τ)) → ▸(D (ByNeed τ))
+memo {τ} a d▸ = fix memo' d▸
   where
-    aux : Heap (ByNeed τ) → HeapD (ByNeed τ) → ▹(τ (Value (ByNeed τ) × Heap (ByNeed τ)))
-    aux μ (heapD d▹) α = ByNeed.get (d▹ α) μ
+    memo' : ▸(▸(D (ByNeed τ)) → ▸(D (ByNeed τ)))
+          →   ▸(D (ByNeed τ)) → ▸(D (ByNeed τ))
+    memo' rec▸ d▸ α₁ = do
+      v ← d▸ α₁
+      step update (λ _α₂ → mkByNeed (λ μ → return (v , μ [ a ↦ heapD (rec▸ α₁ (λ _ → return v)) ])))
 
-memo : ∀ {τ} {{_ : Monad τ}} {{_ : ∀ {V} → Trace (τ V)}} → Addr → ▹(D (ByNeed τ)) → ▹(D (ByNeed τ))
-memo {τ} a d▹ = fix memo' d▹
-  where
-    memo' : ▹(▹(D (ByNeed τ)) → ▹(D (ByNeed τ)))
-          →   ▹(D (ByNeed τ)) → ▹(D (ByNeed τ))
-    memo' rec▹ d▹ α₁ = do
-      v ← d▹ α₁
-      step update (λ _α₂ → mkByNeed (λ μ → return (v , μ [ a ↦ heapD (rec▹ α₁ (λ _ → return v)) ])))
-
-bind-ByNeed : ∀ {τ} {{_ : Monad τ}} {{_ : ∀ {V} → Trace (τ V)}} → ▹(▹(D (ByNeed τ)) → D (ByNeed τ)) → (▹(D (ByNeed τ)) → D (ByNeed τ)) → D (ByNeed τ)
+bind-ByNeed : ∀ {τ} {{_ : Monad τ}} {{_ : ∀ {V} → Trace (τ V)}} → ▸(▸(D (ByNeed τ)) → D (ByNeed τ)) → (▸(D (ByNeed τ)) → D (ByNeed τ)) → D (ByNeed τ)
 bind-ByNeed {τ} rhs body = do
   a ← mkByNeed (λ μ → return (nextFree μ , μ))
   mkByNeed (λ μ → return (42 , μ [ a ↦ heapD (memo a (λ α → rhs α (fetch a))) ]))
