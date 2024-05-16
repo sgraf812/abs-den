@@ -13,7 +13,7 @@ open import Later
 open import Syntax
 open import Data.Nat
 open import Data.String
-open import Data.List as List hiding (lookup)
+open import Data.List as List
 open import Data.List.Membership.Propositional
 open import Data.Maybe hiding (_>>=_)
 open import Data.Sum
@@ -36,7 +36,7 @@ $\AgdaField{bind}$.
 
 \begin{code}
 data Event : Set where
-  lookup : Var → Event
+  look : Var → Event
   update : Event
   app1 : Event
   app2 : Event
@@ -66,12 +66,12 @@ open HasBind {{...}} public
 
 I will instantiate this predicate with the following predicate
 \AgdaFunction{is-env}, which simply expresses that any $d$ that ends
-up in an environment must be of the form $\AgdaField{step}~(\AgdaInductiveConstructor{lookup}~x)~\mathit{d▸}$ for some $x$ and
+up in an environment must be of the form $\AgdaField{step}~(\AgdaInductiveConstructor{look}~x)~\mathit{d▸}$ for some $x$ and
 $\mathit{d▸}$.
 
 \begin{code}
 is-env : ∀ {D} {{trc : Trace D}} → D → Set
-is-env {D} d = ∃[ x ] ∃[ d▸ ] (d ≡ step {D} (lookup x) d▸)
+is-env {D} d = ∃[ x ] ∃[ d▸ ] (d ≡ step {D} (look x) d▸)
 \end{code}
 
 \pagebreak
@@ -90,15 +90,15 @@ The definition differs in three ways:
   The definition is a bit more involved than in Haskell because of the diligent
   passing of \AgdaPrimitiveType{Tick}s.
   This is in order to convince Agda that
-  $\AgdaFunction{S$\llbracket\_\rrbracket$}$ is productive by construction, so
+  $\AgdaFunction{$𝒮\llbracket\_\rrbracket$}$ is productive by construction, so
   that no separate proof of totality is necessary.
 \end{itemize}
 
 \hfuzz=2.5em
 \begin{code}
-S⟦_⟧_ :  ∀ {D} {{_ : Trace D}} {{_ : Domain D is-env}} {{_ : HasBind D}}
+𝒮⟦_⟧_ :  ∀ {D} {{_ : Trace D}} {{_ : Domain D is-env}} {{_ : HasBind D}}
          → Exp → (Var ⇀ Σ D is-env) → D
-S⟦_⟧_ {D} e ρ = fix sem e ρ
+𝒮⟦_⟧_ {D} e ρ = fix sem e ρ
   where
     sem : ▸(Exp → (Var ⇀ Σ D is-env) → D) → Exp → (Var ⇀ Σ D is-env) → D
     sem recurse▸ (ref x) ρ with ρ x
@@ -111,9 +111,9 @@ S⟦_⟧_ {D} e ρ = fix sem e ρ
     ... | just d  = step app1 (λ α → apply (recurse▸ α e ρ) d)
     sem recurse▸ (let' x e₁ e₂) ρ =
       bind  (λ α d₁ →
-              recurse▸ α e₁ (ρ [ x ↦ (step (lookup x) d₁ , x , d₁ , refl) ]))
+              recurse▸ α e₁ (ρ [ x ↦ (step (look x) d₁ , x , d₁ , refl) ]))
             (λ d₁ → step let1 (λ α →
-              recurse▸ α e₂ (ρ [ x ↦ (step (lookup x) d₁ , x , d₁ , refl) ])))
+              recurse▸ α e₂ (ρ [ x ↦ (step (look x) d₁ , x , d₁ , refl) ])))
     sem recurse▸ (conapp K xs) ρ with pmap ρ xs
     ... | nothing = stuck
     ... | just ds = con K ds

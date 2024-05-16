@@ -18,7 +18,7 @@ open import Later
 open import Syntax
 open import Data.Nat
 open import Data.String
-open import Data.List as List hiding (lookup)
+open import Data.List as List
 open import Data.List.Membership.Propositional
 open import Data.Maybe hiding (_>>=_)
 open import Data.Unit
@@ -66,7 +66,7 @@ checker does not try to recurse through the occurrence of $▸ D$.
 \begin{code}
 {-# NO_POSITIVITY_CHECK #-}
 data EnvD (D : Set) : Set where
-  stepLookup : Var → ▸ D → EnvD D
+  stepLook : Var → ▸ D → EnvD D
 \end{code}
 
 I have reported this bug to the Agda maintainers.%
@@ -74,8 +74,8 @@ I have reported this bug to the Agda maintainers.%
 
 Note that $\AgdaDatatype{EnvD}~D$ is effectively the subtype of $D$
 of denotations that go into the environment $ρ$.
-One should think of $\AgdaField{stepLookup}~x~d'$ as a $d$ such that
-$d = \AgdaField{step}~(\AgdaInductiveConstructor{lookup}~x)~d'$.
+One should think of $\AgdaField{stepLook}~x~d'$ as a $d$ such that
+$d = \AgdaField{step}~(\AgdaInductiveConstructor{look}~x)~d'$.
 
 Actually, I would prefer to simply \emph{express} the subtyping relationship via
 $\AgdaFunction{Σ}~D~\AgdaFunction{is-env}$, as in the type of \AgdaField{fun},
@@ -89,10 +89,10 @@ Defining the bijection to $\AgdaDatatype{EnvD}$ is easy, enough, though:
 
 \begin{code}
 toSubtype : ∀ {D} {{_ : Trace D}} → EnvD D → Σ D is-env
-toSubtype {{_}} (stepLookup x d▸) = (step (lookup x) d▸ , x , d▸ , refl)
+toSubtype {{_}} (stepLook x d▸) = (step (look x) d▸ , x , d▸ , refl)
 
 fromSubtype : ∀ {D} {{_ : Trace D}} → Σ D is-env → EnvD D
-fromSubtype {{_}} (_ , x , d▸ , _) = stepLookup x d▸
+fromSubtype {{_}} (_ , x , d▸ , _) = stepLook x d▸
 \end{code}
 
 I can also prove that the pair indeed forms a bijection:
@@ -104,7 +104,7 @@ env-iso = iso toSubtype fromSubtype from-to to-from
     from-to : ∀ d → toSubtype (fromSubtype d) ≡ d
     from-to (d , x , d▸ , prf) i = (prf (~ i) , x , d▸ , λ i₁ → prf (i₁ ∨ (~ i)))
     to-from : ∀ d → fromSubtype (toSubtype d) ≡ d
-    to-from (stepLookup x d▸) = refl
+    to-from (stepLook x d▸) = refl
 \end{code}
 
 Hence I define the data constructors \AgdaInductiveConstructor{fun-V} and
@@ -196,7 +196,7 @@ instance
     record { bind = λ rhs body → body (λ α → fix (λ rhs▸ → rhs α rhs▸)) }
 
 eval-by-name : Exp → D (ByName T)
-eval-by-name e = S⟦ e ⟧ empty-pfun
+eval-by-name e = 𝒮⟦ e ⟧ empty-pfun
 \end{code}
 
 For the \AgdaDatatype{ByNeed} instance, I need to define heaps.
@@ -270,11 +270,11 @@ To see why this postulate is necessary and why my use of it is actually safe,
 consider the following definition:
 
 \begin{code}
-stepLookupFetch :  ∀ {τ} {{_ : Monad τ}} {{_ : ∀ {V} → Trace (τ V)}}
-                   → Var → Addr → D (ByNeed τ)
-stepLookupFetch {τ} x a = mkByNeed (λ μ →
+stepLookFetch :  ∀ {τ} {{_ : Monad τ}} {{_ : ∀ {V} → Trace (τ V)}}
+                 → Var → Addr → D (ByNeed τ)
+stepLookFetch {τ} x a = mkByNeed (λ μ →
   let d▸ = HeapD.get (fst (well-addressed μ a)) in
-  step (lookup x) (λ α → ByNeed.get (d▸ α) μ))
+  step (look x) (λ α → ByNeed.get (d▸ α) μ))
 \end{code}
 
 (Note that $\AgdaFunction{fst}~(\AgdaPostulate{well-addressed}~μ~a)$ simply
@@ -282,27 +282,27 @@ returns the heap entry in $μ$ at address $a$, which must be present by
 my assumption of well-addressedness.)
 
 This definition constructs the total Agda equivalent of the Haskell expression
-$\varid{step}~(\conid{Lookup}~\varid{x})~(\varid{fetch}~\varid{a})$, for the
+$\varid{step}~(\conid{Look}~\varid{x})~(\varid{fetch}~\varid{a})$, for the
 given variable $\varid{x}$ and address $\varid{a}$.
 Ultimately, all denotations in the interpreter environment $ρ$ will take this
 form under by-need evaluation. (In \Cref{defn:syn-heap} I define an even sharper
 characterisation.)
 In fact, \emph{all} uses of \AgdaFunction{fetch} will take this form!
 
-Unfortunately, it is hard to decompose \AgdaFunction{stepLookupFetch} into
+Unfortunately, it is hard to decompose \AgdaFunction{stepLookFetch} into
 separate function calls to \AgdaFunction{step} and
 $\AgdaFunction{fetch} : \AgdaFunction{Addr} \to \AgdaPrimitive{▸}(\AgdaFunction{D}~(\AgdaDatatype{ByNeed}~\AgdaDatatype{T}))$,
 because the latter will then need to bind the tick variable $α$ (part of \AgdaPrimitive{▸})
 before the heap $μ$ (part of $\AgdaFunction{D}~(\AgdaDatatype{ByNeed}~\AgdaDatatype{T})$).
-This is in contrast to the order of binders in \AgdaFunction{stepLookupFetch},
-which may bind $μ$ before $α$, because lookup steps leave the heap unchanged.
+This is in contrast to the order of binders in \AgdaFunction{stepLookFetch},
+which may bind $μ$ before $α$, because look steps leave the heap unchanged.
 (See \AgdaFunction{step-ByNeed} above for confirmation, which is inlined into
-\AgdaFunction{stepLookupFetch}).
+\AgdaFunction{stepLookFetch}).
 
 The flipped argument order is problematic for my definition of
 \AgdaFunction{fetch}, because ticked type theory conservatively assumes
 that $μ$ might depend on $α$ --- when in reality it does not in
-\AgdaFunction{stepLookupFetch}!
+\AgdaFunction{stepLookFetch}!
 The result is that the subexpression $\AgdaField{ByNeed.get}~(d▸~α)~μ$ would
 not be well-typed under the flipped order, because
 \begin{itemize}
@@ -332,7 +332,7 @@ before calling $f$, and unless $μ$ does not depend on $α$, the application of
 
 I use \AgdaPostulate{flip-tick} in the implementation of \AgdaFunction{fetch}
 exactly to flip back the binding order to what it will be in the use site
-\AgdaFunction{stepLookupFetch}:
+\AgdaFunction{stepLookFetch}:
 
 \begin{code}
 fetch : ∀ {τ} {{_ : Monad τ}} → Addr → ▸(D (ByNeed τ))
@@ -342,11 +342,11 @@ fetch {τ} a = map▸ mkByNeed (flip-tick (λ μ →
 \end{code}
 
 Agda is able to calculate that this definition of \AgdaFunction{fetch}
-is equivalent to the one inlined into \AgdaFunction{stepLookupFetch}:
+is equivalent to the one inlined into \AgdaFunction{stepLookFetch}:
 
 \begin{code}
 postulate-ok :  ∀ {τ x a} {{_ : Monad τ}} {{_ : ∀ {V} → Trace (τ V)}}
-                → step (lookup x) (fetch {τ} a) ≡ stepLookupFetch x a
+                → step (look x) (fetch {τ} a) ≡ stepLookFetch x a
 postulate-ok = refl
 \end{code}
 
@@ -392,7 +392,7 @@ instance
   has-bind-ByNeed = record { bind = bind-ByNeed }
 
 eval-by-need : Exp → T (Value (ByNeed T) × Heap (ByNeed T))
-eval-by-need e = ByNeed.get (S⟦ e ⟧ empty-pfun) empty-pfun
+eval-by-need e = ByNeed.get (𝒮⟦ e ⟧ empty-pfun) empty-pfun
 \end{code}
 
 This completes the definition of \AgdaFunction{eval-by-need} which is thus

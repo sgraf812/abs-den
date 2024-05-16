@@ -273,7 +273,7 @@ functor~\citep{McBridePaterson:08} via functions
   \purelater : \forall A.\ A \to \later A \qquad \wild \aplater \wild : \forall A,B.\ \later (A \to B) \to \later A \to \later B,
 \]
 allowing us to apply a familiar framework of reasoning around $\later$.
-In order not to obscure our work with pointless symbol pushing, we will often
+In order not to obscure my work with pointless symbol pushing, I will often
 omit the idiom brackets~\citep{McBridePaterson:08} $\idiom{\wild}$ to indicate
 where the $\later$ ``effects'' happen.
 
@@ -286,7 +286,7 @@ implements Ticked Cubical Type Theory~\citep{tctt}.
 The Agda code that documents this proof
 can be found in the Appendix on \cpageref{sec:agda}.
 
-To understand the Agda code, we will outline the changes necessary to encode
+To understand the Agda code, let me outline the changes necessary to encode
 |eval| as well as the concrete instances |D (ByName T)| and |D (ByNeed T)| from
 \Cref{fig:trace-instances,fig:by-need}.
 \begin{itemize}
@@ -324,8 +324,8 @@ To understand the Agda code, we will outline the changes necessary to encode
   \item
     Expectedly, |HasBind| becomes more complicated because it encodes the
     fixpoint combinator.
-    We settled on |bind :: Later (Later D → D) → (Later D → D) → D|.
-    (We tried rolling up |step (Look x) _| in the definition of |eval|
+    I settled on |bind :: Later (Later D → D) → (Later D → D) → D|.
+    (I tried rolling up |step (Look x) _| in the definition of |eval|
     to get a simpler type |bind :: (Σ D p → D) → (Σ D p → D) → D|,
     but then had trouble defining |ByNeed| heaps independently of the concrete
     predicate |p|.)
@@ -337,15 +337,17 @@ To understand the Agda code, we will outline the changes necessary to encode
     by delaying heap entries, |Heap τ = Addr :-> Later (D τ)|.
   \item
     We need to pass around |Tick| binders in |eval| in a way that the type
-    checker is satisfied; a simple exercise.
-    We find it remarkable how non-invasive these adjustment are!
+    checker is satisfied; an exercise that is a bit more involved than one
+    might expect, see the Appendix.
+    Nevertheless, I find it remarkable how non-invasive these adjustment are!
+    I had to conduct almost no proof external to the domain definition.
 \end{itemize}
 
-Thus we have proven that |eval| is a total, mathematical function, and
+Thus I have proven that |eval| is a total, mathematical function, and
 fast and loose equational reasoning about |eval| is not only \emph{morally}
 correct~\citep{Danielsson:06}, but simply \emph{correct}.
-Furthermore, since evaluation order doesn't matter in Agda and hence for |eval|,
-we could have defined it in a strict language (lowering |Later a| as |() -> a|)
+Furthermore, since evaluation order doesn't matter in Agda or for |eval|,
+I could have defined it in a strict language (lowering |Later a| as |() -> a|)
 just as well.
 
 \subsection{Proof of Adequacy For |evalNeed2|}
