@@ -344,8 +344,8 @@ To understand the Agda code, let me outline the changes necessary to encode
 \end{itemize}
 
 Thus I have proven that |eval| is a total, mathematical function, and
-fast and loose equational reasoning about |eval| is not only \emph{morally}
-correct~\citep{Danielsson:06}, but simply \emph{correct}.
+fast and loose equational reasoning about |eval| is not only \emph{morally
+correct}~\citep{Danielsson:06}, but simply \emph{correct}.
 Furthermore, since evaluation order doesn't matter in Agda or for |eval|,
 I could have defined it in a strict language (lowering |Later a| as |() -> a|)
 just as well.
@@ -353,9 +353,18 @@ just as well.
 \subsection{Proof of Adequacy For |evalNeed2|}
 \label{sec:adequacy-formal}
 
-We proceed from the bottom up, beginning with a definition of traces as
-mathematical sequences, then defining maximal traces, and then relating
-those maximal traces via \Cref{fig:eval-correctness} to |eval|.
+Building on the totality result for |evalNeed2|, I will prove in this subsection
+that |evalNeed2| produces an abstraction of the small-step trace of the lazy
+Krivine (LK) machine from \Cref{sec:op-sem}.
+The main result is \Cref{thm:need-abstracts-lk}, from which the earlier
+\Cref{thm:need-adequate-strong} in \Cref{sec:adequacy} follows.
+
+To formalise the main result, I must characterise the maximal traces in the LK
+transition system and relate them to the trace produced by |evalNeed2| via
+the abstraction function in \Cref{fig:eval-correctness} and its associated
+correctness relation.
+
+\subsubsection{Maximal Lazy Krivine Traces}
 
 Formally, an LK trace is a trace in $(\smallstep)$ from
 \Cref{fig:lk-semantics}, \ie a non-empty and potentially infinite sequence of
@@ -369,31 +378,38 @@ $\pv$, we call $σ$ a \emph{return} state and say that the continuation (selecte
 via $\cont(σ)$) drives evaluation.
 Otherwise, $σ$ is an \emph{evaluation} state and $\ctrl(σ)$ drives evaluation.
 
-An important kind of trace is one that never leaves the evaluation context of
-its source state:
+An important kind of trace is an \emph{interior trace}, one that never leaves
+the evaluation context of its source state:
 
-\begin{definition}[Deep, interior and balanced traces]
+\begin{definition}[Deep trace]
   An LK trace $(σ_i)_{i∈\overline{n}}$ is
-  \emph{$κ$-deep} if every intermediate continuation
-  $κ_i \triangleq \cont(σ_i)$ extends $κ$ (so $κ_i = κ$ or $κ_i = ... \pushF κ$,
+  \emph{$κ$-deep} if every intermediate continuation $κ_i \triangleq
+  \cont(σ_i)$ extends $κ$ (so $κ_i = κ$ or $κ_i = \wild \pushF κ$,
   abbreviated $κ_i = ...κ$).
-
-  \noindent
-  A trace $(σ_i)_{i∈\overline{n}}$ is called \emph{interior} if it is
-  $\cont(σ_0)$-deep.
-  Furthermore, an interior trace $(σ_i)_{i∈\overline{n}}$ is
-  \emph{balanced}~\citep{Sestoft:97} if the target state exists and is a return
-  state with continuation $\cont(σ_0)$.
-
-  \noindent
-  We notate $κ$-deep and interior traces as
-  $\deep{κ}{(σ_i)_{i∈\overline{n}}}$ and $\interior{(σ_i)_{i∈\overline{n}}}$, respectively.
 \end{definition}
 
-Here is an example for each of the three cases.
-We will omit the first component of heap entries in our examples because they
+\begin{definition}[Interior trace]
+  A trace $(σ_i)_{i∈\overline{n}}$ is called \emph{interior} (notated as
+  $\interior{(σ_i)_{i∈\overline{n}}}$) if it is $\cont(σ_0)$-deep.
+\end{definition}
+
+A \emph{balanced trace}~\citep{Sestoft:97} is an interior trace that is about to
+return from the initial evaluation context; it corresponds to a big-step
+evaluation of the initial focus expression:
+
+\begin{definition}[Balanced trace]
+  An interior trace $(σ_i)_{i∈\overline{n}}$ is
+  \emph{balanced} if the target state exists and is a return
+  state with continuation $\cont(σ_0)$.
+\end{definition}
+
+In the following I give an example for interior and balanced traces.
+I will omit the first component of heap entries in the examples because they
 bear no semantic significance apart from instrumenting $\LookupT$ transitions,
-and it is confusing when the heap-bound expression is a variable $x$, \eg $(y,ρ,x)$.
+and it is confusing when the heap-bound expression is a variable $x$,
+\eg $(y,ρ,x)$.
+Of course, the abstraction function later on will need to look at the first
+component.
 \begin{example}
   Let $ρ=[x↦\pa_1],μ=[\pa_1↦(\wild,[], \Lam{y}{y})]$ and $κ$ an arbitrary
   continuation. The trace
@@ -401,7 +417,7 @@ and it is confusing when the heap-bound expression is a variable $x$, \eg $(y,ρ
      (x, ρ, μ, κ) \smallstep (\Lam{y}{y}, ρ, μ, \UpdateF(\pa_1) \pushF κ) \smallstep (\Lam{y}{y}, ρ, μ, κ)
   \]
   is interior and balanced. Its proper prefixes are interior but not balanced.
-  The trace suffix
+  The suffix
   \[
      (\Lam{y}{y}, ρ, μ, \UpdateF(\pa_1) \pushF κ) \smallstep (\Lam{y}{y}, ρ, μ, κ)
   \]
@@ -413,14 +429,15 @@ and it is confusing when the heap-bound expression is a variable $x$, \eg $(y,ρ
 %transitions $\UpdateT$, $\AppET$ and $\CaseET$ are not.
 
 As shown by \citet{Sestoft:97}, a balanced trace starting at a control
-expression $\pe$ and ending with $\pv$ loosely corresponds to a derivation of
-$\pe \Downarrow \pv$ in a natural big-step semantics or a non-$⊥$ result in a
+expression $\pe$ and ending with $\pv$ corresponds to a derivation of $\pe
+\Downarrow \pv$ in a natural big-step semantics or a non-$⊥$ result in a
 Scott-style denotational semantics.
-It is when a derivation in a natural semantics does \emph{not} exist that a
+It is when a derivation in a big-step semantics does \emph{not} exist that a
 small-step semantics shows finesse, in that it differentiates two different
-kinds of \emph{maximally interior} (or, just \emph{maximal}) traces:
+kinds of \emph{maximally interior} (or, just \emph{maximal}) traces;
+\emph{divergin} and \emph{stuck} traces:
 
-\begin{definition}[Maximal, diverging and stuck traces]
+\begin{definition}[Maximal trace]
   An LK trace $(σ_i)_{i∈\overline{n}}$ is \emph{maximal} if and only if it is
   interior and there is no $σ_{n+1}$ such that $(σ_i)_{i∈\overline{n+1}}$ is
   interior.
@@ -429,11 +446,17 @@ kinds of \emph{maximally interior} (or, just \emph{maximal}) traces:
     \maxtrace{(σ_i)_{i∈\overline{n}}} \triangleq \interior{(σ_i)_{i∈\overline{n}}} \wedge (\not\exists σ_{n+1}.\ σ_n \smallstep σ_{n+1} \wedge \cont(σ_{n+1}) = ...\cont(σ_0)).
   \]
   We notate maximal traces as $\maxtrace{(σ_i)_{i∈\overline{n}}}$.
-  Infinite and interior traces are called \emph{diverging}.
-  A maximally finite, but unbalanced trace is called \emph{stuck}.
 \end{definition}
 
-Note that usually stuckness is associated with a state of a transition
+\begin{definition}[Diverging trace]
+  An infinite and interior trace is called \emph{diverging}.
+\end{definition}
+
+\begin{definition}[Stuck trace]
+  A finite, maximal and unbalanced trace is called \emph{stuck}.
+\end{definition}
+
+Usually stuckness is associated with a state of a transition
 system rather than a trace.
 That is not possible in our framework; the following example clarifies.
 
@@ -451,10 +474,14 @@ An example for a diverging trace, where $ρ=[x↦\pa_1]$ and $μ=[\pa_1↦(\wild
 \]
 \end{example}
 
-\begin{lemma}[Characterisation of maximal traces]
+Note that balanced traces are maximal traces as well.
+In fact, diverging, stuck and balanced traces are the \emph{only} three kinds of
+maximal traces, as the following lemma formalises:
+
+\begin{lemmarep}[Characterisation of maximal traces]
   An LK trace $(σ_i)_{i∈\overline{n}}$ is maximal if and only if it is balanced,
   diverging or stuck.
-\end{lemma}
+\end{lemmarep}
 \begin{proof}
   $\Rightarrow$: Let $(σ_i)_{i∈\overline{n}}$ be maximal.
   If $n=ω$ is infinite, then it is diverging due to interiority, and if
@@ -465,7 +492,7 @@ An example for a diverging trace, where $ρ=[x↦\pa_1]$ and $μ=[\pa_1↦(\wild
   $\Leftarrow$: Both balanced and stuck traces are maximal.
   A diverging trace $(σ_i)_{i∈\overline{n}}$ is interior and infinite,
   hence $n=ω$.
-  Indeed $(σ_i)_{i∈\overline{ω}}$ is maximal, because the expression $σ_ω$
+  Indeed $(σ_i)_{i∈\overline{ω}}$ is maximal, because the expression $σ_{ω+1}$
   is undefined and hence does not exist.
 \end{proof}
 
