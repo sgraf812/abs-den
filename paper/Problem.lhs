@@ -314,7 +314,7 @@ prevents having to reanalyse $\pe_{\mathit{big}}$ repeatedly for each call of $f
 %correct; that is why they are capstone lemmas in type system soundness
 %proofs~\citep{tapl} and a crucial part in proving $\semabs{\wild}$ correct.
 
-\subsection{Problem: Proving Soundness of Summary-Based Analyses}
+\subsection{Proving Soundness of Summary-Based Analyses}
 
 In this subsection, I demonstrate the difficulty of proving summary-based
 analyses sound.
