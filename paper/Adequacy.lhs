@@ -424,10 +424,6 @@ component.
   is neither interior nor balanced.
 \end{example}
 
-%We will say that the transition rules $\LookupT$, $\AppIT$, $\CaseIT$ and $\LetIT$
-%are interior, because the lifting into a trace is, whereas the returning
-%transitions $\UpdateT$, $\AppET$ and $\CaseET$ are not.
-
 As shown by \citet{Sestoft:97}, a balanced trace starting at a control
 expression $\pe$ and ending with $\pv$ corresponds to a derivation of $\pe
 \Downarrow \pv$ in a natural big-step semantics or a non-$⊥$ result in a
@@ -475,7 +471,7 @@ An example for a diverging trace, where $ρ=[x↦\pa_1]$ and $μ=[\pa_1↦(\wild
 \end{example}
 
 Note that balanced traces are maximal traces as well.
-In fact, diverging, stuck and balanced traces are the \emph{only} three kinds of
+In fact, balanced, diverging and stuck traces are the \emph{only} three kinds of
 maximal traces, as the following lemma formalises:
 
 \begin{lemmarep}[Characterisation of maximal traces]
@@ -483,50 +479,120 @@ maximal traces, as the following lemma formalises:
   diverging or stuck.
 \end{lemmarep}
 \begin{proof}
-  $\Rightarrow$: Let $(σ_i)_{i∈\overline{n}}$ be maximal.
-  If $n=ω$ is infinite, then it is diverging due to interiority, and if
-  $(σ_i)_{i∈\overline{n}}$ is stuck, the goal follows immediately.
-  So we assume that $(σ_i)_{i∈\overline{n}}$ is maximal, finite and not stuck,
-  so it must be balanced by the definition of stuckness.
+$ $
+\begin{itemize}
+\item[$\Rightarrow$:]
+  Let $(σ_i)_{i∈\overline{n}}$ be maximal.
+  Then it is interior by definition.
+  Thus, if $n=ω$ is infinite, then it is diverging.
+  Otherwise, $(σ_i)_{i∈\overline{n}}$ is finite.
+  If it is \emph{not} balanced, then it is still maximal and finite, hence stuck.
+  Otherwise, it is balanced.
 
-  $\Leftarrow$: Both balanced and stuck traces are maximal.
-  A diverging trace $(σ_i)_{i∈\overline{n}}$ is interior and infinite,
+\item[$\Leftarrow$:]
+  Let $(σ_i)_{i∈\overline{n}}$ be balanced, diverging or stuck. \\
+  If $(σ_i)_{i∈\overline{n}}$ is balanced, then it is interior, and $σ_n$ is
+  a return state with continuation $\cont(σ_0)$.
+  Now suppose there would exist $σ_{n+1}$ such that
+  $(σ_i)_{i∈\overline{n+1}}$ was interior.
+  Then the transition $σ_n \smallstep σ_{n+1}$ must be one of the
+  \emph{returning transition rules} $\UpdateT$, $\AppET$ and $\CaseET$, which
+  are the only ones in which $σ_n$ is a return state (\ie $\ctrl(σ_n)$ is a
+  value $\pv$).
+  But all return transitions leave $\cont(σ_0)$, which is in contradiction to
+  interiority of $(σ_i)_{i∈\overline{n+1}}$.
+  Thus, $(σ_i)_{i∈\overline{n}}$ is maximal. \\
+  If $(σ_i)_{i∈\overline{n}}$ is diverging, it is interior and infinite,
   hence $n=ω$.
   Indeed $(σ_i)_{i∈\overline{ω}}$ is maximal, because the expression $σ_{ω+1}$
-  is undefined and hence does not exist.
+  is undefined and hence does not exist. \\
+  If $(σ_i)_{i∈\overline{n}}$ is stuck, then it is maximal by definition.
+\end{itemize}
 \end{proof}
 
-Interiority guarantees that the particular initial stack $κ$ of a maximal trace
-is irrelevant to execution, so maximal traces that differ only in the initial
-stack are bisimilar.
-This is very much like the semantics of a called function (\ie big-step
-evaluator) may not depend on the contents of the call stack.
+Interiority guarantees that the particular initial stack $\cont(σ_0)$ of a
+maximal trace is irrelevant to execution, so maximal traces that differ only in
+the initial stack are bisimilar.
+This is a consequence of the fact that the semantics of a called function may
+not depend on the contents of the call stack; this fact is encoded implicitly in
+big-step derivations.
+
+\subsubsection{Abstraction preserves Termination Observable}
 
 One class of maximal traces is of particular interest:
-The maximal trace starting in $\init(\pe)$!
-Whether it is infinite, stuck or balanced is the defining \emph{termination
-observable} of $\pe$.
-If we can show that |eval e emp| distinguishes these behaviors of |e|, we have
-proven it an adequate replacement for the LK transition system.
+the maximal trace starting in $\init(\pe)$!
+Whether it is infinite, stuck or balanced is the semantically defining
+\emph{termination observable} of $\pe$.
+If we can show that |evalNeed e emp emp| distinguishes these behaviors of
+$\init(\pe) \smallstep ...$, we have proven |evalNeed2| \emph{adequate}, and may
+use it as a replacement for the LK transition system.
 
-\Cref{fig:eval-correctness} shows the correctness predicate $\correct$ in
-our endeavour to prove |eval| adequate at |D (ByNeed T)|.
-It encodes that an \emph{abstraction} of every maximal LK trace can be recovered
-by running |eval| starting from the abstraction of an initial state.
+In order to show that |evalNeed2| preserves the termination observable of |e|,
+\begin{itemize}
+\setlength{\itemsep}{0pt}
+\item
+  I define a family of abstraction functions $α$ from LK traces to traces in
+  |T| (\Cref{fig:eval-correctness}),
+\item
+  I show that this function $α$ preserves the termination observable of a given
+  LK trace $\init(\pe) \smallstep ...$ (\Cref{thm:abs-max-trace}), and
+\item
+  I show that running |evalNeed e emp emp| is the same as mapping $α$ over
+  the LK trace $\init(\pe) \smallstep ...$, hence the termination behavior is
+  observable (\Cref{thm:need-abstracts-lk}).
+\end{itemize}
 
-The family of abstraction functions (they are really \emph{representation
-functions}, in the sense of \Cref{sec:soundness}) makes precise the intuitive
-connection between the definable entities in |eval| and the syntactic objects in
-the transition system.
+In the following, I will sometimes disambiguate the clashing definitions from
+\Cref{sec:interp} and \Cref{sec:problem} by adorning ``Haskell objects'' with a
+tilde, so |tm := αHeap μ :: Heap (ByNeed τ)| denotes a semantic heap which in
+this instance is defined to be the abstraction of a syntactic heap |μ|.
 
-We will sometimes need to disambiguate the clashing definitions from
-\Cref{sec:interp} and \Cref{sec:problem}.
-We do so by adorning semantic objects with a tilde, so |tm := αHeap μ :: Heap (ByNeed τ)|
-denotes a semantic heap which in this instance is defined to be the abstraction
-of a syntactic heap |μ|.
+\begin{figure}
+\hfuzz=1em
+\[\ruleform{\begin{array}{c}
+  α_\Events : \States \to |Event|
+  \qquad
+  α_\States : \States \to |(Value (ByNeed T), Heap (ByNeed T))|
+  \\
+  α_\Environments : \Heaps \times \Environments \to |Heap (ByNeed T)|
+  \qquad
+  α_\Heaps : \Heaps \to |Heap (ByNeed T)|
+  \\
+  α_\STraces : \STraces \times \Continuations \to |T (Value (ByNeed T), Heap (ByNeed T))|
+\end{array}}\]
+\arraycolsep=2pt
+\[\begin{array}{rcl}
+  α_\Events(σ) & = & \begin{cases}
+    |Let1| & \text{if }σ = (\Let{\px}{\wild}{\wild},\wild,\wild,\wild) \\
+    |App1| & \text{if }σ = (\pe~\px,\wild,\wild,\wild) \\
+    |Case1| & \text{if }σ = (\Case{\wild}{\wild},\wild,\wild, \wild)\\
+    |Look y| & \text{if }σ = (\px,ρ,μ,\wild), μ(ρ(\px)) = (\py,\wild,\wild) \\
+    |App2| & \text{if }σ = (\Lam{\wild}{\wild},\wild,\wild,\ApplyF(\wild) \pushF \wild) \\
+    |Case2| & \text{if }σ = (K~\wild, \wild, \wild, \SelF(\wild,\wild) \pushF \wild) \\
+    |Upd| & \text{if }σ = (\pv,\wild,\wild,\UpdateF(\wild) \pushF \wild) \\
+  \end{cases} \\
+  α_\States(\Lam{\px}{\pe},ρ,μ,κ) & = & |(Fun (\d -> Step App2 (eval e (ext (αEnv μ ρ) x d))), αHeap μ)| \\
+  α_\States(K~\overline{\px},ρ,μ,κ) & = & |(Con k (map (αEnv μ ρ !) xs), αHeap μ)| \\
+  α_\Environments(μ, [\many{\px ↦ \pa}]) & = & [\many{|x| ↦ |Step (Look y) (fetch a)| \mid μ(\pa) = (\py,\wild,\wild)}] \\
+  \hspace{-1em}
+  α_\Heaps([\many{\pa ↦ (\wild,ρ,\pe)}]) & = & [\many{|a| ↦ |memo a (eval e (αEnv μ ρ))|}] \\
+  α_{\STraces}((σ_i)_{i∈\overline{n}},κ) & = & \begin{cases}
+    |Step ({-" α_\Events(σ_0) "-}) τl| & \text{if }n > 0, |τl = idiom (αSTraces (lktrace, κ))| \\
+    |Ret ({-" α_\States(σ_0) "-})| & \text{if }\ctrl(σ_0) \text{ value } \wedge \cont(σ_0) = κ \\
+    |Ret Stuck| & \text{otherwise}
+  \end{cases}
+\end{array}\]
+\caption{Abstraction functions for |evalNeed2|}
+  \label{fig:eval-correctness}
+\end{figure}
 
-Note first that $α_{\STraces}$ is defined by guarded recursion over
-the LK trace, in the following sense:
+Now consider the trace abstraction function $α_{\STraces}$ from
+\Cref{fig:eval-correctness}.
+It maps syntactic entities in the transition system to the definable entities
+in the denotational by-need domain |T (Value (ByNeed T), Heap (ByNeed T))|.
+
+$α_{\STraces}$ is defined by guarded recursion over the LK trace, in the
+following sense:
 We regard $(σ_i)_{i∈\overline{n}}$ as a Sigma type $\STraces \triangleq
 ∃n∈ℕ_ω.\ \overline{n} \to \States$, where $ℕ_ω$ is defined by guarded recursion
 as |data ℕ_ω = Z || S (Later ℕ_ω)|.
@@ -540,70 +606,48 @@ $(σ_{i+1})_{i∈\overline{n-1}} ∈ \later \STraces$ is the guarded tail of the
 trace with an associated coinduction principle.
 
 As such, the expression $\idiom{α_{\STraces}((σ_{i+1})_{i∈\overline{n-1}},κ)}$
-has type |Later (T (Value (ByNeed T), Heap (ByNeed T)))|
-(the $\later$ in the type of $(σ_{i+1})_{i∈\overline{n-1}}$ maps through
-$α_{\STraces}$ via the idiom brackets).
+has type
+\begin{spec}
+  Later (T (Value (ByNeed T), Heap (ByNeed T))),
+\end{spec}
+where the $\later$ in the type of $(σ_{i+1})_{i∈\overline{n-1}}$ maps through
+$α_{\STraces}$ via the idiom brackets.
 Definitional equality $=$ on |T (Value (ByNeed T), Heap (ByNeed T))| is defined
 in the obvious structural way by guarded recursion (as it would be if it was a
 finite, inductive type).
 
-\begin{figure}
-\[\begin{array}{rcl}
-  α_\Environments(μ, [\many{\px ↦ \pa}]) & = & [\many{|x| ↦ |Step (Look y) (fetch a)| \mid μ(\pa) = (\py,\wild,\wild)}] \\
-  \hspace{-1em} α_\Heaps([\many{\pa ↦ (\wild,ρ,\pe)}]) & = & [\many{|a| ↦ |memo a (eval e (αEnv μ ρ))|}] \\
-  α_\States(\Lam{\px}{\pe},ρ,μ,κ) & = & |(Fun (\d -> Step App2 (eval e (ext (αEnv μ ρ) x d))), αHeap μ)| \\
-  α_\States(K~\overline{\px},ρ,μ,κ) & = & |(Con k (map (αEnv μ ρ !) xs), αHeap μ)| \\
-  α_\Events(σ) & = & \begin{cases}
-    |Let1| & \text{when }σ = (\Let{\px}{\wild}{\wild},\wild,μ,\wild), \pa_{\px,i} \not∈ \dom(μ) \\
-    |App1| & \text{when }σ = (\wild~\px,\wild,\wild,\wild) \\
-    |Case1| & \text{when }σ = (\Case{\wild}{\wild},\wild,\wild, \wild)\\
-    |Look y| & \text{when }σ = (\px,ρ,μ,\wild), μ(ρ(\px)) = (\py,\wild,\wild) \\
-    |App2| & \text{when }σ = (\Lam{\wild}{\wild},\wild,\wild,\ApplyF(\wild) \pushF \wild) \\
-    |Case2| & \text{when }σ = (K~\wild, \wild, \wild, \SelF(\wild,\wild) \pushF \wild) \\
-    |Upd| & \text{when }σ = (\pv,\wild,\wild,\UpdateF(\wild) \pushF \wild) \\
-  \end{cases} \\
-  α_{\STraces}((σ_i)_{i∈\overline{n}},κ) & = & \begin{cases}
-    |Step ({-" α_\Events(σ_0) "-}) (idiom (αSTraces (lktrace, κ)))| & \text{when }n > 0 \\
-    |Ret ({-" α_\States(σ_0) "-})| & \text{when }\ctrl(σ_0) \text{ value } \wedge \cont(σ_0) = κ \\
-    |Ret Stuck| & \text{otherwise} \\
-  \end{cases} \\
-  \correct((σ_i)_{i∈\overline{n}}) & = & \maxtrace{(σ_i)_{i∈\overline{n}}} \Longrightarrow ∀((\pe,ρ,μ,κ) = σ_0).\ α_{\STraces}((σ_i)_{i∈\overline{n}},κ) = |evalNeed e (αEnv μ ρ) (αHeap μ)| \\
-\end{array}\]
-\vspace{-1em}
-\caption{Correctness predicate for |eval|}
-  \label{fig:eval-correctness}
-\end{figure}
-
 The event abstraction function $α_\Events(σ)$ encodes how intensional
 information from small-step transitions is retained as |Event|s.
-Its semantics is entirely inconsequential for the adequacy result and we imagine
-that this function is tweaked on an as-needed basis depending on the particular
-trace property one is interested in observing.
+Its implementation is does not influence the adequacy result, and we imagine
+that this function is tweaked on an as-needed basis to retain more or less
+intensional detail, depending on the particular trace property one is interested
+in observing.
 In our example, we focus on |Look y| events that carry with them the |y ::
 Name| of the let binding that allocated the heap entry.
 This event corresponds precisely to a $\LookupT(\py)$ transition, so $α_\Events(σ)$
 maps $σ$ to |Look y| when $σ$ is about to make a $\LookupT(\py)$ transition.
-In that case, the focus expression must be $\px$ and $\py$ is the first
+In that case, the focus expression must be $\px$, and $\py$ is the first
 component of the heap entry $μ(ρ(\px))$.
 The other cases are similar.
 
-Our first goal is to establish a few auxiliary lemmas showing what kind of
-properties of LK traces are preserved by $α_{\STraces}$ and in which way.
+I will now establish a few auxiliary lemmas showing what kind of
+properties of LK traces are preserved by $α_{\STraces}$, and in which way.
 Let us warm up by defining a length function on traces:
 \begin{spec}
   len :: T a -> ℕ_ω
   len (Ret _)     = Z
   len (Step _ tl) = S (idiom (len tl))
 \end{spec}
-\begin{lemma}[Preservation of length]
+The length is an important property of LK traces that is preserved by $α$.
+TODO it is not
+\begin{lemma}[Abstraction preserves length]
   \label{thm:abs-length}
-  Let $(σ_i)_{i∈\overline{n}}$ be a trace.
-  Then $|len ({-" α_{\STraces}((σ_i)_{i∈\overline{n}},\cont(σ_0)) "-})| = n$.
+  Let $(σ_i)_{i∈\overline{n}}$ be a trace. Then
+  \[ |len ({-" α_{\STraces}((σ_i)_{i∈\overline{n}},\cont(σ_0)) "-})| = n. \]
 \end{lemma}
 \begin{proof}
   This is quite simple to see and hence a good opportunity to familiarise
-  ourselves with the concept of \emph{Löb induction}, the induction principle of
-  guarded recursion.
+  ourselves with Löb induction, the induction principle of guarded recursion.
   Löb induction arises simply from applying the guarded recursive fixpoint
   combinator to a proposition:
   \[
@@ -677,13 +721,22 @@ is an exact abstract interpretation of the LK machine:
 
 \begin{theorem}[|evalNeed2| abstracts LK machine]
   \label{thm:need-abstracts-lk}
-  $\correct$ from \Cref{fig:eval-correctness} holds.
-  That is, whenever $(σ_i)_{i∈\overline{n}}$ is a maximal LK trace with source
-  state $(\pe,ρ,μ,κ)$, we have
-  $α_{\STraces}((σ_i)_{i∈\overline{n}},κ) = |evalNeed e (αEnv μ ρ) (αHeap μ)|$.
+  Let $(σ_i)_{i∈\overline{n}}$ be a maximal LK trace with source
+  state $(\pe,ρ,μ,κ)$.
+  Then $α_{\STraces}((σ_i)_{i∈\overline{n}},κ) = |evalNeed e (αEnv μ ρ) (αHeap μ)|$,
+  where $α_{\STraces}$ is the abstraction function defined in
+  \Cref{fig:eval-correctness}.
 \end{theorem}
 \begin{proof}
-By Löb induction, with $IH ∈ \later C$ as the hypothesis.
+Let us abbreviate the proposed correctness relation as
+\[
+  \correct((σ_i)_{i∈\overline{n}})
+  \triangleq
+  \maxtrace{(σ_i)_{i∈\overline{n}}}
+  \Longrightarrow
+  ∀((\pe,ρ,μ,κ) = σ_0).\ α_{\STraces}((σ_i)_{i∈\overline{n}},κ) = |evalNeed e (αEnv μ ρ) (αHeap μ)|
+\]
+We prove it by Löb induction, with $IH ∈ \later C$ as the inductive hypothesis.
 
 We will say that an LK state $σ$ is stuck if there is no applicable rule in the
 transition system (\ie the singleton LK trace $σ$ is maximal and stuck).
