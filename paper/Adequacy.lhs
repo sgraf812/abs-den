@@ -71,15 +71,16 @@ events, as expressed in the following Theorem:
   \cpageref{proof:need-adequate-strong}.
 \end{proofsketch}
 \begin{proof}
-  \pagetarget{proof:need-adequate-strong}{We} formally define $α(\init(\pe)
-  \smallstep ...) \triangleq α_{\STraces}(\init(\pe) \smallstep ..., \StopF)$,
+  \pagetarget{proof:need-adequate-strong}{We} formally define
+  $α((σ_i)_{i∈\overline{n}}) \triangleq α_{\STraces}((σ_i)_{i∈\overline{n}}, \StopF)$,
   where $α_{\STraces}$ is defined in \Cref{fig:eval-correctness}.
 
   Then $|evalNeed e emp emp| = α(\init(\pe) \smallstep ...)$ follows directly
   from \Cref{thm:need-abstracts-lk}.
-  The preservation results are a consequence of \Cref{thm:abs-length,thm:need-adequate};
-  function $α_\Events$ in \Cref{fig:eval-correctness} encodes the intuition in
-  which LK transitions abstract into |Event|s.
+  The function $α_\Events$ in \Cref{fig:eval-correctness} formalises the
+  intuition in which LK transitions abstract into |Event|s.
+  Preservation of length is proved in \Cref{thm:abs-length} and
+  preservation of the termination observable is proved in \Cref{thm:abs-max-trace}.
 \end{proof}
 
 \subsection{Totality of |evalName| and |evalNeed2|}
@@ -562,16 +563,16 @@ by-need heap, defined as an abstraction of a syntactic LK heap $μ ∈ \Heaps$.
 \[\ruleform{\begin{array}{c}
   α_\Events : \States \to |Event|
   \qquad
-  α_\Values : \States \to |(Value (ByNeed T), Heap (ByNeed T))|
+  α_\Environments : \Environments \times \Heaps \to (|Name :-> D (ByNeed T)|)
   \\
-  α_\Environments : \Heaps \times \Environments \to |Heap (ByNeed T)|
-  \qquad
   α_\Heaps : \Heaps \to |Heap (ByNeed T)|
+  \qquad
+  α_\Values : \States \times \Continuations \to |Value (ByNeed T)|
   \\
   α_{\STraces} : \STraces \times \Continuations \to |T (Value (ByNeed T), Heap (ByNeed T))|
 \end{array}}\]
 \arraycolsep=2pt
-\[\begin{array}{rcl}
+\[\begin{array}{lcl}
   α_\Events(σ) & = & \begin{cases}
     |Let1| & \text{if }σ = (\Let{\px}{\wild}{\wild},\wild,\wild,\wild) \\
     |App1| & \text{if }σ = (\pe~\px,\wild,\wild,\wild) \\
@@ -581,16 +582,20 @@ by-need heap, defined as an abstraction of a syntactic LK heap $μ ∈ \Heaps$.
     |Case2| & \text{if }σ = (K~\wild, \wild, \wild, \SelF(\wild,\wild) \pushF \wild) \\
     |Upd| & \text{if }σ = (\pv,\wild,\wild,\UpdateF(\wild) \pushF \wild) \\
   \end{cases} \\
-  α_\Values(\Lam{\px}{\pe},ρ,μ,κ) & = & |(Fun (\d -> Step App2 (eval e (ext (αEnv μ ρ) x d))), αHeap μ)| \\
-  α_\Values(K~\overline{\px},ρ,μ,κ) & = & |(Con k (map (αEnv μ ρ !) xs), αHeap μ)| \\
-  α_\Environments(μ, [\many{\px ↦ \pa}]) & = & [\many{|x| ↦ |Step (Look y) (fetch a)| \mid μ(\pa) = (\py,\wild,\wild)}] \\
-  \hspace{-1em}
-  α_\Heaps([\many{\pa ↦ (\wild,ρ,\pe)}]) & = & [\many{|a| ↦ |memo a (eval e (αEnv μ ρ))|}] \\
-  α_{\STraces}((σ_i)_{i∈\overline{n}},κ) & = & \begin{cases}
-    |Step ({-" α_\Events(σ_0) "-}) τl| & \text{if }n > 0, |τl = idiom (αSTraces (lktrace, κ))| \\
-    |Ret ({-" α_\Values(σ_0) "-})| & \text{if }\ctrl(σ_0) \text{ value } \wedge \cont(σ_0) = κ \\
-    |Ret Stuck| & \text{otherwise}
-  \end{cases}
+  \\[-0.75em]
+  α_\Environments([\many{\px ↦ \pa}], μ) & = & [\many{|x| ↦ |Step (Look y) (fetch a)| \mid μ(\pa) = (\py,\wild,\wild)}] \\
+  \\[-0.75em]
+  α_\Heaps([\many{\pa ↦ (\wild,ρ,\pe)}]) & = & [\many{|a| ↦ |memo a (eval e (αEnv ρ μ))|}] \\
+  \\[-0.75em]
+  α_\Values((\Lam{\px}{\pe},ρ,μ,κ),κ_0) & = & |Fun (\d -> Step App2 (eval e (ext (αEnv ρ μ) x d)))| \hfill (κ = κ_0) \\
+  α_\Values((K~\overline{\px},ρ,μ,κ),κ_0) & = & |Con k (map (αEnv ρ μ !) xs)| \hfill (κ = κ_0) \\
+  α_\Values(\wild,\wild,μ,\wild),\wild) & = & |Stuck| \\
+  \\[-0.75em]
+  α_{\STraces}((σ_i)_{i∈\overline{n}},κ_0) & = & \begin{cases}
+    |Step ({-" α_\Events(σ_0) "-}) (idiom (αSTraces (lktrace, κ_0)))| & \text{if }n > 0 \\
+    |Ret ({-" α_\Values(σ_0,κ_0) "-}, αHeap μ)| & \text{otherwise}
+  \end{cases} \\
+  &&\quad \text{where }(\wild,\wild, μ, \wild) = σ_0
 \end{array}\]
 \caption{Abstraction functions for |evalNeed2|}
   \label{fig:eval-correctness}
@@ -617,7 +622,7 @@ When $(σ_i)_{i∈\overline{n}} ∈ \STraces$ is an LK trace and $n > 1$, then
 $(σ_{i+1})_{i∈\overline{n-1}} ∈ \later \STraces$ is the guarded tail of the
 trace.
 
-As such, the expression $\idiom{α_{\STraces}((σ_{i+1})_{i∈\overline{n-1}},κ)}$
+As such, the expression $\idiom{α_{\STraces}((σ_{i+1})_{i∈\overline{n-1}},κ_0)}$
 has type |Later T|, where the $\later$ in the type of
 $(σ_{i+1})_{i∈\overline{n-1}}$ maps through $α_{\STraces}$ via the idiom
 brackets.
@@ -625,8 +630,12 @@ Definitional equality $=$ on |T| is defined in the obvious structural way by
 guarded recursion (as it would be if it was a finite, inductive type).
 
 Function $α_{\STraces}$ expects an LK trace as well as a continuation parameter
-$κ$ that remains constant; it is initialised to the continuation of the initial
-state $\cont(σ_0)$ in order to detect return states.
+$κ_0$ that remains constant; it is initialised to the continuation of the
+source state $\cont(σ_0)$ in order to tell apart stuck from balanced traces
+when $α_{\Values}$ is ultimately called on the target state.
+To that end, the first two equations of $α_{\Values}$ will not match unless the
+final continuation is the same as the initial continuation $\cont(σ_0)$,
+indicated by the $(κ = κ_0)$ test at the end of the line.
 
 The event abstraction function $α_\Events(σ)$ encodes how intensional
 information from small-step transitions is retained as |Event|s.
@@ -679,8 +688,7 @@ The length is an important property of LK traces that is preserved by $α$.
   \begin{itemize}
     \setlength{\itemsep}{0pt}
     \item \textbf{Case |Z|}: Then we have either
-      |τ = Ret ({-" α_\Values(σ_0) "-})| or |τ = Ret Stuck|, both of which map
-      to |Z| under |len|.
+      |τ = Ret _| which maps to |Z| under |len|.
     \item \textbf{Case |S (idiom m)|}: Then
       |τ = Step _ ^^{-"\idiom{α_{\STraces}((σ_{i+1})_{i∈\overline{m}},\cont(σ_0))}"-}|,
       where $(σ_{i+1})_{i∈\overline{m}} ∈ \later \STraces$ is the guarded
@@ -710,13 +718,13 @@ The preservation property is formally expressed as follows:
 \begin{lemmarep}[Abstraction preserves termination observable]
   \label{thm:abs-max-trace}
   Let $(σ_i)_{i∈\overline{n}}$ be a maximal trace.
-  Then $α_{\STraces}((σ_i)_{i∈\overline{n}}, cont(σ_0))$ ...
+  Then $α_{\STraces}((σ_i)_{i∈\overline{n}}, cont(σ_0))$
   \begin{itemize}
   \setlength{\itemsep}{0pt}
-    \item ... ends in |Ret (Fun _)| or |Ret (Con _ _)| if and only
+    \item ends in |Ret (Fun _, _)| or |Ret (Con _ _, _)| if and only
       if $(σ_i)_{i∈\overline{n}}$ is balanced.
-    \item ... is infinite if and only if $(σ_i)_{i∈\overline{n}}$ is diverging.
-    \item ... ends in |Ret Stuck| if and only if $(σ_i)_{i∈\overline{n}}$ is stuck.
+    \item is infinite if and only if $(σ_i)_{i∈\overline{n}}$ is diverging.
+    \item ends in |Ret (Stuck, _)| if and only if $(σ_i)_{i∈\overline{n}}$ is stuck.
   \end{itemize}
 \end{lemmarep}
 \begin{proof}
@@ -725,8 +733,8 @@ The preservation property is formally expressed as follows:
   In the other cases, we may assume that $n$ is finite.
   If $(σ_i)_{i∈\overline{n}}$ is balanced, then $σ_n$ is a return state with
   continuation $\cont(σ_0)$, so its control expression is a value.
-  Then $α_{\STraces}$ will conclude with |Ret (αState _)|, and the latter is
-  never |Ret Stuck|.
+  Then $α_{\STraces}$ will conclude with |Ret (αValue _ _)|, and the latter is
+  never |Ret (Stuck, _)|.
   Conversely, if the trace ended with |Ret (Fun _)| or |Ret (Con _ _)|,
   then $\cont(σ_n) = \cont(σ_0)$ and $\ctrl(σ_n)$ is a value, so
   $(σ_i)_{i∈\overline{n}}$ forms a balanced trace.
@@ -736,7 +744,7 @@ The preservation property is formally expressed as follows:
 The previous lemma allows us to apply the classifying terminology of maximal LK
 traces to a |τ :: T| in the range of $α_{\STraces}$.
 For such a maximal |τ| we will say that it is balanced when it ends with
-|Ret v| for a |v /= Stuck|, stuck if ending in |Ret Stuck| and diverging if
+|Ret (v, μ)| for a |v /= Stuck|, stuck if ending in |Ret (Stuck, μ)| and diverging if
 infinite.
 
 The final remaining step is to prove that |evalNeed2| produces an abstraction of
@@ -746,21 +754,21 @@ traces in the LK machine:
   \label{thm:need-abstracts-lk}
   Let $(σ_i)_{i∈\overline{n}}$ be a maximal LK trace with source
   state $(\pe,ρ,μ,κ)$.
-  Then $α_{\STraces}((σ_i)_{i∈\overline{n}},κ) = |evalNeed e (αEnv μ ρ) (αHeap μ)|$,
+  Then $α_{\STraces}((σ_i)_{i∈\overline{n}},κ) = |evalNeed e (αEnv ρ μ) (αHeap μ)|$,
   where $α_{\STraces}$ is the abstraction function defined in
   \Cref{fig:eval-correctness}.
 \end{theorem}
 \begin{proof}
 Let us abbreviate the proposed correctness relation as
 \[\begin{array}{c}
-  P_{|α|}((σ_i)_{i∈\overline{n}})
+  P_{α}((σ_i)_{i∈\overline{n}})
   \triangleq
   \maxtrace{(σ_i)_{i∈\overline{n}}}
   \Longrightarrow
-  α_{\STraces}((σ_i)_{i∈\overline{n}},κ) = |evalNeed e (αEnv μ ρ) (αHeap μ)| \\
+  α_{\STraces}((σ_i)_{i∈\overline{n}},κ) = |evalNeed e (αEnv ρ μ) (αHeap μ)| \\
   \hspace{12em}\text{where }(\pe,ρ,μ,κ) = σ_0
 \end{array}\]
-I prove it by Löb induction, with $IH ∈ \later P_{|α|}$ as the inductive hypothesis.
+I prove it by Löb induction, with $IH ∈ \later P_{α}$ as the inductive hypothesis.
 
 %I will say that an LK state $σ$ is \emph{inert} if there is no applicable rule
 %in the transition system $\smallstep$.
@@ -770,24 +778,24 @@ I prove it by Löb induction, with $IH ∈ \later P_{|α|}$ as the inductive hyp
 %balanced.
 
 Now let $(σ_i)_{i∈\overline{n}}$ be a maximal LK trace with source state
-$σ_0=(\pe,ρ,μ,κ)$ and let |τ := evalNeed e (αEnv μ ρ) (αHeap μ)|.
+$σ_0=(\pe,ρ,μ,κ)$ and let |τ := evalNeed e (αEnv ρ μ) (αHeap μ)|.
 Then the goal is to show $α_{\STraces}((σ_i)_{i∈\overline{n}},κ) = |τ|$.
-We do so by cases over $\pe$, abbreviating |tm := αHeap μ| and |tr := αEnv μ ρ|:
+We do so by cases over $\pe$, abbreviating |tm := αHeap μ| and |tr := αEnv ρ μ|:
 \begin{itemize}
   \item \textbf{Case $\px$}:
     Note first that $\LookupT$ is the only applicable transition rule according
     to rule inversion on $\ctrl(σ_0) = \px$.
 
     In case that $n = 0$, $(σ_i)_{i∈\overline{n}}$ is stuck because
-    $\ctrl(σ_0)$ is not a value, hence $α_{\STraces}$ returns |Ret Stuck|.
+    $\ctrl(σ_0)$ is not a value, hence $α_{\STraces}$ returns |Ret (Stuck, _)|.
     Since $\LookupT$ does not apply (otherwise $n > 0$), we must have $\px
-    \not∈ \dom(ρ)$, and hence |τ = Ret Stuck| by calculation as well.
+    \not∈ \dom(ρ)$, and hence |τ = Ret (Stuck, _)| by calculation as well.
 
     Otherwise, $σ_1 \triangleq (\pe', ρ_1, μ, \UpdateF(\pa) \pushF κ), σ_0 \smallstep σ_1$
     via $\LookupT(\py)$, and $ρ(\px) = \pa, μ(\pa) = (\py, ρ_1, \pe')$.
     This matches |tr ! x = step (Look y) (fetch a)| in the interpreter.
 
-    To show that the tails equate, it suffices to show that they equate \emph{later}.
+    It suffices to show that the tails equate \emph{later}.
 
     We can infer that |tm ! a = memo a (evalNeed2 e' tr')| by definition of
     $α_\Heaps$, so
@@ -803,11 +811,18 @@ We do so by cases over $\pe$, abbreviating |tm := αHeap μ| and |tr := αEnv μ
     \[
       IH \aplater (σ_{i+1})_{i∈\overline{m}} ∈ \idiom{α_{\STraces}((σ_{i+1})_{i∈\overline{m}},\UpdateF(\pa) \pushF κ) = τ^{\later}}
     \]
-    When |τl| is infinite, we are done. Similarly, if |τl| ends
-    in |Ret Stuck| then the continuation of |>>=| will return |Ret Stuck|,
-    indicating by \Cref{thm:abs-length} and \Cref{thm:abs-max-trace} that
-    $(σ_{i+1})_{i∈\overline{n-1}}$ is stuck and hence $(σ_i)_{i∈\overline{n}}$
-    is, too.
+    Any |Step|s in |τl| match the transitions of
+    $(σ_{i+1})_{i∈\overline{m}}$ per $IH$, and |>>=| simply forwards these
+    |Step|s.
+    What remains to be shown is that the continuation passed to |>>=|
+    operates correctly.
+
+    If |τl| is infinite, we are done, because the continuation is never called.
+    If |τl| ends in |Ret (Stuck, tm)|, then the continuation
+    will return |Ret (Stuck, tm)|, indicating by \Cref{thm:abs-length} and
+    \Cref{thm:abs-max-trace} that $(σ_{i+1})_{i∈\overline{n-1}}$ is stuck and
+    hence $(σ_i)_{i∈\overline{n}}$ is stuck as well with the compatible heap
+    from $σ_{n-1}$.
 
     Otherwise |τl| ends after $m-1$ |Step|s with |Ret (val,tmm)| and
     by \Cref{thm:abs-max-trace} $(σ_{i+1})_{i∈\overline{m}}$ is balanced; hence
@@ -823,9 +838,10 @@ We do so by cases over $\pe$, abbreviating |tm := αHeap μ| and |tr := αEnv μ
     \begin{spec}
          Ret (val,ext tmm a (memo a (return val)))
       =  Ret (val,ext tmm a (memo a (evalNeed2 v trm)))
-      =  αState σ_n
+      =  Ret (αValue σ_n κ, {-" α_\Heaps(μ_m[\pa ↦ (\py, ρ_m, \pv)]) "-})
     \end{spec}
-    and this equality concludes the proof.
+    and this equality concludes the proof, because the heap in $σ_n$ is
+    exactly $μ_m[\pa ↦ (\py, ρ_m, \pv)]$.
 
   \item \textbf{Case $\pe~\px$}:
     The cases where $τ$ gets stuck or diverges before finishing evaluation of
@@ -842,24 +858,28 @@ We do so by cases over $\pe$, abbreviating |tm := αHeap μ| and |tr := αEnv μ
     That in turn means that the value in $\ctrl(σ_m)$ must be a lambda
     $\Lam{\py}{\pe'}$, and $σ_{m+1} = (\pe',ρ_m[\py ↦ ρ(\px)],μ_m,κ)$.
 
-    Likewise, |tl| ends in
-    |αState σ_m = Ret (Fun (\d -> step App2 (evalNeed2 e' (ext trm y d))), tmm)|
-    (where $\tm_m$ corresponds to the heap in $σ_m$ in the usual way).
-    The |fun| implementation of |Domain (D (ByNeed T))| applies the |Fun| value
-    to the argument denotation |tr x|, hence it remains to show that
-    |tl2 := evalNeed e' (ext trm y (tr x)) tmm| is equal to
+    Likewise, |τl| ends in
+    \hfuzz=1em
+    \begin{spec}
+      {-" α_\Values(σ_m, \ApplyF(\pa) \pushF κ) "-} = Fun (\d -> step App2 (evalNeed2 e' (ext trm y d)))
+    \end{spec}
+    (where |trm| corresponds to the environment in $σ_m$ in the usual way,
+    similarly for |tmm|).
+    The |apply| implementation of |Domain (D (ByNeed T))| applies the |Fun| value
+    to the argument denotation |tr ! x|, hence it remains to be shown that
+    |evalNeed e' (ext trm y (tr x)) tmm| is equal to
     $α_{\STraces}((σ_{i+m+1})_{i∈\overline{k}}, κ)$ \emph{later},
     where $(σ_{i+m+1})_{i∈\overline{k}}$ is the maximal trace starting at
     $σ_{m+1}$.
 
-    We can apply the induction hypothesis to this situation.
+    We can once again apply the induction hypothesis to this situation.
     From this and our earlier equalities, we get
     $α_{\STraces}((σ_i)_{i∈\overline{n}},κ) = |τ|$, concluding the proof of
     the case where there exists a transition $σ_m \smallstep σ_{m+1}$.
 
     When $σ_m \not\smallstep$, then $\ctrl(σ_m)$ is not a lambda, otherwise
     $\AppET$ would apply.
-    In this case, |fun| gets to see a |Stuck| or |Con _ _| value, for which it
+    In this case, |apply| gets to see a |Stuck| or |Con| value, for which it
     is |Stuck| as well.
 
   \item \textbf{Case $\Case{\pe_s}{\Sel[r]}$}:
@@ -881,74 +901,6 @@ We do so by cases over $\pe$, abbreviating |tm := αHeap μ| and |tr := αEnv μ
 \end{itemize}
 \end{proof}
 
-\Cref{thm:need-abstracts-lk} and \Cref{thm:abs-max-trace} are the key to
-proving the following theorem of adequacy, which formalises the intuitive
-notion of adequacy from before.
+Thus, my denotational by-need interpreter is built on firm semantic ground.
 
-(A state $σ$ is \emph{final} when $\ctrl(σ)$ is a value and $\cont(σ) = \StopF$.)
-
-\begin{theorem}[Adequacy of |evalNeed2|]
-  \label{thm:need-adequate}
-  Let |τ := evalNeed e emp emp|.
-  \begin{itemize}
-    \item
-      |τ| ends with |Ret (Fun _, _)| or |Ret (Con _ _, _)| (is balanced) iff there
-      exists a final state $σ$ such that $\init(\pe) \smallstep^* σ$.
-    \item
-      |τ| ends with |Ret (Stuck, _)| (is stuck) iff there exists a non-final
-      state $σ$ such that $\init(\pe) \smallstep^* σ$ and there exists no $σ'$
-      such that $σ \smallstep σ'$.
-    \item
-      |τ| is infinite |Step _ (Step _ ^^ ...)| (is diverging) iff for all $σ$ with
-      $\init(\pe) \smallstep^* σ$ there exists $σ'$ with $σ \smallstep σ'$.
-    \item
-      The |e :: Event| in every |Step e ^^ ...| occurrence in |τ| corresponds in
-      the intuitive way to the matching small-step transition rule that was
-      taken.
-  \end{itemize}
-\end{theorem}
-\begin{proof}
-  There exists a maximal trace $(σ_i)_{i∈\overline{n}}$ starting
-  from $σ_0 = \init(\pe)$, and by \Cref{thm:need-abstracts-lk} we have
-  $α_{\STraces}((σ_i)_{i∈\overline{n}},\StopF) = τ$.
-  The correctness of |Event|s emitted follows directly from $α_\Events$.
-  \begin{itemize}
-    \item[$\Rightarrow$]
-      \begin{itemize}
-        \item
-          If $(σ_i)_{i∈\overline{n}}$ is balanced, its target state $σ_n$
-          is a return state that must also have the empty continuation, hence it
-          is a final state.
-        \item
-          If $(σ_i)_{i∈\overline{n}}$ is stuck, it is finite and maximal, but not balanced, so its
-          target state $σ_n$ cannot be a return state;
-          otherwise maximality implies $σ_n$ has an (initial) empty continuation
-          and the trace would be balanced. On the other hand, the only returning
-          transitions apply to return states, so maximality implies there is no
-          $σ'$ such that $σ \smallstep σ'$ whatsoever.
-        \item
-          If $(σ_i)_{i∈\overline{n}}$ is diverging, $n=ω$ and for every $σ$ with
-          $\init(\pe) \smallstep^* σ$ there exists an $i$ such that $σ = σ_i$ by
-          determinism.
-      \end{itemize}
-
-    \item[$\Leftarrow$]
-      \begin{itemize}
-        \item
-          If $σ_n$ is a final state, it has $\cont(σ) = \cont(\init(\pe)) = []$,
-          so the trace is balanced.
-        \item
-          If $σ$ is not a final state, $τ'$ is not balanced. Since there is no
-          $σ'$ such that $σ \smallstep^* σ'$, it is still maximal; hence it must
-          be stuck.
-        \item
-          Suppose that $n∈ℕ_ω$ was finite.
-          Then, if for every choice of $σ$ there exists $σ'$ such that $σ
-          \smallstep σ'$, then there must be $σ_{n+1}$ with $σ_n \smallstep
-          σ_{n+1}$, violating maximality of the trace.
-          Hence it must be infinite.
-          It is also interior, because every stack extends the empty stack,
-          hence it is diverging.
-      \end{itemize}
-  \end{itemize}
-\end{proof}
+\pagebreak
