@@ -1,4 +1,4 @@
-%options ghci -package containers -package transformers -i./abs-den/paper/hs -pgmL lhs2TeX -optL--pre -XPartialTypeSignatures
+%options ghci -package containers -package transformers -i./abs-den/paper/hs:./abs-den/paper -pgmL lhs2TeX -optL--pre -XPartialTypeSignatures
 
 %if style == newcode
 %include lhs-preamble.fmt
@@ -25,23 +25,32 @@ import Interpreter
 \section{Static Analysis}
 \label{sec:abstraction}
 
-So far, our semantic domains have all been \emph{infinite}, simply because the
-dynamic traces they express are potentially infinite as well.
-However, by instantiating the \emph{same} generic denotational interpreter with
-a semantic domain in which every element is \emph{finite data}, we can run the
-interpreter on the program statically, at compile time, to yield a \emph{finite}
-abstraction of the dynamic behavior.
+So far, the semantic domains I have proposed have all been \emph{infinite},
+simply because the dynamic traces they express are potentially infinite as well.
+However, by instantiating the generic denotational interpreter on
+\cpageref{fig:eval} with a semantic domain in which every element is
+\emph{finite data}, we can run the interpreter on the program statically, at
+compile time, to yield a \emph{finite} abstraction of the dynamic behavior.
 This gives us a \emph{static program analysis}.
 
 We can get a wide range of static analyses, simply by choosing an appropriate semantic domain.
-For example, we have successfully realised the following analyses as denotational interpreters:
+For example, I have successfully realised the following analyses as denotational interpreters:
 \begin{itemize}
+  \item
+    \Cref{sec:usage-analysis} defines and explores in detail a
+    summary-based \emph{usage analysis}, a generalisation of absence analysis
+    from \Cref{sec:problem}.
+    This analysis demonstrates that our framework is suitable to infer
+    \emph{operational properties}, such as an upper bound on the number of
+    variable lookups.
+
   \item
     \Cref{sec:type-analysis} defines a Hindley-Milner-style \emph{type analysis}
     with let generalisation, inferring types such as
     $\forall α_3.\ \mathtt{option}\;(α_3 \rightarrow α_3)$.
     Polymorphic types act as summaries in the sense of the Introduction, and
     fixpoints are solved via unification.
+
   \item
     \Cref{sec:0cfa} defines 0CFA \emph{control-flow analysis}~\citep{Shivers:91}
     as an instance of our generic interpreter.
@@ -52,8 +61,9 @@ For example, we have successfully realised the following analyses as denotationa
 %    As usual for vanilla 0CFA, the resulting stateful domain is \emph{not}
 %    finite and thus non-modular.
 %    \sg{I think this raises more questions than it answers.}
+
   \item
-    We have refactored relevant parts of \emph{Demand Analysis} in the Glasgow
+    I have refactored relevant parts of \emph{Demand Analysis} in the Glasgow
     Haskell Compiler into an abstract denotational interpreter as an artefact.
     The resulting compiler bootstraps and passes the testsuite.%
     \footnote{There is a small caveat: we did not try to optimise for compiler
@@ -62,19 +72,32 @@ For example, we have successfully realised the following analyses as denotationa
     None of the runtime performance test cases regress and the inferred
     demand signatures stay unchanged.}
     Demand Analysis is the real-world implementation of the cardinality analysis
-    work of \citet{Sergey:14}, implementing strictness analysis as well.
-    This is to demonstrate that our framework scales to real-world compilers.
+    work of \citet{Sergey:14}, generalising usage analysis from
+    \Cref{sec:usage-analysis} and implementing strictness analysis as well.
+    This is to demonstrate that my framework scales to real-world compilers.
+%    In fact, the entire reason why I came up with this work is that I
+%    needed a framework that would allow me to describe Demand Analysis!
+
 \end{itemize}
 
-In this section, we demonstrate this idea in detail, using a much simpler
-version of GHC's Demand Analysis: a summary-based \emph{usage analysis},
-the code of which is given in \Cref{fig:usage-analysis}.
+\subsection{Usage Analysis}
+\label{sec:usage-analysis}
 
-\subsection{Trace Abstraction in |Trace UT|}
+In this section, I describe \emph{usage analysis} (\Cref{fig:usage-analysis}), a
+static analysis that estimates an upper bound on the number of $\LookupT(\px)$
+transitions, an \emph{operational property} that is not observable in
+traditional denotational or big-step semantics.
+It is one of the most important traits of my framework that it can be used to
+infer such operational properties!
+
+\subsubsection{Trace Abstraction in |Trace UT|}
 \label{sec:usage-trace-abstraction}
 
 \begin{figure}
+\centering
+\hspace{-1.3em}
 \begin{minipage}{0.4\textwidth}
+\hfuzz=1em
 \begin{code}
 data U = U0 | U1 | Uω
 type Uses = Name :-> U
@@ -95,6 +118,7 @@ instance UVec Uses where {-" ... \iffalse "-}
 \end{code}
 \end{minipage}%
 \begin{minipage}{0.6\textwidth}
+\hfuzz=2em
 \begin{code}
 data UT v = MkUT Uses v
 instance Trace (UT v) where
@@ -110,10 +134,13 @@ instance Extract UT where getValue (MkUT _ v) = v
 \end{code}
 %endif
 \end{minipage}
-\\
-\begin{minipage}{0.63\textwidth}
+\caption{Usage |U| and usage trace |UT|}
+\label{fig:usage-trace}
 \begin{code}
 evalUsg e ρ = eval e ρ :: UD
+
+data UValue = UCons U UValue | Rep U
+type UD = UT UValue
 
 instance Domain UD where
   stuck                                  = bottom
@@ -126,14 +153,13 @@ instance Domain UD where
     d >> lub  [  f (replicate (conArity k) (MkUT emp (Rep Uω)))
               |  (k,f) <- assocs fs ]
 
-instance HasBind UD where
-  bind # rhs body = body (kleeneFix rhs)
-\end{code}
-\end{minipage}%
-\begin{minipage}{0.3\textwidth}
-\begin{code}
-data UValue = UCons U UValue | Rep U
-type UD = UT UValue
+peel :: UValue -> (U, UValue)
+peel (Rep u)      = (u, Rep u)
+peel (UCons u v)  = (u, v)
+
+(!?) :: Uses -> Name -> U
+m !? x  | x ∈ dom m  = m ! x
+        | otherwise  = U0
 
 instance Lat U where {-" ... \iffalse "-}
   bottom = U0
@@ -155,15 +181,9 @@ instance Lat UD where {-" ... \iffalse "-}
   MkUT φ1 v1 ⊔ MkUT φ2 v2 = MkUT (φ1 ⊔ φ2) (v1 ⊔ v2)
 {-" \fi "-}
 
-peel :: UValue -> (U, UValue)
-peel (Rep u)      = (u,(Rep u))
-peel (UCons u v)  = (u,v)
-
-(!?) :: Uses -> Name -> U
-m !? x  | x ∈ dom m  = m ! x
-        | otherwise  = U0
+instance HasBind UD where
+  bind # rhs body = body (kleeneFix rhs)
 \end{code}
-\end{minipage}
 %if style == newcode
 \begin{code}
 deriving instance Eq U
@@ -199,11 +219,11 @@ instance Show UValue where
 \label{fig:usage-analysis}
 \end{figure}
 
-In order to recover usage analysis as an instance of our generic interpreter, we
+In order to recover usage analysis as an instance of my generic interpreter, we
 must define its finitely represented semantic domain |UD|.
 Often, the first step in doing so is to replace the potentially infinite traces
 |T| in dynamic semantic domains such as |DName| with finite data such
-as |UT| in \Cref{fig:usage-analysis}.
+as |UT| in \Cref{fig:usage-trace}.
 A \emph{usage trace} |MkUT φ val :: UT v| is a pair of a value |val :: v|
 and a finite map |φ :: Uses|, mapping variables to a \emph{usage} |U|.
 The usage |φ !? x| assigned to |x| is meant to approximate the number of |Look x|
@@ -212,18 +232,18 @@ and |Uω| means ``an unknown number of times''.
 In this way, |UT| is an \emph{abstraction} of |T|: it squashes all |Look x|
 events into a single entry |φ !? x :: U| and discards all other events.
 
-Consider as an example the by-name trace evaluating $\pe \triangleq
-\Let{i}{\Lam{x}{x}}{\Let{j}{\Lam{y}{y}}{i~j~j}}$:
-\[\perform{evalName (read "let i = λx.x in let j = λy.y in i j j") emp}\]
+Consider as an example the by-name trace evaluating the expression \\
+\mbox{$\pe \triangleq \Let{i}{\Lam{x}{x}}{\Let{j}{\Lam{y}{y}}{i~j~j}}$}:
+\[\thickmuskip=0mu\small\perform{evalName (read "let i = λx.x in let j = λy.y in i j j") emp}\]
 \noindent
 We would like to abstract this trace into |MkUT [i ↦ U1, j ↦ Uω] dots|.
 One plausible way to achieve this is to replace every |Step (Look x) dots|
 in the by-name trace with a call to |step (Look x) dots| from the |Trace UT|
-instance in \Cref{fig:usage-analysis}, quite similar to |foldr step| on lists.
+instance in \Cref{fig:usage-trace}, quite similar to |foldr step| on lists.
 The |step| implementation increments the usage of |x| whenever a |Look x|
 event occurs.
 The addition operation used to carry out incrementation is defined in type class
-instances |UVec U| and |UVec Uses|, together with scalar multiplication.%
+instances |UVec U| and |UVec Uses|, together with scalar multiplication.
 %\footnote{We think that |UVec| models |U|-modules. It is not a vector
 %space because |U| lacks inverses, but the intuition is close enough.}
 For example, |U0 + u = u| and |U1 + U1 = Uω| in |U|, as well as |U0 * u = U0|,
@@ -239,6 +259,7 @@ well.
 It is as simple as defining a |Monad| instance on |UT| mirroring trace
 concatenation and then running our interpreter at, \eg $|D (ByName UT)| \cong
 |UT (Value UT)|$ on expression $\pe$ from earlier:
+\hfuzz=2em
 \[
   |eval (({-"\Let{i}{\Lam{x}{x}}{\Let{j}{\Lam{y}{y}}{i~j~j}}"-})) emp| = \perform{eval (read "let i = λx.x in let j = λy.y in i j j") emp :: D (ByName UT)}| :: D (ByName UT)|.
 \]
@@ -249,7 +270,7 @@ this interpreter instance will diverge whenever the input expression diverges.
 We fix this in the next subsection by introducing a finitely represented
 |UValue| to replace |Value UT|.
 
-\subsection{Value Abstraction |UValue| and Summarisation in |Domain UD|}
+\subsubsection{Value Abstraction |UValue| and Summarisation in |Domain UD|}
 \label{sec:usage-analysis}
 
 In this subsection, we complement the trace type |UT| from the previous
@@ -284,8 +305,9 @@ a variable is absent ($\aA$) when it has usage |U0|, otherwise it is used
 %Either way, I'm a bit hesitant to change it this close to submission.}
 
 Consider
-$|evalUsg (({-" \Let{k}{\Lam{y}{\Lam{z}{y}}}{k~x_1~x_2} "-})) ρe|
- = \perform{evalUsg (read "let k = λy.λz.y in k x_1 x_2") (Map.fromList [("x_1", MkUT (singenv "x_1" U1) (Rep Uω)), ("x_2", MkUT (singenv "x_2" U1) (Rep Uω))])}$,
+\[
+|evalUsg (({-" \Let{k}{\Lam{y}{\Lam{z}{y}}}{k~x_1~x_2} "-})) ρe|
+ = \perform{evalUsg (read "let k = λy.λz.y in k x_1 x_2") (Map.fromList [("x_1", MkUT (singenv "x_1" U1) (Rep Uω)), ("x_2", MkUT (singenv "x_2" U1) (Rep Uω))])}, \]
 analysing the example expression from \Cref{sec:problem}.
 Usage analysis successfully infers that $x_1$ is used at most once and that
 $x_2$ is absent, because it does not occur in the reported |Uses|.
@@ -299,8 +321,9 @@ $x_2$ is absent, because it does not occur in the reported |Uses|.
 %intuition built in \Cref{sec:problem} transfers.
 
 On the other hand,
-$|evalUsg (({-" \Let{i}{\Lam{x}{x}}{\Let{j}{\Lam{y}{y}}{i~i~j}} "-})) emp|
- = \perform{evalUsg (read "let i = λx.x in let j = λy.y in i i j") emp}$
+\[
+|evalUsg (({-" \Let{i}{\Lam{x}{x}}{\Let{j}{\Lam{y}{y}}{i~i~j}} "-})) emp|
+ = \perform{evalUsg (read "let i = λx.x in let j = λy.y in i i j") emp} \]
 demonstrates the limitations of the first-order summary mechanism.
 While the program trace would only have one lookup for $j$, the analysis is
 unable to reason through the indirect call and conservatively reports that $j$
@@ -314,8 +337,10 @@ Let us briefly review how the summary for the right-hand side $\Lam{x}{x}$ of
 $i$ in the previous example is computed:
 \begin{spec}
    eval (Lam x (Var x)) ρ =  fun x (\d -> step App2 (eval (Var x) (ext ρ x d)))
-=  case step App2 (eval (Var x) (ext ρ x (MkUT (singenv x U1) (Rep Uω))))  of MkUT φ v -> MkUT (ext φ x U0) (UCons (φ !? x) (Rep Uω))
-=  case MkUT (singenv x U1) (Rep Uω)                                       of MkUT φ v -> MkUT (ext φ x U0) (UCons (φ !? x) (Rep Uω))
+=  case step App2 (eval (Var x) (ext ρ x (MkUT (singenv x U1) (Rep Uω)))) of
+     MkUT φ v -> MkUT (ext φ x U0) (UCons (φ !? x) (Rep Uω))
+=  case MkUT (singenv x U1) (Rep Uω) of
+     MkUT φ v -> MkUT (ext φ x U0) (UCons (φ !? x) (Rep Uω))
 =  MkUT emp (UCons U1 (Rep Uω))
 \end{spec}
 The definition of |fun x| applies the lambda body to a \emph{proxy} |(MkUT (singenv x U1) (Rep Uω))|
@@ -338,8 +363,8 @@ argument was evaluated, and multiplying the uses of the argument |φ2| with |u|
 accounts for that.
 
 The example
-$|evalUsg (({-" \Let{z}{Z()}{\Case{S(z)}{S(n) → n}} "-})) emp|
- = \perform{evalUsg (read "let z = Z() in case S(z) of { S(n) -> n }") emp}$
+\[|evalUsg (({-" \Let{z}{Z()}{\Case{S(z)}{S(n) → n}} "-})) emp|
+ = \perform{evalUsg (read "let z = Z() in case S(z) of { S(n) -> n }") emp}\]
 illustrates the summary mechanism for data types.
 Our analysis imprecisely infers that |z| might be used many times when it is
 only used once.%
@@ -370,14 +395,14 @@ kleeneFix f = go bottom where go x = let x' = f x in if x' ⊑ x then x' else go
 \label{fig:lat}
 \end{figure}
 
-\subsection{Finite Fixpoint Strategy in |HasBind UD| and Totality}
+\subsubsection{Finite Fixpoint Strategy in |HasBind UD| and Totality}
 
 The third and last ingredient to recover a static analysis is the fixpoint
 strategy in |HasBind UD|, to be used for recursive let bindings.
 
 For the dynamic semantics in \Cref{sec:interp} we made liberal use of
 \emph{guarded fixpoints}, that is, recursively defined values such as |let d =
-rhs d in body d| in |HasBind DName| (\Cref{fig:eval}).
+rhs d in body d| in |HasBind DName| (\Cref{fig:trace-instances}).
 At least for |evalName| and |evalNeed2|, we have proved in \Cref{sec:adequacy}
 that these fixpoints always exist by a coinductive argument.
 Alas, among other things this argument relies on the |Step| constructor --- and
@@ -393,9 +418,6 @@ the guarded fixpoint |let d = rhs d in body d| is not guaranteed to exist.
 In general, finite data trace types cannot have a lazy |step|
 implementation, so finite data domains such as |UD| require a different fixpoint
 strategy to ensure termination.
-Depending on the abstract domain, different fixpoint strategies can be employed.
-For an unusual example, in our type analysis \Cref{sec:type-analysis}, we
-generate and solve a constraint system via unification to define fixpoints.
 In case of |UD|, we compute least fixpoints by Kleene iteration |kleeneFix|
 in \Cref{fig:lat}.
 |kleeneFix| requires us to define an order on |UD|, which is induced
@@ -409,74 +431,85 @@ Alas, our |UValue| indeed contains such infinite chains, for example, |UCons U1
 (UCons U1 (UCons dots Rep U0))|!
 This is easily worked around in practice by employing appropriate monotone
 widening measures such as trimming any |UValue| at depth 10 to flat |Rep Uω|.
-The resulting definition of |HasBind| is safe for by-name and by-need semantics.%
+The resulting definition of |HasBind| is safe for by-name and by-need semantics.
 %\footnote{Never mind totality; why is the use of \emph{least} fixpoints even correct?
 %The fact that we are approximating a safety property~\citep{Lamport:77} is
 %important.
 %We discuss this topic in \Cref{sec:safety-extension}.}
 
-It is nice to define dynamic semantics and static analyses in the same
-framework, but another important benefit is that correctness proofs become
-simpler, as we will see next.
+Computing least fixpoints is common practice in static program analysis.
+However, depending on the abstract domain, different fixpoint strategies can be
+employed as well.
+Next I define a type analysis; an usual example in this regard because it
+defines fixpoints by generating and solving a constraint system via unification.
 
-\begin{toappendix}
 \subsection{Type Analysis}
 \label{sec:type-analysis}
 
 \begin{figure}
+\centering
+\setlength{\mathindent}{0em}
 \begin{code}
+data TyCon = BoolTyCon | NatTyCon | OptionTyCon | PairTyCon
 data Type = Type :->: Type | TyConApp TyCon [Type] | TyVar Name | Wrong
-data PolyType = PT [Name] Type; data TyCon = {-" ... \iffalse "-} BoolTyCon | NatTyCon | OptionTyCon | PairTyCon {-" \fi "-}
+data PolyType = PT [Name] Type
 
-type Constraint = (Type, Type); type Subst = Name :-> Type
-data Cts a = Cts (StateT (Set Name,Subst) Maybe a)
-emitCt :: Constraint -> Cts ();                   freshTyVar :: Cts Type
-instantiatePolyTy :: PolyType -> Cts Type; ^^ ^^  generaliseTy :: Cts Type -> Cts PolyType
-closedType :: Cts PolyType -> PolyType {-" \iffalse "-}
-closedType d = runCts (generaliseTy $ d >>= instantiatePolyTy)
+type Subst = Name :-> Type
+type Constraint = (Type, Type)
+newtype Cts a = Cts (StateT (Set Name,Subst) Maybe a)
+unify              :: Constraint -> Cts ()
+freshTyVar         :: Cts Type
+instantiatePolyTy  :: PolyType -> Cts Type
+generaliseTy       :: Cts Type -> Cts PolyType
+closedType         :: Cts Type -> PolyType {-" \iffalse "-}
+closedType d = runCts (generaliseTy d)
 {-" \fi "-}
+
+evalTy e ρ = closedType (eval e ρ) :: PolyType
 
 instance Trace (Cts v) where step _ = id
-instance Domain (Cts PolyType) where stuck = return (PT [] Wrong); {-" ... \iffalse "-}
-                                     fun _ {-" \iffalse "-}_{-" \fi "-} f = do
-                                       arg <- freshTyVar
-                                       res <- f (return (PT [] arg)) >>= instantiatePolyTy
-                                       return (PT [] (arg :->: res))
-                                     con {-" \iffalse "-}_{-" \fi "-} k ds = do
-                                       con_app_ty <- instantiateCon k
-                                       arg_tys <- traverse (>>= instantiatePolyTy) ds
-                                       res_ty <- freshTyVar
-                                       emitCt (con_app_ty, foldr (:->:) res_ty arg_tys)
-                                       return (PT [] res_ty)
-                                     apply dv da = do
-                                       fun_ty <- dv >>= instantiatePolyTy
-                                       arg_ty <- da >>= instantiatePolyTy
-                                       res_ty <- freshTyVar
-                                       emitCt (fun_ty, arg_ty :->: res_ty)
-                                       return (PT [] res_ty)
-                                     select dv fs = case Map.assocs fs of
-                                       []            -> stuck
-                                       fs@((k,_):_)  -> do
-                                         con_ty <- dv >>= instantiatePolyTy
-                                         res_ty <- snd . splitFunTys <$> instantiateCon k
-                                         let TyConApp tc tc_args = res_ty
-                                         emitCt (con_ty, res_ty)
-                                         ks_tys <- enumerateCons tc tc_args
-                                         tys <- forM ks_tys $ \(k,tys) ->
-                                           case List.find (\(k',_) -> k' == k) fs of
-                                             Just (_,f) -> f (map (fmap (PT [])) tys)
-                                             _          -> stuck
-                                         traverse instantiatePolyTy tys >>= \case
-                                           []      -> stuck
-                                           ty:tys' -> traverse (\ty' -> emitCt (ty,ty')) tys' >> return (PT [] ty)
-
+instance Domain (Cts Type) where
+  stuck = return Wrong
+  fun _ {-" \iffalse "-}_{-" \fi "-} f = do
+    arg <- freshTyVar
+    res <- f (return arg)
+    return (arg :->: res)
+  con {-" \iffalse "-}_{-" \fi "-} k ds = {-" ... \iffalse "-} do
+    con_app_ty <- instantiateCon k
+    arg_tys <- sequence ds
+    res_ty <- freshTyVar
+    unify (con_app_ty, foldr (:->:) res_ty arg_tys)
+    return res_ty {-" \fi "-}
+  apply dv da = do
+    fun_ty <- dv
+    arg_ty <- da
+    res_ty <- freshTyVar
+    unify (fun_ty, arg_ty :->: res_ty)
+    return res_ty
+  select dv fs = {-" ... \iffalse "-} case Map.assocs fs of
+    []            -> stuck
+    fs@((k,_):_)  -> do
+      con_ty <- dv
+      res_ty <- snd . splitFunTys <$> instantiateCon k
+      let TyConApp tc tc_args = res_ty
+      unify (con_ty, res_ty)
+      ks_tys <- enumerateCons tc tc_args
+      tys <- forM ks_tys $ \(k,tys) ->
+        case List.find (\(k',_) -> k' == k) fs of
+          Just (_,f) -> f tys
+          _          -> stuck
+      case tys of
+        []      -> stuck
+        ty:tys' -> traverse (\ty' -> unify (ty,ty')) tys' >> return ty
 {-" \fi "-}
-instance HasBind (Cts PolyType) where
-  bind # rhs body = generaliseTy (do
-    rhs_ty <- freshTyVar
-    rhs_ty' <- rhs (return (PT [] rhs_ty)) >>= instantiatePolyTy
-    emitCt (rhs_ty, rhs_ty')
-    return rhs_ty) >>= body . return
+instance HasBind (Cts Type) where
+  bind # rhs body = do
+    rhs_poly_ty <- generaliseTy $ do
+      rhs_ty <- freshTyVar
+      rhs_ty' <- rhs (return rhs_ty)
+      unify (rhs_ty, rhs_ty')
+      return rhs_ty
+    body (instantiatePolyTy rhs_poly_ty)
 
 \end{code}
 %if style == newcode
@@ -569,7 +602,7 @@ addCt (l,r) subst = case (applySubst subst l, applySubst subst r) of
   where
     occurs x ty = applySubst (singenv x ty) ty /= ty -- quick and dirty
 
-emitCt ct = Cts $ StateT $ \(names,subst) -> case addCt ct subst of
+unify ct = Cts $ StateT $ \(names,subst) -> case addCt ct subst of
   Just subst' -> Just ((), (names, subst'))
   Nothing     -> Nothing
 
@@ -595,7 +628,7 @@ enumerateCons :: TyCon -> [Type] -> Cts [(Tag,[Cts Type])]
 enumerateCons tc tc_arg_tys = forM (tyConTags tc) $ \k -> do
   ty <- instantiateCon k
   let (field_tys,res_ty) = splitFunTys ty
-  emitCt (TyConApp tc tc_arg_tys, res_ty)
+  unify (TyConApp tc tc_arg_tys, res_ty)
   return (k, map pure field_tys)
 
 generaliseTy (Cts m) = Cts $ do
@@ -609,57 +642,91 @@ generaliseTy (Cts m) = Cts $ do
   return (PT (Set.toList alphas) ty')
 \end{code}
 %endif
-\caption{Hindley-Milner-style type analysis with Let generalisation}
+\caption{Hindley-Milner-style type analysis with let generalisation}
 \label{fig:type-analysis}
 \end{figure}
 
-To demonstrate the flexibility of our approach, we have implemented
-Hindley-Milner-style type analysis including Let generalisation as an
-instance of our abstract denotational interpreter.
-The gist is given in \Cref{fig:type-analysis}; we omit large parts of the
-implementation and the |Domain| instance for space reasons.
-While the full implementation can be found in the extract generated from this
-document, the |HasBind| instance is a sufficient exemplar of the approach.
+To demonstrate the flexibility of my approach, I have implemented
+Hindley-Milner-style type analysis including let generalisation as an
+instance of the generic denotational interpreter.
+The gist is given in \Cref{fig:type-analysis}, which omits many boring
+implementational details that I will outline below.
+The full implementation can be found in the extract generated from this
+document\sg{TODO: Which extract? Where?}, but the provided code is sufficiently
+exemplary of the approach.
 
-The analysis infers most general |PolyType|s of the
+Type analysis |evalTy| infers most general |PolyType|s of the
 form $\forall \many{\alpha}.\ θ$ for an expression, where $θ$ ranges over a
 |Type| that can be either a type variable |TyVar α|, a function type |θ1 :->:
-θ2|, or a type constructor application |TyConApp|.
-The |Wrong| type is used to indicate a type error.
+θ2|, or a type constructor application |TyConApp|, where |TyConApp OptionTyCon
+[θ1]| is printed as $\mathtt{option}~θ_1$.
+Following \citet{Milner:78}, the |Wrong| type, printed $\textbf{wrong}$, is used
+to indicate a type error.
 
-Key to the analysis is maintenance of a consistent set of type constraints
-as a unifying |Subst|itution.
-That is why the trace type |Cts| carries the current unifier as state, with the
+Key to the analysis is its abstract trace type |Cts|, which maintains a
+consistent set of type constraints as a unifying |Subst|itution.
+That is why |Cts| carries the current unifier as state, with the
 option of failure indicated by |Maybe| when the unifier does not exist.
 Additionally, |Cts| carries a set of used |Name|s with it to satisfy freshness
 constraints in |freshTyVar| and |instantiatePolyTy|, as well as to construct a
-superset of $\fv(ρ)$ in |generaliseTy|.
+superset of the free type variables in the type environment $\fv(ρ)$ in
+|generaliseTy|.
 
-While the operational detail offered by |Trace| is ignored by |Cts|, all the
-pieces fall together in the implementation of |bind|, where we see yet another
-domain-specific fixpoint strategy:
-The knot is tied by calling the iteratee |rhs| with a fresh unification variable
-type |rhs_ty| of the shape $α_1$.
-The result of this call in turn is instantiated to a non-|PolyType| |rhs_ty'|,
-perhaps turning a type-scheme $\forall α_2.\ \mathtt{option}\;(α_2 \rightarrow
-α_2)$ into the shape $\mathtt{option}\;(α_3 \rightarrow α_3)$ for fresh $α_3$.
-Then a constraint is emitted to unify $α_1$ with
+The operational detail offered by |Trace| is ignored by |Cts|, but the |Domain|
+and |HasBind| instances for the abstract semantic domain |Cts Type| are more
+interesting.
+Throughout the analysis, the invariant is maintained that the |Cts Type| denotation
+of let-bound variables in the interpreter environment is of the form
+|instantiatePolyTy σ| for a polytype |σ|, while lambda- and field-bound
+variables are denoted by |return θ|, yielding the same monotype |θ| at all use
+sites.
+Thus, let-bound denotations instantiate poly types on-the-fly at occurrence
+sites, just as in Algorithm J~\citep{Milner:78}.
+
+As expected, |stuck| terms are denoted by the monotype |Wrong|.
+The definition of |fun| resembles the abstraction rule of Milner's Algorithm J,
+in that it draws a fresh variable type |arg| of the form |TyVar α| to stand for
+the type of the argument.
+This type is passed as a monotype |return (TyVar α)| to the body denotation
+|f|, where it will be added to environment (\cf \Cref{fig:eval}) to analyse the
+function body to compute the result type |res|.
+The type for the whole function is then |TyVar α :->: res|.
+The definition for |apply| is a literal translation of Algorithm J as well.
+The cases for |con| and |select| are omitted as their implementation follows
+a similar routine.
+
+The generalisation and instantiation machinery comes to bear in the implementation
+of |bind|, which implements a combination of the $\mathit{fix}$ and $\mathit{let}$
+cases in Milner's Algorithm J.
+This implementation yields yet another domain-specific fixpoint strategy!
+The recursive knot is tied in the |do| block passed to |generaliseTy|.
+It works by calling the iteratee |rhs| with a fresh
+unification variable type |rhs_ty|, for example $α_1$.
+The result of this call in turn is a monotype |rhs_ty'|,
+for example $\mathtt{option}\;(α_3 \rightarrow α_3)$ for fresh $α_3$.
+Then |rhs_ty| is unified with |rhs_ty'|, equating $α_1$ with
 $\mathtt{option}\;(α_3 \rightarrow α_3)$.
-Ultimately, the type |rhs_ty| is returned and generalised to $\forall α_3.\
-\mathtt{option}\;(α_3 \rightarrow α_3)$, because $α_3$ is not a |Name| in use
+This concludes the implementation of the $\mathit{fix}$ case.
+For the $\mathit{let}$ case, the type |rhs_ty| is
+generalised to $\forall α_3.\ \mathtt{option}\;(α_3 \rightarrow α_3)$.
+This is because $α_3$ is not a |Name| in use
 before the call to |generaliseTy|, and thus it couldn't have possibly leaked
-into the range of the ambient type context.
-The generalised |PolyType| is then used when analysing the |body|.
+into the range of the ambient type context (Milner calls $α_3$ \emph{generic}
+\wrt the ambient type context).
+The generalised polytype is then instantiated afresh at every use site via
+|instantiatePolyTy rhs_poly_ty| when analysing the |body| to implement let
+generalisation.
 
 \begin{table}
+\centering
 \begin{tabular}{cll}
 \toprule
-\#  & |e|                                               & |closedType (eval e emp)| \\
+\#  & |e|                                               & |evalTy e emp| \\
 \midrule
-(1) & $\Let{i}{\Lam{x}{x}}{i~i~i~i~i~i}$                  & $\perform{closedType $ eval (read "let i = λx.x in i i i i i i") emp}$ \\
-(2) & $\Lam{x}{\Let{y}{x}{y~x}}$                          & $\perform{closedType $ eval (read "λx. let y = x in y x") emp}$ \\
-(3) & $\Let{i}{\Lam{x}{x}}{\Let{o}{\mathit{Some}(i)}{o}}$ & $\perform{closedType $ eval (read "let i = λx.x in let o = Some(i) in o") emp}$ \\
-(4) & $\Let{x}{x}{x}$                                     & $\perform{closedType $ eval (read "let x = x in x") emp}$ \\
+(1) & $\Let{i}{\Lam{x}{x}}{i~i~i~i~i~i}$                  & $\perform{evalTy (read "let i = λx.x in i i i i i i") emp}$ \\
+(2) & $\Lam{x}{\Let{y}{x}{y~x}}$                          & $\perform{evalTy (read "λx. let y = x in y x") emp}$ \\
+(3) & $\Let{i}{\Lam{x}{x}}{\Let{o}{\mathit{Some}(i)}{o}}$ & $\perform{evalTy (read "let i = λx.x in let o = Some(i) in o") emp}$ \\
+(4) & $\Let{x}{x}{x}$                                     & $\perform{evalTy (read "let x = x in x") emp}$ \\
 \bottomrule
 \end{tabular}
 \caption{Examples for type analysis.}
@@ -667,14 +734,17 @@ The generalised |PolyType| is then used when analysing the |body|.
 \end{table}
 
 \subsubsection*{Examples}
-Let us again conclude with some examples in \Cref{fig:type-examples}.
+Let us conclude with some examples in \Cref{fig:type-examples}.
 Example (1) demonstrates repeated instantiation and generalisation.
 Example (2) shows that let generalisation does not accidentally generalise the
-type of |y|.
-Example (3) shows an example involving data types and the characteristic
-approximation to higher-rank types, and example (4) shows that type inference
-for diverging programs works as expected.
+type of $y$; note that the type of $y$ is not generic in the ambient typing
+context of the RHS of $\mathbf{let}~x = \wild$.
+Example (3) demonstrates data types and the characteristic
+approximation of higher-rank types such as $\mathtt{option}~(\forall α_6.\
+α_6 \to α_6)$ in Algorithm J, and example (4) shows that type inference for
+diverging programs works as expected.
 
+\begin{toappendix}
 \begin{figure}
 \begin{code}
 data Pow a = P (Set a); type CValue = Pow Label
@@ -925,3 +995,7 @@ arguments'', |anyCtx| means ``evaluate in any evaluation context'' (top).}
 \bottomrule
 \end{tabular}
 \end{comment}
+
+It is nice to define dynamic semantics and static analyses in the same
+framework, but another important benefit is that correctness proofs become
+simpler, as we will see next.
