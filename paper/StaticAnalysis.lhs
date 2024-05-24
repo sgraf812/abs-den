@@ -456,36 +456,36 @@ data PolyType = PT [Name] Type
 
 type Subst = Name :-> Type
 type Constraint = (Type, Type)
-newtype Cts a = Cts (StateT (Set Name,Subst) Maybe a)
-unify              :: Constraint -> Cts ()
-freshTyVar         :: Cts Type
-instantiatePolyTy  :: PolyType -> Cts Type
-generaliseTy       :: Cts Type -> Cts PolyType
-closedType         :: Cts Type -> PolyType {-" \iffalse "-}
+newtype J a = J (StateT (Set Name,Subst) Maybe a)
+unify              :: Constraint -> J ()
+freshTyVar         :: J Type
+instantiatePolyTy  :: PolyType -> J Type
+generaliseTy       :: J Type -> J PolyType
+closedType         :: J Type -> PolyType {-" \iffalse "-}
 closedType d = runCts (generaliseTy d)
 {-" \fi "-}
 
-evalTy e ρ = closedType (eval e ρ) :: PolyType
+evalTy e = closedType (eval e emp) :: PolyType
 
-instance Trace (Cts v) where step _ = id
-instance Domain (Cts Type) where
+instance Trace (J v) where step _ = id
+instance Domain (J Type) where
   stuck = return Wrong
   fun _ {-" \iffalse "-}_{-" \fi "-} f = do
-    arg <- freshTyVar
-    res <- f (return arg)
-    return (arg :->: res)
+    θα  <- freshTyVar
+    θ   <- f (return θα)
+    return (θα :->: θ)
   con {-" \iffalse "-}_{-" \fi "-} k ds = {-" ... \iffalse "-} do
     con_app_ty <- instantiateCon k
     arg_tys <- sequence ds
     res_ty <- freshTyVar
     unify (con_app_ty, foldr (:->:) res_ty arg_tys)
     return res_ty {-" \fi "-}
-  apply dv da = do
-    fun_ty <- dv
-    arg_ty <- da
-    res_ty <- freshTyVar
-    unify (fun_ty, arg_ty :->: res_ty)
-    return res_ty
+  apply v a = do
+    θ1  <- v
+    θ2  <- a
+    θα  <- freshTyVar
+    unify (θ1, θ2 :->: θα)
+    return θα
   select dv fs = {-" ... \iffalse "-} case Map.assocs fs of
     []            -> stuck
     fs@((k,_):_)  -> do
@@ -502,14 +502,14 @@ instance Domain (Cts Type) where
         []      -> stuck
         ty:tys' -> traverse (\ty' -> unify (ty,ty')) tys' >> return ty
 {-" \fi "-}
-instance HasBind (Cts Type) where
+instance HasBind (J Type) where
   bind # rhs body = do
-    rhs_poly_ty <- generaliseTy $ do
-      rhs_ty <- freshTyVar
-      rhs_ty' <- rhs (return rhs_ty)
-      unify (rhs_ty, rhs_ty')
-      return rhs_ty
-    body (instantiatePolyTy rhs_poly_ty)
+    σ <- generaliseTy $ do
+      θα  <- freshTyVar
+      θ   <- rhs (return θα)
+      unify (θα, θ)
+      return θα
+    body (instantiatePolyTy σ)
 
 \end{code}
 %if style == newcode
@@ -518,17 +518,17 @@ deriving instance Eq TyCon
 deriving instance Enum TyCon
 deriving instance Bounded TyCon
 deriving instance Eq Type
-deriving instance Functor Cts
+deriving instance Functor J
 
-runCts :: Cts PolyType -> PolyType
-runCts (Cts m) = case evalStateT m (Set.empty, emp) of Just ty -> ty; Nothing -> PT [] Wrong
+runCts :: J PolyType -> PolyType
+runCts (J m) = case evalStateT m (Set.empty, emp) of Just ty -> ty; Nothing -> PT [] Wrong
 
-instance Applicative Cts where
-  pure = Cts . pure
+instance Applicative J where
+  pure = J . pure
   (<*>) = ap
 
-instance Monad Cts where
-  Cts m >>= k = Cts (m >>= unCts . k)
+instance Monad J where
+  J m >>= k = J (m >>= unCts . k)
 
 instance Show TyCon where
   show BoolTyCon = "\\texttt{bool}"
@@ -586,8 +586,8 @@ applySubst subst (TyConApp k tys) =
   TyConApp k (map (applySubst subst) tys)
 applySubst _ ty = ty
 
-unCts :: Cts a -> StateT (Set Name,Subst) Maybe a
-unCts (Cts m) = m
+unCts :: J a -> StateT (Set Name,Subst) Maybe a
+unCts (J m) = m
 
 addCt (l,r) subst = case (applySubst subst l, applySubst subst r) of
   (l, r) | l == r -> Just subst
@@ -602,15 +602,15 @@ addCt (l,r) subst = case (applySubst subst l, applySubst subst r) of
   where
     occurs x ty = applySubst (singenv x ty) ty /= ty -- quick and dirty
 
-unify ct = Cts $ StateT $ \(names,subst) -> case addCt ct subst of
+unify ct = J $ StateT $ \(names,subst) -> case addCt ct subst of
   Just subst' -> Just ((), (names, subst'))
   Nothing     -> Nothing
 
-freshTyVar = Cts $ state $ \(ns,subst) ->
+freshTyVar = J $ state $ \(ns,subst) ->
   let n = "\\alpha_{" ++ show (Set.size ns) ++ "}"
   in (TyVar n,(Set.insert n ns,subst))
 
-freshenVars :: [Name] -> Cts Subst
+freshenVars :: [Name] -> J Subst
 freshenVars alphas = foldM one emp alphas
   where
     one subst alpha = do
@@ -621,25 +621,25 @@ instantiatePolyTy (PT alphas ty) = do
   subst <- freshenVars alphas
   return (applySubst subst ty)
 
-instantiateCon :: Tag -> Cts Type
+instantiateCon :: Tag -> J Type
 instantiateCon k = instantiatePolyTy (conTy k)
 
-enumerateCons :: TyCon -> [Type] -> Cts [(Tag,[Cts Type])]
+enumerateCons :: TyCon -> [Type] -> J [(Tag,[J Type])]
 enumerateCons tc tc_arg_tys = forM (tyConTags tc) $ \k -> do
   ty <- instantiateCon k
   let (field_tys,res_ty) = splitFunTys ty
   unify (TyConApp tc tc_arg_tys, res_ty)
   return (k, map pure field_tys)
 
-generaliseTy (Cts m) = Cts $ do
+generaliseTy (J m) = J $ do
   (outer_names,_) <- get
   ty <- m
   (_names',subst) <- get
   let ty' = applySubst subst ty
   let one n = freeVars $ applySubst subst (TyVar n)
   let fvΓ = Set.unions (Set.map one outer_names)
-  let alphas = freeVars ty' `Set.difference` fvΓ
-  return (PT (Set.toList alphas) ty')
+  let generics = freeVars ty' `Set.difference` fvΓ
+  return (PT (Set.toList generics) ty')
 \end{code}
 %endif
 \caption{Hindley-Milner-style type analysis with let generalisation}
@@ -657,40 +657,52 @@ exemplary of the approach.
 
 Type analysis |evalTy| infers most general |PolyType|s of the
 form $\forall \many{\alpha}.\ θ$ for an expression, where $θ$ ranges over a
-|Type| that can be either a type variable |TyVar α|, a function type |θ1 :->:
-θ2|, or a type constructor application |TyConApp|, where |TyConApp OptionTyCon
-[θ1]| is printed as $\mathtt{option}~θ_1$.
+|Type| that can be either a type variable |TyVar α| (I will use |θα| as meta
+variable for this form), a function type |θ1 :->: θ2|, or a type constructor
+application |TyConApp|, where |TyConApp OptionTyCon [θ1]| is printed as
+$\mathtt{option}~θ_1$.
 Following \citet{Milner:78}, the |Wrong| type, printed $\textbf{wrong}$, is used
 to indicate a type error.
 
-Key to the analysis is its abstract trace type |Cts|, which maintains a
-consistent set of type constraints as a unifying |Subst|itution.
-That is why |Cts| carries the current unifier as state, with the
-option of failure indicated by |Maybe| when the unifier does not exist.
-Additionally, |Cts| carries a set of used |Name|s with it to satisfy freshness
-constraints in |freshTyVar| and |instantiatePolyTy|, as well as to construct a
-superset of the free type variables in the type environment $\fv(ρ)$ in
-|generaliseTy|.
+Key to the analysis is its abstract trace type |J|, the name of which refers to the ambient
+effects of Milner's Algorithm J, offering means to invoke unification (|unify|),
+fresh name generation (|freshTyVar|, |instantiatePolyTy|) and let
+generalisation (|generaliseTy|).
+My type |J| implements these effects by maintaining two pieces of state:
+\begin{enumerate}
+  \item
+    a consistent set of type constraints as a unifying substitution |Subst|.
+  \item
+    the set of used type variable |Name|s.
+    This is to supply fresh type variable names in |freshTyVar|
+    and to instantiate a polytype $\forall α. α \to α$ to a monotype $α_1
+    \to α_1$ for fresh $α_1$ as done by |instantiatePolyTy|, but also to
+    identify the type variables which are \emph{generic}~\citep{Milner:78} in
+    the ambient type context and hence may be generalised by |generaliseTy|.
+\end{enumerate}
+Unification failure is signalled by returning |Nothing| in the base monad
+|Maybe|, and function |closedType| for handling |J| effects will return |Wrong|
+when that happens.
 
-The operational detail offered by |Trace| is ignored by |Cts|, but the |Domain|
-and |HasBind| instances for the abstract semantic domain |Cts Type| are more
+The operational detail offered by |Trace| is ignored by |J|, but the |Domain|
+and |HasBind| instances for the abstract semantic domain |J Type| are quite
 interesting.
-Throughout the analysis, the invariant is maintained that the |Cts Type| denotation
+Throughout the analysis, the invariant is maintained that the |J Type| denotation
 of let-bound variables in the interpreter environment is of the form
 |instantiatePolyTy σ| for a polytype |σ|, while lambda- and field-bound
 variables are denoted by |return θ|, yielding the same monotype |θ| at all use
 sites.
-Thus, let-bound denotations instantiate poly types on-the-fly at occurrence
+Thus, let-bound denotations instantiate polytypes on-the-fly at occurrence
 sites, just as in Algorithm J~\citep{Milner:78}.
 
 As expected, |stuck| terms are denoted by the monotype |Wrong|.
 The definition of |fun| resembles the abstraction rule of Milner's Algorithm J,
-in that it draws a fresh variable type |arg| of the form |TyVar α| to stand for
-the type of the argument.
-This type is passed as a monotype |return (TyVar α)| to the body denotation
-|f|, where it will be added to environment (\cf \Cref{fig:eval}) to analyse the
-function body to compute the result type |res|.
-The type for the whole function is then |TyVar α :->: res|.
+in that it draws a fresh variable type |θα :: Type| (of the form |TyVar α|)
+to stand for the type of the argument.
+This type is passed as a monotype |return θα| to the body denotation
+|f|, where it will be added to the environment (\cf \Cref{fig:eval}) in order to
+compute the result type |θ| of the function body.
+The type for the whole function is then |θα :->: θ|.
 The definition for |apply| is a literal translation of Algorithm J as well.
 The cases for |con| and |select| are omitted as their implementation follows
 a similar routine.
@@ -698,42 +710,46 @@ a similar routine.
 The generalisation and instantiation machinery comes to bear in the implementation
 of |bind|, which implements a combination of the $\mathit{fix}$ and $\mathit{let}$
 cases in Milner's Algorithm J.
-This implementation yields yet another domain-specific fixpoint strategy!
+This implementation yields yet another domain-specific fixpoint strategy besides
+guarded and least fixpoints!
+
 The recursive knot is tied in the |do| block passed to |generaliseTy|.
 It works by calling the iteratee |rhs| with a fresh
-unification variable type |rhs_ty|, for example $α_1$.
-The result of this call in turn is a monotype |rhs_ty'|,
+unification variable type |θα|, for example $α_1$.
+The result of this call in turn is a monotype |θ|,
 for example $\mathtt{option}\;(α_3 \rightarrow α_3)$ for fresh $α_3$.
-Then |rhs_ty| is unified with |rhs_ty'|, equating $α_1$ with
+Then |θα| is unified with |θ|, equating $α_1$ with
 $\mathtt{option}\;(α_3 \rightarrow α_3)$.
 This concludes the implementation of the $\mathit{fix}$ case.
-For the $\mathit{let}$ case, the type |rhs_ty| is
+
+For the $\mathit{let}$ case, the type |θα| is
 generalised to $\forall α_3.\ \mathtt{option}\;(α_3 \rightarrow α_3)$.
-This is because $α_3$ is not a |Name| in use
-before the call to |generaliseTy|, and thus it couldn't have possibly leaked
-into the range of the ambient type context (Milner calls $α_3$ \emph{generic}
-\wrt the ambient type context).
-The generalised polytype is then instantiated afresh at every use site via
-|instantiatePolyTy rhs_poly_ty| when analysing the |body| to implement let
-generalisation.
+This is because $α_3$ was a fresh |Name| not in use before the call to |generaliseTy|.
+That is easy for |generaliseTy| to check, by looking at the initial set of used
+|Name|s in which $α_3$ does not occur.
+Hence $α_3$ couldn't have possibly leaked into the range of the ambient type
+context and it must be generic.
+The generalised polytype |σ| is then instantiated afresh at every use
+site via |instantiatePolyTy σ| when analysing the |body| to implement
+polymorphic instantiation.
 
 \begin{table}
 \centering
 \begin{tabular}{cll}
 \toprule
-\#  & |e|                                               & |evalTy e emp| \\
+\#  & |e|                                               & |evalTy e| \\
 \midrule
-(1) & $\Let{i}{\Lam{x}{x}}{i~i~i~i~i~i}$                  & $\perform{evalTy (read "let i = λx.x in i i i i i i") emp}$ \\
-(2) & $\Lam{x}{\Let{y}{x}{y~x}}$                          & $\perform{evalTy (read "λx. let y = x in y x") emp}$ \\
-(3) & $\Let{i}{\Lam{x}{x}}{\Let{o}{\mathit{Some}(i)}{o}}$ & $\perform{evalTy (read "let i = λx.x in let o = Some(i) in o") emp}$ \\
-(4) & $\Let{x}{x}{x}$                                     & $\perform{evalTy (read "let x = x in x") emp}$ \\
+(1) & $\Let{i}{\Lam{x}{x}}{i~i~i~i~i~i}$                  & $\perform{evalTy (read "let i = λx.x in i i i i i i")}$ \\
+(2) & $\Lam{x}{\Let{y}{x}{y~x}}$                          & $\perform{evalTy (read "λx. let y = x in y x")}$ \\
+(3) & $\Let{i}{\Lam{x}{x}}{\Let{o}{\mathit{Some}(i)}{o}}$ & $\perform{evalTy (read "let i = λx.x in let o = Some(i) in o")}$ \\
+(4) & $\Let{x}{x}{x}$                                     & $\perform{evalTy (read "let x = x in x")}$ \\
 \bottomrule
 \end{tabular}
 \caption{Examples for type analysis.}
 \label{fig:type-examples}
 \end{table}
 
-\subsubsection*{Examples}
+\paragraph{Examples.}
 Let us conclude with some examples in \Cref{fig:type-examples}.
 Example (1) demonstrates repeated instantiation and generalisation.
 Example (2) shows that let generalisation does not accidentally generalise the
@@ -744,7 +760,7 @@ approximation of higher-rank types such as $\mathtt{option}~(\forall α_6.\
 α_6 \to α_6)$ in Algorithm J, and example (4) shows that type inference for
 diverging programs works as expected.
 
-\begin{toappendix}
+\begin{comment}
 \begin{figure}
 \begin{code}
 data Pow a = P (Set a); type CValue = Pow Label
@@ -971,7 +987,7 @@ imprecise result, respectively. The latter is due to the fact that both |i| and
 |j| flow into |x|.
 Examples (3) and (4) show that the |HasBind| instance guarantees termination for
 diverging programs and cyclic data.
-\end{toappendix}
+\end{comment}
 
 \begin{comment}
 \subsection{Bonus: Higher-order Cardinality Analysis}
