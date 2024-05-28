@@ -45,9 +45,9 @@ For example, I have successfully realised the following analyses as denotational
     variable lookups.
 
   \item
-    \Cref{sec:type-analysis} defines a Hindley-Milner-style \emph{type analysis}
-    with let generalisation, inferring types such as
-    $\forall α_3.\ \mathtt{option}\;(α_3 \rightarrow α_3)$.
+    \Cref{sec:type-analysis} defines a variant of \citeauthor{Milner:78}'s
+    Algorithm J --- a \emph{type analysis} with let generalisation, inferring
+    types such as $\forall α_3.\ \mathtt{option}\;(α_3 \rightarrow α_3)$.
     Polymorphic types act as summaries in the sense of the Introduction, and
     fixpoints are solved via unification.
 
@@ -95,8 +95,8 @@ infer such operational properties!
 
 \begin{figure}
 \centering
-\hspace{-1.3em}
-\begin{minipage}{0.4\textwidth}
+\begin{minipage}{0.36\textwidth}
+\setlength{\mathindent}{0em}
 \hfuzz=1em
 \begin{code}
 data U = U0 | U1 | Uω
@@ -123,7 +123,7 @@ instance UVec Uses where {-" ... \iffalse "-}
 data UT v = MkUT Uses v
 instance Trace (UT v) where
   step (Look x)  (MkUT φ v)  = MkUT (singenv x U1 + φ) v
-  step _           τ           = τ
+  step _         τ           = τ
 instance Monad UT where
   return a = MkUT emp a
   MkUT φ1 a >>= k = let MkUT φ2 b = k a in MkUT (φ1+φ2) b
@@ -437,13 +437,325 @@ The resulting definition of |HasBind| is safe for by-name and by-need semantics.
 %important.
 %We discuss this topic in \Cref{sec:safety-extension}.}
 
-Computing least fixpoints is common practice in static program analysis.
-However, depending on the abstract domain, different fixpoint strategies can be
-employed as well.
-Next I define a type analysis; an usual example in this regard because it
-defines fixpoints by generating and solving a constraint system via unification.
+\subsection{Strictness Analysis}
+\label{sec:str-analysis}
 
-\subsection{Type Analysis}
+\begin{figure}
+\centering
+\begin{minipage}{0.36\textwidth}
+\setlength{\mathindent}{0em}
+\hfuzz=1em
+\begin{code}
+data S = S1 | S0
+type Strs = Name :-> S
+class SVec a where
+  (+!)  :: a -> a -> a
+  (*!)  :: S -> a -> a
+instance SVec S where {-" ... \iffalse "-}
+  S0 +! S0 = S0
+  _  +! _  = S1
+  S0 *! _ = S0
+  S1 *! s = s {-" \fi "-}
+instance SVec Strs where {-" ... \iffalse "-}
+  (+!) = Map.unionWith (+!)
+  u *! m = Map.map (u *!) m
+{-" \fi "-}
+\end{code}
+\end{minipage}%
+\begin{minipage}{0.6\textwidth}
+\hfuzz=2em
+\begin{code}
+data ST v = MkST Strs v
+instance Trace (ST v) where
+  step (Look x)  (MkST φ v)  = MkST (singenv x S1 +! φ) v
+  step _         τ           = τ
+instance Monad ST where
+  return a = MkST emp a
+  MkST φ1 a >>= k = let MkST φ2 b = k a in MkST (φ1+!φ2) b
+\end{code}
+%if style == newcode
+\begin{code}
+instance Extract ST where getValue (MkST _ v) = v
+\end{code}
+%endif
+\end{minipage}
+\caption{Strictness |S| and strictness trace |ST|}
+\label{fig:str-trace}
+\begin{code}
+evalStr e ρ = eval e ρ :: SD
+
+data SValue = Div | SCons S SValue | Unk
+type SD = ST SValue
+
+instance Domain SD where
+  stuck                                  = bottom
+  fun x {-" \iffalse "-}_{-" \fi "-} f   = case f (MkST (singenv x S1) Unk) of
+    MkST φ v -> MkST (ext φ x S0) (SCons (φ !?? x) v)
+  apply (MkST φ1 v1) (MkST φ2 _)         = case peelS v1 of
+    (s, v2) -> MkST (φ1 +! s*!φ2) v2
+  con {-" \iffalse "-}_{-" \fi "-} _ ds  = foldl apply (MkST emp Unk) ds
+  select d fs                            =
+    d >> lub  [  f (replicate (conArity k) (MkST emp Unk))
+              |  (k,f) <- assocs fs ]
+
+peelS :: SValue -> (S, SValue)
+peelS Div          = (S1, Div)
+peelS (SCons s v)  = (s, v)
+peelS Unk          = (S0, Unk)
+
+(!??) :: Strs -> Name -> S
+m !?? x  | x ∈ dom m  = m ! x
+         | otherwise  = S0
+
+instance Lat S where {-" ... \iffalse "-}
+  bottom = S1
+  S1  ⊔  S1  = S1
+  _   ⊔  _   = S0
+{-" \fi "-}
+ifPoly (instance Lat Strs where ...)
+instance Lat SValue where {-" ... \iffalse "-}
+  bottom = Div
+  Div ⊔ v = v
+  v ⊔ Div = v
+  Unk ⊔ _ = Unk
+  _ ⊔ Unk = Unk
+  SCons s1 v1 ⊔ SCons s2 v2 = SCons (s1 ⊔ s2) (v1 ⊔ v2)
+{-" \fi "-}
+instance Lat SD where {-" ... \iffalse "-}
+  bottom = MkST bottom bottom
+  MkST _ Div ⊔ MkST φ2 v2 = MkST φ2 v2
+  MkST φ1 v1 ⊔ MkST _ Div = MkST φ1 v1
+  MkST φ1 v1 ⊔ MkST φ2 v2 = MkST (φ1 ⊔ φ2) (v1 ⊔ v2)
+{-" \fi "-}
+
+instance HasBind SD where
+  bind # rhs body = body (kleeneFix rhs)
+\end{code}
+%if style == newcode
+\begin{code}
+deriving instance Eq S
+deriving instance Functor ST
+
+instance Eq SD where
+  MkST _ Div == MkST _ Div = True
+  MkST _ Div == _ = False
+  _ == MkST _ Div = False
+  MkST φ1 v1 == MkST φ2 v2 = φ1 == φ2 && v1 == v2
+
+instance Eq SValue where
+  Div    == Div    = True
+  Unk    == Unk    = True
+  v1     == v2     = peelS v1 == peelS v2
+
+instance Show S where
+  show S0 = "\\concolor{\\mathsf{S_0}}"
+  show S1 = "\\concolor{\\mathsf{S_1}}"
+
+infixl 6 +!
+infixl 7 *!
+
+instance Show SD where
+  show (MkST φ v) = "\\langle " ++ mapping ++ show v ++ " \\rangle"
+    where
+      mapping | Div <- v  = ""
+              | otherwise = show (Map.filter (/= S0) φ) ++ ", "
+
+instance Applicative ST where
+  pure a = MkST emp a
+  (<*>) = ap
+
+instance Show SValue where
+  show Div = "\\conid{Div}"
+  show Unk = "\\conid{Unk}"
+  show (SCons s v) = show s ++ " \\sumcons " ++ show v
+\end{code}
+%endif
+\\[-1em]
+\caption{Strictness analysis}
+\label{fig:str-analysis}
+\end{figure}
+
+Whereas usage analysis infers \emph{upper} bounds on evaluation cardinality,
+\emph{strictness analysis}~\citep{Mycroft:80}, defined in
+\Cref{fig:str-analysis}, infers \emph{lower} bounds on evaluation cardinality.
+A variable is used \emph{strictly} when it is looked up at least once; otherwise
+it is used \emph{lazily}.
+Implementations of lazy languages such as GHC call strict functions by-value
+instead of by-need, enabling further optimisations such as passing arguments
+unboxed.
+For the example expression from \Cref{sec:problem}, strictness analysis reports
+the following
+\[
+|evalStr (({-" \Let{k}{\Lam{y}{\Lam{z}{y}}}{k~x_1~x_2} "-})) ρe|
+ = \perform{evalStr (read "let k = λy.λz.y in k x_1 x_2") (Map.fromList [("x_1", MkUT (singenv "x_1" S1) Unk), ("x_2", MkUT (singenv "x_2" S1) Unk)])}, \]
+indicating that $k$
+analysing the example expression from \Cref{sec:problem}.
+For example,
+
+%Strictness analysis operates very similarly to usage analysis; so similar in
+%fact that both analyses could be interleaved into a unified \emph{cardinality
+%analysis}, expressing both lower and upper bounds on cardinality as an interval.
+
+Strictness analysis operates very similarly to usage analysis.
+The most important change is the |Lat S| instance, which is defined by the total
+order |S1 ⊏ S0|.
+The overloaded addition operator is defined as meet (|(+) = (⊓)|) and scalar
+multiplication is defined as join (|(*) = (⊔)|.
+These operations lift pointwise to finite maps |φ :: Strs|, which map free
+variables to their strictness |S|.
+For example, |S0 * singenv x S1 + S1 * singenv y S1 = singenv x S0 + singenv y S1 = singenv y S1|.
+
+Another important difference is with the semantics of the |Div| value, which
+denotes a diverging computation.
+Such computations are
+
+In \Cref{fig:str-analysis}, I omit code that is sufficiently similar to usage
+analysis in \Cref{fig:usage-analysis}.
+Where previously we wrote |U0|, we now write |S0|; |U1| maps to |S1| and
+any occurrences of |Rep Uω| such as in |fun| map to |Unk|.
+
+\[|evalStr (({-" \Let{k}{\Lam{y}{\Lam{z}{y}}}{k~x_1~x_2} "-})) ρe|
+ = \perform{evalStr (read "let k = λy.λz.y in k x_1 x_2") (Map.fromList [("x_1", MkST (singenv "x_1" S1) Unk), ("x_2", MkST (singenv "x_2" S1) Unk)])} \]
+
+\[|evalStr (({-" \Let{k}{\Lam{y}{\Lam{z}{y}}}{k~x_1~x_2} "-})) ρe|
+ = \perform{evalStr (read "let k = λy.λz.y in let j = j in case Z() of {Z() -> k; S(n) -> j}") (Map.fromList [("x_1", MkST (singenv "x_1" S1) Unk), ("x_2", MkST (singenv "x_2" S1) Unk)])} \]
+
+\subsection{Boxity Analysis}
+\label{sec:boxity-analysis}
+
+\begin{figure}
+\centering
+\begin{minipage}{0.36\textwidth}
+\hfuzz=1em
+\begin{code}
+data B = D | N
+type Boxs = Name :-> B
+\end{code}
+\end{minipage}%
+\begin{minipage}{0.6\textwidth}
+\hfuzz=2em
+\begin{code}
+data BT v = MkBT Boxs Boxs v
+instance Trace (BT v) where step _ = id
+instance Monad BT where
+  return a = MkBT emp emp a
+  MkBT φ1 _ a >>= k = let MkBT φ2 φ2n b = k a in MkBT (φ1 ⊔ φ2) φ2n b
+
+needBox :: BT v -> BT v
+needBox (MkBT φ φn v) = MkBT (φ ⊔ φn) emp v
+\end{code}
+%if style == newcode
+\begin{code}
+instance Extract BT where getValue (MkBT _ _ v) = v
+\end{code}
+%endif
+\end{minipage}
+\caption{Boxity |B| and boxity trace |BT|}
+\label{fig:boxity-trace}
+\begin{code}
+evalBox e ρ = eval e ρ :: BD
+
+data BValue = BCons B BValue | BRep B
+type BD = BT BValue
+
+instance Domain BD where
+  stuck                                  = bottom
+  fun x {-" \iffalse "-}_{-" \fi "-} f   = case needBox (f (MkBT emp (singenv x N) (BRep N))) of
+    MkBT φ _ v -> MkBT (ext φ x D) emp (BCons (φ !??? x) v)
+  apply df (MkBT φ φn _)          = needBox df >>= \v1 -> case peelB v1 of
+    (D, v2) -> MkBT φ        emp v2
+    (N, v2) -> MkBT (φ ⊔ φn) emp v2
+  con {-" \iffalse "-}_{-" \fi "-} _ ds  =
+    BRep N <$ mapM_ needBox ds
+  select d fs                      =
+    d >> lub  [  f (replicate (conArity k) (MkBT emp emp (BRep N)))
+              |  (k,f) <- assocs fs ]
+
+peelB :: BValue -> (B, BValue)
+peelB (BRep b)     = (b, BRep b)
+peelB (BCons b v)  = (b, v)
+
+(!???) :: Boxs -> Name -> B
+m !??? x  | x ∈ dom m  = m ! x
+          | otherwise  = D
+
+instance Lat B where {-" ... \iffalse "-}
+  bottom = D
+  D  ⊔  D  = D
+  _  ⊔  _  = N
+{-" \fi "-}
+ifPoly (instance Lat Strs where ...)
+instance Lat BValue where {-" ... \iffalse "-}
+  bottom = (BRep D)
+  BRep b1 ⊔ BRep b2 = BRep (b1 ⊔ b2)
+  BRep b1 ⊔ v = BCons b1 (BRep b1) ⊔ v
+  v ⊔ BRep b2 = v ⊔ BCons b2 (BRep b2)
+  BCons b1 v1 ⊔ BCons b2 v2 = BCons (b1 ⊔ b2) (v1 ⊔ v2)
+{-" \fi "-}
+instance Lat BD where {-" ... \iffalse "-}
+  bottom = MkBT bottom bottom bottom
+  MkBT φ1 φ1n v1 ⊔ MkBT φ2 φ2n v2 = MkBT (φ1 ⊔ φ2) (φ1n ⊔ φ2n) (v1 ⊔ v2)
+{-" \fi "-}
+
+instance HasBind BD where
+  bind x rhs body = body (kleeneFix (use . rhs))
+    where use (MkBT φ φn v) = MkBT φ (singenv x N) v
+\end{code}
+%if style == newcode
+\begin{code}
+deriving instance Eq B
+deriving instance Eq a => Eq (BT a)
+deriving instance Functor BT
+
+instance Eq BValue where
+  BRep b1 == BRep b2 = b1 == b2
+  v1      == v2      = peelB v1 == peelB v2
+
+instance Show B where
+  show D = "\\concolor{\\mathsf{D}}"
+  show N = "\\concolor{\\mathsf{N}}"
+
+instance Show v => Show (BT v) where
+  show (MkBT φ φn v) = "\\langle " ++ show (Map.filterWithKey cool φ) ++ ", " ++ show (Map.filterWithKey cool φn) ++ ", " ++ show v ++ " \\rangle"
+    where
+     cool _       D = False
+     cool ('?':_) _ = False
+     cool _       _ = True
+
+instance Applicative BT where
+  pure a = MkBT emp emp a
+  (<*>) = ap
+
+instance Show BValue where
+  show (BRep b)    = "\\conid{Rep}\\;" ++ show b
+  show (BCons b v) = show b ++ " \\sumcons " ++ show v
+\end{code}
+%endif
+\\[-1em]
+\caption{Boxity analysis}
+\label{fig:boxity-analysis}
+\end{figure}
+
+
+\[|evalBox (({-" \Let{k}{\Lam{y}{\Lam{z}{y}}}{k~x_1~x_2} "-})) ρe|
+ = \perform{evalBox (read "let k = λy.λz.y in k x_1 x_2") (Map.fromList [("x_1", MkBT emp (singenv "x_1" N) (BRep N)), ("x_2", MkBT emp (singenv "x_2" N) (BRep N))])} \]
+
+\[|evalBox (({-" \Let{k}{\Lam{y}{\Lam{z}{y}}}{k~x_1~x_2} "-})) ρe|
+ = \perform{evalBox (read "let k = λy.λz.y in let j = j in case Z() of {Z() -> k; S(n) -> j}") (Map.fromList [("x_1", MkBT emp (singenv "x_1" N) (BRep N)), ("x_2", MkBT emp (singenv "x_2" N) (BRep N))])} \]
+
+\[|evalBox (({-" \Let{k}{\Lam{y}{\Lam{z}{y}}}{k~x_1~x_2} "-})) ρe|
+ = \perform{evalBox (read "let m = let n = Z() in Some(n) in let get = λo. case o of { None() -> Z(); Some(n) -> n } in get") emp} \]
+
+\[|evalBox (read "let plus = ...") emp|
+ = \perform{evalBox (read "let plus = λa.λb. case a of { Z() -> b; S(m) -> S(plus m b) } in plus") emp} \]
+
+\[|evalBox (read "let zeros = ...") emp|
+ = \perform{evalBox (read "let zeros = Pair(Z(),zeros) in case zeros of { Pair(x,xs) -> xs }") emp} \]
+
+\[|evalBox (read "let zero = ...") emp|
+ = \perform{evalBox (read "let zero = Z() in case zero of { Z() -> Z() }") emp} \]
+
+\subsection{Type Analysis: Algorithm J}
 \label{sec:type-analysis}
 
 \begin{figure}
@@ -462,7 +774,7 @@ freshTyVar         :: J Type
 instantiatePolyTy  :: PolyType -> J Type
 generaliseTy       :: J Type -> J PolyType
 closedType         :: J Type -> PolyType {-" \iffalse "-}
-closedType d = runCts (generaliseTy d)
+closedType d = runJ (generaliseTy d)
 {-" \fi "-}
 
 evalTy e = closedType (eval e emp) :: PolyType
@@ -520,15 +832,15 @@ deriving instance Bounded TyCon
 deriving instance Eq Type
 deriving instance Functor J
 
-runCts :: J PolyType -> PolyType
-runCts (J m) = case evalStateT m (Set.empty, emp) of Just ty -> ty; Nothing -> PT [] Wrong
+runJ :: J PolyType -> PolyType
+runJ (J m) = case evalStateT m (Set.empty, emp) of Just ty -> ty; Nothing -> PT [] Wrong
 
 instance Applicative J where
   pure = J . pure
   (<*>) = ap
 
 instance Monad J where
-  J m >>= k = J (m >>= unCts . k)
+  J m >>= k = J (m >>= unJ . k)
 
 instance Show TyCon where
   show BoolTyCon = "\\texttt{bool}"
@@ -586,8 +898,8 @@ applySubst subst (TyConApp k tys) =
   TyConApp k (map (applySubst subst) tys)
 applySubst _ ty = ty
 
-unCts :: J a -> StateT (Set Name,Subst) Maybe a
-unCts (J m) = m
+unJ :: J a -> StateT (Set Name,Subst) Maybe a
+unJ (J m) = m
 
 addCt (l,r) subst = case (applySubst subst l, applySubst subst r) of
   (l, r) | l == r -> Just subst
@@ -642,27 +954,33 @@ generaliseTy (J m) = J $ do
   return (PT (Set.toList generics) ty')
 \end{code}
 %endif
-\caption{Hindley-Milner-style type analysis with let generalisation}
+\caption{Type analysis with let generalisation (Algorithm J)}
 \label{fig:type-analysis}
 \end{figure}
 
-To demonstrate the flexibility of my approach, I have implemented
-Hindley-Milner-style type analysis including let generalisation as an
-instance of the generic denotational interpreter.
-The gist is given in \Cref{fig:type-analysis}, which omits many boring
-implementational details that I will outline below.
+Computing least fixpoints is common practice in static program analysis.
+However, some abstract domains employ quite different fixpoint strategies.
+The abstract domain of the type analysis I define in this subsection is
+an interesting example:
+Type analysis --- specifically, \citeauthor{Milner:78}'s Algorithm J ---
+computes fixpoints by generating and solving a constraint system via
+unification.
+
+\Cref{fig:type-analysis} outlines the abstract domain |J Type| at which the
+generic denotational interpreter can be instantiated to perform Type analysis.
+I omit implementational details that are derivative of Milner's description of
+Algorithm J.
 The full implementation can be found in the extract generated from this
 document\sg{TODO: Which extract? Where?}, but the provided code is sufficiently
 exemplary of the approach.
 
-Type analysis |evalTy| infers most general |PolyType|s of the
+Type analysis |evalTy| infers most general polymorphic types |PolyType| of the
 form $\forall \many{\alpha}.\ θ$ for an expression, where $θ$ ranges over a
-|Type| that can be either a type variable |TyVar α| (I will use |θα| as meta
-variable for this form), a function type |θ1 :->: θ2|, or a type constructor
-application |TyConApp|, where |TyConApp OptionTyCon [θ1]| is printed as
-$\mathtt{option}~θ_1$.
-Following \citet{Milner:78}, the |Wrong| type, printed $\textbf{wrong}$, is used
-to indicate a type error.
+monomorphic |Type| that can be either a type variable |TyVar α| (I will use
+|θα| as meta variable for this form), a function type |θ1 :->: θ2|, or a
+type constructor application |TyConApp|, where |TyConApp OptionTyCon [θ1]| is
+printed as $\mathtt{option}~θ_1$.
+The |Wrong| type indicates a type error and is printed as $\textbf{wrong}$.
 
 Key to the analysis is its abstract trace type |J|, the name of which refers to the ambient
 effects of Milner's Algorithm J, offering means to invoke unification (|unify|),
@@ -673,8 +991,8 @@ My type |J| implements these effects by maintaining two pieces of state:
   \item
     a consistent set of type constraints as a unifying substitution |Subst|.
   \item
-    the set of used type variable |Name|s.
-    This is to supply fresh type variable names in |freshTyVar|
+    the set of used types as a |Set Name|.
+    This is to supply fresh names in |freshTyVar|
     and to instantiate a polytype $\forall α. α \to α$ to a monotype $α_1
     \to α_1$ for fresh $α_1$ as done by |instantiatePolyTy|, but also to
     identify the type variables which are \emph{generic}~\citep{Milner:78} in
@@ -688,15 +1006,15 @@ The operational detail offered by |Trace| is ignored by |J|, but the |Domain|
 and |HasBind| instances for the abstract semantic domain |J Type| are quite
 interesting.
 Throughout the analysis, the invariant is maintained that the |J Type| denotation
-of let-bound variables in the interpreter environment is of the form
+of let-bound variables in the interpreter environment |ρ| is of the form
 |instantiatePolyTy σ| for a polytype |σ|, while lambda- and field-bound
 variables are denoted by |return θ|, yielding the same monotype |θ| at all use
 sites.
 Thus, let-bound denotations instantiate polytypes on-the-fly at occurrence
-sites, just as in Algorithm J~\citep{Milner:78}.
+sites, just as in Algorithm J.
 
 As expected, |stuck| terms are denoted by the monotype |Wrong|.
-The definition of |fun| resembles the abstraction rule of Milner's Algorithm J,
+The definition of |fun| resembles the abstraction rule of Algorithm J,
 in that it draws a fresh variable type |θα :: Type| (of the form |TyVar α|)
 to stand for the type of the argument.
 This type is passed as a monotype |return θα| to the body denotation
@@ -709,29 +1027,27 @@ a similar routine.
 
 The generalisation and instantiation machinery comes to bear in the implementation
 of |bind|, which implements a combination of the $\mathit{fix}$ and $\mathit{let}$
-cases in Milner's Algorithm J.
-This implementation yields yet another domain-specific fixpoint strategy besides
-guarded and least fixpoints!
+cases in Algorithm J, computing fixpoints by unification.
 
 The recursive knot is tied in the |do| block passed to |generaliseTy|.
 It works by calling the iteratee |rhs| with a fresh
 unification variable type |θα|, for example $α_1$.
 The result of this call in turn is a monotype |θ|,
-for example $\mathtt{option}\;(α_3 \rightarrow α_3)$ for fresh $α_3$.
-Then |θα| is unified with |θ|, equating $α_1$ with
+for example $\mathtt{option}\;(α_3 \rightarrow α_3)$ for \emph{generic}
+$α_3$, meaning that $α_3$ is a fresh name introduced in the right-hand side.
+Then |θα| is unified with |θ|, substituting $α_1$ with
 $\mathtt{option}\;(α_3 \rightarrow α_3)$.
-This concludes the implementation of the $\mathit{fix}$ case.
+This concludes the implementation of Milner's $\mathit{fix}$ case.
 
-For the $\mathit{let}$ case, the type |θα| is
-generalised to $\forall α_3.\ \mathtt{option}\;(α_3 \rightarrow α_3)$.
-This is because $α_3$ was a fresh |Name| not in use before the call to |generaliseTy|.
-That is easy for |generaliseTy| to check, by looking at the initial set of used
-|Name|s in which $α_3$ does not occur.
-Hence $α_3$ couldn't have possibly leaked into the range of the ambient type
-context and it must be generic.
-The generalised polytype |σ| is then instantiated afresh at every use
-site via |instantiatePolyTy σ| when analysing the |body| to implement
-polymorphic instantiation.
+For Milner's $\mathit{let}$ case, the type |θα| is
+generalised to $\forall α_3.\ \mathtt{option}\;(α_3 \rightarrow α_3)$
+by universally quantifying the generic variable $α_3$.
+It is easy for |generaliseTy| to deduce that $α_3$ must be generic \wrt the
+right-hand side, because $α_3$ does not occur in the set of used |Name|s prior
+to the call to |rhs|.
+The generalised polytype |σ| is then instantiated afresh via |instantiatePolyTy
+σ| at every use site of |x| in the |body|, implementing polymorphic
+instantiation.
 
 \begin{table}
 \centering

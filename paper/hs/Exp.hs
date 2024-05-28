@@ -1,6 +1,7 @@
 module Exp where
 
 import Control.Monad
+import Control.Monad.Trans.State
 import Data.Foldable
 import Debug.Trace
 import qualified Text.ParserCombinators.ReadPrec as Read
@@ -113,6 +114,42 @@ showSep _   [] = id
 showSep _   [s] = s
 showSep sep (s:ss) = s . sep . showString " " . showSep sep ss
 
+-- | A non-ANFised form of 'Exp' for easier input.
+-- We'll give the Read instance for this one and ANFise as needed.
+data PreExp
+  = PVar Name
+  | PApp PreExp PreExp
+  | PLam Name PreExp
+  | PLet Name PreExp PreExp
+  | PConApp Tag [PreExp]
+  | PCase PreExp PreAlts
+type PreAlts = Map.Map Tag ([Name],PreExp)
+
+anf :: PreExp -> Exp
+anf e = evalState (go e) 0
+  where
+    bind :: PreExp -> (Name -> State Int Exp) -> State Int Exp
+    bind (PVar x) k = k x
+    bind e k = do
+      x <- state $ \next -> ("?" ++ show next, next+1)
+      e' <- go e
+      Let x e' <$> k x
+    bindMany es k = go [] es
+      where
+        go xs []     = k (reverse xs)
+        go xs (e:es) = bind e (\x -> go (x:xs) es)
+    go :: PreExp -> State Int Exp
+    go (PApp f a) = do f' <- go f; bind a (pure . App f')
+    go (PConApp k as) = bindMany as (pure . ConApp k)
+    go (PVar x) = pure (Var x)
+    go (PLam x e) = Lam x <$> go e
+    go (PLet x e1 e2) = Let x <$> go e1 <*> go e2
+    go (PCase scrut alts) = Case <$> go scrut <*> traverse alt alts
+      where alt (xs, e) = (xs,) <$> go e
+
+instance Eq PreExp where
+  e1 == e2 = anf e1 == anf e2
+
 -- | The default 'ReadP.many1' function leads to ambiguity. What a terrible API.
 greedyMany, greedyMany1 :: ReadP.ReadP a -> ReadP.ReadP [a]
 greedyMany p  = greedyMany1 p ReadP.<++ pure []
@@ -144,24 +181,22 @@ greedyMany1 p = (:) <$> p <*> greedyMany p
 --
 -- >>> read "let x = T() in let o = Some(x) in case o of { None() -> F(); Some(y) -> y }" :: Exp
 -- let x = T() in let o = Some(x) in case o of { None() -> F(); Some(y) -> y }
-instance Read Exp where
+instance Read PreExp where
   readPrec = Read.parens $ Read.choice
-    [ Var <$> readName
+    [ PVar <$> readName
     , Read.prec appPrec $ do
         -- Urgh. Just ignore the code here as long as it works
         let spaces1 = greedyMany1 (ReadP.satisfy isSpace)
         (f:args) <- Read.readP_to_Prec $ \prec ->
           ReadP.sepBy1 (Read.readPrec_to_P Read.readPrec (prec+1)) spaces1
         guard $ not $ null args
-        let to_var e = case e of Var n -> Just n; _ -> Nothing
-        Just xs <- pure $ traverse to_var args
-        pure (foldl' App f xs)
+        pure (foldl' PApp f args)
     , Read.prec lamPrec $ do
         c <- Read.get
         guard (c `elem` "λΛ@#%\\") -- multiple short-hands for Lam
-        Var v <- Read.readPrec
+        PVar v <- Read.readPrec
         '.' <- Read.get
-        Lam v <$> Read.readPrec
+        PLam v <$> Read.readPrec
     , Read.prec lamPrec $ do
         Read.Ident "let" <- Read.lexP
         x <- readName
@@ -169,15 +204,15 @@ instance Read Exp where
         e1 <- Read.readPrec
         Read.Ident "in" <- Read.lexP
         e2 <- Read.readPrec
-        pure (Let x e1 e2)
+        pure (PLet x e1 e2)
     , do
         k :: Tag <- Read.readPrec
         Read.Punc "(" <- Read.lexP
         let comma = ReadP.skipSpaces >> ReadP.char ',' >> ReadP.skipSpaces
-        xs <- Read.readP_to_Prec $ \_ ->
-          ReadP.sepBy (Read.readPrec_to_P readName lamPrec) comma
+        args <- Read.readP_to_Prec $ \_ ->
+          ReadP.sepBy (Read.readPrec_to_P Read.readPrec lamPrec) comma
         Read.Punc ")" <- Read.lexP
-        pure (ConApp k xs)
+        pure (PConApp k args)
     , Read.prec lamPrec $ do
         Read.Ident "case" <- Read.lexP
         e <- Read.readPrec
@@ -187,7 +222,7 @@ instance Read Exp where
         alts <- (Map.fromList . map (\(k,xs,e) -> (k, (xs,e)))) <$>
           Read.readP_to_Prec (\_ -> ReadP.sepBy (Read.readPrec_to_P readAlt lamPrec) semi)
         Read.Punc "}" <- Read.lexP
-        pure (Case e alts)
+        pure (PCase e alts)
     ]
     where
       readName = do
@@ -198,9 +233,13 @@ instance Read Exp where
         guard (all (\c -> isAlphaNum c || c == '_') v)
         pure v
       readAlt = do
-        ConApp k xs <- Read.readPrec
+        PConApp k args <- Read.readPrec
+        let to_var e = case e of PVar n -> Just n; _ -> Nothing
+        Just xs <- pure $ traverse to_var args
         Read.Punc p <- Read.lexP
         guard (p `elem` ["->","→"])
         e <- Read.readPrec
         pure (k,xs,e)
 
+instance Read Exp where
+  readPrec = anf <$> Read.readPrec
