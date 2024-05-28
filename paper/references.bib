@@ -1378,3 +1378,20 @@ location = {Boston, Massachusetts, USA},
 series = {ICFP '13}
 }
 
+@inproceedings{Henglein:94,
+author = {Henglein, Fritz and J\o{}rgensen, Jesper},
+title = {Formally optimal boxing},
+year = {1994},
+isbn = {0897916360},
+publisher = {Association for Computing Machinery},
+address = {New York, NY, USA},
+url = {https://doi.org/10.1145/174675.177874},
+doi = {10.1145/174675.177874},
+abstract = {An important implementation decision in polymorphically typed functional programming language is whether to represent data in boxed or unboxed form and when to transform them from one representation to the other. Using a language with explicit representation types and boxing/unboxing operations we axiomatize equationally the set of all explicitly boxed versions, called completions, of a given source program. In a two-stage process we give some of the equations a rewriting interpretation that captures eliminating boxing/unboxing operations without relying on a specific implementation or even semantics of the underlying language. The resulting reduction systems operate on congruence classes of completions defined by the remaining equations E, which can  be understood as moving boxing/unboxing operations along data flow paths in the source program. We call a completion eopt formally optimal if every other completion for the same program (and at the same representation type) reduces to eopt under this two-stage reduction.We show that every source program has formally optimal completions, which are unique modulo E. This is accomplished by first “polarizing” the equations in E and orienting them to obtain two canonical (confluent and strongly normalizing) rewriting systems. The completions produced by Leroy's and Poulsen's algorithms are generally not formally optimal in our sense.The rewriting systems have  been implemented and applied to some simple Standard ML programs. Our results show that the amount of boxing and unboxing operations is also in practice substantially reduced in comparison to Leroy's completions. This analysis is intended to be integrated into Tofte's region-based implementation of Standard ML currently underway at DIKU.},
+booktitle = {Proceedings of the 21st ACM SIGPLAN-SIGACT Symposium on Principles of Programming Languages},
+pages = {213–226},
+numpages = {14},
+keywords = {polymorphism, representation analysis, type inference},
+location = {Portland, Oregon, USA},
+series = {POPL '94}
+}

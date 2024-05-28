@@ -553,9 +553,29 @@ instance Show BValue where
 \label{fig:boxity-analysis}
 \end{figure}
 
-Let us consider another analysis in this subsection that is an instance of the
-generic denotational interpreter: \emph{boxity analysis}.
-Boxity analysis infers whether a
+Let us consider another abstract instance of the denotational interpreter in
+this subsection: a simple \emph{boxity analysis}~\citep{Henglein:94}.
+The purpose of boxity analysis is to infer whether a heap allocated datum such
+as a pair |(x, y)| or a boxed integer can gainfully be represented more
+efficiently, perhaps by passing around the pair components |x| and |y|
+individually.
+
+The following example involving a recursive data structure clarifies why it is
+not always possible to unbox a pair:
+\[|evalBox (({-" \Let{\mathot{zeros}}{\mathit{Pair}(Z(),\mathit{zeros})}{zeros} "-})) emp|
+ = \perform{evalBox (read "let zeros = Pair(Z(),zeros) in zeros") emp} \]
+While this example exploits the lack of a type system, similar constraints arise
+for polymorphic higher-order functions such as
+\begin{spec}
+mapPair :: (a -> b) -> (a, a) -> (b, b)
+mapPair f (x, y) = (f x, f y)
+\end{spec}
+There is only one the separately-compiled code of which
+must operate on a uniform, boxed representation.
+
+
+This is a ch
+It is not possible to
 
 
 \[|evalBox (({-" \Let{k}{\Lam{y}{\Lam{z}{y}}}{k~x_1~x_2} "-})) ρe|
