@@ -119,47 +119,66 @@ instance Show UValue where
 -- End Copied from Abstraction
 ---------------------------
 
-data Anns s = A { cache :: STRef s (Name :-> UD), anns :: STRef s (Name :-> U) }
+data Anns s d = A { cache :: STRef s (Name :-> d), anns :: STRef s (Name :-> Ann d) }
 
-newtype AnnUT s a = AnnUT (ReaderT (Anns s) (ST s) a)
+newtype AnnUT s d a = AnnUT (ReaderT (Anns s d) (ST s) a)
   deriving (Functor, Applicative, Monad, Trace)
 
-type AnnUD s = AnnUT s UD
+type AnnD s d = AnnT s d d
 
- -- only fun and select need to be copied to pass through the ambient annotation
- -- monad. Could be solved by extra type class with funA :: Monad m => (m d -> m
- -- d) -> m d.
-instance Domain (AnnUD s) where
+class StaticDomain d where
+  type Ann d :: Type
+  funS :: Monad m => Name -> Label -> (m d -> m d) -> m d
+  selectS :: Monad m => m d -> (Tag :-> ([m d] -> m d)) -> m d
+  extractAnn :: Name -> d -> (Ann d, d)
+
+-- IndexedDomain does not seem to work well with Anns
+-- class IndexedDomain i o where
+--   funP :: Monad m => Name -> Label -> ((i -> m o) -> i -> m o) -> i -> m o
+--   selectP :: Monad m => (i -> m o) -> (Tag :-> ([i -> m o] -> i -> m o)) -> i -> m o
+--
+-- instance StaticDomain s => IndexedDomain () s where
+--   funP x l f () = funS x l (f ())
+--   selectS md mfs () = selectS (md ()) (\f mds -> f (map const mds) ()) <$> mfs)
+
+instance StaticDomain d => Domain (AnnD s d) where
   stuck = return stuck
-  fun x _ f = do
-    MkUT φ v <- f (pure (MkUT (singenv x U1) (Rep Uω)))
-    pure (MkUT (ext φ x U0) (UCons (φ !? x) v))
+  fun x l f = funS x l f
   con l k ds = con l k <$> sequence ds
   apply f d = apply <$> f <*> d
-  select d fs = do
-    (>>) <$> d <*> fmap lub (sequence [ f (replicate (conArity k) (pure (MkUT emp (Rep Uω)))) | (k,f) <- Map.assocs fs ])
+  select md mfs = selectS md mfs
 
-getCache :: Name -> AnnUT s UD
-getCache n = AnnUT $ ReaderT $ \ann -> do
+getCache :: Name -> AnnD s d
+getCache n = AnnT $ ReaderT $ \ann -> do
   c <- readSTRef (cache ann)
   pure (Map.findWithDefault bottom n c)
 
 setCache :: Name -> UD -> AnnUT s ()
-setCache n d = AnnUT $ ReaderT $ \ann -> do
+setCache n d = AnnUT $ ReaderT $ \ann ->
   modifySTRef' (cache ann) $ \c -> ext c n d
 
-annotate :: Name -> AnnUD s -> AnnUD s
-annotate x d = do
-  MkUT φ v <- d
-  AnnUT $ ReaderT $ \ann -> modifySTRef' (anns ann) $ \a -> ext a x (Map.findWithDefault bottom x φ)
-  pure (MkUT (Map.delete x φ) v)
+annotate :: StaticDomain d => Name -> AnnD s d -> AnnD s d
+annotate x ad = do
+  d <- ad
+  let (ann, d') = extractAnn d
+  AnnUT $ ReaderT $ \s -> modifySTRef' (anns s) $ \a -> ext a x ann
+  pure d'
 
-instance HasBind (AnnUD s) where
+instance HasBind (AnnD s d) where
   bind x rhs body = do
     d <- getCache x
     d1 <- kleeneFixFromM d rhs
     setCache x d1
     annotate x (body (pure d1))
+
+instance StaticDomain UD where
+  funS x _ f = do
+    MkUT φ v <- f (pure (MkUT (singenv x U1) (Rep Uω)))
+    pure (MkUT (ext φ x U0) (UCons (φ !? x) v))
+  selectS md mfs = do
+    (>>) <$> md <*> fmap lub (sequence [ f (replicate (conArity k) (pure (MkUT emp (Rep Uω))))
+                                       | (k,f) <- Map.assocs mfs ])
+  extractAnn (MkUT φ v) = (Map.findWithDefault bottom x φ, MkUT (Map.delete x φ) v)
 
 run :: (forall s. AnnUD s) -> (Name :-> U, Name :-> U)
 run m = runST $ do
