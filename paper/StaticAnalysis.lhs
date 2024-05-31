@@ -164,7 +164,7 @@ peel (Rep u)      = (u, Rep u)
 peel (UCons u v)  = (u, v)
 
 (!?) :: Uses -> Name -> U
-m !? x  | x ∈ dom m  = m ! x
+φ !? x  | x ∈ dom φ  = φ ! x
         | otherwise  = U0
 \end{code}
 \end{minipage}%
@@ -452,22 +452,26 @@ The resulting definition of |HasBind| is safe for by-name and by-need semantics.
 \label{sec:boxity-analysis}
 
 \begin{figure}
-\centering
-\begin{minipage}{0.36\textwidth}
+\begin{minipage}{0.4\textwidth}
 \hfuzz=1em
+\belowdisplayskip=0pt
 \begin{code}
 data B = X | R
 type Boxes = Name :-> B
+data BT v = MkBT Boxes Boxes v
+
+instance Trace (BT v) where
+  step _ = id
 \end{code}
 \end{minipage}%
 \begin{minipage}{0.6\textwidth}
 \hfuzz=2em
+\belowdisplayskip=0pt
 \begin{code}
-data BT v = MkBT Boxes Boxes v
-instance Trace (BT v) where step _ = id
 instance Monad BT where
   return a = MkBT emp emp a
-  MkBT φ1 _ a >>= k = let MkBT φ2 φ3 b = k a in MkBT (φ1 ⊔ φ2) φ3 b
+  MkBT φ1 _ a >>= k =  let MkBT φ2 φ3 b = k a in
+                       MkBT (φ1 ⊔ φ2) φ3 b
 
 retain :: BT v -> BT v
 retain (MkBT φ1 φ2 v) = MkBT (φ1 ⊔ φ2) emp v
@@ -480,6 +484,7 @@ instance Extract BT where getValue (MkBT _ _ v) = v
 \end{minipage}
 \caption{Boxity |B| and boxity trace |BT|}
 \label{fig:boxity-trace}
+\belowdisplayskip=0pt
 \begin{code}
 evalBox e ρ = eval e ρ :: BD
 
@@ -493,11 +498,18 @@ instance Domain BD where
   apply f a = retain f >>= \v1 -> case peelB v1 of
     (X, v2) -> a          >> return v2
     (R, v2) -> retain a  >> return v2
-  con {-" \iffalse "-}_{-" \fi "-} _ ds  = mapM_ retain ds >> return (BRep R)
-  select d fs                      =
-    d >> lub  [  f (replicate (conArity k) (MkBT emp emp (BRep R)))
-              |  (k,f) <- assocs fs ]
+  con {-" \iffalse "-}_{-" \fi "-} _ ds  = mapM retain ds >> return (BRep R)
+  select d fs                      = d >> lub  [  f (replicate (conArity k) (MkBT emp emp (BRep R)))
+                                               |  (k,f) <- assocs fs ]
 
+instance HasBind BD where
+  bind x rhs body = body (kleeneFix (needX . rhs))
+    where needX (MkBT φ1 φ2 v)  | cbv x      = MkBT φ1 (ext φ2 x R) v
+                                | otherwise  = MkBT (ext φ1 x R) φ2  v
+\end{code}
+
+\begin{minipage}[t]{0.4\textwidth}
+\begin{code}
 peelB :: BValue -> (B, BValue)
 peelB (BRep b)     = (b, BRep b)
 peelB (BCons b v)  = (b, v)
@@ -506,7 +518,10 @@ peelB (BCons b v)  = (b, v)
 m !??? x  | not (cbv x)  = R
           | x ∈ dom m    = m ! x
           | otherwise    = X
-
+\end{code}
+\end{minipage}%
+\begin{minipage}[t]{0.6\textwidth}
+\begin{code}
 instance Lat B where {-" ... \iffalse "-}
   bottom = X
   X  ⊔  X  = X
@@ -525,11 +540,9 @@ instance Lat BD where {-" ... \iffalse "-}
   MkBT φ1 φ1n v1 ⊔ MkBT φ2 φ2n v2 = MkBT (φ1 ⊔ φ2) (φ1n ⊔ φ2n) (v1 ⊔ v2)
 {-" \fi "-}
 
-instance HasBind BD where
-  bind x rhs body = body (kleeneFix (needX . rhs))
-    where needX (MkBT φ1 φ2 v)  | cbv x      = MkBT φ1 (ext φ2 x R) v
-                                | otherwise  = MkBT (ext φ1 x R) φ2  v
+cbv :: Name -> Bool
 \end{code}
+\end{minipage}
 %if style == newcode
 \begin{code}
 cbv _ = True
@@ -561,56 +574,65 @@ instance Show BValue where
   show (BCons b v) = show b ++ " \\sumcons " ++ show v
 \end{code}
 %endif
-\\[-1em]
 \caption{Boxity analysis}
 \label{fig:boxity-analysis}
 \end{figure}
 
 Let us consider another abstract instance of the denotational interpreter in
 this subsection: a simple form of \emph{boxity analysis}~\citep{Henglein:94}.
+The reason for presenting this analysis is mainly so that we can use
+my framework to share the preservation proof with usage analysis in
+\Cref{sec:soundness}.
+
 The structure of boxity analysis is quite similar to usage analysis and
 most of the intuition carries over, yet its purpose is rather different:
 Boxity analysis infers whether a heap-allocated value such as a pair |(x, y)|
 or a boxed integer can be represented more efficiently, perhaps by unboxing the
-pair and passing around the pair components |x| and |y| individually.
+pair and passing around the pair components |x| and |y| individually, saving
+allocation of the pair.
 
-With higher-order functions, it is not always feasible to
-unbox a pair in this way; consider for example the expression
-$\pe \triangleq \Let{\mathit{p}}{\mathit{Pair}(Z(),Z())}{\Lam{f}{\Lam{x}{f~p}}}$.
+With nested data structures, it is not always feasible to
+unbox a pair in this way; consider the example expression
+$\pe \triangleq \Let{\mathit{p}}{\mathit{Pair}(Z(),Z())}{\Lam{x}{\mathit{Pair}(p,p)}}$.
 (In the interest of compact examples, I will from now on assume that non-variable
 arguments such as $Z()$ are implicitly let-bound.)
 
-If we were to unbox $\mathit{p}$, what would we put in its use-site $f~p$?
-Note that we cannot change the code of the lambda-bound function $f$, so
-there would be no way other than to \emph{rebox} $\mathit{p}$ to
-comply with $f$'s existing calling convention, yielding the expression
-$\Lam{f}{\Lam{x}{f~Pair(Z(),Z())}}$. This expression actually performs worse than $\pe$,
-because the pair will be allocated for every call of the lambda; thus it is not
+If we were to unbox $\mathit{p}$, what would we put in its use sites?
+There would be no way other than to \emph{rebox} $\mathit{p}$ before constructing
+the result pair, yielding the expression
+$\Lam{x}{\mathit{Pair}(\mathit{Pair}(Z(),Z()),\mathit{Pair}(Z(),Z()))}$.
+This expression actually performs worse than $\pe$, because the original pair
+$p$ will be allocated twice for every call of the lambda; thus $p$ is not
 \emph{safe to unbox} without risking performance regressions.
+Typed languages featuring parametric polymorphism require a boxed representation
+for polymorphic arguments as well.
 
 My boxity analysis, defined in \Cref{fig:boxity-analysis}, returns the following
 result for $\pe$:
-\[|evalBox (({-" \Let{\mathit{p}}{\mathit{Pair}(Z(),Z())}{\Lam{f}{\Lam{x}{f~p}}} "-})) emp|
- = \perform{evalBox (read "let p = Pair(Z(),Z()) in λf.λx. f p") emp} \]
+\[|evalBox (({-" \Let{\mathit{p}}{\mathit{Pair}(Z(),Z())}{\Lam{x}{\mathit{Pair}(p,p)}} "-})) emp|
+ = \perform{evalBox (read "let p = Pair(Z(),Z()) in λx. Pair(p,p)") emp} \]
 The reading of the result is similar to that of usage analysis: the free variable
 environment |singenv p R :: Boxes| says that the box of the free variable $p$ is
 \emph{retained} (boxity flag |R :: B|), meaning it is possibly unsafe to unbox.
 So, following the advice of |evalBox|, we should not unbox $p$.
-The abstract value |BCons R (BCons X (BRep R)) :: BValue| says that the box of
-any function $f$ passed as first argument is retained as well, whereas the box
-of the absent second argument $x$ is \emph{discarded} (boxity flag |X :: B|), so
-it is safe to unbox.
+The abstract value |BCons X (BRep R) :: BValue| says that the box of the absent
+second argument $x$ is \emph{discarded} (boxity flag |X :: B|), so it is safe to
+unbox.
 Any further arguments are conservatively flagged as retained (|Rep R|).
 The total order |X ⊏ R| lifts to a |Lat| instance on |BD|, similar to
 usage analysis.
 Free variables not present in |φ :: Boxes| can be discarded.
 
 When a variable is only scrutinised by a case expression, like the formal
-argument of $fst$ below, we may discard its box, as the inferred |BValue| states:
+argument of $\mathit{fst}$ below, we may discard its box, as the inferred
+|BValue| states:
 \begin{equation}\thickmuskip=4mu\small|evalBox (({-" \Let{\mathit{fst}}{\Lam{p}{\Case{p}{\{ \mathit{Pair}(x,y) \to x \}}}}{\mathit{fst}} "-})) ρe|
  = \perform{evalBox (read "let fst = λp. case p of { Pair(x,y) -> x } in fst") emp} \label{ex:box-fst} \end{equation}
 The result |X| for the argument $p$ indicates that it would be beneficial to
-transform $\mathit{fst}$ such that $p$ is passed unboxed.
+transform $\mathit{fst}$ such that $p$ is passed unboxed, that is,
+$\Let{\mathit{fst}}{\Lam{x}{\Lam{y}{x}}}{\mathit{fst}}$.
+(In a typed language, the change in calling convention can be communicated to
+clients via the \emph{worker/wrapper} transformation~\citep{Gill:09}.)
 
 However, when $p$ is \emph{returned} from the function, potential call sites
 such as in $Some$ below might need the box:
@@ -644,35 +666,15 @@ This instance writes out |φ1|, but not |φ2|; hence |d >> d2| means
 whereas |retain d >> d2| shifts |φ1 ⊔ φ2| into |φ1| and thus means
 ``evaluate |d|, retain its box and continue with |d2|''.
 
-It is worth noting that unboxing transformations such as the worker/wrapper
-transformation~\citep{Gill:09} are only semantically sound when passing around
-values.
-Therefore, in our lazy language, unboxing an argument implies calling the
-function by-value instead of by-need, which is sound only when the function is
-strict in that argument or was a value to begin with.
-GHC's Demand Analysis solves this by only discarding boxes when the function
-is strict or absent in the argument.
-However, in the interest of keeping boxity analysis simple we postulate an
-oracle |ok :: Name -> Bool| that returns |True| for variables that are strict,
-absent or are let-bound to values to begin with.
-
-\[|evalBox (({-" \Let{k}{\Lam{y}{\Lam{z}{y}}}{k~x_1~x_2} "-})) ρe|
- = \perform{evalBox (read "let k = λy.λz.y in k x_1 x_2") (Map.fromList [("x_1", MkBT emp (singenv "x_1" R) (BRep R)), ("x_2", MkBT emp (singenv "x_2" R) (BRep R))])} \]
-
-\[|evalBox (({-" \Let{k}{\Lam{y}{\Lam{z}{y}}}{k~x_1~x_2} "-})) ρe|
- = \perform{evalBox (read "let k = λy.λz.y in let j = j in case Z() of {Z() -> k; S(n) -> j}") (Map.fromList [("x_1", MkBT emp (singenv "x_1" R) (BRep R)), ("x_2", MkBT emp (singenv "x_2" R) (BRep R))])} \]
-
-\[|evalBox (({-" \Let{k}{\Lam{y}{\Lam{z}{y}}}{k~x_1~x_2} "-})) ρe|
- = \perform{evalBox (read "let m = let n = Z() in Some(n) in let get = λo. case o of { None() -> Z(); Some(n) -> n } in get") emp} \]
-
-\[|evalBox (read "let plus = ...") emp|
- = \perform{evalBox (read "let plus = λa.λb. case a of { Z() -> b; S(m) -> S(plus m b) } in plus") emp} \]
-
-\[|evalBox (read "let zeros = ...") emp|
- = \perform{evalBox (read "let zeros = Pair(Z(),zeros) in case zeros of { Pair(x,xs) -> xs }") emp} \]
-
-\[|evalBox (read "let zero = ...") emp|
- = \perform{evalBox (read "let zero = Z() in case zero of { Z() -> Z() }") emp} \]
+It is worth noting that unboxing function arguments is only semantically sound
+when passing around values, but with the lazy semantics of our language
+that is not the case.
+GHC solves this problem by retaining any boxes of lazy and used arguments.
+For boxity analysis I simply postulate an oracle |cbv :: Name -> Bool| that
+returns |True| for variables that are strict, absent or are let-bound to values
+to begin with.
+This postulate does not influence the preservation result that we derive in
+\Cref{sec:soundness} in any way.
 
 \subsection{Type Analysis: Algorithm J}
 \label{sec:type-analysis}
