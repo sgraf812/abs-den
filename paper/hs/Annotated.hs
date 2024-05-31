@@ -1,3 +1,4 @@
+{-# LANGUAGE TypeFamilies #-}
 module Annotated where
 
 import Prelude hiding ((+), (*))
@@ -9,8 +10,7 @@ import Data.STRef
 import Exp
 import Order
 import Interpreter
-
-type AnnT s a = ReaderT (STRef s (Name :-> a))
+import Data.Kind
 
 instance Trace d => Trace (ReaderT e (ST s) d) where
   step ev (ReaderT f) = ReaderT (\e -> step ev <$> f e)
@@ -38,8 +38,8 @@ instance UVec Uses where {-" ... \iffalse "-}
 
 data UT v = MkUT Uses v
 instance Trace (UT v) where
-  step (Lookup x)  (MkUT φ v)  = MkUT (singenv x U1 + φ) v
-  step _           τ           = τ
+  step (Look x)  (MkUT φ v)  = MkUT (singenv x U1 + φ) v
+  step _         τ           = τ
 instance Monad UT where
   MkUT φ1 a >>= k = let MkUT φ2 b = k a in MkUT (φ1+φ2) b
 
@@ -121,12 +121,12 @@ instance Show UValue where
 
 data Anns s d = A { cache :: STRef s (Name :-> d), anns :: STRef s (Name :-> Ann d) }
 
-newtype AnnUT s d a = AnnUT (ReaderT (Anns s d) (ST s) a)
+newtype AnnT s d a = AnnT (ReaderT (Anns s d) (ST s) a)
   deriving (Functor, Applicative, Monad, Trace)
 
-type AnnD s d = AnnT s d d
+type AnnD s d = AnnT s d d :: Type
 
-class StaticDomain d where
+class Domain d => StaticDomain d where
   type Ann d :: Type
   funS :: Monad m => Name -> Label -> (m d -> m d) -> m d
   selectS :: Monad m => m d -> (Tag :-> ([m d] -> m d)) -> m d
@@ -148,23 +148,23 @@ instance StaticDomain d => Domain (AnnD s d) where
   apply f d = apply <$> f <*> d
   select md mfs = selectS md mfs
 
-getCache :: Name -> AnnD s d
+getCache :: Lat d => Name -> AnnD s d
 getCache n = AnnT $ ReaderT $ \ann -> do
   c <- readSTRef (cache ann)
   pure (Map.findWithDefault bottom n c)
 
-setCache :: Name -> UD -> AnnUT s ()
-setCache n d = AnnUT $ ReaderT $ \ann ->
+setCache :: Name -> d -> AnnT s d ()
+setCache n d = AnnT $ ReaderT $ \ann ->
   modifySTRef' (cache ann) $ \c -> ext c n d
 
 annotate :: StaticDomain d => Name -> AnnD s d -> AnnD s d
 annotate x ad = do
   d <- ad
-  let (ann, d') = extractAnn d
-  AnnUT $ ReaderT $ \s -> modifySTRef' (anns s) $ \a -> ext a x ann
+  let (ann, d') = extractAnn x d
+  AnnT $ ReaderT $ \s -> modifySTRef' (anns s) $ \a -> ext a x ann
   pure d'
 
-instance HasBind (AnnD s d) where
+instance (Lat d, StaticDomain d) => HasBind (AnnD s d) where
   bind x rhs body = do
     d <- getCache x
     d1 <- kleeneFixFromM d rhs
@@ -172,17 +172,18 @@ instance HasBind (AnnD s d) where
     annotate x (body (pure d1))
 
 instance StaticDomain UD where
+  type Ann UD = U
   funS x _ f = do
     MkUT φ v <- f (pure (MkUT (singenv x U1) (Rep Uω)))
     pure (MkUT (ext φ x U0) (UCons (φ !? x) v))
   selectS md mfs = do
     (>>) <$> md <*> fmap lub (sequence [ f (replicate (conArity k) (pure (MkUT emp (Rep Uω))))
                                        | (k,f) <- Map.assocs mfs ])
-  extractAnn (MkUT φ v) = (Map.findWithDefault bottom x φ, MkUT (Map.delete x φ) v)
+  extractAnn x (MkUT φ v) = (Map.findWithDefault bottom x φ, MkUT (Map.delete x φ) v)
 
-run :: (forall s. AnnUD s) -> (Name :-> U, Name :-> U)
+run :: (forall s. AnnD s d) -> (Name :-> Ann d, d)
 run m = runST $ do
   ann <- A <$> newSTRef emp <*> newSTRef emp
-  MkUT φ _v <- runReaderT (case m of AnnUT r -> r) ann
+  d <- runReaderT (case m of AnnT r -> r) ann
   anns <- readSTRef (anns ann)
-  return (φ, anns)
+  return (anns, d)

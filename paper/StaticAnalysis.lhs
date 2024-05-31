@@ -997,6 +997,9 @@ approximation of higher-rank types such as $\mathtt{option}~(\forall α_6.\
 α_6 \to α_6)$ in Algorithm J, and example (4) shows that type inference for
 diverging programs works as expected.
 
+\subsection{Maintaining Analysis State and Writing Out Annotations}
+\label{sec:type-analysis}
+
 \begin{comment}
 \begin{figure}
 \begin{code}
