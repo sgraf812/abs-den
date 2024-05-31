@@ -94,10 +94,10 @@ infer such operational properties!
 \label{sec:usage-trace-abstraction}
 
 \begin{figure}
-\centering
 \begin{minipage}{0.36\textwidth}
 \setlength{\mathindent}{0em}
 \hfuzz=1em
+\belowdisplayskip=0pt
 \begin{code}
 data U = U0 | U1 | Uω
 type Uses = Name :-> U
@@ -119,6 +119,7 @@ instance UVec Uses where {-" ... \iffalse "-}
 \end{minipage}%
 \begin{minipage}{0.6\textwidth}
 \hfuzz=2em
+\belowdisplayskip=0pt
 \begin{code}
 data UT v = MkUT Uses v
 instance Trace (UT v) where
@@ -136,6 +137,8 @@ instance Extract UT where getValue (MkUT _ v) = v
 \end{minipage}
 \caption{Usage |U| and usage trace |UT|}
 \label{fig:usage-trace}
+\setlength{\mathindent}{0em}
+\belowdisplayskip=0pt
 \begin{code}
 evalUsg e ρ = eval e ρ :: UD
 
@@ -149,10 +152,13 @@ instance Domain UD where
   apply (MkUT φ1 v1) (MkUT φ2 _)         = case peel v1 of
     (u, v2) -> MkUT (φ1 + u*φ2) v2
   con {-" \iffalse "-}_{-" \fi "-} _ ds  = foldl apply (MkUT emp (Rep Uω)) ds
-  select d fs                            =
-    d >> lub  [  f (replicate (conArity k) (MkUT emp (Rep Uω)))
-              |  (k,f) <- assocs fs ]
-
+  select d fs                            = d >> lub  [  f (replicate (conArity k) (MkUT emp (Rep Uω)))
+                                                     |  (k,f) <- assocs fs ]
+\end{code}
+\begin{minipage}{0.45\textwidth}
+\setlength{\mathindent}{0em}
+\hfuzz=1em
+\begin{code}
 peel :: UValue -> (U, UValue)
 peel (Rep u)      = (u, Rep u)
 peel (UCons u v)  = (u, v)
@@ -160,7 +166,12 @@ peel (UCons u v)  = (u, v)
 (!?) :: Uses -> Name -> U
 m !? x  | x ∈ dom m  = m ! x
         | otherwise  = U0
-
+\end{code}
+\end{minipage}%
+\begin{minipage}{0.55\textwidth}
+\setlength{\mathindent}{0em}
+\hfuzz=1em
+\begin{code}
 instance Lat U where {-" ... \iffalse "-}
   bottom = U0
   U0  ⊔  u   = u
@@ -184,6 +195,7 @@ instance Lat UD where {-" ... \iffalse "-}
 instance HasBind UD where
   bind # rhs body = body (kleeneFix rhs)
 \end{code}
+\end{minipage}
 %if style == newcode
 \begin{code}
 deriving instance Eq U
@@ -214,7 +226,6 @@ instance Show UValue where
   show (UCons u v) = show u ++ " \\sumcons " ++ show v
 \end{code}
 %endif
-\\[-1em]
 \caption{Summary-based usage analysis}
 \label{fig:usage-analysis}
 \end{figure}
