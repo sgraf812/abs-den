@@ -1,4 +1,5 @@
 {-# LANGUAGE TypeFamilies #-}
+{-# LANGUAGE DerivingVia #-}
 module Annotated where
 
 import Prelude hiding ((+), (*))
@@ -10,136 +11,24 @@ import Data.STRef
 import Exp
 import Order
 import Interpreter
+import StaticAnalysis hiding (Cache)
 import Data.Kind
 
-instance Trace d => Trace (ReaderT e (ST s) d) where
-  step ev (ReaderT f) = ReaderT (\e -> step ev <$> f e)
+data Cache s d = C (STRef s (Name :-> d)) (STRef s (Name :-> Ann d))
 
----------------------------
--- Copied from Abstraction
----------------------------
+newtype AnnT s d a = AnnT (Cache s d -> ST s a)
+  deriving (Functor, Applicative, Monad) via ReaderT (Cache s d) (ST s)
 
-data U = U0 | U1 | Uω
-type Uses = Name :-> U
-class UVec a where
-  (+)  :: a -> a -> a
-  (*)  :: U -> a -> a
-instance UVec U where {-" ... \iffalse "-}
-  U1 + U1 = Uω
-  u1 + u2 = u1 ⊔ u2
-  U0 * _ = U0
-  _ * U0 = U0
-  U1 * u = u
-  Uω * _ = Uω {-" \fi "-}
-instance UVec Uses where {-" ... \iffalse "-}
-  (+) = Map.unionWith (+)
-  u * m = Map.map (u *) m
-{-" \fi "-}
+type AnnD s d = AnnT s d d
 
-data UT v = MkUT Uses v
-instance Trace (UT v) where
-  step (Look x)  (MkUT φ v)  = MkUT (singenv x U1 + φ) v
-  step _         τ           = τ
-instance Monad UT where
-  MkUT φ1 a >>= k = let MkUT φ2 b = k a in MkUT (φ1+φ2) b
-
-data UValue = UCons U UValue | Rep U
-type UD = UT UValue
-
-instance Lat U where {-" ... \iffalse "-}
-  bottom = U0
-  U0  ⊔  u   = u
-  u   ⊔  U0  = u
-  U1  ⊔  U1  = U1
-  _   ⊔  _   = Uω
-{-" \fi "-}
-
-instance Lat UValue where {-" ... \iffalse "-}
-  bottom = (Rep U0)
-  Rep u1 ⊔ Rep u2 = Rep (u1 ⊔ u2)
-  Rep u1 ⊔ v = UCons u1 (Rep u1) ⊔ v
-  v ⊔ Rep u2 = v ⊔ UCons u2 (Rep u2)
-  UCons u1 v1 ⊔ UCons u2 v2 = UCons (u1 ⊔ u2) (v1 ⊔ v2)
-{-" \fi "-}
-instance Lat UD where {-" ... \iffalse "-}
-  bottom = MkUT bottom bottom
-  MkUT φ1 v1 ⊔ MkUT φ2 v2 = MkUT (φ1 ⊔ φ2) (v1 ⊔ v2)
-{-" \fi "-}
-
-peel :: UValue -> (U, UValue)
-peel (Rep u)      = (u,(Rep u))
-peel (UCons u v)  = (u,v)
-
-(!?) :: Uses -> Name -> U
-m !? x  | x ∈ dom m  = m ! x
-        | otherwise  = U0
-
-instance Domain UD where
-  stuck                                  = bottom
-  fun x {-" \iffalse "-}_{-" \fi "-} f   = case f (MkUT (singenv x U1) (Rep Uω)) of
-    MkUT φ v -> MkUT (ext φ x U0) (UCons (φ !? x) v)
-  apply (MkUT φ1 v1) (MkUT φ2 _)         = case peel v1 of
-    (u, v2) -> MkUT (φ1 + u*φ2) v2
-  con {-" \iffalse "-}_{-" \fi "-} _ ds  = foldl apply (MkUT emp (Rep Uω)) ds
-  select d fs                            =
-    d >> lub  [  f (replicate (conArity k) (MkUT emp (Rep Uω)))
-              |  (k,f) <- assocs fs ]
-
-instance HasBind UD where
-  bind _ rhs body = body (kleeneFix rhs)
-
-deriving instance Eq U
-deriving instance Eq a => Eq (UT a)
-deriving instance Functor UT
-
-instance Eq UValue where
-  Rep u1 == Rep u2 = u1 == u2
-  v1     == v2     = peel v1 == peel v2
-
-instance Show U where
-  show U0 = "\\concolor{\\mathsf{U_0}}"
-  show U1 = "\\concolor{\\mathsf{U_1}}"
-  show Uω = "\\concolor{\\mathsf{U_ω}}"
-
-infixl 6 +
-infixl 7 *
-
-instance Show v => Show (UT v) where
-  show (MkUT φ v) = "\\langle " ++ show (Map.filter (/= U0) φ) ++ ", " ++ show v ++ " \\rangle"
-
-instance Applicative UT where
-  pure a = MkUT emp a
-  (<*>) = ap
-
-instance Show UValue where
-  show (Rep u) = show u ++ ".."
-  show (UCons u v) = show u ++ " \\sumcons " ++ show v
-
----------------------------
--- End Copied from Abstraction
----------------------------
-
-data Anns s d = A { cache :: STRef s (Name :-> d), anns :: STRef s (Name :-> Ann d) }
-
-newtype AnnT s d a = AnnT (ReaderT (Anns s d) (ST s) a)
-  deriving (Functor, Applicative, Monad, Trace)
-
-type AnnD s d = AnnT s d d :: Type
+instance Trace d => Trace (AnnD s d) where
+  step ev (AnnT f) = AnnT (\cache -> step ev <$> f cache)
 
 class Domain d => StaticDomain d where
-  type Ann d :: Type
+  type Ann d :: *
   funS :: Monad m => Name -> Label -> (m d -> m d) -> m d
   selectS :: Monad m => m d -> (Tag :-> ([m d] -> m d)) -> m d
   extractAnn :: Name -> d -> (Ann d, d)
-
--- IndexedDomain does not seem to work well with Anns
--- class IndexedDomain i o where
---   funP :: Monad m => Name -> Label -> ((i -> m o) -> i -> m o) -> i -> m o
---   selectP :: Monad m => (i -> m o) -> (Tag :-> ([i -> m o] -> i -> m o)) -> i -> m o
---
--- instance StaticDomain s => IndexedDomain () s where
---   funP x l f () = funS x l (f ())
---   selectS md mfs () = selectS (md ()) (\f mds -> f (map const mds) ()) <$> mfs)
 
 instance StaticDomain d => Domain (AnnD s d) where
   stuck = return stuck
@@ -149,19 +38,19 @@ instance StaticDomain d => Domain (AnnD s d) where
   select md mfs = selectS md mfs
 
 getCache :: Lat d => Name -> AnnD s d
-getCache n = AnnT $ ReaderT $ \ann -> do
-  c <- readSTRef (cache ann)
+getCache n = AnnT $ \(C cache _) -> do
+  c <- readSTRef cache
   pure (Map.findWithDefault bottom n c)
 
 setCache :: Name -> d -> AnnT s d ()
-setCache n d = AnnT $ ReaderT $ \ann ->
-  modifySTRef' (cache ann) $ \c -> ext c n d
+setCache n d = AnnT $ \(C cache _) ->
+  modifySTRef' cache $ \c -> ext c n d
 
 annotate :: StaticDomain d => Name -> AnnD s d -> AnnD s d
 annotate x ad = do
   d <- ad
   let (ann, d') = extractAnn x d
-  AnnT $ ReaderT $ \s -> modifySTRef' (anns s) $ \a -> ext a x ann
+  AnnT $ \(C _ anns) -> modifySTRef' anns $ \a -> ext a x ann
   pure d'
 
 instance (Lat d, StaticDomain d) => HasBind (AnnD s d) where
@@ -183,7 +72,7 @@ instance StaticDomain UD where
 
 run :: (forall s. AnnD s d) -> (Name :-> Ann d, d)
 run m = runST $ do
-  ann <- A <$> newSTRef emp <*> newSTRef emp
-  d <- runReaderT (case m of AnnT r -> r) ann
-  anns <- readSTRef (anns ann)
+  c@(C _ anns) <- C <$> newSTRef emp <*> newSTRef emp
+  d <- case m of AnnT r -> r c
+  anns <- readSTRef anns
   return (anns, d)

@@ -33,12 +33,12 @@ instance (Lat a, Lat b, Lat c) => Lat (a,b,c) where
   bottom = (bottom,bottom,bottom)
   (a1,b1,c1) ⊔ (a2,b2,c2) = (a1⊔a2,b1⊔b2,c1⊔c2)
 
-kleeneFixFrom :: Lat a => a -> (a -> a) -> a
-kleeneFixFrom bot f = stationary $ iterate f bot where stationary (a:b:r) = if b ⊑ a then b else stationary (b:r)
+kleeneFixAbove :: Lat a => a -> (a -> a) -> a
+kleeneFixAbove bot f = stationary $ iterate f bot where stationary (a:b:r) = if b ⊑ a then b else stationary (b:r)
 
 kleeneFix :: Lat a => (a -> a) -> a
-kleeneFix = kleeneFixFrom bottom
+kleeneFix = kleeneFixAbove bottom
 
-kleeneFixFromM :: (Monad m, Lat a) => a -> (m a -> m a) -> m a
-kleeneFixFromM a f = f (return a) >>= \b -> if a ⊑ b then return a else kleeneFixFromM b f
+kleeneFixAboveM :: (Monad m, Lat a) => a -> (a -> m a) -> m a
+kleeneFixAboveM a f = f a >>= \b -> if b ⊑ a then return b else kleeneFixAboveM b f
 

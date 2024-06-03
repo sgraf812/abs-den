@@ -4,7 +4,8 @@
 %include lhs-preamble.fmt
 \begin{code}
 {-# OPTIONS_GHC -Wno-noncanonical-monad-instances #-}
-{-# LANGUAGE LambdaCase #-}
+{-# LANGUAGE TypeFamilies #-}
+{-# LANGUAGE DerivingVia #-}
 
 module StaticAnalysis where
 
@@ -13,7 +14,10 @@ import qualified Data.Map as Map
 import Data.Set (Set)
 import qualified Data.Set as Set
 import Control.Monad
+import Control.Monad.ST
+import Control.Monad.Trans.Reader
 import Control.Monad.Trans.State
+import Data.STRef
 import Data.Foldable
 import qualified Data.List as List
 import Exp
@@ -626,7 +630,7 @@ Free variables not present in |φ :: Boxes| can be discarded.
 When a variable is only scrutinised by a case expression, like the formal
 argument of $\mathit{fst}$ below, we may discard its box, as the inferred
 |BValue| states:
-\begin{equation}\thickmuskip=4mu\small|evalBox (({-" \Let{\mathit{fst}}{\Lam{p}{\Case{p}{\{ \mathit{Pair}(x,y) \to x \}}}}{\mathit{fst}} "-})) ρe|
+\begin{equation}\thickmuskip=4mu\small|evalBox (({-" \Let{\mathit{fst}}{\Lam{p}{\Case{p}{\{ \mathit{Pair}(x,y) \to x \}}}}{\mathit{fst}} "-})) emp|
  = \perform{evalBox (read "let fst = λp. case p of { Pair(x,y) -> x } in fst") emp} \label{ex:box-fst} \end{equation}
 The result |X| for the argument $p$ indicates that it would be beneficial to
 transform $\mathit{fst}$ such that $p$ is passed unboxed, that is,
@@ -636,7 +640,7 @@ clients via the \emph{worker/wrapper} transformation~\citep{Gill:09}.)
 
 However, when $p$ is \emph{returned} from the function, potential call sites
 such as in $Some$ below might need the box:
-\[|evalBox (({-" \Lam{x}{Some((\Lam{p}{p})~x)} "-})) ρe|
+\[|evalBox (({-" \Lam{x}{Some((\Lam{p}{p})~x)} "-})) emp|
  = \perform{evalBox (read "λx. Some((λp.p) x)") emp} \]
 In general, the analysis states that a box of some variable $x$ is retained
 whenever (1) it is returned (|fun|), or (2) it is called (|apply|), or (3) it is
@@ -998,9 +1002,155 @@ approximation of higher-rank types such as $\mathtt{option}~(\forall α_6.\
 diverging programs works as expected.
 
 \subsection{Maintaining Analysis State and Writing Out Annotations}
-\label{sec:type-analysis}
+\label{sec:annotations}
 
-\begin{comment}
+\begin{figure}
+\hfuzz=2em
+\belowdisplayskip=0pt
+\begin{code}
+class Domain d => StaticDomain d where
+  type Ann d   :: *
+  funS         :: Monad m => Name -> {-" \iffalse "-} Label -> {-" \fi "-} (m d -> m d) -> m d
+  selectS      :: Monad m => m d -> (Tag :-> ([m d] -> m d)) -> m d
+  bindS        :: Monad m => {-" \iffalse "-} Name -> {-" \fi "-} d -> (d -> m d) -> (d -> m d) -> m d
+  extractAnn   :: Name -> d -> (d, Ann d)
+
+instance StaticDomain UD where
+  type Ann UD = U
+  funS x # f = do
+    MkUT φ v <- f (return (MkUT (singenv x U1) (Rep Uω)))
+    return (MkUT (ext φ x U0) (UCons (φ !? x) v))
+  selectS md mfs = do
+    d <- md
+    alts <- sequence  [  f (replicate (conArity k) (return (MkUT emp (Rep Uω))))
+                      |  (k,f) <- Map.assocs mfs ]
+    return (d >> lub alts)
+  bindS # prev rhs body = kleeneFixAboveM prev rhs >>= body
+  extractAnn x (MkUT φ v) = (MkUT (Map.delete x φ) v, φ !? x)
+
+ifPoly(kleeneFixAboveM :: (Monad m, Lat a) => a -> (a -> m a) -> m a)
+
+evalUsgAnn e ρ = runAnn (eval e (return << ρ)) :: (UD, Name :-> U)
+
+data Refs s d = Refs (STRef s (Name :-> d)) (STRef s (Name :-> Ann d))
+newtype AnnT s d a = AnnT (Refs s d -> ST s a); type AnnD s d = AnnT s d d
+
+runAnn    :: (forall s. AnnD s d) -> (d, Name :-> Ann d)
+getCache  :: Lat d => Name -> AnnD s d; ^^ setCache  :: Name -> d -> AnnT s d d
+annotate  :: StaticDomain d => Name -> AnnD s d -> AnnD s d
+
+ifPoly(instance Monad (AnnT s d) where ...)
+
+instance Trace d => Trace (AnnD s d) where
+  step ev (AnnT f) = AnnT (\refs -> step ev <$> f refs)
+
+instance StaticDomain d => Domain (AnnD s d) where {-" ... \iffalse "-}
+  stuck = return stuck
+  fun x l f = funS x l f
+  con l k ds = con l k <$> sequence ds
+  apply f d = apply <$> f <*> d
+  select md mfs = selectS md mfs {-" \fi "-}
+
+instance (Lat d, StaticDomain d) => HasBind (AnnD s d) where
+  bind x rhs body = do
+    prev <- getCache x
+    let rhs' d1 = do d2 <- rhs (return d1); setCache x d2
+    annotate x (bindS ifCode(x) prev rhs' (body . return))
+\end{code}
+%if style == newcode
+\begin{code}
+runAnn m = runST $ do
+  r@(Refs _ anns) <- Refs <$> newSTRef emp <*> newSTRef emp
+  d <- case m of AnnT f -> f r
+  anns <- readSTRef anns
+  return (d, anns)
+
+deriving via ReaderT (Refs s d) (ST s) instance Functor (AnnT s d)
+deriving via ReaderT (Refs s d) (ST s) instance Applicative (AnnT s d)
+deriving via ReaderT (Refs s d) (ST s) instance Monad (AnnT s d)
+
+getCache n = AnnT $ \(Refs cache _) -> do
+  c <- readSTRef cache
+  return (Map.findWithDefault bottom n c)
+
+setCache n d = AnnT $ \(Refs cache _) -> do
+  modifySTRef' cache $ \c -> ext c n d
+  return d
+
+annotate x ad = do
+  d <- ad
+  let (d', ann) = extractAnn x d
+  AnnT $ \(Refs _ anns) -> modifySTRef' anns $ \a -> ext a x ann
+  return d'
+
+instance {-# OVERLAPS #-} Show (UD, Name :-> U) where
+  show (d, anns) = show d ++ " \\leadsto " ++ show anns
+\end{code}
+%endif
+\caption{Trace transformer |AnnT| for recording annotations and caching of fixpoints}
+\label{fig:annotations}
+\end{figure}
+
+Thus far, the static analyses derived from the generic denotational interpreter
+have produced a single abstract denotation |d := eval e emp| for the program
+expression |e|.
+If we are interested in \emph{analysis results for variables bound in |e|}, then
+either the analysis must collect these results in |d|, or we must redundantly
+re-run the analysis for subexpressions.
+
+In this subsection, I will demonstrate how to lift such a single-return
+analysis into a stateful analysis such that
+\begin{itemize}
+  \item analysis results for bound variables are collected in a separate map, and
+  \item fixpoints are cached, so that nested fixpoint iteration can be sped up
+    by starting from a previous approximation.
+\end{itemize}
+It is a common pattern for analyses to be stateful in this
+way~\citep{Sergey:14}; GHC's Demand Analysis is a good real-world example.
+The following demonstration targets usage analysis, but the technique should be
+easy to adapt for other analyses discussed in this section.
+
+\subsubsection{The Need for Isolating Bound Variable Usage}
+
+For a concrete example, let us compare the results of usage analysis
+from \Cref{sec:usage-analysis} on the expression $\pe_1 \triangleq
+\Let{i}{\Lam{x}{\Let{j}{\Lam{y}{y}}{j}}}{i~i~i}$ and its subexpression
+$\pe_2 \triangleq \Let{j}{\Lam{y}{y}}{j}$:
+\[\begin{array}{lcl}
+|evalUsg (({-" \Let{i}{\Lam{x}{\Let{j}{\Lam{y}{y}}{j}}}{i~i~i} "-})) emp|
+ & = & \perform{evalUsg (read "let i = λx. let j = λy.y in j in i i i") emp} \\
+|evalUsg (({-" \Let{j}{\Lam{y}{y}}{j} "-})) emp|
+ & = & \perform{evalUsg (read "let j = λy.y in j") emp}
+\end{array}\]
+The analysis reports a different usage |U1| for the bound variable $j$ in the
+subexpression $\pe_2$ versus |Uω| in the containing expression $\pe_1$.
+This is because in order for the presented usage analysis to report information
+for bound variables such as $j$ \emph{at all}, it treats $j$ like a \emph{free}
+variable of $i$, adding a use on $j$ for every call of $i$.
+While this treatment corresponds to the fact that multiple $\LookupT(j)$ events
+will be observed when evaluating $\pe_1$, each event associates to a
+\emph{different} activation (\ie heap entry) of the let-binding $j$.
+Since every activation of $j$ is looked up at most once, the result reported
+for subexpression $\pe_2$ would be more useful, and will indeed be the formal
+property of interest in \Cref{sec:soundness}.
+
+Rather than to re-run the analysis for every let-binding such as $j$, I will
+now outline a way to write out an \emph{annotation} for $j$, just before
+analysis leaves the $\mathbf{let}$ that binds $j$.
+Annotations for bound variables constitute analysis state that will be
+maintained separately from information on free variables.
+
+\subsubsection{Trace Transformer |AnnT| for Stateful Analysis}
+
+In \Cref{fig:annotations}
+A stateful analysis is useful to speed up the fixpoint iteration procedure as well.
+
+
+\[|evalUsgAnn (({-" \Let{i}{\Let{j}{\Lam{y}{y}}{(\Lam{x}{x})~j}}{i~i} "-})) ρe|
+ = \perform{evalUsgAnn (read "let i = let j = λy.y in (λx.x) j in i i") emp} \]
+
+
+%if False
 \begin{figure}
 \begin{code}
 data Pow a = P (Set a); type CValue = Pow Label
@@ -1227,7 +1377,7 @@ imprecise result, respectively. The latter is due to the fact that both |i| and
 |j| flow into |x|.
 Examples (3) and (4) show that the |HasBind| instance guarantees termination for
 diverging programs and cyclic data.
-\end{comment}
+%endif
 
 \begin{comment}
 \subsection{Bonus: Higher-order Cardinality Analysis}
