@@ -13,12 +13,14 @@ import Prelude hiding ((+), (*))
 import qualified Data.Map as Map
 import Data.Set (Set)
 import qualified Data.Set as Set
+import Data.Functor.Identity
 import Control.Monad
 import Control.Monad.ST
 import Control.Monad.Trans.Reader
 import Control.Monad.Trans.State
 import Data.STRef
 import Data.Foldable
+import Data.Coerce
 import qualified Data.List as List
 import Exp
 import Order
@@ -1010,13 +1012,14 @@ diverging programs works as expected.
 \begin{code}
 class Domain d => StaticDomain d where
   type Ann d   :: *
+  extractAnn   :: Name -> d -> (d, Ann d)
   funS         :: Monad m => Name -> {-" \iffalse "-} Label -> {-" \fi "-} (m d -> m d) -> m d
   selectS      :: Monad m => m d -> (Tag :-> ([m d] -> m d)) -> m d
   bindS        :: Monad m => {-" \iffalse "-} Name -> {-" \fi "-} d -> (d -> m d) -> (d -> m d) -> m d
-  extractAnn   :: Name -> d -> (d, Ann d)
 
 instance StaticDomain UD where
   type Ann UD = U
+  extractAnn x (MkUT φ v) = (MkUT (Map.delete x φ) v, φ !? x)
   funS x # f = do
     MkUT φ v <- f (return (MkUT (singenv x U1) (Rep Uω)))
     return (MkUT (ext φ x U0) (UCons (φ !? x) v))
@@ -1026,7 +1029,6 @@ instance StaticDomain UD where
                       |  (k,f) <- Map.assocs mfs ]
     return (d >> lub alts)
   bindS # prev rhs body = kleeneFixAboveM prev rhs >>= body
-  extractAnn x (MkUT φ v) = (MkUT (Map.delete x φ) v, φ !? x)
 
 ifPoly(kleeneFixAboveM :: (Monad m, Lat a) => a -> (a -> m a) -> m a)
 
@@ -1035,15 +1037,6 @@ evalUsgAnn e ρ = runAnn (eval e (return << ρ)) :: (UD, Name :-> U)
 data Refs s d = Refs (STRef s (Name :-> d)) (STRef s (Name :-> Ann d))
 newtype AnnT s d a = AnnT (Refs s d -> ST s a); type AnnD s d = AnnT s d d
 
-runAnn    :: (forall s. AnnD s d) -> (d, Name :-> Ann d)
-getCache  :: Lat d => Name -> AnnD s d; ^^ setCache  :: Name -> d -> AnnT s d d
-annotate  :: StaticDomain d => Name -> AnnD s d -> AnnD s d
-
-ifPoly(instance Monad (AnnT s d) where ...)
-
-instance Trace d => Trace (AnnD s d) where
-  step ev (AnnT f) = AnnT (\refs -> step ev <$> f refs)
-
 instance StaticDomain d => Domain (AnnD s d) where {-" ... \iffalse "-}
   stuck = return stuck
   fun x l f = funS x l f
@@ -1051,11 +1044,20 @@ instance StaticDomain d => Domain (AnnD s d) where {-" ... \iffalse "-}
   apply f d = apply <$> f <*> d
   select md mfs = selectS md mfs {-" \fi "-}
 
+runAnn    :: (forall s. AnnD s d) -> (d, Name :-> Ann d)
+getCache  :: Lat d => Name -> AnnD s d; ^^ putCache  :: Name -> d -> AnnT s d d
+annotate  :: StaticDomain d => Name -> AnnD s d -> AnnD s d
+
+ifPoly(instance Monad (AnnT s d) where ...)
+
+instance Trace d => Trace (AnnD s d) where
+  step ev (AnnT f) = AnnT (\refs -> step ev <$> f refs)
+
 instance (Lat d, StaticDomain d) => HasBind (AnnD s d) where
   bind x rhs body = do
     prev <- getCache x
-    let rhs' d1 = do d2 <- rhs (return d1); setCache x d2
-    annotate x (bindS ifCode(x) prev rhs' (body . return))
+    let rhs' d1 = do d2 <- rhs (return d1); putCache x d2
+    annotate x (bindS (ifCode x) prev rhs' (body . return))
 \end{code}
 %if style == newcode
 \begin{code}
@@ -1073,7 +1075,7 @@ getCache n = AnnT $ \(Refs cache _) -> do
   c <- readSTRef cache
   return (Map.findWithDefault bottom n c)
 
-setCache n d = AnnT $ \(Refs cache _) -> do
+putCache n d = AnnT $ \(Refs cache _) -> do
   modifySTRef' cache $ \c -> ext c n d
   return d
 
@@ -1130,24 +1132,69 @@ variable of $i$, adding a use on $j$ for every call of $i$.
 While this treatment corresponds to the fact that multiple $\LookupT(j)$ events
 will be observed when evaluating $\pe_1$, each event associates to a
 \emph{different} activation (\ie heap entry) of the let-binding $j$.
-Since every activation of $j$ is looked up at most once, the result reported
-for subexpression $\pe_2$ would be more useful, and will indeed be the formal
-property of interest in \Cref{sec:soundness}.
+Since every activation of $j$ is looked up at most once, the result |U1|
+reported for $j$ in subexpression $\pe_2$ would be more useful, and will indeed
+be the formal property of interest in \Cref{sec:soundness}.
 
 Rather than to re-run the analysis for every let-binding such as $j$, I will
-now outline a way to write out an \emph{annotation} for $j$, just before
+now demonstrate a way to write out an \emph{annotation} for $j$, just before
 analysis leaves the $\mathbf{let}$ that binds $j$.
 Annotations for bound variables constitute analysis state that will be
 maintained separately from information on free variables.
 
 \subsubsection{Trace Transformer |AnnT| for Stateful Analysis}
 
-In \Cref{fig:annotations}
+\Cref{fig:annotations} lifts the existing definition for single-result usage
+analysis |evalUsg| into a stateful analysis |evalUsgAnn| that writes out usage
+information on bound variables into a separate map.
+Consider the result on the example expression $\pe_1$ from above, where the pair
+$(d, \mathit{anns})$ returned by |evalUsgAnn| is printed as $d \leadsto \mathit{anns}$:
+\[|evalUsgAnn (({-" \Let{i}{\Lam{x}{\Let{j}{\Lam{y}{y}}{j}}}{i~i~i} "-})) emp|
+ = \perform{evalUsgAnn (read "let i = λx. let j = λy.y in j in i i i") emp} \]
+The annotations for both bound variables $i$ and $j$ are returned in an
+environment separate from the empty free variable |Uses| of the expression.
+Furthermore, the use |U1| reported for $j$ is exactly as when analysing the
+subexpression $\pe_2$ in isolation, as required.
+
+Lifting the single-result analysis defined on |UD| to a stateful analysis on
+|forall s. AnnD s UD| requires implementing a type class instance |StaticDomain
+UD|.
+The type class |StaticDomain| defines the associated type |Ann| of annotations
+in the particular static domain, along with a function |extractAnn x d| for
+extracting information on a let-bound |x| from the denotation |d|.
+The instance for |UD| instantiates |Ann UD| to bound variable use |U|, and
+|extractAnn x (MkUT φ v)| isolates the free variable use |φ ! x| as annotation.
+The remaining type class methods |funS|, |selectS| and |bindS| are
+simple monadic generalisations of their counterparts in |Domain| and |HasBind|.
+Code duplication can be prevented by defining the original definitions for
+|fun|, |select| and |bind| in terms of the generalised definition via the
+standard |Identity| monad as follows, where |coerce| denotes a safe zero-cost
+coercion function provided by GHC~\citep{Breitner:14}:
+\begin{spec}
+newtype Identity a = Identity { runIdentity :: a }
+\end{spec}
+\begin{code}
+fun' :: StaticDomain d => Name -> Label -> (d -> d) -> d
+fun' x # f = runIdentity (funS x # (coerce f))
+select' :: StaticDomain d => d -> (Tag :-> ([d] -> d)) -> d
+select' d fs = runIdentity (selectS (Identity d) (coerce fs))
+bind' :: (Lat d, StaticDomain d) => Name -> (d -> d) -> (d -> d) -> d
+bind' x rhs body = runIdentity (bindS x bottom (coerce rhs) (coerce body))
+\end{code}
+For the purpose of this subsection, I need to slightly revise the |HasBind|
+type class in order to pass the name |x| of the let-bound variable to |bind| and
+|bindS|.
+
+Every instance |StaticDomain d| induces an instance |Domain (AnnUD s a)|
+
+for domain |UD|.
+What may seem as a lot of additional code is actually just a generalisation
+It may seem as if this requires
+The purpose of this type class is to
+
 A stateful analysis is useful to speed up the fixpoint iteration procedure as well.
 
 
-\[|evalUsgAnn (({-" \Let{i}{\Let{j}{\Lam{y}{y}}{(\Lam{x}{x})~j}}{i~i} "-})) ρe|
- = \perform{evalUsgAnn (read "let i = let j = λy.y in (λx.x) j in i i") emp} \]
 
 
 %if False
