@@ -901,12 +901,16 @@ The full implementation can be found in the extract generated from this
 document\sg{TODO: Which extract? Where?}, but the provided code is sufficiently
 exemplary of the approach.
 
-Type analysis |evalTy| infers most general polymorphic types |PolyType| of the
-form $\forall \many{\alpha}.\ θ$ for an expression, where $θ$ ranges over a
-monomorphic |Type| that can be either a type variable |TyVar α| (I will use
-|θα| as meta variable for this form), a function type |θ1 :->: θ2|, or a
-type constructor application |TyConApp|, where |TyConApp OptionTyCon [θ1]| is
-printed as $\mathtt{option}~θ_1$.
+Type analysis |evalTy| infers the most general type of an expression, \eg
+\[|evalTy (({-" \Let{f}{\Lam{g}{\Lam{x}{g~x}}}{f} "-})|
+  = \perform{evalTy (read "let f = λg.λx.g x in f")}.\]
+The most general type can be \emph{polymorphic} when it universally quantifies
+over \emph{generic} type variables such as $α_4$ and $α_5$ above.
+In general, such a |PolyType| is of the form $\forall \many{\alpha}.\ θ$,
+where $θ$ ranges over a monomorphic |Type| that can be either a type variable
+|TyVar α| (I will use |θα| as meta variable for this form), a function type
+|θ1 :->: θ2|, or a type constructor application |TyConApp|, where
+|TyConApp OptionTyCon [θ1]| is printed as $\mathtt{option}~θ_1$.
 The |Wrong| type indicates a type error and is printed as $\textbf{wrong}$.
 
 Key to the analysis is its abstract trace type |J|, the name of which refers to the ambient
@@ -927,8 +931,9 @@ My type |J| implements these effects by maintaining two pieces of state:
 \end{enumerate}
 Unification failure is signalled by returning |Nothing| in the base monad
 |Maybe|, and function |closedType| for handling |J| effects will return |Wrong|
-when that happens.
-
+when that happens:
+\[|evalTy (({-" \Let{x}{\mathit{None}()}{x~x} "-})|
+  = \perform{evalTy (read "let x = None() in x x")}\]
 The operational detail offered by |Trace| is ignored by |J|, but the |Domain|
 and |HasBind| instances for the abstract semantic domain |J Type| are quite
 interesting.
@@ -955,13 +960,17 @@ a similar routine.
 The generalisation and instantiation machinery comes to bear in the implementation
 of |bind|, which implements a combination of the $\mathit{fix}$ and $\mathit{let}$
 cases in Algorithm J, computing fixpoints by unification.
-
+It is best understood by tracing the right-hand side of $o$ in the following
+example:
+\[|evalTy (({-" \Let{i}{\Lam{x}{x}}{\Let{o}{\mathit{Some}(i)}{o}} "-})|
+  = \perform{evalTy (read "let i = λx.x in let o = Some(i) in o")}\]
 The recursive knot is tied in the |do| block passed to |generaliseTy|.
-It works by calling the iteratee |rhs| with a fresh
-unification variable type |θα|, for example $α_1$.
-The result of this call in turn is a monotype |θ|,
+It works by calling the iteratee |rhs| (corresponding to $\mathit{Some}(i)$)
+with a fresh unification variable type |θα|, for example $α_1$.
+The result of the call to |rhs| in turn is a monotype |θ|,
 for example $\mathtt{option}\;(α_3 \rightarrow α_3)$ for \emph{generic}
-$α_3$, meaning that $α_3$ is a fresh name introduced in the right-hand side.
+$α_3$, meaning that $α_3$ is a fresh name introduced in the right-hand side
+while instantiating the polymorphic identity function $i$.
 Then |θα| is unified with |θ|, substituting $α_1$ with
 $\mathtt{option}\;(α_3 \rightarrow α_3)$.
 This concludes the implementation of Milner's $\mathit{fix}$ case.
@@ -973,36 +982,35 @@ It is easy for |generaliseTy| to deduce that $α_3$ must be generic \wrt the
 right-hand side, because $α_3$ does not occur in the set of used |Name|s prior
 to the call to |rhs|.
 The generalised polytype |σ| is then instantiated afresh via |instantiatePolyTy
-σ| at every use site of |x| in the |body|, implementing polymorphic
+σ| at every use site of $o$ in the let body, implementing polymorphic
 instantiation.
 
-\begin{table}
-\centering
-\begin{tabular}{cll}
-\toprule
-\#  & |e|                                               & |evalTy e| \\
-\midrule
-(1) & $\Let{i}{\Lam{x}{x}}{i~i~i~i~i~i}$                  & $\perform{evalTy (read "let i = λx.x in i i i i i i")}$ \\
-(2) & $\Lam{x}{\Let{y}{x}{y~x}}$                          & $\perform{evalTy (read "λx. let y = x in y x")}$ \\
-(3) & $\Let{i}{\Lam{x}{x}}{\Let{o}{\mathit{Some}(i)}{o}}$ & $\perform{evalTy (read "let i = λx.x in let o = Some(i) in o")}$ \\
-(4) & $\Let{x}{x}{x}$                                     & $\perform{evalTy (read "let x = x in x")}$ \\
-\bottomrule
-\end{tabular}
-\caption{Examples for type analysis.}
-\label{fig:type-examples}
-\end{table}
+Thus we shall conclude this short excursion into type analysis and continue with
+a classic interprocedural analysis: control-flow analysis.
 
-\paragraph{Examples.}
-Let us conclude with some examples in \Cref{fig:type-examples}.
-Example (1) demonstrates repeated instantiation and generalisation.
-Example (2) shows that let generalisation does not accidentally generalise the
-type of $y$; note that the type of $y$ is not generic in the ambient typing
-context of the RHS of $\mathbf{let}~x = \wild$.
-Example (3) demonstrates data types and the characteristic
-approximation of higher-rank types such as $\mathtt{option}~(\forall α_6.\
-α_6 \to α_6)$ in Algorithm J, and example (4) shows that type inference for
-diverging programs works as expected.
+%\begin{table}
+%\centering
+%\begin{tabular}{cll}
+%\toprule
+%\#  & |e|                                               & |evalTy e| \\
+%\midrule
+%(1) & $\Let{i}{\Lam{x}{x}}{i~i~i~i~i~i}$                  & $\perform{evalTy (read "let i = λx.x in i i i i i i")}$ \\
+%(2) & $\Lam{x}{\Let{y}{x}{y~x}}$                          & $\perform{evalTy (read "λx. let y = x in y x")}$ \\
+%(3) & $\Let{x}{x}{x}$                                     & $\perform{evalTy (read "let x = x in x")}$ \\
+%\bottomrule
+%\end{tabular}
+%\caption{Examples for type analysis.}
+%\label{fig:type-examples}
+%\end{table}
+%
+%Let us conclude with some examples in \Cref{fig:type-examples}.
+%Example (1) demonstrates repeated instantiation and generalisation.
+%Example (2) shows that let generalisation does not accidentally generalise the
+%type of $y$; note that the type of $y$ is not generic in the ambient typing
+%context of the RHS of $\mathbf{let}~x = \wild$.
+%Example (3) shows that type inference for diverging programs works as expected.
 
+%if False
 \begin{figure}
 \begin{code}
 data Pow a = P (Set a)
@@ -1240,6 +1248,7 @@ imprecise result, respectively. The latter is due to the fact that both |i| and
 |j| flow into |x|.
 Examples (3) and (4) show that the |HasBind| instance guarantees termination for
 diverging programs and cyclic data.
+%endif
 
 %if False
 \subsection{Bonus: Higher-order Cardinality Analysis}
