@@ -1003,209 +1003,19 @@ approximation of higher-rank types such as $\mathtt{option}~(\forall α_6.\
 α_6 \to α_6)$ in Algorithm J, and example (4) shows that type inference for
 diverging programs works as expected.
 
-\subsection{Maintaining Analysis State and Writing Out Annotations}
-\label{sec:annotations}
-
-\begin{figure}
-\hfuzz=2em
-\belowdisplayskip=0pt
-\begin{code}
-class Domain d => StaticDomain d where
-  type Ann d   :: *
-  extractAnn   :: Name -> d -> (d, Ann d)
-  funS         :: Monad m => Name -> {-" \iffalse "-} Label -> {-" \fi "-} (m d -> m d) -> m d
-  selectS      :: Monad m => m d -> (Tag :-> ([m d] -> m d)) -> m d
-  bindS        :: Monad m => {-" \iffalse "-} Name -> {-" \fi "-} d -> (d -> m d) -> (d -> m d) -> m d
-
-instance StaticDomain UD where
-  type Ann UD = U
-  extractAnn x (MkUT φ v) = (MkUT (Map.delete x φ) v, φ !? x)
-  funS x # f = do
-    MkUT φ v <- f (return (MkUT (singenv x U1) (Rep Uω)))
-    return (MkUT (ext φ x U0) (UCons (φ !? x) v))
-  selectS md mfs = do
-    d <- md
-    alts <- sequence  [  f (replicate (conArity k) (return (MkUT emp (Rep Uω))))
-                      |  (k,f) <- Map.assocs mfs ]
-    return (d >> lub alts)
-  bindS # prev rhs body = kleeneFixAboveM prev rhs >>= body
-
-ifPoly(kleeneFixAboveM :: (Monad m, Lat a) => a -> (a -> m a) -> m a)
-
-evalUsgAnn e ρ = runAnn (eval e (return << ρ)) :: (UD, Name :-> U)
-
-data Refs s d = Refs (STRef s (Name :-> d)) (STRef s (Name :-> Ann d))
-newtype AnnT s d a = AnnT (Refs s d -> ST s a); type AnnD s d = AnnT s d d
-
-instance StaticDomain d => Domain (AnnD s d) where {-" ... \iffalse "-}
-  stuck = return stuck
-  fun x l f = funS x l f
-  con l k ds = con l k <$> sequence ds
-  apply f d = apply <$> f <*> d
-  select md mfs = selectS md mfs {-" \fi "-}
-
-runAnn    :: (forall s. AnnD s d) -> (d, Name :-> Ann d)
-getCache  :: Lat d => Name -> AnnD s d; ^^ putCache  :: Name -> d -> AnnT s d d
-annotate  :: StaticDomain d => Name -> AnnD s d -> AnnD s d
-
-ifPoly(instance Monad (AnnT s d) where ...)
-
-instance Trace d => Trace (AnnD s d) where
-  step ev (AnnT f) = AnnT (\refs -> step ev <$> f refs)
-
-instance (Lat d, StaticDomain d) => HasBind (AnnD s d) where
-  bind x rhs body = do
-    prev <- getCache x
-    let rhs' d1 = do d2 <- rhs (return d1); putCache x d2
-    annotate x (bindS (ifCode x) prev rhs' (body . return))
-\end{code}
-%if style == newcode
-\begin{code}
-runAnn m = runST $ do
-  r@(Refs _ anns) <- Refs <$> newSTRef emp <*> newSTRef emp
-  d <- case m of AnnT f -> f r
-  anns <- readSTRef anns
-  return (d, anns)
-
-deriving via ReaderT (Refs s d) (ST s) instance Functor (AnnT s d)
-deriving via ReaderT (Refs s d) (ST s) instance Applicative (AnnT s d)
-deriving via ReaderT (Refs s d) (ST s) instance Monad (AnnT s d)
-
-getCache n = AnnT $ \(Refs cache _) -> do
-  c <- readSTRef cache
-  return (Map.findWithDefault bottom n c)
-
-putCache n d = AnnT $ \(Refs cache _) -> do
-  modifySTRef' cache $ \c -> ext c n d
-  return d
-
-annotate x ad = do
-  d <- ad
-  let (d', ann) = extractAnn x d
-  AnnT $ \(Refs _ anns) -> modifySTRef' anns $ \a -> ext a x ann
-  return d'
-
-instance {-# OVERLAPS #-} Show (UD, Name :-> U) where
-  show (d, anns) = show d ++ " \\leadsto " ++ show anns
-\end{code}
-%endif
-\caption{Trace transformer |AnnT| for recording annotations and caching of fixpoints}
-\label{fig:annotations}
-\end{figure}
-
-Thus far, the static analyses derived from the generic denotational interpreter
-have produced a single abstract denotation |d := eval e emp| for the program
-expression |e|.
-If we are interested in \emph{analysis results for variables bound in |e|}, then
-either the analysis must collect these results in |d|, or we must redundantly
-re-run the analysis for subexpressions.
-
-In this subsection, I will demonstrate how to lift such a single-return
-analysis into a stateful analysis such that
-\begin{itemize}
-  \item analysis results for bound variables are collected in a separate map, and
-  \item fixpoints are cached, so that nested fixpoint iteration can be sped up
-    by starting from a previous approximation.
-\end{itemize}
-It is a common pattern for analyses to be stateful in this
-way~\citep{Sergey:14}; GHC's Demand Analysis is a good real-world example.
-The following demonstration targets usage analysis, but the technique should be
-easy to adapt for other analyses discussed in this section.
-
-\subsubsection{The Need for Isolating Bound Variable Usage}
-
-For a concrete example, let us compare the results of usage analysis
-from \Cref{sec:usage-analysis} on the expression $\pe_1 \triangleq
-\Let{i}{\Lam{x}{\Let{j}{\Lam{y}{y}}{j}}}{i~i~i}$ and its subexpression
-$\pe_2 \triangleq \Let{j}{\Lam{y}{y}}{j}$:
-\[\begin{array}{lcl}
-|evalUsg (({-" \Let{i}{\Lam{x}{\Let{j}{\Lam{y}{y}}{j}}}{i~i~i} "-})) emp|
- & = & \perform{evalUsg (read "let i = λx. let j = λy.y in j in i i i") emp} \\
-|evalUsg (({-" \Let{j}{\Lam{y}{y}}{j} "-})) emp|
- & = & \perform{evalUsg (read "let j = λy.y in j") emp}
-\end{array}\]
-The analysis reports a different usage |U1| for the bound variable $j$ in the
-subexpression $\pe_2$ versus |Uω| in the containing expression $\pe_1$.
-This is because in order for the presented usage analysis to report information
-for bound variables such as $j$ \emph{at all}, it treats $j$ like a \emph{free}
-variable of $i$, adding a use on $j$ for every call of $i$.
-While this treatment corresponds to the fact that multiple $\LookupT(j)$ events
-will be observed when evaluating $\pe_1$, each event associates to a
-\emph{different} activation (\ie heap entry) of the let-binding $j$.
-Since every activation of $j$ is looked up at most once, the result |U1|
-reported for $j$ in subexpression $\pe_2$ would be more useful, and will indeed
-be the formal property of interest in \Cref{sec:soundness}.
-
-Rather than to re-run the analysis for every let-binding such as $j$, I will
-now demonstrate a way to write out an \emph{annotation} for $j$, just before
-analysis leaves the $\mathbf{let}$ that binds $j$.
-Annotations for bound variables constitute analysis state that will be
-maintained separately from information on free variables.
-
-\subsubsection{Trace Transformer |AnnT| for Stateful Analysis}
-
-\Cref{fig:annotations} lifts the existing definition for single-result usage
-analysis |evalUsg| into a stateful analysis |evalUsgAnn| that writes out usage
-information on bound variables into a separate map.
-Consider the result on the example expression $\pe_1$ from above, where the pair
-$(d, \mathit{anns})$ returned by |evalUsgAnn| is printed as $d \leadsto \mathit{anns}$:
-\[|evalUsgAnn (({-" \Let{i}{\Lam{x}{\Let{j}{\Lam{y}{y}}{j}}}{i~i~i} "-})) emp|
- = \perform{evalUsgAnn (read "let i = λx. let j = λy.y in j in i i i") emp} \]
-The annotations for both bound variables $i$ and $j$ are returned in an
-environment separate from the empty free variable |Uses| of the expression.
-Furthermore, the use |U1| reported for $j$ is exactly as when analysing the
-subexpression $\pe_2$ in isolation, as required.
-
-Lifting the single-result analysis defined on |UD| to a stateful analysis on
-|forall s. AnnD s UD| requires implementing a type class instance |StaticDomain
-UD|.
-The type class |StaticDomain| defines the associated type |Ann| of annotations
-in the particular static domain, along with a function |extractAnn x d| for
-extracting information on a let-bound |x| from the denotation |d|.
-The instance for |UD| instantiates |Ann UD| to bound variable use |U|, and
-|extractAnn x (MkUT φ v)| isolates the free variable use |φ ! x| as annotation.
-The remaining type class methods |funS|, |selectS| and |bindS| are
-simple monadic generalisations of their counterparts in |Domain| and |HasBind|.
-Code duplication can be prevented by defining the original definitions for
-|fun|, |select| and |bind| in terms of the generalised definition via the
-standard |Identity| monad as follows, where |coerce| denotes a safe zero-cost
-coercion function provided by GHC~\citep{Breitner:14}:
-\begin{spec}
-newtype Identity a = Identity { runIdentity :: a }
-\end{spec}
-\begin{code}
-fun' :: StaticDomain d => Name -> Label -> (d -> d) -> d
-fun' x # f = runIdentity (funS x # (coerce f))
-select' :: StaticDomain d => d -> (Tag :-> ([d] -> d)) -> d
-select' d fs = runIdentity (selectS (Identity d) (coerce fs))
-bind' :: (Lat d, StaticDomain d) => Name -> (d -> d) -> (d -> d) -> d
-bind' x rhs body = runIdentity (bindS x bottom (coerce rhs) (coerce body))
-\end{code}
-For the purpose of this subsection, I need to slightly revise the |HasBind|
-type class in order to pass the name |x| of the let-bound variable to |bind| and
-|bindS|.
-
-Every instance |StaticDomain d| induces an instance |Domain (AnnUD s a)|
-
-for domain |UD|.
-What may seem as a lot of additional code is actually just a generalisation
-It may seem as if this requires
-The purpose of this type class is to
-
-A stateful analysis is useful to speed up the fixpoint iteration procedure as well.
-
-
-
-
-%if False
 \begin{figure}
 \begin{code}
-data Pow a = P (Set a); type CValue = Pow Label
-type ConCache = (Tag, [CValue]); data FunCache = FC (Maybe (CValue, CValue)) (CD -> CD)
+data Pow a = P (Set a)
+type CValue = Pow Label
+type ConCache = (Tag, [CValue])
+data FunCache = FC (Maybe (CValue, CValue)) (CD -> CD)
 data Cache = Cache (Label :-> ConCache) (Label :-> FunCache)
-data CT a = CT (State Cache a); type CD = CT CValue; runCFA :: CD -> CValue
+data CT a = CT (State Cache a)
+type CD = CT CValue
+runCFA :: CD -> CValue
 
-updFunCache :: Label -> (CD -> CD) -> CT (); cachedCall :: Label -> CValue -> CD
+updFunCache :: Label -> (CD -> CD) -> CT ()
+cachedCall :: Label -> CValue -> CD
 
 instance HasBind CD where{-" ... \iffalse "-}
   bind # rhs body = go bottom >>= body . return
@@ -1216,10 +1026,16 @@ instance HasBind CD where{-" ... \iffalse "-}
         v' <- rhs (return v)
         cache' <- CT get
         if v' ⊑ v && cache' ⊑ cache then do { v'' <- rhs (return v'); if v' /= v'' then error "blah" else return v' } else go v'
-{-" \fi "-}; instance Trace (CT v) where step _ = id
+{-" \fi "-}
+instance Trace (CT v) where step _ = id
 instance Domain CD where
-  fun _ ell f = do updFunCache ell f; return (P (Set.singleton ell))
-  apply dv da = dv >>= \(P ells) -> da >>= \a -> lub <$> traverse (\ell -> cachedCall ell a) (Set.toList ells)
+  fun _ ell f = do
+    updFunCache ell f
+    return (P (Set.singleton ell))
+  apply dv da = do
+    P ells <- dv
+    a <- da
+    lub <$> traverse (\ell -> cachedCall ell a) (Set.toList ells)
   {-" ... \iffalse "-}
   stuck = return bottom
   con ell k ds = do vs <- sequence ds; updConCache ell k vs; return (P (Set.singleton ell))
@@ -1348,30 +1164,30 @@ cachedCall ell v = CT $ do
 \subsection{Control-flow Analysis}
 \label{sec:0cfa}
 
-In our last example, we will discuss a classic benchmark of abstract
-higher-order interpreters: Control-flow analysis (CFA).
-CFA calculates an approximation of which values an expression might evaluate to,
+This subsection derives as an instance of the generic denotational interpreter a
+classic benchmark of abstract higher-order interpreters: Control-flow analysis
+(CFA).
+CFA overapproximates the set of syntactic values an expression evaluates to,
 so as to narrow down the possible control-flow edges at application sites.
 The resulting control-flow graph conservatively approximates the control-flow of
 the whole program and can be used to apply classic intraprocedural analyses such
-as interval analysis in a higher-order setting.
+as interval analysis or constant propagation in a higher-order setting.
 
-To facilitate CFA, we have to revise the |Domain| class to pass down a
-\emph{label} from allocation sites, which is to serve as the syntactic proxy of
-the value's control-flow node:
+To facilitate CFA, I need to revise the |Domain| class to pass a \emph{label}
+to |fun| and |con|.
+This label serves as the syntactic proxy of the value's control-flow node:
 \begin{spec}
 type Label = String
 class Domain d where
-  con  :: {-" \highlight{ "-}Label -> {-" {}} "-} Tag -> [d] -> d
-  fun  :: Name -> {-" \highlight{ "-}Label -> {-" {}} "-} (d -> d) -> d
+  con  :: highlight Label -> Tag -> [d] -> d
+  fun  :: Name -> highlight Label -> (d -> d) -> d
 \end{spec}
 \noindent
-We omit how to forward labels appropriately in |eval| and how to adjust
-|Domain| instances.
+Forwarding labels appropriately in |eval| and adjusting |Domain| instances is
+routine.
 
-\Cref{fig:cfa} gives a rough outline of how we use this extension to define a 0CFA:%
-\footnote{As before, the extract of this document contains the full, executable
-definition.}
+\Cref{fig:cfa} gives a rough outline of how the revised |Domain| class can be
+used to define a 0CFA:
 An abstract |CValue| is the usual set of |Label|s standing in for a syntactic
 value.
 The trace abstraction |CT| maintains as state a |Cache| that approximates the
@@ -1424,9 +1240,8 @@ imprecise result, respectively. The latter is due to the fact that both |i| and
 |j| flow into |x|.
 Examples (3) and (4) show that the |HasBind| instance guarantees termination for
 diverging programs and cyclic data.
-%endif
 
-\begin{comment}
+%if False
 \subsection{Bonus: Higher-order Cardinality Analysis}
 
 In the style of \citet{Sergey:14}.
@@ -1447,8 +1262,269 @@ arguments'', |anyCtx| means ``evaluate in any evaluation context'' (top).}
 %               & $\perform{anyCtx "let z = Z() in let o = S(z) in let plus = λa.λb. case a of { Z() -> b; S(n) -> let plusn = plus n b in S(plusn) } in plus z o"}$ \\
 \bottomrule
 \end{tabular}
-\end{comment}
+%endif
 
-It is nice to define dynamic semantics and static analyses in the same
-framework, but another important benefit is that correctness proofs become
-simpler, as we will see next.
+\subsection{Stateful Analysis and Annotations}
+\label{sec:annotations}
+
+\begin{figure}
+\hfuzz=2em
+\belowdisplayskip=0pt
+\begin{code}
+class Domain d => StaticDomain d where
+  type Ann d   :: *
+  extractAnn   :: Name -> d -> (d, Ann d)
+  funS         :: Monad m => Name -> {-" \iffalse "-} Label -> {-" \fi "-} (m d -> m d) -> m d
+  selectS      :: Monad m => m d -> (Tag :-> ([m d] -> m d)) -> m d
+  bindS        :: Monad m => Name -> d -> (d -> m d) -> (d -> m d) -> m d
+
+instance StaticDomain UD where
+  type Ann UD = U
+  extractAnn x (MkUT φ v) = (MkUT (Map.delete x φ) v, φ !? x)
+  funS x # f = do
+    MkUT φ v <- f (return (MkUT (singenv x U1) (Rep Uω)))
+    return (MkUT (ext φ x U0) (UCons (φ !? x) v))
+  selectS md mfs = do
+    d <- md
+    alts <- sequence  [  f (replicate (conArity k) (return (MkUT emp (Rep Uω))))
+                      |  (k,f) <- Map.assocs mfs ]
+    return (d >> lub alts)
+  bindS _ init rhs body = kleeneFixAboveM init rhs >>= body
+
+ifPoly(kleeneFixAboveM :: (Monad m, Lat a) => a -> (a -> m a) -> m a)
+
+evalUsgAnn e ρ = runAnn (eval e (return << ρ)) :: (UD, Name :-> U)
+
+data Refs s d = Refs (STRef s (Name :-> d)) (STRef s (Name :-> Ann d))
+newtype AnnT s d a = AnnT (Refs s d -> ST s a); type AnnD s d = AnnT s d d
+runAnn    :: (forall s. AnnD s d) -> (d, Name :-> Ann d)
+
+ifPoly(instance Monad (AnnT s d) where ...)
+
+instance Trace d => Trace (AnnD s d) where
+  step ev (AnnT f) = AnnT (\refs -> step ev <$> f refs)
+
+instance StaticDomain d => Domain (AnnD s d) where {-" ... \iffalse "-}
+  stuck = return stuck
+  fun x l f = funS x l f
+  con l k ds = con l k <$> sequence ds
+  apply f d = apply <$> f <*> d
+  select md mfs = selectS md mfs {-" \fi "-}
+
+readCache   :: Lat d => Name -> AnnD s d
+writeCache  :: Name -> d -> AnnT s d ()
+annotate    :: StaticDomain d => Name -> AnnD s d -> AnnD s d
+
+instance (Lat d, StaticDomain d) => HasBind (AnnD s d) where
+  bind x rhs body = do
+    init <- readCache x
+    let rhs' d1 = do d2 <- rhs (return d1); writeCache x d2; return d2
+    annotate x (bindS x init rhs' (body . return))
+\end{code}
+%if style == newcode
+\begin{code}
+runAnn m = runST $ do
+  r@(Refs _ anns) <- Refs <$> newSTRef emp <*> newSTRef emp
+  d <- case m of AnnT f -> f r
+  anns <- readSTRef anns
+  return (d, anns)
+
+deriving via ReaderT (Refs s d) (ST s) instance Functor (AnnT s d)
+deriving via ReaderT (Refs s d) (ST s) instance Applicative (AnnT s d)
+deriving via ReaderT (Refs s d) (ST s) instance Monad (AnnT s d)
+
+readCache n = AnnT $ \(Refs cache _) -> do
+  c <- readSTRef cache
+  return (Map.findWithDefault bottom n c)
+
+writeCache n d = AnnT $ \(Refs cache _) ->
+  modifySTRef' cache $ \c -> ext c n d
+
+annotate x ad = do
+  d <- ad
+  let (d', ann) = extractAnn x d
+  AnnT $ \(Refs _ anns) -> modifySTRef' anns $ \a -> ext a x ann
+  return d'
+
+instance {-# OVERLAPS #-} Show (UD, Name :-> U) where
+  show (d, anns) = show d ++ " \\leadsto " ++ show anns
+\end{code}
+%endif
+\caption{Trace transformer |AnnT| for recording annotations and caching of fixpoints}
+\label{fig:annotations}
+\end{figure}
+
+Thus far, the static analyses derived from the generic denotational interpreter
+produce a single abstract denotation |d := eval e emp| for the program
+expression |e|.
+If we are interested in analysis results for variables \emph{bound} in
+|e|, then either the analysis must collect these results in |d|, or we must
+redundantly re-run the analysis for subexpressions.
+
+In this subsection, I will demonstrate how to lift such a pure,
+\emph{single-result analysis} into a stateful analysis such that
+\begin{itemize}
+  \item analysis results for bound variables are collected in a separate map, and
+  \item fixpoints are cached, so that nested fixpoint iteration can be sped up
+    by starting from a previous approximation.
+\end{itemize}
+It is a common pattern for analyses to be stateful in this
+way~\citep{Sergey:14}; GHC's Demand Analysis is a good real-world example.
+The following demonstration targets usage analysis, but the technique should be
+easy to adapt for other analyses discussed in this section.
+
+\subsubsection{The Need for Isolating Bound Variable Usage}
+
+For a concrete example, let us compare the results of usage analysis
+from \Cref{sec:usage-analysis} on the expression $\pe_1 \triangleq
+\Let{i}{\Lam{x}{\Let{j}{\Lam{y}{y}}{j}}}{i~i~i}$ and its subexpression
+$\pe_2 \triangleq \Let{j}{\Lam{y}{y}}{j}$:
+\[\begin{array}{lcl}
+|evalUsg (({-" \Let{i}{\Lam{x}{\Let{j}{\Lam{y}{y}}{j}}}{i~i~i} "-})) emp|
+ & = & \perform{evalUsg (read "let i = λx. let j = λy.y in j in i i i") emp} \\
+|evalUsg (({-" \Let{j}{\Lam{y}{y}}{j} "-})) emp|
+ & = & \perform{evalUsg (read "let j = λy.y in j") emp}
+\end{array}\]
+The analysis reports a different usage |U1| for the bound variable $j$ in the
+subexpression $\pe_2$ versus |Uω| in the containing expression $\pe_1$.
+This is because in order for single-result usage analysis to report information
+on \emph{bound} variable $j$ at all, it treats $j$ like a \emph{free} variable
+of $i$, adding a use on $j$ for every call of $i$.
+While this treatment reflects that multiple $\LookupT(j)$ events
+will be observed when evaluating $\pe_1$, each event associates to a
+\emph{different} activation (\ie heap entry) of the let binding $j$.
+The result |U1| reported for $j$ in subexpression $\pe_2$ is more useful
+because it reflects that every \emph{activation} of the binding
+$j$ is looked up at most once over its lifetime, which is indeed the formal
+property of interest in \Cref{sec:soundness}.
+
+Rather than to re-run the analysis for every let binding such as $j$, I will
+now demonstrate a way to write out an \emph{annotation} for $j$, just before
+analysis leaves the $\mathbf{let}$ that binds $j$.
+Annotations for bound variables constitute analysis state that will be
+maintained separately from information on free variables.
+
+\subsubsection{Maintaining Annotations by Implementing |StaticDomain|}
+
+\Cref{fig:annotations} lifts the existing definition for single-result usage
+analysis |evalUsg| into a stateful analysis |evalUsgAnn| that writes out usage
+information on bound variables into a separate map.
+Consider the result on the example expression $\pe_1$ from above, where the pair
+$(d, \mathit{anns})$ returned by |evalUsgAnn| is printed as $d \leadsto \mathit{anns}$:
+\[\thickmuskip=4mu|evalUsgAnn (({-" \Let{i}{\Lam{x}{\Let{j}{\Lam{y}{y}}{j}}}{i~i~i} "-})) emp|
+ = \perform{evalUsgAnn (read "let i = λx. let j = λy.y in j in i i i") emp} \]
+The annotations for both bound variables $i$ and $j$ are returned in an
+annotation environment separate from the empty abstract free variable
+environment |emp :: Uses| of the expression.
+Furthermore, the use |U1| reported for $j$ is exactly as when analysing the
+subexpression $\pe_2$ in isolation, as required.
+
+Lifting the single-result analysis |evalUsg| defined on |UD| to a stateful
+analysis |evalUsgAnn| requires very little extra code, implementing a type class instance |StaticDomain
+UD|.
+Before going into detail about how this lifting is implemented in terms of type
+|AnnT|, let us review its type class interface.
+The type class |StaticDomain| defines the associated type |Ann| of annotations
+in the particular static domain, along with a function |extractAnn x d| for
+extracting information on a let-bound |x| from the denotation |d|.
+The instance for |UD| instantiates |Ann UD| to bound variable use |U|, and
+|extractAnn x (MkUT φ v)| isolates the free variable use |φ ! x| as annotation.
+The remaining type class methods |funS|, |selectS| and |bindS| are
+simple monadic generalisations of their counterparts in |Domain| and |HasBind|.
+
+The implementation of |StaticDomain| requires very little extra code to
+maintain, because the original definitions of |fun|, |select| and |bind| can be
+recovered in terms of the generalised definitions via the standard |Identity|
+monad as follows, where |coerce| denotes a safe zero-cost coercion function
+provided by GHC~\citep{Breitner:14}:
+\begin{code}
+ifPoly(newtype Identity a = Identity { runIdentity :: a })
+
+fun' :: StaticDomain d => Name -> Label -> (d -> d) -> d
+fun' x # f = runIdentity (funS x # (coerce f))
+select' :: StaticDomain d => d -> (Tag :-> ([d] -> d)) -> d
+select' d fs = runIdentity (selectS (Identity d) (coerce fs))
+bind' :: (Lat d, StaticDomain d) => Name -> (d -> d) -> (d -> d) -> d
+bind' x rhs body = runIdentity (bindS x bottom (coerce rhs) (coerce body))
+\end{code}
+Any reasonable instance of |StaticDomain| must satisfy the laws |fun = fun'|,
+|select = select'| and |bind = bind'|.
+(As can be seen in \Cref{fig:annotations} and above, I needed to slightly revise
+the |HasBind| type class in order to pass the name |x| of the let-bound variable
+to |bind| and |bindS|, similar as for |fun|.)
+
+Let us now look at how |AnnT| extends the pure, single-result usage analysis
+into a stateful one that maintains annotations.
+
+\subsubsection{Trace Transformer |AnnT| for Stateful Analysis}
+
+Every instance |StaticDomain d| induces an instance |Domain (AnnD s d)|,
+where the type |AnnD s d| is another example of a \emph{trace transformer}:
+It transforms the |Trace| instance on type |d| into a |Trace| instance for |AnnD
+s d|. The abstract domain |AnnD| is defined in terms of the abstract trace
+type |AnnT|, which is a standard |ST| monad utilising efficient and pure mutable
+state threads~\citep{Launchbury:94}, stacked below a |Refs| environment that
+carries the mutable ref cells.
+A stateful analysis computation |forall s. AnnD s UD| is then run with |runAnn|,
+initialising |Refs| with ref cells pointing to empty environments.
+(The universal quantification over |s| in the type of |runAnn| ensures that no
+mutable |STRef| from |Refs| escapes the functional state thread of the
+underlying |ST| computation~\citep{Launchbury:94}.)
+
+The induced instance |Domain (AnnD s d)| is implemented
+by lifting operations |stuck|, |apply| and |con| into monadic |AnnT s d| context
+and by calling |funS| and |selectS|.
+Finally, the stateful nature of the domain |AnnD s d| is exploited in the
+|HasBind (AnnD s d)| instance, in two ways:
+
+\begin{itemize}
+  \item
+    The call to |annotate| writes out the annotation on the let-bound variable
+    |x| that is extracted from the denotation returned by the call to |bindS|.
+    The omitted definition of |annotate| is just a thin wrapper around
+    |extractAnn| to store the extracted annotation in the |Name :-> Ann d|
+    ref cell of |Refs|, the contents of which are returned from |runAnn|.
+  \item
+    The calls to |readCache| and |writeCache| read from and write to the
+    |Name :-> d| ref cell of |Refs| in order to provide the initial value |init|
+    for fixpoint iteration.
+    To this end, |kleeneFix| is generalised to |kleeneFixAboveM init f| which
+    iterates the monadic function |f| starting from |init| until a reductive
+    point of |f| is found (\ie a |d| such that |f d ⊑ return d|).
+    When fixpoint iteration is first started, there is no cached value, in which
+    case |readCache| returns |bottom| to be used as the initial value, just as
+    for the single-result analysis.
+    However, after every iteration of |rhs|, the call to |writeCache| persists
+    the current iterate, which will be the initial value of the fixpoint
+    iteration for any future calls to |bind| for the same let binding |x|.
+\end{itemize}
+The caching technique is important because naïve fixpoint iteration in
+single-result analysis can be exponentially slow for nested let bindings, such
+as in
+\[
+  \Lam{z}{\Let{x_1}{(\Let{x_2}{...(\Let{x_n}{z}{x_n})...}{x_2})}{x_1}}.
+\]
+Naïvely, every let binding needs two iterations per one iteration of its
+enclosing binding: the first iteration assuming |bottom| as the initial value
+for $x_i$ and the next assuming the fixpoint |MkUT (singenv z U1) (Rep Uω)|.
+Ultimately, $z$ is used in the denotation of $x_n$, ..., $x_1$, totalling to
+$2^n$ iterations for $x_n$ during stateless analysis.
+
+Stateful caching of the previous fixpoint improves this drastically.
+The right-hand side of $x_n = z$ is only iterated $n+1$ times in total:
+once with |bottom| as the initial value for $x_n$, once more to confirm the
+fixpoint |MkUT (singenv z U1) (Rep Uω)| and then $n-1$ more times to confirm
+the fixpoints of $x_{n-1}, ..., x_1$.
+
+It is possible to improve the number of iterations for $x_n$ to a constant, by
+employing classic chaotic iteration and worklist techniques.
+These techniques require a decoupling of iteration order from the lexical
+nesting imposed by the syntax tree, instead choosing the next iteratee by
+examining the graph of data flow dependencies.
+Crucially, such sophisticated and stateful data-flow frameworks can be developed
+and improved without complicating the analysis domain, which is often very
+complicated in its own right.
+
+%It is nice to define dynamic semantics and static analyses in the same
+%framework, but another important benefit is that correctness proofs become
+%simpler, as we will see next.

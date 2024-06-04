@@ -66,9 +66,13 @@ instance (Show a, forall a. Show a => Show (τ a)) => Show (Fork (ParT τ) a) wh
 instance (Show a, forall a. Show a => Show (m a)) => Show (ParT m a) where
   show (ParT m) = show m
 instance {-# OVERLAPPING #-} (Show v) => Show (Addr :-> v) where
-  showsPrec _ = showListWith (\(k,v) -> shows k . showString "\\mapsto " . shows v) . Map.toList
+  showsPrec _ m
+    | Map.null m = showString "\\varid{\\varepsilon}"
+    | otherwise  = showListWith (\(k,v) -> shows k . showString "\\mapsto " . shows v) . Map.toList $ m
 instance {-# OVERLAPPING #-} (Show v) => Show (Name :-> v) where
-  showsPrec _ = showListWith (\(k,v) -> showString "\\mathit{" . showString k . showString "} \\! \\mapsto \\! " . shows v) . Map.toList
+  showsPrec _ m
+    | Map.null m = showString "\\varid{\\varepsilon}"
+    | otherwise  = showListWith (\(k,v) -> showString "\\mathit{" . showString k . showString "} \\! \\mapsto \\! " . shows v) . Map.toList $ m
 
 takeT :: Int -> T a -> T (Maybe a)
 takeT 0 _ = return Nothing
