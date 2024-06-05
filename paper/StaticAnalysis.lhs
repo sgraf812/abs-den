@@ -1582,6 +1582,38 @@ Crucially, such sophisticated and stateful data-flow frameworks can be developed
 and improved without complicating the analysis domain, which is often very
 complicated in its own right.
 
+\subsection{Case Study: GHC's Demand Analyser}
+\label{sec:dmdanal}
+
+To test how well my denotational interpreter framework scales to real-world
+applications, I applied the design pattern to GHC's existing Demand Analyser
+and will reproduce the salient points here.
+GHC's Demand Analyser infers nested usage~\citep{Sergey:14},
+strictness~\citep{SPJ:06} and boxity information.
+These analysis results thus fuel a number of optimisations, such
+as dead code elimination and unboxing through the worker/wrapper
+transformation~\citep{Gill:09}, update avoidance~\citep{Gustavsson:98},
+η-expansion and -reduction, and inlining under lambdas, to name a few.
+
+Concretely, my refactoring entailed
+\begin{itemize}
+  \item
+    identifying which parts of the analyser need to be part of the |Domain| interface,
+  \item
+    writing an abstract denotational interpreter for GHC Core, the typed
+    intermediate representation of GHC,
+  \item
+    validating the usefulness of this interpreter by instantiating it at the GHC
+    Core-specific analogue of the concrete by-need domain |D (ByNeed T)|, and finally
+  \item
+    defining the abstract |Domain| instance for Demand Analysis, to replace
+    its compositional analysis function on expressions by a call to the
+    denotational interpreter.
+\end{itemize}
+The resulting compiler bootstraps and passes the testsuite.
+
+\subsubsection{A Semantic |Domain| For GHC Core}
+
 %It is nice to define dynamic semantics and static analyses in the same
 %framework, but another important benefit is that correctness proofs become
 %simpler, as we will see next.
