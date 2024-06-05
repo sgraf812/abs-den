@@ -13,6 +13,7 @@ analysis}~\citep{SPJ:94}, a higher-order form of neededness analysis to inform
 removal of dead bindings in a compiler.
 
 \subsection{Object Language}
+\label{sec:lang}
 
 To set the stage, I start by defining the object language of this chapter, an
 \emph{untyped} lambda calculus with \emph{recursive} let bindings and algebraic

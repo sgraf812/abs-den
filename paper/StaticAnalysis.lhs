@@ -739,7 +739,7 @@ instance Domain (J Type) where
           _          -> stuck
       case tys of
         []      -> stuck
-        ty:tys' -> traverse (\ty' -> unify (ty,ty')) tys' >> return ty
+        ty:tys' -> mapM (\ty' -> unify (ty,ty')) tys' >> return ty
 {-" \fi "-}
 instance HasBind (J Type) where
   bind # rhs body = do
@@ -917,7 +917,8 @@ Key to the analysis is its abstract trace type |J|, the name of which refers to 
 effects of Milner's Algorithm J, offering means to invoke unification (|unify|),
 fresh name generation (|freshTyVar|, |instantiatePolyTy|) and let
 generalisation (|generaliseTy|).
-My type |J| implements these effects by maintaining two pieces of state:
+My type |J| implements these effects by maintaining two pieces of state via the
+standard monad transformer |StateT|:
 \begin{enumerate}
   \item
     a consistent set of type constraints as a unifying substitution |Subst|.
@@ -1014,63 +1015,62 @@ a classic, call-strings-based interprocedural analysis: control-flow analysis.
 \label{sec:0cfa}
 
 \begin{figure}
+\belowdisplayskip=0pt
 \begin{code}
-evalCFA e = runCFA (eval e emp :: CD)
-runCFA :: CD -> CValue
-data Pow a = P (Set a)
-type CValue = Pow Label
-type ConCache = (Tag, [CValue])
-data FunCache = FC (Maybe (CValue, CValue)) (CD -> CD)
+evalCFA e = runCFA (eval e emp); ^^ runCFA :: CD -> Labels
+newtype Labels = Lbls (Set Label)
+type CD = State Cache Labels
 data Cache = Cache (Label :-> ConCache) (Label :-> FunCache)
-data CT a = CT (State Cache a)
-type CD = CT CValue
+type ConCache = (Tag, [Labels])
+data FunCache = FC (Maybe (Labels, Labels)) (CD -> CD)
 
-updFunCache :: Label -> (CD -> CD) -> CT ()
-cachedCall :: Label -> CValue -> CD
+updConCache :: Label -> Tag -> [Labels] -> State Cache ()
+updFunCache :: Label -> (CD -> CD) -> State Cache ()
+cachedCall :: Labels -> Labels -> CD
+cachedCons :: Labels -> State Cache (Tag :-> [Labels])
 
 instance HasBind CD where{-" ... \iffalse "-}
   bind # rhs body = go bottom >>= body . return
     where
-      go :: CValue -> CT CValue
+      go :: Labels -> CD
       go v = do
-        cache <- CT get
+        cache <- get
         v' <- rhs (return v)
-        cache' <- CT get
+        cache' <- get
         if v' ⊑ v && cache' ⊑ cache then do { v'' <- rhs (return v'); if v' /= v'' then error "blah" else return v' } else go v'
 {-" \fi "-}
-instance Trace (CT v) where step _ = id
+instance Trace CD where step _ = id
 instance Domain CD where
+  stuck = return bottom
   fun _ ell f = do
     updFunCache ell f
-    return (P (Set.singleton ell))
+    return (Lbls (Set.singleton ell))
   apply dv da = do
-    P ells <- dv
+    v <- dv
     a <- da
-    lub <$> traverse (\ell -> cachedCall ell a) (Set.toList ells)
-  {-" ... \iffalse "-}
-  stuck = return bottom
-  con ell k ds = do vs <- sequence ds; updConCache ell k vs; return (P (Set.singleton ell))
+    cachedCall v a
+  con ell k ds = do
+    lbls <- sequence ds
+    updConCache ell k lbls
+    return (Lbls (Set.singleton ell))
   select dv fs = do
-    P ells <- dv
-    cache <- CT get
-    vals <- sequence [ f (map return vs) | ell <- Set.toList ells, Just (k',vs) <- [Map.lookup ell (cCons cache)]
-                     , (k,f) <- Map.assocs fs, k == k' ]
-    return (lub vals)
-{-" \fi "-}
+    v <- dv
+    tag2flds <- cachedCons v
+    lub <$> sequence  [  f (map return (tag2flds ! k))
+                      |  (k,f) <- Map.assocs fs, k ∈ dom tag2flds ]
 \end{code}
 
 %if style == newcode
 \begin{code}
-deriving instance Eq a => Eq (Pow a)
-deriving instance Ord a => Ord (Pow a)
+deriving instance Eq Labels
+deriving instance Ord Labels
+instance Lat Labels where
+  bottom = Lbls Set.empty
+  Lbls l ⊔ Lbls r = Lbls (Set.union l r)
 
-instance Show (CValue) where
-  showsPrec _ (P s) =
+instance Show Labels where
+  showsPrec _ (Lbls s) =
     showString "\\{" . showSep (showString ", ") (map showString (Set.toList s)) . showString "\\}"
-
-instance Ord a => Lat (Pow a) where
-  bottom = P Set.empty
-  P l ⊔ P r = P (Set.union l r)
 
 instance Eq FunCache where
   FC cache1 _ == FC cache2 _ = cache1 == cache2
@@ -1108,19 +1108,7 @@ instance Lat Cache where
 
 deriving instance Show Cache
 
-unCT :: CT a -> State Cache a
-unCT (CT m) = m
-
-runCFA (CT m) = evalState m (Cache bottom bottom)
-
-deriving instance Functor CT
-
-instance Applicative CT where
-  pure = CT . pure
-  (<*>) = ap
-
-instance Monad CT where
-  CT m >>= k = CT (m >>= unCT . k)
+runCFA m = evalState m (Cache bottom bottom)
 
 -- | This instance is a huge hack, but it works.
 -- If we were serious, we should have used the flat lattice over `Tag`.
@@ -1146,19 +1134,18 @@ cFuns (Cache _ funs) = funs
 overFuns :: ((Label :-> FunCache) -> (Label :-> FunCache)) -> Cache -> Cache
 overFuns f (Cache cons funs) = Cache cons (f funs)
 
-updConCache :: Label -> Tag -> [CValue] -> CT ()
-updConCache ell k vs = CT $ modify $ overCons $ \cons ->
+updConCache ell k vs = modify $ overCons $ \cons ->
   Map.singleton ell (k, vs) ⊔ cons
 
-updFunCache ell f = CT $ modify $ overFuns $ \funs ->
+updFunCache ell f = modify $ overFuns $ \funs ->
   Map.singleton ell (FC Nothing f) ⊔ funs
 
-cachedCall ell v = CT $ do
+cachedCall (Lbls ells) v = fmap lub $ forM (Set.toList ells) $ \ell -> do
   FC cache f <- gets (Map.findWithDefault bottom ell . cFuns)
   let call in_ out = do
         let in_' = in_ ⊔ v      com merge all Labels that reach the lambda var ell!
         modify $ overFuns (Map.insert ell (FC (Just (in_',out)) f))
-        out' <- unCT (f (return in_'))
+        out' <- f (return in_')
         modify $ overFuns (Map.insert ell (FC (Just (in_',out')) f))
         return out'
   case cache of
@@ -1166,15 +1153,18 @@ cachedCall ell v = CT $ do
       | v ⊑ in_   -> return out
       | otherwise -> call in_ out
     Nothing       -> call bottom bottom
+
+cachedCons (Lbls ells) = do
+  cons <- cCons <$> get
+  return $ Map.fromListWith (⊔) [ cons ! ell | ell <- Set.toList ells, ell ∈ dom cons ]
 \end{code}
 %endif
-\vspace{-1.5em}
-\caption{0CFA}
+\caption{Domain |CD| for 0CFA control-flow analysis}
 \label{fig:cfa}
 \end{figure}
 
 Traditionally, control-flow analysis (CFA)~\citep{Shivers:91} is an important
-instance of higher-order abstract interpreters.
+instance of higher-order abstract interpreters~\citep{aam,adi}.
 Although one of the main advantages of denotational interpreters is that
 summary-based analyses can be derived as instances, this subsection demonstrates
 that a call-strings-based CFA can be derived as an instance from the generic
@@ -1184,30 +1174,45 @@ CFA overapproximates the set of syntactic values an expression evaluates to,
 so as to narrow down the possible control-flow edges at application sites.
 The resulting control-flow graph conservatively approximates the control-flow of
 the whole program and can be used to apply classic intraprocedural analyses such
-as interval analysis or constant propagation in a higher-order setting.
+as interval analysis or constant propagation in an interprocedural setting.
 
-\Cref{fig:cfa} implements the 0CFA variant of control-flow analysis.
-For a given program, it reports a set of \emph{labels} --- textual
-representations of program positions, or \emph{control-flow nodes} --- that the
-expression might evaluate to:
-\[|evalCFA (({-" \Let{i}{\Lam{x}{x}}{\Let{j}{\Lam{y}{y}}{i~j}} "-}))|
-  = \perform{evalCFA (read "let i = λx.λy.y in let j = λz.z in i j")}\]
+\Cref{fig:cfa} implements the 0CFA variant of control-flow analysis~\citep{Shivers:91}.
+For a given expression, it reports a set of \emph{program labels} --- textual
+representations of positions in the program ---
+that the expression might evaluate to:
+\begin{align}|evalCFA (({-" \Let{i}{\Lam{x}{x}}{\Let{j}{\Lam{y}{y}}{i~j~j}} "-}))|
+  = \perform{evalCFA (read "let i = λx.x in let j = λy.y in i j j")} \label{ex:cfa}\end{align}
 Here, 0CFA infers that the example expression will evaluate to the lambda
-expression bound to $j$, and \emph{not} to the one bound to $i$.
+expression bound to $j$.
+This lambda is uniquely identified by the reported label $λy..$ per the unique
+binder assumption in \Cref{sec:lang}.
+Furthermore, the analysis determined that the expression cannot evaluate to the
+lambda expression bound to $i$, hence its label $λx..$ is \emph{not} included
+in the set.
 
-Labels for lambdas will be printed as $λ\px..$, which
-determines the control-flow node uniquely because there is only a
-single lambda binding $\px$ in the entire program.
-Labels for constructor applications are printed as $K(\many{\px})$, so for
-example $\mathit{Some}(i)$.
-This does not determine a control-flow node uniquely because there can be many
-expressions of this form in the program.
-Yet this lack of injectivity does not harm soundness --- only precision --- and
-hence is good enough for the purpose of this demonstration.
+By contrast, when $i$ is dynamically called both with $i$ and with $j$, the
+result becomes approximate because 0CFA joins together the information from the
+two call sites:
+\[|evalCFA (({-" \Let{i}{\Lam{x}{x}}{\Let{j}{\Lam{y}{y}}{i~\highlight{i}~j}} "-}))|
+  = \perform{evalCFA (read "let i = λx.x in let j = λy.y in i i j")}\]
 
-To facilitate CFA, I need to revise the |Domain| class to pass a \emph{label}
-to |fun| and |con|.
-This label serves as the syntactic proxy of the value's control-flow node:
+Labels for constructor applications simply print their syntax, \eg
+\begin{equation}\thickmuskip=4mu|evalCFA (({-" \Let{x}{\Let{y}{S(x)}{S(y)}}{\Case{x}{\{ Z() \to x; S(z) \to z \}}} "-}))|
+  = \perform{evalCFA (read "let x = let y = S(x) in S(y) in case x of { Z() -> x; S(z) -> z }")}.\label{ex:cfa2} \end{equation}
+Note that in this example, 0CFA discovers that $x$ evaluates to $S(y)$ and hence
+is able to conclude that the $Z()$ branch of the case expression is dead.
+In doing so, 0CFA rules out that the expression evaluates to $S(y)$,
+reporting $S(x)$ as the only value of the expression.
+
+In general, the label (\ie string) $S(y)$ does not uniquely determine a position
+in the program because the expression may occur multiple times.
+However, eliminating such common subexpressions is semantics-preserving, so
+I argue that this poor man's notion of program labels is good enough for the
+purpose of this demonstration.
+
+To facilitate 0CFA as an instance of the generic denotational interpreter, I
+need to slightly revise the |Domain| class to pass the syntactic label to |fun|
+and |con|:
 \begin{spec}
 type Label = String
 class Domain d where
@@ -1216,84 +1221,105 @@ class Domain d where
 \end{spec}
 \noindent
 Constructing and forwarding labels appropriately in |eval| and adjusting
-|Domain| instances is routine and hence omitted.
+previous |Domain| instances is routine and hence omitted.
 
-\Cref{fig:cfa} gives a rough outline of how the revised |Domain| class can be
-used to define a 0CFA:
-An abstract |CValue| is the usual set of |Label|s standing in for a syntactic
-value.
-The trace abstraction |CT| maintains as state a |Cache| that approximates the
-shape of values at a particular |Label|, an abstraction of the heap.
-For constructor values, the shape is simply a pair of the |Tag| and |CValue|s
-for the fields.
-For a lambda value, the shape is its abstract control-flow transformer, of
-type |CD -> CD| (populated by |updFunCache|), plus a single point |(v1,v2)| of
-its graph ($k$-CFA would have one point per contour), serving as the transformer's
-summary.
+\Cref{fig:cfa} represents sets of labels with the type |Labels|, the
+type of abstract values of the analysis.
+The abstract domain |CD| of 0CFA is simply a stateful computation returning |Labels|.
+To this end, I define |CD| in terms of the standard |State| monad to mutate a
+|Cache|, an abstraction of the heap discussed next.
 
-At call sites in |apply|, we will iterate over each function label and attempt a
-|cachedCall|.
-In doing so, we look up the label's transformer and sees if the single point
-is applicable for the incoming value |v|, \eg if |v ⊑ v1|, and if so return the
-cached result |v2| straight away.
-Otherwise, the transformer stored for the label is evaluated at |v| and the
-result is cached as the new summary.
-An allocation site might be re-analysed multiple times with monotonically increasing
-environment due to fixpoint iteration in |bind|.
-Whenever that happens, the point that has been cached for that allocation
-site is cleared, because the function might have increased its result.
-Then re-evaluating the function at the next |cachedCall| is mandatory.
+\medskip
 
-Note that a |CD| transitively (through |Cache|) recurses into |CD -> CD|, thus
-introducing vicious cycles in negative position, rendering the encoding
-non-inductive.
-This highlights a common challenge with instances of CFA: The obligation to
-prove that the analysis actually terminates on all inputs; an obligation that we
-will gloss over in this work.
+Recall that each |Label| determines a syntactic value in the program.
+The |Cache| maintains, for every labelled value encountered thus far, an
+approximation of its action on |Labels|.
 
-\begin{table}
-\begin{tabular}{cll}
-\toprule
-\#  & |e|                                               & |runCFA (eval e emp)| \\
-\midrule
-(2) & $\Let{i}{\Lam{x}{x}}{\Let{j}{\Lam{y}{y}}{i~j~j}}$ & $\perform{runCFA $ eval (read "let i = λx.x in let j = λy.y in i i j") emp}$ \\
-(3) & $\Let{ω}{\Lam{x}{x~x}}{ω~ω}$                      & $\perform{runCFA $ eval (read "let ω = λx. x x in ω ω") emp}$ \\
-(4) & $\Let{x}{\Let{y}{S(x)}{S(y)}}{x}$                 & $\perform{runCFA $ eval (read "let x = let y = S(x) in S(y) in x") emp}$ \\
-\bottomrule
-\end{tabular}
-\caption{Examples for control-flow analysis.}
-\label{fig:cfa-examples}
-\end{table}
+For example, the denotational interpreter evaluates the constructor application
+$S(y)$ in the right-hand side of $x$ in \Cref{ex:cfa2} by calling
+the |Domain| method |con|.
+This call is implemented by updating the |ConCache| field under the label $S(y)$
+so that it carries the constructor tag $S$ as well as the |Labels| that its
+field $y$ evaluates to. In our example, $y$ evaluates to the set $\{S(x)\}$,
+so the |ConCache| entry at label $S(y)$ is updated to $(S,[\{S(x)\}])$.
+This information is then available when evaluating the $\mathbf{case}$ expression
+in \Cref{ex:cfa2} with |select|, where the scrutinee $x$ returns $|v| \triangleq \{S(y)\}$.
+Function |cachedCons| looks up for each label in |v| the respective |ConCache|
+entry and merges these entries into an environment
+|tag2flds :: Tag :-> [Labels]|, representing all the possible shapes the
+scrutinee can take.
+In our case, |tag2flds| is just a singleton environment $[S ↦ [\{S(x)\}]]$.
+This environment is subsequently joined with the alternatives of the case expression.
+The only alternative that matches is $S(z) \to z$, where $z$ is bound to $\{S(x)\}$
+from the information in the |ConCache|.
+The alternative $Z() \to x$ is dead because the case scrutinee $x$ does not
+evaluate to shape $Z()$.
 
-\subsubsection*{Examples}
-The first two examples of \Cref{fig:cfa-examples} demonstrate a precise and an
-imprecise result, respectively. The latter is due to the fact that both |i| and
-|j| flow into |x|.
-Examples (3) and (4) show that the |HasBind| instance guarantees termination for
-diverging programs and cyclic data.
+For another example involving the |FunCache|, consider the example \Cref{ex:cfa}.
+When the lambda expression $\Lam{x}{x}$ in the right-hand side of $i$ is
+evaluated through |fun|, it updates the |FunCache| at label $λx..$ with
+the corresponding abstract transformer |(\x -> x) :: CD -> CD|, registering it
+for call sites.
+Later, the application site $i~j$ in \Cref{ex:cfa} is evaluated to a call to
+the |Domain| method |apply| with the denotations of $i$ and $j$.
+The denotation for $i$ is bound to |dv| and returns a set $|v| \triangleq \{λx..\}$, while
+the denotation for $j$ is bound to |da| and returns a set $|a| \triangleq \{λy..\}$.
+These sets are passed to |cachedCall| which iterates over the labels in the
+callee |v|.
+For each such label, it looks up the abstract transformer in |FunCache|, applies
+it to the set of labels |a| (taking approximative measures described below) and
+joins together the labels returned from each call.
+In our example, there is just a single callee label $λx..$, the abstract transformer
+of which is the identity function |(\x -> x) :: CD -> CD|.
+Applying the identity transformer to the set of labels $\{λy..\}$ from the
+denotation of the argument $j$ returns this same set; the result of the
+application $i~j$.
 
-%if False
-\subsection{Bonus: Higher-order Cardinality Analysis}
+The above description calls a function label's abstract transformer anew at
+every call site.
+This yields the exact control-flow semantics of the original control-flow
+analysis work~\citep[Section 3.4]{Shivers:91}, which is potentially diverging.
+The way 0CFA (and my implementation of it) becomes finite is by maintaining only
+a single point approximation of each abstract transformer's graph ($k$-CFA would
+maintain one point per contour).
+This single point approximation can be seen as the transformer's summary, but
+this summary is \emph{call-site sensitive}:
+Since the single point must be applicable at all call sites, the function body
+must be reanalysed as the inputs from call sites increase.
+Maintaining the single point approximation is the purpose of the |Maybe (Labels,
+Labels)| field of the |FunCache| and is a standard, if somewhat delicate hassle
+in control-flow analyses.
 
-In the style of \citet{Sergey:14}.
-\sg{Flesh out, move to Appendix or remove. I left this section in for Ilya to
-have a look. |call 2| means ``assume an evaluation context that applies 2
-arguments'', |anyCtx| means ``evaluate in any evaluation context'' (top).}
+%A function like $\Lam{x}{y}$ might be re-analysed multiple times with
+%monotonically increasing environment due to fixpoint iteration in |bind|.
+%Whenever that happens, the point that has been cached for that allocation
+%site is cleared, because the function might have increased its result.
+%Then re-evaluating the function at the next |cachedCall| is mandatory.
 
-\begin{tabular}{clll}
-\toprule
-\#  & |f|      & |e|                                                                    & |f e| \\
-\midrule
-(1) & |anyCtx| & $\Let{i}{\Lam{x}{x}}{\Let{j}{\Lam{y}{y}}{i~j~j}}$                      & $\perform{anyCtx "let i = λx.x in let j = λy.y in i j j"}$ \\
-(2) & |anyCtx| & $\Let{i}{\Lam{x}{x}}{\Let{j}{\Lam{y}{y}}{i~j}}$                        & $\perform{anyCtx "let i = λx.x in let j = λy.y in i j"}$ \\
-(3) & |call 2| & $\Let{i}{\Lam{x}{x}}{i}$                                               & $\perform{call 2 "let i = λx.x in i"}$ \\
-(4) & |call 2| & $\Let{\mathit{const}}{\Lam{x}{\Lam{y}{y}}}{\mathit{const}}$            & $\perform{call 2 "let const = λx.λy.y in const"}$ \\
-(5) & |call 2| & $\Let{f}{\Lam{a}{\Lam{g}{\Let{t}{g~a}{t~t}}}}{\mathit{f}}$ & $\scriptstyle \perform{call 2 "let f = λa. λg. let t = g a in t t in f"}$ \\
-%(6) & |anyCtx| & $\Let{z}{Z()}{\Let{o}{S(z)}{\Let{\mathit{plus}}{\Lam{a}{\Lam{b}{...S(\mathit{plus}~(a-1)~b)...}}}{\mathit{plus}~z~o}}}$
-%               & $\perform{anyCtx "let z = Z() in let o = S(z) in let plus = λa.λb. case a of { Z() -> b; S(n) -> let plusn = plus n b in S(plusn) } in plus z o"}$ \\
-\bottomrule
-\end{tabular}
-%endif
+Note that a |CD| transitively (through |Cache|) recurses into |CD -> CD|,
+rendering the encoding non-inductive due to the negative occurrence.
+This highlights a common challenge with instances of CFA:
+the obligation to prove that the analysis actually terminates on all inputs; an
+obligation that I will gloss over in this short demonstration.
+
+%\begin{table}
+%\begin{tabular}{cll}
+%\toprule
+%\#  & |e|                                               & |runCFA (eval e emp)| \\
+%\midrule
+%(3) & $\Let{ω}{\Lam{x}{x~x}}{ω~ω}$                      & $\perform{runCFA $ eval (read "let ω = λx. x x in ω ω") emp}$ \\
+%\bottomrule
+%\end{tabular}
+%\caption{Examples for control-flow analysis.}
+%\label{fig:cfa-examples}
+%\end{table}
+%
+%\subsubsection*{Examples}
+%The first two examples of \Cref{fig:cfa-examples} demonstrate a precise and an
+%imprecise result, respectively. The latter is due to the fact that both |i| and
+%|j| flow into |x|.
+%Examples (3) and (4) show that the |HasBind| instance guarantees termination for
+%diverging programs and cyclic data.
 
 \subsection{Stateful Analysis and Annotations}
 \label{sec:annotations}
