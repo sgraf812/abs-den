@@ -1010,9 +1010,13 @@ a classic, call-strings-based interprocedural analysis: control-flow analysis.
 %context of the RHS of $\mathbf{let}~x = \wild$.
 %Example (3) shows that type inference for diverging programs works as expected.
 
-%if False
+\subsection{Control-flow Analysis}
+\label{sec:0cfa}
+
 \begin{figure}
 \begin{code}
+evalCFA e = runCFA (eval e emp :: CD)
+runCFA :: CD -> CValue
 data Pow a = P (Set a)
 type CValue = Pow Label
 type ConCache = (Tag, [CValue])
@@ -1020,7 +1024,6 @@ data FunCache = FC (Maybe (CValue, CValue)) (CD -> CD)
 data Cache = Cache (Label :-> ConCache) (Label :-> FunCache)
 data CT a = CT (State Cache a)
 type CD = CT CValue
-runCFA :: CD -> CValue
 
 updFunCache :: Label -> (CD -> CD) -> CT ()
 cachedCall :: Label -> CValue -> CD
@@ -1100,6 +1103,7 @@ instance Lat Cache where
   bottom = Cache Map.empty Map.empty
   c1 ⊔ c2 = Cache (f cCons) (f cFuns)
     where
+      f :: Lat fld => (Cache -> fld) -> fld
       f fld = fld c1 ⊔ fld c2
 
 deriving instance Show Cache
@@ -1169,17 +1173,37 @@ cachedCall ell v = CT $ do
 \label{fig:cfa}
 \end{figure}
 
-\subsection{Control-flow Analysis}
-\label{sec:0cfa}
+Traditionally, control-flow analysis (CFA)~\citep{Shivers:91} is an important
+instance of higher-order abstract interpreters.
+Although one of the main advantages of denotational interpreters is that
+summary-based analyses can be derived as instances, this subsection demonstrates
+that a call-strings-based CFA can be derived as an instance from the generic
+denotational interpreter in \Cref{fig:eval} as well.
 
-This subsection derives as an instance of the generic denotational interpreter a
-classic benchmark of abstract higher-order interpreters: Control-flow analysis
-(CFA).
 CFA overapproximates the set of syntactic values an expression evaluates to,
 so as to narrow down the possible control-flow edges at application sites.
 The resulting control-flow graph conservatively approximates the control-flow of
 the whole program and can be used to apply classic intraprocedural analyses such
 as interval analysis or constant propagation in a higher-order setting.
+
+\Cref{fig:cfa} implements the 0CFA variant of control-flow analysis.
+For a given program, it reports a set of \emph{labels} --- textual
+representations of program positions, or \emph{control-flow nodes} --- that the
+expression might evaluate to:
+\[|evalCFA (({-" \Let{i}{\Lam{x}{x}}{\Let{j}{\Lam{y}{y}}{i~j}} "-}))|
+  = \perform{evalCFA (read "let i = λx.λy.y in let j = λz.z in i j")}\]
+Here, 0CFA infers that the example expression will evaluate to the lambda
+expression bound to $j$, and \emph{not} to the one bound to $i$.
+
+Labels for lambdas will be printed as $λ\px..$, which
+determines the control-flow node uniquely because there is only a
+single lambda binding $\px$ in the entire program.
+Labels for constructor applications are printed as $K(\many{\px})$, so for
+example $\mathit{Some}(i)$.
+This does not determine a control-flow node uniquely because there can be many
+expressions of this form in the program.
+Yet this lack of injectivity does not harm soundness --- only precision --- and
+hence is good enough for the purpose of this demonstration.
 
 To facilitate CFA, I need to revise the |Domain| class to pass a \emph{label}
 to |fun| and |con|.
@@ -1191,8 +1215,8 @@ class Domain d where
   fun  :: Name -> highlight Label -> (d -> d) -> d
 \end{spec}
 \noindent
-Forwarding labels appropriately in |eval| and adjusting |Domain| instances is
-routine.
+Constructing and forwarding labels appropriately in |eval| and adjusting
+|Domain| instances is routine and hence omitted.
 
 \Cref{fig:cfa} gives a rough outline of how the revised |Domain| class can be
 used to define a 0CFA:
@@ -1232,7 +1256,6 @@ will gloss over in this work.
 \toprule
 \#  & |e|                                               & |runCFA (eval e emp)| \\
 \midrule
-(1) & $\Let{i}{\Lam{x}{x}}{\Let{j}{\Lam{y}{y}}{i~j}}$   & $\perform{runCFA $ eval (read "let i = λx.x in let j = λy.y in i j") emp}$ \\
 (2) & $\Let{i}{\Lam{x}{x}}{\Let{j}{\Lam{y}{y}}{i~j~j}}$ & $\perform{runCFA $ eval (read "let i = λx.x in let j = λy.y in i i j") emp}$ \\
 (3) & $\Let{ω}{\Lam{x}{x~x}}{ω~ω}$                      & $\perform{runCFA $ eval (read "let ω = λx. x x in ω ω") emp}$ \\
 (4) & $\Let{x}{\Let{y}{S(x)}{S(y)}}{x}$                 & $\perform{runCFA $ eval (read "let x = let y = S(x) in S(y) in x") emp}$ \\
@@ -1248,7 +1271,6 @@ imprecise result, respectively. The latter is due to the fact that both |i| and
 |j| flow into |x|.
 Examples (3) and (4) show that the |HasBind| instance guarantees termination for
 diverging programs and cyclic data.
-%endif
 
 %if False
 \subsection{Bonus: Higher-order Cardinality Analysis}
