@@ -986,7 +986,7 @@ The generalised polytype |σ| is then instantiated afresh via |instantiatePolyTy
 instantiation.
 
 Thus we shall conclude this short excursion into type analysis and continue with
-a classic interprocedural analysis: control-flow analysis.
+a classic, call-strings-based interprocedural analysis: control-flow analysis.
 
 %\begin{table}
 %\centering
