@@ -1612,7 +1612,81 @@ Concretely, my refactoring entailed
 \end{itemize}
 The resulting compiler bootstraps and passes the testsuite.
 
-\subsubsection{A Semantic |Domain| For GHC Core}
+\subsubsection{A Semantic |Domain| for GHC Core}
+
+\begin{figure}
+\begin{code}
+data Expr
+  =  Var       Id
+  |  Lit       Literal
+  |  App       CoreExpr CoreExpr
+  |  Lam       Var CoreExpr
+  |  Let       CoreBind CoreExpr
+  |  Case      CoreExpr Id Type CoreAlt
+  |  Cast      CoreExpr Coercion
+  |  Tick      CoreTickish CoreExpr
+  |  Type      Type
+  |  Coercion  Coercion
+data Var = Id ^^ ... | TyVar ^^ ... | CoVar ...
+type Id = Var -- always a term-level Id
+data Literal = LitNumber ^^ ... | LitFloat ^^ ... | LitString ...
+type CoreAlt = (AltCon, [Var], CoreExpr)
+data CoreBind = NonRec Id CoreExpr | Rec [(Id, CoreExpr)]
+data Type      = ...
+data Coercion  = ...
+\end{code}
+\caption{GHC Core}
+\label{fig:core}
+\end{figure}
+
+GHC Core implements a variant of the polymorphic lambda calculus System $F_ω$
+called System $F_C$~\citep{Sulzmann:07}.
+Its definition in GHC is given in \Cref{fig:core} and includes explicit
+type applications as well as witnesses of type equality constraints called
+\emph{coercions}.
+
+It is worth noting that |Id| is just a synonym for |Var|.
+However whereas |Var| includes term, type and coercion variables, the type |Id|
+is meant to denote runtime-relevant variables only, which excludes type
+variables.
+GHC Core differentiates a variety of different classes of global term-level
+identifiers in |Id| in turn, such as |Id|s defined for class method selectors,
+primitive operations defined by the runtime system, data constructors or
+identifiers imported from a different module.
+
+For the purposes of Demand Analysis, runtime-irrelevant |TyVar|s are of little
+importance; |Id|
+
+\begin{figure}
+\begin{code}
+class Domain d where
+  stuck :: d
+  erased :: d
+  lit :: Literal -> d
+  global :: Id -> d
+  classOp :: Id -> Class -> d
+  primOp :: Id -> PrimOp -> d
+  fun :: Id -> (d -> d) -> d
+  con :: DataCon -> [d] -> d
+  apply :: d -> d -> d
+  applyTy :: d -> d
+  select :: d -> CoreExpr -> Id -> [DAlt d] -> d
+  keepAlive :: [d] -> d
+  seq_ :: d -> d -> d
+type DAlt d = (AltCon, [Id], d -> [d] -> d)
+
+data BindHint = BindArg Id | BindLet CoreBind
+class HasBind d where
+  bind :: BindHint -> [[d] -> d] -> ([d] -> d) -> d
+\end{code}
+\caption{A |Domain| interface for GHC Core}
+\label{fig:core-domain}
+\end{figure}
+
+GHC Core differs from the object language introduced in \Cref{sec:lang} in
+non-trivial ways: GHC Core is not in A-normal form
+
+\Cref{fig:core-domain}
 
 %It is nice to define dynamic semantics and static analyses in the same
 %framework, but another important benefit is that correctness proofs become
