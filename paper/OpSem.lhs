@@ -68,7 +68,7 @@ $\UpdateT$ rules.
 
 The notation $f ∈ A \pfun B$ used in the definition of $ρ$ and $μ$ denotes a
 finite map from $A$ to $B$, a partial function where the domain $\dom(f)$ is
-finite and $\rng(f)$ denotes its range.
+finite.
 The literal notation $[a_1↦b_1,...,a_n↦b_n]$ denotes a finite map with domain
 $\{a_1,...,a_n\}$ that maps $a_i$ to $b_i$. Function update $f[a ↦ b]$
 maps $a$ to $b$ and is otherwise equal to $f$.
