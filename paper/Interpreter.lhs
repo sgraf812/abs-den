@@ -83,22 +83,23 @@ takeName n (ByName τ) = takeT n τ
 \section{A Denotational Interpreter}
 \label{sec:interp}
 
-In this section, we present the main contribution of this work, namely a
-generic \emph{denotational interpreter}%
-\footnote{This term was coined by \citet{Might:10}.
-We find it fitting, because a denotational interpreter is both a
-\emph{denotational semantics}~\citep{ScottStrachey:71} as well as a total
-\emph{definitional interpreter}~\citep{Reynolds:72}.}
+In this section, we present a generic \emph{denotational interpreter}%
+\footnote{This term was coined by \citet{Might:10}. We find it fitting,
+because a denotational interpreter is both a \emph{denotational
+semantics}~\citep{ScottStrachey:71} as well as a total \emph{definitional
+interpreter}~\citep{Reynolds:72}.}
 for a functional language which we instantiate with different semantic domains.
 The choice of semantic domain determines the \emph{evaluation strategy}
 (call-by-name, call-by-value, call-by-need) and the degree to which
 \emph{operational detail} can be observed.
 Yet different semantic domains give rise to useful \emph{summary-based} static
-analyses such as usage analysis in \Cref{sec:abstraction}, all from the same
-interpreter skeleton.
-Our generic denotational interpreter enables sharing of soundness proofs, thus
-drastically simplifying the soundness proof obligation per derived analysis
-(\Cref{sec:soundness}).
+analyses such as usage analysis in \Cref{sec:abstraction}.
+The major contribution of our framework is that the derived summary-based
+analyses may observe operational detail in an intuitive and semantically
+meaningful way.
+Adhering to our design pattern pays off in that it enables sharing of soundness
+proofs, thus drastically simplifying the soundness proof obligation per derived
+analysis (\Cref{sec:soundness}).
 
 Denotational interpreters can be implemented in any higher-order language such as OCaml, Scheme or Java with explicit thunks, but we picked Haskell for convenience.%
 \footnote{We extract from this document runnable Haskell files which we add as a Supplement, containing the complete definitions. Furthermore, the (terminating) interpreter outputs are directly generated from this extract.}
