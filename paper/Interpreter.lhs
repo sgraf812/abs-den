@@ -437,8 +437,9 @@ in \Cref{sec:soundness}, we need to define a semantic domain for call-by-need!
 It turns out that the interpreter thus derived is the --- to our knowledge ---
 first provably adequate denotational semantics for call-by-need (\Cref{sec:adequacy}).
 
-Although the main body discusses only by-name and by-need semantics, we provide
-instances for three different call-by-value semantics in the Appendix as well.\sg{TODO}
+Although the main body discusses only by-name and by-need semantics,
+we provide instances for three different call-by-value semantics in
+\Cref{sec:more-eval-strat} as well.
 
 \subsubsection{Call-by-name}
 
@@ -464,23 +465,14 @@ deriving newtype instance Applicative τ => Applicative (ByName τ)
 %\sven{Figure 6 does not contain any new information. Literally all implementations are omitted. I would remove Figure 6 to save space.}
 %\sg{Doubtful that doing so saves much space, and the implications |Trace τ => Trace (ByName τ)| and |Monad τ => ByName τ| are still useful.}
 We call |ByName τ| a \emph{trace transformer} because it inherits its |Monad|
-and |Trace| instance from |τ|.
-This is in reminiscence to Galois transformers~\citep{Darais:15}.
+and |Trace| instance from |τ|, in reminiscence to Galois transformers~\citep{Darais:15}.
 The old |DName| can be recovered as |D (ByName T)| and we refer to its
 interpreter instance as |evalName e ρ|.
 
+\subsubsection{Call-by-need}
+\label{sec:by-need-instance}
+
 \begin{figure}
-%\begin{flushleft}
-%\sven{This is just the state monad. So why not define it by |newtype ByNeed
-%τ v = ByNeed (State (Heap (ByNeed τ)) v)|. Then you could also omit the
-%definitions of |get| and |put|.}
-%\sg{Have a look at 0d104f30cdd5eb6 :).
-%I like the current version much better because there is far less newtype
-%wrapping, and there is nothing we gain by using |StateT|, other than Simon
-%wondering how StateT and |getN|,|putN| expands.
-%Do also note that we derive |Monad| etc. |via StateT|, so it's not even about
-%reuse.}
-%\end{flushleft}
 \begin{code}
 evalNeed e ρ μ = unByNeed (eval e ρ :: D (ByNeed T)) μ
 
@@ -522,9 +514,6 @@ deriving via StateT (Heap (ByNeed τ)) τ instance Monad τ    => Monad (ByNeed 
 \label{fig:by-need}
 \end{figure}
 
-\subsubsection{Call-by-need}
-\label{sec:by-need-instance}
-
 The use of a stateful heap is essential to the call-by-need evaluation strategy
 in order to enable memoisation.
 So how do we vary |θ| such that |D θ| accommodates state?
@@ -549,19 +538,6 @@ It embeds a standard state transformer monad,
 %τ|~\citep{Blondal:18}.}
 whose key operations |getN| and |putN| are given in \Cref{fig:by-need}.
 
-%\sven{The storyline of this subsection can be improved.
-%Currently, in the following paragraph it is unclear what you are getting at.
-%I propose the following storyline:
-%\begin{enumerate}
-%\item Explain what the goal is you want to achieve: Define denotation for call-by-need languages
-%\item Explain the problems you run into when doing this naively: When defining the denotation of an expression as a trace this does not work because ...
-%\item Explain how you solved the problem: Therefore, we design the denotation as a stateful function returning a trace. This stateful function is the result of solving the recurisve equation $|(Heap θ -> τ (Value θ, Heap θ))| \cong |D θ|$.
-%\item Explain the details of your solution (explain fig 8).
-%\end{enumerate}}
-%\sg{Thanks. Better now, I think. Do you agree?}
-%\sven{You use this as a motivation for your definition of the denotation of call-by-value languages. But to me it is unclear what insight this provides. What can the reader learn from that the denotation is the solution to this recursive equation?}
-%\sg{I think I addresses this now with the leading para.}
-
 So the denotation of an expression is no longer a trace, but rather a
 \emph{stateful function returning a trace} with state |Heap (ByNeed τ)| in
 which to allocate call-by-need thunks.
@@ -570,10 +546,6 @@ The |Trace| instance of |ByNeed τ| simply forwards to that of |τ| (\ie often
 Doing so needs a |Trace| instance for |τ (Value (ByNeed τ), Heap (ByNeed τ))|, but we
 found it more succinct to use a quantified constraint |(forall v. Trace (τ
 v))|, that is, we require a |Trace (τ v)| instance for every choice of |v|.
-%\sven{This sentence seems like an implementation detail. Is this really worth discussing?}
-%\sg{You mean the explanation of quantified constraints? This is mostly so
-%placate people unfamiliar with this GHC extension or what it is supposed to do.
-%We can leave it out/shorten it if you think this explanation is unnecessary.}
 Given that |τ| must also be a |Monad|, that is not an onerous requirement.
 
 The key part is again the implementation of |HasBind| for |D (ByNeed τ)|,
@@ -585,12 +557,6 @@ in the heap and runs it.
 If we were to omit the |memo a| action explained next, we would thus have
 recovered another form of call-by-name semantics based on mutable state instead
 of guarded fixpoints such as in |ByName| and |ByValue|.
-%\sven{I don't understand what we learn from this sentence that advances the storyline. The goal of this section is to understand |ByNeed| and not |ByName| or |ByValue|}
-%\sg{The point is to say ``if we were to omit |memo|, this would be just another
-%by-name semantics, which is something you already know.''. Would you say this is
-%an unnecessary point? Otherwise, how would you improve? Or is it just the
-%contrasting of fixpoint combinators (guarded recursion vs. mutable state) that
-%you find distracting?}
 The whole purpose of the |memo a d| combinator then is to \emph{memoise} the
 computation of |d| the first time we run the computation, via |fetchN a| in the
 |Var| case of |evalNeed2|.
@@ -619,14 +585,6 @@ that we know of.%
 %non-atomic argument constructs can simply reuse |bind| to recover a
 %call-by-need semantics.
 %The |Event| type needs semantics- and use-case-specific adjustment, though.}
-%\sven{You need to better describe why this is a benefit of this approach:
-%Traditionally, different evaluation strategies were described with separate
-%interpreters. This has the following downsides ... Here we derive all these
-%evaluation strategies from \emph{the same interpreter} by instantiating it
-%differently. From this we gain ...}
-%\sven{This needs to be moved to the top of the section 4.3 because it motivates
-%the section} \\
-%\sg{I might have sufficiently addressed this point now.}
 
 Here is an example evaluating $\Let{i}{(\Lam{y}{\Lam{x}{x}})~i}{i~i}$, starting
 in an empty \hypertarget{ex:eval-need-trace2}{heap}:
@@ -642,6 +600,24 @@ Between the first bracket of $\LookupT$ and $\UpdateT$ events, the heap entry
 for $i$ goes through a beta reduction before producing a value.
 This work is cached, so that the second $\LookupT$ bracket does not do any beta
 reduction.
+
+\begin{toappendix}
+\label{sec:more-eval-strat}
+
+To show that our denotational interpreter pattern equally well applies to
+by-value evaluation strategies, we introduce three more concrete semantic domain
+instances for call-by-value in this section.
+The first one is a plain old by-value encoding the representation of which is
+isomorphic to |D T|, just like for |DName|.
+However, this instance is partial for the original recursive |Let| construct.
+Our second instance augments call-by-value with a lazy initialisation
+technique~\citep{Nakata:06} involving a mutable heap, thus sharing its
+representation with |D (ByNeed T)|.
+The third and final by-value domain models clairvoyant
+call-by-value~\citep{HackettHutton:19}, which unfortunately proves to be partial
+as well.
+
+\subsection{Call-by-value}
 
 \begin{figure}
 \begin{code}
@@ -671,8 +647,6 @@ deriving instance Monad τ       => Monad (ByValue τ)
 \caption{Call-by-value }
 \label{fig:by-value}
 \end{figure}
-
-\subsubsection{Call-by-value}
 
 Call-by-value eagerly evaluates a let-bound RHS and then substitutes its
 \emph{value}, rather than the reduction trace that led to the value, into every
@@ -770,7 +744,7 @@ memoV a d = d >>= \v -> ByVInit (upd v)
 \label{fig:by-value-init}
 \end{figure}
 
-\subsubsection{Lazy Initialisation and Black-holing}
+\subsection{Lazy Initialisation and Black-holing}
 \label{sec:lazy-init}
 
 %\sven{Why do you discuss this after call-by-need? The storyline would be more cohesive if this subsection would appear directly after call-by-value.}
@@ -876,7 +850,7 @@ runClair (Clairvoyant m) = headParT m >>= \case
 \label{fig:clairvoyant-by-value}
 \end{figure}
 
-\subsubsection{Clairvoyant Call-by-value}
+\subsection{Clairvoyant Call-by-value}
 \label{sec:clair}
 
 Clairvoyant call-by-value~\citep{HackettHutton:19} is an alternative to
@@ -911,32 +885,9 @@ binding for $i$ might be needed at an unknown point in the future
 (a \emph{liveness property} and hence impossible to verify at runtime).
 This renders Clairvoyant call-by-value inadequate for verifying properties of
 infinite executions.
+\end{toappendix}
 
-%\subsection{More Trace Types}
-%\label{sec:more-trace-types}
-%
-%\sven{I don't this section. What problem does this solve?}
-%
-%Our simple trace type |T| has served us well so far, allowing us to study a
-%variety of total denotational interpreters for all major evaluation strategies
-%(\eg |ByName|, |ByNeed|, |ByVInit|).
-%It is of course possible in Haskell to abandon totality, discard all events and
-%use plain |data Identity a = Identity a| as the trace type accompanied by the
-%definition |instance Trace Identity where step _ = id|.
-%The resulting interpreter diverges whenever the defined program diverges, as is
-%typical for partial definitional interpreters:
-%
-%%if style == newcode
-%\begin{code}
-%instance Trace (Identity v) where step _ = id
-%\end{code}
-%%endif
-%
-%< ghci> eval (read "let i = λx.x in i i") emp :: D (ByName Identity)
-%$\perform{eval (read "let i = λx.x in i i") emp :: D (ByName Identity)}$
-%
-%< ghci> eval (read "let x = x in x") emp :: D (ByName Identity)
-%%$\perform{eval (read "let x = x in x") emp :: D (ByName Identity)}$
-%\texttt{\textasciicircum{}CInterrupted}
-%\\[\belowdisplayskip]
-%\noindent
+The examples so far suggest that |evalNeed2| agrees with the LK machine on
+\emph{many} programs.
+The next section proves that |evalNeed2| agrees with the LK machine on
+\emph{all} programs, including ones that diverge.
