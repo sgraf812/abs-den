@@ -321,7 +321,7 @@ Our denotational interpreter |eval :: Exp -> (Name :-> DName) -> DName| can
 have a similar type as |dsem|.
 However, to derive both dynamic semantics and static analysis as instances of the same
 generic interpreter |eval|, we need to vary the type of its semantic domain,
-which is naturally expressed using type-class overloading, thus:
+which is naturally expressed using type class overloading, thus:
 \[
 |eval  ::  (Trace d, Domain d, HasBind d) =>  Exp -> (Name :-> d) -> d|.
 \]
@@ -332,7 +332,7 @@ different evaluation strategies as well as static analyses.
 
 \Cref{fig:eval} gives the complete definition of |eval| together with instances for domain |DName| that we introduced in \Cref{sec:dna}.
 Together this is enough to actually run the denotational interpreter to produce traces.
-We use |read :: String -> Exp| as a parsing function, and a |Show| instance for
+We use |read :: String -> Exp| as a parsing function and a |Show| instance for
 |D τ| that displays traces.
 For example, we can evaluate the expression $\Let{i}{\Lam{x}{x}}{i~i}$ like
 this:
@@ -429,57 +429,43 @@ $\perform{eval (read "let zro = Z() in zro zro") emp :: D (ByName T)}$
 
 By varying the |HasBind| instance of our type |D|, we can endow our language
 |Exp| with different evaluation strategies.
-The appeal of that is, firstly, that it is possible to do so!
-Furthermore, we thus introduce the --- to our knowledge --- first provably
-adequate denotational semantics for call-by-need.
-We will go on to prove usage analysis sound \wrt by-need evaluation in
-\Cref{sec:soundness}.
-The different by-value semantics demonstrate versatility, in that our
-approach is applicable to strict languages as well and thus can be used to study
-the differences between by-need and by-value evaluation.
+The appeal of that is, firstly, that it is possible to do so without changing
+the interpreter definition, supporting the claim that our pattern is equally
+suited to model lazy as well as strict semantics.
+More importantly, in order to prove usage analysis sound \wrt by-need evaluation
+in \Cref{sec:soundness}, we need to define a semantic domain for call-by-need!
+It turns out that the interpreter thus derived is the --- to our knowledge ---
+first provably adequate denotational semantics for call-by-need (\Cref{sec:adequacy}).
 
-Following a similar approach as~\citet{adi}, we maximise reuse by instantiating
-the same |D| at different wrappers of |T|, rather than reinventing |Value| and |T|.
-
-\begin{figure}
-\begin{spec}
-evalName e ρ = eval e ρ :: D (ByName T)
-newtype ByName τ v = ByName { unByName :: τ v }
-instance Monad τ => Monad (ByName τ) where ...
-instance Trace (τ v) => Trace (ByName τ v) where ...
-instance HasBind (D (ByName τ)) where ...
-\end{spec}
-%if style == newcode
-\begin{code}
-evalName e ρ = eval e ρ :: D (ByName T)
-newtype ByName τ v = ByName { unByName :: (τ v) }
-  deriving newtype (Functor,Applicative,Monad)
-
-instance Trace (τ v) => Trace (ByName τ v) where
-  step e = ByName . step e . unByName
-
-instance HasBind (D (ByName τ)) where
-  bind _ rhs body = body (fix rhs)
-\end{code}%
-%endif
-\\[-1em]
-\caption{Redefinition of call-by-name semantics from \Cref{fig:trace-instances}}
-\label{fig:by-name}
-\end{figure}
+Although the main body discusses only by-name and by-need semantics, we provide
+instances for three different call-by-value semantics in the Appendix as well.\sg{TODO}
 
 \subsubsection{Call-by-name}
 
-We redefine
+Following a similar approach as~\citet{adi}, we maximise reuse by instantiating
+the same |D| at different wrappers of |T|, rather than reinventing |Value| and |T|.
+Hence we redefine
 %\sven{Redefinitions are very confusing, because readers may miss them. Why don't we present this as the original definition of |DName| to begin with?}
 %\sg{I'm hesitant because the reader then is exposed early to a deep stack
 %of type synonyms/newtypes. We would need to write |ByName T (Maybe (Value
 %(ByName T)))| in a couple of places; seems a bit too much faff.}
-by-name semantics via the |ByName| \emph{trace transformer}
-in \Cref{fig:by-name},
+by-name semantics via the following |ByName| newtype wrapper:
+\begin{code}
+evalName e ρ = eval e ρ :: D (ByName T)
+newtype ByName τ v = ByName { unByName :: τ v } deriving (Monad, Trace)
+instance HasBind (D (ByName τ)) where bind # rhs body = let d = rhs d in body d
+\end{code}
+%if style == newcode
+\begin{code}
+deriving newtype instance Functor τ => Functor (ByName τ)
+deriving newtype instance Applicative τ => Applicative (ByName τ)
+\end{code}
+%endif
 %\sven{Figure 6 does not contain any new information. Literally all implementations are omitted. I would remove Figure 6 to save space.}
 %\sg{Doubtful that doing so saves much space, and the implications |Trace τ => Trace (ByName τ)| and |Monad τ => ByName τ| are still useful.}
-so called because |ByName τ| inherits its |Monad| and |Trace|
-instance from |τ| and in reminiscence of \citet{Darais:15}.
+We call |ByName τ| a \emph{trace transformer} because it inherits its |Monad|
+and |Trace| instance from |τ|.
+This is in reminiscence to Galois transformers~\citep{Darais:15}.
 The old |DName| can be recovered as |D (ByName T)| and we refer to its
 interpreter instance as |evalName e ρ|.
 

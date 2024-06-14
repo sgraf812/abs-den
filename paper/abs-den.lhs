@@ -14,7 +14,8 @@
 % https://github.com/borisveytsman/acmart/issues/406#issuecomment-667180341
 \PassOptionsToPackage{prologue,dvipsnames}{xcolor}
 
-\documentclass[acmsmall,review,anonymous]{acmart}\settopmatter{printfolios=true}
+\documentclass[acmsmall,review,anonymous]{acmart}\settopmatter{printfolios=true,printccs=false,printacmref=false}
+%\documentclass[acmsmall,review]{acmart}\settopmatter{printfolios=true}
 
 %% Journal information
 %%
@@ -39,7 +40,7 @@
 
 %%%%%%%
 
-\usepackage[appendix=append,bibliography=common]{apxproof}
+\usepackage[appendix=strip,bibliography=common]{apxproof}
 \renewcommand{\appendixprelim}{\clearpage\onecolumn\appendix\section*{Start of Appendix}} % Clearly mark the begin of the Appendix inserted by apxproof
 
 %\usepackage{array} % \newcolumntype
