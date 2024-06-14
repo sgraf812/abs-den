@@ -3,7 +3,7 @@
 %if style == newcode
 %include custom.fmt
 \begin{code}
-{-# OPTIONS_GHC -Wno-simplifiable-class-constraints #-}
+{-# OPTIONS_GHC -Wno-simplifiable-class-constraints -Wno-unused-matches #-}
 {-# LANGUAGE DerivingStrategies #-}
 {-# LANGUAGE DerivingVia #-}
 {-# LANGUAGE PartialTypeSignatures #-}
@@ -180,8 +180,8 @@ unwrapping of constructors.}
 \begin{code}
 type D τ = τ (Value τ);   type DName = D T
 data T v = Step Event (T v) | Ret v
-data Event  =  Look Name | Upd | App1 | App2
-            |  Let0 | Let1 | Case1 | Case2
+ifPoly(data Event  =  Look Name | Upd | App1 | App2
+                   |  Let1 | Case1 | Case2)
 data Value τ = Stuck | Fun (D τ -> D τ) | Con Tag [D τ]
 \end{code}
 \end{minipage}
@@ -194,6 +194,8 @@ instance Monad T where
 \end{spec}
 %if style == newcode
 \begin{code}
+data Event  =  Look Name | Upd | App1 | App2
+            |  Let0 | Let1 | Case1 | Case2
 instance Functor T where
   fmap f (Ret a) = Ret (f a)
   fmap f (Step e t) = Step e (fmap f t)
@@ -657,8 +659,9 @@ Function |bind| defines a denotation |d :: D (ByValue τ)| of the right-hand
 side by mutual recursion with |v :: Value (ByValue τ)| that we will discuss
 shortly.
 
-As its first action, |bind| yields a |Let0| event, announcing in the trace that
-the right-hand side of a |Let| is to be evaluated.
+As its first action, |bind| yields a brand-new |Let0| event that we assume was
+added to the definition of |Event|, announcing in the trace that the right-hand
+side of a |Let| is to be evaluated.
 Then monadic bind |v1 <- d; body (return v1)| yields steps from the right-hand
 side |d| until its value |v1 :: Value (ByValue τ)| is reached, which is then
 passed |return|ed (\ie wrapped in |Ret|) to the let |body|.
