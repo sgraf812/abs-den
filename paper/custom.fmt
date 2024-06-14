@@ -11,7 +11,7 @@
 %format ^ =
 %format ^^ = " "
 %format ^^^ = "^"
-%format # = "_"
+%format # = "ν"
 %format com = "--"
 %format Lub(a) = "undefined"
 %format Cup(a) = "undefined"
@@ -220,6 +220,9 @@
 %format UUU = "\concolor{\mathsf{U_\omega..}}"
 %format UCons (a) (b) = a " \sumcons " b
 %format UD2 = "\concolor{\mathsf{\widehat{D_U}}}"
+%format BCons (a) (b) = a " \sumcons_\concolor{\mathsf{B}} " b
+%format BRep = "\conid{Rep_B}"
+%format BValue = "\concolor{\mathsf{Value_B}}"
 
 %format CD = "\concolor{\mathsf{D_C}}"
 %format CT = "\concolor{\mathsf{T_C}}"
