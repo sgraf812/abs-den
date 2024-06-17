@@ -109,6 +109,9 @@
 %format Σ = "\conid{\mathrm{\Sigma}}"
 %format :-> = "\mathbin{:\rightharpoonup}"
 %format :->: = "\mathbin{:\rightarrow:}"
+%format == = "\mathrel{\clipbox{2.5pt 0pt}{$==$}}"
+%format /= = "\mathrel{\clipbox{0pt 1.5pt 3pt 1.5pt}{\slantbox[.3]{$\models$}}\hspace{0.5pt}\clipbox{0pt 0pt 2.5pt 0pt}{$=$}}"
+%format && = "\mathbin{\&\&}"
 %format ∈ = "\in"
 %format emp = "\varcolor{\varepsilon}"
 %format ! = "\mathop{!}"
@@ -122,6 +125,7 @@
 %format evalVInit(e)(r)(m) = "\mathcal{S}_{\mathbf{vinit}}\denot{" e "}_{" r "}("m")"
 %format evalClair(e)(r) = "\mathcal{S}_{\mathbf{clair}}\denot{" e "}_{" r "}"
 %format evalUsg(e)(r) = "\mathcal{S}_{\mathbf{usage}}\denot{" e "}_{" r "}"
+%format evalBox(e)(r) = "\mathcal{S}_{\mathbf{box}}\denot{" e "}_{" r "}"
 %format evalD(d)(e)(r) = "\mathcal{S}_{" d "}\denot{" e "}_{" r "}"
 %format evalC(a)(b) = "\mathcal{S}_{\mathcal{C}}\denot{" a "}_{" b "}"
 %format eval3(d)(a)(b) = "\mathcal{S}_{" d "}\denot{" a "}_{" b "}"
@@ -223,6 +227,11 @@
 %format BCons (a) (b) = a " \sumcons_\concolor{\mathsf{B}} " b
 %format BRep = "\conid{Rep_B}"
 %format BValue = "\concolor{\mathsf{Value_B}}"
+%format BD = "\concolor{\mathsf{D_B}}"
+%format BT = "\concolor{\mathsf{T_B}}"
+%format (MkBT(a)(b)(c))= "\langle " a ", " b ", " c " \rangle"
+%format peelB = peel
+%format !??? = !?
 
 %format CD = "\concolor{\mathsf{D_C}}"
 %format CT = "\concolor{\mathsf{T_C}}"

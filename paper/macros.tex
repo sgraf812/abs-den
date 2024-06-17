@@ -24,6 +24,19 @@
 \newcommand\vs{vs.\xspace}
 \newcommand\wrt{wrt.\xspace}
 
+% slantbox from https://tex.stackexchange.com/a/63188/52414
+\newsavebox{\foobox}
+\newcommand{\slantbox}[2][.5]{%
+  \mbox{%
+    \sbox{\foobox}{#2}%
+    \hskip\wd\foobox
+    \pdfsave
+    \pdfsetmatrix{1 0 #1 1}%
+    \llap{\usebox{\foobox}}%
+    \pdfrestore
+  }%
+}
+
 % Comments and notes
 \makeatletter
 \newcommand\ifnonanon[1]{%
