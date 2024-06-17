@@ -17,7 +17,6 @@ instance Eq (D (ByName T)) where
   (==) = undefined
 instance Ord (D (ByName T)) where
   compare = undefined
-data Pow a = P (Set a) deriving (Eq, Ord)
 powMap :: (a -> b) -> Pow a -> Pow b
 powMap f (P s) = P $ undefined $ map f $ Set.toList s
 set = P . Set.singleton
@@ -106,8 +105,8 @@ The main body will only discuss abstraction of closed terms, but the underlying
 \subsection{Sound By-name and By-need Interpretation}
 
 This subsection is dedicated to the following derived inference rule for sound
-by-need interpretation, referring to the \emph{abstraction laws} in
-\Cref{fig:abstraction-laws} by name:
+by-need interpretation (\Cref{thm:soundness-by-need-closed}), referring to the
+\emph{abstraction laws} in \Cref{fig:abstraction-laws} by name:
 \[\begin{array}{c}
   \inferrule{%
     \textsc{Mono} \\ \textsc{Step-App} \\ \textsc{Step-Sel} \\ \textsc{Unwind-Stuck} \\
@@ -129,13 +128,22 @@ interpretation for the static analysis |eval3 (hat D) e emp|!
 %and static analysis.
 
 \begin{figure}
+\belowdisplayskip=0pt
 \begin{spec}
-freezeHeap = ...  -- See Appendix
+data Pow a = P (Set a); instance Lat Pow where ...
+data GC a b = (a -> b) :<->: (b -> a)
+repr :: Lat b => (a -> b) -> GC (Pow a) b
+repr β = α :<->: γ where α (P as) = Lub (β a | a <- as); γ b = P (setundef (a | β a ⊑ b))
+
+abstract d = β (d emp)
+
 β (Step e d)           = step e (β d)
 β (Ret (Stuck, μ))     = stuck
-β (Ret (Fun f, μ))     = fun {-"\iffalse"-}"" ""{-"\fi"-} (\(hat d) -> Lub (β (f d μ) | d ∈ γE (hat d)))  where unused (  _   :<->: γE)  = untyped (freezeHeap μ)
-β (Ret (Con k ds, μ))  = con {-"\iffalse"-}""{-"\fi"-} k (map (\d -> αE (set d)) ds)                      where           αE  :<->: _    = freezeHeap μ
-abstract d = β (d emp)
+β (Ret (Fun f, μ))     = fun {-"\iffalse"-}"" ""{-"\fi"-} (\(hat d) -> Lub (β (f d μ) | d ∈ γE (hat d)))  where unused (  _   :<->: γE)  = untyped (persistHeap μ)
+β (Ret (Con k ds, μ))  = con {-"\iffalse"-}""{-"\fi"-} k (map (\d -> αE (set d)) ds)                      where           αE  :<->: _    = persistHeap μ
+
+persistHeap μ = untyped (repr β where β (Step (Look x) (fetch a))  |  memo a (evalNeed2 e ρ) <- μ ! a
+                                                                   =  step (Look x) (eval3 (hat D) e (β << ρ)))
 \end{spec}
 \caption{Galois connection for sound by-name and by-need abstraction}
 \label{fig:name-need-gist}
@@ -143,34 +151,46 @@ abstract d = β (d emp)
 
 Note that \emph{we} get to determine the abstraction function |abstract| based
 on the |Trace|, |Domain| and |Lat| instance on \emph{your} |hat D|.
-We replicate the gist of |abstract| in \Cref{fig:name-need-gist} and refer
-to the Appendix for the detailed definition (\Cref{fig:name-need}).
+\Cref{fig:name-need-gist} replicates the gist of how |abstract| is thus derived.
+
 Function |abstract| runs its denotation in the empty heap |emp| and hands over
-to a \emph{representation function}~\citep[Section 4.3]{Nielson:99} |β| that
-folds the trace into an abstract domain element in |hat D|.
-It eliminates every |Step evt| in the by-need trace with a call to |step evt|,
-and eliminates every concrete |Value| at the end of the trace with a call to the
-corresponding |Domain| method.
-The final heap |μ| is then ``frozen'' into a Galois connection |freezeHeap μ|
-(defined in the Appendix) that abstracts entries in concrete environments |ρ !
-x| into entries of abstract environments |hat ρ ! x|, resolving all |fetch a|
-operations using heap entries |μ ! a|.
-For a |Con| value, every field denotation |d| (which came from a
-concrete environment, so |d = ρ ! x| for some definable |ρ| and |x|) is
-abstracted, while for |Fun| values, an abstract argument denotation |hat d|
-(which the caller fetched from an abstract environment as |hat ρ ! y|) is
+to a function |β| that folds the trace into an abstract domain element in |hat
+D|.
+Since |hat D| has a |Lat| instance, such a |β| is called a \emph{representation
+function}~\citep[Section 4.3]{Nielson:99}, which gives rise to a Galois
+connection defined via |repr β| from the powerset lattice of by-need traces
+(\ie trace properties) into |hat D|.
+Function |β| eliminates every |Step ev| in the by-need trace with a call to
+|step ev|, and eliminates every concrete |Value| at the end of the trace with a
+call to the corresponding |Domain| method.
+
+To that end, the final heap |μ| is then persisted into a Galois connection
+|persistHeap μ| that abstracts entries in concrete environments |ρ ! x|
+into entries of abstract environments |hat ρ ! x|, resolving all |fetch a|
+operations using entries |μ ! a| in the persisted heap.
+The precise type of |persistHeap| involves a predicate to characterise the
+definable entities in the heap and is omitted here; details can be found in
+\Cref{fig:name-need}.
+Clearly, \Cref{fig:name-need-gist} is no longer computable Haskell, but it is
+well-defined math; for example, the recursion in $|persistHeap|.|β|$ is defined
+via least fixpoints in |Lat (hat D)|.
+
+When the trace ends in a |Con| value, every field denotation |d| is abstracted
+via |persistHeap μ|.
+When the trace ends in a |Fun| value, an abstract argument denotation |hat d| is
 concretised to call the concrete function |f|, and the resulting trace is
 recursively abstracted via |β| afterwards.
 
-Thanks to fixing |abstract|, the abstraction laws can be simplified drastically,
-as discussed at the end of this subsection.
+Thanks to fixing |abstract|, we can prove the following abstraction theorem,
+corresponding to the inference rule at the begin of this subsection:
 
 \begin{theoremrep}[Sound By-need Interpretation]
 \label{thm:soundness-by-need-closed}
 Let |hat D| be a domain with instances for |Trace|, |Domain|, |HasBind| and
-|Lat|, and let |abstract| be the abstraction function described above.
-If the abstraction laws in \Cref{fig:abstraction-laws} hold, then |eval3 (hat
-D)| is an abstract interpreter that is sound \wrt |abstract|, that is,
+|Lat|, and let |abstract| be the abstraction function from \Cref{fig:name-need-gist}.
+If the abstraction laws in \Cref{fig:abstraction-laws} hold,
+then |eval3 (hat D)| is an abstract interpreter that is sound \wrt |abstract|,
+that is,
 \[
   |abstract (evalNeed2 e emp) ⊑ eval3 (hat D) e emp|.
 \]
@@ -188,10 +208,10 @@ To prove $\textsc{Beta-App}$, one has to show that |forall f a x. f a ⊑ apply
 (fun x f) a| in the abstract domain |hat D|.
 This states that summarising |f| through |fun|, then |apply|ing the summary to
 |a| must approximate a direct call to |f|;
-it amounts to proving correct the summary mechanism.%
-\footnote{To illustrate this point: If we were to pick dynamic |Value|s as the
-summary as in the ``collecting semantics'' |D (ByNeed UT)|, we would not need to
-show anything! Then |apply (return (Fun f)) a = f a|.}
+it amounts to proving correct the summary mechanism.
+%\footnote{To illustrate this point: If we were to pick dynamic |Value|s as the
+%summary as in the ``collecting semantics'' |D (ByNeed UT)|, we would not need to
+%show anything! Then |apply (return (Fun f)) a = f a|.}
 In \Cref{sec:problem}, we have proved a substitution \Cref{thm:absence-subst},
 which is a syntactic form of this statement.
 We will need a similar lemma for usage analysis below, and it is useful to
@@ -427,7 +447,7 @@ for by-name evaluation which does not require the by-need specific rules
 Note that none of the laws mention the concrete semantics or the abstraction
 function |abstract|. This is how our opinionated approach pays off: because both
 concrete semantics and |abstract| are known, the usual abstraction laws such as
-|abstract (apply d a) ⊑ hat apply (abstract d) (abstract a)| further decompose
+|α (apply d a) ⊑ hat apply (α d) (α a)| further decompose
 into \textsc{Beta-App}.
 We think this is an important advantage to our approach, because the author of
 the analysis does not need to reason about the concrete semantics in order to
@@ -446,7 +466,8 @@ by-need semantics with usage analysis:
 
 \begin{lemmarep}[|evalUsg| abstracts |evalNeed2|]
 \label{thm:usage-abstracts-need-closed}
-Let |e| be a closed expression and |abstract| the abstraction function above.
+Let |e| be a closed expression and |abstract| the abstraction function from
+\Cref{fig:name-need-gist}.
 Then |abstract (evalNeed2 e emp) ⊑ evalUsg e emp|.
 \end{lemmarep}
 \begin{proof}
@@ -1029,6 +1050,7 @@ Following \citet[Section 4.3]{Nielson:99}, every \emph{representation function}
 |β :: a -> b| into a partial order $(|b|,⊑)$ yields a Galois connection between
 |Pow|ersets of |a| and $(|b|,⊑)$:
 \begin{code}
+data Pow a = P (Set a) deriving (Eq, Ord)
 data GC a b = (a -> b) :<->: (b -> a)
 repr :: Lat b => (a -> b) -> GC (Pow a) b
 repr β = α :<->: γ where α (P as) = Lub (β a | a <- as); γ b = P (setundef (a | β a ⊑ b))
@@ -1428,16 +1450,16 @@ To see that, let |a := MkUT (singenv y U1) (Rep Uω) :: UD| and consider
 
 \begin{figure}
 \begin{code}
-freezeHeap :: (Trace (hat d), Domain (hat d), Lat (hat d)) => needheap -> GC (needd ) (named (hat d))
-freezeHeap μ = untyped (repr β where β (Step (Look x) (fetch a))  |  memo a (evalNeed2 e ρ) <- μ ! a
-                                                                  =  step (Look x) (eval e (β << ρ)))
+persistHeap :: (Trace (hat d), Domain (hat d), Lat (hat d)) => needheap -> GC (needd ) (named (hat d))
+persistHeap μ = untyped (repr β where β (Step (Look x) (fetch a))  |  memo a (evalNeed2 e ρ) <- μ ! a
+                                                                   =  step (Look x) (eval e (β << ρ)))
 
 nameNeed  ::  (Trace (hat d), Domain (hat d), Lat (hat d)) =>  GC (Pow (T (Value (ByNeed T), needheap))) (hat d)
 nameNeed = repr β where
   β (Step e d)           = step e (β d)
   β (Ret (Stuck, μ))     = stuck
-  β (Ret (Fun f, μ))     = fun {-"\iffalse"-}"" ""{-"\fi"-} (\(hat d) -> Lub (β (f d μ) | d ∈ γE (hat d)))  where unused (  _   :<->: γE)  = untyped (freezeHeap μ)
-  β (Ret (Con k ds, μ))  = con {-"\iffalse"-}""{-"\fi"-} k (map (αE . set) ds)                              where           αE  :<->: _    = freezeHeap μ
+  β (Ret (Fun f, μ))     = fun {-"\iffalse"-}"" ""{-"\fi"-} (\(hat d) -> Lub (β (f d μ) | d ∈ γE (hat d)))  where unused (  _   :<->: γE)  = untyped (persistHeap μ)
+  β (Ret (Con k ds, μ))  = con {-"\iffalse"-}""{-"\fi"-} k (map (αE . set) ds)                              where           αE  :<->: _    = persistHeap μ
 \end{code}
 \caption{Galois connection for sound by-name and by-need abstraction}
 \label{fig:name-need}
@@ -1467,8 +1489,8 @@ travels together with an environment |ρ| that ties free variables to their addr
 in the heap that |d| expects.
 
 For our purposes, the key is that a by-need environment |ρ| and a heap |μ| can
-be ``frozen'' into a corresponding by-name environment.
-This operation forms a Galois connection |freezeHeap| in \Cref{fig:name-need},
+be ``persisted'' into a corresponding by-name environment.
+This operation forms a Galois connection |persistHeap| in \Cref{fig:name-need},
 where |needd| serves a similar purpose as |named (hat d)| from
 \Cref{defn:syn-name}, restricting environment entries to the syntactic by-need
 form |Step (Look x) (fetch a)| and heap entries in |needheap| to |memo a (eval
@@ -1497,14 +1519,14 @@ It is easy to see that syntacticness is preserved by |evalNeed| whenever
 the environment or heap is extended, assuming that |Domain| and |HasBind| are
 adjusted accordingly.
 
-The environment abstraction |αE μ :<->: _ = freezeHeap μ| improves the more
+The environment abstraction |αE μ :<->: _ = persistHeap μ| improves the more
 ``evaluated'' |μ| is.
 E.g.,\ when |μ1| \emph{progresses} into |μ2| during evaluation, written
 |μ1 ~> μ2|, it is |αE μ2 d ⊑ αE μ1 d| for all |d|.
 The heap progression relation is formally defined (on syntactic heaps
 |needheap|) in \Cref{fig:heap-progression}, and we will now work
 toward a proof for the approximation statement about |αE| in
-\Cref{thm:heap-progress-freeze}.
+\Cref{thm:heap-progress-persist}.
 
 \begin{figure}
   \[\begin{array}{c}
@@ -1700,11 +1722,11 @@ By Löb induction and cases on |e|.
 \end{itemize}
 \end{proof}
 
-Now we move on to proving auxiliary lemmas about |freezeHeap|.
+Now we move on to proving auxiliary lemmas about |persistHeap|.
 
-\begin{lemma}[Heap extension preserves frozen entries]
-\label{thm:ext-freeze-heap}
-Let |αE μ :<->: γE μ = freezeHeap μ|.
+\begin{lemma}[Heap extension preserves persisted entries]
+\label{thm:ext-persist-heap}
+Let |αE μ :<->: γE μ = persistHeap μ|.
 If |adom d ⊆ dom μ| and $|a| \not∈ |dom μ|$,
 then |αE μ d = αE (ext μ a d2) d|.
 \end{lemma}
@@ -1736,7 +1758,7 @@ hand-wave no more!
   |Lat|, satisfying the abstraction laws
   \textsc{Beta-App}, \textsc{Beta-Sel}, \textsc{Bind-ByName} and
   \textsc{Step-Inc} from \Cref{fig:abstraction-laws}.
-  Furthermore, let |αE μ :<->: γE μ = freezeHeap μ| for all |μ|
+  Furthermore, let |αE μ :<->: γE μ = persistHeap μ| for all |μ|
   and |βE μ := αE μ . set| the representation function.
   \begin{enumerate}[label=(\alph*),ref=\thelemma.(\alph*)]
     \item
@@ -1902,12 +1924,12 @@ With that, we can finally prove that heap progression preserves environment
 abstraction:
 
 \begin{lemma}[Heap progression preserves abstraction]
-  \label{thm:heap-progress-freeze}
+  \label{thm:heap-progress-persist}
   Let |hat D| be a domain with instances for |Trace|, |Domain|, |HasBind| and
   |Lat|, satisfying the abstraction laws
   \textsc{Beta-App}, \textsc{Beta-Sel}, \textsc{Bind-ByName} and
   \textsc{Step-Inc} in \Cref{fig:abstraction-laws}.
-  Furthermore, let |αE μ :<->: γE μ = freezeHeap μ| for all |μ|.
+  Furthermore, let |αE μ :<->: γE μ = persistHeap μ| for all |μ|.
 
   If |μ1 ~> μ2| and |adom d ⊆ dom μ1|, then |αE μ2 d ⊑ αE μ1 d|.
 \end{lemma}
@@ -1988,7 +2010,7 @@ induction hypothesis, which is freely applicable under the ambient |Later|.
   \textsc{Step-Sel}, \textsc{Beta-App}, \textsc{Beta-Sel}, \textsc{Bind-ByName},
   \textsc{Step-Inc} and \textsc{Update}
   in \Cref{fig:abstraction-laws}.
-  Furthermore, let |αE μ :<->: γE μ = freezeHeap μ| for all |μ|.
+  Furthermore, let |αE μ :<->: γE μ = persistHeap μ| for all |μ|.
 
   If   |evalNeed e ρ1 μ1 = many (Step ev) (evalNeed v ρ2 μ2)|,
   then |many (step ev) (eval v (αE μ2 << set << ρ2)) ⊑ eval e (αE μ1 << set << ρ1)|.
@@ -2036,7 +2058,7 @@ By Löb induction and cases on |e|, using the representation function
     |μ3 := ext μ1 a (memo a (evalNeed2 e1 ρ3))|.
 
     Then |(βE μ3 << ρ3) ! y = (βE μ1 << ρ1) ! y| whenever $|x| \not= |y|$
-    by \Cref{thm:ext-freeze-heap},
+    by \Cref{thm:ext-persist-heap},
     and |(βE μ3 << ρ3) ! x = step (Look x) (eval e1 (βE μ3 << ρ3))|.
 
     We prove the goal, thus
@@ -2064,7 +2086,7 @@ By Löb induction and cases on |e|, using the representation function
   \item \textbf{Case} |App e x|:
     Very similar to \Cref{thm:eval-preserves}, since the heap is never updated or
     extended.
-    There is one exception: We must apply \Cref{thm:heap-progress-freeze}
+    There is one exception: We must apply \Cref{thm:heap-progress-persist}
     to argument denotations.
 
     We have |evalNeed e ρ1 μ1 = many (Step ev1) (evalNeed (Lam y body) ρ3 μ3)|
@@ -2080,7 +2102,7 @@ By Löb induction and cases on |e|, using the representation function
         step App1 (apply (many (step ev1) (eval (Lam y body) (βE μ3 << ρ3))) ((βE μ3 << ρ1) ! x))
     ⊑   {- Induction hypothesis at |many ev1| -}
         step App1 (apply (eval e (βE μ1 << ρ1)) ((βE μ3 << ρ1) ! x))
-    ⊑   {- \Cref{thm:heap-progress-freeze} -}
+    ⊑   {- \Cref{thm:heap-progress-persist} -}
         step App1 (apply (eval e (βE μ1 << ρ1)) ((βE μ1 << ρ1) ! x))
     =   {- Refold |eval| -}
         eval (App e x) (βE μ1 << ρ1)
@@ -2108,7 +2130,7 @@ By Löb induction and cases on |e|, using the representation function
 \end{itemize}
 \end{proof}
 
-Using |freezeHeap|, we can give a Galois connection expressing correctness of a
+Using |persistHeap|, we can give a Galois connection expressing correctness of a
 by-name analysis \wrt by-need semantics:
 
 % TODO There is potential to extract useful Galois Connections from this large
@@ -2118,7 +2140,7 @@ by-name analysis \wrt by-need semantics:
 \label{thm:soundness-by-need}
 Let |hat D| be a domain with instances for |Trace|, |Domain|, |HasBind| and
 |Lat|, and let |αT :<->: γT = nameNeed|, as well as |αE μ :<->: γE μ =
-freezeHeap μ| from \Cref{fig:name-need}.
+persistHeap μ| from \Cref{fig:name-need}.
 If the abstraction laws in \Cref{fig:abstraction-laws} hold,
 then |eval| instantiates at |hat D| to an abstract interpreter that is sound
 \wrt |γE -> αT|, that is,
@@ -2264,7 +2286,7 @@ We proceed by cases over |e|.
     |μ1 := ext μ a (memo a (evalNeed2 e1 ρ1))|.
 
     Then |(βE μ1 << ρ1) ! y = (βE μ << ρ) ! y| whenever $|x| \not= |y|$
-    by \Cref{thm:ext-freeze-heap},
+    by \Cref{thm:ext-persist-heap},
     and |(βE μ1 << ρ1) ! x = step (Look x) (eval e1 (βE μ1 << ρ1))|.
     \begin{spec}
         βT (evalNeed (Let x e1 e2) ρ μ)
@@ -2274,7 +2296,7 @@ We proceed by cases over |e|.
         step Let1 (βT (evalNeed e2 ρ1 μ1))
     ⊑   {- Induction hypothesis, unfolding |ρ1| -}
         step Let1 (eval e2 (ext (βE μ1 << ρ) x (βE μ1 (ρ1 ! x))))
-    =   {- Expose fixpoint, rewriting |βE μ1 (ρ1 ! x)| to |ext (βE μ << ρ) x (βE μ1 (ρ1 ! x))| using \Cref{thm:ext-freeze-heap} -}
+    =   {- Expose fixpoint, rewriting |βE μ1 (ρ1 ! x)| to |ext (βE μ << ρ) x (βE μ1 (ρ1 ! x))| using \Cref{thm:ext-persist-heap} -}
         step Let1 (eval e2 (ext (βE μ << ρ) x (lfp (\(hat d1) -> step (Look x) (eval e1 (ext (βE μ << ρ) x (hat d1)))))))
     =   {- Partially unroll fixpoint -}
         step Let1 (eval e2 (ext (βE μ << ρ) x (step (Look x) (lfp (\(hat d1) -> eval e1 (ext (βE μ << ρ) x (step (Look x) (hat d1))))))))
@@ -2294,7 +2316,7 @@ expressions, just as before:
 \label{thm:usage-abstracts-need}
 Usage analysis |evalUsg| is sound \wrt |evalNeed|, that is,
 \[
-  |αT (set (evalNeed e ρ μ)) ⊑ evalUsg e (αE << set << ρ) where αT :<->: _ = nameNeed; αE μ :<->: _ = freezeHeap μ|
+  |αT (set (evalNeed e ρ μ)) ⊑ evalUsg e (αE << set << ρ) where αT :<->: _ = nameNeed; αE μ :<->: _ = persistHeap μ|
 \]
 \end{lemma}
 \begin{proof}
