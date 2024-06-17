@@ -680,7 +680,7 @@ following analyses as denotational interpreters (details in the Appendix):
     out analysis information for, \eg let bindings.
     \Cref{sec:annotations} proposes a very slight generalisation of the
     |Domain| type class that lifts a stateless analysis into a stateful
-    analyses.
+    analysis writing out annotations for let bindings.
 \end{itemize}
 
 It is nice to define dynamic semantics and static analyses in the same
