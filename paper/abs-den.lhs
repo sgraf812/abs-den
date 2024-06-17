@@ -40,7 +40,7 @@
 
 %%%%%%%
 
-\usepackage[appendix=strip,bibliography=common]{apxproof}
+\usepackage[appendix=append,bibliography=common]{apxproof}
 \renewcommand{\appendixprelim}{\clearpage\onecolumn\appendix\section*{Start of Appendix}} % Clearly mark the begin of the Appendix inserted by apxproof
 
 %\usepackage{array} % \newcolumntype
