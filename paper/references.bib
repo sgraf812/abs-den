@@ -1378,3 +1378,74 @@ location = {Boston, Massachusetts, USA},
 series = {ICFP '13}
 }
 
+@inproceedings{Henglein:94,
+author = {Henglein, Fritz and J\o{}rgensen, Jesper},
+title = {Formally optimal boxing},
+year = {1994},
+isbn = {0897916360},
+publisher = {Association for Computing Machinery},
+address = {New York, NY, USA},
+url = {https://doi.org/10.1145/174675.177874},
+doi = {10.1145/174675.177874},
+abstract = {An important implementation decision in polymorphically typed functional programming language is whether to represent data in boxed or unboxed form and when to transform them from one representation to the other. Using a language with explicit representation types and boxing/unboxing operations we axiomatize equationally the set of all explicitly boxed versions, called completions, of a given source program. In a two-stage process we give some of the equations a rewriting interpretation that captures eliminating boxing/unboxing operations without relying on a specific implementation or even semantics of the underlying language. The resulting reduction systems operate on congruence classes of completions defined by the remaining equations E, which can  be understood as moving boxing/unboxing operations along data flow paths in the source program. We call a completion eopt formally optimal if every other completion for the same program (and at the same representation type) reduces to eopt under this two-stage reduction.We show that every source program has formally optimal completions, which are unique modulo E. This is accomplished by first “polarizing” the equations in E and orienting them to obtain two canonical (confluent and strongly normalizing) rewriting systems. The completions produced by Leroy's and Poulsen's algorithms are generally not formally optimal in our sense.The rewriting systems have  been implemented and applied to some simple Standard ML programs. Our results show that the amount of boxing and unboxing operations is also in practice substantially reduced in comparison to Leroy's completions. This analysis is intended to be integrated into Tofte's region-based implementation of Standard ML currently underway at DIKU.},
+booktitle = {Proceedings of the 21st ACM SIGPLAN-SIGACT Symposium on Principles of Programming Languages},
+pages = {213–226},
+numpages = {14},
+keywords = {polymorphism, representation analysis, type inference},
+location = {Portland, Oregon, USA},
+series = {POPL '94}
+}
+
+@article{Gill:09,
+  title={The worker/wrapper transformation},
+  volume={19},
+  DOI={10.1017/S0956796809007175},
+  number={2},
+  journal={Journal of Functional Programming},
+  author={Gill, Andy and Hutton, Graham},
+  year={2009},
+  pages={227–251}
+}
+
+@inproceedings{Breitner:14,
+  author = {Breitner, Joachim and Eisenberg, Richard A. and Peyton Jones, Simon and Weirich, Stephanie},
+  title = {Safe zero-cost coercions for Haskell},
+  year = {2014},
+  isbn = {9781450328739},
+  publisher = {Association for Computing Machinery},
+  address = {New York, NY, USA},
+  url = {https://doi.org/10.1145/2628136.2628141},
+  doi = {10.1145/2628136.2628141},
+  abstract = {Generative type abstractions -- present in Haskell, OCaml, and other languages -- are useful concepts to help prevent programmer errors. They serve to create new types that are distinct at compile time but share a run-time representation with some base type. We present a new mechanism that allows for zero-cost conversions between generative type abstractions and their representations, even when such types are deeply nested. We prove type safety in the presence of these conversions and have implemented our work in GHC.},
+  booktitle = {Proceedings of the 19th ACM SIGPLAN International Conference on Functional Programming},
+  pages = {189–202},
+  numpages = {14},
+  keywords = {type class, newtype deriving, haskell, coercion},
+  location = {Gothenburg, Sweden},
+  series = {ICFP '14}
+}
+
+@inproceedings{Launchbury:94,
+  author = {Launchbury, John and Peyton Jones, Simon L.},
+  title = {Lazy functional state threads},
+  year = {1994},
+  isbn = {089791662X},
+  publisher = {Association for Computing Machinery},
+  address = {New York, NY, USA},
+  url = {https://doi.org/10.1145/178243.178246},
+  doi = {10.1145/178243.178246},
+  abstract = {Some algorithms make critical internal use of updatable state, even though their external specification is purely functional. Based on earlier work on monads, we present a way of securely encapsulating stateful computations that manipulate multiple, named, mutable objects, in the context of a non-strict, purely-functional language.The security of the encapsulation is assured by the type system, using parametricity. Intriguingly, this parametricity requires the provision of a (single) constant with a rank-2 polymorphic type.},
+  booktitle = {Proceedings of the ACM SIGPLAN 1994 Conference on Programming Language Design and Implementation},
+  pages = {24–35},
+  numpages = {12},
+  location = {Orlando, Florida, USA},
+  series = {PLDI '94}
+}
+
+@misc{SPJ:06,
+  author = {Peyton Jones, Simon and Sestoft, Peter and Hughes, John},
+  title = {Demand Analysis},
+  year = {2006},
+  month = {July},
+  url = {https://www.microsoft.com/en-us/research/publication/demand-analysis/},
+}

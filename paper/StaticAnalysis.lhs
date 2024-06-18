@@ -52,7 +52,7 @@ We prove that usage analysis correctly infers absence in \Cref{sec:soundness}.
 as a deliberately simple, second summary-based analysis that shares its
 preservation proof in \Cref{sec:soundness} with usage analysis.
 
-Finally, \Cref{sec:more-analysis} briefly discusses how we have successfully
+Finally, \Cref{sec:more-analyses} briefly discusses how we have successfully
 realised \citeauthor{Milner:78}'s Algorithm J, 0CFA control-flow analysis and
 GHC's Demand Analysis as denotational interpreters.
 

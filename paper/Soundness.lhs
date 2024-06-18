@@ -157,7 +157,7 @@ Function |abstract| runs its denotation in the empty heap |emp| and hands over
 to a function |β| that folds the trace into an abstract domain element in |hat
 D|.
 Since |hat D| has a |Lat| instance, such a |β| is called a \emph{representation
-function}~\citep[Section 4.3]{Nielson:99}, which gives rise to a Galois
+function}~\citep[Section 4.3]{Nielson:99} which gives rise to a Galois
 connection defined via |repr β| from the powerset lattice of by-need traces
 (\ie trace properties) into |hat D|.
 Function |β| eliminates every |Step ev| in the by-need trace with a call to
@@ -172,8 +172,8 @@ The precise type of |persistHeap| involves a predicate to characterise the
 definable entities in the heap and is omitted here; details can be found in
 \Cref{fig:name-need}.
 Clearly, \Cref{fig:name-need-gist} is no longer computable Haskell, but it is
-well-defined math; for example, the recursion in $|persistHeap|.|β|$ is defined
-via least fixpoints in |Lat (hat D)|.
+mathematiclly well-defined; for example, the recursion in $|persistHeap|.|β|$
+is defined via least fixpoints in |Lat (hat D)|.
 
 When the trace ends in a |Con| value, every field denotation |d| is abstracted
 via |persistHeap μ|.
@@ -429,10 +429,10 @@ constructor redexes, which is why it needs to duplicate much of the |cont|
 function in \Cref{fig:eval} into its premise.
 Rule \textsc{Bind-ByName} expresses that the abstract |bind| implementation must
 be sound for by-name evaluation, that is, it must approximate passing the least
-fixpoint |lfp| of the |rhs| functional to |body|.%
-\footnote{We expect that for sound by-value abstraction it suffices to replace
-\textsc{Bind-ByName} with a law \textsc{Bind-ByValue} mirroring the |bind|
-instance of |ByValue|, but have not attempted a formal proof.}
+fixpoint |lfp| of the |rhs| functional to |body|.
+%\footnote{We expect that for sound by-value abstraction it suffices to replace
+%\textsc{Bind-ByName} with a law \textsc{Bind-ByValue} mirroring the |bind|
+%instance of |ByValue|, but have not attempted a formal proof.}
 The remaining rules are congruence rules involving |step| and |stuck| as well as
 a monotonicity requirement for all involved operations.
 These rules follow the mantra ``evaluation improves approximation''; for example,
@@ -445,11 +445,11 @@ for by-name evaluation which does not require the by-need specific rules
 \textsc{Step-Inc} and \textsc{Update}.
 
 Note that none of the laws mention the concrete semantics or the abstraction
-function |abstract|. This is how our opinionated approach pays off: because both
-concrete semantics and |abstract| are known, the usual abstraction laws such as
-|α (apply d a) ⊑ hat apply (α d) (α a)| further decompose
-into \textsc{Beta-App}.
-We think this is an important advantage to our approach, because the author of
+function |abstract|.
+This is how fixing the concrete semantics and |abstract| pays off; the usual
+abstraction laws such as |α (apply d a) ⊑ hat apply (α d) (α a)| further
+decompose into \textsc{Beta-App}.
+We think this is a nice advantage to our approach, because the author of
 the analysis does not need to reason about the concrete semantics in order to
 soundly approximate a semantic trace property expressed via |Trace| instance!
 
@@ -604,6 +604,18 @@ doesn't change when an expression is put in an arbitrary evaluation context.
 The final step is just algebra.
 \end{proof}
 
+\subsection{Preservation for Boxity Analysis and Evaluation}
+
+\Cref{thm:soundness-by-need-closed} is useful for more analyses than just usage
+analysis.
+This is easily demonstrated by applying it to boxity analysis:
+
+TODO
+
+Similar to usage analysis, this preservation lemma is not of much use by itself, but
+it would be an important part of, \eg an improvement theorem that connects
+boxity analysis with a corresponding unboxing transformation.
+
 Let us compare to the preservation-style proof framework in \Cref{sec:problem}.
 \begin{itemize}
   \item
@@ -622,7 +634,7 @@ Let us compare to the preservation-style proof framework in \Cref{sec:problem}.
     Of course, we lean on \Cref{thm:soundness-by-need-closed} to prove what
     amounts to a preservation lemma; the difference is that our proof properly
     accounts for heap update and can be shared with other analyses that are
-    sound \wrt by-name and by-need such as type analysis and 0CFA.
+    sound \wrt by-name and by-need such as boxity analysis.
     Thus, we achieve our goal of proving semantic distractions ``once and for all''.
 \end{itemize}
 
