@@ -192,10 +192,10 @@ such that \textsc{Beta-App} can be proved without depending on the definition of
 Finding such abstract characterisations is trivial for first-order analyses
 without summary mechanisms, so their proofs tend to be automatically modular.
 Furthermore, we can recognise |f| as an instance of the type
-|forall d. (Trace d, Domain d, HasBind d) => d -> d| which comes with strong
-parametricity guarantees (of the meta language), such as definability in terms
-of SK calculus and type class methods.
-Such a (weaker) characterisation does not depend on the particular
+|forall d. (Trace d, Domain d, HasBind d) => d -> d| which comes with
+parametricity guarantees such as definability in terms of SK calculus and type
+class methods.
+Such a weakened characterisation does not depend on the particular
 implementation of |f| at all, as in \citet{Keidel:18}.
 However, as framework authors we cannot anticipate all viable abstract
 characterisations, hence we supply the strongest syntactic characterisation,
