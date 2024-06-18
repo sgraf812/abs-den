@@ -508,8 +508,17 @@ m !??? x  | not (cbv x)  = R
 \begin{code}
 cbv _ = True
 deriving instance Eq B
-deriving instance Eq a => Eq (BT a)
 deriving instance Functor BT
+
+index :: (Boxes, Boxes) -> B -> Boxes
+index (φ1, φ2) X = φ1
+index (φ1, φ2) R = φ1 ⊔ φ2
+
+instance Eq v => Eq (BT v) where
+  MkBT φ11 φ12 v1 == MkBT φ21 φ22 v2
+    =  index (φ11, φ12) X == index (φ21, φ22) X
+    && index (φ11, φ12) R == index (φ21, φ22) R
+    && v1 == v2
 
 instance Eq BValue where
   BRep b1 == BRep b2 = b1 == b2
@@ -541,72 +550,71 @@ instance Show BValue where
 
 Let us consider another abstract instance of the denotational interpreter in
 this subsection: a simple form of \emph{boxity analysis}~\citep{Henglein:94}.
-The reason for presenting this analysis is mainly so that we can use
-our framework to share the preservation proof with usage analysis in
-\Cref{sec:soundness}.
+The reason for presenting this analysis is to use our framework to share its
+preservation proof with usage analysis in \Cref{sec:soundness}.
 
-The structure of boxity analysis, defined in \Cref{fig:boxity-analysis}, is
-quite similar to usage analysis and most of the intuition carries over, yet its
-purpose is rather different:
-Boxity analysis infers whether a heap-allocated value such as a pair |(x, y)|
-or a boxed integer can be represented more efficiently, perhaps by unboxing the
-pair and passing around the pair components |x| and |y| individually to save
-allocation of the pair.
-With nested data structures, it is not always feasible to
-unbox a pair in this way; consider the example expression
-\[\pe_1 \triangleq \Let{z}{Z()}{\Let{\mathit{o}}{S(z)}{\Lam{x}{\mathit{Pair}(o,o)}}}.\]
-\noindent
-If we were to unbox $\mathit{o}$ in $\pe_1$, what would we put in its use sites?
-There would be no way other than to \emph{rebox} $\mathit{o}$ before constructing
-the result pair, yielding the expression
-\[\pe_2 \triangleq \Let{z}{Z()}{\Lam{x}{\mathit{Pair}(S(z),S(z))}}.\]
-\noindent
-The expression $\mathit{Pair}(S(z),S(z))$ is not technically part of |Exp| because
-the arguments $S(z)$ are not variables, but
-in the interest of compact examples we will from now on
-assume that such arguments are implicitly let-bound, \ie
-$\mathit{Pair}(S(z),S(z))=\Let{t_1}{S(z)}{\Let{t_2}{S(z)}{\mathit{Pair}(t_1,t_2)}}$.
+Boxity analysis, defined in \Cref{fig:boxity-analysis}, is quite similar to
+usage analysis and most of the intuition carries over, yet its purpose is rather
+different:
+Boxity analysis infers whether a heap-allocated datum such as a pair or a boxed
+integer can be profitably \emph{unboxed} to save allocation.
+Consider
+\[|evalBox (({-" \Lam{p}{\Case{p}{\{ \mathit{Pair}(x,y) \to x \}}} "-})) emp|
+ = \perform{evalBox (read "λp. case p of { Pair(x,y) -> x }") emp} \]
+Since the argument pair $p$ in this example only occurs in a case scrutinee, it
+would be beneficial to pass $p$ unboxed and cancel away the case scrutinisation
+in the process.
+Doing so would yield the expression $\Lam{x}{\Lam{y}{x}}$, where $x$ and $y$
+bind the components of the original argument $p$.
+In a typed language, the change in calling convention can be communicated to
+clients automatically via the \emph{worker/wrapper} transformation~\citep{Gill:09}.
 
-Expression $\pe_2$ actually performs worse than $\pe_1$, because the original
+In the example above, boxity analysis infers the abstract value |BCons X (BRep
+R) :: BValue|, which says that the box of the argument $p$ is \emph{discarded}
+(boxity flag |X :: B|) and thus safe to unbox.
+Any further arguments are conservatively flagged as \emph{retained} (boxity flag
+|R :: B|).
+
+With nested data and parametric polymorphism, it is not always feasible to
+unbox. Consider
+\[|evalBox (({-" \pe_1 \triangleq \Let{z}{Z()}{\Let{\mathit{o}}{S(z)}{\Lam{x}{\mathit{Pair}(o,o)}}} "-})) emp|
+ = \perform{evalBox (read "let z = Z() in let o = S(z) in λx. Pair(o,o)") emp} \]
+\noindent
+If we were to unbox the let-bound $\mathit{o}$ in $\pe_1$, what would we put in
+its use sites?
+We would be forced to \emph{rebox} $\mathit{o}$ before constructing the result
+pair, yielding the expression
+\[\pe_2 \triangleq \Let{z}{Z()}{\Lam{x}{\Let{t_1}{S(z)}{\Let{t_2}{S(z)}{\mathit{Pair}(t_1,t_2)}}}}.\]
+\noindent
+%The expression $\mathit{Pair}(S(z),S(z))$ is not technically part of |Exp| because
+%the arguments $S(z)$ are not variables, but
+%in the interest of compact examples we will from now on
+%assume that such arguments are implicitly let-bound, \ie
+%$\mathit{Pair}(S(z),S(z))=\Let{t_1}{S(z)}{\Let{t_2}{S(z)}{\mathit{Pair}(t_1,t_2)}}$.
+Expression $\pe_2$ performs worse than $\pe_1$, because the original
 natural $o$ will be allocated twice ($t_1$,$t_2$) for every call of the lambda;
-thus $o$ is not \emph{safe to unbox} without risking performance regressions.
+thus $o$ is not profitable to unbox.
 Typed languages featuring parametric polymorphism require a boxed representation
 for polymorphic arguments as well.
 
-Our boxity analysis, defined in \Cref{fig:boxity-analysis}, returns the following
-result for $\pe_1$:
-\[|evalBox (({-" \Let{z}{Z()}{\Let{\mathit{o}}{S(z)}{\Lam{x}{\mathit{Pair}(o,o)}}} "-})) emp|
- = \perform{evalBox (read "let z = Z() in let o = S(z) in λx. Pair(o,o)") emp} \]
-The reading of the result is similar to that of usage analysis: the free variable
-environment $[o \mapsto |R|, z \mapsto |R|]$ says that the boxes of the free
-variables $o$ and $z$ are \emph{retained} (boxity flag |R :: B|), meaning
-unboxing $o$ may lead to reboxing.
-The abstract value |BCons X (BRep R) :: BValue| says that the box of the absent
-argument $x$ is \emph{discarded} (boxity flag |X :: B|), so it is safe to unbox.
-Any further arguments are conservatively flagged as retained (|Rep R|).
-The total order |X ⊏ R| lifts to a |Lat| instance on |BD|, similar to
-usage analysis.
-Free variables not present in |φ :: Boxes| can be discarded.
+Boxity analysis prevents misguided unboxing of $o$ by returning a free variable
+environment $[o \mapsto |R|, z \mapsto |R|]| :: Uses|$ which says that the boxes
+of $o$ and $z$ are retained and thus not safe to unbox.
 
-When a variable is only used in case scrutinees, we may still discard its
-box, as for the formal argument of $\mathit{fst}$ below:
-\begin{equation}\thickmuskip=4mu\small|evalBox (({-" \Let{\mathit{fst}}{\Lam{p}{\Case{p}{\{ \mathit{Pair}(x,y) \to x \}}}}{\mathit{fst}} "-})) emp|
- = \perform{evalBox (read "let fst = λp. case p of { Pair(x,y) -> x } in fst") emp} \label{ex:box-fst} \end{equation}
-The result |X| for the argument $p$ indicates that $p$ should be passed unboxed,
-\ie $\Let{\mathit{fst}}{\Lam{x}{\Lam{y}{x}}}{\mathit{fst}}$.
-In a typed language, the change in calling convention can be communicated to
-clients via the \emph{worker/wrapper} transformation~\citep{Gill:09}.
+What is and what is not profitable to unbox ultimately depends on the
+sophistication of an associated unboxing transformation.
+For simplicity, the present boxity analysis suggests to unbox function arguments
+only.
+It does \emph{not} suggest to unbox nested data nor function results.
+For example, the identity function retains the box of its argument:
+$|evalBox (({-" \Lam{x}{x} "-})) emp| = \perform{evalBox (read "λx.x") emp}$.
 
-However, when $p$ is \emph{returned} from the function, potential call sites
-such as in $Some$ below might need the box:
-\[|evalBox (({-" \Lam{x}{Some((\Lam{p}{p})~x)} "-})) emp|
- = \perform{evalBox (read "λx. Some((λp.p) x)") emp} \]
-In general, the analysis states that a box of some variable $x$ is retained
-whenever (1) it is returned (|fun|), or (2) it is called (|apply|), or (3) it is
-passed to a function that needs the argument boxed (|apply|), or (4) it is put
-in the field of a data constructor (|con|).
-This corresponds exactly to the four uses of the function |retain| in
-\Cref{fig:boxity-analysis}.
+In the implementation of boxity analysis, a box is retained whenever (1) it
+is returned (|fun|), or (2) it is called (|apply|), or (3) it is passed to a
+function that needs the argument boxed (|apply|), or (4) it is put in the field
+of a data constructor (|con|).
+This corresponds exactly to the four uses of the function |retain|
+in \Cref{fig:boxity-analysis}.
 However, the box can be discarded when the variable is just scrutinised, hence
 there is no call to |retain| on the scrutinee |d| in |select|.
 
@@ -615,16 +623,26 @@ given |d := MkBT φ1 φ2 v :: BD|, environment |φ1| lists boxity constraints
 required to evaluate |d| to a value, \emph{discarding} its box.
 This is a suitable environment to unleash for the scrutinee in |select|.
 Furthermore, |φ1 ⊔ φ2| lists boxity constraints required to evaluate |d| to
-a value, \emph{retaining} its box.%
-\footnote{Thus, |φ1| and |φ1 ⊔ φ2| tabulate a monotone function |B ->
-Boxes| from required boxity to resulting boxity constraints.}
+a value, \emph{retaining} its box.
 This is a suitable environment to unleash in cases (1) to (4).
-The differential environment |φ2| will only be non-empty when a variable
-flows into the result, such as in \Cref{ex:box-fst}.
+The differential environment |φ2| is non-empty when a variable flows into the
+result, such as in
+$|evalBox (({-" \Let{x}{Z()}{x} "-})) emp| = \perform{evalBox (read "let x = Z() in x") emp}$.
 
-Function |retain| is best understood in conjunction with the
-|Monad BT| instance.
-This instance writes out |φ1|, but not |φ2|; hence |d >> d2| means
+In effect, the two environments |φ1| and |φ2| represent a function |index|
+from required boxity to resulting boxity constraints:
+\begin{spec}
+index :: (Boxes, Boxes) -> B -> Boxes
+index (φ1, φ2) X = φ1
+index (φ1, φ2) R = φ1 ⊔ φ2
+\end{spec}
+And the notion of equality on |BT| is defined in terms of |index|.
+The |Lat| instance on |BD| is defined by the total order |X ⊏ R|, lifted
+productwise and pointwise, similar to usage analysis.
+
+Function |retain| is best understood in conjunction with the |Monad BT|
+instance.
+This instance accumulates |φ1|, but not |φ2|; hence |d >> d2| means
 ``evaluate |d|, discard its box and continue with |d2|'',
 whereas |retain d >> d2| shifts |φ1 ⊔ φ2| into |φ1| and thus means
 ``evaluate |d|, retain its box and continue with |d2|''.
@@ -636,8 +654,9 @@ GHC solves this problem by retaining any boxes of lazy and used arguments.
 For boxity analysis we simply postulate an oracle |cbv :: Name -> Bool| that
 returns |True| for variables that are strict, absent or are let-bound to values
 to begin with.
-This postulate does not influence the preservation result that we derive in
-\Cref{sec:soundness} in any way.
+%This postulate does not influence the preservation result that we derive in
+%\Cref{sec:soundness}, although it would have an effect on an improvement theorem
+%for the unboxing transformation guided by boxity analysis.
 
 \subsection{More Analyses}
 \label{sec:more-analyses}
