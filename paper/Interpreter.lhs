@@ -432,16 +432,17 @@ $\perform{eval (read "let zro = Z() in zro zro") emp :: D (ByName T)}$
 By varying the |HasBind| instance of our type |D|, we can endow our language
 |Exp| with different evaluation strategies.
 The appeal of that is, firstly, that it is possible to do so without changing
-the interpreter definition, supporting the claim that our pattern is equally
-suited to model lazy as well as strict semantics.
+the interpreter definition, supporting the claim that the denotational
+interpreter design pattern is equally suited to model lazy as well as strict
+semantics.
 More importantly, in order to prove usage analysis sound \wrt by-need evaluation
 in \Cref{sec:soundness}, we need to define a semantic domain for call-by-need!
 It turns out that the interpreter thus derived is the --- to our knowledge ---
 first provably adequate denotational semantics for call-by-need (\Cref{sec:adequacy}).
 
 Although the main body discusses only by-name and by-need semantics,
-we provide instances for three different call-by-value semantics in
-\Cref{sec:more-eval-strat} as well.
+we provide instances for call-by-value as well as clairvoyant
+semantics~\citep{HackettHutton:19} in \Cref{sec:more-eval-strat} as well.
 
 \subsubsection{Call-by-name}
 

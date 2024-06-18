@@ -65,6 +65,8 @@
 %format φ = "\varcolor{\varphi}"
 %format φ1
 %format φ2
+%format φ3
+%format φ4
 %format μ = "\varcolor{\mu}"
 %format μ1
 %format μ2

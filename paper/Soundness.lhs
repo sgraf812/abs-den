@@ -48,23 +48,6 @@ This proof will be much simpler than the proof for \Cref{thm:absence-correct}.
 The main body will only discuss abstraction of closed terms, but the underlying
 \Cref{thm:soundness-by-need} in the Appendix considers open terms as well.
 
-%In \Cref{sec:problem} we argued that a proof for such a lemma drowned in
-%semantic complexity unrelated to the analysis at hand, so the proof became
-%tedious, hand-wavy and error-prone.
-
-%This section will finally link back to \Cref{sec:problem}
-%and prove that usage analysis infers absence in the sense of
-%\Cref{defn:absence}\sven{Section title is more general then what you promis here. The section title makes you believe that you explain how soundness can be proved in general (for all analyses), but in the first sentence you refer to the usage analysis}\sven{Add one sentence motivating why proving that the usage analysis infering absence is important}.
-
-%Instead, we instantiate a generic soundness statement, one
-%that can be reused across many static analyses instantiating our denotational
-%interpreter, provided they are sound \wrt by-name and by-need evaluation.
-%%The analysis-specific proof mainly concerns the operations of the abstract
-%%|Domain|; in case of usage analysis, this proof takes about half a page.
-%The soundness statement can be understood in terms of \emph{abstract
-%interpretation}, justifying our view of usage analysis as formally abstracting a
-%concrete denotational interpreter.
-
 \begin{figure}
   \[\begin{array}{c}
     \inferrule[\textsc{Mono}]{|d1 ⊑ d2| \\ |f1 ⊑ f2|}{%
@@ -120,12 +103,6 @@ by-need interpretation (\Cref{thm:soundness-by-need-closed}), referring to the
 In other words: prove the abstraction laws for an abstract domain |hat D| of
 your choosing and we give you for free a proof of sound abstract by-need
 interpretation for the static analysis |eval3 (hat D) e emp|!
-
-%The significance of \Cref{thm:usage-abstracts-need-closed} is that it approximates a
-%value computed from the \emph{dynamic by-need semantics} on the left-hand side
-%with a result of the \emph{static analysis} on the right-hand side; it provides
-%\Cref{thm:usage-absence} with an ``interface'' between semantic properties
-%and static analysis.
 
 \begin{figure}
 \belowdisplayskip=0pt
@@ -462,7 +439,8 @@ The reason we do so is to evaluate the proof complexity of our approach against
 the preservation-style proof framework in \Cref{sec:problem}.
 
 Specifically, \Cref{thm:soundness-by-need-closed} makes it very simple to relate
-by-need semantics with usage analysis:
+by-need semantics with usage analysis, taking the place of the absence
+analysis-specific preservation \Cref{thm:preserve-absent}:
 
 \begin{lemmarep}[|evalUsg| abstracts |evalNeed2|]
 \label{thm:usage-abstracts-need-closed}
@@ -604,33 +582,75 @@ doesn't change when an expression is put in an arbitrary evaluation context.
 The final step is just algebra.
 \end{proof}
 
-\subsection{Preservation for Boxity Analysis and Evaluation}
+\subsection{Sound By-need Interpretation for Boxity Analysis}
 
 \Cref{thm:soundness-by-need-closed} is useful for more analyses than just usage
 analysis.
 This is easily demonstrated by applying it to boxity analysis:
 
-TODO
+\begin{lemmarep}[|evalBox| abstracts |evalNeed2|]
+\label{thm:boxity-abstracts-need-closed}
+Let |e| be a closed expression and |abstract| the abstraction function from
+\Cref{fig:name-need-gist}.
+Then |abstract (evalNeed2 e emp) ⊑ evalBox e emp|.
+\end{lemmarep}
+\begin{proof}
+By \Cref{thm:soundness-by-need-closed}, it suffices to show the abstraction laws
+in \Cref{fig:abstraction-laws}.
+\begin{itemize}
+  \item \textsc{Mono}:
+    Similar to usage analysis, all operations on |B| are monotone.
+    Function |apply| is a bit tricky due to conditional way in which it
+    uses |retain|, though.
+    This is in part due to a non-standard ordering on |BT|,
+    because the two |Boxes| really tabulate a monotone function |B -> Boxes| via
+    \begin{spec}
+      index :: (Boxes,Boxes) -> B -> Boxes
+      index (φ1,φ2) X = φ1
+      index (φ1,φ2) R = φ1 ⊔ φ2
+    \end{spec}
+    Using the implied ordering on monotone functions in |B -> Boxes|, it is not
+    difficult to see that |d ⊑ retain d| and hence that |apply| is monotone as
+    well.
+  \item \textsc{Unwind-Stuck}, \textsc{Intro-Stuck}:
+    Trivial, since |stuck = bottom|.
+  \item \textsc{Step-App}, \textsc{Step-Sel}, \textsc{Step-Inc}, \textsc{Update}:
+    Follows by unfolding |step e d = d|.
+  \item \textsc{Beta-App}:
+    Follows from a substitution lemma similar to \Cref{thm:usage-subst}.
+  \item \textsc{Beta-Sel}:
+    Follows by unfolding |select| and |con| and applying that same substitution
+    lemma multiple times.
+  \item \textsc{Bind-ByName}:
+    We have |body (lfp rhs) ⊑ body (kleeneFix rhs)|, and the definition of |bind|
+    uses a |rhs'| such that |rhs ⊑ rhs'|, so the result follows from
+    monotonicity of |kleeneFix| and |body|.
+\end{itemize}
+\end{proof}
 
-Similar to usage analysis, this preservation lemma is not of much use by itself, but
-it would be an important part of, \eg an improvement theorem that connects
-boxity analysis with a corresponding unboxing transformation.
+Similar to usage analysis, this sound abstract interpretation theorem is
+not of much use by itself, but it would be an important part of, \eg an
+improvement theorem that connects boxity analysis with a corresponding unboxing
+transformation.
+
+\subsection{Evaluation}
 
 Let us compare to the preservation-style proof framework in \Cref{sec:problem}.
 \begin{itemize}
   \item
     Where there were multiple separate \emph{semantic artefacts} such as a separate
     small-step semantics and an extension of the absence analysis function to
-    machine configurations $σ$ in order to state a preservation lemma,
-    our proof only has a single semantic artefact that needs to be defined and
-    understood: the denotational interpreter, albeit with different instantiations.
+    machine configurations $σ$ in order to state preservation
+    (\Cref{thm:preserve-absent}), our proof only has a single semantic artefact
+    that needs to be defined and understood: the denotational interpreter,
+    albeit with different instantiations.
   \item
 %    The substitution lemma is common to both approaches and indispensable in
 %    proving the summary mechanism correct.
     What is more important is that a simple proof for
     \Cref{thm:usage-abstracts-need-closed} in half a page (we encourage the
-    reader to take a look) replaces a tedious, error-prone and incomplete (for a
-    lack of step indexing) \emph{proof for the preservation lemma}.
+    reader to take a look) replaces a tedious, error-prone and incomplete
+    \emph{proof for the preservation lemma}.
     Of course, we lean on \Cref{thm:soundness-by-need-closed} to prove what
     amounts to a preservation lemma; the difference is that our proof properly
     accounts for heap update and can be shared with other analyses that are
