@@ -101,7 +101,7 @@ by-need interpretation (\Cref{thm:soundness-by-need-closed}), referring to the
 \end{array}\]
 \noindent
 In other words: prove the abstraction laws for an abstract domain |hat D| of
-your choosing and we give you for free a proof of sound abstract by-need
+your choosing and we give you a proof of sound abstract by-need
 interpretation for the static analysis |eval3 (hat D) e emp|!
 
 \begin{figure}
@@ -141,8 +141,8 @@ Function |β| eliminates every |Step ev| in the by-need trace with a call to
 |step ev|, and eliminates every concrete |Value| at the end of the trace with a
 call to the corresponding |Domain| method.
 
-To that end, the final heap |μ| is then persisted into a Galois connection
-|persistHeap μ| that abstracts entries in concrete environments |ρ ! x|
+To that end, the final heap |μ| is persisted into a Galois connection
+|persistHeap μ| that abstracts entries of concrete environments |ρ ! x|
 into entries of abstract environments |hat ρ ! x|, resolving all |fetch a|
 operations using entries |μ ! a| in the persisted heap.
 The precise type of |persistHeap| involves a predicate to characterise the
@@ -425,7 +425,7 @@ Note that none of the laws mention the concrete semantics or the abstraction
 function |abstract|.
 This is how fixing the concrete semantics and |abstract| pays off; the usual
 abstraction laws such as |α (apply d a) ⊑ hat apply (α d) (α a)| further
-decompose into \textsc{Beta-App}.
+decompose for |α = abstract| into \textsc{Beta-App}.
 We think this is a nice advantage to our approach, because the author of
 the analysis does not need to reason about the concrete semantics in order to
 soundly approximate a semantic trace property expressed via |Trace| instance!
@@ -586,7 +586,10 @@ The final step is just algebra.
 
 \Cref{thm:soundness-by-need-closed} is useful for more analyses than just usage
 analysis.
-This is easily demonstrated by applying it to boxity analysis:
+This is easily demonstrated by applying it to boxity analysis from
+\Cref{sec:boxity-analysis}.
+(The implementation of this analysis is not important other than to understand
+the proof.)
 
 \begin{lemmarep}[|evalBox| abstracts |evalNeed2|]
 \label{thm:boxity-abstracts-need-closed}
@@ -628,10 +631,10 @@ in \Cref{fig:abstraction-laws}.
 \end{itemize}
 \end{proof}
 
-Similar to usage analysis, this sound abstract interpretation theorem is
-not of much use by itself, but it would be an important part of, \eg an
-improvement theorem that connects boxity analysis with a corresponding unboxing
-transformation.
+Similar to \Cref{thm:usage-abstracts-need-closed} for usage analysis, this sound
+abstract interpretation theorem is not of much use by itself, but it would be an
+important part of, \eg an improvement theorem that connects boxity analysis with
+a corresponding unboxing transformation.
 
 \subsection{Evaluation}
 

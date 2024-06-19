@@ -39,32 +39,22 @@ interpreter on the program statically, at compile time, to yield a \emph{finite}
 abstraction of the dynamic behavior.
 This gives us a \emph{static program analysis}.
 
-We can get a wide range of static analyses, simply by choosing an appropriate semantic domain.
-\Cref{sec:usage-analysis} defines a summary-based \emph{usage analysis}, a
-generalisation of absence analysis from \Cref{sec:problem} and the running
-example of this work.
-This analysis demonstrates that our framework is suitable to infer
-\emph{operational properties}, such as an upper bound on the number of
+To demonstrate this idea, we define a summary-based \emph{usage analysis} in this section.
+Its code is given in \Cref{fig:usage-analysis}.
+Usage analysis generalises absence analysis from \Cref{sec:problem} and is the
+running example of this work.
+It is a compelling example because it illustrates that our framework is suitable
+to infer \emph{operational properties}, such as an upper bound on the number of
 variable lookups.
 We prove that usage analysis correctly infers absence in \Cref{sec:soundness}.
 
-\Cref{sec:boxity-analysis} introduces \emph{boxity analysis}~\citep{Henglein:94}
-as a deliberately simple, second summary-based analysis that shares its
-preservation proof in \Cref{sec:soundness} with usage analysis.
+To show the applicability of our framework, \Cref{sec:more-analyses} briefly
+discusses other successful realisations of analyses such as boxity
+analysis~\citep{Henglein:94}, \citeauthor{Milner:78}'s ML-style type inference,
+0CFA control-flow analysis and GHC's Demand Analysis as denotational
+interpreters.
 
-Finally, \Cref{sec:more-analyses} briefly discusses that we have successfully
-realised \citeauthor{Milner:78}'s ML-style type inference, 0CFA control-flow
-analysis and GHC's Demand Analysis as denotational interpreters.
-
-\subsection{Usage Analysis}
-\label{sec:usage-analysis}
-
-In this section, we demonstrate how to derive a static analysis from the generic
-denotational interpreter in detail, using a much simpler version of GHC's Demand
-Analysis: a summary-based \emph{usage analysis}, the code of which is given in
-\Cref{fig:usage-analysis}.
-
-\subsubsection{Trace Abstraction in |Trace UT|}
+\subsection{Trace Abstraction in |Trace UT|}
 \label{sec:usage-trace-abstraction}
 
 \begin{figure}
@@ -195,9 +185,9 @@ instance Show UValue where
 
 In order to recover usage analysis as an instance of our generic interpreter, we
 must define its finitely represented semantic domain |UD|.
-Often, the first step in doing so is to replace the potentially infinite traces
-|T| in dynamic semantic domains such as |DName| with finite data such
-as |UT| in \Cref{fig:usage-analysis}.
+A good first step to take in that direction is to replace the potentially
+infinite traces |T| in dynamic semantic domains such as |DName| with finite data
+such as |UT| in \Cref{fig:usage-analysis}.
 A \emph{usage trace} |MkUT φ val :: UT v| is a pair of a value |val :: v|
 and a finite map |φ :: Uses|, mapping variables to a \emph{usage} |U|.
 The usage |φ !? x| assigned to |x| is meant to approximate the number of |Look x|
@@ -217,14 +207,13 @@ instance in \Cref{fig:usage-analysis}, quite similar to |foldr step| on lists.
 The |step| implementation increments the usage of |x| whenever a |Look x|
 event occurs.
 The addition operation used to carry out incrementation is defined in type class
-instances |UVec U| and |UVec Uses|, together with scalar multiplication.%
+instances |UVec U| and |UVec Uses|, together with scalar multiplication.
 %\footnote{We think that |UVec| models |U|-modules. It is not a vector
 %space because |U| lacks inverses, but the intuition is close enough.}
 For example, |U0 + u = u| and |U1 + U1 = Uω| in |U|, as well as |U0 * u = U0|,
 |Uω * U1 = Uω|.
 These operations lift to |Uses| pointwise, \eg
 |[i ↦ U1] + (Uω * [j ↦ U1]) = [i ↦ U1, j ↦ Uω]|.
-%\slpj{I'm not sure that re-using |(+)| is a good plan.  I keep running off to look for |Num| instances.}
 
 Following through on the |foldr step| idea to abstract a |T| into |UT|
 amounts to what \citet{adi} call a \emph{collecting semantics} of the interpreter.
@@ -243,7 +232,7 @@ this interpreter instance will diverge whenever the input expression diverges.
 We fix this in the next subsection by introducing a finitely represented
 |UValue| to replace |Value UT|.
 
-\subsubsection{Value Abstraction |UValue| and Summarisation in |Domain UD|}
+\subsection{Value Abstraction |UValue| and Summarisation in |Domain UD|}
 
 In this subsection, we complement the trace type |UT| from the previous
 subsection with a corresponding semantic value type |UValue| to get the
@@ -363,7 +352,7 @@ kleeneFix f = go bottom where go x = let x' = f x in if x' ⊑ x then x' else go
 \label{fig:lat}
 \end{figure}
 
-\subsubsection{Finite Fixpoint Strategy in |HasBind UD| and Totality}
+\subsection{Finite Fixpoint Strategy in |HasBind UD| and Totality}
 
 The third and last ingredient to recover a static analysis is the fixpoint
 strategy in |HasBind UD|, to be used for recursive let bindings.
@@ -408,6 +397,7 @@ The resulting definition of |HasBind| is safe for by-name and by-need semantics.
 %important.
 %We discuss this topic in \Cref{sec:safety-extension}.}
 
+\begin{toappendix}
 \subsection{Boxity Analysis}
 \label{sec:boxity-analysis}
 
@@ -655,13 +645,21 @@ to begin with.
 %This postulate does not influence the preservation result that we derive in
 %\Cref{sec:soundness}, although it would have an effect on an improvement theorem
 %for the unboxing transformation guided by boxity analysis.
+\end{toappendix}
 
 \subsection{More Analyses}
 \label{sec:more-analyses}
 
-Beyond usage analysis and boxity analysis, we have successfully realised the
-following analyses as denotational interpreters (details in the Appendix):
+By choosing an appropriate semantic domain to instantiate the generic
+denotational interpreter, we can get a wide range of static analyses.
+Beyond usage analysis, we have successfully realised the following analyses as
+denotational interpreters (details in the Appendix):
 \begin{itemize}
+  \item
+    \Cref{sec:boxity-analysis} introduces \emph{boxity analysis}~\citep{Henglein:94}
+    as a deliberately simple, second summary-based analysis that shares its
+    preservation proof in \Cref{sec:soundness} with usage analysis.
+
   \item
     \Cref{sec:type-analysis} defines a variant of \citeauthor{Milner:78}'s
     Algorithm J --- a \emph{type analysis} with let generalisation, inferring
