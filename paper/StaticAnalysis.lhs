@@ -237,8 +237,6 @@ concatenation and then running our interpreter at, \eg $|D (ByName UT)| \cong
   |eval (({-"\Let{i}{\Lam{x}{x}}{\Let{j}{\Lam{y}{y}}{i~j~j}}"-})) emp| = \perform{eval (read "let i = λx.x in let j = λy.y in i j j") emp :: D (ByName UT)}| :: D (ByName UT)|.
 \]
 \noindent
-From now on, we will assume that program expressions |Exp| are pretty-printed as
-type-set math, as above.
 It is nice to explore whether the |Trace| instance encodes the desired
 operational property in this way, but of little practical relevance because
 this interpreter instance will diverge whenever the input expression diverges.
