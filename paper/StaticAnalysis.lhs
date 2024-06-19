@@ -659,6 +659,8 @@ denotational interpreters (details in the Appendix):
     \Cref{sec:boxity-analysis} introduces \emph{boxity analysis}~\citep{Henglein:94}
     as a deliberately simple, second summary-based analysis that shares its
     preservation proof in \Cref{sec:soundness} with usage analysis.
+    Boxity analysis infers when it is profitable to unbox let-bound variables
+    or function arguments.
 
   \item
     \Cref{sec:type-analysis} defines a variant of \citeauthor{Milner:78}'s
