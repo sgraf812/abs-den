@@ -259,6 +259,7 @@
 %format tl = "\varcolor{\tau^{\later}}"
 %format tl2 = "\varcolor{\tau^{\later}_2}"
 %format κ = "\kappa"
+%format κ_0 = "\kappa_0"
 %format σ_n = "\sigma_n"
 %format σ_m = "\sigma_m"
 %format a_yi = "\varid{a}_{\varid{y},i}"

@@ -17,7 +17,7 @@ Specifically, denotational semantics must be total and adequate.
 \emph{Totality} says that the interpreter is well-defined for every input expression and \emph{adequacy} says that the interpreter produces similar traces as the reference semantics.
 This is an important result because it allows us to switch between operational reference semantics and denotational interpreter as needed, thus guaranteeing compatibility
 of definitions such as absence in \Cref{defn:absence}.
-As before, all the proofs can be found in the Appendix.
+As before, all the (pen-and-paper) proofs can be found in the Appendix.
 
 \subsection{Adequacy of |evalNeed2|}
 \label{sec:adequacy}
@@ -29,22 +29,23 @@ As before, all the proofs can be found in the Appendix.
 %But ultimately I think that is too simple an exercise to count as an interesting
 %Contribution.}
 
-For proving adequacy of |evalNeed2|, we give an abstraction function $α$ from
-small-step traces in the lazy Krivine machine (\Cref{fig:lk-semantics}) to
-denotational traces |T|, with |Events| and all, such that
+For proving adequacy of |evalNeed2|, we give an abstraction function
+$α_{\STraces}$ from small-step traces $\STraces$ in the lazy Krivine machine
+(\Cref{fig:lk-semantics}) to denotational traces |T|, with |Events| and all,
+such that
 \[
-  α(\init(\pe) \smallstep ...) = |evalNeed e emp emp|,
+  α_{\STraces}(\init(\pe) \smallstep ..., \StopF) = |evalNeed e emp emp|,
 \]
 where $\init(\pe) \smallstep ...$ denotes the \emph{maximal} (\ie longest
 possible) LK trace evaluating the closed expression $\pe$.
-For example, for the LK trace \labelcref{ex:trace2}, $α$ produces
+For example, for the LK trace \labelcref{ex:trace2}, $α_{\STraces}$ produces
 the trace at the end of
 \hyperlink{ex:eval-need-trace2}{\Cref*{sec:by-need-instance}}.
 
-It turns out that function $α$ preserves a number of important
+It turns out that function $α_{\STraces}$ preserves a number of important
 observable properties, such as termination behavior (\ie stuck, diverging, or
 balanced execution~\citep{Sestoft:97}), length of the trace and transition
-events, as expressed in the following Theorem:
+events, as expressed in the following theorem:
 
 \begin{theoremrep}[Strong Adequacy]
   \label{thm:need-adequate-strong}
@@ -61,22 +62,61 @@ events, as expressed in the following Theorem:
   \end{itemize}
 \end{theoremrep}
 \begin{proofsketch}
-  Define $α$ by guarded recursion and prove $α(\init(\pe) \smallstep ...) = |evalNeed e emp emp|$ by Löb induction.
-  Then it suffices to prove that $α$ preserves the observable properties of
+  Generalise $α(\init(\pe) \smallstep ..., \StopF) = |evalNeed e emp emp|$ to
+  open configurations and prove it by Löb induction.
+  Then it suffices to prove that $α_{\STraces}$ preserves the observable properties of
   interest.
-  The full proof for a rigorous reformulation of this result can be found in the
-  Appendix.
+  The full proof for a rigorous reformulation of the proposition can be found in \Cref{sec:adequacy-detail}.
 \end{proofsketch}
 \begin{proof}
-  We formally define $α(\init(\pe) \smallstep ...) \triangleq α_{\STraces}(\init(\pe) \smallstep ..., \StopF)$,
-  where $α_{\STraces}$ is defined in \Cref{fig:eval-correctness}.
-
-  Then $|evalNeed e emp emp| = α(\init(\pe) \smallstep ...)$ follows directly
+  $|evalNeed e emp emp| = α(\init(\pe) \smallstep ..., \StopF)$ follows directly
   from \Cref{thm:need-abstracts-lk}.
   The preservation results in are a consequence of \Cref{thm:abs-length} and \Cref{thm:need-adequate};
   function $α_\Events$ in \Cref{fig:eval-correctness} encodes the intuition in
   which LK transitions abstract into |Event|s.
 \end{proof}
+
+\begin{figure}
+\[\ruleform{\begin{array}{c}
+  α_\Events : \States \to |Event|
+  \qquad
+  α_\Environments : \Environments \times \Heaps \to (|Name :-> D (ByNeed T)|)
+  \\
+  α_\Heaps : \Heaps \to |Heap (ByNeed T)|
+  \qquad
+  α_{\Values} : \States \times \Continuations \to |Value (ByNeed T)|
+  \\
+  α_{\STraces} : \STraces \times \Continuations \to |T (Value (ByNeed T), Heap (ByNeed T))|
+\end{array}}\]
+\arraycolsep=2pt
+\[\begin{array}{lcl}
+  α_\Events(σ) & = & \begin{cases}
+    |Let1| & \text{if }σ = (\Let{\px}{\wild}{\wild},\wild,\wild,\wild) \\
+    |App1| & \text{if }σ = (\pe~\px,\wild,\wild,\wild) \\
+    |Case1| & \text{if }σ = (\Case{\wild}{\wild},\wild,\wild, \wild)\\
+    |Look y| & \text{if }σ = (\px,ρ,μ,\wild), μ(ρ(\px)) = (\py,\wild,\wild) \\
+    |App2| & \text{if }σ = (\Lam{\wild}{\wild},\wild,\wild,\ApplyF(\wild) \pushF \wild) \\
+    |Case2| & \text{if }σ = (K~\wild, \wild, \wild, \SelF(\wild,\wild) \pushF \wild) \\
+    |Upd| & \text{if }σ = (\pv,\wild,\wild,\UpdateF(\wild) \pushF \wild) \\
+  \end{cases} \\
+  \\[-0.75em]
+  α_\Environments([\many{\px ↦ \pa}], μ) & = & [\many{|x| ↦ |Step (Look y) (fetch a)| \mid μ(\pa) = (\py,\wild,\wild)}] \\
+  \\[-0.75em]
+  α_\Heaps([\many{\pa ↦ (\wild,ρ,\pe)}]) & = & [\many{|a| ↦ |memo a (eval e (αEnv ρ μ))|}] \\
+  \\[-0.75em]
+  α_\Values((\Lam{\px}{\pe},ρ,μ,κ),κ_0) & = & |Fun (\d -> Step App2 (eval e (ext (αEnv ρ μ) x d)))| \quad\hfill\text{if }(κ = κ_0) \\
+  α_\Values((K~\overline{\px},ρ,μ,κ),κ_0) & = & |Con k (map (αEnv ρ μ !) xs)| \quad\hfill \text{if }(κ = κ_0) \\
+  α_\Values((\wild,\wild,\wild,\wild),\wild) & = & |Stuck| \\
+  \\[-0.75em]
+  α_{\STraces}((σ_i)_{i∈\overline{n}},κ_0) & = & \begin{cases}
+    |Step ({-" α_\Events(σ_0) "-}) (idiom (αSTraces (lktrace, κ_0)))| & \text{if }n > 0 \\
+    |Ret ({-" α_\Values(σ_0,κ_0) "-}, αHeap μ)| & \text{otherwise}
+  \end{cases} \\
+  &&\quad \text{where }(\wild,\wild, μ, \wild) = σ_0
+\end{array}\]
+\caption{Abstraction function $α_{\STraces}$ from LK machine to |evalNeed2|}
+  \label{fig:eval-correctness}
+\end{figure}
 
 \begin{toappendix}
 To formalise the main result, we must characterise the maximal traces in the LK
@@ -243,6 +283,7 @@ not depend on the contents of the call stack; this fact is encoded implicitly in
 big-step derivations.
 
 \subsection{Abstraction preserves Termination Observable}
+\label{sec:adequacy-detail}
 
 One class of maximal traces is of particular interest:
 the maximal trace starting in $\init(\pe)$!
@@ -273,48 +314,6 @@ Furthermore, we will sometimes need to disambiguate the clashing definitions fro
 \Cref{sec:interp} and \Cref{sec:problem} by adorning ``Haskell objects'' with a
 tilde, in which case |tm := αHeap μ :: Heap (ByNeed T)| denotes a semantic
 by-need heap, defined as an abstraction of a syntactic LK heap $μ ∈ \Heaps$.
-
-\begin{figure}
-\[\ruleform{\begin{array}{c}
-  α_\Events : \States \to |Event|
-  \qquad
-  α_\Environments : \Environments \times \Heaps \to (|Name :-> D (ByNeed T)|)
-  \\
-  α_\Heaps : \Heaps \to |Heap (ByNeed T)|
-  \qquad
-  α_{\Values} : \States \times \Continuations \to |Value (ByNeed T)|
-  \\
-  α_{\STraces} : \STraces \times \Continuations \to |T (Value (ByNeed T), Heap (ByNeed T))|
-\end{array}}\]
-\arraycolsep=2pt
-\[\begin{array}{lcl}
-  α_\Events(σ) & = & \begin{cases}
-    |Let1| & \text{if }σ = (\Let{\px}{\wild}{\wild},\wild,\wild,\wild) \\
-    |App1| & \text{if }σ = (\pe~\px,\wild,\wild,\wild) \\
-    |Case1| & \text{if }σ = (\Case{\wild}{\wild},\wild,\wild, \wild)\\
-    |Look y| & \text{if }σ = (\px,ρ,μ,\wild), μ(ρ(\px)) = (\py,\wild,\wild) \\
-    |App2| & \text{if }σ = (\Lam{\wild}{\wild},\wild,\wild,\ApplyF(\wild) \pushF \wild) \\
-    |Case2| & \text{if }σ = (K~\wild, \wild, \wild, \SelF(\wild,\wild) \pushF \wild) \\
-    |Upd| & \text{if }σ = (\pv,\wild,\wild,\UpdateF(\wild) \pushF \wild) \\
-  \end{cases} \\
-  \\[-0.75em]
-  α_\Environments([\many{\px ↦ \pa}], μ) & = & [\many{|x| ↦ |Step (Look y) (fetch a)| \mid μ(\pa) = (\py,\wild,\wild)}] \\
-  \\[-0.75em]
-  α_\Heaps([\many{\pa ↦ (\wild,ρ,\pe)}]) & = & [\many{|a| ↦ |memo a (eval e (αEnv ρ μ))|}] \\
-  \\[-0.75em]
-  α_\Values((\Lam{\px}{\pe},ρ,μ,κ),κ_0) & = & |Fun (\d -> Step App2 (eval e (ext (αEnv ρ μ) x d)))| \hfill (κ = κ_0) \\
-  α_\Values((K~\overline{\px},ρ,μ,κ),κ_0) & = & |Con k (map (αEnv ρ μ !) xs)| \hfill (κ = κ_0) \\
-  α_\Values(\wild,\wild,μ,\wild),\wild) & = & |Stuck| \\
-  \\[-0.75em]
-  α_{\STraces}((σ_i)_{i∈\overline{n}},κ_0) & = & \begin{cases}
-    |Step ({-" α_\Events(σ_0) "-}) (idiom (αSTraces (lktrace, κ_0)))| & \text{if }n > 0 \\
-    |Ret ({-" α_\Values(σ_0,κ_0) "-}, αHeap μ)| & \text{otherwise}
-  \end{cases} \\
-  &&\quad \text{where }(\wild,\wild, μ, \wild) = σ_0
-\end{array}\]
-\caption{Abstraction functions for |evalNeed2|}
-  \label{fig:eval-correctness}
-\end{figure}
 
 Now consider the trace abstraction function $α_{\STraces}$ from
 \Cref{fig:eval-correctness}.
