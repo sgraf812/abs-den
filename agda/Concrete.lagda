@@ -29,6 +29,7 @@ open import Function
 open import PartialFunction
 open import Cubical.Foundations.Prelude hiding (_[_↦_])
 open import Cubical.Foundations.Isomorphism
+open import Cubical.Foundations.Transport
 open import Cubical.Core.Everything hiding (_[_↦_])
 open import Cubical.Relation.Nullary.Base
 open import Agda.Builtin.Equality renaming (_≡_ to _≣_) hiding (refl)
@@ -46,79 +47,93 @@ open Monad {{...}} public
 
 data T (A : Set) : Set where
   ret-T : A → T A
-  step-T : Event → ▸ T A → T A
+  step-T : Event → ▹ T A → T A
 
-data Value (τ : Set → Set) : Set
-
+Value : (Set → Set) → Set
 D : (Set → Set) → Set
-D τ = τ (Value τ)
 \end{code}
 
 As explained in \Cref{sec:totality-formal}, a notable difference to the
 definition of \AgdaDatatype{Value} in the main body is that I need to break the
-negative occurrence in \AgdaField{fun} by the use of \emph{later} $▸$.
-Unfortunately, Agda's positivity checker does not currently support
-the later modality, so I have to deactivate it via a potentially
-dangerous-looking pragma in the definition that follows.
-Note that the use of this pragma is solely so that the positivity
-checker does not try to recurse through the occurrence of $▸ D$.
+negative occurrence in \AgdaField{fun} by the use of dependent \emph{later} $▸$.
+This embedding is abstracted into the following type \AgdaDatatype{EnvD}:
 
 \begin{code}
-{-# NO_POSITIVITY_CHECK #-}
-data EnvD (D : Set) : Set where
+data EnvD (D : ▹ Set) : Set where
   stepLook : Var → ▸ D → EnvD D
 \end{code}
-
-I have reported this bug to the Agda maintainers.%
-\footnote{\url{https://github.com/agda/agda/issues/6587}}
 
 Note that $\AgdaDatatype{EnvD}~D$ is effectively the subtype of $D$
 of denotations that go into the environment $ρ$.
 One should think of $\AgdaField{stepLook}~x~d'$ as a $d$ such that
 $d = \AgdaField{step}~(\AgdaInductiveConstructor{look}~x)~d'$.
 
-Actually, I would prefer to simply \emph{express} the subtyping relationship via
+Actually, I prefer to simply \emph{express} the subtyping relationship via
 $\AgdaFunction{Σ}~D~\AgdaFunction{is-env}$, as in the type of \AgdaField{fun},
 but the use of
 $\AgdaFunction{is-env} : \AgdaFunction{D}~T \to \AgdaPrimitiveType{Set}$
 requires an instance of $\AgdaDatatype{Trace}~(\AgdaFunction{D}~T)$
 \emph{in the type} of $\AgdaField{fun-V}$, leading to a circular
-definition.
+definition of \AgdaDatatype{ValueF}.
 
 Defining the bijection to $\AgdaDatatype{EnvD}$ is easy, enough, though:
 
 \begin{code}
-toSubtype : ∀ {D} {{_ : Trace D}} → EnvD D → Σ D is-env
-toSubtype {{_}} (stepLook x d▸) = (step (look x) d▸ , x , d▸ , refl)
+toSubtype : ∀ {D} {{_ : Trace D}} → EnvD (next D) → Σ D is-env
+toSubtype {{_}} (stepLook x d▹) = (step (look x) d▹ , x , d▹ , refl)
 
-fromSubtype : ∀ {D} {{_ : Trace D}} → Σ D is-env → EnvD D
-fromSubtype {{_}} (_ , x , d▸ , _) = stepLook x d▸
+fromSubtype : ∀ {D} {{_ : Trace D}} → Σ D is-env → EnvD (next D)
+fromSubtype {{_}} (_ , x , d▹ , _) = stepLook x d▹
 \end{code}
 
 I can also prove that the pair indeed forms a bijection:
 
 \begin{code}
-env-iso : ∀ {D} {{_ : Trace D}} → Iso (EnvD D) (Σ D is-env)
+env-iso : ∀ {D} {{_ : Trace D}} → Iso (EnvD (next D)) (Σ D is-env)
 env-iso = iso toSubtype fromSubtype from-to to-from
   where
     from-to : ∀ d → toSubtype (fromSubtype d) ≡ d
-    from-to (d , x , d▸ , prf) i = (prf (~ i) , x , d▸ , λ i₁ → prf (i₁ ∨ (~ i)))
+    from-to (d , x , d▹ , prf) i = (prf (~ i) , x , d▹ , λ i₁ → prf (i₁ ∨ (~ i)))
     to-from : ∀ d → fromSubtype (toSubtype d) ≡ d
-    to-from (stepLook x d▸) = refl
+    to-from (stepLook x d▹) = refl
 \end{code}
 
-Hence I define the data constructors \AgdaInductiveConstructor{fun-V} and
-\AgdaInductiveConstructor{con-V} of \AgdaDatatype{Value} in terms of
-\AgdaDatatype{EnvD} and apply the bijection when defining the
-type class instance for \AgdaDatatype{Domain}.
-The rest is exactly as in \Cref{sec:interp}.
+Next up is the definition of $\AgdaDatatype{Value}$, which is
+complicated by the fact that Agda's positivity checker has
+no builtin support for the later modality, so $\AgdaDatatype{Value}$
+needs to be defined in terms of the guarded fixpoint of the signature
+functor $\AgdaDatatype{ValueF}$ defined below.
 
 \begin{code}
-data Value T where
-  stuck-V : Value T
-  fun-V : (EnvD (D T) → D T) → Value T
-  con-V : Con → List (EnvD (D T)) → Value T
+{-# NO_POSITIVITY_CHECK #-}
+data ValueF (τ : Set → Set) (d⁻ : ▹ Set) : Set where
+  stuck-V : ValueF τ d⁻
+  fun-V : (EnvD d⁻ → (D τ)) → ValueF τ d⁻
+  con-V : Con → List (EnvD d⁻) → ValueF τ d⁻
 
+Value τ = ValueF τ (dfix (τ ∘ ValueF τ))
+D τ = τ (Value τ)
+\end{code}
+
+It is not completely obvious that the $\AgdaDatatype{EnvD}$s that occur in a
+$\AgdaDatatype{Value}$ are still isomorphic to the subtype
+$\AgdaFunction{Σ}~D~\AgdaFunction{is-env}$.
+However, the following equivalence establishes trust and is used to
+great effect in the type class instance for \AgdaDatatype{Domain}.
+
+\begin{code}
+EnvD≡is-env : ∀ τ → {{_ : Trace (D τ)}} → EnvD (dfix (τ ∘ ValueF τ)) ≡ Σ (D τ) is-env
+EnvD≡is-env τ = roll ∙ subty
+  where
+    roll : EnvD (dfix (τ ∘ ValueF τ)) ≡ EnvD (next (D τ))
+    roll i = EnvD (pfix (τ ∘ ValueF τ) i)
+    subty : EnvD (next (D τ)) ≡ Σ (D τ) is-env
+    subty = isoToPath (env-iso {D τ})
+\end{code}
+
+The remaining $\AgdaDatatype{Domain}$ definitions are exactly as in \Cref{sec:interp}.
+
+\begin{code}
 return-T : ∀ {A} → A → T A
 return-T = ret-T
 
@@ -139,19 +154,19 @@ stuck-Value = return stuck-V
 
 fun-Value :  ∀ {τ} {{_ : Monad τ}} {{_ : Trace (D τ)}}
              → (Σ (D τ) is-env → D τ) → D τ
-fun-Value f = return (fun-V (f ∘ toSubtype))
+fun-Value {τ} f = return (fun-V (f ∘ transport (EnvD≡is-env τ)))
 
 apply-Value :  ∀ {τ} {{_ : Monad τ}} {{_ : Trace (D τ)}}
                → D τ → Σ (D τ) is-env → D τ
 apply-Value {τ} dv da = dv >>= aux
   where
     aux : Value τ → D τ
-    aux (fun-V f) = f (fromSubtype da)
-    aux _         = stuck-Value
+    aux (fun-V f) = f (transport⁻ (EnvD≡is-env τ) da)
+    aux _          = stuck-Value
 
 con-Value :  ∀ {τ} {{_ : Monad τ}} {{_ : Trace (D τ)}}
              → Con → List (Σ (D τ) is-env) → D τ
-con-Value K ds = return (con-V K (List.map fromSubtype ds))
+con-Value {τ} K ds = return (con-V K (List.map (transport⁻ (EnvD≡is-env τ)) ds))
 
 select-Value :  ∀ {τ} {{_ : Monad τ}} {{_ : Trace (D τ)}}
                 → D τ → List (Con × (List (Σ (D τ) is-env) → D τ)) → D τ
@@ -159,7 +174,7 @@ select-Value {τ} dv alts = dv >>= aux alts
   where
     aux : List (Con × (List (Σ (D τ) is-env) → D τ)) → Value τ → D τ
     aux ((K' , alt) ∷ alts) (con-V K ds) with decEq-ℕ K K'
-    ... | yes _ = alt (List.map toSubtype ds)
+    ... | yes _ = alt (List.map (transport (EnvD≡is-env τ)) ds)
     ... | no _  = aux alts (con-V K ds)
     aux _ _ = stuck-Value
 
@@ -193,7 +208,7 @@ instance
 instance
   has-bind-ByName :  ∀ {τ} {v} → HasBind (ByName τ v)
   has-bind-ByName {τ} =
-    record { bind = λ rhs body → body (λ α → fix (λ rhs▸ → rhs α rhs▸)) }
+    record { bind = λ rhs body → body (λ α → fix (λ rhs▹ → rhs α rhs▹)) }
 
 eval-by-name : Exp → D (ByName T)
 eval-by-name e = 𝒮⟦ e ⟧ empty-pfun
@@ -218,15 +233,10 @@ Addr = ℕ
 
 record ByNeed (τ : Set → Set) (v : Set) : Set
 
-{-# NO_POSITIVITY_CHECK #-}
-record HeapD (τ : Set → Set) : Set where
-  constructor heapD
-  field get : ▸(D τ)
-
-Heap : (Set → Set) → Set
-Heap τ = Addr ⇀ HeapD τ
-postulate nextFree : ∀ {τ} → Heap τ → Addr
-postulate well-addressed : ∀ {τ} (μ : Heap τ) (a : Addr) → ∃[ d ] (μ a ≡ just d)
+Heap : ▹ Set → Set
+Heap D = Addr ⇀ ▸ D
+postulate nextFree : ∀ {D} → Heap D → Addr
+postulate well-addressed : ∀ {D} (μ : Heap D) (a : Addr) → ∃[ d ] (μ a ≡ just d)
 \end{code}
 
 The definition of \AgdaDatatype{ByNeed} and its type class instances
@@ -236,8 +246,9 @@ variable $α$.
 
 \begin{code}
 record ByNeed τ v where
+  inductive
   constructor mkByNeed
-  field get : Heap (ByNeed τ) → τ (v × Heap (ByNeed τ))
+  field get : Heap (dfix (ByNeed τ ∘ ValueF (ByNeed τ))) → τ (v × Heap (next (D (ByNeed τ))))
 
 return-ByNeed : ∀ {τ} {{_ : Monad τ}} {v} → v → ByNeed τ v
 return-ByNeed v = mkByNeed (λ μ → return (v , μ))
@@ -246,7 +257,7 @@ _>>=-ByNeed_ :  ∀ {τ} {{_ : Monad τ}} {a} {b}
                 → ByNeed τ a → (a → ByNeed τ b) → ByNeed τ b
 _>>=-ByNeed_ {τ} {a} {b} m k = mkByNeed (λ μ → ByNeed.get m μ >>= aux)
   where
-    aux : (a × Heap (ByNeed τ)) → τ (b × Heap (ByNeed τ))
+    aux : (a × Heap (next (D (ByNeed τ)))) → τ (b × Heap (next (D (ByNeed τ))))
     aux (a , μ') = ByNeed.get (k a) μ'
 
 instance
@@ -254,7 +265,7 @@ instance
   monad-ByNeed = record { return = return-ByNeed; _>>=_ = _>>=-ByNeed_ }
 
 step-ByNeed :  ∀ {τ} {v} {{_ : ∀ {V} → Trace (τ V)}}
-               → Event → ▸(ByNeed τ v) → ByNeed τ v
+               → Event → ▹(ByNeed τ v) → ByNeed τ v
 step-ByNeed {τ} {v} e m = mkByNeed (λ μ → step e (λ α → ByNeed.get (m α) μ))
 
 instance
@@ -273,8 +284,8 @@ consider the following definition:
 stepLookFetch :  ∀ {τ} {{_ : Monad τ}} {{_ : ∀ {V} → Trace (τ V)}}
                  → Var → Addr → D (ByNeed τ)
 stepLookFetch {τ} x a = mkByNeed (λ μ →
-  let d▸ = HeapD.get (fst (well-addressed μ a)) in
-  step (look x) (λ α → ByNeed.get (d▸ α) μ))
+  let d▹ = fst (well-addressed μ a) in
+  step (look x) (λ α → ByNeed.get (d▹ α) μ))
 \end{code}
 
 (Note that $\AgdaFunction{fst}~(\AgdaPostulate{well-addressed}~μ~a)$ simply
@@ -291,8 +302,8 @@ In fact, \emph{all} uses of \AgdaFunction{fetch} will take this form!
 
 Unfortunately, it is hard to decompose \AgdaFunction{stepLookFetch} into
 separate function calls to \AgdaFunction{step} and
-$\AgdaFunction{fetch} : \AgdaFunction{Addr} \to \AgdaPrimitive{▸}(\AgdaFunction{D}~(\AgdaDatatype{ByNeed}~\AgdaDatatype{T}))$,
-because the latter will then need to bind the tick variable $α$ (part of \AgdaPrimitive{▸})
+$\AgdaFunction{fetch} : \AgdaFunction{Addr} \to \AgdaPrimitive{▹}(\AgdaFunction{D}~(\AgdaDatatype{ByNeed}~\AgdaDatatype{T}))$,
+because the latter will then need to bind the tick variable $α$ (part of \AgdaPrimitive{▹})
 before the heap $μ$ (part of $\AgdaFunction{D}~(\AgdaDatatype{ByNeed}~\AgdaDatatype{T})$).
 This is in contrast to the order of binders in \AgdaFunction{stepLookFetch},
 which may bind $μ$ before $α$, because look steps leave the heap unchanged.
@@ -303,21 +314,21 @@ The flipped argument order is problematic for my definition of
 \AgdaFunction{fetch}, because ticked type theory conservatively assumes
 that $μ$ might depend on $α$ --- when in reality it does not in
 \AgdaFunction{stepLookFetch}!
-The result is that the subexpression $\AgdaField{ByNeed.get}~(d▸~α)~μ$ would
+The result is that the subexpression $\AgdaField{ByNeed.get}~(d▹~α)~μ$ would
 not be well-typed under the flipped order, because
 \begin{itemize}
 \setlength{\itemsep}{0pt}
-\item $d▸$ comes from $μ$, and
+\item $d▹$ comes from $μ$, and
 \item $μ$ might already depend on $α$, because
 \item $μ$ was introduced after $α$, and hence
-\item $d▸$ may not be applied to $α$ again in ticked type theory.
+\item $d▹$ may not be applied to $α$ again in ticked type theory.
 \end{itemize}
 I currently know of no way to encode this knowledge without a postulate of
 the following form:
 \begin{code}
 postulate
-  flip-tick       : ∀ {A B : Set} → (A → ▸ B) → ▸ (A → B)
-  flip-tick-beta  :  ∀ {A B : Set} {f : A → ▸ B} {μ : A} {@tick α : Tick}
+  flip-tick       : ∀ {A B : Set} → (A → ▹ B) → ▹ (A → B)
+  flip-tick-beta  :  ∀ {A B : Set} {f : A → ▹ B} {μ : A} {@tick α : Tick}
                      → flip-tick f α μ ≣ f μ α
 {-# REWRITE flip-tick-beta #-}
 \end{code}
@@ -335,10 +346,10 @@ exactly to flip back the binding order to what it will be in the use site
 \AgdaFunction{stepLookFetch}:
 
 \begin{code}
-fetch : ∀ {τ} {{_ : Monad τ}} → Addr → ▸(D (ByNeed τ))
-fetch {τ} a = map▸ mkByNeed (flip-tick (λ μ →
-  let d▸ = HeapD.get (fst (well-addressed μ a)) in
-  (λ α → ByNeed.get (d▸ α) μ)))
+fetch : ∀ {τ} {{_ : Monad τ}} → Addr → ▹(D (ByNeed τ))
+fetch {τ} a = map▹ mkByNeed (flip-tick (λ μ →
+  let d▹ = fst (well-addressed μ a) in
+  (λ α → ByNeed.get (d▹ α) μ)))
 \end{code}
 
 Agda is able to calculate that this definition of \AgdaFunction{fetch}
@@ -360,15 +371,15 @@ but does not need any postulates at all:
 
 \begin{code}
 memo :  ∀ {τ} {{_ : Monad τ}} {{_ : ∀ {V} → Trace (τ V)}}
-        → Addr → ▸(D (ByNeed τ)) → ▸(D (ByNeed τ))
-memo {τ} a d▸ = fix memo' d▸
+        → Addr → ▹(D (ByNeed τ)) → ▹(D (ByNeed τ))
+memo {τ} a d▹ = fix memo' d▹
   where
-    memo' : ▸(▸(D (ByNeed τ)) → ▸(D (ByNeed τ)))
-          →   ▸(D (ByNeed τ)) → ▸(D (ByNeed τ))
-    memo' rec▸ d▸ α₁ = do
-      v ← d▸ α₁
+    memo' : ▹(▹(D (ByNeed τ)) → ▹(D (ByNeed τ)))
+          →   ▹(D (ByNeed τ)) → ▹(D (ByNeed τ))
+    memo' rec▹ d▹ α₁ = do
+      v ← d▹ α₁
       step update (λ _α₂ → mkByNeed (λ μ →
-        return (v , μ [ a ↦ heapD (rec▸ α₁ (λ _ → return v)) ])))
+        return (v , μ [ a ↦ rec▹ α₁ (λ _ → return v) ])))
 \end{code}
 
 Building on \AgdaFunction{fetch} and \AgdaFunction{memo}, I define the
@@ -377,13 +388,13 @@ Building on \AgdaFunction{fetch} and \AgdaFunction{memo}, I define the
 \hfuzz=2.5em
 \begin{code}
 bind-ByNeed :  ∀ {τ} {{_ : Monad τ}} {{_ : ∀ {V} → Trace (τ V)}}
-               → ▸  (▸(D (ByNeed τ)) → D (ByNeed τ))
-               →    (▸(D (ByNeed τ)) → D (ByNeed τ))
+               → ▹  (▹(D (ByNeed τ)) → D (ByNeed τ))
+               →    (▹(D (ByNeed τ)) → D (ByNeed τ))
                →    D (ByNeed τ)
 bind-ByNeed {τ} rhs body = do
   a ← mkByNeed (λ μ → return (nextFree μ , μ))
   mkByNeed (λ μ →
-    return (tt , μ [ a ↦ heapD (memo a (λ α → rhs α (fetch a))) ]))
+    return (tt , μ [ a ↦ memo a (λ α → rhs α (fetch a)) ]))
   step let1 (λ _α → body (fetch a))
 
 instance
@@ -391,7 +402,7 @@ instance
                    → HasBind (D (ByNeed τ))
   has-bind-ByNeed = record { bind = bind-ByNeed }
 
-eval-by-need : Exp → T (Value (ByNeed T) × Heap (ByNeed T))
+eval-by-need : Exp → T (Value (ByNeed T) × Heap (next (D (ByNeed T))))
 eval-by-need e = ByNeed.get (𝒮⟦ e ⟧ empty-pfun) empty-pfun
 \end{code}
 
