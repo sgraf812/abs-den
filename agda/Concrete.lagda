@@ -115,11 +115,17 @@ Value τ = ValueF τ (dfix (τ ∘ ValueF τ))
 D τ = τ (Value τ)
 \end{code}
 
+Is is easy to verify that $\AgdaFunction{D}$ is the guarded
+fixpoint of $τ ∘ \AgdaDatatype{ValueF}~τ$:
+
+\begin{code}
+_ : ∀ {τ} → D τ ≡ fix (τ ∘ ValueF τ)
+_ = refl
+\end{code}
+
 It is not completely obvious that the $\AgdaDatatype{EnvD}$s that occur in a
 $\AgdaDatatype{Value}$ are still isomorphic to the subtype
 $\AgdaFunction{Σ}~D~\AgdaFunction{is-env}$.
-However, the following equivalence establishes trust and is used to
-great effect in the type class instance for \AgdaDatatype{Domain}.
 
 \begin{code}
 EnvD≡is-env : ∀ τ → {{_ : Trace (D τ)}} → EnvD (dfix (τ ∘ ValueF τ)) ≡ Σ (D τ) is-env
@@ -131,7 +137,8 @@ EnvD≡is-env τ = roll ∙ subty
     subty = isoToPath (env-iso {D τ})
 \end{code}
 
-The remaining $\AgdaDatatype{Domain}$ definitions are exactly as in \Cref{sec:interp}.
+This equivalence is used to great effect in the type class instance for
+\AgdaDatatype{Domain}, which otherwise is exactly as in \Cref{sec:interp}.
 
 \begin{code}
 return-T : ∀ {A} → A → T A
@@ -187,7 +194,7 @@ instance
 
 This suffices to define the \AgdaDatatype{ByName} interpreter.
 The instance of \AgdaDatatype{HasBind} is particularly interesting, because it
-employs the guarded fixpoint combinator \AgdaPrimitive{fix}:
+again employs the guarded fixpoint combinator \AgdaPrimitive{fix}:
 
 \begin{code}
 record ByName (τ : Set → Set) (v : Set) : Set where
@@ -218,14 +225,14 @@ For the \AgdaDatatype{ByNeed} instance, I need to define heaps.
 Heaps represent higher-order state, the total modelling of which is one of the
 main motivations for guarded type theory.
 As such, the heap is also the place where I need to break another negative
-recursive occurrence through the use of the \emph{later} modality and
-locally deactivate the positivity checker.
+recursive occurrence through the use of the \emph{later} modality, this
+time without overriding the totality checker.
 
 Furthermore, I postulate the existence of a bump allocator \AgdaFunction{nextFree}
 as well as the well-addressedness invariant from \Cref{sec:op-sem}, that is,
 any address allocated is in the domain of the heap.
-These postulates could well be factored into module parameters of the
-development, but it is simpler to postulate them here.
+It would take a few tiresome and distracting invariants to turn these postulates
+into proofs, which is why it wasn't done.
 
 \begin{code}
 Addr : Set
@@ -240,15 +247,32 @@ postulate well-addressed : ∀ {D} (μ : Heap D) (a : Addr) → ∃[ d ] (μ a �
 \end{code}
 
 The definition of \AgdaDatatype{ByNeed} and its type class instances
-are exactly as in the main body, with the small exception of
-\AgdaFunction{step-ByNeed}, which needs to pass around the \AgdaPrimitive{Tick}
-variable $α$.
+are structurally the same as in the main body.
+However, the guarded fixpoint again requires explicit unrolling whenever the
+heap is accessed, for which I need to establish and transport along a few
+equalities.
+Furthermore, in \AgdaFunction{step-ByNeed} I need to pass around the
+\AgdaPrimitive{Tick} variable $α$.
 
 \begin{code}
+ByNeedF : (Set → Set) → ▹ Set → Set → Set
+ByNeedF τ d⁻ v = Heap d⁻ → τ (v × Heap d⁻)
+
 record ByNeed τ v where
-  inductive
   constructor mkByNeed
-  field get : Heap (dfix (ByNeed τ ∘ ValueF (ByNeed τ))) → τ (v × Heap (next (D (ByNeed τ))))
+  field get : ByNeedF τ (dfix (D ∘ ByNeedF τ)) v
+
+≡-ByNeed : ∀ τ v → ByNeed τ v ≡ ByNeedF τ (dfix (D ∘ ByNeedF τ)) v
+≡-ByNeed _ _ = isoToPath (iso ByNeed.get mkByNeed (λ _ → refl) (λ _ → refl))
+
+≡-HeapD : ∀ τ → dfix (D ∘ ByNeedF τ) ≡ next (D (ByNeed τ))
+≡-HeapD τ = pfix (D ∘ ByNeedF τ) ∙ (λ i → next (D (λ v → sym (≡-ByNeed τ v) i)))
+
+≡-▸HeapD : ∀ τ → ▸ dfix (D ∘ ByNeedF τ) ≡ ▹ D (ByNeed τ)
+≡-▸HeapD τ i = ▸ ≡-HeapD τ i
+
+≡-DByNeed : ∀ τ → D (ByNeed τ) ≡ ByNeedF τ (next (D (ByNeed τ))) (Value (ByNeed τ))
+≡-DByNeed τ = ≡-ByNeed τ (Value (ByNeed τ)) ∙ (λ i → ByNeedF τ (≡-HeapD τ i) (Value (ByNeed τ)))
 
 return-ByNeed : ∀ {τ} {{_ : Monad τ}} {v} → v → ByNeed τ v
 return-ByNeed v = mkByNeed (λ μ → return (v , μ))
@@ -257,7 +281,7 @@ _>>=-ByNeed_ :  ∀ {τ} {{_ : Monad τ}} {a} {b}
                 → ByNeed τ a → (a → ByNeed τ b) → ByNeed τ b
 _>>=-ByNeed_ {τ} {a} {b} m k = mkByNeed (λ μ → ByNeed.get m μ >>= aux)
   where
-    aux : (a × Heap (next (D (ByNeed τ)))) → τ (b × Heap (next (D (ByNeed τ))))
+    aux : (a × Heap (dfix (D ∘ ByNeedF τ))) → τ (b × Heap (dfix (D ∘ ByNeedF τ)))
     aux (a , μ') = ByNeed.get (k a) μ'
 
 instance
@@ -285,7 +309,7 @@ stepLookFetch :  ∀ {τ} {{_ : Monad τ}} {{_ : ∀ {V} → Trace (τ V)}}
                  → Var → Addr → D (ByNeed τ)
 stepLookFetch {τ} x a = mkByNeed (λ μ →
   let d▹ = fst (well-addressed μ a) in
-  step (look x) (λ α → ByNeed.get (d▹ α) μ))
+  step (look x) (λ α → ByNeed.get (transport (≡-▸HeapD τ) d▹ α) μ))
 \end{code}
 
 (Note that $\AgdaFunction{fst}~(\AgdaPostulate{well-addressed}~μ~a)$ simply
@@ -349,7 +373,7 @@ exactly to flip back the binding order to what it will be in the use site
 fetch : ∀ {τ} {{_ : Monad τ}} → Addr → ▹(D (ByNeed τ))
 fetch {τ} a = map▹ mkByNeed (flip-tick (λ μ →
   let d▹ = fst (well-addressed μ a) in
-  (λ α → ByNeed.get (d▹ α) μ)))
+  (λ α → ByNeed.get (transport (≡-▸HeapD τ) d▹ α) μ)))
 \end{code}
 
 Agda is able to calculate that this definition of \AgdaFunction{fetch}
@@ -379,7 +403,7 @@ memo {τ} a d▹ = fix memo' d▹
     memo' rec▹ d▹ α₁ = do
       v ← d▹ α₁
       step update (λ _α₂ → mkByNeed (λ μ →
-        return (v , μ [ a ↦ rec▹ α₁ (λ _ → return v) ])))
+        return (v , μ [ a ↦ transport⁻ (≡-▸HeapD τ) (rec▹ α₁ (λ _ → return v)) ])))
 \end{code}
 
 Building on \AgdaFunction{fetch} and \AgdaFunction{memo}, I define the
@@ -394,7 +418,7 @@ bind-ByNeed :  ∀ {τ} {{_ : Monad τ}} {{_ : ∀ {V} → Trace (τ V)}}
 bind-ByNeed {τ} rhs body = do
   a ← mkByNeed (λ μ → return (nextFree μ , μ))
   mkByNeed (λ μ →
-    return (tt , μ [ a ↦ memo a (λ α → rhs α (fetch a)) ]))
+    return (tt , μ [ a ↦ transport⁻ (≡-▸HeapD τ) (memo a (λ α → rhs α (fetch a))) ]))
   step let1 (λ _α → body (fetch a))
 
 instance
@@ -403,7 +427,7 @@ instance
   has-bind-ByNeed = record { bind = bind-ByNeed }
 
 eval-by-need : Exp → T (Value (ByNeed T) × Heap (next (D (ByNeed T))))
-eval-by-need e = ByNeed.get (𝒮⟦ e ⟧ empty-pfun) empty-pfun
+eval-by-need e = transport (≡-DByNeed T) (𝒮⟦ e ⟧ empty-pfun) empty-pfun
 \end{code}
 
 This completes the definition of \AgdaFunction{eval-by-need} which is thus
