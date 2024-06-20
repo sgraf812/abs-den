@@ -1595,7 +1595,7 @@ Concretely, my refactoring entailed
 \end{itemize}
 The resulting compiler bootstraps and passes the testsuite.
 
-\subsubsection{A Semantic |Domain| for GHC Core}
+\subsubsection{GHC Core}
 
 \begin{figure}
 \begin{code}
@@ -1614,6 +1614,7 @@ data Var = Id ^^ ... | TyVar ^^ ... | CoVar ...
 type Id = Var -- always a term-level Id
 data Literal = LitNumber ^^ ... | LitFloat ^^ ... | LitString ...
 type CoreAlt = (AltCon, [Var], CoreExpr)
+data AltCon = LitAlt Literal | DataAlt DataCon | DEFAULT
 data CoreBind = NonRec Id CoreExpr | Rec [(Id, CoreExpr)]
 data Type      = ...
 data Coercion  = ...
@@ -1628,32 +1629,66 @@ Its definition in GHC is given in \Cref{fig:core} and includes explicit
 type applications as well as witnesses of type equality constraints called
 \emph{coercions}.
 
-It is worth noting that |Id| is just a synonym for |Var|.
-However whereas |Var| includes term, type and coercion variables, the type |Id|
-is meant to denote runtime-relevant variables only, which excludes type
-variables.
-GHC Core differentiates a variety of different classes of global term-level
-identifiers in |Id| in turn, such as |Id|s defined for class method selectors,
-primitive operations defined by the runtime system, data constructors or
-identifiers imported from a different module.
+GHC Core has a lot in common with the untyped object language |Exp|.
+For example, there are constructors for |Var|, |App|, |Lam|, |Let| and |Case|.
+There are a number of differences, however:
+\begin{itemize}
+  \item
+    GHC Core allows non-variable arguments in applications.
+    This has implications on the denotational interpreter, which must let-bind
+    non-variable arguments to establish A-normal form on-the-fly.
+  \item
+    GHC Core is typed, so the |Id| carried by |Var| contains more information
+    than a simple |String|, such as the variable's type.
+    It is worth noting that |Id| is just a synonym for |Var|.
+    However whereas |Var| includes term, type and coercion variables, the type |Id|
+    is meant to denote runtime-relevant variables only, which excludes type
+    variables.
+  \item
+    There is no distinguished |ConApp| form. That is because data constructors
+    are just special kinds of |Id|s and may be unsaturated; the interpreter
+    must eta-expand such data constructor applications on-the-fly.
+  \item
+    |Case| alternatives allow matching on literals (|LitAlt|) as well as data
+    constructors (|DataAlt|), and include a default alternative (|DEFAULT|) that
+    matches any case not matched by other alternatives.
+    Default alternatives are important for implementing the primitive
+    |seq :: a -> b -> b|, where |seq x y| diverges when |x| does and otherwise
+    evaluates to |y|.
+    Furthermore, after |Case| evaluates the scrutinee, its value is bound to
+    a designated |Id| called the \emph{case binder} that scopes over all case
+    alternatives.
+  \item
+    Beyond data constructors, there are other distinguished |Id|s without a
+    local binding, such as ``global'' identifiers imported from a different
+    module, class method seelctors and primitive operations defined by the
+    runtime system.
+  \item
+    |Let| bindings are either explicitly non-recursive (|NonRec|) or a mutually
+    recursive group with potentially many bindings (|Rec|).
+\end{itemize}
+Beyond these differences, GHC Core includes forms for embedding |Literal|s,
+|Type|s and |Coercion|s in select expression forms.
+Type abstraction and application use regular |Lam| and |App| constructors,
+whereas rewriting an expression's type along a |Coercion| happens through |Cast|s.
+The constructor |Tick| annotates debugging and profiling information and can be
+ignored.
 
-For the purposes of Demand Analysis, runtime-irrelevant |TyVar|s are of little
-importance; |Id|
+\subsubsection{A Semantic |Domain| for GHC Core}
 
 \begin{figure}
 \begin{code}
 class Domain d where
   stuck :: d
-  erased :: d
   lit :: Literal -> d
   global :: Id -> d
   classOp :: Id -> Class -> d
   primOp :: Id -> PrimOp -> d
   fun :: Id -> (d -> d) -> d
   con :: DataCon -> [d] -> d
-  apply :: d -> d -> d
-  applyTy :: d -> d
+  apply :: d -> (Bool, d) -> d
   select :: d -> CoreExpr -> Id -> [DAlt d] -> d
+  erased :: d
   keepAlive :: [d] -> d
   seq_ :: d -> d -> d
 type DAlt d = (AltCon, [Id], d -> [d] -> d)
@@ -1665,6 +1700,34 @@ class HasBind d where
 \caption{A |Domain| interface for GHC Core}
 \label{fig:core-domain}
 \end{figure}
+
+\Cref{fig:core-domain} defines the semantic domain abstraction for which
+I implemented both a concrete |ByNeed| instance as well as an abstract
+instance for Demand Analysis.
+Its design was inspired by the domain definition in \Cref{fig:eval}, but
+ultimately driven by the hands-on desire to accommodate both |ByNeed| and Demand
+Analysis as instances.
+
+The |stuck|, |con|, |fun|, |apply| and |select| methods serve the exact same
+purpose as in prior sections, generalised to deal with the Core expressions
+they are modelled after.
+Method |apply| receives an additional |Bool| to tell whether it is a
+runtime-irrelevant type application.
+Unsurprisingly, there is a method |lit| for embedding |Literal|s, similar to
+|con|.
+Demand Analysis assigns special meaning to primitive operations (|primOp|),
+class method selectors (|classOp|) and imported |Id|s (|global|), so each
+get their own |Domain| method.
+
+Not all variable occurrences can be given meaning by
+
+GHC Core differentiates a variety of different classes of global term-level
+identifiers in |Id| in turn, such as |Id|s defined for class method selectors,
+primitive operations defined by the runtime system, data constructors or
+identifiers imported from a different module.
+
+For the purposes of Demand Analysis, runtime-irrelevant |TyVar|s are of little
+importance; |Id|
 
 GHC Core differs from the object language introduced in \Cref{sec:lang} in
 non-trivial ways: GHC Core is not in A-normal form
