@@ -45,28 +45,35 @@ For example, I have successfully realised the following analyses as denotational
   \item
     \Cref{sec:usage-analysis} defines and explores in detail a
     summary-based \emph{usage analysis}, a generalisation of absence analysis
-    from \Cref{sec:problem}.
+    from \Cref{sec:problem} and the running example of this work.
     This analysis demonstrates that our framework is suitable to infer
     \emph{operational properties}, such as an upper bound on the number of
     variable lookups.
+    We prove that usage analysis correctly infers absence in \Cref{sec:soundness}.
+
+  \item
+    \Cref{sec:boxity-analysis} introduces \emph{boxity
+    analysis}~\citep{Henglein:94} as a deliberately simple, second summary-based
+    analysis, sharing its preservation proof in \Cref{sec:soundness} with usage
+    analysis.
+    Boxity analysis can be used to infer whether a let binding can profitably be
+    unboxed.
 
   \item
     \Cref{sec:type-analysis} defines a variant of \citeauthor{Milner:78}'s
     Algorithm J --- a \emph{type analysis} with let generalisation, inferring
     types such as $\forall α_3.\ \mathtt{option}\;(α_3 \rightarrow α_3)$.
-    Polymorphic types act as summaries in the sense of the Introduction, and
+    Function types act as summaries in the sense of the Introduction, and
     fixpoints are solved via unification.
 
   \item
     \Cref{sec:0cfa} defines 0CFA \emph{control-flow analysis}~\citep{Shivers:91}
     as an instance of our generic interpreter.
-    The summaries are sets of labelled expressions that evaluation might return.
+    Programs are denoted by sets of expression labels that evaluation might return.
     These labels are given meaning in an abstract store.
     For a function label, the abstract store maintains a single point
-    approximation of the function's abstract transformer.
-%    As usual for vanilla 0CFA, the resulting stateful domain is \emph{not}
-%    finite and thus non-modular.
-%    \sg{I think this raises more questions than it answers.}
+    approximation of the function's abstract transformer as a polyvariant
+    summary.
 
   \item
     I have refactored relevant parts of \emph{Demand Analysis} in the Glasgow
@@ -288,7 +295,6 @@ We fix this in the next subsection by introducing a finitely represented
 |UValue| to replace |Value UT|.
 
 \subsubsection{Value Abstraction |UValue| and Summarisation in |Domain UD|}
-\label{sec:usage-analysis}
 
 In this subsection, we complement the trace type |UT| from the previous
 subsection with a corresponding semantic value type |UValue| to get the
@@ -622,8 +628,7 @@ environment |singenv p R :: Boxes| says that the box of the free variable $p$ is
 \emph{retained} (boxity flag |R :: B|), meaning it is possibly unsafe to unbox.
 So, following the advice of |evalBox|, we should not unbox $p$.
 The abstract value |BCons X (BRep R) :: BValue| says that the box of the absent
-second argument $x$ is \emph{discarded} (boxity flag |X :: B|), so it is safe to
-unbox.
+argument $x$ is \emph{discarded} (boxity flag |X :: B|), so it is safe to unbox.
 Any further arguments are conservatively flagged as retained (|Rep R|).
 The total order |X ⊏ R| lifts to a |Lat| instance on |BD|, similar to
 usage analysis.
@@ -988,28 +993,6 @@ instantiation.
 
 Thus we shall conclude this short excursion into type analysis and continue with
 a classic, call-strings-based interprocedural analysis: control-flow analysis.
-
-%\begin{table}
-%\centering
-%\begin{tabular}{cll}
-%\toprule
-%\#  & |e|                                               & |evalTy e| \\
-%\midrule
-%(1) & $\Let{i}{\Lam{x}{x}}{i~i~i~i~i~i}$                  & $\perform{evalTy (read "let i = λx.x in i i i i i i")}$ \\
-%(2) & $\Lam{x}{\Let{y}{x}{y~x}}$                          & $\perform{evalTy (read "λx. let y = x in y x")}$ \\
-%(3) & $\Let{x}{x}{x}$                                     & $\perform{evalTy (read "let x = x in x")}$ \\
-%\bottomrule
-%\end{tabular}
-%\caption{Examples for type analysis.}
-%\label{fig:type-examples}
-%\end{table}
-%
-%Let us conclude with some examples in \Cref{fig:type-examples}.
-%Example (1) demonstrates repeated instantiation and generalisation.
-%Example (2) shows that let generalisation does not accidentally generalise the
-%type of $y$; note that the type of $y$ is not generic in the ambient typing
-%context of the RHS of $\mathbf{let}~x = \wild$.
-%Example (3) shows that type inference for diverging programs works as expected.
 
 \subsection{Control-flow Analysis}
 \label{sec:0cfa}
