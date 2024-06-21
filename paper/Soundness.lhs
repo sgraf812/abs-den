@@ -49,6 +49,38 @@ The main body will only discuss abstraction of closed terms, but the underlying
 \Cref{thm:soundness-by-need} in the Appendix considers open terms as well.
 
 \begin{figure}
+\[\ruleform{\begin{array}{c}
+  α_{\mathcal{S}} : (|(Name :-> DNeed) -> DNeed|) \rightleftarrows (|(Name :-> hat D) -> hat D|) : γ_{\mathcal{S}}
+  \\
+  α_\Env : \mathcal{P}((|Name :-> DNeed|) \times |HeapNeed|) \rightleftarrows (|Name :-> hat D|) : γ_\Env
+  \\
+  α_E : |HeapNeed| \to \mathcal{P}(|DNeed|) \rightleftarrows |hat D| : γ_E
+  \\
+  α_\Traces : \mathcal{P}(|T (ValueNeed, HeapNeed)|) \rightleftarrows |hat D| : γ_\Traces
+  \qquad
+  β_\Traces : |T (ValueNeed, HeapNeed)| \to |hat D|
+  \qquad
+\end{array}}\]
+\belowdisplayskip=0pt
+\[\begin{array}{lcl}
+α_{\mathcal{S}}(S)(\widehat{ρ}) & = & α_\Traces(\{\  S(ρ)(μ) \mid (ρ,μ) ∈ γ_\Env(\widehat{ρ}) \ \}) \\
+α_{\Env}(R)(x) & = & \Lub \{\  α_E(μ)(\{\ ρ(x)\ \}) \mid (ρ,μ) ∈ R \ \} \\
+α_\Traces(T) & = & \Lub \{\  β_\Traces(τ) \mid τ ∈ T \ \} \\
+\\[-0.5em]
+β_\Traces(|τ|) & = & \begin{cases}
+  |step e ({-" β_\Traces(\varid{τ'}) "-})| & \text{if |τ = Step e τ'|} \\
+  |stuck|                         & \text{if |τ = Ret (Stuck, μ)|} \\
+  |fun (\(hat d) -> {-" α_\Traces(\{\  \varid{f}~\varid{d}~\varid{μ} \mid \varid{d} ∈ γ_E(\varid{μ})(\widehat{\varid{d}})\ \}) "-})| & \text{if |τ = Ret (Fun f, μ)|} \\
+  |con k (map (\d -> {-" α_E(\varid{μ})(\{\ \varid{d}\ \}) "-}) ds)| & \text{if |τ = Ret (Con k ds, μ)|} \\
+  \end{cases} \\
+\\[-0.5em]
+α_{E}(μ)(ρ) & = & ... \\
+\end{array}\]
+\caption{Galois connection for sound by-name and by-need abstraction}
+\label{fig:name-need-gist}
+\end{figure}
+
+\begin{figure}
   \[\begin{array}{c}
     \inferrule[\textsc{Mono}]{|d1 ⊑ d2| \\ |f1 ⊑ f2|}{%
       |apply f1 d1 ⊑ apply f2 d2|%
@@ -103,28 +135,6 @@ by-need interpretation (\Cref{thm:soundness-by-need-closed}), referring to the
 In other words: prove the abstraction laws for an abstract domain |hat D| of
 your choosing and we give you a proof of sound abstract by-need
 interpretation for the static analysis |eval3 (hat D) e emp|!
-
-\begin{figure}
-\belowdisplayskip=0pt
-\begin{spec}
-data Pow a = P (Set a); instance Lat Pow where ...
-data GC a b = (a -> b) :<->: (b -> a)
-repr :: Lat b => (a -> b) -> GC (Pow a) b
-repr β = α :<->: γ where α (P as) = Lub (β a | a <- as); γ b = P (setundef (a | β a ⊑ b))
-
-abstract d = β (d emp)
-
-β (Step e d)           = step e (β d)
-β (Ret (Stuck, μ))     = stuck
-β (Ret (Fun f, μ))     = fun {-"\iffalse"-}"" ""{-"\fi"-} (\(hat d) -> Lub (β (f d μ) | d ∈ γE (hat d)))  where unused (  _   :<->: γE)  = untyped (persistHeap μ)
-β (Ret (Con k ds, μ))  = con {-"\iffalse"-}""{-"\fi"-} k (map (\d -> αE (set d)) ds)                      where           αE  :<->: _    = persistHeap μ
-
-persistHeap μ = untyped (repr β where β (Step (Look x) (fetch a))  |  memo a (evalNeed2 e ρ) <- μ ! a
-                                                                   =  step (Look x) (eval3 (hat D) e (β << ρ)))
-\end{spec}
-\caption{Galois connection for sound by-name and by-need abstraction}
-\label{fig:name-need-gist}
-\end{figure}
 
 Note that \emph{we} get to determine the abstraction function |abstract| based
 on the |Trace|, |Domain| and |Lat| instance on \emph{your} |hat D|.
@@ -203,7 +213,7 @@ For concise notation, we define the following abstract substitution operation:
 
 \begin{definition}[Abstract substitution]
   \label{defn:abs-subst-usage}
-  We call |abssubst φ x φ' := (ext φ x U0) + (φ ! x) * φ'| the
+  We call |abssubst φ x φ' := (ext φ x U0) + (φ !? x) * φ'| the
   \emph{abstract substitution} operation on |Uses|
   and overload this notation for |UT|, so that
   |abssubst (MkUT φ v) x φ' := MkUT (abssubst φ x φ') v|.

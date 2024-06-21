@@ -119,4 +119,4 @@ Rev B
 Rev C
 -----
 
-- [ ] (Remove CCbV?)
+- [x] (Remove CCbV?)
