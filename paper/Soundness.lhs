@@ -26,27 +26,61 @@ set = P . Set.singleton
 \section{Generic By-Name and By-Need Soundness}
 \label{sec:soundness}
 
+\begin{figure}
+\[\ruleform{\begin{array}{c}
+  α_{\mathcal{S}} : (|(Name :-> DNeed) -> DNeed|) \rightleftarrows (|(Name :-> hat D) -> hat D|) : γ_{\mathcal{S}}
+  \\
+  α_{\Environments} : \mathcal{P}((|Name :-> DNeed|) \times |HeapNeed|) \rightleftarrows (|Name :-> hat D|) : γ_{\Environments}
+  \\
+  α_E : |HeapNeed| \to \mathcal{P}(|DNeed|) \rightleftarrows |hat D| : γ_E
+  \\
+  α_\Traces : \mathcal{P}(|T (ValueNeed, HeapNeed)|) \rightleftarrows |hat D| : γ_\Traces
+  \qquad
+  β_\Traces : |T (ValueNeed, HeapNeed)| \to |hat D|
+  \qquad
+\end{array}}\]
+\belowdisplayskip=0pt
+\arraycolsep=2pt
+\[\begin{array}{lcl}
+α_{\mathcal{S}}(S)(\widehat{ρ}) & = & α_\Traces(\{\  S(ρ)(μ) \mid (ρ,μ) ∈ γ_{\Environments}(\widehat{ρ}) \ \}) \\
+α_{\Environments}(R)(x) & = & \Lub \{\  α_E(μ)(\{ρ(x)\}) \mid (ρ,μ) ∈ R \ \} \\
+α_\Traces(T) & = & \Lub \{\  β_\Traces(τ) \mid τ ∈ T \ \} \\
+\\[-0.5em]
+β_\Traces(|τ|) & = & \begin{cases}
+  |step e ({-" β_\Traces(\varid{τ'}) "-})| & \text{if |τ = Step e τ'|} \\
+  |stuck|                         & \text{if |τ = Ret (Stuck, μ)|} \\
+  |fun (\(hat d) -> {-" α_\Traces(\{\  \varid{f}~\varid{d}~\varid{μ} \mid \varid{d} ∈ γ_E(\varid{μ})(\widehat{\varid{d}})\ \}) "-})| & \text{if |τ = Ret (Fun f, μ)|} \\
+  |con k (map (\d -> {-" α_E(\varid{μ})(\{\ \varid{d}\ \}) "-}) ds)| & \text{if |τ = Ret (Con k ds, μ)|} \\
+  \end{cases} \\
+\\[-0.5em]
+α_{E}(μ)(ρ) & = & \text{... see \Cref{fig:name-need} in \Cref{sec:soundness-detail} ...} \\
+\end{array}\]
+\caption{Galois connection $α_{\mathcal{S}}$ for by-need abstraction derived from |Trace|, |Domain| and |Lat| instances on |hat D|}
+\label{fig:name-need-gist}
+\end{figure}
+
 In this section we prove and apply a generic abstract interpretation theorem
 of the form
 \[
-  |abstract (evalNeed2 e emp) ⊑ eval3 (hat D) e emp|.
+  α_{\mathcal{S}}(|evalNeed1 e|) ⊑ |evalD2 (hat D) e|.
 \]
-This statement reads as follows:
-for a closed expression |e|, the \emph{static analysis} result |eval3 (hat D) e emp|
+This statement can be read as follows:
+for a closed expression |e|, the \emph{static analysis} result |evalD (hat D) e emp|
 on the right-hand side \emph{overapproximates} ($⊒$) a property of the by-need
-\emph{semantics} |evalNeed2 e emp| on the left-hand side.
-The abstraction function |abstract :: D (ByNeed T) -> hat D| describes what
-semantic property we are interested in, in terms of the abstract semantic domain
-|hat D| of |eval3 (hat D) e ρ|, which is short for |eval e ρ :: hat D|.
-In our framework, |abstract| is entirely derived from type class
-instances on |hat D|.
+\emph{semantics} |evalNeed e emp emp| on the left-hand side.
+The abstraction function $α_{\mathcal{S}}$, given in
+\Cref{fig:name-need-gist}, generalises this notion to open expressions and
+defines the semantic property of interest in terms of the abstract semantic
+domain |hat D| of |evalD (hat D) e ρ|, which is short for |eval e ρ :: hat D|.
+That is: the type class instances on |hat D| determine $α_{\mathcal{S}}$, and
+hence the semantic property that is soundly abstracted by |evalD (hat D) e ρ|.
 
 We will instantiate the theorem at |UD| in order to prove that usage analysis
 |evalUsg e ρ = evalD UD e ρ| infers absence, just as absence analysis in
 \Cref{sec:problem}.
 This proof will be much simpler than the proof for \Cref{thm:absence-correct}.
-The main body will only discuss abstraction of closed terms, but the underlying
-\Cref{thm:soundness-by-need} in the Appendix considers open terms as well.
+%The main body will only discuss abstraction of closed terms, but the underlying
+%\Cref{thm:soundness-by-need} in the Appendix considers open terms as well.
 
 \begin{figure}
   \[\begin{array}{c}
@@ -65,16 +99,16 @@ The main body will only discuss abstraction of closed terms, but the underlying
       \textstyle|stuck ⊑ Lub (apply (con k ds) a, select (fun x f) alts)|} \\
     \\[-0.5em]
     \inferrule[\textsc{Beta-App}]{%
-      |f d = step App2 (eval3 (hat D) e (ext ρ x d))|}{%
+      |f d = step App2 (evalD (hat D) e (ext ρ x d))|}{%
       |f a ⊑ apply (fun x f) a|} \qquad
     \inferrule[\textsc{Beta-Sel}]{\begin{minipage}[c]{0.6\textwidth}{%
       \begin{spec}
         (alts ! k) ds  |  len ds /= len xs  = stuck
-                       |  otherwise         = step Case2 (eval3 (hat D) er (exts ρ xs ds))
+                       |  otherwise         = step Case2 (evalD (hat D) er (exts ρ xs ds))
       \end{spec}}\end{minipage}}{%
       |(alts ! k) (map (ρ1 !) ys) ⊑ select (con k (map (ρ1 !) ys)) alts|} \\
     \\[-0.5em]
-    \inferrule[\textsc{Bind-ByName}]{|rhs d1 = eval3 (hat D) e1 (ext ρ x (step (Look x) d1))|\\ |body d1 = step Let1 (eval3 (hat D) e2 (ext ρ x d1))|}{|body (lfp rhs) ⊑ bind rhs body|}
+    \inferrule[\textsc{Bind-ByName}]{|rhs d1 = evalD (hat D) e1 (ext ρ x (step (Look x) d1))|\\ |body d1 = step Let1 (evalD (hat D) e2 (ext ρ x d1))|}{|body (lfp rhs) ⊑ bind rhs body|}
   \end{array}\]
   \fcolorbox{lightgray}{white}{$\begin{array}{c}
     \inferrule[\textsc{Step-Inc}]{}{|d ⊑ step ev d|}
@@ -96,84 +130,59 @@ by-need interpretation (\Cref{thm:soundness-by-need-closed}), referring to the
     \textsc{Intro-Stuck} \\ \textsc{Beta-App} \\ \textsc{Beta-Sel} \\ \textsc{Bind-ByName} \\
     \textsc{Step-Inc} \\ \textsc{Update}
   }{%
-  |abstract (evalNeed2 e emp) ⊑ eval3 (hat D) e emp|
+  α_{\mathcal{S}}(|evalNeed1 e|) ⊑ |evalD2 (hat D) e|
   }
 \end{array}\]
 \noindent
 In other words: prove the abstraction laws for an abstract domain |hat D| of
 your choosing and we give you a proof of sound abstract by-need
-interpretation for the static analysis |eval3 (hat D) e emp|!
+interpretation for the static analysis |evalD (hat D)|!
 
-\begin{figure}
-\belowdisplayskip=0pt
-\begin{spec}
-data Pow a = P (Set a); instance Lat Pow where ...
-data GC a b = (a -> b) :<->: (b -> a)
-repr :: Lat b => (a -> b) -> GC (Pow a) b
-repr β = α :<->: γ where α (P as) = Lub (β a | a <- as); γ b = P (setundef (a | β a ⊑ b))
-
-abstract d = β (d emp)
-
-β (Step e d)           = step e (β d)
-β (Ret (Stuck, μ))     = stuck
-β (Ret (Fun f, μ))     = fun {-"\iffalse"-}"" ""{-"\fi"-} (\(hat d) -> Lub (β (f d μ) | d ∈ γE (hat d)))  where unused (  _   :<->: γE)  = untyped (persistHeap μ)
-β (Ret (Con k ds, μ))  = con {-"\iffalse"-}""{-"\fi"-} k (map (\d -> αE (set d)) ds)                      where           αE  :<->: _    = persistHeap μ
-
-persistHeap μ = untyped (repr β where β (Step (Look x) (fetch a))  |  memo a (evalNeed2 e ρ) <- μ ! a
-                                                                   =  step (Look x) (eval3 (hat D) e (β << ρ)))
-\end{spec}
-\caption{Galois connection for sound by-name and by-need abstraction}
-\label{fig:name-need-gist}
-\end{figure}
-
-Note that \emph{we} get to determine the abstraction function |abstract| based
+Note that \emph{we} get to determine the abstraction function $α_{\mathcal{S}}$ based
 on the |Trace|, |Domain| and |Lat| instance on \emph{your} |hat D|.
-\Cref{fig:name-need-gist} replicates the gist of how |abstract| is thus derived.
+\Cref{fig:name-need-gist} replicates the gist of how $α_{\mathcal{S}}$ is thus derived.
 
-Function |abstract| runs its denotation in the empty heap |emp| and hands over
-to a function |β| that folds the trace into an abstract domain element in |hat
-D|.
-Since |hat D| has a |Lat| instance, such a |β| is called a \emph{representation
-function}~\citep[Section 4.3]{Nielson:99} which gives rise to a Galois
-connection defined via |repr β| from the powerset lattice of by-need traces
-(\ie trace properties) into |hat D|.
-Function |β| eliminates every |Step ev| in the by-need trace with a call to
+For a closed expression |e|, $α_{\mathcal{S}}(|evalNeed1 e|)(|emp|)$ simplifies
+to $β_\Traces(|evalNeed e emp emp|)$, which folds the by-need
+trace into an abstract domain element in |hat D|.
+Since |hat D| has a |Lat| instance, such a $β_\Traces$ is called a \emph{representation
+function}~\citep[Section 4.3]{Nielson:99}, giving rise to the Galois
+connection $α_\Traces \rightleftarrows γ_\Traces$.
+Function $β_\Traces$ eliminates every |Step ev| in the trace with a call to
 |step ev|, and eliminates every concrete |Value| at the end of the trace with a
 call to the corresponding |Domain| method.
 
-To that end, the final heap |μ| is persisted into a Galois connection
-|persistHeap μ| that abstracts entries of concrete environments |ρ ! x|
-into entries of abstract environments |hat ρ ! x|, resolving all |fetch a|
-operations using entries |μ ! a| in the persisted heap.
-The precise type of |persistHeap| involves a predicate to characterise the
-definable entities in the heap and is omitted here; details can be found in
-\Cref{fig:name-need}.
-Clearly, \Cref{fig:name-need-gist} is no longer computable Haskell, but it is
-mathematiclly well-defined; for example, the recursion in $|persistHeap|.|β|$
-is defined via least fixpoints in |Lat (hat D)|.
+To that end, the final heap |μ| is \emph{persisted} into a Galois connection
+$α_E(|μ|) \rightleftarrows γ_E(|μ|)$.
+The precise definition of this Galois connection is best left to the Appendix.
+Very roughly, $α_E(|μ|)$ abstracts entries of concrete environments |ρ ! x|
+of the form |Step (Look y) (fetch a)| into entries of abstract environments
+|hat ρ ! x|, resolving all |fetch a| operations using entries |μ ! a| in the
+persisted heap.
 
 When the trace ends in a |Con| value, every field denotation |d| is abstracted
-via |persistHeap μ|.
+via $α_E(|μ|)(|d|)$.
 When the trace ends in a |Fun| value, an abstract argument denotation |hat d| is
 concretised to call the concrete function |f|, and the resulting trace is
-recursively abstracted via |β| afterwards.
+recursively abstracted via $α_\Traces$ afterwards.
 
-Thanks to fixing |abstract|, we can prove the following abstraction theorem,
+Thanks to fixing $α_{\mathcal{S}}$, we can prove the following abstraction theorem,
 corresponding to the inference rule at the begin of this subsection:
 
 \begin{theoremrep}[Sound By-need Interpretation]
 \label{thm:soundness-by-need-closed}
 Let |hat D| be a domain with instances for |Trace|, |Domain|, |HasBind| and
-|Lat|, and let |abstract| be the abstraction function from \Cref{fig:name-need-gist}.
+|Lat|, and let $α_{\mathcal{S}}$ be the abstraction function from \Cref{fig:name-need-gist}.
 If the abstraction laws in \Cref{fig:abstraction-laws} hold,
-then |eval3 (hat D)| is an abstract interpreter that is sound \wrt |abstract|,
+then |evalD (hat D)| is an abstract interpreter that is sound \wrt $α_{\mathcal{S}}$,
 that is,
 \[
-  |abstract (evalNeed2 e emp) ⊑ eval3 (hat D) e emp|.
+  α_{\mathcal{S}}(|evalNeed1 e|) ⊑ |evalD2 (hat D) e|
 \]
 \end{theoremrep}
 \begin{proof}
-When we inline |abstract|, the goal is simply \Cref{thm:soundness-by-need} for
+\sg{This proposition is no longer weaker than \Cref{thm:soundness-by-need} and I should merge}
+When we inline $α_{\mathcal{S}}$, the goal is simply \Cref{thm:soundness-by-need} for
 the special case where environment and heap are empty.
 \end{proof}
 
@@ -195,6 +204,7 @@ We will need a similar lemma for usage analysis below, and it is useful to
 illustrate the next point, so we prove it here:
 
 \begin{toappendix}
+\label{sec:soundness-detail}
 \begin{abbreviation}[Field access]
   |(MkUT φ' v').φ := φ'|, |(MkUT φ' v').v = v'|.
 \end{abbreviation}
@@ -203,7 +213,7 @@ For concise notation, we define the following abstract substitution operation:
 
 \begin{definition}[Abstract substitution]
   \label{defn:abs-subst-usage}
-  We call |abssubst φ x φ' := (ext φ x U0) + (φ ! x) * φ'| the
+  We call |abssubst φ x φ' := (ext φ x U0) + (φ !? x) * φ'| the
   \emph{abstract substitution} operation on |Uses|
   and overload this notation for |UT|, so that
   |abssubst (MkUT φ v) x φ' := MkUT (abssubst φ x φ') v|.
@@ -387,12 +397,12 @@ Now we proceed by induction on |e| and only consider non-|stuck| cases.
 
 In order to apply this lemma in step $⊑$ below, it is important that the
 premise provides the \emph{strongest characterisation} of |f| in terms of the
-syntactic definition |f d := step App2 (eval3 UD e (ext ρ x d))|.
+syntactic definition |f d := step App2 (evalD UD e (ext ρ x d))|.
 Then we get, for |a := ρ ! y :: UD|,
 \begin{equation}
   \label{eqn:usage-beta-app}
   \hspace{-1ex}
-  |f a = step App2 (eval3 UD e (ext ρ x a)) = eval3 UD e (ext ρ x a) ⊑ eval3 UD (Lam x e `App` y) ρ = apply (fun x f) a|
+  |f a = step App2 (evalD UD e (ext ρ x a)) = evalD UD e (ext ρ x a) ⊑ evalD UD (Lam x e `App` y) ρ = apply (fun x f) a|
 \end{equation}
 Without the syntactic premise of \textsc{Beta-App} to rule out undefinable
 entities in |UD -> UD|, the rule cannot be proved for usage analysis; we give a counterexample
@@ -422,10 +432,11 @@ for by-name evaluation which does not require the by-need specific rules
 \textsc{Step-Inc} and \textsc{Update}.
 
 Note that none of the laws mention the concrete semantics or the abstraction
-function |abstract|.
-This is how fixing the concrete semantics and |abstract| pays off; the usual
-abstraction laws such as |α (apply d a) ⊑ hat apply (α d) (α a)| further
-decompose for |α = abstract| into \textsc{Beta-App}.
+function $α_{\mathcal{S}}$.
+This is how fixing the concrete semantics and $α_{\mathcal{S}}$ pays off; the usual
+abstraction laws such as
+$α(|apply d a|) ⊑ |hat apply ({-" α "-} (d)) ({-" α "-} (a))|$ further
+decompose for $α = α_{\mathcal{S}}$ into \textsc{Beta-App}.
 We think this is a nice advantage to our approach, because the author of
 the analysis does not need to reason about the concrete semantics in order to
 soundly approximate a semantic trace property expressed via |Trace| instance!
@@ -442,11 +453,11 @@ Specifically, \Cref{thm:soundness-by-need-closed} makes it very simple to relate
 by-need semantics with usage analysis, taking the place of the absence
 analysis-specific preservation \Cref{thm:preserve-absent}:
 
-\begin{lemmarep}[|evalUsg| abstracts |evalNeed2|]
+\begin{lemmarep}[|evalUsg1| abstracts |evalNeed1|]
 \label{thm:usage-abstracts-need-closed}
-Let |e| be a closed expression and |abstract| the abstraction function from
+Let |e| be a closed expression and $α_{\mathcal{S}}$ the abstraction function from
 \Cref{fig:name-need-gist}.
-Then |abstract (evalNeed2 e emp) ⊑ evalUsg e emp|.
+Then $α_{\mathcal{S}}(|evalNeed1 e|) ⊑ |evalUsg1 e|$.
 \end{lemmarep}
 \begin{proof}
 By \Cref{thm:soundness-by-need-closed}, it suffices to show the abstraction laws
@@ -531,10 +542,10 @@ Thus insulated from the LK machine, we may restate and prove
 \end{theoremrep}
 \begin{proofsketch}
 If |x| is used in |e|, there is a trace |evalNeed (fillC ectxt (Let x e' e)) emp emp| containing a |Look x| event.
-The abstraction function |abstract| induced by |UD| aggregates lookups in the
+The abstraction function $α_{\mathcal{S}}$ induced by |UD| aggregates lookups in the
 trace into a |φ' :: Uses|, \eg
-  |abstract ({-" \LookupT(i) \smallstep \LookupT(x) \smallstep \LookupT(i) \smallstep \langle ... \rangle "-})
-    = MkUT [ i {-" ↦ "-} Uω, x {-" ↦ "-} U1 ] (...)|.
+  $β_\Traces(\LookupT(i) \smallstep \LookupT(x) \smallstep \LookupT(i) \smallstep \langle ... \rangle)
+    = |MkUT [ i {-" ↦ "-} Uω, x {-" ↦ "-} U1 ] (...)|$.
 Clearly, it is |φ' !? x ⊒ U1|, because there is at least one |Look x|.
 \Cref{thm:usage-abstracts-need-closed} and a context invariance
 \Cref{thm:usage-bound-vars-context} prove that the computed |φ|
@@ -584,6 +595,7 @@ The final step is just algebra.
 
 \subsection{Sound By-need Interpretation for Boxity Analysis}
 
+\sg{Perhaps remove again, now that we don't talk about boxity analysis?}
 \Cref{thm:soundness-by-need-closed} is useful for more analyses than just usage
 analysis.
 This is easily demonstrated by applying it to boxity analysis from
@@ -591,11 +603,11 @@ This is easily demonstrated by applying it to boxity analysis from
 (The implementation of this analysis is not important other than to understand
 the proof.)
 
-\begin{lemmarep}[|evalBox| abstracts |evalNeed2|]
-\label{thm:boxity-abstracts-need-closed}
-Let |e| be a closed expression and |abstract| the abstraction function from
+\begin{lemmarep}[|evalBox1| abstracts |evalNeed1|]
+\label{thm:usage-abstracts-need-closed}
+Let |e| be a closed expression and $α_{\mathcal{S}}$ the abstraction function from
 \Cref{fig:name-need-gist}.
-Then |abstract (evalNeed2 e emp) ⊑ evalBox e emp|.
+Then $α_{\mathcal{S}}(|evalNeed1 e|) ⊑ |evalBox1 e|$.
 \end{lemmarep}
 \begin{proof}
 By \Cref{thm:soundness-by-need-closed}, it suffices to show the abstraction laws
@@ -887,11 +899,11 @@ This theory bears semantic significance when $(|D|,≤)$ is instantiated to the
 complete lattice of trace properties $(\pow{\Traces},⊆)$, where $\Traces$ is
 the set of program traces.
 Then the \emph{collecting semantics} relative to a concrete, trace-generating
-semantics |eval3 Traces|, defined as |eval3 Collecting e ρ := set (eval3 Traces
+semantics |evalD Traces|, defined as |evalD Collecting e ρ := set (evalD Traces
 e ρ)|, provides the strongest trace property that a given program |(e,ρ)|
 satisfies.
 In this setting, we extend the original Galois connection to the signature of
-|eval3 Traces e| \emph{parametrically},%
+|evalD Traces e| \emph{parametrically},%
 \footnote{``Parametrically'' in the sense of \citet{Backhouse:04}, \ie the
 structural properties of a Galois connection follow as a free theorem.}
 to
@@ -900,17 +912,17 @@ to
   \galois{|\f -> α . f . (γ <<)|}{|\(hat f) -> γ . hat f . (α <<)|}
   (|(Name :-> hat D) -> hat D|, |dot (⊑)|),
 \]
-and state soundness of the abstract semantics |eval3 (hat D)| as
+and state soundness of the abstract semantics |evalD (hat D)| as
 \[
-  |eval3 Collecting e ρ ⊆ γ (eval3 (hat D) e (α << set << ρ))|
+  |evalD Collecting e ρ ⊆ γ (evalD (hat D) e (α << set << ρ))|
   \Longleftrightarrow
-  |α (set (eval3 Traces e ρ)) ⊑ eval3 (hat D) e (α << set << ρ)|.
+  |α (set (evalD Traces e ρ)) ⊑ evalD (hat D) e (α << set << ρ)|.
 \]
 The statement should be read as ``The concrete semantics implies the abstract
 semantics up to concretisation''~\citet[p. 26]{Cousot:21}.
 It looks a bit different to what we exemplified in
 \Cref{thm:soundness-by-need-closed} for the following reasons:
-(1) |eval3 Traces| and |eval3 (hat D)| are in fact different type class
+(1) |evalD Traces| and |evalD (hat D)| are in fact different type class
 instantiations of the same denotational interpreter |eval| from
 \Cref{sec:interp}, thus both functions share a lot of common structure.
 (2) The Galois connections |byName| and |nameNeed| defined below are completely
