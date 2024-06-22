@@ -80,13 +80,13 @@ events, as expressed in the following theorem:
 \[\ruleform{\begin{array}{c}
   α_\Events : \States \to |Event|
   \qquad
-  α_\Environments : \Environments \times \Heaps \to (|Name :-> D (ByNeed T)|)
-  \\
-  α_\Heaps : \Heaps \to |Heap (ByNeed T)|
+  α_\Environments : \Environments \times \Heaps \to (|Name :-> DNeed|)
   \qquad
-  α_{\Values} : \States \times \Continuations \to |Value (ByNeed T)|
+  α_\Heaps : \Heaps \to |HeapNeed|
   \\
-  α_{\STraces} : \STraces \times \Continuations \to |T (Value (ByNeed T), Heap (ByNeed T))|
+  α_{\STraces} : \STraces \times \Continuations \to |T (ValueNeed, HeapNeed)|
+  \qquad
+  α_{\Values} : \States \times \Continuations \to |ValueNeed|
 \end{array}}\]
 \arraycolsep=2pt
 \[\begin{array}{lcl}
@@ -104,15 +104,16 @@ events, as expressed in the following theorem:
   \\[-0.75em]
   α_\Heaps([\many{\pa ↦ (\wild,ρ,\pe)}]) & = & [\many{|a| ↦ |memo a (eval e (αEnv ρ μ))|}] \\
   \\[-0.75em]
-  α_\Values((\Lam{\px}{\pe},ρ,μ,κ),κ_0) & = & |Fun (\d -> Step App2 (eval e (ext (αEnv ρ μ) x d)))| \quad\hfill\text{if }(κ = κ_0) \\
-  α_\Values((K~\overline{\px},ρ,μ,κ),κ_0) & = & |Con k (map (αEnv ρ μ !) xs)| \quad\hfill \text{if }(κ = κ_0) \\
-  α_\Values((\wild,\wild,\wild,\wild),\wild) & = & |Stuck| \\
+  α_\Values(σ,κ_0) & = & \begin{cases}
+    |Fun (\d -> Step App2 (eval e (ext (αEnv ρ μ) x d)))| & \text{if } σ = (\Lam{\px}{\pe},ρ,μ,κ_0) \\
+    |Con k (map (αEnv ρ μ !) xs)|                         & \text{if } σ = (K~\overline{\px},ρ,μ,κ_0) \\
+    |Stuck|                                               & \text{otherwise} \\
+  \end{cases} \\
   \\[-0.75em]
   α_{\STraces}((σ_i)_{i∈\overline{n}},κ_0) & = & \begin{cases}
     |Step ({-" α_\Events(σ_0) "-}) (idiom (αSTraces (lktrace, κ_0)))| & \text{if }n > 0 \\
-    |Ret ({-" α_\Values(σ_0,κ_0) "-}, αHeap μ)| & \text{otherwise}
-  \end{cases} \\
-  &&\quad \text{where }(\wild,\wild, μ, \wild) = σ_0
+    |Ret ({-" α_\Values(σ_0,κ_0) "-}, αHeap μ)| & \text{where }(\wild,\wild, μ, \wild) = σ_0
+  \end{cases}
 \end{array}\]
 \caption{Abstraction function $α_{\STraces}$ from LK machine to |evalNeed2|}
   \label{fig:eval-correctness}
@@ -298,7 +299,7 @@ In order to show that |evalNeed2| preserves the termination observable of |e|,
 \setlength{\itemsep}{0pt}
 \item
   we define a family of abstraction functions $α$ from LK traces to by-need
-  traces, formally in |T (Value (ByNeed T), Heap (ByNeed T))| (\Cref{fig:eval-correctness}),
+  traces, formally in |T (ValueNeed, HeapNeed)| (\Cref{fig:eval-correctness}),
 \item
   we show that this function $α$ preserves the termination observable of a given
   LK trace $\init(\pe) \smallstep ...$ (\Cref{thm:abs-max-trace}), and
@@ -309,16 +310,16 @@ In order to show that |evalNeed2| preserves the termination observable of |e|,
 \end{itemize}
 
 In the following, we will omit repeated wrapping and unwrapping of the |ByNeed|
-newtype wrapper when constructing and taking apart elements in |D (ByNeed T)|.
+newtype wrapper when constructing and taking apart elements in |DNeed|.
 Furthermore, we will sometimes need to disambiguate the clashing definitions from
 \Cref{sec:interp} and \Cref{sec:problem} by adorning ``Haskell objects'' with a
-tilde, in which case |tm := αHeap μ :: Heap (ByNeed T)| denotes a semantic
+tilde, in which case |tm := αHeap μ :: HeapNeed| denotes a semantic
 by-need heap, defined as an abstraction of a syntactic LK heap $μ ∈ \Heaps$.
 
 Now consider the trace abstraction function $α_{\STraces}$ from
 \Cref{fig:eval-correctness}.
 It maps syntactic entities in the transition system to the definable entities
-in the denotational by-need trace domain |T (Value (ByNeed T), Heap (ByNeed
+in the denotational by-need trace domain |T (ValueNeed, Heap (ByNeed
 T))|, henceforth abbreviated as |T| because it is the only use of the type
 constructor |T| in this subsection.
 
@@ -540,7 +541,7 @@ We do so by cases over $\pe$, abbreviating |tm := αHeap μ| and |tr := αEnv ρ
     balanced.
     Likewise, the continuation argument of |>>=| does a |Step Upd| on
     |Ret (val,tmm)|, updating the heap.
-    By cases on $\pv$ and the |Domain (D (ByNeed T))| instance we can see that
+    By cases on $\pv$ and the |Domain (DNeed)| instance we can see that
     \begin{spec}
          Ret (val,ext tmm a (memo a (return val)))
       =  Ret (val,ext tmm a (memo a (evalNeed2 v trm)))
@@ -571,7 +572,7 @@ We do so by cases over $\pe$, abbreviating |tm := αHeap μ| and |tr := αEnv ρ
     \end{spec}
     (where |trm| corresponds to the environment in $σ_m$ in the usual way,
     similarly for |tmm|).
-    The |apply| implementation of |Domain (D (ByNeed T))| applies the |Fun| value
+    The |apply| implementation of |Domain (DNeed)| applies the |Fun| value
     to the argument denotation |tr ! x|, hence it remains to be shown that
     |evalNeed e' (ext trm y (tr x)) tmm| is equal to
     $α_{\STraces}((σ_{i+m+1})_{i∈\overline{k}}, κ)$ \emph{later},
@@ -776,7 +777,7 @@ where the $\later$ ``effects'' happen.
 
 We will now outline the changes necessary to encode |eval| in Guarded Cubical
 Agda, a system implementing Ticked Cubical Type Theory~\citep{tctt}, as well
-as the concrete instances |D (ByName T)| and |D (ByNeed T)| from
+as the concrete instances |D (ByName T)| and |DNeed| from
 \Cref{fig:trace-instances,fig:by-need}.
 The full, type-checked development is available in the Supplement.
 \begin{itemize}

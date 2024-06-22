@@ -32,7 +32,7 @@ set = P . Set.singleton
   \\
   α_{\Environments} : \mathcal{P}((|Name :-> DNeed|) \times |HeapNeed|) \rightleftarrows (|Name :-> hat D|) : γ_{\Environments}
   \\
-  α_E : |HeapNeed| \to \mathcal{P}(|DNeed|) \rightleftarrows |hat D| : γ_E
+  α_{\Domain{}} : |HeapNeed| \to \mathcal{P}(|DNeed|) \rightleftarrows |hat D| : γ_{\Domain{}}
   \\
   α_\Traces : \mathcal{P}(|T (ValueNeed, HeapNeed)|) \rightleftarrows |hat D| : γ_\Traces
   \qquad
@@ -43,14 +43,14 @@ set = P . Set.singleton
 \arraycolsep=2pt
 \[\begin{array}{lcl}
 α_{\mathcal{S}}(S)(\widehat{ρ}) & = & α_\Traces(\{\  S(ρ)(μ) \mid (ρ,μ) ∈ γ_{\Environments}(\widehat{ρ}) \ \}) \\
-α_{\Environments}(R)(x) & = & \Lub \{\  α_E(μ)(\{ρ(x)\}) \mid (ρ,μ) ∈ R \ \} \\
+α_{\Environments}(R)(x) & = & \Lub \{\  α_{\Domain{}}(μ)(\{ρ(x)\}) \mid (ρ,μ) ∈ R \ \} \\
 α_\Traces(T) & = & \Lub \{\  β_\Traces(τ) \mid τ ∈ T \ \} \\
 \\[-0.5em]
 β_\Traces(|τ|) & = & \begin{cases}
   |step e ({-" β_\Traces(\varid{τ'}) "-})| & \text{if |τ = Step e τ'|} \\
   |stuck|                         & \text{if |τ = Ret (Stuck, μ)|} \\
-  |fun (\(hat d) -> {-" α_\Traces(\{\  \varid{f}~\varid{d}~\varid{μ} \mid \varid{d} ∈ γ_E(\varid{μ})(\widehat{\varid{d}})\ \}) "-})| & \text{if |τ = Ret (Fun f, μ)|} \\
-  |con k (map (\d -> {-" α_E(\varid{μ})(\{\ \varid{d}\ \}) "-}) ds)| & \text{if |τ = Ret (Con k ds, μ)|} \\
+  |fun (\(hat d) -> {-" α_\Traces(\{\  \varid{f}~\varid{d}~\varid{μ} \mid \varid{d} ∈ γ_{\Domain{}}(\varid{μ})(\widehat{\varid{d}})\ \}) "-})| & \text{if |τ = Ret (Fun f, μ)|} \\
+  |con k (map (\d -> {-" α_{\Domain{}}(\varid{μ})(\{\ \varid{d}\ \}) "-}) ds)| & \text{if |τ = Ret (Con k ds, μ)|} \\
   \end{cases} \\
 \\[-0.5em]
 α_{E}(μ)(ρ) & = & \text{... see \Cref{fig:name-need} in \Cref{sec:soundness-detail} ...} \\
@@ -153,15 +153,15 @@ Function $β_\Traces$ eliminates every |Step ev| in the trace with a call to
 call to the corresponding |Domain| method.
 
 To that end, the final heap |μ| is \emph{persisted} into a Galois connection
-$α_E(|μ|) \rightleftarrows γ_E(|μ|)$.
+$α_{\Domain{}}(|μ|) \rightleftarrows γ_{\Domain{}}(|μ|)$.
 The precise definition of this Galois connection is best left to the Appendix.
-Very roughly, $α_E(|μ|)$ abstracts entries of concrete environments |ρ ! x|
+Very roughly, $α_{\Domain{}}(|μ|)$ abstracts entries of concrete environments |ρ ! x|
 of the form |Step (Look y) (fetch a)| into entries of abstract environments
 |hat ρ ! x|, resolving all |fetch a| operations using entries |μ ! a| in the
 persisted heap.
 
 When the trace ends in a |Con| value, every field denotation |d| is abstracted
-via $α_E(|μ|)(|d|)$.
+via $α_{\Domain{}}(|μ|)(|d|)$.
 When the trace ends in a |Fun| value, an abstract argument denotation |hat d| is
 concretised to call the concrete function |f|, and the resulting trace is
 recursively abstracted via $α_\Traces$ afterwards.

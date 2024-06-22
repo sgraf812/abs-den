@@ -477,10 +477,11 @@ interpreter instance as |evalName e ρ|.
 
 \begin{figure}
 \begin{code}
-evalNeed e ρ μ = unByNeed (eval e ρ :: D (ByNeed T)) μ
-
 type Addr = Int; type Heap τ = Addr :-> D τ; nextFree :: Heap τ -> Addr
 newtype ByNeed τ v = ByNeed { unByNeed :: Heap (ByNeed τ) -> τ (v, Heap (ByNeed τ)) }
+
+type DNeed = D (ByNeed T); type ValueNeed = Value (ByNeed T); type HeapNeed = Heap (ByNeed T)
+evalNeed e ρ μ = unByNeed (eval e ρ :: DNeed) μ
 
 getN  :: Monad τ => ByNeed τ (Heap (ByNeed τ));         getN    = ByNeed (\ μ -> return (μ, μ))
 putN  :: Monad τ => Heap (ByNeed τ) -> ByNeed τ (); ^^  putN μ  = ByNeed (\ _ -> return ((), μ))
