@@ -39,22 +39,96 @@ interpreter on the program statically, at compile time, to yield a \emph{finite}
 abstraction of the dynamic behavior.
 This gives us a \emph{static program analysis}.
 
-To demonstrate this idea, we define a summary-based \emph{usage analysis} in this section.
-Its code is given in \Cref{fig:usage-analysis}.
-Usage analysis generalises absence analysis from \Cref{sec:problem} and is the
-running example of this work.
+%To show the applicability of our framework, \Cref{sec:more-analyses} briefly
+%discusses other successful realisations of analyses such as boxity
+%analysis~\citep{Henglein:94}, \citeauthor{Milner:78}'s ML-style type inference,
+%0CFA control-flow analysis and GHC's Demand Analysis as denotational
+%interpreters.
+
+We can get a wide range of static analyses, by choosing an appropriate semantic domain.
+For example, we have successfully realised the following analyses as
+denotational interpreters:
+\begin{itemize}
+  \item
+    \Cref{sec:usage-analysis} defines a summary-based \emph{usage analysis},
+    the running example of this work.
+    We prove that usage analysis correctly infers absence in \Cref{sec:soundness}.
+
+  \item
+    \Cref{sec:type-analysis} defines a \emph{type analysis} with
+    let generalisation that implements \citeauthor{Milner:78}'s Algorithm J,
+    inferring polytypes such as $\forall α_3.\ \mathtt{option}\;(α_3
+    \rightarrow α_3)$ that act as summaries.
+
+  \item
+    \Cref{sec:0cfa} defines 0CFA \emph{control-flow analysis}~\citep{Shivers:91},
+    an non-modular analysis lacking a finite summary mechanism, simply as a
+    proof of concept.
+
+  \item
+    \sg{Remove?}
+    \Cref{sec:boxity-analysis} introduces \emph{boxity analysis}~\citep{Henglein:94}
+    as a deliberately simple, second summary-based analysis that shares its
+    preservation proof in \Cref{sec:soundness} with usage analysis.
+
+  \item
+    To demonstrate that our framework scales to real-world compilers,
+    we have refactored relevant parts of \emph{Demand Analysis} in the Glasgow
+    Haskell Compiler into an abstract denotational interpreter as an artefact.
+    The resulting compiler bootstraps and passes the testsuite.%
+    \footnote{There is a small caveat: we did not try to optimise for compiler
+    performance in our proof of concept and hence it regresses in a few
+    compiler performance test cases.
+    None of the runtime performance test cases regress and the inferred
+    demand signatures stay unchanged.}
+    Demand Analysis is the real-world implementation of the cardinality analysis
+    work of \citet{Sergey:14}, generalising usage analysis and implementing
+    strictness analysis as well.
+    For a report of this case study, we defer to \Cref{sec:todo}.\sg{TODO}
+
+  \item
+    Static compiler analyses such as Demand Analysis usually drive a subsequent
+    optimisation, for which a single denotation for the entire program is
+    insufficient.
+    Rather, we need one for every sub-expression, or at least every binding.
+    \Cref{sec:annotations} proposes a very slight generalisation of the
+    |Domain| type class that lifts a stateless analysis into a stateful
+    analysis writing out annotations for let bindings in a separate, global map.
+    As a substantial bonus, we can use another stateful map to cache the
+    results of fixpoint iterations.
+
+%    Boxity analysis infers when it is profitable to unbox let-bound variables
+%    or function arguments.
+%
+%    Expressions are denoted by sets of program labels that evaluation might
+%    return. These labels are given meaning in an abstract store.
+%    For a function label, the abstract store maintains a single point
+%    approximation of the function's abstract transformer as a \emph{polyvariant}
+%    summary.
+%
+%    \Cref{sec:type-analysis} defines a variant of \citeauthor{Milner:78}'s
+%    Algorithm J --- a \emph{type analysis} with let generalisation, inferring
+%    types such as $\forall α_3.\ \mathtt{option}\;(α_3 \rightarrow α_3)$.
+%    Function types act as summaries in the sense of the Introduction, and
+%    fixpoints are solved via unification.
+
+\end{itemize}
+
+In the following, we discuss usage analysis (\Cref{sec:usage-analysis}) and type
+analysis (\Cref{sec:type-analysis}) in more detail.
+
+\subsection{Usage Analysis}
+\label{sec:usage-analysis}
+
+In this subsection, we give a detailed account of \emph{usage analysis} as
+an instance of the denotational interpreter.
+Usage analysis generalises the summary-based absence analysis from
+\Cref{sec:problem} and is the running example of this work.
 It is a compelling example because it illustrates that our framework is suitable
 to infer \emph{operational properties}, such as an upper bound on the number of
 variable lookups.
-We prove that usage analysis correctly infers absence in \Cref{sec:soundness}.
 
-To show the applicability of our framework, \Cref{sec:more-analyses} briefly
-discusses other successful realisations of analyses such as boxity
-analysis~\citep{Henglein:94}, \citeauthor{Milner:78}'s ML-style type inference,
-0CFA control-flow analysis and GHC's Demand Analysis as denotational
-interpreters.
-
-\subsection{Trace Abstraction in |Trace UT|}
+\subsubsection{Trace Abstraction in |Trace UT|}
 \label{sec:usage-trace-abstraction}
 
 \begin{figure}
@@ -232,7 +306,7 @@ this interpreter instance will diverge whenever the input expression diverges.
 We fix this in the next subsection by introducing a finitely represented
 |UValue| to replace |Value UT|.
 
-\subsection{Value Abstraction |UValue| and Summarisation in |Domain UD|}
+\subsubsection{Value Abstraction |UValue| and Summarisation in |Domain UD|}
 
 In this subsection, we complement the trace type |UT| from the previous
 subsection with a corresponding semantic value type |UValue| to get the
@@ -352,7 +426,7 @@ kleeneFix f = go bottom where go x = let x' = f x in if x' ⊑ x then x' else go
 \label{fig:lat}
 \end{figure}
 
-\subsection{Finite Fixpoint Strategy in |HasBind UD| and Totality}
+\subsubsection{Finite Fixpoint Strategy in |HasBind UD| and Totality}
 
 The third and last ingredient to recover a static analysis is the fixpoint
 strategy in |HasBind UD|, to be used for recursive let bindings.
@@ -397,358 +471,36 @@ The resulting definition of |HasBind| is safe for by-name and by-need semantics.
 %important.
 %We discuss this topic in \Cref{sec:safety-extension}.}
 
-\begin{toappendix}
-\subsection{Boxity Analysis}
-\label{sec:boxity-analysis}
-
-\begin{figure}
-\begin{minipage}{0.4\textwidth}
-\hfuzz=1em
-\belowdisplayskip=0pt
-\begin{code}
-data B = X | R
-type Boxes = Name :-> B
-data BT v = MkBT Boxes Boxes v
-
-instance Trace (BT v) where
-  step _ = id
-\end{code}
-\end{minipage}%
-\begin{minipage}{0.6\textwidth}
-\hfuzz=2em
-\belowdisplayskip=0pt
-\begin{code}
-instance Monad BT where
-  return a = MkBT emp emp a
-  MkBT φ1 _ a >>= k =  let MkBT φ2 φ3 b = k a in MkBT (φ1 ⊔ φ2) φ3 b
-
-retain :: BT v -> BT v
-retain (MkBT φ1 φ2 v) = MkBT (φ1 ⊔ φ2) emp v
-\end{code}
-%if style == newcode
-\begin{code}
-instance Extract BT where getValue (MkBT _ _ v) = v
-\end{code}
-%endif
-\end{minipage}
-\caption{Boxity |B| and boxity trace |BT|}
-\label{fig:boxity-trace}
-\begin{minipage}{0.69\textwidth}
-\belowdisplayskip=0pt
-\begin{code}
-evalBox e ρ = eval e ρ :: BD
-
-instance Domain BD where
-  stuck                                  = bottom
-  fun x {-" \iffalse "-}_{-" \fi "-} f   = case retain (f (MkBT emp (singenv x R) (BRep R))) of
-    MkBT φ _ v -> MkBT (ext φ x X) emp (BCons (φ !??? x) v)
-  apply f a = retain f >>= \v1 -> case peelB v1 of
-    (X, v2) -> a          >> return v2
-    (R, v2) -> retain a  >> return v2
-  con {-" \iffalse "-}_{-" \fi "-} _ ds  = mapM retain ds >> return (BRep R)
-  select d fs                            = do
-    let proxy = MkBT emp emp (BRep R)
-    d >> lub  [  f (replicate (conArity k) proxy)
-              |  (k,f) <- assocs fs ]
-
-instance HasBind BD where
-  bind x rhs body = body (kleeneFix (needX . rhs)) where
-    needX (MkBT φ1 φ2 v)
-      | cbv x      = MkBT φ1 (ext φ2 x R) v
-      | otherwise  = MkBT (ext φ1 x R) φ2  v
-\end{code}
-\end{minipage}%
-\begin{minipage}{0.3\textwidth}
-\begin{code}
-data BValue = BCons B BValue | BRep B
-type BD = BT BValue
-
-instance Lat B where {-" ... \iffalse "-}
-  bottom = X
-  X  ⊔  X  = X
-  _  ⊔  _  = R
-{-" \fi "-}
-ifPoly (instance Lat Strs where ...)
-instance Lat BValue where {-" ... \iffalse "-}
-  bottom = (BRep X)
-  BRep b1 ⊔ BRep b2 = BRep (b1 ⊔ b2)
-  BRep b1 ⊔ v = BCons b1 (BRep b1) ⊔ v
-  v ⊔ BRep b2 = v ⊔ BCons b2 (BRep b2)
-  BCons b1 v1 ⊔ BCons b2 v2 = BCons (b1 ⊔ b2) (v1 ⊔ v2)
-{-" \fi "-}
-instance Lat BD where {-" ... \iffalse "-}
-  bottom = MkBT bottom bottom bottom
-  MkBT φ1 φ1n v1 ⊔ MkBT φ2 φ2n v2 = MkBT (φ1 ⊔ φ2) (φ1n ⊔ φ2n) (v1 ⊔ v2)
-{-" \fi "-}
-
-cbv :: Name -> Bool
-peelB :: BValue -> (B, BValue)
-peelB (BRep b)     = (b, BRep b)
-peelB (BCons b v)  = (b, v)
-
-(!???) :: Boxes -> Name -> B
-m !??? x  | not (cbv x)  = R
-          | x ∈ dom m    = m ! x
-          | otherwise    = X
-\end{code}
-\end{minipage}
-%if style == newcode
-\begin{code}
-cbv _ = True
-deriving instance Eq B
-deriving instance Functor BT
-
-index :: (Boxes, Boxes) -> B -> Boxes
-index (φ1, φ2) X = φ1
-index (φ1, φ2) R = φ1 ⊔ φ2
-
-instance Eq v => Eq (BT v) where
-  MkBT φ11 φ12 v1 == MkBT φ21 φ22 v2
-    =  index (φ11, φ12) X == index (φ21, φ22) X
-    && index (φ11, φ12) R == index (φ21, φ22) R
-    && v1 == v2
-
-instance Eq BValue where
-  BRep b1 == BRep b2 = b1 == b2
-  v1      == v2      = peelB v1 == peelB v2
-
-instance Show B where
-  show X = "\\concolor{\\mathsf{X}}"
-  show R = "\\concolor{\\mathsf{R}}"
-
-instance Show v => Show (BT v) where
-  show (MkBT φ φn v) = "\\langle " ++ show (Map.filterWithKey cool φ) ++ ", " ++ show (Map.filterWithKey cool φn) ++ ", " ++ show v ++ " \\rangle"
-    where
-     cool _       X = False
-     cool ('?':_) _ = False
-     cool _       _ = True
-
-instance Applicative BT where
-  pure a = MkBT emp emp a
-  (<*>) = ap
-
-instance Show BValue where
-  show (BRep b)    = "\\conid{Rep_B}\\;" ++ show b
-  show (BCons b v) = show b ++ " \\sumcons_{\\concolor{\\mathsf{B}}} " ++ show v
-\end{code}
-%endif
-\caption{Boxity analysis}
-\label{fig:boxity-analysis}
-\end{figure}
-
-Let us consider another abstract instance of the denotational interpreter in
-this subsection: a simple form of \emph{boxity analysis}~\citep{Henglein:94}.
-The reason for presenting this analysis is to use our framework to share its
-preservation proof with usage analysis in \Cref{sec:soundness}.
-
-Boxity analysis, defined in \Cref{fig:boxity-analysis}, is quite similar to
-usage analysis and most of the intuition carries over, yet its purpose is rather
-different:
-Boxity analysis infers whether a heap-allocated datum such as a pair or a boxed
-integer can be profitably \emph{unboxed} to save allocation.
-Consider
-\[|evalBox (({-" \Lam{p}{\Case{p}{\{ \mathit{Pair}(x,y) \to x \}}} "-})) emp|
- = \perform{evalBox (read "λp. case p of { Pair(x,y) -> x }") emp} \]
-Since the argument pair $p$ in this example only occurs in a case scrutinee, it
-would be beneficial to pass $p$ unboxed and cancel away the case scrutinisation
-in the process.
-Doing so would yield the expression $\Lam{x}{\Lam{y}{x}}$, where $x$ and $y$
-bind the components of the original argument $p$.
-In a typed language, the change in calling convention can be communicated to
-clients automatically via the \emph{worker/wrapper} transformation~\citep{Gill:09}.
-
-In the example above, boxity analysis infers the abstract value |BCons X (BRep
-R) :: BValue|, which says that the box of the argument $p$ is \emph{discarded}
-(boxity flag |X :: B|) and thus safe to unbox.
-Any further arguments are conservatively flagged as \emph{retained} (boxity flag
-|R :: B|).
-
-With nested data and parametric polymorphism, it is not always feasible to
-unbox. Consider
-\[|evalBox (({-" \pe_1 \triangleq \Let{z}{Z()}{\Let{\mathit{o}}{S(z)}{\Lam{x}{\mathit{Pair}(o,o)}}} "-})) emp|
- = \perform{evalBox (read "let z = Z() in let o = S(z) in λx. Pair(o,o)") emp} \]
-\noindent
-If we were to unbox the let-bound $\mathit{o}$ in $\pe_1$, what would we put in
-its use sites?
-We would be forced to \emph{rebox} $\mathit{o}$ before constructing the result
-pair, yielding the expression
-\[\pe_2 \triangleq \Let{z}{Z()}{\Lam{x}{\Let{t_1}{S(z)}{\Let{t_2}{S(z)}{\mathit{Pair}(t_1,t_2)}}}}.\]
-\noindent
-%The expression $\mathit{Pair}(S(z),S(z))$ is not technically part of |Exp| because
-%the arguments $S(z)$ are not variables, but
-%in the interest of compact examples we will from now on
-%assume that such arguments are implicitly let-bound, \ie
-%$\mathit{Pair}(S(z),S(z))=\Let{t_1}{S(z)}{\Let{t_2}{S(z)}{\mathit{Pair}(t_1,t_2)}}$.
-Expression $\pe_2$ performs worse than $\pe_1$, because the original
-natural $o$ will be allocated twice ($t_1$,$t_2$) for every call of the lambda;
-thus $o$ is not profitable to unbox.
-Typed languages featuring parametric polymorphism require a boxed representation
-for polymorphic arguments as well.
-
-Boxity analysis prevents misguided unboxing of $o$ by returning a free variable
-environment $[o \mapsto |R|, z \mapsto |R|]| :: Uses|$ which says that the boxes
-of $o$ and $z$ are retained and thus not safe to unbox.
-
-What is and what is not profitable to unbox ultimately depends on the
-sophistication of an associated unboxing transformation.
-For simplicity, the present boxity analysis suggests to unbox function arguments
-only.
-It does \emph{not} suggest to unbox nested data nor function results.
-For example, the identity function retains the box of its argument:
-$|evalBox (({-" \Lam{x}{x} "-})) emp| = \perform{evalBox (read "λx.x") emp}$.
-
-In the implementation of boxity analysis, a box is retained whenever (1) it
-is returned (|fun|), or (2) it is called (|apply|), or (3) it is passed to a
-function that needs the argument boxed (|apply|), or (4) it is put in the field
-of a data constructor (|con|).
-This corresponds exactly to the four uses of the function |retain|
-in \Cref{fig:boxity-analysis}.
-However, the box can be discarded when the variable is just scrutinised, hence
-there is no call to |retain| on the scrutinee |d| in |select|.
-
-To achieve the desired effect, |BT| contains \emph{two} |Boxes| environments:
-given |d := MkBT φ1 φ2 v :: BD|, environment |φ1| lists boxity constraints
-required to evaluate |d| to a value, \emph{discarding} its box.
-This is a suitable environment to unleash for the scrutinee in |select|.
-Furthermore, |φ1 ⊔ φ2| lists boxity constraints required to evaluate |d| to
-a value, \emph{retaining} its box.
-This is a suitable environment to unleash in cases (1) to (4).
-The differential environment |φ2| is non-empty when a variable flows into the
-result, such as in
-$|evalBox (({-" \Let{x}{Z()}{x} "-})) emp| = \perform{evalBox (read "let x = Z() in x") emp}$.
-
-In effect, the two environments |φ1| and |φ2| represent a function |index|
-from required boxity to resulting boxity constraints:
-\begin{spec}
-index :: (Boxes, Boxes) -> B -> Boxes
-index (φ1, φ2) X = φ1
-index (φ1, φ2) R = φ1 ⊔ φ2
-\end{spec}
-And the notion of equality on |BT| is defined in terms of |index|.
-The |Lat| instance on |BD| is defined by the total order |X ⊏ R|, lifted
-productwise and pointwise, similar to usage analysis.
-
-Function |retain| is best understood in conjunction with the |Monad BT|
-instance.
-This instance accumulates |φ1|, but not |φ2|; hence |d >> d2| means
-``evaluate |d|, discard its box and continue with |d2|'',
-whereas |retain d >> d2| shifts |φ1 ⊔ φ2| into |φ1| and thus means
-``evaluate |d|, retain its box and continue with |d2|''.
-
-It is worth noting that unboxing function arguments is only semantically sound
-when passing around values, but with the lazy semantics of our language
-that is not the case.
-GHC solves this problem by retaining any boxes of lazy and used arguments.
-For boxity analysis we simply postulate an oracle |cbv :: Name -> Bool| that
-returns |True| for variables that are strict, absent or are let-bound to values
-to begin with.
-%This postulate does not influence the preservation result that we derive in
-%\Cref{sec:soundness}, although it would have an effect on an improvement theorem
-%for the unboxing transformation guided by boxity analysis.
-\end{toappendix}
-
-\subsection{More Analyses}
-\label{sec:more-analyses}
-
-By choosing an appropriate semantic domain to instantiate the generic
-denotational interpreter, we can get a wide range of static analyses.
-Beyond usage analysis, we have successfully realised the following analyses as
-denotational interpreters (details in the Appendix):
-\begin{itemize}
-  \item
-    \Cref{sec:boxity-analysis} introduces \emph{boxity analysis}~\citep{Henglein:94}
-    as a deliberately simple, second summary-based analysis that shares its
-    preservation proof in \Cref{sec:soundness} with usage analysis.
-    Boxity analysis infers when it is profitable to unbox let-bound variables
-    or function arguments.
-
-  \item
-    \Cref{sec:type-analysis} defines a variant of \citeauthor{Milner:78}'s
-    Algorithm J --- a \emph{type analysis} with let generalisation, inferring
-    types such as $\forall α_3.\ \mathtt{option}\;(α_3 \rightarrow α_3)$.
-    Function types act as summaries in the sense of the Introduction, and
-    fixpoints are solved via unification.
-
-  \item
-    \Cref{sec:0cfa} defines 0CFA \emph{control-flow analysis}~\citep{Shivers:91}.
-    Expressions are denoted by sets of program labels that evaluation might
-    return. These labels are given meaning in an abstract store.
-    For a function label, the abstract store maintains a single point
-    approximation of the function's abstract transformer as a \emph{polyvariant}
-    summary.
-
-  \item
-    To demonstrate that our framework scales to real-world compilers,
-    we have refactored relevant parts of \emph{Demand Analysis} in the Glasgow
-    Haskell Compiler into an abstract denotational interpreter as an artefact.
-    The resulting compiler bootstraps and passes the testsuite.%
-    \footnote{There is a small caveat: we did not try to optimise for compiler
-    performance in our proof of concept and hence it regresses in a few
-    compiler performance test cases.
-    None of the runtime performance test cases regress and the inferred
-    demand signatures stay unchanged.}
-    Demand Analysis is the real-world implementation of the cardinality analysis
-    work of \citet{Sergey:14}, generalising usage analysis and implementing
-    strictness analysis as well.
-    For a report of this case study, we defer to \Cref{sec:todo}.\sg{TODO}
-
-  \item
-    It is common for real-world static analyses such as Demand Analysis to write
-    out analysis information for, \eg let bindings.
-    \Cref{sec:annotations} proposes a very slight generalisation of the
-    |Domain| type class that lifts a stateless analysis into a stateful
-    analysis writing out annotations for let bindings.
-\end{itemize}
-
-It is nice to define dynamic semantics and static analyses in the same
-framework, but another important benefit is that correctness proofs become
-simpler, as we will see next.
-
-\begin{toappendix}
 \subsection{Type Analysis: Algorithm J}
 \label{sec:type-analysis}
 
 \begin{figure}
-\centering
-\setlength{\mathindent}{0em}
+\belowdisplayskip0pt
 \begin{code}
 data TyCon = BoolTyCon | NatTyCon | OptionTyCon | PairTyCon
 data Type = Type :->: Type | TyConApp TyCon [Type] | TyVar Name | Wrong
 data PolyType = PT [Name] Type
 
-type Subst = Name :-> Type
-type Constraint = (Type, Type)
-newtype J a = J (StateT (Set Name,Subst) Maybe a)
-unify              :: Constraint -> J ()
-freshTyVar         :: J Type
-instantiatePolyTy  :: PolyType -> J Type
-generaliseTy       :: J Type -> J PolyType
-closedType         :: J Type -> PolyType {-" \iffalse "-}
-closedType d = runJ (generaliseTy d)
-{-" \fi "-}
-
 evalTy e = closedType (eval e emp) :: PolyType
 
-instance Trace (J v) where step _ = id
+type Subst = Name :-> Type; type Constraint = (Type, Type)
+newtype J a = J (StateT (Set Name,Subst) Maybe a)
+freshTyVar :: J Type; qquad         instantiatePolyTy  :: PolyType -> J Type
+unify :: Constraint -> J (); qquad  generaliseTy       :: J Type -> J PolyType
+closedType :: J Type -> PolyType {-" \iffalse "-}
+closedType d = runJ (generaliseTy d)
+{-" \fi "-}; qquad                  instance Trace (J v) where step _ = id
 instance Domain (J Type) where
-  stuck = return Wrong
-  fun _ {-" \iffalse "-}_{-" \fi "-} f = do
-    θα  <- freshTyVar
-    θ   <- f (return θα)
-    return (θα :->: θ)
-  con {-" \iffalse "-}_{-" \fi "-} k ds = {-" ... \iffalse "-} do
+  stuck                                 =  return Wrong
+  fun _ {-" \iffalse "-}_{-" \fi "-} f  =  do θα <- freshTyVar; θ <- f (return θα); return (θα :->: θ)
+  apply v a                             =  do θ1  <- v; θ2  <- a; θα  <- freshTyVar; unify (θ1, θ2 :->: θα); return θα {-" ... \iffalse "-}
+  con _ k ds = do
     con_app_ty <- instantiateCon k
     arg_tys <- sequence ds
     res_ty <- freshTyVar
     unify (con_app_ty, foldr (:->:) res_ty arg_tys)
-    return res_ty {-" \fi "-}
-  apply v a = do
-    θ1  <- v
-    θ2  <- a
-    θα  <- freshTyVar
-    unify (θ1, θ2 :->: θα)
-    return θα
-  select dv fs = {-" ... \iffalse "-} case Map.assocs fs of
+    return res_ty
+  select dv fs = case Map.assocs fs of
     []            -> stuck
     fs@((k,_):_)  -> do
       con_ty <- dv
@@ -764,16 +516,69 @@ instance Domain (J Type) where
         []      -> stuck
         ty:tys' -> mapM (\ty' -> unify (ty,ty')) tys' >> return ty
 {-" \fi "-}
+uniFix :: (J Type -> J Type) -> J Type
+uniFix rhs = do θα <- freshTyVar; θ <- rhs (return θα); unify (θα, θ); return θα
 instance HasBind (J Type) where
-  bind # rhs body = do
-    σ <- generaliseTy $ do
-      θα  <- freshTyVar
-      θ   <- rhs (return θα)
-      unify (θα, θ)
-      return θα
-    body (instantiatePolyTy σ)
-
+  bind # rhs body = do σ <- generaliseTy (uniFix rhs); body (instantiatePolyTy σ)
 \end{code}
+\caption{Type analysis with let generalisation (Algorithm J)}
+\label{fig:type-analysis}
+\end{figure}
+
+Computing least fixpoints is common practice in static program analysis.
+However, some abstract domains employ quite different fixpoint strategies.
+The abstract domain of the type analysis we sketch in this subsection is
+an interesting example:
+Type analysis --- specifically, \citeauthor{Milner:78}'s Algorithm J ---
+computes fixpoints by generating and solving a constraint system via
+unification.
+
+\Cref{fig:type-analysis} outlines the abstract domain |J Type| at which the
+generic denotational interpreter can be instantiated to perform Type analysis.
+We omit implementational details that are derivative of Milner's description of
+Algorithm J.
+The full implementation can be found in the extract generated from this
+document, but the provided code is sufficiently exemplary of the approach.
+An extended form of this section can be found in
+\Cref{sec:type-analysis-detail}, including many examples.
+
+Type analysis |evalTy| infers the most general type of an expression, \eg
+\[|evalTy (({-" \Let{i}{\Lam{x}{x}}{\Let{o}{\mathit{Some}(i)}{o}} "-})|
+  = \perform{evalTy (read "let i = λx.x in let o = Some(i) in o")}.\]
+Key to the analysis is its abstract trace type |J|, offering means to invoke
+unification (|unify|), fresh name generation (|freshTyVar|, |instantiatePolyTy|)
+and let generalisation (|generaliseTy|).
+Type |J| implements these effects by maintaining a unifying substitution and
+a set of used names via the standard monad transformer |StateT|.
+Unification failure is signalled by returning |Nothing| in the base monad
+|Maybe|, and function |closedType| for handling |J| effects will return |Wrong|
+when that happens:
+\[|evalTy (({-" \Let{x}{\mathit{None}()}{x~x} "-}))|
+  = \perform{evalTy (read "let x = None() in x x")}.\]
+Throughout the analysis, the invariant is maintained that the |J Type|
+denotations of let-bound variables in the interpreter environment |ρ| are of the
+form |instantiatePolyTy σ| for a polytype |σ|, while lambda- and field-bound
+variables are denoted by |return θ|, yielding the same monotype |θ| at all use
+sites.
+Thus, let-bound denotations instantiate polytypes on-the-fly at occurrence
+sites, just as in Algorithm J.
+
+The |Domain (J Type)| instance bears no surprises:
+|stuck| terms are denoted by the monotype |Wrong| and the definition of |fun|
+and |apply| are literal translations of Algorithm J.
+
+The generalisation machinery comes to bear in the implementation
+of |bind|, which implements a combination of the $\mathit{fix}$ and $\mathit{let}$
+cases in Algorithm J, computing fixpoints by unification (|uniFix|).
+%It is best understood by tracing the right-hand side of $o$ in the following
+%example:
+%\[|evalTy (({-" \Let{i}{\Lam{x}{x}}{\Let{o}{\mathit{Some}(i)}{o}} "-})|
+%  = \perform{evalTy (read "let i = λx.x in let o = Some(i) in o")}\]
+
+\begin{toappendix}
+\subsection{Type Analysis: Algorithm J}
+\label{sec:type-analysis-detail}
+
 %if style == newcode
 \begin{code}
 deriving instance Eq TyCon
@@ -904,9 +709,6 @@ generaliseTy (J m) = J $ do
   return (PT (Set.toList generics) ty')
 \end{code}
 %endif
-\caption{Type analysis with let generalisation (Algorithm J)}
-\label{fig:type-analysis}
-\end{figure}
 
 Computing least fixpoints is common practice in static program analysis.
 However, some abstract domains employ quite different fixpoint strategies.
@@ -946,7 +748,7 @@ standard monad transformer |StateT|:
   \item
     a consistent set of type constraints as a unifying substitution |Subst|.
   \item
-    the set of used types as a |Set Name|.
+    the set of used names as a |Set Name|.
     This is to supply fresh names in |freshTyVar|
     and to instantiate a polytype $\forall α. α \to α$ to a monotype $α_1
     \to α_1$ for fresh $α_1$ as done by |instantiatePolyTy|, but also to
@@ -1008,9 +810,6 @@ to the call to |rhs|.
 The generalised polytype |σ| is then instantiated afresh via |instantiatePolyTy
 σ| at every use site of $o$ in the let body, implementing polymorphic
 instantiation.
-
-Thus we shall conclude this short excursion into type analysis and continue with
-a classic, call-strings-based interprocedural analysis: control-flow analysis.
 
 \subsection{Control-flow Analysis}
 \label{sec:0cfa}
@@ -1291,6 +1090,13 @@ Maintaining the single point approximation is the purpose of the |Maybe (Labels,
 Labels)| field of the |FunCache| and is a standard, if somewhat delicate hassle
 in control-flow analyses.
 
+Note that the given formulation of 0CFA is not modular; that is, the single point
+approximation for a function |A.f| is not generally applicable at a call site
+in module |B| such as |A.f B.x| because the labels that |B.x| evaluate to
+might not be known when compiling module |A|.
+\citet[Section 3.8.2]{Shivers:91} proposes a solution to this problem that
+we chose not to implement for the simple proof of concept here.
+
 %A function like $\Lam{x}{y}$ might be re-analysed multiple times with
 %monotonically increasing environment due to fixpoint iteration in |bind|.
 %Whenever that happens, the point that has been cached for that allocation
@@ -1302,6 +1108,254 @@ rendering the encoding non-inductive due to the negative occurrence.
 This highlights a common challenge with instances of CFA:
 the obligation to prove that the analysis actually terminates on all inputs; an
 obligation that we will gloss over in this short demonstration.
+
+\subsection{Boxity Analysis}
+\label{sec:boxity-analysis}
+
+\begin{figure}
+\begin{minipage}{0.4\textwidth}
+\hfuzz=1em
+\belowdisplayskip=0pt
+\begin{code}
+data B = X | R
+type Boxes = Name :-> B
+data BT v = MkBT Boxes Boxes v
+
+instance Trace (BT v) where
+  step _ = id
+\end{code}
+\end{minipage}%
+\begin{minipage}{0.6\textwidth}
+\hfuzz=2em
+\belowdisplayskip=0pt
+\begin{code}
+instance Monad BT where
+  return a = MkBT emp emp a
+  MkBT φ1 _ a >>= k =  let MkBT φ2 φ3 b = k a in MkBT (φ1 ⊔ φ2) φ3 b
+
+retain :: BT v -> BT v
+retain (MkBT φ1 φ2 v) = MkBT (φ1 ⊔ φ2) emp v
+\end{code}
+%if style == newcode
+\begin{code}
+instance Extract BT where getValue (MkBT _ _ v) = v
+\end{code}
+%endif
+\end{minipage}
+\caption{Boxity |B| and boxity trace |BT|}
+\label{fig:boxity-trace}
+\begin{minipage}{0.69\textwidth}
+\belowdisplayskip=0pt
+\begin{code}
+evalBox e ρ = eval e ρ :: BD
+
+instance Domain BD where
+  stuck                                  = bottom
+  fun x {-" \iffalse "-}_{-" \fi "-} f   = case retain (f (MkBT emp (singenv x R) (BRep R))) of
+    MkBT φ _ v -> MkBT (ext φ x X) emp (BCons (φ !??? x) v)
+  apply f a = retain f >>= \v1 -> case peelB v1 of
+    (X, v2) -> a          >> return v2
+    (R, v2) -> retain a  >> return v2
+  con {-" \iffalse "-}_{-" \fi "-} _ ds  = mapM retain ds >> return (BRep R)
+  select d fs                            = do
+    let proxy = MkBT emp emp (BRep R)
+    d >> lub  [  f (replicate (conArity k) proxy)
+              |  (k,f) <- assocs fs ]
+
+instance HasBind BD where
+  bind x rhs body = body (kleeneFix (needX . rhs)) where
+    needX (MkBT φ1 φ2 v)
+      | cbv x      = MkBT φ1 (ext φ2 x R) v
+      | otherwise  = MkBT (ext φ1 x R) φ2  v
+\end{code}
+\end{minipage}%
+\begin{minipage}{0.3\textwidth}
+\begin{code}
+data BValue = BCons B BValue | BRep B
+type BD = BT BValue
+
+instance Lat B where {-" ... \iffalse "-}
+  bottom = X
+  X  ⊔  X  = X
+  _  ⊔  _  = R
+{-" \fi "-}
+ifPoly (instance Lat Strs where ...)
+instance Lat BValue where {-" ... \iffalse "-}
+  bottom = (BRep X)
+  BRep b1 ⊔ BRep b2 = BRep (b1 ⊔ b2)
+  BRep b1 ⊔ v = BCons b1 (BRep b1) ⊔ v
+  v ⊔ BRep b2 = v ⊔ BCons b2 (BRep b2)
+  BCons b1 v1 ⊔ BCons b2 v2 = BCons (b1 ⊔ b2) (v1 ⊔ v2)
+{-" \fi "-}
+instance Lat BD where {-" ... \iffalse "-}
+  bottom = MkBT bottom bottom bottom
+  MkBT φ1 φ1n v1 ⊔ MkBT φ2 φ2n v2 = MkBT (φ1 ⊔ φ2) (φ1n ⊔ φ2n) (v1 ⊔ v2)
+{-" \fi "-}
+
+cbv :: Name -> Bool
+peelB :: BValue -> (B, BValue)
+peelB (BRep b)     = (b, BRep b)
+peelB (BCons b v)  = (b, v)
+
+(!???) :: Boxes -> Name -> B
+m !??? x  | not (cbv x)  = R
+          | x ∈ dom m    = m ! x
+          | otherwise    = X
+\end{code}
+\end{minipage}
+%if style == newcode
+\begin{code}
+cbv _ = True
+deriving instance Eq B
+deriving instance Functor BT
+
+index :: (Boxes, Boxes) -> B -> Boxes
+index (φ1, φ2) X = φ1
+index (φ1, φ2) R = φ1 ⊔ φ2
+
+instance Eq v => Eq (BT v) where
+  MkBT φ11 φ12 v1 == MkBT φ21 φ22 v2
+    =  index (φ11, φ12) X == index (φ21, φ22) X
+    && index (φ11, φ12) R == index (φ21, φ22) R
+    && v1 == v2
+
+instance Eq BValue where
+  BRep b1 == BRep b2 = b1 == b2
+  v1      == v2      = peelB v1 == peelB v2
+
+instance Show B where
+  show X = "\\concolor{\\mathsf{X}}"
+  show R = "\\concolor{\\mathsf{R}}"
+
+instance Show v => Show (BT v) where
+  show (MkBT φ φn v) = "\\langle " ++ show (Map.filterWithKey cool φ) ++ ", " ++ show (Map.filterWithKey cool φn) ++ ", " ++ show v ++ " \\rangle"
+    where
+     cool _       X = False
+     cool ('?':_) _ = False
+     cool _       _ = True
+
+instance Applicative BT where
+  pure a = MkBT emp emp a
+  (<*>) = ap
+
+instance Show BValue where
+  show (BRep b)    = "\\conid{Rep_B}\\;" ++ show b
+  show (BCons b v) = show b ++ " \\sumcons_{\\concolor{\\mathsf{B}}} " ++ show v
+\end{code}
+%endif
+\caption{Boxity analysis}
+\label{fig:boxity-analysis}
+\end{figure}
+
+Let us consider another abstract instance of the denotational interpreter in
+this subsection: a simple form of \emph{boxity analysis}~\citep{Henglein:94}.
+The reason for presenting this analysis is to use our framework to share its
+preservation proof with usage analysis in \Cref{sec:soundness}.
+
+Boxity analysis, defined in \Cref{fig:boxity-analysis}, is quite similar to
+usage analysis and most of the intuition carries over, yet its purpose is rather
+different:
+Boxity analysis infers whether a heap-allocated datum such as a pair or a boxed
+integer can be profitably \emph{unboxed} to save allocation.
+Consider
+\[|evalBox (({-" \Lam{p}{\Case{p}{\{ \mathit{Pair}(x,y) \to x \}}} "-})) emp|
+ = \perform{evalBox (read "λp. case p of { Pair(x,y) -> x }") emp} \]
+Since the argument pair $p$ in this example only occurs in a case scrutinee, it
+would be beneficial to pass $p$ unboxed and cancel away the case scrutinisation
+in the process.
+Doing so would yield the expression $\Lam{x}{\Lam{y}{x}}$, where $x$ and $y$
+bind the components of the original argument $p$.
+In a typed language, the change in calling convention can be communicated to
+clients automatically via the \emph{worker/wrapper} transformation~\citep{Gill:09}.
+
+In the example above, boxity analysis infers the abstract value |BCons X (BRep
+R) :: BValue|, which says that the box of the argument $p$ is \emph{discarded}
+(boxity flag |X :: B|) and thus safe to unbox.
+Any further arguments are conservatively flagged as \emph{retained} (boxity flag
+|R :: B|).
+
+With nested data and parametric polymorphism, it is not always feasible to
+unbox. Consider
+\[|evalBox (({-" \pe_1 \triangleq \Let{z}{Z()}{\Let{\mathit{o}}{S(z)}{\Lam{x}{\mathit{Pair}(o,o)}}} "-})) emp|
+ = \perform{evalBox (read "let z = Z() in let o = S(z) in λx. Pair(o,o)") emp} \]
+\noindent
+If we were to unbox the let-bound $\mathit{o}$ in $\pe_1$, what would we put in
+its use sites?
+We would be forced to \emph{rebox} $\mathit{o}$ before constructing the result
+pair, yielding the expression
+\[\pe_2 \triangleq \Let{z}{Z()}{\Lam{x}{\Let{t_1}{S(z)}{\Let{t_2}{S(z)}{\mathit{Pair}(t_1,t_2)}}}}.\]
+\noindent
+%The expression $\mathit{Pair}(S(z),S(z))$ is not technically part of |Exp| because
+%the arguments $S(z)$ are not variables, but
+%in the interest of compact examples we will from now on
+%assume that such arguments are implicitly let-bound, \ie
+%$\mathit{Pair}(S(z),S(z))=\Let{t_1}{S(z)}{\Let{t_2}{S(z)}{\mathit{Pair}(t_1,t_2)}}$.
+Expression $\pe_2$ performs worse than $\pe_1$, because the original
+natural $o$ will be allocated twice ($t_1$,$t_2$) for every call of the lambda;
+thus $o$ is not profitable to unbox.
+Typed languages featuring parametric polymorphism require a boxed representation
+for polymorphic arguments as well.
+
+Boxity analysis prevents misguided unboxing of $o$ by returning a free variable
+environment $[o \mapsto |R|, z \mapsto |R|]| :: Uses|$ which says that the boxes
+of $o$ and $z$ are retained and thus not safe to unbox.
+
+What is and what is not profitable to unbox ultimately depends on the
+sophistication of an associated unboxing transformation.
+For simplicity, the present boxity analysis suggests to unbox function arguments
+only.
+It does \emph{not} suggest to unbox nested data nor function results.
+For example, the identity function retains the box of its argument:
+$|evalBox (({-" \Lam{x}{x} "-})) emp| = \perform{evalBox (read "λx.x") emp}$.
+
+In the implementation of boxity analysis, a box is retained whenever (1) it
+is returned (|fun|), or (2) it is called (|apply|), or (3) it is passed to a
+function that needs the argument boxed (|apply|), or (4) it is put in the field
+of a data constructor (|con|).
+This corresponds exactly to the four uses of the function |retain|
+in \Cref{fig:boxity-analysis}.
+However, the box can be discarded when the variable is just scrutinised, hence
+there is no call to |retain| on the scrutinee |d| in |select|.
+
+To achieve the desired effect, |BT| contains \emph{two} |Boxes| environments:
+given |d := MkBT φ1 φ2 v :: BD|, environment |φ1| lists boxity constraints
+required to evaluate |d| to a value, \emph{discarding} its box.
+This is a suitable environment to unleash for the scrutinee in |select|.
+Furthermore, |φ1 ⊔ φ2| lists boxity constraints required to evaluate |d| to
+a value, \emph{retaining} its box.
+This is a suitable environment to unleash in cases (1) to (4).
+The differential environment |φ2| is non-empty when a variable flows into the
+result, such as in
+$|evalBox (({-" \Let{x}{Z()}{x} "-})) emp| = \perform{evalBox (read "let x = Z() in x") emp}$.
+
+In effect, the two environments |φ1| and |φ2| represent a function |index|
+from required boxity to resulting boxity constraints:
+\begin{spec}
+index :: (Boxes, Boxes) -> B -> Boxes
+index (φ1, φ2) X = φ1
+index (φ1, φ2) R = φ1 ⊔ φ2
+\end{spec}
+And the notion of equality on |BT| is defined in terms of |index|.
+The |Lat| instance on |BD| is defined by the total order |X ⊏ R|, lifted
+productwise and pointwise, similar to usage analysis.
+
+Function |retain| is best understood in conjunction with the |Monad BT|
+instance.
+This instance accumulates |φ1|, but not |φ2|; hence |d >> d2| means
+``evaluate |d|, discard its box and continue with |d2|'',
+whereas |retain d >> d2| shifts |φ1 ⊔ φ2| into |φ1| and thus means
+``evaluate |d|, retain its box and continue with |d2|''.
+
+It is worth noting that unboxing function arguments is only semantically sound
+when passing around values, but with the lazy semantics of our language
+that is not the case.
+GHC solves this problem by retaining any boxes of lazy and used arguments.
+For boxity analysis we simply postulate an oracle |cbv :: Name -> Bool| that
+returns |True| for variables that are strict, absent or are let-bound to values
+to begin with.
+%This postulate does not influence the preservation result that we derive in
+%\Cref{sec:soundness}, although it would have an effect on an improvement theorem
+%for the unboxing transformation guided by boxity analysis.
 
 \subsection{Stateful Analysis and Annotations}
 \label{sec:annotations}
@@ -1564,3 +1618,9 @@ Crucially, such sophisticated and stateful data-flow frameworks can be developed
 and improved without complicating the analysis domain, which is often very
 complicated in its own right.
 \end{toappendix}
+
+\smallskip
+
+It is nice that both usage analysis and type analysis fit into the same
+framework as the call-by-need semantics, but another important benefit is that
+correctness proofs become simpler, as we will see next.

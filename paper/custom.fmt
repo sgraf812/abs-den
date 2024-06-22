@@ -107,6 +107,7 @@
 %format θ = "\varcolor{\theta}"
 %format θ1
 %format θ2
+%format θα = "\varcolor{\theta}_\varcolor{\alpha}"
 %format ω = "\varcolor{\omega}"
 %format Σ = "\conid{\mathrm{\Sigma}}"
 %format :-> = "\mathbin{:\rightharpoonup}"

@@ -115,6 +115,7 @@ events, as expressed in the following theorem:
     |Ret ({-" α_\Values(σ_0,κ_0) "-}, αHeap μ)| & \text{where }(\wild,\wild, μ, \wild) = σ_0
   \end{cases}
 \end{array}\]
+\vspace{-1em}
 \caption{Abstraction function $α_{\STraces}$ from LK machine to |evalNeed2|}
   \label{fig:eval-correctness}
 \end{figure}
