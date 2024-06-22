@@ -66,7 +66,8 @@ denotational interpreters:
     proof of concept.
 
   \item
-    \sg{Remove?}
+    \sg{Remove? Is there substantial value in demonstrating that the proof can
+    be shared or isn't it obvious?}
     \Cref{sec:boxity-analysis} introduces \emph{boxity analysis}~\citep{Henglein:94}
     as a deliberately simple, second summary-based analysis that shares its
     preservation proof in \Cref{sec:soundness} with usage analysis.
@@ -115,7 +116,7 @@ denotational interpreters:
 \end{itemize}
 
 In the following, we discuss usage analysis (\Cref{sec:usage-analysis}) and type
-analysis (\Cref{sec:type-analysis}) in more detail.
+analysis (\Cref{sec:type-analysis}) in detail.
 
 \subsection{Usage Analysis}
 \label{sec:usage-analysis}
@@ -539,10 +540,10 @@ We omit implementational details that are derivative of Milner's description of
 Algorithm J.
 The full implementation can be found in the extract generated from this
 document, but the provided code is sufficiently exemplary of the approach.
-An extended form of this section can be found in
+The decompressed form of this subsection can be found in
 \Cref{sec:type-analysis-detail}, including many examples.
 
-Type analysis |evalTy| infers the most general type of an expression, \eg
+Type analysis |evalTy| infers the most general Hindley-Milner polytype of an expression, \eg
 \[|evalTy (({-" \Let{i}{\Lam{x}{x}}{\Let{o}{\mathit{Some}(i)}{o}} "-})|
   = \perform{evalTy (read "let i = λx.x in let o = Some(i) in o")}.\]
 Key to the analysis is its abstract trace type |J|, offering means to invoke
@@ -1620,7 +1621,8 @@ complicated in its own right.
 \end{toappendix}
 
 \smallskip
-
-It is nice that both usage analysis and type analysis fit into the same
-framework as the call-by-need semantics, but another important benefit is that
-correctness proofs become simpler, as we will see next.
+\noindent
+It is nice that usage and type analysis fit into the same
+framework as the call-by-need semantics.
+Another important benefit is that correctness proofs become simpler, as we will
+see next.
