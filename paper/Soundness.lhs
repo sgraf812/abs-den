@@ -43,17 +43,17 @@ set = P . Set.singleton
 \arraycolsep=2pt
 \[\begin{array}{lcl}
 α_{\mathcal{S}}(S)(\widehat{ρ}) & = & α_\Traces(\{\  S(ρ)(μ) \mid (ρ,μ) ∈ γ_{\Environments}(\widehat{ρ}) \ \}) \\
-α_{\Environments}(R)(x) & = & \Lub \{\  α_{\Domain{}}(μ)(\{ρ(x)\}) \mid (ρ,μ) ∈ R \ \} \\
+α_{\Environments}(R)(x) & = & \Lub \{\  α_{\Domain{}}(μ)(\{ρ\mathbin{!}x\}) \mid (ρ,μ) ∈ R \ \} \\
 α_\Traces(T) & = & \Lub \{\  β_\Traces(τ) \mid τ ∈ T \ \} \\
-\\[-0.5em]
+\\[-0.75em]
 β_\Traces(|τ|) & = & \begin{cases}
   |step e ({-" β_\Traces(\varid{τ'}) "-})| & \text{if |τ = Step e τ'|} \\
   |stuck|                         & \text{if |τ = Ret (Stuck, μ)|} \\
   |fun (\(hat d) -> {-" α_\Traces(\{\  \varid{f}~\varid{d}~\varid{μ} \mid \varid{d} ∈ γ_{\Domain{}}(\varid{μ})(\widehat{\varid{d}})\ \}) "-})| & \text{if |τ = Ret (Fun f, μ)|} \\
-  |con k (map (\d -> {-" α_{\Domain{}}(\varid{μ})(\{\ \varid{d}\ \}) "-}) ds)| & \text{if |τ = Ret (Con k ds, μ)|} \\
+  |con k (map (\d -> {-" α_{\Domain{}}(\varid{μ})(\{\varid{d}\}) "-}) ds)| & \text{if |τ = Ret (Con k ds, μ)|} \\
   \end{cases} \\
-\\[-0.5em]
-α_{E}(μ)(ρ) & = & \text{... see \Cref{fig:name-need} in \Cref{sec:soundness-detail} ...} \\
+\\[-0.75em]
+α_{\Domain{}}(μ)(ρ) & = & \text{... see \Cref{fig:name-need} in \Cref{sec:soundness-detail} ...} \\
 \end{array}\]
 \caption{Galois connection $α_{\mathcal{S}}$ for by-need abstraction derived from |Trace|, |Domain| and |Lat| instances on |hat D|}
 \label{fig:name-need-gist}
