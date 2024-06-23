@@ -23,7 +23,7 @@ set = P . Set.singleton
 \end{code}
 %endif
 
-\section{Generic By-Name and By-Need Soundness}
+\section{Generic Sound By-Name and By-Need Interpretation}
 \label{sec:soundness}
 
 \begin{figure}
@@ -119,7 +119,7 @@ This proof will be much simpler than the proof for \Cref{thm:absence-correct}.
   \label{fig:abstraction-laws}
 \end{figure}
 
-\subsection{Sound By-name and By-need Interpretation}
+\subsection{Sound By-Name and By-Need Interpretation}
 
 This subsection is dedicated to the following derived inference rule for sound
 by-need interpretation (\Cref{thm:soundness-by-need-closed}), referring to the
@@ -177,7 +177,7 @@ If the abstraction laws in \Cref{fig:abstraction-laws} hold,
 then |evalD (hat D)| is an abstract interpreter that is sound \wrt $α_{\mathcal{S}}$,
 that is,
 \[
-  α_{\mathcal{S}}(|evalNeed1 e|) ⊑ |evalD2 (hat D) e|
+  α_{\mathcal{S}}(|evalNeed1 e|) ⊑ |evalD2 (hat D) e|.
 \]
 \end{theoremrep}
 \begin{proof}

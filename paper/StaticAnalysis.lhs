@@ -62,7 +62,7 @@ denotational interpreters:
 
   \item
     \Cref{sec:0cfa} defines 0CFA \emph{control-flow analysis}~\citep{Shivers:91},
-    an non-modular analysis lacking a finite summary mechanism, simply as a
+    a non-modular analysis lacking a finite summary mechanism, simply as a
     proof of concept.
 
   \item
@@ -522,6 +522,7 @@ uniFix rhs = do θα <- freshTyVar; θ <- rhs (return θα); unify (θα, θ); r
 instance HasBind (J Type) where
   bind # rhs body = do σ <- generaliseTy (uniFix rhs); body (instantiatePolyTy σ)
 \end{code}
+\vspace{-1em}
 \caption{Type analysis with let generalisation (Algorithm J)}
 \label{fig:type-analysis}
 \end{figure}
@@ -533,6 +534,8 @@ an interesting example:
 Type analysis --- specifically, \citeauthor{Milner:78}'s Algorithm J ---
 computes fixpoints by generating and solving a constraint system via
 unification.
+Furthermore, since the domain is familiar, it is a good one to study in the
+context of denotational interpreters.
 
 \Cref{fig:type-analysis} outlines the abstract domain |J Type| at which the
 generic denotational interpreter can be instantiated to perform Type analysis.
@@ -786,7 +789,7 @@ a similar routine.
 
 The generalisation and instantiation machinery comes to bear in the implementation
 of |bind|, which implements a combination of the $\mathit{fix}$ and $\mathit{let}$
-cases in Algorithm J, computing fixpoints by unification.
+cases in Algorithm J, computing fixpoints by unification (|uniFix|).
 It is best understood by tracing the right-hand side of $o$ in the following
 example:
 \[|evalTy (({-" \Let{i}{\Lam{x}{x}}{\Let{o}{\mathit{Some}(i)}{o}} "-})|
