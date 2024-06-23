@@ -124,7 +124,7 @@ analysis (\Cref{sec:type-analysis}) in detail.
 In this subsection, we give a detailed account of \emph{usage analysis} as
 an instance of the denotational interpreter.
 Usage analysis generalises the summary-based absence analysis from
-\Cref{sec:problem} and is the running example of this work.
+\Cref{sec:problem}.
 It is a compelling example because it illustrates that our framework is suitable
 to infer \emph{operational properties}, such as an upper bound on the number of
 variable lookups.
