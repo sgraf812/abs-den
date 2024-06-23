@@ -1,4 +1,14 @@
-* [ ] Clarify what is formalised in Agda
+SG:
+* Update Introduction
+* Overhaul Related Work
+* Decide about Boxity Analysis
+* Write DmdAnal Appendix
+* Update Annotations Appendix
+* Update Soundness Appendix with new formulation of Galois Connection
+* Update Agda Appendix (perhaps some things changed since I last touched it?)
+* Think about modular BetaApp
+
+* [x] Clarify what is formalised in Agda
 
 Rev A
 -----
