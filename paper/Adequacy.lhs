@@ -21,60 +21,6 @@ As before, all the (pen-and-paper) proofs can be found in the Appendix.
 
 \subsection{Adequacy of |evalNeed2|}
 \label{sec:adequacy}
-%\sven{Section title makes readers believe that you only proved adequancy of |ByNeed|, but you did it for |ByName| as well, right?}
-%\sg{No, just by-need, in fact.
-%By-name should be much simpler, so I didn't bother.
-%I guess we could very quickly whip something together based on the proof for
-%by-need... After all, we'll just omit thunk update.
-%But ultimately I think that is too simple an exercise to count as an interesting
-%Contribution.}
-
-For proving adequacy of |evalNeed2|, we give an abstraction function
-$α_{\STraces}$ from small-step traces $\STraces$ in the lazy Krivine machine
-(\Cref{fig:lk-semantics}) to denotational traces |T|, with |Events| and all,
-such that
-\[
-  α_{\STraces}(\init(\pe) \smallstep ..., \StopF) = |evalNeed e emp emp|,
-\]
-where $\init(\pe) \smallstep ...$ denotes the \emph{maximal} (\ie longest
-possible) LK trace evaluating the closed expression $\pe$.
-For example, for the LK trace \labelcref{ex:trace2}, $α_{\STraces}$ produces
-the trace at the end of
-\hyperlink{ex:eval-need-trace2}{\Cref*{sec:by-need-instance}}.
-
-It turns out that function $α_{\STraces}$ preserves a number of important
-observable properties, such as termination behavior (\ie stuck, diverging, or
-balanced execution~\citep{Sestoft:97}), length of the trace and transition
-events, as expressed in the following theorem:
-
-\begin{theoremrep}[Strong Adequacy]
-  \label{thm:need-adequate-strong}
-  Let |e| be a closed expression, |τ := evalNeed e emp emp| the
-  denotational by-need trace and $\init(\pe) \smallstep ...$ the maximal lazy
-  Krivine trace.
-  Then
-  \begin{itemize}
-    \item |τ| preserves the observable termination properties of $\init(\pe) \smallstep ...$
-      in the above sense.
-    \item |τ| preserves the length of $\init(\pe) \smallstep ...$ (\ie number of |Step|s equals number of $\smallstep$).
-    \item every |ev :: Event| in |τ = many (Step ev ^^ ...)| corresponds to the
-      transition rule taken in $\init(\pe) \smallstep ...$.
-  \end{itemize}
-\end{theoremrep}
-\begin{proofsketch}
-  Generalise $α(\init(\pe) \smallstep ..., \StopF) = |evalNeed e emp emp|$ to
-  open configurations and prove it by Löb induction.
-  Then it suffices to prove that $α_{\STraces}$ preserves the observable properties of
-  interest.
-  The full proof for a rigorous reformulation of the proposition can be found in \Cref{sec:adequacy-detail}.
-\end{proofsketch}
-\begin{proof}
-  $|evalNeed e emp emp| = α(\init(\pe) \smallstep ..., \StopF)$ follows directly
-  from \Cref{thm:need-abstracts-lk}.
-  The preservation results in are a consequence of \Cref{thm:abs-length} and \Cref{thm:need-adequate};
-  function $α_\Events$ in \Cref{fig:eval-correctness} encodes the intuition in
-  which LK transitions abstract into |Event|s.
-\end{proof}
 
 \begin{figure}
 \[\ruleform{\begin{array}{c}
@@ -119,6 +65,54 @@ events, as expressed in the following theorem:
 \caption{Abstraction function $α_{\STraces}$ from LK machine to |evalNeed2|}
   \label{fig:eval-correctness}
 \end{figure}
+
+For proving adequacy of |evalNeed2|, we give an abstraction function
+$α_{\STraces}$ from small-step traces $\STraces$ in the lazy Krivine machine
+(\Cref{fig:lk-semantics}) to denotational traces |T|, with |Events| and all,
+such that
+\[
+  α_{\STraces}(\init(\pe) \smallstep ..., \StopF) = |evalNeed e emp emp|,
+\]
+where $\init(\pe) \smallstep ...$ denotes the \emph{maximal} (\ie longest
+possible) LK trace evaluating the closed expression $\pe$.
+For example, for the LK trace \labelcref{ex:trace2}, $α_{\STraces}$ produces
+the trace at the end of
+\hyperlink{ex:eval-need-trace2}{\Cref*{sec:by-need-instance}}.
+
+It turns out that function $α_{\STraces}$, defined in
+\Cref{fig:eval-correctness}, preserves a number of important observable
+properties, such as termination behavior (\ie stuck, diverging, or balanced
+execution~\citep{Sestoft:97}), length of the trace and transition events, as
+expressed in the following theorem:
+
+\begin{theoremrep}[Strong Adequacy]
+  \label{thm:need-adequate-strong}
+  Let |e| be a closed expression, |τ := evalNeed e emp emp| the
+  denotational by-need trace and $\init(\pe) \smallstep ...$ the maximal lazy
+  Krivine trace.
+  Then
+  \begin{itemize}
+    \item |τ| preserves the observable termination properties of $\init(\pe) \smallstep ...$
+      in the above sense.
+    \item |τ| preserves the length of $\init(\pe) \smallstep ...$ (\ie number of |Step|s equals number of $\smallstep$).
+    \item every |ev :: Event| in |τ = many (Step ev ^^ ...)| corresponds to the
+      transition rule taken in $\init(\pe) \smallstep ...$.
+  \end{itemize}
+\end{theoremrep}
+\begin{proofsketch}
+  Generalise $α_{\STraces}(\init(\pe) \smallstep ..., \StopF) = |evalNeed e emp emp|$ to
+  open configurations and prove it by Löb induction.
+  Then it suffices to prove that $α_{\STraces}$ preserves the observable properties of
+  interest.
+  The full proof for a rigorous reformulation of the proposition can be found in \Cref{sec:adequacy-detail}.
+\end{proofsketch}
+\begin{proof}
+  $|evalNeed e emp emp| = α(\init(\pe) \smallstep ..., \StopF)$ follows directly
+  from \Cref{thm:need-abstracts-lk}.
+  The preservation results in are a consequence of \Cref{thm:abs-length} and \Cref{thm:need-adequate};
+  function $α_\Events$ in \Cref{fig:eval-correctness} encodes the intuition in
+  which LK transitions abstract into |Event|s.
+\end{proof}
 
 \begin{toappendix}
 To formalise the main result, we must characterise the maximal traces in the LK
