@@ -1,5 +1,4 @@
 SG:
-* Update Introduction
 * Overhaul Related Work
 * Decide about Boxity Analysis
 * Write DmdAnal Appendix

@@ -87,10 +87,11 @@ We make the following contributions:
   denotational interpreter and its type class algebra in Haskell.
   We demonstrate the ease with which different instances of our interpreter
   endow our object language with call-by-name, call-by-need and call-by-value
+  \sg{Remove call-by-value? But it's still true!}
   evaluation strategies, each producing (abstractions of) small-step
   abstract machine traces.
 \item A concrete instantiation of a denotational interpreter is \emph{total}
-  if it coinductively yields a (possibly-infinite) trace for every input
+  if it coinductively yields a (possibly infinite) trace for every input
   program, including ones that diverge.
   \Cref{sec:totality} proves that the by-name and by-need instantiations are
   total by embedding the generic interpreter and its instances in Guarded Cubical
@@ -99,18 +100,13 @@ We make the following contributions:
   denotational interpreter adequately generates an abstraction of a trace
   in the lazy Krivine machine~\citep{Sestoft:97}, preserving its length as well
   as arbitrary operational information about each transition taken.
-\item By instantiating the generic interpreter with a finite, abstract semantic
-  domain in \Cref{sec:abstraction}, we recover summary-based usage analysis, a generalisation
-  of absence analysis in \Cref{sec:problem}.
-  %Such static analyses can be defined in two steps:
-  %in the first, an operational property is encoded by a fold over the trace,
-  %inducing an instrumented interpreter.
-  %In the second step, the semantic domain is finitised and equipped with a
-  %summary mechanism, inducing a static analysis approximating the instrumentation.
-  Further examples in the Appendix comprise Type Analysis and 0CFA control-flow
-  analysis, demonstrating the wide range of applicability of our framework.
-  %We have refactored the Demand Analysis of the Glasgow Haskell Compiler into
-  %a abstract denotational interpreter to demonstrate a real-world use case.
+\item In \Cref{sec:abstraction} we instantiate the generic interpreter with
+  finite, abstract semantic domains.
+  In doing so, we recover summary-based usage analysis, a generalisation
+  of absence analysis in \Cref{sec:problem}, as well as \citeauthor{Milner:78}'s
+  type analysis.
+  The Appendix contains further examples, such as 0CFA control-flow analysis and
+  Demand Analysis of the Glasgow Haskell Compiler.
 \item In \Cref{sec:soundness}, we apply abstract interpretation to characterise
   a set of abstraction laws that the type class instances of an abstract
   domain must satisfy in order to soundly approximate by-name and by-need
