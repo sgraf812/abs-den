@@ -1819,11 +1819,11 @@ eval (Var x) ρ   | not special  = ρ ! x
                  | otherwise    = ...
 eval (Lam x e) ρ                = fun x (\d -> step App2 (eval e (ext ρ x d)))
 eval (e@App{}) ρ
-  | Var v <- f, Just dc <- isDataConWorkId_maybe v
-  = anfise as ρ (evalConApp dc)
-  | otherwise
-  = anfise (f:as) ρ $ \(df:das) -> -- NB: anfise is a no-op for Vars
-      go df (zipWith (\d a -> (d, isTypeArg a)) das as)
+   |  Var v <- f, Just dc <- isDataConWorkId_maybe v
+   =  anfise as ρ (evalConApp dc)
+   |  otherwise
+   =  anfise (f:as) ρ $ \(df:das) ->
+        go df (zipWith (\d a -> (d, isTypeArg a)) das as)
   where
     (f, as) = collectArgs e
     go df [] = df

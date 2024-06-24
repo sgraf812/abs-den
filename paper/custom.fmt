@@ -115,6 +115,7 @@
 %format == = "\mathrel{\clipbox{2.5pt 0pt}{$==$}}"
 %format /= = "\mathrel{\clipbox{0pt 1.5pt 3pt 1.5pt}{\slantbox[.3]{$\models$}}\hspace{0.5pt}\clipbox{0pt 0pt 2.5pt 0pt}{$=$}}"
 %format && = "\mathbin{\&\&}"
+%format not = "\varid{not}"
 %format ∈ = "\in"
 %format emp = "\varcolor{\varepsilon}"
 %format ! = "\mathop{!}"
