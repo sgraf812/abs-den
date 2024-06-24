@@ -1655,7 +1655,7 @@ The resulting compiler bootstraps and passes the testsuite.
 \subsubsection{GHC Core}
 
 \begin{figure}
-\begin{code}
+\begin{spec}
 data Expr
   =  Var       Id
   |  Lit       Literal
@@ -1675,7 +1675,7 @@ data AltCon = LitAlt Literal | DataAlt DataCon | DEFAULT
 data Bind = NonRec Id Expr | Rec [(Id, Expr)]
 data Type      = ...
 data Coercion  = ...
-\end{code}
+\end{spec}
 \caption{GHC Core}
 \label{fig:core}
 \end{figure}
@@ -1743,7 +1743,7 @@ ignored.
 \subsubsection{A Semantic |Domain| for GHC Core}
 
 \begin{figure}
-\begin{code}
+\begin{spec}
 data Event  =  Look Id | LookArg CoreExpr | Update
             |  App1 | App2 | Case1 | Case2 | Let1
 class Trace d where step :: Event -> d -> d
@@ -1765,7 +1765,7 @@ type DAlt d = (AltCon, [Id], d -> [d] -> d)
 data BindHint = BindArg Id | BindLet Bind
 class HasBind d where
   bind :: BindHint -> [[d] -> d] -> ([d] -> d) -> d
-\end{code}
+\end{spec}
 \caption{A |Domain| interface for GHC Core}
 \label{fig:core-domain}
 \end{figure}
