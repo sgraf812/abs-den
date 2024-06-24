@@ -1,10 +1,9 @@
 SG:
+* Write modular proof for BetaApp
 * Decide about Boxity Analysis
-* Write DmdAnal Appendix
 * Update Annotations Appendix
 * Update Soundness Appendix with new formulation of Galois Connection
 * Update Agda Appendix (perhaps some things changed since I last touched it?)
-* Think about modular BetaApp
 
 * [x] Clarify what is formalised in Agda
 
