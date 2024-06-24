@@ -89,7 +89,7 @@ where the $\later$ ``effects'' happen.
 
 Building on \Cref{sec:guarded-types}, we will now outline the changes necessary to encode |eval| in Guarded Cubical
 Agda, a system implementing Ticked Cubical Type Theory~\citep{tctt}, as well
-as the concrete instances |D (ByName T)| and |DNeed| from
+as the concrete instances |D (ByName T)| and |D (ByNeed T)| from
 \Cref{fig:trace-instances,fig:by-need}.
 The full, type-checked development is available in the Supplement.
 \begin{itemize}

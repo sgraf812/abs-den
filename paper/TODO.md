@@ -3,7 +3,6 @@ SG:
 * Decide about Boxity Analysis
 * Update Annotations Appendix
 * Update Soundness Appendix with new formulation of Galois Connection
-* Update Agda Appendix (perhaps some things changed since I last touched it?)
 
 * [x] Clarify what is formalised in Agda
 
