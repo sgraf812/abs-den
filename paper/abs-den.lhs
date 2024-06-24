@@ -42,6 +42,7 @@
 
 \usepackage[appendix=append,bibliography=common]{apxproof}
 \renewcommand{\appendixprelim}{\clearpage\onecolumn\appendix\section*{Start of Appendix}} % Clearly mark the begin of the Appendix inserted by apxproof
+\renewcommand{\appendixsectionformat}[2]{Appendix for Section~#1\ (#2)}
 
 %\usepackage{array} % \newcolumntype
 \usepackage{enumitem} % label=(\alph*)
