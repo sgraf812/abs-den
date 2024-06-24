@@ -51,26 +51,25 @@ featuring a finally encoded domain~\citep{Carette:07}
 using higher-order abstract syntax~\citep{Pfenning:88}.
 The key distinction to these approaches is that we generate small-step traces,
 totally and adequately, observable by abstract interpreters.
-
-\subsubsection*{Definitional Interpreters}
-\citet{Reynolds:72} introduced ``definitional interpreter'' as an
-umbrella term to classify prevalent styles of interpreters for higher-order
-languages at the time.
-Chiefly, it differentiates compositional interpreters that necessarily use
-higher-order functions of the meta language from those that do not, and are
-therefore non-compositional.
+%
+%\subsubsection*{Definitional Interpreters}
+%\citet{Reynolds:72} introduced ``definitional interpreter'' as an
+%umbrella term to classify prevalent styles of interpreters for higher-order
+%languages at the time.
+%Chiefly, it differentiates compositional interpreters that necessarily use
+%higher-order functions of the meta language from those that do not, and are
+%therefore non-compositional.
 %Among its key contributions is \emph{defunctionalisation}, a key transformation
 %for turning a definition of the former into one of the latter.
-The former correspond to (partial) denotational interpreters, whereas the latter
-correspond to big-step interpreters.
+%The former correspond to (partial) denotational interpreters, whereas the latter
+%correspond to big-step interpreters.
 %By giving by-name and by-value evaluation strategies for our denotational
 %interpreter, our work is somewhat contradicting Reynolds' pitch that
 %definitional interpreters inherit the evaluation strategy from their host
 %language.
-
-\citet{AgerDanvyMidtgaard:04} pick up on Reynold's idea and successively
-transform a partial denotational interpreter into a variant of the LK machine,
-going the reverse route of \Cref{sec:adequacy}.
+\citet{AgerDanvyMidtgaard:04} successively transform a partial denotational
+interpreter into a variant of the LK machine, going the reverse route of
+\Cref{sec:adequacy}.
 
 \subsubsection*{Coinduction and Fuel}
 \citet{LeroyGrall:09} show that a coinductive encoding of big-step semantics
@@ -82,10 +81,10 @@ semantics, much like we did for a denotational semantics.
 The work of \citet{Atkey:13,tctt} had big influence on our use of the later
 modality and Löb induction.
 
-Our trace type |T| is appropriate for tracking ``pure'' transition events,
+Our |Trace| type class is appropriate for tracking ``pure'' transition events,
 but it is not up to the task of modelling user input, for example.
-We expect that guarded interaction trees~\citep{interaction-trees,gitrees} would
-be very simple to integrate into our framework to help with that.
+A redesign of |Trace| inspired (and instantiated) by guarded interaction
+trees~\citep{interaction-trees,gitrees} would help with that.
 
 %While working out how to embed |evalNeed| in Guarded Cubical Agda~\citep{tctt} and
 %then attempting mechanised proofs about it, we very soon decided
@@ -94,24 +93,24 @@ be very simple to integrate into our framework to help with that.
 %Perhaps we shall try again with an encoding of guarded recursion rather than
 %using a language where it is primitive.
 
-\subsubsection*{Contextual Improvement}
-Abstract interpretation is useful to prove that an analysis approximates
-the right trace property, but it does not help to prove an \emph{optimisation}
-conditional on some trace property sound, yet alone an
-\emph{improvement}~\citep{MoranSands:99}.
-%If we were to prove update avoidance~\citep{Gustavsson:98} correct, would we use
-If we were to prove dead code elimination correct based on our notion of
-absence, would we use our denotational interpreter to do so?
-Probably not; we would try to conduct as much of the proof as possible in the
-equational theory, \ie on syntax.
-If need be, we could always switch to denotational interpreters via
-\Cref{thm:need-adequate-strong}, just as in \Cref{thm:absence-denotational}.
-\citet{HackettHutton:19} have done so as well.
+%\subsubsection*{Contextual Improvement}
+%Abstract interpretation is useful to prove that an analysis approximates
+%the right trace property, but it does not help to prove an \emph{optimisation}
+%conditional on some trace property sound, yet alone an
+%\emph{improvement}~\citep{MoranSands:99}.
+%%If we were to prove update avoidance~\citep{Gustavsson:98} correct, would we use
+%If we were to prove dead code elimination correct based on our notion of
+%absence, would we use our denotational interpreter to do so?
+%Probably not; we would try to conduct as much of the proof as possible in the
+%equational theory, \ie on syntax.
+%If need be, we could always switch to denotational interpreters via
+%\Cref{thm:need-adequate-strong}, just as in \Cref{thm:absence-denotational}.
+%\citet{HackettHutton:19} have done so as well.
 
 \subsubsection*{Abstract Interpretation and Relational Analysis}
 \citet{Cousot:21} recently condensed his seminal work rooted in \citet{Cousot:77}.
 The book advocates a compositional, trace-generating semantics and then derives
-compositional analyses by calculational design, inspiring us to attempt the same.
+compositional analyses by calculational design, and inspired us to attempt the same.
 However, while \citet{Cousot:94,Cousot:02} work with denotational semantics
 for a higher-order language, it was unclear to us how to derive a compositional,
 \emph{trace-generating} semantics for a higher-order language.
@@ -177,30 +176,6 @@ Likewise, \citet{Keidel:23} discusses a sound, declarative approach to reuse
 fixpoint combinators which we hope to apply in implementations of our framework
 as well.
 
-\subsubsection*{Proof Modularity}
-A big advantage of the big-step framework of \citet{Keidel:18} is that its
-soundness proofs are \emph{modular}, that is, a change to the |ConApp| case of
-|evalUsg| does not invalidate the soundness proof for function application.
-Our proof of \textsc{Beta-App} via a substitution lemma is simple but
-unfortunately not modular in this sense, because |evalUsg| occurs in the
-statement of \Cref{thm:usage-subst}, which is proven by induction on |e|.
-
-However, an alternative modular proof is conceivable.
-That would require finding a weaker and more abstract characterisation of |f|
-such that \textsc{Beta-App} can be proved without depending on the definition of
-|evalUsg|.
-Finding such abstract characterisations is trivial for first-order analyses
-without summary mechanisms, so their proofs tend to be automatically modular.
-Furthermore, we can recognise |f| as an instance of the type
-|forall d. (Trace d, Domain d, HasBind d) => d -> d| which comes with
-parametricity guarantees such as definability in terms of SK calculus and type
-class methods.
-Such a weakened characterisation does not depend on the particular
-implementation of |f| at all, as in \citet{Keidel:18}.
-However, as framework authors we cannot anticipate all viable abstract
-characterisations, hence we supply the strongest syntactic characterisation,
-implying the parametric characterisation.
-
 \subsubsection*{Summaries of Functionals \vs Call Strings}
 \citet{Lomet:77} used procedure summaries to capture aliasing effects,
 crediting the approach to untraceable reports by \citet{Allen:74} and
@@ -242,6 +217,28 @@ precision and speed.
 %Given a semantic description of abstract values, it is likely
 %that the implementation of |Domain| can be synthesised using the approach of
 %\citet{Kalita:2022}.
+
+\subsubsection*{Proof Modularity}
+A big advantage of the big-step framework of \citet{Keidel:18} is that its
+soundness proofs are \emph{modular}, that is, a change to the definition of
+|eval| does not invalidate the soundness proof for function application.
+Our proof of \textsc{Beta-App} via a substitution lemma is simple but
+unfortunately not modular in this sense, because |evalUsg| occurs in the
+statement of \Cref{thm:usage-subst}, which is proven by induction on |e|.
+
+However, an alternative modular proof is conceivable.
+That would require finding a weaker and more abstract characterisation of |f|
+such that \textsc{Beta-App} can be proved without depending on the definition of
+|evalUsg|.
+One promising idea is to recognise |f| as a System F term of the type
+|forall d. (Trace d, Domain d, HasBind d) => d -> d|.
+Such a term is semantically equivalent to |\x -> e| for some |x :: d| and |e ::
+d|, and now we could attempt to prove \textsc{BetaApp} by induction on the type
+derivation for |e|.
+Such a weakened characterisation does not depend on the particular
+implementation of |f| at all, as in \citet{Keidel:18} who employ parametricity.
+However, as framework authors we cannot anticipate all viable abstract
+characterisations, hence we supply the strongest syntactic characterisation.
 
 \subsubsection*{Cardinality Analysis} More interesting cardinality
 analyses involve the inference of summaries called \emph{demand
