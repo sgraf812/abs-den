@@ -1576,7 +1576,7 @@ strictness~\citep{SPJ:06} and boxity information.
 These analysis results thus fuel a number of optimisations, such
 as dead code elimination and unboxing through the worker/wrapper
 transformation~\citep{Gill:09}, update avoidance~\citep{Gustavsson:98},
-η-expansion and -reduction, and inlining under lambdas, to name a few.
+η-expansion and η-reduction, and inlining under lambdas, to name a few.
 
 Concretely, my refactoring entailed
 \begin{itemize}
@@ -1584,7 +1584,7 @@ Concretely, my refactoring entailed
     identifying which parts of the analyser need to be part of the |Domain| interface,
   \item
     writing an abstract denotational interpreter for GHC Core, the typed
-    intermediate representation of GHC,
+    intermediate representation of GHC, thereby identifying
   \item
     validating the usefulness of this interpreter by instantiating it at the GHC
     Core-specific analogue of the concrete by-need domain |D (ByNeed T)|, and finally
@@ -1602,20 +1602,20 @@ The resulting compiler bootstraps and passes the testsuite.
 data Expr
   =  Var       Id
   |  Lit       Literal
-  |  App       CoreExpr CoreExpr
-  |  Lam       Var CoreExpr
-  |  Let       CoreBind CoreExpr
-  |  Case      CoreExpr Id Type CoreAlt
-  |  Cast      CoreExpr Coercion
-  |  Tick      CoreTickish CoreExpr
+  |  App       Expr Expr
+  |  Lam       Var Expr
+  |  Let       Bind Expr
+  |  Case      Expr Id Type Alt
+  |  Cast      Expr Coercion
+  |  Tick      Tickish Expr
   |  Type      Type
   |  Coercion  Coercion
 data Var = Id ^^ ... | TyVar ^^ ... | CoVar ...
 type Id = Var -- always a term-level Id
 data Literal = LitNumber ^^ ... | LitFloat ^^ ... | LitString ...
-type CoreAlt = (AltCon, [Var], CoreExpr)
+type Alt = (AltCon, [Var], Expr)
 data AltCon = LitAlt Literal | DataAlt DataCon | DEFAULT
-data CoreBind = NonRec Id CoreExpr | Rec [(Id, CoreExpr)]
+data Bind = NonRec Id Expr | Rec [(Id, Expr)]
 data Type      = ...
 data Coercion  = ...
 \end{code}
@@ -1629,7 +1629,8 @@ Its definition in GHC is given in \Cref{fig:core} and includes explicit
 type applications as well as witnesses of type equality constraints called
 \emph{coercions}.
 
-GHC Core has a lot in common with the untyped object language |Exp|.
+GHC Core's |Expr| has a lot in common with the untyped object language |Exp|
+introduced in \Cref{sec:lang}.
 For example, there are constructors for |Var|, |App|, |Lam|, |Let| and |Case|.
 There are a number of differences, however:
 \begin{itemize}
@@ -1637,13 +1638,13 @@ There are a number of differences, however:
     GHC Core allows non-variable arguments in applications.
     This has implications on the denotational interpreter, which must let-bind
     non-variable arguments to establish A-normal form on-the-fly.
-  \item
-    GHC Core is typed, so the |Id| carried by |Var| contains more information
-    than a simple |String|, such as the variable's type.
-    It is worth noting that |Id| is just a synonym for |Var|.
-    However whereas |Var| includes term, type and coercion variables, the type |Id|
-    is meant to denote runtime-relevant variables only, which excludes type
-    variables.
+%  \item
+%    GHC Core is typed, so the |Id| carried by |Var| contains more information
+%    than a simple |String|, such as the variable's type.
+%    It is worth noting that |Id| is just a synonym for |Var|.
+%    However whereas |Var| includes term, type and coercion variables, the type |Id|
+%    is meant to denote runtime-relevant variables only, which excludes type
+%    variables.
   \item
     There is no distinguished |ConApp| form. That is because data constructors
     are just special kinds of |Id|s and may be unsaturated; the interpreter
@@ -1652,9 +1653,9 @@ There are a number of differences, however:
     |Case| alternatives allow matching on literals (|LitAlt|) as well as data
     constructors (|DataAlt|), and include a default alternative (|DEFAULT|) that
     matches any case not matched by other alternatives.
-    Default alternatives are important for implementing the primitive
-    |seq :: a -> b -> b|, where |seq x y| diverges when |x| does and otherwise
-    evaluates to |y|.
+%    Default alternatives are important for implementing the primitive
+%    |seq :: a -> b -> b|, where |seq x y| diverges when |x| does and otherwise
+%    evaluates to |y|.
     Furthermore, after |Case| evaluates the scrutinee, its value is bound to
     a designated |Id| called the \emph{case binder} that scopes over all case
     alternatives.
@@ -1666,6 +1667,14 @@ There are a number of differences, however:
   \item
     |Let| bindings are either explicitly non-recursive (|NonRec|) or a mutually
     recursive group with potentially many bindings (|Rec|).
+  \item
+    Not shown in \Cref{fig:core} is GHC's support for \emph{inline unfoldings}
+    attached to let-bound |Id|s as well as \emph{rewrite rules} declared by
+    \texttt{RULES} pragmas.
+    Each give rise to additional right-hand sides which must be handled with
+    conservative care.
+    Mistreatment of these subtle constructs in the Demand Analyser has caused
+    numerous bugs over the years.
 \end{itemize}
 Beyond these differences, GHC Core includes forms for embedding |Literal|s,
 |Type|s and |Coercion|s in select expression forms.
@@ -1689,11 +1698,10 @@ class Domain d where
   apply :: d -> (Bool, d) -> d
   select :: d -> CoreExpr -> Id -> [DAlt d] -> d
   erased :: d
-  keepAlive :: [d] -> d
-  seq_ :: d -> d -> d
+  keepAlive :: [d] -> d -> d
 type DAlt d = (AltCon, [Id], d -> [d] -> d)
 
-data BindHint = BindArg Id | BindLet CoreBind
+data BindHint = BindArg Id | BindLet Bind
 class HasBind d where
   bind :: BindHint -> [[d] -> d] -> ([d] -> d) -> d
 \end{code}
@@ -1719,21 +1727,162 @@ Demand Analysis assigns special meaning to primitive operations (|primOp|),
 class method selectors (|classOp|) and imported |Id|s (|global|), so each
 get their own |Domain| method.
 
-Not all variable occurrences can be given meaning by
+Types and coercions are erased at runtime, represented by method |erased|.
+Coercion expressions, inline unfoldings and rewrite |RULES| keep alive
+their free variables (|keepAlive|).
+%We will see that the |D (ByNeed T)| instance actually ignores |ds| completely,
+%meaning that it is not possible to derive any meaningful correctness statement
+%about |keepAlive|.
 
-GHC Core differentiates a variety of different classes of global term-level
-identifiers in |Id| in turn, such as |Id|s defined for class method selectors,
-primitive operations defined by the runtime system, data constructors or
-identifiers imported from a different module.
+The |HasBind| type class accomodates both non-recursive as well as mutually
+recursive let bindings.
+The |BindHint| is used to communicate whether such a binding comes from
+the on-the-fly ANF-isation pass of the interpreter (|BindArg|) or whether it was
+a manifest let binding in the Core program (|BindLet|).
 
-For the purposes of Demand Analysis, runtime-irrelevant |TyVar|s are of little
-importance; |Id|
+%For simplicity, we did not introduce new |Event| constructors for type
+%application redexes because Demand Analysis ignores those anyway.
 
-GHC Core differs from the object language introduced in \Cref{sec:lang} in
-non-trivial ways: GHC Core is not in A-normal form
+\subsubsection{The Glasgow Haskell Denotational Interpreter (GHDi)}
 
-\Cref{fig:core-domain}
+\begin{figure}
+\begin{spec}
+type D d = (Trace d, Domain d, HasBind d)
+anfise      ::  D d => [Expr] -> (Name :-> d) -> ([d] -> d) -> d
+evalConApp  ::  D d => DataCon -> [d] -> d
 
-%It is nice to define dynamic semantics and static analyses in the same
-%framework, but another important benefit is that correctness proofs become
-%simpler, as we will see next.
+eval        ::  D d => Expr -> (Name :-> d) -> d
+eval (Type _) ρ                 = erased
+eval (Lit l) ρ                  = lit l
+eval (Var x) ρ   | not special  = ρ ! x
+                 | otherwise    = ...
+eval (Lam x e) ρ                = fun x (\d -> step App2 (eval e (ext ρ x d)))
+eval (e@App{}) ρ
+  | Var v <- f, Just dc <- isDataConWorkId_maybe v
+  = anfise as ρ (evalConApp dc)
+  | otherwise
+  = anfise (f:as) ρ $ \(df:das) -> -- NB: anfise is a no-op for Vars
+      go df (zipWith (\d a -> (d, isTypeArg a)) das as)
+  where
+    (f, as) = collectArgs e
+    go df [] = df
+    go df ((d,is_ty):ds) = go (step App1 $ apply df (is_ty,d)) ds
+eval (Let b@(NonRec x rhs) body) ρ =
+  bind (BindLet b)
+       [\ds -> keepAliveUnfRules x ρ (eval rhs ρ)]
+       (\ds -> step Let1 (eval body (ext ρ x (step (Lookup x) (only ds)))))
+...
+\end{spec}
+\caption{A glimpse of the Glasgow Haskell Denotational Interpreter (GHDi)}
+\label{fig:core-eval}
+\end{figure}
+
+\Cref{fig:core-eval} shows a slightly adjusted and abridged version of the
+denotational interpreter.
+The actual definition takes around 100 lines of Haskell.
+Its highlights include erasure of types, a new case for literals, on-the-fly
+ANFisation in the application case and picking out data constructor application
+from regular function application in order to η-expand accordingly in
+|evalConApp|.
+In the |Let| case, the call |keepAliveUnfRules| makes sure to keep alive
+the free variables of inline unfoldings and rewrite rules attached to |x|.
+
+The |Domain| and |HasBind| instance for the concrete semantics |D (ByNeed T)|
+is routine.
+The resulting denotational interpreter can execute GHC Core expressions.
+To demonstrate this, I wrote a small REPL around it:
+\begin{Verbatim}
+$ ./ghdi $(ghc --print-libdir)
+prompt> let f x = x*42 :: Int; {-# NOINLINE f #-} in even $ f 3
+Above expression as (optimised) Core:
+  join {
+    f_sZe [InlPrag=NOINLINE, Dmd=1C(1,L)] :: Int -> Bool
+    [LclId[JoinId(1)(Just [!])], Arity=1, Str=<1L>]
+    f_sZe (x_aYj [OS=OneShot] :: Int)
+      = case x_aYj of { I# x1_aHU ->
+        case remInt# (*# x1_aHU 42#) 2# of {
+          __DEFAULT -> False;
+          0# -> True
+        }
+        } } in
+  jump f_sZe (I# 3#)
+Trace of denotational interpreter:
+Let1->App1->Lookup(f_sZe)->Update->App2->Case1->
+  LookupArg(I# 3#)->Update->Case2->Case1->App1->
+  App1->App2->App2->LookupArg(*# x1_aHU 42#)->App1->App1->
+  App2->App2->Update->Case2-><(True, [0↦_, 1↦_, 2↦_])>
+\end{Verbatim}
+
+\subsubsection{Demand Analysis as Denotational Interpreter}
+
+\begin{figure}
+\begin{spec}
+type DmdT s v = AnalEnv -> SubDemand -> AnalM s (v, Uses)
+type DmdVal = [Demand]
+type DmdD s = DmdT s DmdVal
+
+instance Trace (DmdD s) where
+  step (Look x) d = \env sd -> do
+    (v, φ) <- d env sd
+    if isTopLvl env x
+      then  ...
+      else  pure (v, φ + singenv x (C_11 :*: sd))
+  step _ d = d
+instance Domain (DmdD s) where ...
+instance HasBind (DmdD s) where ...
+\end{spec}
+\caption{A rough outline of the semantic domain of Demand Analysis}
+\label{fig:dmd-domain}
+\end{figure}
+
+\Cref{fig:dmd-domain} gives a rough sketch of the semantic domain definition for
+Demand Analysis.
+The abstract trace type |DmdT| produces some value |v| as well as a |Uses|,
+just as for |UT| in \Cref{sec:usage-analysis}.
+However, it does so in a rather deep nest of types:
+\begin{itemize}
+  \item
+    |AnalM s| plays the role of |AnnT s| in \Cref{sec:annotations}, maintaining
+    annotations and speeding up fixpoint iteration.
+  \item
+    The analysis result is \emph{indexed} by a |SubDemand|; a description of how
+    deep the expression is to be evaluated.
+    A |SubDemand| is best understood as an abstraction of evaluation contexts.
+    The more precise this abstraction, the more accurate are the |Uses| returned
+    for that expression.
+  \item
+    Furthermore, an |AnalEnv| carries global state such as optimisation flags,
+    means for reducing types and further syntactic information about bindings,
+    such as whether a variable is bound at the top-level.
+\end{itemize}
+An abstract domain defined as a function sounds antithetical to our mantra in
+\Cref{sec:abstraction} that abstract domains are finitely represented.
+However, Demand Analysis only ever maintains one particular point of the indexed
+domain, that is, every expression is analysed under one particular |SubDemand|.
+This |SubDemand| may increase during fixpoint iteration, though, causing another
+round of analysis.
+We apply the typical widening measures in |HasBind|, so in practice Demand
+Analysis has not run into infinite loops for a couple of years.
+
+Type |DmdVal| is the similar to |UValue|, except that it lists full |Demand|s
+instead of flat usage cardinalities |U|.
+Such a demand |n :*: sd| describes how often (|sd|) and how deep (|sd|) a
+variable is used; it is an abstraction of its contexts of use.
+
+The |Trace| instance is very similar to the one for |UD|, it is just a little
+bit more complicated because of special code for top-level bindings and
+the fact that bindings get annotated with demands instead of simple usage cardinalities.
+The demand |C_11 :*: sd| describes a single, strict use of the variable in the
+evaluation context described by sub-demand |sd|.
+
+The resulting analysis is sufficient to bootstrap the compiler and passes the
+testsuite.
+However, the compiler performance takes a serious hit due to the implementation of
+|bind :: BindHint -> [ [d] -> d ] -> ([d] -> d) -> d|.
+The way fixpoint iteration updates one binding |d| in mutually recursive groups
+|[d]| at a time is very inefficient for the linked list representation, also
+because every |[d]| ultimately turn into as many updates of the |Name :-> d|
+mapping.
+It would be far preferable to operate on the |Name :-> d| environment directly.
+Finding a good abstraction that achieves this without exposing the whole
+environment is left for future work.
