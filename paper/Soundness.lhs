@@ -409,7 +409,7 @@ entities in |UD -> UD|, the rule cannot be proved for usage analysis; we give a 
 in the Appendix (\Cref{ex:syntactic-beta-app}).%
 \footnote{Finding domains where all entities $d$ are definable is the classic full
 abstraction problem~\citep{Plotkin:77}.}
-We discuss concerns of proof modularity in \Cref{sec:related-work}.
+We discuss concerns of proof modularity in \Cref{sec:mod-sound}.
 
 Rule \textsc{Beta-Sel} states a similar substitution property for data
 constructor redexes, which is why it needs to duplicate much of the |cont|
@@ -604,7 +604,7 @@ This is easily demonstrated by applying it to boxity analysis from
 the proof.)
 
 \begin{lemmarep}[|evalBox1| abstracts |evalNeed1|]
-\label{thm:usage-abstracts-need-closed}
+\label{thm:box-abstracts-need-closed}
 Let |e| be a closed expression and $α_{\mathcal{S}}$ the abstraction function from
 \Cref{fig:name-need-gist}.
 Then $α_{\mathcal{S}}(|evalNeed1 e|) ⊑ |evalBox1 e|$.

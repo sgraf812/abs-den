@@ -210,6 +210,7 @@
 %include Adequacy.lhs
 %include StaticAnalysis.lhs
 %include Soundness.lhs
+%include ModSound.lhs
 %include RelatedWork.lhs
 
 %\begin{acks}
