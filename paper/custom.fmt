@@ -245,6 +245,7 @@
 %format (MkBT(a)(b)(c))= "\langle " a ", " b ", " c " \rangle"
 %format peelB = peel
 %format !??? = !?
+%format PlainD = "\mathsf{D}"
 
 %format CD = "\concolor{\mathsf{D_C}}"
 %format CT = "\concolor{\mathsf{T_C}}"
