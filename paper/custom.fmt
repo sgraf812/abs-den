@@ -159,7 +159,8 @@
 %format com = "\text{-}\text{-}"
 %format pow(a) = "\pow{" a "}"
 %format ~> = "\progressto"
-%format ==> = "\Longrightarrow"
+%format /\ = "\land"
+%format ==> = "\implies"
 %format <==> = "\Longleftrightarrow"
 %format //= = "\not="
 %format <. = "\lessdot"
@@ -195,6 +196,12 @@
 %format v2
 %format c1
 %format c2
+%format l1
+%format l2
+%format r1
+%format r2
+%format u1
+%format u2
 %format us1
 %format us2
 %format ev1
@@ -245,7 +252,6 @@
 %format (MkBT(a)(b)(c))= "\langle " a ", " b ", " c " \rangle"
 %format peelB = peel
 %format !??? = !?
-%format PlainD = "\mathsf{D}"
 
 %format CD = "\concolor{\mathsf{D_C}}"
 %format CT = "\concolor{\mathsf{T_C}}"
