@@ -220,25 +220,11 @@ precision and speed.
 
 \subsubsection*{Proof Modularity}
 A big advantage of the big-step framework of \citet{Keidel:18} is that its
-soundness proofs are \emph{modular}, that is, a change to the definition of
-|eval| does not invalidate the soundness proof for function application.
-Our proof of \textsc{Beta-App} via a substitution lemma is simple but
-unfortunately not modular in this sense, because |evalUsg| occurs in the
-statement of \Cref{thm:usage-subst}, which is proven by induction on |e|.
-
-However, an alternative modular proof is conceivable.
-That would require finding a weaker and more abstract characterisation of |f|
-such that \textsc{Beta-App} can be proved without depending on the definition of
-|evalUsg|.
-One promising idea is to recognise |f| as a System F term of the type
-|forall d. (Trace d, Domain d, HasBind d) => d -> d|.
-Such a term is semantically equivalent to |\x -> e| for some |x :: d| and |e ::
-d|, and now we could attempt to prove \textsc{BetaApp} by induction on the type
-derivation for |e|.
-Such a weakened characterisation does not depend on the particular
-implementation of |f| at all, as in \citet{Keidel:18} who employ parametricity.
-However, as framework authors we cannot anticipate all viable abstract
-characterisations, hence we supply the strongest syntactic characterisation.
+soundness proofs are modular in the sense of \Cref{sec:mod-sound}.
+In \Cref{sec:mod-sound}, we illustrate a technique for deriving modular proofs
+of \textsc{Beta-App} as well.
+However, we have not attempted to modularise the proof for
+\Cref{thm:soundness-by-need-closed} yet.
 
 \subsubsection*{Cardinality Analysis} More interesting cardinality
 analyses involve the inference of summaries called \emph{demand
