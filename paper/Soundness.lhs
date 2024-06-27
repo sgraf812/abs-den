@@ -267,19 +267,19 @@ Now we proceed by induction on |e| and only consider non-|stuck| cases.
   \item \textbf{Case }|Var z|:
     When |x //= z|, we have
     \begin{spec}
-        evalUsg z (ext ρ x (ρ ! y))
+        evalUsg (Var z) (ext ρ x (ρ ! y))
     =   {- |x //= z| -}
         ρ ! z
     =   {- Refold |evalUsg| -}
-        evalUsg z (ext ρ x (prx x))
+        evalUsg (Var z) (ext ρ x (prx x))
     =   {- |((ρ ! z)^.φ) ! x = U0| -}
-        abssubst (evalUsg z (ext ρ x (prx x))) x ((ρ ! y)^.φ)
+        abssubst (evalUsg (Var z) (ext ρ x (prx x))) x ((ρ ! y)^.φ)
     =   {- Definition of |evalUsg| -}
         evalUsg (Lam x (Var z) `App` y) ρ
     \end{spec}
     Otherwise, we have |x = z|.
     \begin{spec}
-        evalUsg z (ext ρ x (ρ ! y))
+        evalUsg (Var z) (ext ρ x (ρ ! y))
     =   {- |x = y|, unfold -}
         ρ ! y
     ⊑   {- |v ⊑ (Rep Uω)| -}
@@ -287,7 +287,7 @@ Now we proceed by induction on |e| and only consider non-|stuck| cases.
     =   {- Definition of abstract substitution -}
         abssubst (prx x) x ((ρ ! y)^.φ)
     =   {- Refold |evalUsg| -}
-        abssubst (evalUsg z (ext ρ x (prx x))) x ((ρ ! y)^.φ)
+        abssubst (evalUsg (Var z) (ext ρ x (prx x))) x ((ρ ! y)^.φ)
     =   {- Definition of |evalUsg| -}
         evalUsg (Lam x (Var z) `App` y) ρ
     \end{spec}
