@@ -115,7 +115,7 @@ And we simplify $R_{|x|,|a|}(d_1,d_2)$, thus
 <==> {- There exists a |g| satisfying |d1 = g a| and |d2 = g (pre x)| -}
   d1 ⊑ apply (abs x d2) a
 <==> {- Inline |apply|, |abs|, simplify -}
-  d1 ⊑ MkUT (ext (d2^.φ) x U0 + (d2^.φ !? x) * a^.φ) (d2^.v)
+  d1 ⊑ let MkUT φ v = d2 in MkUT (ext φ x U0 + (φ !? x) * a^.φ) v
 \end{spec}
 
 It turns out that $R_{|x|,|a|}$ is reflexive on all |d| in which |x| does
@@ -130,20 +130,12 @@ That is a fact that we need in the |fun| case below, so we prove it here:
 \end{spec}
 and the last proposition is reflexivity on $⊑$.
 
-ADJUST DOWN HERE
-
-Now we prove the premises:
+Now we prove the premises of the abstraction theorem:
 \begin{enumerate}
   \item $(|a|,|pre x|) ∈ R_{|x|,|a|}$:
     The proposition unfolds to
     \begin{spec}
-      forall g. a = g a /\ pre x = g (pre x) ==> g a ⊑ appfun x g a
-    <==> {- Use |a = g a| -}
-      forall g. pre x = g (pre x) ==> a ⊑ appfun x g a
-    <==> {- Unfold |appfun| -}
-      forall g. pre x = g (pre x) ==> a ⊑ let MkUT φ1 v1 = g (pre x) in MkUT (ext φ1 x U0 + (φ1 !? x)*a^.φ) v1
-    <==> {- Use |pre x = g (pre x)|, simplify -}
-      a ⊑ let MkUT φ1 v1 = pre x in MkUT (ext φ1 x U0 + (φ1 !? x)*a^.φ) v1
+      a ⊑ let MkUT φ v = pre x in MkUT (ext φ x U0 + (φ !? x) * a^.φ) v
     <==> {- Unfold |pre|, simplify -}
       a ⊑ MkUT a^.φ (Rep Uω)
     \end{spec}
@@ -158,37 +150,25 @@ Now we prove the premises:
         All cases other than |ev = Look y| are trivial, because then |step ev d = d| and the goal follows by the premise.
         So let |ev = Look y|. The goal is to show
         \begin{spec}
-          forall g. step (Look y) d1 = g a /\ step (Look y) d2 = g (pre x) ==> g a ⊑ appfun x g a
+          step (Look y) d1 ⊑ let MkUT φ v = step (Look y) d2 in MkUT (ext φ x U0 + (φ !? x) * a^.φ) v
         \end{spec}
-        So assume there exists |g :: UD -> UD| such that |step (Look y) d1 = g a| and |step (Look y) d2 = g (pre x)|.
-
-        Then we can define a function |h :: UD -> UD| such that
-        |h a = d1| and |h (pre x) = d2|, and |g = h| anywhere else.
-        This function |h| is very useful to instantiate the assumption $(|d1|,|d2|)
-        ∈ R_{|x|,|a|}$ at to show the goal:
+        We begin by unpacking the assumption $(|d1|,|d2|) ∈ R_{|x|,|a|}$ to show it:
         \begin{spec}
-          forall g. d1 = g a /\ d2 = g (pre x) ==> g a ⊑ appfun x g a
-        ==> {- Instantiate at |h| above -}
-          h a ⊑ appfun x h a
-        <==> {- Unfold |appfun| -}
-          h a ⊑ let MkUT φ1 v1 = h (pre x) in MkUT (ext φ1 x U0 + (φ1 !? x)*a^.φ) v1
-        ==> {- Follows from |u1 ⊑ u2 ==> (u1 + U1) ⊑ (u2 + U1)| and |x /= y| -}
-          step (Look y) (h a) ⊑  let MkUT φ1 v1 = step (Look y) (h (pre x)) in
-                                 MkUT (ext φ1 x U0 + (φ1 !? x)*a^.φ) v1
-        <==> {- Use |h a = d1|, |h (pre x) = d2| -}
-          step (Look y) d1 ⊑ let MkUT φ1 v1 = step (Look y) d2 in MkUT (ext φ1 x U0 + (φ1 !? x)*a^.φ) v1
-        <==> {- Use |step (Look y) d1 = g a|, |step (Look y) d2 = g (pre x)| -}
-          g a ⊑ let MkUT φ1 v1 = g (pre x) in MkUT (ext φ1 x U0 + (φ1 !? x)*a^.φ) v1
-        <==> {- Refold |appfun| -}
-          g a ⊑ appfun x g a
+          d1 ⊑ let MkUT φ v = d2 in MkUT (ext φ x U0 + (φ !? x) * a^.φ) v
+        ==>   {- |step (Look y)| is monotonic -}
+          step (Look y) d1 ⊑ step (Look y) (MkUT (ext (d2^.φ) x U0 + (d2^.φ !? x) * a^.φ) (d2^.v))
+        <==> {- Refold |step (Look y)| -}
+          step (Look y) d1 ⊑ MkUT (ext (d2^.φ) x U0 + singenv y U1 + (d2^.φ !? x) * a^.φ) (d2^.v)
+        <==>  {- |step (Look y)| preserves value and |x /= y| because |y| is let-bound -}
+          step (Look y) d1 ⊑ let MkUT φ v = step (Look y) d2 in MkUT (ext φ x U0 + (φ !? x) * a^.φ) v
         \end{spec}
 
       \item \textbf{Case |stuck|}.
         Goal: $(|stuck|, |stuck|) ∈ R_{|x|,|a|}$ \\
         \begin{spec}
-          forall g. stuck = g a /\ stuck = g (pre x) ==> g a ⊑ appfun x g a
-        <==> {- |g a = stuck = bottom| -}
-          forall g. stuck = g a /\ stuck = g (pre x) ==> bottom ⊑ appfun x g a
+          stuck ⊑ let MkUT φ v = stuck in MkUT (ext φ x U0 + (φ !? x) * a^.φ) v
+        <==> {- Unfold |stuck| -}
+          bottom ⊑ let MkUT φ v = stuck in MkUT (ext φ x U0 + (φ !? x) * a^.φ) v
         \end{spec}
         And the latter follows because |bottom| is the bottom element of |UD|.
 
@@ -198,61 +178,44 @@ Now we prove the premises:
 
         Now assume the premise. The goal is to show
         \begin{spec}
-          forall g. fun y f1 = g a /\ fun y f2 = g (pre x) ==> g a ⊑ appfun x g a
+          fun y f1 ⊑ let MkUT φ v = fun y f2 in MkUT (ext φ x U0 + (φ !? x) * a^.φ) v
         \end{spec}
-        So assume there exists |g :: UD -> UD| such that |fun y f1 = g a| and |fun y f2 = g (pre x)|.
 
-        Define
-        |post d = case d of MkUT φ v -> MkUT (ext φ y U0) (UCons (φ !? y) v)|
-        and note that this function is monotonic and satisfies
-        |fun x f = post (f (pre x))|.
+        Recall that |fun y f = abs y (f (pre y))| and that |abs y| is monotonic.
 
         Note that we have $(|pre y|, |pre y|) ∈ R_{|x|,|a|}$ because of |x /= y| and reflexivity.
         That in turn yields $(|f1 (pre y), f2 (pre y)|) ∈ R_{|x|,|a|}$ by assumption.
         This is useful to kickstart the following proof, showing the goal:
         \begin{spec}
-          forall g. f1 (pre y) = g a /\ f2 (pre y) = g (pre x) ==> g a ⊑ appfun x g a
-        ==> {- Unfold |appfun|, Monotonicity of |post| -}
-          forall g. f1 (pre y) = g a /\ f2 (pre y) = g (pre x) ==>
-          post (g a) ⊑ post (let MkUT φ1 v1 = g (pre x) in MkUT (ext φ1 x U0 + (φ1 !? x)*a^.φ) v1)
-        <==> {- Use |f1 (pre y) = g a|, |f2 (pre y) = g (pre x)|, simplify -}
-          post (f1 (pre y)) ⊑ post (let MkUT φ1 v1 = f2 (pre y) in MkUT (ext φ1 x U0 + (φ1 !? x)*a^.φ) v1)
-        <==> {- |x /= y| and |a^.φ !? y = U0| due to scoping, |φ !? y| unaffected by floating |post| -}
-          post (f1 (pre y)) ⊑ let MkUT φ1 v1 = post (f2 (pre y)) in MkUT (ext φ1 x U0 + (φ1 !? x)*a^.φ) v1
-        <==> {- Use |forall f. fun y f = post (f (pre y))| -}
-          fun y f1 ⊑ let MkUT φ1 v1 = fun y f2 in MkUT (ext φ1 x U0 + (φ1 !? x)*a^.φ) v1
-        <==> {- Use |fun y f1 = g a| and |fun y f2 = g (pre x)| -}
-          g a ⊑ let MkUT φ1 v1 = g (pre x) in MkUT (ext φ1 x U0 + (φ1 !? x)*a^.φ) v1
-        <==> {- Refold |appfun| -}
-          g a ⊑ appfun x g a
+          f1 (pre y) ⊑ let MkUT φ v = f2 (pre y) in MkUT (ext φ x U0 + (φ !? x) * a^.φ) v
+        ==>   {- Monotonicity of |abs y| -}
+          abs y (f1 (pre y)) ⊑ abs y (let MkUT φ v = f2 (pre y) in MkUT (ext φ x U0 + (φ !? x) * a^.φ) v)
+        <==>  {- |x /= y| and |a^.φ !? y = U0| due to scoping, |φ !? x| unaffected by floating |abs| -}
+          abs y (f1 (pre y)) ⊑ let MkUT φ v = abs y (f2 (pre y)) in MkUT (ext φ x U0 + (φ !? x) * a^.φ) v
+        <==>  {- Rewrite |abs y (f (pre y)) = fun y f| -}
+          fun y f1 ⊑ let MkUT φ v = fun y f2 in MkUT (ext φ x U0 + (φ !? x) * a^.φ) v
         \end{spec}
 
       \item \textbf{Case |apply|}.
         Goal: $\inferrule{(|l1|,|l2|) ∈ R_{|x|,|a|} \\ (|r1|,|r2|) ∈ R_{|x|,|a|}}{(|apply l1 r1|, |apply l2 r2|) ∈ R_{|x|,|a|}}$. \\
         Assume the premises. The goal is to show
         \begin{spec}
-          forall g. apply l1 r1 = g a /\ apply l2 r2 = g (pre x) ==> g a ⊑ appfun x g a
+          apply l1 r1 ⊑ let MkUT φ v = apply l2 r2 in MkUT (ext φ x U0 + (φ !? x) * a^.φ) v
         \end{spec}
-        So assume there exists |g :: UD -> UD| such that |apply l1 r1 = g a| and |apply l2 r2 = g (pre x)|.
 
         \begin{spec}
-          forall g. f1 (pre y) = g a /\ f2 (pre y) = g (pre x) ==> g a ⊑ appfun x g a
-        ==> {- Unfold |appfun|, Monotonicity of |post| -}
-          forall g. f1 (pre y) = g a /\ f2 (pre y) = g (pre x) ==>
-          post (g a) ⊑ post (let MkUT φ1 v1 = g (pre x) in MkUT (ext φ1 x U0 + (φ1 !? x)*a^.φ) v1)
-        <==> {- Use |f1 (pre y) = g a|, |f2 (pre y) = g (pre x)|, simplify -}
-          post (f1 (pre y)) ⊑ post (let MkUT φ1 v1 = f2 (pre y) in MkUT (ext φ1 x U0 + (φ1 !? x)*a^.φ) v1)
+
+
           case peel l1^.v of (u, v) -> MkUT (l1^.φ + u*r1^.φ) v
-          ⊑ let MkUT φ1 v1 = case peel l2^.v of (u, v) -> MkUT (l2^.φ + u*r2^.φ) v in MkUT (ext φ1 x U0 + (φ1 !? x)*a^.φ) v1
-        <==> {- Rearrange -}
+          ⊑ let MkUT φ1 v1 = let MkUT φ v = l2 in MkUT (ext φ x U0 + (φ !? x) * a^.φ) v in
+            in case peel v1 of (u, v) -> MkUT (φ + u*r2^.φ) v
+
+
+        <==>  {- Rearrange -}
           case peel l1^.v of (u, v) -> MkUT (l1^.φ + u*r1^.φ) v
-          ⊑ let MkUT φ1 v1 = case peel l2^.v of (u, v) -> MkUT (l2^.φ + u*r2^.φ) v in MkUT (ext φ1 x U0 + (φ1 !? x)*a^.φ) v1
-        <==> {- Refold |apply| -}
-          apply l1 r1 ⊑ let MkUT φ1 v1 = apply l2 r2 in MkUT (ext φ1 x U0 + (φ1 !? x)*a^.φ) v1
-        <==> {- Use |apply l1 r1 = g a| and |apply l2 r2 = g (pre x)| -}
-          g a ⊑ let MkUT φ1 v1 = g (pre x) in MkUT (ext φ1 x U0 + (φ1 !? x)*a^.φ) v1
-        <==> {- Refold |appfun| -}
-          g a ⊑ appfun x g a
+          ⊑ let MkUT φ v = case peel l2^.v of (u, v) -> MkUT (l2^.φ + u*r2^.φ) v in MkUT (ext φ x U0 + (φ !? x)*a^.φ) v
+        <==>  {- Refold |apply| -}
+          apply l1 r1 ⊑ let MkUT φ v = apply l2 r2 in MkUT (ext φ x U0 + (φ !? x) * a^.φ) v
         \end{spec}
     \end{itemize}
 \end{enumerate}
