@@ -1,5 +1,4 @@
 SG:
-* Decide about Boxity Analysis
 * Update Soundness Appendix with new formulation of Galois Connection
 
 * [x] Clarify what is formalised in Agda
