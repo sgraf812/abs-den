@@ -127,43 +127,24 @@ generic abstract interpreter in \citet[Chapter 21]{Cousot:21}.
 Our abstraction laws in \Cref{fig:abstraction-laws} correspond to Definition 27.1
 and \Cref{thm:soundness-by-need-closed} to Theorem 27.4.
 
-\subsubsection*{Control-Flow Analysis}
+\subsubsection*{Abstractions of Reachable States}
 CFA~\citep{Shivers:91} computes a useful control-flow graph abstraction for
-higher-order programs.
-Such an approximation is useful to apply classic data-flow analyses such as
-constant propagation or dead code elimination to the interprocedural setting.
-The contour depth parameter $k$ allows to trade precision for performance,
-although in practice it is often $k \leq 1$.
-
+higher-order programs, thus lifting classic intraprocedural analyses such as
+constant propagation to the interprocedural setting.
 \citet{MontaguJensen:21} derive CFA from small-step traces.
 We think that a variant of our denotational interpreter would be a good fit for
 their collecting semantics.
 Specifically, the semantic inclusions of Lemma 2.10 that govern the transition
 to a big-step style interpreter follow simply by adequacy of our interpreter,
-\Cref{thm:sem-adequate}.
+\Cref{thm:need-adequate-strong}.
 
 Abstracting Abstract Machines~\citep{aam} derives
 a computable \emph{reachable states semantics}~\citep{Cousot:21} from any
 small-step semantics, by bounding the size of the heap.
-%By bounding the size of the store, the freely choosably
-%$\widehat{\mathit{alloc}}$ function embodies a precision-performance trade-off.
 Many analyses such as control-flow analysis arise as abstractions of reachable
 states.
-%In fact, we think that CFA can be used to turn any finite |Trace| instance such
-%as |UT| into a static analysis, without the need to define a custom summary
-%mechanism.
-
 \citet{adi} and others apply the AAM recipe to big-step interpreters in the style
-of \citeauthor{Reynolds:72}. %, in order to share analysis code with the semantics.
-%\citet{Wei:18} show de-/refunctionalisation correspondence between AAM and ADI,
-%hinting at the existence of abstract denotational interpreters.
-\citet{Backhouse:04} and \citet{Keidel:18} show that in doing so, correctness of
-shared code follows by parametricity~\citep{Wadler:89}.
-We found it quite elegant to utilise parametricity in this way, but
-unfortunately the free theorem for our interpreter is too weak because it
-excludes the syntactic premises in \Cref{fig:abstraction-laws}.
-%Once the right correctness statement was established, the main proof became so
-%simple that it could easily be automated.
+of \citeauthor{Reynolds:72}.
 
 Whenever AAM is involved, abstraction follows some monadic structure inherent to
 dynamic semantics~\citep{Sergey:13,adi}.
@@ -171,10 +152,15 @@ In our work, this is apparent in the |Domain (D τ)| instance depending on
 |Monad τ|.
 Decomposing such structure into a layer of reusable monad transformers has been
 the subject of \citet{Darais:15} and \citet{Keidel:19}.
-The \emph{trace transformers} in \Cref{sec:interp} enable a similar reuse.
-Likewise, \citet{Keidel:23} discusses a sound, declarative approach to reuse
-fixpoint combinators which we hope to apply in implementations of our framework
-as well.
+The trace transformers of \Cref{sec:interp} enable reuse along a different dimension.
+%Likewise, \citet{Keidel:23} discusses a sound, declarative approach to reuse
+%fixpoint combinators which we hope to apply in implementations of our framework
+%as well.
+
+A big advantage of the big-step framework of \citet{Keidel:18} is that
+soundness proofs are modular in the sense of \Cref{sec:mod-sound}.
+In the future, we hope to modularise the proof for
+\Cref{thm:soundness-by-need-closed}.
 
 \subsubsection*{Summaries of Functionals \vs Call Strings}
 \citet{Lomet:77} used procedure summaries to capture aliasing effects,
@@ -218,25 +204,23 @@ precision and speed.
 %that the implementation of |Domain| can be synthesised using the approach of
 %\citet{Kalita:2022}.
 
-\subsubsection*{Proof Modularity}
-A big advantage of the big-step framework of \citet{Keidel:18} is that its
-soundness proofs are modular in the sense of \Cref{sec:mod-sound}.
-In \Cref{sec:mod-sound}, we illustrate a technique for deriving modular proofs
-of \textsc{Beta-App} as well.
-However, we have not attempted to modularise the proof for
-\Cref{thm:soundness-by-need-closed} yet.
-
 \subsubsection*{Cardinality Analysis} More interesting cardinality
 analyses involve the inference of summaries called \emph{demand
 transformers}~\citep{Sergey:14}, such as implemented in the Demand Analysis of
 the Glasgow Haskell Compiler.
-It is very similar to Clairvoyant call-by-value (CCbV)~\citep{HackettHutton:19},
-suggesting that the former is an abstract interpretation of the latter.
-Since CCbV is cost equivalent to call-by-need, such an abstraction relationship
-could be used to prove that Demand Analysis infers operational properties such
-as absence in call-by-need.
-Alas, since the Clairvoyant instantiation of our denotational interpreter is
-partial, such a proof would carry no meaning for partial inputs.
+%It is very similar to Clairvoyant call-by-value (CCbV)~\citep{HackettHutton:19},
+%suggesting that the former is an abstract interpretation of the latter.
+%Since CCbV is cost equivalent to call-by-need, such an abstraction relationship
+%could be used to prove that Demand Analysis infers operational properties such
+%as absence in call-by-need.
+%Alas, since the Clairvoyant instantiation of our denotational interpreter is
+%partial, such a proof would carry no meaning for partial inputs.
+We intend to use our framework to describe improvements to Demand Analysis in
+the future.
+A soundness proof would require a slightly different Galois connection than
+\Cref{fig:name-need-gist}, because Demand Analysis is not sound \wrt by-name
+evaluation; a testament to its precision.
+
 
 %\subsubsection*{Denotational Semantics}
 %Recent work on \emph{Clairvoyant call-by-value}
