@@ -31,19 +31,19 @@ HasBind d) => d -> d| is parametric because it is defined in terms of
 Following the semi-formal style of \citet[Section 3]{Wadler:89},
 we apply the abstraction theorem to the corresponding System $F$ encoding
 \[
-  f : \forall X.\ \mathsf{Dict(X)} \to X \to X,
+  f : \forall X.\ \mathsf{Dict}(X) \to X \to X,
 \]
-where $\mathsf{Dict(|d|)}$ is the type of the type class
+where $\mathsf{Dict}(|d|)$ is the type of the type class
 dictionary for |(Trace d, Domain d, HasBind d)|.
 The abstraction theorem yields the following assertion about relations:
 \[
-  (f, f) ∈ \forall \mathcal{X}.\ \mathsf{Dict(\mathcal{X})} \to \mathcal{X} \to \mathcal{X}
+  (f, f) ∈ \forall \mathcal{X}.\ \mathsf{Dict}(\mathcal{X}) \to \mathcal{X} \to \mathcal{X}
 \]
 Wadler overloads the type formers with a suitable relational interpretation, which translates to
 \[
   \forall A, B.\
   \forall R ⊆ A \times B.\
-  \forall (\mathit{inst_1}, \mathit{inst_2}) ∈ \mathsf{Dict(R)}.\
+  \forall (\mathit{inst_1}, \mathit{inst_2}) ∈ \mathsf{Dict}(R).\
   \forall (d_1,d_2) ∈ R.\
   (f_A(\mathit{inst_1})(d_1), f_B(\mathit{inst_2})(d_2)) ∈ R
 \]
@@ -67,7 +67,7 @@ example, and are useful to simplify $g$ away entirely once |fun| is inlined
 From the abstraction theorem, we derive the following inference rule
 \[
 \inferrule[]
-  { a ⊑ \mathit{apply}(\mathit{fun}(x,\mathit{id}),a) \\ (\mathit{inst}, \mathit{inst}) ∈ \mathsf{Dict(R_{x,a})} }
+  { a ⊑ \mathit{apply}(\mathit{fun}(x,\mathit{id}),a) \\ (\mathit{inst}, \mathit{inst}) ∈ \mathsf{Dict}(R_{x,a}) }
   { f_|UD|(\mathit{inst})(a) ⊑ \mathit{apply}(\mathit{fun}(x,f_|UD|(\mathit{inst})),a) }
 \]
 which can easily be translated back to Haskell.
@@ -85,7 +85,7 @@ We instantiate the free theorem for |f|
 \[
   \forall A, B.\
   \forall R ⊆ A \times B.\
-  \forall (\mathit{inst_1}, \mathit{inst_2}) ∈ \mathsf{Dict(R)}.\
+  \forall (\mathit{inst_1}, \mathit{inst_2}) ∈ \mathsf{Dict}(R).\
   \forall (d_1,d_2) ∈ R.\
   (f_A(\mathit{inst_1})(d_1), f_B(\mathit{inst_2})(d_2)) ∈ R
 \]
@@ -97,7 +97,7 @@ as follows
 and get (translated back into Haskell)
 \[
   \inferrule
-    { (|a|,|pre x|) ∈ R_{|x|,|a|} \\ (\mathit{inst}, \mathit{inst}) ∈ \mathsf{Dict(R_{|x|,|a|})} }
+    { (|a|,|pre x|) ∈ R_{|x|,|a|} \\ (\mathit{inst}, \mathit{inst}) ∈ \mathsf{Dict}(R_{|x|,|a|}) }
     { (|f a|, |f (pre x)|) ∈ R_{|x|,|a|} }
 \]
 where |pre x := MkUT (singenv x U1) (Rep Uω)| defines the proxy for |x|,
@@ -155,7 +155,7 @@ Now we prove the premises of the abstraction theorem:
     \end{spec}
     The latter follows from |a^.v ⊑ Rep Uω| because |Rep Uω| is the Top element.
 
-  \item $(\mathit{inst}, \mathit{inst}) ∈ \mathsf{Dict(R_{|x|,|a|})}$:
+  \item $(\mathit{inst}, \mathit{inst}) ∈ \mathsf{Dict}(R_{|x|,|a|})$:
     By the relational interpretation of products, we get one subgoal per instance method.
     \begin{itemize}
       \item \textbf{Case |step|}.
@@ -179,7 +179,7 @@ Now we prove the premises of the abstraction theorem:
 
       \item \textbf{Case |stuck|}.
         Goal: $(|stuck|, |stuck|) ∈ R_{|x|,|a|}$ \\
-        Follows from reflexivity, because |stuck = bottom|, and |bottom !? x = U0|.
+        Follows from reflexivity, because |stuck = bottom|, and |bottom^.φ !? x = U0|.
 
       \item \textbf{Case |fun|}.
         Goal: $\inferrule{\forall (|d1|,|d2|) ∈ R_{|x|,|a|} \implies (|f1 d1|, |f2 d2|) ∈ R_{|x|,|a|}}{(|fun y f1|, |fun y f2|) ∈ R_{|x|,|a|}}$. \\
