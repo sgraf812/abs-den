@@ -1454,16 +1454,21 @@ instance {-# OVERLAPS #-} Show (UD, Name :-> U) where
 Thus far, the static analyses derived from the generic denotational interpreter
 produce a single abstract denotation |d := eval e emp| for the program
 expression |e|.
+However, in practice static compiler analyses such as Demand Analysis usually
+drive a subsequent optimisation, for which a single denotation for the entire
+program is insufficient.
+Rather, we need one for every sub-expression, or at least every binding.
+
 If we are interested in analysis results for variables \emph{bound} in
 |e|, then either the analysis must collect these results in |d|, or we must
 redundantly re-run the analysis for subexpressions.
 
-In this subsection, we will demonstrate how to lift such a pure,
-\emph{single-result analysis} into a stateful analysis such that
+In this subsection we show how to lift a pure, \emph{single-result} analysis into a
+\emph{stateful} analysis that gives results for every binder, such that
 \begin{itemize}
-  \item analysis results for bound variables are collected in a separate map, and
-  \item fixpoints are cached, so that nested fixpoint iteration can be sped up
-    by starting from a previous approximation.
+  \item it collects analysis results for bound variables in a separate, global map, and
+  \item it caches fixpoints in yet another global map, so that nested fixpoint
+    iteration can be sped up by starting from a previous approximation.
 \end{itemize}
 It is a common pattern for analyses to be stateful in this
 way~\citep{Sergey:14}; GHC's Demand Analysis is a good real-world example.

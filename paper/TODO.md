@@ -1,7 +1,5 @@
 SG:
-* Write modular proof for BetaApp
 * Decide about Boxity Analysis
-* Update Annotations Appendix
 * Update Soundness Appendix with new formulation of Galois Connection
 
 * [x] Clarify what is formalised in Agda
