@@ -285,7 +285,7 @@
 %format a_yi = "\varid{a}_{\varid{y},i}"
 %format lktrace = "(σ_{i+1})_{i∈\overline{n-1}}"
 %format (idiom(a)) = "\idiom{" a "}"
-%format :<->: = "\rightleftharpoons"
+%format :<->: = "\rightleftarrows"
 %format (set(a)) = "\{" a "\}"
 %format (setundef(a)) = "\{" a "\}"
 %format untyped(a) = a

@@ -154,7 +154,7 @@ Following \citet[Section 4.3]{Nielson:99}, every \emph{representation function}
 data Pow a = P (Set a) deriving (Eq, Ord)
 data GC a b = (a -> b) :<->: (b -> a)
 repr :: Lat b => (a -> b) -> GC (Pow a) b
-repr β = α :<->: γ where α (P as) = Lub (β a | a <- as); γ b = P (setundef (a | β a ⊑ b))
+repr β = α :<->: γ where α (P as) = Lub (β a | a ∈ as); γ b = P (setundef (a | β a ⊑ b))
 \end{code}
 While the |γ| exists as a mathematical function, it is in general impossible to
 compute even for finitary inputs.

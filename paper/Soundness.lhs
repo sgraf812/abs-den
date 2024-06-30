@@ -40,7 +40,7 @@ Then we will go on to prove abstract by-name soundness in
 \Cref{sec:by-name-soundness}, and finally by-need soundness in
 \Cref{sec:by-need-soundness}.
 
-%include SoundnessAppendix.lhs
+%include soundness-appendix.lhs
 
 \subsection{Usage Analysis Proofs}
 
