@@ -292,7 +292,7 @@
 %format unused(a) = a
 %format (Cup(a)) = "\bigcup\{" a "\}"
 %format (Lub(a)) = "\Lub\{" a "\}"
-%format powMap(f) = "{" f "}^{*}"
+%format powMap f = "{" f "}^{*}"
 %format (hat(a)) = "\widehat{" a "}"
 %format (dot(a)) = "\dot{" a "}"
 

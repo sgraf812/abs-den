@@ -421,6 +421,7 @@ kleeneFix f = go bottom where go x = let x' = f x in if x' ⊑ x then x' else go
 \end{figure}
 
 \subsubsection{Finite Fixpoint Strategy in |HasBind UD| and Totality}
+\label{sec:usage-fixpoint}
 
 The third and last ingredient to recover a static analysis is the fixpoint
 strategy in |HasBind UD|, to be used for recursive let bindings.
