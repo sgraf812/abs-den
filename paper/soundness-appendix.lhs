@@ -101,7 +101,7 @@ least fixpoints:
 \begin{lemma}[Guarded fixpoint abstraction for safety extensions]
 \label{thm:guarded-fixpoint-abstraction}
 Let |hat D| be a domain with an instance for
-|Lat|, and let $(\pow{\Traces},⊆) \galois{α}{γ} (|hat D|, ⊑)$ a Galois
+|Lat|, and let $|α| : (\pow{\Traces},⊆) \rightleftarrows (|hat D|, ⊑) : |γ|$ a Galois
 connection extended to infinite traces via \Cref{thm:safety-extension}.
 Then, for any iteratee |f :: Traces -> Traces|,
 \[
@@ -139,107 +139,249 @@ and the fact that all properties of interest are safety properties.
 \subsection{Abstract By-name Soundness, in Detail}
 \label{sec:by-name-soundness}
 
-We will now see how the by-name abstraction laws in \Cref{fig:abstraction-laws}
-induce an abstract interpretation of by-name evaluation.
-The corresponding proofs are somewhat simpler than for by-need because no heap
-update is involved.
+\begin{figure}
+\[\ruleform{\begin{array}{c}
+  α_{\mathcal{S}} : (|(Name :-> DName) -> DName|) \rightleftarrows (|(Name :-> hat D) -> hat D|) : γ_{\mathcal{S}}
+  \\
+  α_{\Environments} : \pow{|Name :-> DName|} \rightleftarrows (|Name :-> hat D|) : γ_{\Environments}
+  \\
+  α_{\Domain{}} : \pow{|DName|} \rightleftarrows |hat D| : γ_{\Domain{}}
+  \qquad
+  β_\Traces : |T (Value (ByName T))| \to |hat D|
+  \qquad
+\end{array}}\]
+\belowdisplayskip=0pt
+\arraycolsep=2pt
+\[\begin{array}{lcl}
+α_{\mathcal{S}}(S)(\widehat{ρ}) & = & α_\Traces(\{\  S(ρ) \mid ρ ∈ γ_{\Environments}(\widehat{ρ}) \ \}) \\
+α_{\Environments}(R)(x) & = & \Lub \{\  α_{\Domain{}}(\{ρ(x)\}) \mid ρ ∈ R \ \} \\
+α_{\Domain{}}(D) & = & \Lub \{\  β_\Traces(d) \mid d ∈ D \ \}  \\
+\\[-0.75em]
+β_\Traces(|τ|) & = & \begin{cases}
+  |step e ({-" β_\Traces(\varid{τ'}) "-})| & \text{if |τ = Step e τ'|} \\
+  |stuck|                         & \text{if |τ = Ret Stuck|} \\
+  |fun (αD . powMap f . γD)| & \text{if |τ = Ret (Fun f)|} \\
+  |con k (map (αD . set) ds)| & \text{if |τ = Ret (Con k ds)|} \\
+  \end{cases} \\
+\\[-0.75em]
+\end{array}\]
+\caption{Galois connection $α_{\mathcal{S}}$ for by-name abstraction derived from |Trace|, |Domain| and |Lat| instances on |hat D|}
+\label{fig:abstract-name}
+\end{figure}
 
-Since we we reason about idealised, total Haskell code as if it were a type
-theory, it is important to nail down how Galois connections are represented in
-Haskell, and how we construct them.
-Following \citet[Section 4.3]{Nielson:99}, every \emph{representation function}
-|β :: a -> b| into a partial order $(|b|,⊑)$ yields a Galois connection between
-|Pow|ersets of |a| and $(|b|,⊑)$:
-\begin{code}
-data Pow a = P (Set a) deriving (Eq, Ord)
-data GC a b = (a -> b) :<->: (b -> a)
-repr :: Lat b => (a -> b) -> GC (Pow a) b
-repr β = α :<->: γ where α (P as) = Lub (β a | a ∈ as); γ b = P (setundef (a | β a ⊑ b))
-\end{code}
-While the |γ| exists as a mathematical function, it is in general impossible to
-compute even for finitary inputs.
-Every domain |hat D| with instances |(Trace (hat D), Domain (hat D), Lat (hat D))|
-induces a \emph{trace abstraction} via the following representation
-function, writing |powMap f| to map |f| over |Pow|%
-\footnote{
-Recall that |fun| actually takes |x :: Name| as the first argument as a cheap
-De Bruijn level. Every call to |fun| would need to chose a fresh |x|. We omit
-the bookkeeping here; an alternative would be to require the implementation of
-usage analysis/|UD| to track their own De Bruijn levels.}
-\begin{code}
-type (named d) = d  -- exact meaning defined below
-trace  ::  (Trace (hat d), Domain (hat d), Lat (hat d))
-       =>  GC (Pow (D r)) (hat d) -> GC (Pow (named (D r))) (named (hat d)) -> GC (Pow (T (Value r))) (hat d)
-trace (αT :<->: γT) (αE :<->: γE) = repr β where
-  β (Ret Stuck)       = stuck
-  β (Ret (Fun f))     = fun {-"\iffalse"-}"" ""{-"\fi"-} (αT . powMap f . γE)
-  β (Ret (Con k ds))  = con {-"\iffalse"-}""{-"\fi"-} k (map (αE . set) ds)
-  β (Step e (hat d))  = step e (β (hat d))
-\end{code}
-Note how |trace| expects two Galois connections: The first one is applicable
-in the ``recursive case'' and the second one applies to (the powerset over)
-|named (D (ByName T))|, a subtype of |D (ByName T)|.
-Every |d :: (named (ByName T))| is of the form |Step (Look x) (eval e ρ)| for
-some |x|, |e|, |ρ|, characterising domain elements that end up in an
-environment or are passed around as arguments or in fields.
-We have seen a similar characterisation in the Agda encoding of
-\Cref{sec:adequacy}.
-The distinction between |αT| and |αE| will be important for proving that
-evaluation preserves trace abstraction (comparable to \Cref{thm:preserve-absent}
-for a big-step-style semantics),
-a necessary auxiliary lemma for \Cref{thm:soundness-by-name}.
+We will now prove that the by-name abstraction laws in \Cref{fig:abstraction-laws}
+induce an abstract interpretation of by-name evaluation via |αS| defined in
+\Cref{fig:abstract-name}.
+The Galois connection and the corresponding proofs are very similar, yet
+somewhat simpler than for by-need because no heap update is involved.
 
-We utilise the |trace| combinator to define |byName| abstraction as its
-(guarded) fixpoint:
-\begin{code}
-env :: (Trace (hat d), Domain (hat d), Lat (hat d)) => GC (Pow (named (D (ByName T)))) (named (hat d))
-env = untyped (repr β where β (Step (Look x) (eval e ρ)) = step (Look x) (eval e (β << ρ)))
+We write $|powMap f| : \pow{A} \to \pow{B}$ to lift a function $|f| : A \to B$
+to powersets, and write $|set| : A \to \pow{A}$ to construct a singleton set in
+pointfree style.
+Note that we will omit |ByName| newtype wrappers, as in many other preceding
+sections, as well as the |Name| passed to |fun| as a poor man's De Bruijn level.
 
-byName :: (Trace (hat d), Domain (hat d), Lat (hat d)) => GC (Pow (D (ByName T))) (hat d)
-byName = (αT . powMap unByName) :<->: (powMap ByName . γT) where αT :<->: γT = trace byName env
-\end{code}
-There is a need to clear up the domain and range of |env|.
-Since its domain is sets of elements from |named (D (ByName T))|, its range
-|named d| is the (possibly infinite) join over abstracted elements that
-look like |step (Look x) (eval e (β << ρ))| for some ``closure'' |x|, |e|, |ρ|.
-Although we have ``sworn off'' operational semantics for abstraction, we
-defunctionalise environments into syntax to structure the vast semantic domain
-in this way, thus working around the full abstraction problem~\citep{Plotkin:77}.
-More formally,
+\sg{Revisit after by-need}
+Compared to the by-need trace abstraction in \Cref{fig:name-need-gist}, the
+by-name trace abstraction function in \Cref{fig:abstract-name} is rather
+straightforward, because it simply follows the type structure.
 
-\begin{definition}[Syntactic by-name environments]
-  \label{defn:syn-name}
-  Let |hat D| be a domain satisfying |Trace|, |Domain| and |Lat|.
-  We write |named (hat D) d| (resp. |nameenv (hat D) ρ|) to say that the
-  denotation |d| (resp. environment |ρ|) is \emph{syntactic}, which we define
-  by mutual guarded recursion as
-  \begin{itemize}
-    \item |named (hat D) d| iff there exists a set |Clo| of syntactic closures such
-      that \\
-      |d = Lub (step (Look x) (eval e ρ1 :: (hat D)) || (x,e,ρ1) ∈ Clo && Later (nameenv (hat D) ρ1))|,
-      and
-    \item |nameenv (hat D) ρ| iff for all |x|, |named (hat D) (ρ ! x)|.
-  \end{itemize}
-\end{definition}
-% We really need to generalise over |D|, because we need this characterisation in the abstract as well.
+Note that the recursion in |βT| is defined in terms of the least fixpoint;
+we discussed in \Cref{sec:safety-extension} why this is a natural choice.
 
-For the remainder of this subsection, we assume a refined definition of |Domain|
-and |HasBind| that expects |named (hat D)| (denoting the set of
-|hat d :: hat D| such that |named (hat D) (hat d)|) where we pass around
-denotations that end up in an environment.
-It is then easy to see that |eval e ρ| preserves |nameenv (hat D)| in recursive
-invocations, and |trace| does so as well.
+We will now prove sound by-name interpretation by appealing to parametricity.
 
-% Let's not bother with monotonicity
-%\begin{lemma}[Monotonicity]
-%  Let |hat D| be a domain with instances for |Trace|, |Domain|, |HasBind| and
-%  |Lat|, satisfying property \textsc{Mono} in
-%  \Cref{fig:abstraction-laws}.
-%  Then |eval e :: (Name :-> hat D) -> hat D| is a monotone function.
-%\end{lemma}
-%\begin{proofsketch}
-%  Follows by parametricity.
-%\end{proofsketch}
+Following the semi-formal style of \citet[Section 3]{Wadler:89},
+we apply the abstraction theorem to the System $F$ encoding
+of the type of |eval|
+\[
+  |eval| : \forall X.\ \mathsf{Dict}(X) → \mathsf{Exp} → (\mathsf{Name} \pfun X) → X
+\]
+where $\mathsf{Dict}(|d|)$ is the type of the type class
+dictionary for |(Trace d, Domain d, HasBind d)|.
+The abstraction theorem yields the following assertion about relations:
+\[
+  (|eval|, |eval|) ∈ \forall \mathcal{X}.\ \mathsf{Dict}(\mathcal{X}) → \mathsf{Exp} → (\mathsf{Name} \pfun \mathcal{X}) → \mathcal{X}
+\]
+Wadler overloads the type formers with a suitable relational interpretation, which translates to
+\begin{align}
+  &\forall A, B.\
+  \forall R ⊆ A \times B.\
+  \forall (\mathit{inst_1}, \mathit{inst_2}) ∈ \mathsf{Dict}(R).\
+  \forall |e| ∈ \mathsf{Exp}.\
+  \forall (ρ_1, ρ_2) ∈ (\mathsf{Name} \pfun R). \notag \\
+  &(|evalD2 {-"A"-}space e|(\mathit{inst_1})(ρ_1), |evalD2 {-"B"-}space e|(\mathit{inst_2})(ρ_2)) ∈ R \label{eqn:name-abs}
+\end{align}
+and in the following proof, we will instantiate $R(|d|,|hat d|) \triangleq |αD
+^ ((set (d))) ⊑ hat d|$ to show the abstraction relationship.
+
+We will need the following auxiliary lemma for the |apply| and |select| cases:
+\begin{lemma}[By-name bind]
+\label{thm:by-name-bind}
+If
+\begin{itemize}
+  \item |βT d ⊑ hat d|, and
+  \item forall events |ev| and elements |hat d'|, |(hat step) ev ((hat f) (hat d')) ⊑ (hat f) ((hat step) ev (hat d'))|, and
+  \item forall values |v|, |βT (f v) ⊑ (hat f) (βT (Ret v))|,
+\end{itemize}
+then |βT (d >>= f) ⊑ hat f (hat d)|.
+\end{lemma}
+\begin{proof}
+By Löb induction.
+
+If |d = Step ev d'|, then there exists |hat d'| such that |βT d ⊑ hat d'|
+(for example, |hat d' := βT d'|).
+Note that |hat step ev (hat d') = hat step ev (βT d') ⊑ hat d|.
+We get
+\begin{spec}
+  βT (d >>= f) = βT (Step ev d' >>= f) = (hat step) ev (βT (d' >>= f))
+⊑  {- Induction hypothesis -}
+  hat step ev ((hat f) (βT d'))
+⊑  {- Assumption -}
+  (hat f) ((hat step) ev (βT d')) = (hat f) (hat d)
+\end{spec}
+
+Otherwise, |d = Ret v| for some |v :: Value|.
+\begin{spec}
+  βT (Ret v >>= f) = βT (f v)
+⊑  {- Assumption -}
+  (hat f) (βT (Ret v)) = (hat f) (βT d)
+⊑  {- Assumption -}
+  (hat f) (hat d)
+\end{spec}
+\end{proof}
+
+What follows is the sound abstraction proof by parametricity:
+
+\begin{theorem}[Sound By-name Interpretation]
+\label{thm:soundness-by-name}
+Let |e| be an expression, |hat D| a domain with instances for |Trace|, |Domain|, |HasBind| and
+|Lat|, and let $α_{\mathcal{S}}$ be the abstraction function from \Cref{fig:abstract-name}.
+If the by-name abstraction laws in \Cref{fig:abstraction-laws} hold,
+then |evalD2 (hat D)| is an abstract interpreter that is sound \wrt $α_{\mathcal{S}}$,
+\[
+  α_{\mathcal{S}}(|evalName1 e|) ⊑ |evalD2 (hat D) e|.
+\]
+\end{theorem}
+\begin{proof}
+Let $|inst| : \mathsf{Dict}(|DName|)$, $|hat inst| : \mathsf{Dict}(|hat D|)$ the
+canonical dictionaries from the type class instance definitions.
+Instantiate the free theorem \labelcref{eqn:name-abs} above as follows:
+\[\begin{array}{c}
+A \triangleq |DName|, B \triangleq |hat D|, R(|d|, |hat d|) \triangleq |αD ^ ((set (d))) ⊑ hat d|,
+\mathit{inst_1} \triangleq |inst|, \mathit{inst_2} \triangleq |hat inst|, |e := e|
+\end{array}\]
+Note that $(|ρ|,|hat ρ|) ∈ (\mathsf{Name} \pfun R) \Longleftrightarrow |αE ^
+((set ρ)) ⊑ hat ρ <==> ρ ∈ γE ^ ((hat ρ))|$ by simple calculation.
+
+The above instantation yields, in Haskell,
+\[
+  \inferrule
+    {(|inst|, |hat inst|) ∈ \mathsf{Dict}(R) \\ |ρ ∈ γE ^ ((hat ρ))|}
+    {|αD ^ ((set (evalName e ρ))) ⊑ evalD (hat D) e (hat ρ)|}
+\]
+and since |ρ| and |hat ρ| can be chosen arbitrarily, this can be reformulated as
+\[
+  \inferrule
+    {(|inst|, |hat inst|) ∈ \mathsf{Dict}(R)}
+    {α_{\mathcal{S}}(|evalName1 e|) ⊑ |evalD2 (hat D) e|}
+\]
+Hence, in order to show the goal, it suffices to prove $(|inst|, |hat inst|) ∈ \mathsf{Dict}(R)$.
+By the relational interpretation of products, we get one subgoal per instance method.
+Note that $R(|d|, |hat d|) \Longleftrightarrow |βT d ⊑ hat d|$ and it is more
+direct to argue in terms of the latter.
+\begin{itemize}
+  \item \textbf{Case |step|}.
+    Goal: $\inferrule{(|d|,|hat d|) ∈ R}{(|step ev d|, |hat step ev (hat d)|) ∈ R}$. \\
+    Then |βT (Step ev d) = hat step ev (βT d) ⊑ hat step ev (hat d)| by assumption and monotonicity.
+
+  \item \textbf{Case |stuck|}.
+    Goal: $(|stuck|, |hat stuck|) ∈ R$. \\
+    Then |βT stuck = βT (Ret Stuck) = hat stuck|.
+
+  \item \textbf{Case |fun|}.
+    Goal: $\inferrule{\forall (|d|,|(hat d)|) ∈ R \implies (|f d|, |hat f (hat d)|) ∈ R}{(|fun f|, |hat fun (hat f)|) ∈ R}$. \\
+    Then |βT (fun f) = βT (Ret (Fun f)) = (hat fun) (αD . powMap f . γD)| and
+    it suffices to show that |αD . powMap f . γD ⊑ hat f| by monotonicity of |hat fun|.
+    \begin{spec}
+      (αD . powMap f . γD) (hat d)
+    =  {- Unfold |powMap|, |αD|, simplify -}
+      Lub (βT (f d) | d ∈ γD (hat d)))
+    ⊑  {- Apply premise to |βT d ⊑ hat d| -}
+      hat f (hat d)
+    \end{spec}
+
+  \item \textbf{Case |apply|}.
+    Goal: $\inferrule{(|d|,|(hat d)|) ∈ R \\ (|a|,|(hat a)|) ∈ R}{(|apply d a|, |hat apply (hat d) (hat a)|) ∈ R}$. \\
+    |apply d a| is defined as |d >>= \v -> case v of Fun g -> g a; _ -> stuck|.
+    In order to show the goal, we need to apply \Cref{thm:by-name-bind} at |hat f (hat d) := hat apply (hat d) (hat a)|.
+    We get three subgoals for the premises of \Cref{thm:by-name-bind}:
+    \begin{itemize}
+      \item |βT d ⊑ hat d|: By assumption $(|d|,|(hat d)|) ∈ R$.
+      \item |forall ev (hat d'). (hat step) ev ((hat apply) (hat d') (hat a)) ⊑ (hat apply) ((hat step) ev (hat d')) (hat a)|: By assumption \textsc{Step-App}.
+      \item |forall v. βT (case v of Fun g -> g a; _ -> stuck) ⊑ hat apply (βT (Ret v)) (hat a)|: \\
+        By cases over |v|.
+        \begin{itemize}
+          \item \textbf{Case |v = Stuck|}:
+            Then |βT stuck = hat stuck ⊑ (hat apply) (hat stuck) (hat a)| by assumption \textsc{Unwind-Stuck}.
+          \item \textbf{Case |v = Con k ds|}:
+            Then |βT stuck = hat stuck ⊑ (hat apply) ((hat con) k (map (αD . set) ds)) (hat a)| by assumption \textsc{Intro-Stuck}.
+          \item \textbf{Case |v = Fun g|}:
+            Then
+            \begin{spec}
+                βT (g a)
+              ⊑  {- |id ⊑ γD . αD|, rearrange -}
+                (αD . powMap g . γD) (αD a)
+              ⊑  {- Assumption |βT a ⊑ hat a| -}
+                (αD . powMap g . γD) (hat a)
+              ⊑  {- Assumption \textsc{Beta-App} -}
+                (hat apply) ((hat fun) (αD . powMap g . γD)) (hat a)
+              =  {- Definition of |βT|, |v| -}
+                (hat apply) (βT (Ret v)) (hat a)
+            \end{spec}
+        \end{itemize}
+    \end{itemize}
+
+  \item \textbf{Case |con|}.
+    Goal: $\inferrule{(|ds|,|(hat ds)|) ∈ |[{-"R"-}space]|}{(|con k ds|, |(hat con) k (hat ds)|) ∈ R}$. \\
+    Then |βT (con k ds) = βT (Ret (Con k ds)) = (hat con) k (map (αD . set) ds)|.
+    The assumption $(|ds|,|(hat ds)|) ∈ |[{-"R"-}space]|$ implies |map (αD . set) ds ⊑ hat ds| and
+    the goal follows by monotonicity of |hat con|.
+
+  \item \textbf{Case |select|}.
+    Goal: $\inferrule{(|d|,|hat d|) ∈ R \\ (|alts|,|hat alts|) ∈ |Tag :-> ([{-"R"-}space] -> {-"R"-}space)|}{(|select d alts|, |(hat select) (hat d) (hat alts)|) ∈ R}$. \\
+    |select d fs| is defined as |d >>= \v -> case v of Con k ds || k ∈ dom alts  -> (alts ! k) ds; _ -> stuck|.
+    In order to show the goal, we need to apply \Cref{thm:by-name-bind} at |hat f (hat d) := hat select (hat d) (hat alts)|.
+    We get three subgoals for the premises of \Cref{thm:by-name-bind}:
+    \begin{itemize}
+      \item |βT d ⊑ hat d|: By assumption $(|d|,|(hat d)|) ∈ R$.
+      \item |forall ev (hat d'). (hat step) ev ((hat select) (hat d') (hat alts)) ⊑ (hat select) ((hat step) ev (hat d')) (hat alts)|: By assumption \textsc{Step-Sel}.
+      \item |forall v. βT (case v of Con k ds || k ∈ dom alts  -> (alts ! k) ds; _ -> stuck) ⊑ hat apply (βT (Ret v)) (hat a)|: \\
+        By cases over |v|. The first three all correspond to when the continuation of |select| gets stuck.
+        \begin{itemize}
+          \item \textbf{Case |v = Stuck|}:
+            Then |βT stuck = hat stuck ⊑ (hat select) (hat stuck) (hat alts)| by assumption \textsc{Unwind-Stuck}.
+          \item \textbf{Case |v = Fun f|}:
+            Then |βT stuck = hat stuck ⊑ (hat select) ((hat fun) f) (hat alts)| by assumption \textsc{Intro-Stuck}.
+          \item \textbf{Case |v = Con k ds|, $|k| \not∈ |dom alts|$}:
+            Then |βT stuck = hat stuck ⊑ (hat select) ((hat con) k (hat ds)) (hat alts)| by assumption \textsc{Intro-Stuck}.
+          \item \textbf{Case |v = Con k ds|, $|k| ∈ |dom alts|$}:
+            Then
+            \begin{spec}
+                βT ((alts ! k) ds)
+              ⊑  {- |id ⊑ γD . αD|, rearrange -}
+                (αD . powMap (alts ! k) . map γD) (map (αD . set) ds)
+              ⊑  {- Assumption $(|alts|,|hat alts|) ∈ |Tag :-> ([{-"R"-}space] -> {-"R"-}space)|$ -}
+                (hat alts ! k) (map (αD . set) ds)
+              ⊑  {- Assumption \textsc{Beta-Sel} -}
+                (hat select) (con k (map (αD . set) ds)) (hat alts)
+              =  {- Definition of |βT|, |v| -}
+                (hat select) (βT (Ret v)) (hat alts)
+            \end{spec}
+        \end{itemize}
+    \end{itemize}
+\end{itemize}
+\end{proof}
 
 \begin{lemma}[By-name evaluation preserves trace abstraction]
   \label{thm:eval-preserves}
@@ -546,6 +688,7 @@ To see that, let |a := MkUT (singenv y U1) (Rep Uω) :: UD| and consider
 \]
 \end{example}
 
+%if False
 \subsection{Abstract By-need Soundness, in Detail}
 \label{sec:by-need-soundness}
 
@@ -1425,7 +1568,7 @@ By \Cref{thm:soundness-by-need}, it suffices to show the abstraction laws
 in \Cref{fig:abstraction-laws} as done in the proof for \Cref{thm:usage-abstracts-need-closed}.
 \end{proof}
 
-%if False
+%%if False
 % Here is an attempt to recover a frame rule for |evalNeed|, but we didn't need it
 % so far. Perhaps the notion of equivalence modulo readdressing permutations
 % opens up possilibities for making ~> a partial order as well.

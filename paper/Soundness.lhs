@@ -52,11 +52,11 @@ Here we give the proofs for the main body, often deferring to
 \[\ruleform{\begin{array}{c}
   α_{\mathcal{S}} : (|(Name :-> DNeed) -> DNeed|) \rightleftarrows (|(Name :-> hat D) -> hat D|) : γ_{\mathcal{S}}
   \\
-  α_{\Environments} : \mathcal{P}((|Name :-> DNeed|) \times |HeapNeed|) \rightleftarrows (|Name :-> hat D|) : γ_{\Environments}
+  α_{\Environments} : \pow{(|Name :-> DNeed|) \times |HeapNeed|} \rightleftarrows (|Name :-> hat D|) : γ_{\Environments}
   \\
-  α_{\Domain{}} : |HeapNeed| \to \mathcal{P}(|DNeed|) \rightleftarrows |hat D| : γ_{\Domain{}}
+  α_{\Domain{}} : |HeapNeed| \to \pow{|DNeed|} \rightleftarrows |hat D| : γ_{\Domain{}}
   \\
-  α_\Traces : \mathcal{P}(|T (ValueNeed, HeapNeed)|) \rightleftarrows |hat D| : γ_\Traces
+  α_\Traces : \pow{|T (ValueNeed, HeapNeed)|} \rightleftarrows |hat D| : γ_\Traces
   \qquad
   β_\Traces : |T (ValueNeed, HeapNeed)| \to |hat D|
   \qquad
@@ -65,7 +65,7 @@ Here we give the proofs for the main body, often deferring to
 \arraycolsep=2pt
 \[\begin{array}{lcl}
 α_{\mathcal{S}}(S)(\widehat{ρ}) & = & α_\Traces(\{\  S(ρ)(μ) \mid (ρ,μ) ∈ γ_{\Environments}(\widehat{ρ}) \ \}) \\
-α_{\Environments}(R)(x) & = & \Lub \{\  α_{\Domain{}}(μ)(\{ρ\mathbin{!}x\}) \mid (ρ,μ) ∈ R \ \} \\
+α_{\Environments}(R)(x) & = & \Lub \{\  α_{\Domain{}}(μ)(\{ρ(x)\}) \mid (ρ,μ) ∈ R \ \} \\
 α_\Traces(T) & = & \Lub \{\  β_\Traces(τ) \mid τ ∈ T \ \} \\
 \\[-0.75em]
 β_\Traces(|τ|) & = & \begin{cases}
@@ -75,7 +75,7 @@ Here we give the proofs for the main body, often deferring to
   |con k (map (\d -> {-" α_{\Domain{}}(\varid{μ})(\{\varid{d}\}) "-}) ds)| & \text{if |τ = Ret (Con k ds, μ)|} \\
   \end{cases} \\
 \\[-0.75em]
-α_{\Domain{}}(μ)(ρ) & = & \text{... see \Cref{fig:name-need} in \Cref{sec:soundness-detail} ...} \\
+α_{\Domain{}}(μ)(D) & = & \text{... see \Cref{fig:name-need} in \Cref{sec:soundness-detail} ...} \\
 \end{array}\]
 \caption{Galois connection $α_{\mathcal{S}}$ for by-need abstraction derived from |Trace|, |Domain| and |Lat| instances on |hat D|}
 \label{fig:name-need-gist}
@@ -118,17 +118,14 @@ This proof will be much simpler than the proof for \Cref{thm:absence-correct}.
     \inferrule[\textsc{Unwind-Stuck}]{}{%
       \textstyle|stuck ⊑ Lub (apply stuck a, select stuck alts)|} \hspace{1.5em}
     \inferrule[\textsc{Intro-Stuck}]{}{%
-      \textstyle|stuck ⊑ Lub (apply (con k ds) a, select (fun x f) alts)|} \\
+      \begin{array}{@@{}l@@{}c@@{}l@@{}}|stuck|&{}⊑{} &\textstyle|Lub (apply (con k ds) a, select (fun x f) alts)| \arcr & ⊔ & \textstyle|Lub (select (con k ds) alts || k {-"\not"-}∈ dom alts)|\end{array}} \\
     \\[-0.5em]
     \inferrule[\textsc{Beta-App}]{%
       |f d = step App2 (evalD (hat D) e (ext ρ x d))|}{%
       |f a ⊑ apply (fun x f) a|} \qquad
-    \inferrule[\textsc{Beta-Sel}]{\begin{minipage}[c]{0.6\textwidth}{%
-      \begin{spec}
-        (alts ! k) ds  |  len ds /= len xs  = stuck
-                       |  otherwise         = step Case2 (evalD (hat D) er (exts ρ xs ds))
-      \end{spec}}\end{minipage}}{%
-      |(alts ! k) (map (ρ1 !) ys) ⊑ select (con k (map (ρ1 !) ys)) alts|} \\
+    \inferrule[\textsc{Beta-Sel}]{%
+      |(alts ! k) ds = step Case2 (evalD (hat D) er (exts ρ xs ds))|}{%
+      |(alts ! k) ds ⊑ select (con k ds) alts|} \\
     \\[-0.5em]
     \inferrule[\textsc{Bind-ByName}]{|rhs d1 = evalD (hat D) e1 (ext ρ x (step (Look x) d1))|\\ |body d1 = step Let1 (evalD (hat D) e2 (ext ρ x d1))|}{|body (lfp rhs) ⊑ bind rhs body|}
   \end{array}\]
