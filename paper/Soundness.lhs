@@ -10,13 +10,13 @@ module Soundness where
 import Prelude hiding ((+), (*))
 import Data.Set (Set)
 import qualified Data.Set as Set
-import Order
 import Interpreter
 
 instance Eq (D (ByName T)) where
   (==) = undefined
 instance Ord (D (ByName T)) where
   compare = undefined
+data Pow a = P (Set a) deriving (Eq, Ord)
 powMap :: (a -> b) -> Pow a -> Pow b
 powMap f (P s) = P $ undefined $ map f $ Set.toList s
 set = P . Set.singleton
