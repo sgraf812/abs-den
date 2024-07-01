@@ -300,7 +300,7 @@ direct to argue in terms of the latter.
     Then |βT stuck = βT (Ret Stuck) = hat stuck|.
 
   \item \textbf{Case |fun|}.
-    Goal: $\inferrule{\forall (|d|,|(hat d)|) ∈ R \implies (|f d|, |hat f (hat d)|) ∈ R}{(|fun f|, |hat fun (hat f)|) ∈ R}$. \\
+    Goal: $\inferrule{\forall (|d|,|(hat d)|) ∈ R.\ (|f d|, |hat f (hat d)|) ∈ R}{(|fun f|, |hat fun (hat f)|) ∈ R}$. \\
     Then |βT (fun f) = βT (Ret (Fun f)) = (hat fun) (αD . powMap f . γD)| and
     it suffices to show that |αD . powMap f . γD ⊑ hat f| by monotonicity of |hat fun|.
     \begin{spec}
@@ -380,6 +380,24 @@ direct to argue in terms of the latter.
             \end{spec}
         \end{itemize}
     \end{itemize}
+
+  \item \textbf{Case |bind|}.
+    Goal: $\inferrule{(\forall (|d|,|(hat d)|) ∈ R.\ (|rhs d|, |hat rhs (hat d)|) ∈ R) \\ (\forall (|d|,|(hat d)|) ∈ R.\ (|body d|, |hat body (hat d)|) ∈ R)}
+                     {(|bind rhs body|, |(hat bind) (hat rhs) (hat body)|) ∈ R}$. \\
+    It is |bind rhs body = body (fix rhs)| and |(hat bind) (hat rhs) (hat body) = (hat body) (lfp (hat rhs))|.
+    Let us first establish that $(|fix rhs|, |lfp (hat rhs)|) ∈ R$, leaning on
+    our theory about safety extension in \Cref{sec:safety-extension}:
+    \begin{spec}
+      αD ^ ((set (fix rhs)))
+    ⊑  {- By \Cref{thm:safety-extension} -}
+      lfp (αD . powMap rhs . γD)
+    =  {- Unfolding |powMap|, |αD| -}
+      lfp (\(hat d) -> Lub (βT (rhs d) | d ∈ γD (hat d))
+    ⊑  {- Apply assumption to $|αD ^ ((set d)) ⊑ αD (γD (hat d)) ⊑ hat d <==> | (|d|,|hat d|) ∈ R$ -}
+      lfp (hat rhs)
+    \end{spec}
+    Applying this fact to the second assumption proves
+    $(|body (fix rhs)|, |(hat body) (lfp (hat rhs))|) ∈ R$ and thus the goal.
 \end{itemize}
 \end{proof}
 
