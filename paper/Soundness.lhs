@@ -430,6 +430,30 @@ in the Appendix (\Cref{ex:syntactic-beta-app}).%
 abstraction problem~\citep{Plotkin:77}.}
 We discuss concerns of proof modularity in \Cref{sec:mod-sound}.
 
+\begin{toappendix}
+The following example shows why we need syntactic premises in \Cref{fig:abstraction-laws}.
+It defines a monotone, but non-syntactic |f :: UD -> UD| for which
+|f a {-" \not⊑ "-} apply (fun x f) a|.
+So if we did not have the syntactic premises, we would not be able to prove usage
+analysis correct.
+\begin{example}
+\label{ex:syntactic-beta-app}
+Let |z //= x //= y|.
+The monotone function |f| defined as follows
+\begin{center}
+\begin{spec}
+  f :: UD -> UD
+  f (MkUT φ _) = if φ !? y ⊑ U0 then MkUT emp (Rep Uω) else MkUT (singenv z U1) (Rep Uω)
+\end{spec}
+\end{center}
+violates |f a ⊑ apply (fun x f) a|.
+To see that, let |a := MkUT (singenv y U1) (Rep Uω) :: UD| and consider
+\[
+  |f a = MkUT (singenv z U1) (Rep Uω) {-" \not⊑ "-} (MkUT emp (Rep Uω)) = apply (fun x f) a|.
+\]
+\end{example}
+\end{toappendix}
+
 Rule \textsc{Beta-Sel} states a similar substitution property for data
 constructor redexes, which is why it needs to duplicate much of the |cont|
 function in \Cref{fig:eval} into its premise.
