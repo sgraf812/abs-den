@@ -89,7 +89,7 @@ of the form
 This statement can be read as follows:
 for a closed expression |e|, the \emph{static analysis} result |evalD (hat D) e emp|
 on the right-hand side \emph{overapproximates} ($⊒$) a property of the by-need
-\emph{semantics} |evalNeed e emp emp| on the left-hand side.
+\emph{semantics} |evalNeed e emp emp| on the left-hand side\sven{This is confusing. The formula above is for open and closed expressions. But here you explain closed expressions for the empty heap. Just say that the the abstract semantics overapproximates the concrete semantics with respect to the galois connection $\alpha_{\mathcal{S}}$\cite{cousot79}.}.
 The abstraction function $α_{\mathcal{S}}$, given in
 \Cref{fig:name-need-gist}, generalises this notion to open expressions and
 defines the semantic property of interest in terms of the abstract semantic
@@ -100,7 +100,7 @@ hence the semantic property that is soundly abstracted by |evalD (hat D) e ρ|.
 We will instantiate the theorem at |UD| in order to prove that usage analysis
 |evalUsg e ρ = evalD UD e ρ| infers absence, just as absence analysis in
 \Cref{sec:problem}.
-This proof will be much simpler than the proof for \Cref{thm:absence-correct}.
+This proof will be much simpler than the proof for \Cref{thm:absence-correct}\sven{Explain why: ..., because we do not prove a complicated substituion lemma.}.
 %The main body will only discuss abstraction of closed terms, but the underlying
 %\Cref{thm:soundness-by-need} in the Appendix considers open terms as well.
 
@@ -134,7 +134,11 @@ This proof will be much simpler than the proof for \Cref{thm:absence-correct}.
     \qquad
     \inferrule[\textsc{Update}]{}{|step Upd d = d|} \\
   \end{array}$}
-  \caption{By-name and \fcolorbox{lightgray}{white}{by-need} abstraction laws for type class instances of abstract domain |hat D|}
+  \caption{By-name and \fcolorbox{lightgray}{white}{by-need} abstraction laws for type class instances of abstract domain |hat D|\\
+  \sven{Use the more general version of \textsc{BetaApp}: $\forall f. f a \sqsubseteq \ldots$.}\\
+  \sven{For \textsc{Mono} write $\mathit{apply}, \mathit{fun}, \mathit{con}, ... \text{are monotone}$}\\
+  \sven{Replace \textsc{Unwind-Stuck} and \textsc{Intro-Stuck} by $\forall d\ldotp \mathit{stuck} \sqsubseteq d$. This makes figure 12 look less scary.}
+  }
   \label{fig:abstraction-laws}
 \end{figure}
 
@@ -142,7 +146,7 @@ This proof will be much simpler than the proof for \Cref{thm:absence-correct}.
 
 This subsection is dedicated to the following derived inference rule for sound
 by-need interpretation (\Cref{thm:soundness-by-need-closed}), referring to the
-\emph{abstraction laws} in \Cref{fig:abstraction-laws} by name:
+\emph{abstraction laws} in \Cref{fig:abstraction-laws} by name:\sven{Top-Down explanation is often easier to understand: First name the goal, then explain how to achieve it: "To prove an analysis sound, we first prove theorem 6 corresponding to the following inference: ... What's left is to prove soundness lemmas shown in Figure 12."}
 \[\begin{array}{c}
   \inferrule{%
     \textsc{Mono} \\ \textsc{Step-App} \\ \textsc{Step-Sel} \\ \textsc{Unwind-Stuck} \\
@@ -161,7 +165,7 @@ Note that \emph{we} get to determine the abstraction function $α_{\mathcal{S}}$
 on the |Trace|, |Domain| and |Lat| instance on \emph{your} |hat D|.
 \Cref{fig:name-need-gist} replicates the gist of how $α_{\mathcal{S}}$ is thus derived.
 
-For a closed expression |e|, $α_{\mathcal{S}}(|evalNeed1 e|)(|emp|)$ simplifies
+For a closed expression |e|, $α_{\mathcal{S}}(|evalNeed1 e|)(|emp|)$\sven{Why the closed version here again? That's not what the theorem in section 7.0 stated.} simplifies
 to $β_\Traces(|evalNeed e emp emp|)$, which folds the by-need
 trace into an abstract domain element in |hat D|.
 Since |hat D| has a |Lat| instance, such a $β_\Traces$ is called a \emph{representation
@@ -183,7 +187,7 @@ When the trace ends in a |Con| value, every field denotation |d| is abstracted
 via $α_{\Domain{}}(|μ|)(|d|)$.
 When the trace ends in a |Fun| value, an abstract argument denotation |hat d| is
 concretised to call the concrete function |f|, and the resulting trace is
-recursively abstracted via $α_\Traces$ afterwards.
+recursively abstracted via $α_\Traces$ afterwards.\sven{All of these details about the galois connection distract from the interesting part, the proof of theorem 6. You showed what the definition of the galois connection is in figure 11, no need to explain it in much detail. Maybe explain $\alpha_T$, because this is the unusual one. Providing an example how a set of two traces are abstracted should be sufficient.}
 
 Thanks to fixing $α_{\mathcal{S}}$, we can prove the following abstraction theorem,
 corresponding to the inference rule at the begin of this subsection:
@@ -206,7 +210,7 @@ the special case where environment and heap are empty.
 \end{proof}
 
 Let us unpack law $\textsc{Beta-App}$ to see how the abstraction laws in
-\Cref{fig:abstraction-laws} are to be understood.
+\Cref{fig:abstraction-laws} are to be understood\sven{Change Figure 12 to use the more general version of \textsc{BetaApp}, because we prove this more general version.}.
 For a preliminary reading, it is best to ignore the syntactic premises above
 inference lines.
 To prove $\textsc{Beta-App}$, one has to show that |forall f a x. f a ⊑ apply
@@ -274,7 +278,7 @@ Now we can finally prove the substitution lemma:
 
 \begin{lemmarep}[Substitution]
 \label{thm:usage-subst}
-|evalUsg e (ext ρ x (ρ ! y)) ⊑ evalUsg (Lam x e `App` y) ρ|.
+|evalUsg e (ext ρ x (ρ ! y)) ⊑ evalUsg (Lam x e `App` y) ρ|.\sven{This is confusing, since we do not prove this lemma anymore. Replace this lemma by what we actually prove (Lemma 11). Specifically, start with lemma 11 and then explain how the proof works.}
 \end{lemmarep}
 \begin{proof}
 We need to assume that |x| is absent in the range of |ρ|.
@@ -500,7 +504,7 @@ analysis-specific preservation \Cref{thm:preserve-absent}:
 \label{thm:usage-abstracts-need-closed}
 Let |e| be an expression and $α_{\mathcal{S}}$ the abstraction function from
 \Cref{fig:name-need-gist}.
-Then $α_{\mathcal{S}}(|evalNeed1 e|) ⊑ |evalUsg1 e|$.
+Then $α_{\mathcal{S}}(|evalNeed1 e|) ⊑ |evalUsg1 e|$.\sven{This should be a thoerem or a corollary.}
 \end{lemmarep}
 \begin{proof}
 By \Cref{thm:soundness-by-need-closed}, it suffices to show the abstraction laws
@@ -638,7 +642,7 @@ The final step is just algebra.
 
 \subsection{Evaluation}
 
-Let us compare to the preservation-style proof framework in \Cref{sec:problem}.
+Let us compare to the preservation-style proof framework in \Cref{sec:problem}.\sven{This needs to go into more detail how our \textsc{BetaApp} proof is simpler than a substition lemma: Our proof is over semantic operation, whereas a substitution lemma is over syntax of the language. The latter is more complicated because it involes a recursive fixpoint semantics, whereas our proof solely relates a number of simpler semantic operations.}
 \begin{itemize}
   \item
     Where there were multiple separate \emph{semantic artefacts} such as a separate

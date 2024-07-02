@@ -6,7 +6,7 @@
 \label{sec:mod-sound}
 
 The usage analysis proof for \Cref{thm:usage-abstracts-need-closed} relies on
-the syntactic substitution \Cref{thm:usage-subst}, which has a serious drawback:
+the syntactic substitution \Cref{thm:usage-subst}, which has a serious drawback\sven{Refer to the substitution lemma in Section 2. We should remove Lemma 7, because we do not use it anymore.}:
 It relies on knowing the complete definition of |eval| and thus is
 \emph{non-modular}.
 As a result, the proof complexity scales in the size of the interpreter, and
@@ -35,7 +35,7 @@ we apply the abstraction theorem to the corresponding System $F$ encoding
 \]
 where $\mathsf{Dict}(|d|)$ is the type of the type class
 dictionary for |(Trace d, Domain d, HasBind d)|.
-The abstraction theorem yields the following assertion about relations:
+The abstraction theorem yields the following assertion about relations:\sven{I don't understand the following line. Why does $f$ appear twice there. The formula with relation $R$ you introduce below is much more descriptive. You should remove the following line and instead focus on explaining the formula with $R$ instead: If $R$ relates the type-class instances $\mathit{inst}_1, \mathit{inst}_2$, then $R$ relates $f$ instantiated at $\mathit{inst}_1$ with $f$ instantiated at $\mathit{inst}_2$.}
 \[
   (f, f) ∈ \forall \mathcal{X}.\ \mathsf{Dict}(\mathcal{X}) \to \mathcal{X} \to \mathcal{X}
 \]
@@ -59,12 +59,12 @@ argument that the implementation of |fun x f| passes to |f| and $\mathit{inst}$ 
 the canonical instance dictionary at |UD|.
 
 $R_{x,a}$ might look like a strange definition because the conditions relating
-$g$ with $d_1$ and $d_2$ appear to be dead in the conclusion.
+$g$ with $d_1$ and $d_2$ appear to be dead in the conclusion\sven{I don't get that.}.
 However, the conditions are vital to prove $R_{x,a}(a, \mathit{pre}(x))$ for
 example, and are useful to simplify $g$ away entirely once |fun| is inlined
-(in the Appendix).
+(in the Appendix).\sven{You need to explain more what has to be proven for $\mathsf{Dict}(R)$}
 
-From the abstraction theorem, we derive the following inference rule
+From the abstraction theorem, we derive the following inference rule\sven{This inference motivates how we prove our goal. Move this paragraph directly after the instantiation of the abstraction theorem.}
 \[
 \inferrule[]
   { a ⊑ \mathit{apply}(\mathit{fun}(x,\mathit{id}),a) \\ (\mathit{inst}, \mathit{inst}) ∈ \mathsf{Dict}(R_{x,a}) }
@@ -78,7 +78,7 @@ of \textsc{Beta-App} for usage analysis:
 \label{thm:usage-subst-sem}
 Let |f :: (Trace d, Domain d, HasBind d) => d -> d|, |x :: Name| lambda-bound
 and |a :: UD|.
-Then |f a ⊑ apply (fun x f) a :: UD|.
+Then |f a ⊑ apply (fun x f) a :: UD|.\sven{Please use top-down explanation: Start with lemma 11 and then explain how it can be proven}
 \end{lemmarep}
 \begin{proof}
 We instantiate the free theorem for |f|
