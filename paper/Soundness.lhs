@@ -34,7 +34,7 @@ and we approach the problem from the bottom up.
 
 We will discuss why it is safe to approximate guarded fixpoints with
 least fixpoints and why the definition of the Galois connection in
-\Cref{fig:name-need-gist} as a fold over the trace is well-defined
+\Cref{fig:abstract-name-need} as a fold over the trace is well-defined
 in \Cref{sec:safety-extension}.
 Then we will go on to prove abstract by-name soundness in
 \Cref{sec:by-name-soundness}, and finally by-need soundness in
@@ -65,20 +65,19 @@ Here we give the proofs for the main body, often deferring to
 \arraycolsep=2pt
 \[\begin{array}{lcl}
 α_{\mathcal{S}}(S)(\widehat{ρ}) & = & α_\Traces(\{\  S(ρ)(μ) \mid (ρ,μ) ∈ γ_{\Environments}(\widehat{ρ}) \ \}) \\
-α_{\Environments}(R)(x) & = & \Lub \{\  α_{\Domain{}}(μ)(\{ρ(x)\}) \mid (ρ,μ) ∈ R \ \} \\
-α_\Traces(T) & = & \Lub \{\  β_\Traces(τ) \mid τ ∈ T \ \} \\
+α_{\Environments}(R)(x) & = & α_\Traces(\{\  ρ(x)(μ) \mid (ρ,μ) ∈ R \ \}) \\
+α_{\Domain{}}(μ)(D) & = & α_\Traces(\{\  d(μ) \mid d ∈ D \ \}) \\
+α_\Traces(T) & = & \Lub \{\ β_\Traces(τ) \mid τ ∈ T \ \} \\
 \\[-0.75em]
 β_\Traces(|τ|) & = & \begin{cases}
-  |step e ({-" β_\Traces(\varid{τ'}) "-})| & \text{if |τ = Step e τ'|} \\
+  |step e (βT ^ (τ'))| & \text{if |τ = Step e τ'|} \\
   |stuck|                         & \text{if |τ = Ret (Stuck, μ)|} \\
-  |fun (\(hat d) -> {-" α_\Traces(\{\  \varid{f}~\varid{d}~\varid{μ} \mid \varid{d} ∈ γ_{\Domain{}}(\varid{μ})(\widehat{\varid{d}})\ \}) "-})| & \text{if |τ = Ret (Fun f, μ)|} \\
-  |con k (map (\d -> {-" α_{\Domain{}}(\varid{μ})(\{\varid{d}\}) "-}) ds)| & \text{if |τ = Ret (Con k ds, μ)|} \\
+  |fun (αD^(μ) . powMap f . γD^(μ))| & \text{if |τ = Ret (Fun f, μ)|} \\
+  |con k (map (αD^(μ) . set) ds)| & \text{if |τ = Ret (Con k ds, μ)|} \\
   \end{cases} \\
-\\[-0.75em]
-α_{\Domain{}}(μ)(D) & = & \text{... see \Cref{fig:name-need} in \Cref{sec:soundness-detail} ...} \\
 \end{array}\]
 \caption{Galois connection $α_{\mathcal{S}}$ for by-need abstraction derived from |Trace|, |Domain| and |Lat| instances on |hat D|}
-\label{fig:name-need-gist}
+\label{fig:abstract-name-need}
 \end{figure}
 
 In this section we prove and apply a generic abstract interpretation theorem
@@ -91,7 +90,7 @@ for a closed expression |e|, the \emph{static analysis} result |evalD (hat D) e 
 on the right-hand side \emph{overapproximates} ($⊒$) a property of the by-need
 \emph{semantics} |evalNeed e emp emp| on the left-hand side\sven{This is confusing. The formula above is for open and closed expressions. But here you explain closed expressions for the empty heap. Just say that the the abstract semantics overapproximates the concrete semantics with respect to the galois connection $\alpha_{\mathcal{S}}$\cite{cousot79}.}.
 The abstraction function $α_{\mathcal{S}}$, given in
-\Cref{fig:name-need-gist}, generalises this notion to open expressions and
+\Cref{fig:abstract-name-need}, generalises this notion to open expressions and
 defines the semantic property of interest in terms of the abstract semantic
 domain |hat D| of |evalD (hat D) e ρ|, which is short for |eval e ρ :: hat D|.
 That is: the type class instances on |hat D| determine $α_{\mathcal{S}}$, and
@@ -163,7 +162,7 @@ interpretation for the static analysis |evalD (hat D)|!
 
 Note that \emph{we} get to determine the abstraction function $α_{\mathcal{S}}$ based
 on the |Trace|, |Domain| and |Lat| instance on \emph{your} |hat D|.
-\Cref{fig:name-need-gist} replicates the gist of how $α_{\mathcal{S}}$ is thus derived.
+\Cref{fig:abstract-name-need} replicates the gist of how $α_{\mathcal{S}}$ is thus derived.
 
 For a closed expression |e|, $α_{\mathcal{S}}(|evalNeed1 e|)(|emp|)$\sven{Why the closed version here again? That's not what the theorem in section 7.0 stated.} simplifies
 to $β_\Traces(|evalNeed e emp emp|)$, which folds the by-need
@@ -195,7 +194,7 @@ corresponding to the inference rule at the begin of this subsection:
 \begin{theoremrep}[Sound By-need Interpretation]
 \label{thm:soundness-by-need-closed}
 Let |e| be an expression, |hat D| a domain with instances for |Trace|, |Domain|, |HasBind| and
-|Lat|, and let $α_{\mathcal{S}}$ be the abstraction function from \Cref{fig:name-need-gist}.
+|Lat|, and let $α_{\mathcal{S}}$ be the abstraction function from \Cref{fig:abstract-name-need}.
 If the abstraction laws in \Cref{fig:abstraction-laws} hold,
 then |evalD2 (hat D)| is an abstract interpreter that is sound \wrt $α_{\mathcal{S}}$,
 that is,
@@ -503,7 +502,7 @@ analysis-specific preservation \Cref{thm:preserve-absent}:
 \begin{lemmarep}[|evalUsg1| abstracts |evalNeed1|]
 \label{thm:usage-abstracts-need-closed}
 Let |e| be an expression and $α_{\mathcal{S}}$ the abstraction function from
-\Cref{fig:name-need-gist}.
+\Cref{fig:abstract-name-need}.
 Then $α_{\mathcal{S}}(|evalNeed1 e|) ⊑ |evalUsg1 e|$.\sven{This should be a thoerem or a corollary.}
 \end{lemmarep}
 \begin{proof}
