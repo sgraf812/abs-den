@@ -21,9 +21,9 @@
 %format unused(a) = "_"
 %format named dom d = NameD dom
 %format nameenv(dom)(env) = "Name :-> " dom
-%format needd(d) = "DNeed"
-%format needenv(env) = "Name :-> DNeed"
-%format needheap(heap) = "HeapNeed"
+%format needd(d) = "Pow (D (ByNeed T))"
+%format needenv(env) = "Pow (Name :-> D (ByNeed T))"
+%format needheap(heap) = "Pow (Heap (ByNeed T))"
 
 %else
 
@@ -96,7 +96,6 @@
 %format β = "\beta"
 %format βinf = "\beta^{\infty}"
 %format βT = "\beta_\Traces{}"
-%format βD = "\beta_\Domain{}"
 %format βE = "\beta_\Environments"
 %format γ = "\gamma"
 %format γinf = "\gamma^{\infty}"
@@ -106,7 +105,6 @@
 %format γE = "\gamma_\Environments"
 %format γS = "\gamma_\mathcal{S}"
 %format sss = "\varid{S}"
-%format sssD(d) = "\varid{S}_{" d "}"
 %format θ = "\varcolor{\theta}"
 %format θ1
 %format θ2
@@ -173,19 +171,18 @@
 %format \\ = "\setminus"
 %format many(a) = "\many{" a "}"
 %format Clo = "\varid{Clo}"
-%format needd(d) = "{\mathop{\vdash_{\Domain{}}} " d "}"
-%format needenv(env) = "{\mathop{\vdash_{\Environments}} " env "}"
-%format needheap(heap) = "{\mathop{\vdash_{\Heaps}} " heap "}"
-%format polydef(s) = "{\mathop{\vdash_{\forall}} " s "}"
+%format named(dom) d = "{" dom " \mathbin{\vdash_{\Domain{}}^{\mathsf{na}}} " d "}"
+%format nameenv(dom)(env) = "{" dom " \mathbin{\vdash_{\Environments}^{\mathsf{na}}} " env "}"
+%format needd(d) = "{\mathop{\vdash_{\Domain{}}^{\mathsf{ne}}} " d "}"
+%format needenv(env) = "{\mathop{\vdash_{\Environments}^{\mathsf{ne}}} " env "}"
+%format needheap(heap) = "{\mathop{\vdash_{\Heaps}^{\mathsf{ne}}} " heap "}"
 %format Traces = "\Traces"
 %format Collecting = "\mathbb{C}"
-%format Rel(ind) = "{R_{" ind "}}"
 %format Rxa = "{R_{\varcolor{x},\varcolor{a}}}"
 
 %format bottom = "\bot"
 %format d1
 %format d2
-%format d3
 %format e'
 %format e1
 %format e2
@@ -204,7 +201,6 @@
 %format g2
 %format v1
 %format v2
-%format v3
 %format c1
 %format c2
 %format l1
@@ -292,13 +288,12 @@
 %format lktrace = "(σ_{i+1})_{i∈\overline{n-1}}"
 %format (idiom(a)) = "\idiom{" a "}"
 %format :<->: = "\rightleftarrows"
-%format set(a) = "\{" a "\}"
+%format (set(a)) = "\{" a "\}"
 %format (setundef(a)) = "\{" a "\}"
 %format untyped(a) = a
 %format unused(a) = a
 %format (Cup(a)) = "\bigcup\{" a "\}"
 %format (Lub(a)) = "\Lub\{" a "\}"
-%format bigstep(μ1)(d)(μ2)(v) = "\bigstep{" μ1 "}{" d "}{" μ2 "}{" v "}"
 %format powMap f = "{" f "}^{*}"
 %format (hat(a)) = "\widehat{" a "}"
 %format (dot(a)) = "\dot{" a "}"

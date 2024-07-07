@@ -218,34 +218,35 @@ and in the following proof, we will instantiate $R(|d|,|hat d|) \triangleq |αD
 We will need the following auxiliary lemma for the |apply| and |select| cases:
 \begin{lemma}[By-name bind]
 \label{thm:by-name-bind}
-It is |βT (d >>= f) ⊑ hat f (hat d)| if
-\begin{enumerate}
+If
+\begin{itemize}
   \item |βT d ⊑ hat d|, and
-  \item for all events |ev| and elements |hat d'|, |(hat step) ev ((hat f) (hat d')) ⊑ (hat f) ((hat step) ev (hat d'))|, and
-  \item for all values |v|, |βT (f v) ⊑ (hat f) (βT (Ret v))|.
-\end{enumerate}
+  \item forall events |ev| and elements |hat d'|, |(hat step) ev ((hat f) (hat d')) ⊑ (hat f) ((hat step) ev (hat d'))|, and
+  \item forall values |v|, |βT (f v) ⊑ (hat f) (βT (Ret v))|,
+\end{itemize}
+then |βT (d >>= f) ⊑ hat f (hat d)|.
 \end{lemma}
 \begin{proof}
 By Löb induction.
 
-If |d = Step ev d'|, define |hat d' := βT d'|.
+If |d = Step ev d'|, then there exists |hat d'| such that |βT d ⊑ hat d'|
+(for example, |hat d' := βT d'|).
+Note that |hat step ev (hat d') = hat step ev (βT d') ⊑ hat d|.
 We get
 \begin{spec}
   βT (d >>= f) = βT (Step ev d' >>= f) = (hat step) ev (βT (d' >>= f))
-⊑  {- Induction hypothesis at |βT d' = hat d'|, Monotonicity of |hat step| -}
+⊑  {- Induction hypothesis -}
   hat step ev ((hat f) (βT d'))
-⊑  {- Assumption (2) -}
-  (hat f) ((hat step) ev (βT d')) = (hat f) (βT d)
-⊑  {- Assumption (1) -}
-  (hat f) (hat d)
+⊑  {- Assumption -}
+  (hat f) ((hat step) ev (βT d')) = (hat f) (hat d)
 \end{spec}
 
 Otherwise, |d = Ret v| for some |v :: Value|.
 \begin{spec}
   βT (Ret v >>= f) = βT (f v)
-⊑  {- Assumption (3) -}
+⊑  {- Assumption -}
   (hat f) (βT (Ret v)) = (hat f) (βT d)
-⊑  {- Assumption (1) -}
+⊑  {- Assumption -}
   (hat f) (hat d)
 \end{spec}
 \end{proof}
@@ -305,7 +306,7 @@ direct to argue in terms of the latter.
     \begin{spec}
       (αD . powMap f . γD) (hat d)
     =  {- Unfold |powMap|, |αD|, simplify -}
-      Lub (βT (f d) | d ∈ γD (hat d))
+      Lub (βT (f d) | d ∈ γD (hat d)))
     ⊑  {- Apply premise to |βT d ⊑ hat d| -}
       hat f (hat d)
     \end{spec}
@@ -324,7 +325,7 @@ direct to argue in terms of the latter.
           \item \textbf{Case |v = Stuck|}:
             Then |βT stuck = hat stuck ⊑ (hat apply) (hat stuck) (hat a)| by assumption \textsc{Unwind-Stuck}.
           \item \textbf{Case |v = Con k ds|}:
-            Then |βT stuck = hat stuck ⊑ (hat apply) ((hat con) k (map (αD . set) ds)) (hat a)| by assumption \textsc{Intro-Stuck}, for the suitable |hat ds|.
+            Then |βT stuck = hat stuck ⊑ (hat apply) ((hat con) k (map (αD . set) ds)) (hat a)| by assumption \textsc{Intro-Stuck}.
           \item \textbf{Case |v = Fun g|}:
             Then
             \begin{spec}
@@ -355,15 +356,15 @@ direct to argue in terms of the latter.
     \begin{itemize}
       \item |βT d ⊑ hat d|: By assumption $(|d|,|(hat d)|) ∈ R$.
       \item |forall ev (hat d'). (hat step) ev ((hat select) (hat d') (hat alts)) ⊑ (hat select) ((hat step) ev (hat d')) (hat alts)|: By assumption \textsc{Step-Sel}.
-      \item |forall v. βT (case v of Con k ds || k ∈ dom alts  -> (alts ! k) ds; _ -> stuck) ⊑ (hat select) (βT (Ret v)) (hat alts)|: \\
+      \item |forall v. βT (case v of Con k ds || k ∈ dom alts  -> (alts ! k) ds; _ -> stuck) ⊑ hat apply (βT (Ret v)) (hat a)|: \\
         By cases over |v|. The first three all correspond to when the continuation of |select| gets stuck.
         \begin{itemize}
           \item \textbf{Case |v = Stuck|}:
             Then |βT stuck = hat stuck ⊑ (hat select) (hat stuck) (hat alts)| by assumption \textsc{Unwind-Stuck}.
           \item \textbf{Case |v = Fun f|}:
-            Then |βT stuck = hat stuck ⊑ (hat select) ((hat fun) (hat f)) (hat alts)| by assumption \textsc{Intro-Stuck}, for the suitable |hat f|.
+            Then |βT stuck = hat stuck ⊑ (hat select) ((hat fun) f) (hat alts)| by assumption \textsc{Intro-Stuck}.
           \item \textbf{Case |v = Con k ds|, $|k| \not∈ |dom alts|$}:
-            Then |βT stuck = hat stuck ⊑ (hat select) ((hat con) k (hat ds)) (hat alts)| by assumption \textsc{Intro-Stuck}, for the suitable |hat ds|.
+            Then |βT stuck = hat stuck ⊑ (hat select) ((hat con) k (hat ds)) (hat alts)| by assumption \textsc{Intro-Stuck}.
           \item \textbf{Case |v = Con k ds|, $|k| ∈ |dom alts|$}:
             Then
             \begin{spec}
@@ -373,7 +374,7 @@ direct to argue in terms of the latter.
               ⊑  {- Assumption $(|alts|,|hat alts|) ∈ |Tag :-> ([{-"R"-}space] -> {-"R"-}space)|$ -}
                 (hat alts ! k) (map (αD . set) ds)
               ⊑  {- Assumption \textsc{Beta-Sel} -}
-                (hat select) ((hat con) k (map (αD . set) ds)) (hat alts)
+                (hat select) (con k (map (αD . set) ds)) (hat alts)
               =  {- Definition of |βT|, |v| -}
                 (hat select) (βT (Ret v)) (hat alts)
             \end{spec}
@@ -383,7 +384,7 @@ direct to argue in terms of the latter.
   \item \textbf{Case |bind|}.
     Goal: $\inferrule{(\forall (|d|,|(hat d)|) ∈ R.\ (|rhs d|, |hat rhs (hat d)|) ∈ R) \\ (\forall (|d|,|(hat d)|) ∈ R.\ (|body d|, |hat body (hat d)|) ∈ R)}
                      {(|bind rhs body|, |(hat bind) (hat rhs) (hat body)|) ∈ R}$. \\
-    It is |bind rhs body = body (fix rhs)| and |(hat body) (lfp (hat rhs)) ⊑ (hat bind) (hat rhs) (hat body)| by Assumption \textsc{Bind-ByName}.
+    It is |bind rhs body = body (fix rhs)| and |(hat bind) (hat rhs) (hat body) = (hat body) (lfp (hat rhs))|.
     Let us first establish that $(|fix rhs|, |lfp (hat rhs)|) ∈ R$, leaning on
     our theory about safety extension in \Cref{sec:safety-extension}:
     \begin{spec}
@@ -403,7 +404,24 @@ direct to argue in terms of the latter.
 \subsection{Abstract By-need Soundness, in Detail}
 \label{sec:by-need-soundness}
 
-Now that we have gained some familiarity with utilising parametricity in while
+\begin{figure}
+\begin{code}
+persistHeap :: (Trace (hat d), Domain (hat d), Lat (hat d)) => needheap -> GC (needd ) (named (hat d))
+persistHeap μ = untyped (repr β where β (Step (Look x) (fetch a))  |  memo a (evalNeed2 e ρ) <- μ ! a
+                                                                   =  step (Look x) (eval e (β << ρ)))
+
+nameNeed  ::  (Trace (hat d), Domain (hat d), Lat (hat d)) =>  GC (Pow (T (Value (ByNeed T), needheap))) (hat d)
+nameNeed = repr β where
+  β (Step e d)           = step e (β d)
+  β (Ret (Stuck, μ))     = stuck
+  β (Ret (Fun f, μ))     = fun {-"\iffalse"-}"" ""{-"\fi"-} (\(hat d) -> Lub (β (f d μ) | d ∈ γE (hat d)))  where unused (  _   :<->: γE)  = untyped (persistHeap μ)
+  β (Ret (Con k ds, μ))  = con {-"\iffalse"-}""{-"\fi"-} k (map (αE . set) ds)                              where           αE  :<->: _    = persistHeap μ
+\end{code}
+\caption{Galois connection for sound by-name and by-need abstraction}
+\label{fig:name-need}
+\end{figure}
+
+Now that we have gained some familiarity with the proof framework while
 proving \Cref{thm:soundness-by-name} correct, we will tackle the proof
 for \Cref{thm:soundness-by-need}, which is applicable for analyses that
 are sound both \wrt to by-name as well as by-need, such as usage analysis or
@@ -419,157 +437,79 @@ Other than |Upd| steps, by-need evaluation makes fewer steps than by-name
 evaluation, so \textsc{Step-Inc} asserts that dropping steps never invalidates
 the result.
 
-The Galois connection in \Cref{fig:abstract-name-need} formalises the
-corresponding semantic property.
-It is more complicated than the Galois connection in \Cref{fig:abstract-name},
-because it needs to account for heaps and memoisation.
-Although in \Cref{sec:evaluation-strategies} we considered a |d :: DNeed|
+In order to formalise this intuition, we must find a Galois connection that does
+so, starting with its domain.
+Although in \Cref{sec:evaluation-strategies} we considered a |d :: D (ByNeed T)|
 as an atomic denotation, such a denotation actually only makes sense when it
 travels together with an environment |ρ| that ties free variables to their addresses
 in the heap that |d| expects.
 
-Note that the abstraction function |αS| only considers \emph{definable} |ρ|
-and |μ|, a notion that we will clarify now.
-From now on, we will abbreviate the constraint tuple |(Trace d, Domain d,
-HasBind d)| simply by |Dict d|.
+For our purposes, the key is that a by-need environment |ρ| and a heap |μ| can
+be ``persisted'' into a corresponding by-name environment.
+This operation forms a Galois connection |persistHeap| in \Cref{fig:name-need},
+where |needd| serves a similar purpose as |named (hat d)| from
+\Cref{defn:syn-name}, restricting environment entries to the syntactic by-need
+form |Step (Look x) (fetch a)| and heap entries in |needheap| to |memo a (eval
+e ρ)|.
 
-\begin{definition}[Definable by-need environment, address domain]
-The definable by-need environments are characterised by
-|needenv ρ := forall x. {-" \exists\!\!\; "-} many ev {-"\varid{a}\ldotp"-} ρ!x = many (step ev) (fetch a)|
-The \emph{address domain} of a definable |ρ| is |adom ρ := set (^^ a || ρ!x = many (step ev) (fetch a) ^^)|.
+\begin{definition}[Syntactic by-need heaps and environments, address domain]
+  \label{defn:syn-heap}
+  We write |needenv ρ| (resp. |needheap μ|) to say that the by-need
+  environment |ρ :: Name :-> Pow (D (ByNeed T))| (resp. by-need heap |μ|) is
+  \emph{syntactic}, defined by mutual guarded recursion as
+  \begin{itemize}
+    \item |needd d| iff there exists a set |Clo| of syntactic closures such that \\
+      |d = Cup (Step (Look x) (fetch a) || (x,a) ∈ Clo)|.
+    \item |needenv ρ| iff for all |x|, |needd (ρ ! x)|.
+    \item |adom d := set (a || Step (Look y) (fetch a) ∈ d)|
+    \item |adom ρ := Cup (adom (ρ ! x) || x ∈ dom ρ)|.
+    \item |needheap μ| iff for all |a|, there is a set |Clo| of syntactic closures such that \\
+      |μ ! a = Cup (memo a (evalNeed2 e ρ) || Later ((e,ρ) ∈ Clo && needenv ρ && adom ρ ⊆ dom μ))|.
+  \end{itemize}
+  We refer to |adom d| (resp. |adom ρ|) as the \emph{address domain} of |d| (resp. |ρ|).
 \end{definition}
 
-Note that |many ev| is always non-empty because at least one |step| must
-hide the |Later| in the result of |fetch a|.
-We will mostly omit |Later| from the present pen-and-paper formalisation, but it
-is important to keep in mind this particular use of the later modality in order
-to apply Löb induction in the proofs that follow.
+We assume that all concrete environments |Name :-> D (ByNeed T)| and heaps |Heap
+(ByNeed T)| satisfy |needenv| resp. |needheap|.
+It is easy to see that syntacticness is preserved by |evalNeed| whenever
+the environment or heap is extended, assuming that |Domain| and |HasBind| are
+adjusted accordingly.
 
-\begin{definition}[Polymorphic definition]
-We write |polydef sss| to mean that |sss| can be defined at
-polymorphic type |forall x. Dict x => (Name :-> x) -> x|.
-\end{definition}
-
-\begin{definition}[Definable by-need elements, address domain]
-The definable by-need elements are characterised by
-|needd d := exists sss ρ. (polydef sss) /\ (needenv ρ) /\ d = sss ρ|.
-The \emph{address domain} of a definable |d| is |adom (sss ρ) := adom ρ|.
-\end{definition}
-
-\begin{definition}[Definable by-need heaps]
-The definable by-need heaps are characterised by
-|needheap μ := forall a. exists d. needd d /\ μ!a = memo a d|.
-\end{definition}
-
-Note that a definable |d| cannot be obtained by instantiating a polymorphic
-|d' :: (Trace d, Domain d, HasBind d) => d|, because the |fetch a| operations
-isolated in definable |ρ| are not part of the type class algebra.
-Still, the factoring of definable |d| in terms of a polymorphic |sss| yields
-enough leverage to apply parametricity.
-
-%It is easy to see that definability is preserved by any such |sss|, for example |eval e|:
-%
-%\begin{lemma}
-%If |polydef sss| and |needenv ρ|, then |needd (sss ρ)|
-%\end{lemma}
-
-\begin{lemma}[Parametric induction principle]
-\label{thm:param-ind-1}
-If |polydef sss| and |needenv ρ|, some property $P ⊆ |DNeed|$
-\[
-  \inferrule
-    {(\forall |a|.\ \later (|fetch a| ∈ P)) \\ \mathit{inst} ∈ \mathsf{Dict}(P)}
-    {|sss ρ| ∈ P}
-\]
-\end{lemma}
-\begin{proof}
-By |polydef sss|, we get the free theorem
-\[
-  (|sss|,|sss|) ∈ \forall \mathcal{X}.\ \mathsf{Dict}(\mathcal{X}) → (|Name| \pfun \mathcal{X}) → \mathcal{X}.
-\]
-We instantiate it at $R(d_1,d_2) \triangleq d_1 = d_2 \land d_1 ∈ P$, the
-instance dictionary $\mathit{inst} ∈ \mathsf{Dict}(|DNeed|)$ and |ρ| to derive the
-following assertion:
-\[
-  \inferrule
-    {(\mathit{inst},\mathit{inst}) ∈ \mathsf{Dict}(R) \\ (|ρ|,|ρ|) ∈ (|Name| \pfun R)}
-    {(|sss ρ|,|sss ρ|) ∈ R}
-\]
-Note that $(|d|, |d|) ∈ R$ is equivalent to $|d| ∈ P$, so it suffices to
-show the two premises of the rule, which become our subgoals.
-
-The first subgoal $(\mathit{inst},\mathit{inst}) ∈ \mathsf{Dict}(R)$ follows
-by $\mathit{inst} ∈ \mathsf{Dict}(P)$.
-
-For the second subgoal $(|ρ|,|ρ|) ∈ (|Name| \pfun R)$, it suffices to show
-\begin{equation}
-  \forall |many ev|, |a|.\ (|many (step ev) (fetch a)|,|many (step ev) (fetch a)|) ∈ R. \label{eqn:step-induction}
-\end{equation}
-The property for |step :: Later DNeed -> DNeed| (making
-explicit that the |Later| that the implementation of |step| embeds) implied by
-$\mathit{inst} ∈ \mathsf{Dict}(P)$ is as follows
-\[
-  \forall |ev|,|d1|,|d2|.\ \later ((|d1|,|d2|) ∈ R) \implies (|step ev d1|, |step ev d2|) ∈ R.
-\]
-We instantiate with the assumption
-$\forall |a|.\ \later ((|fetch a|, |fetch a|) ∈ R)$
-to show the goal \Cref{eqn:step-induction}.
-\end{proof}
-
-From now on, we assume that all concrete environments |Name :-> DNeed|
-and heaps |HeapNeed| are definable.
-It is easy to see that definability is preserved by |evalNeed|; the only
-interesting case concerns the implementation of |HasBind|.
-
-Just as for by-name, we will rely on parametricity to achieve a modular proof.
-However, the definable |ρ| and |μ| do not enjoy parametric definitions at
-|forall d. (Trace d, Domain d, HasBind d) => Name :-> d| and
-|forall d. (Trace d, Domain d, HasBind d) => Addr :-> d|!
-Neither |fetch a| nor |memo a| are expressible in the type class algebra.
-We can still exploit parametricity at the type of |eval e|, as we shall see,
-but first we need a better grasp on heaps.
-
-Intuitively, if |μ2| is ``more evaluated than'' |μ1|,
-the fewer steps |d ^(μ2)| does relative to |d ^(μ1)|,
-and hence |βT ^ (d ^(μ2)) ⊑ βT ^ (d ^(μ1))| as well.
-The notion of ``more evaluated than'' is formally defined by the
-\emph{heap progression} relation in \Cref{fig:heap-progression},
-and we will now work towards a proof for the approximation statement about |βT|
-in \Cref{thm:heap-progress-persist}.
-
-To that end, let us define the following abbreviation:
-\begin{abbreviation}[Big-step]
-  We write $\bigstep{μ_1}{d}{μ_2}{v}$ to mean that there exists |many ev| such that
-  |d μ1 = many (Step ev) (Ret (v, μ2))|.
-\end{abbreviation}
+The environment abstraction |αE μ :<->: _ = persistHeap μ| improves the more
+``evaluated'' |μ| is.
+E.g.,\ when |μ1| \emph{progresses} into |μ2| during evaluation, written
+|μ1 ~> μ2|, it is |αE μ2 d ⊑ αE μ1 d| for all |d|.
+The heap progression relation is formally defined (on syntactic heaps
+|needheap|) in \Cref{fig:heap-progression}, and we will now work
+toward a proof for the approximation statement about |αE| in
+\Cref{thm:heap-progress-persist}.
 
 \begin{figure}
   \[\begin{array}{c}
     \ruleform{ μ_1 \progressto μ_2 }
     \\ \\[-0.5em]
-    \inferrule[\progresstorefl]
-      {}
-      {|μ ~> μ|}
+    \inferrule[\textsc{$\progressto$-Refl}]{|needheap μ|}{|μ ~> μ|}
     \qquad
-    \inferrule[\progresstotrans]
-      {|μ1 ~> μ2| \\ |μ2 ~> μ3|}
-      {|μ1 ~> μ3|}
+    \inferrule[\progresstotrans]{|μ1 ~> μ2| \quad |μ2 ~> μ3|}{|μ1 ~> μ3|}
     \qquad
-    \inferrule[\progresstoext]
-      {|a| \not∈ |dom μ| \\ |adom ρ ⊆ dom μ ∪ set a|}
-      {|μ ~> ext μ a (memo a (sss ρ))|}
+    \inferrule[\progresstoext]{|a| \not∈ |dom μ| \quad |adom ρ ⊆ dom μ ∪ set a|}{|μ ~> ext μ a (memo a (evalNeed2 e ρ))|}
     \\ \\[-0.5em]
-    \inferrule[\progresstomemo]
-      {|μ1 ! a = memo a (sss ρ1)| \\ |Later (bigstep μ1 (sss ρ1) μ2 v)|}
-      {|μ1 ~> ext μ2 a (memo a (return v))|}
+    \inferrule[\progresstomemo]{|μ1 ! a = memo a (evalNeed2 e ρ1)| \quad |Later (evalNeed e ρ1 μ1 = many (Step ev) (evalNeed v ρ2 μ2))|}{|μ1 ~> ext μ2 a (memo a (evalNeed2 v ρ2))|}
     \\[-0.5em]
   \end{array}\]
-  \caption{Heap progression relation. The meta-variable |sss| scopes over
-  definitions of the type
-  |forall d. (Trace d, Domain d, HasBind d) => (Name :-> d) -> d|, and all
-  occurrences of |ρ| and |μ| refer to definable entities.}
+  \caption{Heap progression relation}
   \label{fig:heap-progression}
 \end{figure}
+
+% Currently dead:
+%\begin{lemma}
+%\label{thm:progression-allocates}
+%If |μ1 ~> μ2|, then |dom μ1 ⊆ dom μ2|.
+%\end{lemma}
+%\begin{proof}
+%Simple proof by induction after realising that |eval| never deletes heap
+%entries.
+%\end{proof}
 
 Transitivity and reflexivity of $(\progressto)$ are definitional by rules
 \progresstorefl and \progresstotrans; antisymmetry is not so simple to show for
@@ -599,83 +539,85 @@ Evaluation of a |Let| extends the heap via \progresstoext and evaluation
 of a |Var| will memoise the evaluated heap entry, progressing it along
 \progresstomemo.
 
-URGH LATER. Say that instead of |eval e| and by induction, we do the type of |eval e| and by parametricity.
-
-In a first iteration, we have expressed all the properties that follow in
-terms of the concrete definition |eval e|
-In the following proofs, we will appeal to parametricity .
-
-The properties and proofs in the following could be conducted  |eval e| by induction on |e|,
-we will try to instead
-
-In the following, the type of |sss| is always the same polymorphic type
-|forall d. (Trace d, Domain d, HasBind d) => (Name :-> d) -> d|
-which we encode in System $F$ as
-$\forall X. \mathsf{Dict}(X) \to (\mathsf{Name} \pfun X) \to X$.
-
 \begin{lemma}[Evaluation progresses the heap]
 \label{thm:eval-progression}
-If |bigstep μ1 (sss ρ1) μ2 v|, then |μ1 ~> μ2|.
+If |evalNeed e ρ1 μ1 = many (Step ev) (evalNeed v ρ2 μ2)|, then |μ1 ~> μ2|.
 \end{lemma}
 \begin{proof}
-By Löb induction and the parametric induction principle \Cref{thm:param-ind-1}, applied to the property
-\[
-  P(d) \triangleq \forall μ_1,μ_2,v\ldotp \bigstep{μ_1}{d}{μ_2}{v} \implies μ_1 \progressto μ_2.
-\]
-The two subgoals are
-\[
-  (\forall |a|.\ \later (|fetch a| ∈ P)) \qquad \mathit{inst} ∈ \mathsf{Dict}(P)
-\]
+By Löb induction and cases on |e|.
+Since there is no approximation yet, all occurring closure sets in |needenv| are
+singletons.
 \begin{itemize}
-  \item \textbf{Case }$\forall |a|.\ \later (|fetch a| ∈ P)$:
-    Everything under |Later|:
+  \item \textbf{Case} |Var x|:
+    Let |many ev1 := tail (init (many ev))|.
     \begin{spec}
-        fetch a μ1
+        (ρ1 ! x) μ1
+    =   {- |needenv ρ1|, some |y|, |a| -}
+        Step (Look y) (fetch a μ1)
     =   {- Unfold |fetch| -}
-        (μ1 ! a) μ1
-    =   {- |μ| definable, some |sss'|, |ρ3| -}
-        memo a (sss' ρ3 μ1)
+        Step (Look y) ((μ1 ! a) μ1)
+    =   {- |needheap μ|, some |e|, |ρ3| -}
+        Step (Look y) (memo a (evalNeed e ρ3 μ1))
     =   {- Unfold |memo| -}
-        sss' ρ3 μ1 >>= upd
-    =   {- |bigstep μ1 (sss' ρ3) μ3 v| for some |μ3|, |many ev1|, unfold |>>=|, |upd| -}
-        many (Step ev1) (Step Upd (Ret (v, ext μ3 a (memo a (return v)))))
+        Step (Look y) (evalNeed e ρ3 μ1 >>= upd)
+    =   {- |evalNeed e ρ3 μ1 = many (Step ev1) (evalNeed v ρ2 μ3)| for some |μ3|, unfold |>>=|, |upd| -}
+        Step (Look y) (many (Step ev1) (evalNeed v ρ2 μ3 >>= \v μ3 ->
+          Step Upd (Ret (v, ext μ3 a (memo a (return v))))))
     \end{spec}
-    So |Later (bigstep μ1 (fetch a) (ext μ3 a (memo a (return v))) v)|,
-    and by determinism |μ2 = (ext μ3 a (memo a (return v)))|.
-    In summary, we have
+    Now let |sv :: Value (ByNeed T)| be the semantic value such that |evalNeed v ρ2 μ3 = Ret (sv, μ3)|.
+    \begin{spec}
+    =   {- |evalNeed v ρ2 μ3 = Ret (sv, μ3)| -}
+        Step (Look y) (many (Step ev1) (Step Upd (Ret (sv, ext μ3 a (memo a (return sv))))))
+    =   {- Refold |evalNeed v ρ2|, |many ev = [Look y] ++ many ev1 ++ [Upd]| -}
+        many (Step ev) (evalNeed v ρ2 (ext μ3 a (memo a (evalNeed2 v ρ2))))
+    =   {- Determinism of |evalNeed|, assumption -}
+        many (Step ev) (evalNeed v ρ2 μ2)
+    \end{spec}
+    We have
     \begin{align}
-      & |μ1 ! a = memo a (sss' ρ3)| \label{eqn:eval-progression-memo} \\
-      & |Later (bigstep μ1 (sss' ρ3) μ3 v)| \label{eqn:eval-progression-eval} \\
-      & |μ2 = ext μ3 a (memo a (return v))| \label{eqn:eval-progression-heaps}
+      & |μ1 ! a = memo a (evalNeed2 e ρ3)| \label{eqn:eval-progression-memo} \\
+      & |Later (evalNeed e ρ3 μ1 = many (Step ev1) (evalNeed v ρ2 μ3))| \label{eqn:eval-progression-eval} \\
+      & |μ2 = ext μ3 a (memo a (evalNeed2 v ρ2))| \label{eqn:eval-progression-heaps}
     \end{align}
     We can apply rule \progresstomemo to \Cref{eqn:eval-progression-memo} and \Cref{eqn:eval-progression-eval}
-    to get |μ1 ~> ext μ3 a (memo a (return v))|, and rewriting along
+    to get |μ1 ~> ext μ3 a (memo a (evalNeed2 v ρ2))|, and rewriting along
     \Cref{eqn:eval-progression-heaps} proves the goal.
-  \item \textbf{Case } |step|,|stuck|,|fun|,|apply|,|con|,|select|:
-    These cases do not modify the heap and consequently follow by applying
-    assumptions, reflexivity and transitivity.
-  \item \textbf{Case } |bind|. Goal: $\inferrule{(\forall |d| ∈ P.\ |rhs d| ∈ P) \\ (\forall |d| ∈ P.\ |body d| ∈ P)}
-                                                {|bind rhs body| ∈ P}$: \\
+  \item \textbf{Case} |Lam x body|, |ConApp k xs|:
+    Then |μ1 = μ2| and the goal follows by \progresstorefl.
+  \item \textbf{Case} |App e1 x|:
+    Let us assume that |evalNeed e1 ρ1 μ1 = many (Step ev1) (evalNeed (Lam y e2) ρ3 μ3)| and
+    |evalNeed e2 (ext ρ3 y (ρ ! x)) μ3 = many (Step ev2) (evalNeed v ρ2 μ2)|, so that
+    |μ1 ~> μ3|, |μ3 ~> μ2| by the induction hypothesis.
+    The goal follows by \progresstotrans, because
+    |many ev = [App1] ++ many ev1 ++ [App2] ++ many ev2|.
+  \item \textbf{Case} |Case e1 alts|:
+    Similar to |App e1 x|.
+  \item \textbf{Case} |Let x e1 e2|:
     \begin{spec}
-      bind rhs body μ1
-    =   {- Unfold |bind|, |a := nextFree μ1| with $|a| \not\in |dom μ1|$ -}
-      body (fetch a) (ext μ1 a (memo a (rhs (fetch a))))
+        evalNeed (Let x e1 e2) ρ1 μ1
+    =   {- Unfold |evalNeed| -}
+        bind  (\d1 -> evalNeed e1 (ext ρ1 x (step (Look x) d1)))
+              (\d1 -> step Let1 (evalNeed e2 (ext ρ1 x (step (Look x) d1))))
+              μ1
+    =   {- Unfold |bind|, |a := nextFree μ| with $|a| \not\in |dom μ|$ -}
+        step Let1 (evalNeed e2 (ext ρ1 x (step (Look x) (fetch a)))
+                               (ext μ1 a (memo a (evalNeed2 e1 (ext ρ1 x (step (Look x) (fetch a)))))))
     \end{spec}
-    We have already shown $\later (|fetch a|∈P)$.
-    Hence $|rhs (fetch a)|∈P$ as well as $|body (fetch a)|∈P$
-    by assumption.
+    At this point, we can apply the induction hypothesis to |evalNeed e2 (ext ρ1 x
+    (step (Look x) (fetch a)))| to conclude that
+    |ext μ1 a (memo a (evalNeed2 e1 (ext ρ1 x (step (Look x) (fetch a))))) ~> μ2|.
 
-    Note that |μ1 ~> ext μ1 a (memo a (rhs (fetch a)))| by \progresstoext.
-    On the other hand, $|body (fetch a)|∈P$ and thus
-    |ext μ1 a (memo a (rhs (fetch a))) ~> μ2|, so the goal follows by
-    \progresstotrans.
+    On the other hand, we have
+    |μ1 ~> ext μ1 a (memo a (evalNeed2 e1 (ext ρ1 x (step (Look x) (fetch a)))))|
+    by rule \progresstoext (note that $|a| \not∈ |dom μ|$), so the goal follows
+    by \progresstotrans.
 \end{itemize}
 \end{proof}
 
 \Cref{thm:eval-progression} exposes nested structure in \progresstomemo.
 For example, if |μ1 ~> ext μ2 a (memo a (evalNeed2 v ρ2))| is the result of applying
 rule \progresstomemo, then we obtain a proof that the memoised expression
-|evalNeed2 e ρ1 μ1| evaluates to |evalNeed2 v ρ2 μ2|, and this
+|evalNeed2 e ρ1 μ1 = many (Step ev) (evalNeed2 v ρ2 μ2)|, and this
 evaluation in turn implies that |μ1 ~> μ2|.
 
 Heap progression is useful to state a number of semantic properties, for example
@@ -684,66 +626,80 @@ semantically irrelevant when it is never updated:
 
 \begin{lemma}[Update once]
 \label{thm:update-once}
-If   |μ1 ~> μ2| and |μ1 ! a = memo a (return v)|,
-then |μ2 ! a = memo a (return v)|.
+If   |μ1 ~> μ2| and |μ1 ! a = memo a (evalNeed2 v ρ)|,
+then |μ2 ! a = memo a (evalNeed2 v ρ)|.
 \end{lemma}
 \begin{proof}
 Simple proof by induction on |μ1 ~> μ2|.
 The only case updating a heap entry is \progresstomemo, and there we can see
-that |μ2 ! a = memo (return v)| because evaluating |v| in |μ1| does not make
+that |μ2 ! a = memo (evalNeed2 v ρ)| because evaluating |v| in |μ1| does not make
 a step.
 \end{proof}
 
 \begin{lemma}[No update implies semantic irrelevance]
 \label{thm:no-update-irrelevance}
-If |bigstep μ1 (sss ρ) μ2 v|
-and |μ1 ! a = μ2 ! a = memo a (step ev d1)|,
-then |forall d2. bigstep (ext μ1 a d2) (sss ρ) (ext μ2 a d2) (return v)|.
+If |evalNeed e ρ1 μ1 = many (Step ev) (evalNeed v ρ2 μ2)|
+and |μ1 ! a = μ2 ! a = memo a (evalNeed2 e1 ρ3)|, |e1| not a value,
+then
+\[
+  |forall d. evalNeed e ρ1 (ext μ1 a d) = many (Step ev) (evalNeed v ρ2 (ext μ2 a d))|
+\]
+as well.
 \end{lemma}
 \begin{proof}
-By Löb induction and the parametric induction principle \Cref{thm:param-ind-1}, applied to the property
-\begin{spec}
-  {-" P(d) "-} := forall μ1 μ2 v d1.  bigstep μ1 d μ2 v /\ μ1 ! a = μ2 ! a = memo a (step ev d1) ==>
-                                      forall d2. bigstep (ext μ1 a d2) d (ext μ2 a d2) v
-\end{spec}
+By Löb induction and cases on |e|.
 \begin{itemize}
-  \item \textbf{Case }$\forall |a1|.\ \later (|fetch a1| ∈ P)$:
-     Everything under |Later|.
-     We may assume |bigstep μ1 (fetch a1) μ2 v|, |μ1 ! a = μ2 ! a = memo a (step ev d1)|.
-
-     It is |fetch a1 μ1 = (μ1 ! a1) μ1 = memo a1 d3 μ1| by |needheap μ1| for the suitable |d3|,
-     with |bigstep μ1 d3 μ2 v| (later!).
-     Since |memo a1| updates |μ2 ! a1 = memo a1 (return v)| and
-     $|return v| \not= |step ev d1|$ it must be $|a1| \not= |a|$.
-
-     We may apply the Löb induction hypothesis to |bigstep μ1 d3 μ2 v| to get \\
-     |forall d2. bigstep (ext μ1 a d2) d3 (ext μ2 a d2) v|. \\
-     Since $|a1| \not= |a|$, we must also have
-     |forall d2. bigstep (ext μ1 a d2) (fetch a) (ext μ2 a d2) v|, as required.
-
-  \item \textbf{Case } |step|,|stuck|,|fun|,|apply|,|con|,|select|:
-    These cases do not modify the heap and consequently follow by applying
-    assumptions.
-
-  \item \textbf{Case } |bind|. Goal: $\inferrule{(\forall |d| ∈ P.\ |rhs d| ∈ P) \\ (\forall |d| ∈ P.\ |body d| ∈ P)}
-                                                {|bind rhs body| ∈ P}$: \\
-    \begin{spec}
-      bind rhs body μ1
-    =   {- Unfold |bind|, |a1 := nextFree μ1| with $|a1| \not\in |dom μ1|$ -}
-      body (fetch a1) (ext μ1 a1 (memo a1 (rhs (fetch a1))))
-    \end{spec}
-    We have $\later (|fetch a1| ∈ P)$ by a previous case, so we can get
-    $|body (fetch a1)| ∈ P$ by assumption.
-    We also have $|a| \not= |a1|$ by a property of |nextFree|, so $|body (fetch a1)| ∈ P$
-    yields |forall d2. bigstep (ext (ext μ1 a1 (memo a1 (rhs (fetch a1)))) a d2) (body (fetch a1)) (ext μ2 a d2) v|,
-    which is the same as the goal |forall d2. bigstep (ext μ1 a d2) (bind rhs body) (ext μ2 a d2) v|
-    after refolding |bind|.
+  \item \textbf{Case} |Var x|:
+     It is |evalNeed x ρ1 μ1 = Step (Look y) (memo a1 (evalNeed e1 ρ3 μ1))| for the
+     suitable |a1|,|y|.
+     Furthermore, it must be $|a| \not= |a1|$, because otherwise, |memo a| would
+     have updated |a| with |evalNeed2 v ρ2|.
+     Then we also have
+     \[|evalNeed x ρ1 (ext μ1 a d) = Step (Look y) (memo a1 (evalNeed e1 ρ3 (ext μ1 a d)))|.\]
+     The goal follows from applying the induction hypothesis and realising that
+     |μ2 ! a1| has been updated consistently with |memo a1 (evalNeed2 v ρ2)|.
+  \item \textbf{Case} |Lam x e|, |ConApp k xs|: Easy to see for |μ1 = μ2|.
+  \item \textbf{Case} |App e x|:
+    We can apply the induction hypothesis twice, to both of
+    \begin{align*}
+      |evalNeed e ρ1 μ1| & = |many (step ev1) (evalNeed (Lam y body) ρ3 μ3)| \\
+      |evalNeed body (ext ρ3 y (ρ1 ! x)) μ3| & = |many (step ev2) (evalNeed v ρ2 μ2)|
+    \end{align*}
+    to show the goal.
+  \item \textbf{Case} |Case e alts|: Similar to |App|.
+  \item \textbf{Case} |Let x e1 e2|:
+    We have |evalNeed (Let x e1 e2) ρ1 μ1 = step Let1 (evalNeed e2 ρ1' μ1')|,
+    where |ρ1' := ext ρ1 x (step (Look x) (fetch a1))|, |a1 := nextFree μ1|,
+    |μ1' := ext μ1 a1 (memo a1 (evalNeed2 e1 ρ1'))|.
+    We have $|a| \not= |a1|$ by a property of |nextFree|, and applying the
+    induction hypothesis yields
+    |step Let1 (evalNeed e2 ρ1' (ext μ1' a d)) = many (Step ev) (evalNeed v ρ2 μ2)|
+    as required.
 \end{itemize}
 \end{proof}
 
 Now we move on to proving auxiliary lemmas about |persistHeap|.
 
-A by-name analysis that is sound \wrt by-need must improve when an expression
+\begin{lemma}[Heap extension preserves persisted entries]
+\label{thm:ext-persist-heap}
+Let |αE μ :<->: γE μ = persistHeap μ|.
+If |adom d ⊆ dom μ| and $|a| \not∈ |dom μ|$,
+then |αE μ d = αE (ext μ a d2) d|.
+\end{lemma}
+\begin{proof}
+By Löb induction.
+Since |needd d|, we have |d = Cup (step (Look y) (fetch a1))|
+and |a1 ∈ dom μ|.
+Let |memo a1 (evalNeed2 e ρ) := μ ! a1 = (ext μ a d2) ! a|.
+Then |adom ρ ⊆ dom μ| due to |needheap μ| and the goal follows by the
+induction hypothesis:
+\begin{align*}
+  |αE μ d| & = |Lub (step (Look y) (eval e (αE μ << ρ)))| \\
+           & = |Lub (step (Look y) (eval e (αE (ext μ a d2) << ρ))) = αE (ext μ a d2) d|
+\end{align*}
+\end{proof}
+
+An by-name analysis that is sound \wrt by-need must improve when an expression
 reduces to a value, which in particular will happen after the heap update during
 memoisation.
 
@@ -758,12 +714,13 @@ hand-wave no more!
   |Lat|, satisfying the abstraction laws
   \textsc{Beta-App}, \textsc{Beta-Sel}, \textsc{Bind-ByName} and
   \textsc{Step-Inc} from \Cref{fig:abstraction-laws}.
-  Let |d| be a definable element and
+  Furthermore, let |αE μ :<->: γE μ = persistHeap μ| for all |μ|
+  and |βE μ := αE μ . set| the representation function.
   \begin{enumerate}[label=(\alph*),ref=\thelemma.(\alph*)]
     \item
-      If   |bigstep μ1 (sss ρ1) μ2 v|
-      and  |μ1 ! a = memo a (sss ρ1)|,\\
-      then |eval v (βE (ext μ2 a (memo a (return v))) << ρ2) ⊑ eval e (βE μ2 << ρ1)|.
+      If   |evalNeed e ρ1 μ1 = many (Step ev) (evalNeed v ρ2 μ2)|
+      and  |μ1 ! a = memo a (evalNeed2 e ρ1)|,\\
+      then |eval v (βE (ext μ2 a (memo a (evalNeed2 v ρ2))) << ρ2) ⊑ eval e (βE μ2 << ρ1)|.
       \label{thm:memo-improves}
     \item
       If   |evalNeed e ρ1 μ1 = many (Step ev) (evalNeed v ρ2 μ2)|
@@ -1056,8 +1013,8 @@ By Löb induction and cases on |e|, using the representation function
     |a := nextFree μ1|,
     |μ3 := ext μ1 a (memo a (evalNeed2 e1 ρ3))|.
 
-    Then |(βE μ3 << ρ3) ! y ⊑ (βE μ1 << ρ1) ! y| whenever $|x| \not= |y|$
-    by \Cref{thm:heap-progress-persist},
+    Then |(βE μ3 << ρ3) ! y = (βE μ1 << ρ1) ! y| whenever $|x| \not= |y|$
+    by \Cref{thm:ext-persist-heap},
     and |(βE μ3 << ρ3) ! x = step (Look x) (eval e1 (βE μ3 << ρ3))|.
 
     We prove the goal, thus
@@ -1069,7 +1026,7 @@ By Löb induction and cases on |e|, using the representation function
         step Let1 (eval e2 (βE μ3 << ρ3))
     =   {- Rearrange |βE μ3| by above reasoning -}
         step Let1 (eval e2 (ext (βE μ1 << ρ1) x (βE μ3 (ρ3 ! x))) μ3)
-    ⊑   {- Expose fixpoint, approximating |βE μ3 << ρ3| by |ext (βE μ1 << ρ1) x (βE μ3 (ρ3 ! x))| -}
+    =   {- Expose fixpoint, rewriting |βE μ3 << ρ3| to |ext (βE μ1 << ρ1) x (βE μ3 (ρ3 ! x))| -}
         step Let1 (eval e2 (ext (βE μ1 << ρ1) x (lfp (\(hat d1) -> step (Look x) (eval e1 (ext (βE μ1 << ρ1) x (hat d1)))))))
     =   {- Partially unroll |lfp| -}
         step Let1 (eval e2 (ext (βE μ1 << ρ1) x (step (Look x) (lfp (\(hat d1) -> eval e1 (ext (βE μ1 << ρ1) x (step (Look x) (hat d1))))))))
@@ -1134,271 +1091,6 @@ by-name analysis \wrt by-need semantics:
 
 % TODO There is potential to extract useful Galois Connections from this large
 % one, but it is far more succinct and comprehensible to give it directly.
-
-\begin{lemma}[Parametric induction principle, binary]
-\label{thm:param-ind-2}
-If |polydef sss| and |needenv ρ|, some relation $R ⊆ |DNeed| \times |hat D|$
-\[
-  \inferrule
-    {(\forall |a|.\ \later (|fetch a|,|fetch a|) ∈ R) \\ \mathit{inst} ∈ \mathsf{Dict}(P)}
-    {|sss ρ| ∈ P}
-\]
-\end{lemma}
-\begin{proof}
-By |polydef sss|, we get the free theorem
-\[
-  (|sss|,|sss|) ∈ \forall \mathcal{X}.\ \mathsf{Dict}(\mathcal{X}) → (|Name| \pfun \mathcal{X}) → \mathcal{X}.
-\]
-We instantiate it at $R(d_1,d_2) \triangleq d_1 = d_2 \land d_1 ∈ P$, the
-instance dictionary $\mathit{inst} ∈ \mathsf{Dict}(|DNeed|)$ and |ρ| to derive the
-following assertion:
-\[
-  \inferrule
-    {(\mathit{inst},\mathit{inst}) ∈ \mathsf{Dict}(R) \\ (|ρ|,|ρ|) ∈ (|Name| \pfun R)}
-    {(|sss ρ|,|sss ρ|) ∈ R}
-\]
-Note that $(|d|, |d|) ∈ R$ is equivalent to $|d| ∈ P$, so it suffices to
-show the two premises of the rule, which become our subgoals.
-
-The first subgoal $(\mathit{inst},\mathit{inst}) ∈ \mathsf{Dict}(R)$ follows
-by $\mathit{inst} ∈ \mathsf{Dict}(P)$.
-
-For the second subgoal $(|ρ|,|ρ|) ∈ (|Name| \pfun R)$, it suffices to show
-\begin{equation}
-  \forall |many ev|, |a|.\ (|many (step ev) (fetch a)|,|many (step ev) (fetch a)|) ∈ R. \label{eqn:step-induction}
-\end{equation}
-The property for |step :: Later DNeed -> DNeed| (making
-explicit that the |Later| that the implementation of |step| embeds) implied by
-$\mathit{inst} ∈ \mathsf{Dict}(P)$ is as follows
-\[
-  \forall |ev|,|d1|,|d2|.\ \later ((|d1|,|d2|) ∈ R) \implies (|step ev d1|, |step ev d2|) ∈ R.
-\]
-We instantiate with the assumption
-$\forall |a|.\ \later ((|fetch a|, |fetch a|) ∈ R)$
-to show the goal \Cref{eqn:step-induction}.
-\end{proof}
-
-\begin{lemma}[Definable stuff]
-\label{thm:definable}
-If |needd d1|, |needheap μ1|, |adom d1 ⊆ dom μ1| and |d1 μ1 = Step ev (d2 μ2)|
-then |needd d2|, |μ1 ~> μ2| and |adom d2 ⊆ dom μ2|.
-
-Maybe also about values.
-\end{lemma}
-
-\begin{lemma}[Indexed parametricity]
-Let $R_|μ| ⊆ |DNeed| \times |hat D|$ be some relation indexed by a definable heap.
-If the following lemmas hold for all |μ1| such that |μ ~> μ1|,
-then |(evalNeed2 e ρ, evalD (hat D) e (hat ρ)) ∈ Rel(μ)|.
-\begin{itemize}
-  \item |μ1 ~> μ2 ==> Rel(μ1) ⊆ Rel(μ2)|
-  \item |(ρ,hat ρ) ∈ Name :-> Rel(μ)|
-  \item |(step,hat step) ∈ Event -> Later Rel(μ1) -> Rel(μ1)|
-  \item |(stuck,hat stuck) ∈ Rel(μ1)|
-  \item |(fun,hat fun) ∈ (Rel (μ1) -> Rel(μ1)) -> Rel(μ1)|
-  \item |(apply,hat apply) ∈ Rel(μ1) -> Rel(μ1) -> Rel(μ1)|
-  \item |(con,hat con) ∈ Tag -> [Rel(μ1)] -> Rel(μ1)|
-  \item |(select,hat select) ∈ Rel(μ1) -> (Tag :-> ([Rel(μ1)] -> Rel(μ1))) ->  Rel(μ1)|
-  \item $|a| \not∈ |dom μ1 ==> forall d. (bind,hat bind) ∈ Later (Later (Rel(ext μ1 a (memo a d))) -> Rel(ext μ1 a (memo a d))) -> (Later (Rel(ext μ1 a (memo a d))) -> Rel(ext μ1 a (memo a d))) -> Rel(μ1)|$
-\end{itemize}
-\end{lemma}
-
-\begin{lemma}[By-need bind]
-\label{thm:by-need-bind}
-It is |βT ((d >>= f) μ1) ⊑ hat f (hat d)| if
-\begin{enumerate}
-  \item |βT (d μ1) ⊑ hat d|, and
-  \item for all events |ev| and elements |hat d'|, |(hat step) ev ((hat f) (hat d')) ⊑ (hat f) ((hat step) ev (hat d'))|, and
-  \item for all values |v| and heaps |μ2| such that |μ1 ~> μ2|, |βT (f v μ2) ⊑ (hat f) (βT (Ret (v, μ2)))|.
-\end{enumerate}
-\end{lemma}
-\begin{proof}
-By Löb induction.
-
-If |d μ1 = Step ev (d' μ1')|, define |hat d' := βT (d' μ1')| and note that
-|μ1 ~> μ1'| by \Cref{thm:definable}.
-We get
-\begin{spec}
-  βT ((d >>= f) μ1) = βT (Step ev ((d' >>= f) μ1')) = (hat step) ev (βT ((d' >>= f) μ1'))
-⊑  {- Induction hypothesis at |βT (d' μ1') = hat d'|, Monotonicity of |hat step| -}
-  hat step ev ((hat f) (βT d' μ1'))
-⊑  {- Assumption (2) -}
-  (hat f) ((hat step) ev (βT d' μ1')) = (hat f) (βT d μ1)
-⊑  {- Assumption (1) -}
-  (hat f) (hat d)
-\end{spec}
-Note that in order to apply the induction hypothesis at |μ1'| above, we need
-refine assumption (3) to apply at any |μ2| such that |μ1' ~> μ2|.
-This would not be possible without generalising for any such |μ2| in the first
-place.
-
-Otherwise, |d = return v| for some |v :: Value|.
-\begin{spec}
-  βT ((return v >>= f) μ1) = βT (f v μ1)
-⊑  {- Assumption (3) -}
-  (hat f) (βT (Ret v, μ1)) = (hat f) (βT d μ1)
-⊑  {- Assumption (1) -}
-  (hat f) (hat d)
-\end{spec}
-\end{proof}
-
-\begin{theorem}[Parametric By-need Interpretation]
-\label{thm:soundness-by-need}
-Let |e| be an expression, |hat D| a domain with instances for |Trace|, |Domain|,
-|HasBind| and |Lat|, and let |αT| and |αE| be the abstraction functions from
-\Cref{fig:abstract-name-need}.
-If the abstraction laws in \Cref{fig:abstraction-laws} hold, then
-\[
-  |polydef sss /\ needenv ρ /\ needheap μ ==> αT ^ (set (sssD DNeed ρ μ)) ⊑ sssD (hat D) (αE ^ (set ((ρ,μ))))|
-\]
-\end{theorem}
-\begin{proof}
-We simplify the proof obligation for the single-trace case, referring to representation functions instead:
-\[
-  |polydef sss /\ needenv ρ /\ needheap μ ==> βT (sssD DNeed ρ μ) ⊑ sssD (hat D) (βD^(μ) << ρ)|
-\]
-where |βD^(μ)^(d) := βT (d μ)| is the representation function of |αD| and
-|f << m| maps |f| over every entry in |m| as defined in \Cref{fig:map}.
-\[
-  R_|μ|(|d|, |hat d|) \triangleq |needd d /\ adom d ⊆ dom μ /\ βT (d μ) ⊑ hat d|
-\]
-The goal is to prove $(|sssD DNeed ρ|,|sssD (hat D) (βD^(μ) << ρ)|) ∈ R_|μ|$.
-%Note that $|μ1 ~> μ2 ==>| R_{|μ1|} ⊆ R_{|μ2|}$,
-%and $|μ1 ~> μ2 /\ adom d ⊆ dom μ1 /\| R_{|μ2|}(|d|,|hat d|) \implies R_{|μ1|}(|d|,|hat d|)$
-%by \Cref{thm:heap-progress-persist}.
-\[
-  \inferrule
-    {(\mathit{inst},\mathit{\widehat{inst}}) ∈ \mathsf{Dict}(R_|μ|) \\ (|ρ|,|(βD^(μ) << ρ)|) ∈ (|Name| \pfun R_|μ|)}
-    {(|sssD DNeed ρ|,|sssD (hat D) (βD^(μ) << ρ)|) ∈ R_|μ|}
-\]
-Compared to the proof for by-name, the only differences are related to heap progression and the implementation of |bind|.
-(Somewhat unsurprising, given that only the implementation of |bind| differs.)
-
-\begin{itemize}
-  \item \textbf{Case }$(|ρ|,|(βD^(μ) << ρ)|) ∈ (|Name| \pfun R_|μ|)$:
-    The goal is to show |forall x. x ∈ dom ρ ==> βT ((ρ!x) μ) ⊑ βD^(μ)^(ρ!x)|, and that follows by reflexivity.
-
-  \item \textbf{Case |step|}.
-    Goal: $\inferrule{(|d|,|hat d|) ∈ R_|μ|}{(|step ev d|, |hat step ev (hat d)|) ∈ R_|μ|}$. \\
-    Then |βT (Step ev (d μ) = hat step ev (βT (d μ)) ⊑ hat step ev (hat d)| by assumption and monotonicity.
-
-  \item \textbf{Case |stuck|}.
-    Goal: $(|stuck|, |hat stuck|) ∈ R_|μ|$. \\
-    Then |βT (stuck μ) = βT (Ret (Stuck, μ)) = hat stuck|.
-
-  \item \textbf{Case |fun|}.
-    Goal: $\inferrule{\forall (|d|,|(hat d)|) ∈ R_|μ|.\ (|f d|, |hat f (hat d)|) ∈ R_|μ|}{(|fun f|, |hat fun (hat f)|) ∈ R_|μ|}$. \\
-    Then |βT (fun f μ) = βT (Ret (Fun f, μ)) = (hat fun) (αD^(μ) . powMap f . γD^(μ))| and
-    it suffices to show that
-    |(αD^(μ) . powMap f . γD^(μ)) ⊑ hat f| by monotonicity of |hat fun|.
-    \begin{spec}
-      (αD^(μ) . powMap f . γD^(μ)) (hat d)
-    =  {- Unfold |powMap|, |αD^(μ)|, simplify -}
-      Lub (βT (f d μ) | d ∈ γD^(μ) (hat d))
-    ⊑  {- Apply premise to |d ∈ γD^(μ) (hat d) <==> βT (d μ) ⊑ hat d| -}
-      hat f (hat d)
-    \end{spec}
-
-  \item \textbf{Case |apply|}.
-    Goal: $\inferrule{(|d|,|(hat d)|) ∈ R_|μ| \\ (|a|,|(hat a)|) ∈ R_|μ|}{(|apply d a|, |hat apply (hat d) (hat a)|) ∈ R_|μ|}$. \\
-    |apply d a| is defined as |d >>= \v -> case v of Fun g -> g a; _ -> stuck|.
-    In order to show the goal, we need to apply \Cref{thm:by-need-bind} at |hat f (hat d) := hat apply (hat d) (hat a)|.
-    We get three subgoals for the premises of \Cref{thm:by-need-bind}:
-    \begin{itemize}
-      \item |βT (d μ) ⊑ hat d|: By assumption $(|d|,|(hat d)|) ∈ R_|μ|$.
-      \item |forall ev (hat d'). (hat step) ev ((hat apply) (hat d') (hat a)) ⊑ (hat apply) ((hat step) ev (hat d')) (hat a)|: By assumption \textsc{Step-App}.
-      \item |forall v μ2. μ ~> μ2 ==> βT ((case v of Fun g -> g a; _ -> stuck) μ2) ⊑ hat apply (βT (Ret v, μ2)) (hat a)|: \\
-        By cases over |v|.
-        \begin{itemize}
-          \item \textbf{Case |v = Stuck|}: \\
-            Then |βT (stuck μ2) = hat stuck ⊑ (hat apply) (hat stuck) (hat a)| by assumption \textsc{Unwind-Stuck}.
-          \item \textbf{Case |v = Con k ds|}: \\
-            Then |βT (stuck μ2) = hat stuck ⊑ (hat apply) ((hat con) k (hat ds)) (hat a)| by assumption \textsc{Intro-Stuck}, for the suitable |hat ds|.
-          \item \textbf{Case |v = Fun g|}:
-            Then
-            \begin{spec}
-                βT (g a μ2)
-              ⊑  {- |id ⊑ γD^(μ2) . αD^(μ2)|, rearrange -}
-                (αD^(μ2) . powMap g . γD^(μ2)) (βT (a μ2))
-              ⊑  {- |μ ~> μ2 ==> βT (a μ2) ⊑ βT (a μ)| (\Cref{thm:heap-progress-persist}) -}
-                (αD^(μ2) . powMap g . γD^(μ2)) (βT (a μ))
-              ⊑  {- Assumption |βT (a μ) ⊑ hat a| -}
-                (αD^(μ2) . powMap g . γD^(μ2)) (hat a)
-              ⊑  {- Assumption \textsc{Beta-App} -}
-                (hat apply) ((hat fun) (αD^(μ2) . powMap g . γD^(μ2))) (hat a)
-              =  {- Definition of |βT|, |v| -}
-                (hat apply) (βT (Ret v, μ2)) (hat a)
-            \end{spec}
-        \end{itemize}
-    \end{itemize}
-
-  \item \textbf{Case |con|}.
-    Goal: $\inferrule{(|ds|,|(hat ds)|) ∈ |[{-"R_{\varid{μ}}"-}space]|}{(|con k ds|, |(hat con) k (hat ds)|) ∈ R_|μ|}$. \\
-    Then |βT (con k ds μ) = βT (Ret (Con k ds, μ)) = (hat con) k (map (αD^(μ) . set) ds)|.
-    The assumption $(|ds|,|(hat ds)|) ∈ |[{-"R_{\varid{μ}}"-}space]|$ implies |map (αD^(μ) . set) ds ⊑ hat ds| and
-    the goal follows by monotonicity of |hat con|.
-
-  \item \textbf{Case |select|}.
-    Goal: $\inferrule{(|d|,|hat d|) ∈ R_|μ| \\ (|alts|,|hat alts|) ∈ |Tag :-> ([{-"R_{\varid{μ}}"-}space] -> {-"R_{\varid{μ}}"-}space)|}{(|select d alts|, |(hat select) (hat d) (hat alts)|) ∈ R_|μ|}$. \\
-    |select d alts| is defined as |d >>= \v -> case v of Con k ds || k ∈ dom alts  -> (alts ! k) ds; _ -> stuck|.
-    In order to show the goal, we need to apply \Cref{thm:by-need-bind} at |hat f (hat d) := hat select (hat d) (hat alts)|.
-    We get three subgoals for the premises of \Cref{thm:by-need-bind}:
-    \begin{itemize}
-      \item |βT (d μ) ⊑ hat d|: By assumption $(|d|,|(hat d)|) ∈ R_|μ|$.
-      \item |forall ev (hat d'). (hat step) ev ((hat select) (hat d') (hat alts)) ⊑ (hat select) ((hat step) ev (hat d')) (hat alts)|: By assumption \textsc{Step-Sel}.
-      \item |forall v μ2. μ ~> μ2 ==> βT (select d alts μ2) ⊑ (hat select) (βT (Ret v, μ2)) (hat alts)|: \\
-        By cases over |v|. The first three all correspond to when the continuation of |select| gets stuck.
-        \begin{itemize}
-          \item \textbf{Case |v = Stuck|}:
-            Then |βT (stuck μ2) = hat stuck ⊑ (hat select) (hat stuck) (hat alts)| by assumption \textsc{Unwind-Stuck}.
-          \item \textbf{Case |v = Fun f|}:
-            Then |βT (stuck μ2) = hat stuck ⊑ (hat select) ((hat fun) (hat f)) (hat alts)| by assumption \textsc{Intro-Stuck}, for the suitable |hat f|.
-          \item \textbf{Case |v = Con k ds|, $|k| \not∈ |dom alts|$}:
-            Then |βT (stuck μ2) = hat stuck ⊑ (hat select) ((hat con) k (hat ds)) (hat alts)| by assumption \textsc{Intro-Stuck}, for the suitable |hat ds|.
-          \item \textbf{Case |v = Con k ds|, $|k| ∈ |dom alts|$}:
-            Then
-            \begin{spec}
-                βT ((alts ! k) ds μ2)
-              ⊑  {- |id ⊑ γD^(μ2) . αD^(μ2)|, rearrange -}
-                (αD^(μ2) . powMap (alts ! k) . map γD^(μ2)) (map (αD^(μ2) . set) ds)
-              ⊑  {- Assumption $(|alts|,|hat alts|) ∈ |Tag :-> ([{-"R_{\varid{μ}}"-}space] -> {-"R_{\varid{μ}}"-}space)|$ -}
-                (hat alts ! k) (map (αD^(μ2) . set) ds)
-              ⊑  {- Assumption \textsc{Beta-Sel} -}
-                (hat select) ((hat con) k (map (αD^(μ2) . set) ds)) (hat alts)
-              =  {- Definition of |βT|, |v| -}
-                (hat select) (βT (Ret (v, μ2))) (hat alts)
-            \end{spec}
-        \end{itemize}
-    \end{itemize}
-
-  \item \textbf{Case |bind|}.
-    Goal: $\inferrule{(\forall (|d|,|(hat d)|) ∈ R_|μ|.\ (|rhs d|, |hat rhs (hat d)|) ∈ R_|μ|) \\ (\forall (|d|,|(hat d)|) ∈ R_|μ|.\ (|body d|, |hat body (hat d)|) ∈ R_|μ|)}
-                     {(|bind rhs body|, |(hat bind) (hat rhs) (hat body)|) ∈ R_|μ|}$. \\
-    It is |bind rhs body μ = body (fetch a) (ext μ a (memo a (rhs (fetch a))))| and |(hat body) (lfp (hat rhs)) ⊑ (hat bind) (hat rhs) (hat body)| by Assumption \textsc{Bind-ByName},
-    so it suffices to prove
-    \begin{spec}
-      βT (body (fetch a) (ext μ a (memo a (rhs (fetch a))))) ⊑ (hat body) (lfp (hat rhs))
-    \end{spec}
-    Note that |μ ~> (ext μ a (memo a (rhs (fetch a))))|, so the
-    goal follows from the assumption $|(body,hat body)| ∈ R_|μ| → R_|μ|$, provided
-    we can show that $|(fetch a,lfp (hat rhs))| ∈ R_|μ|$.
-
-
-    Let us first establish that $(|fix rhs|, |lfp (hat rhs)|) ∈ R_|μ|$, leaning on
-    our theory about safety extension in \Cref{sec:safety-extension}:
-    \begin{spec}
-      αD ^ ((set (fix rhs)))
-    ⊑  {- By \Cref{thm:safety-extension} -}
-      lfp (αD . powMap rhs . γD)
-    =  {- Unfolding |powMap|, |αD| -}
-      lfp (\(hat d) -> Lub (βT (rhs d) | d ∈ γD (hat d))
-    ⊑  {- Apply assumption to $|αD ^ ((set d)) ⊑ αD (γD (hat d)) ⊑ hat d <==> | (|d|,|hat d|) ∈ R_|μ|$ -}
-      lfp (hat rhs)
-    \end{spec}
-    Applying this fact to the second assumption proves
-    $(|body (fix rhs)|, |(hat body) (lfp (hat rhs))|) ∈ R_|μ|$ and thus the goal.
-\end{itemize}
-\end{proof}
 
 \begin{theorem}[Sound By-need Interpretation]
 \label{thm:soundness-by-need}
@@ -1549,8 +1241,8 @@ We proceed by cases over |e|.
     |a := nextFree μ|,
     |μ1 := ext μ a (memo a (evalNeed2 e1 ρ1))|.
 
-    Then |(βE μ1 << ρ1) ! y ⊑ (βE μ << ρ) ! y| whenever $|x| \not= |y|$
-    by \Cref{thm:heap-progress-persist},
+    Then |(βE μ1 << ρ1) ! y = (βE μ << ρ) ! y| whenever $|x| \not= |y|$
+    by \Cref{thm:ext-persist-heap},
     and |(βE μ1 << ρ1) ! x = step (Look x) (eval e1 (βE μ1 << ρ1))|.
     \begin{spec}
         βT (evalNeed (Let x e1 e2) ρ μ)
@@ -1560,7 +1252,7 @@ We proceed by cases over |e|.
         step Let1 (βT (evalNeed e2 ρ1 μ1))
     ⊑   {- Induction hypothesis, unfolding |ρ1| -}
         step Let1 (eval e2 (ext (βE μ1 << ρ) x (βE μ1 (ρ1 ! x))))
-    ⊑   {- Expose fixpoint, approximating |βE μ1 (ρ1 ! x)| by |ext (βE μ << ρ) x (βE μ1 (ρ1 ! x))| -}
+    =   {- Expose fixpoint, rewriting |βE μ1 (ρ1 ! x)| to |ext (βE μ << ρ) x (βE μ1 (ρ1 ! x))| using \Cref{thm:ext-persist-heap} -}
         step Let1 (eval e2 (ext (βE μ << ρ) x (lfp (\(hat d1) -> step (Look x) (eval e1 (ext (βE μ << ρ) x (hat d1)))))))
     =   {- Partially unroll fixpoint -}
         step Let1 (eval e2 (ext (βE μ << ρ) x (step (Look x) (lfp (\(hat d1) -> eval e1 (ext (βE μ << ρ) x (step (Look x) (hat d1))))))))
