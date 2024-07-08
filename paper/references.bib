@@ -1468,3 +1468,23 @@ series = {POPL '94}
   doi =		{10.4230/LIPIcs.ECOOP.2023.5},
   annote =	{Keywords: Static Analysis, WebAssembly}
 }
+
+@phdthesis{Ahmed:04,
+  author = {Ahmed, Amal Jamil},
+  title = {Semantics of types for mutable state},
+  year = {2004},
+  publisher = {Princeton University},
+  address = {USA},
+  abstract = {Proof-carrying code (PCC) is a framework for mechanically verifying the safety of machine language programs. A program that is successfully verified by a PCC system is guaranteed to be safe to execute, but this safety guarantee is contingent upon the correctness of various trusted components. For instance, in traditional PCC systems the trusted computing base includes a large set of low-level typing rules. Foundational PCC systems seek to minimize the size of the trusted computing base. In particular, they eliminate the need to trust complex, low-level type systems by providing machine-checkable proofs of type soundness for real machine languages. In this thesis, I demonstrate the use of logical relations for proving the soundness of type systems for mutable state. Specifically, I focus on type systems that ensure the safe allocation, update, and reuse of memory. For each type in the language, I define logical relations that explain the meaning of the type in terms of the operational semantics of the language. Using this model of types, I prove each typing rule as a lemma. The major contribution is a model of System F with general references—that is, mutable cells that can hold values of any closed type including other references, functions, recursive types, and impredicative quantified types. The model is based on ideas from both possible worlds and the indexed model of Appel and McAllester. I show how the model of mutable references is encoded in higher-order logic. I also show how to construct an indexed possible-worlds model for a von Neumann machine. The latter is used in the Princeton Foundational PCC system to prove type safety for a full-fledged low-level typed assembly language. Finally, I present a semantic model for a region calculus that supports type-invariant references as well as memory reuse.},
+  note = {AAI3136691}
+}
+
+@article{Kripke:63,
+	author = {Saul Kripke},
+	journal = {Acta Philosophica Fennica},
+	pages = {83--94},
+	title = {Semantical Considerations on Modal Logic},
+	volume = {16},
+	year = {1963}
+}
+
