@@ -85,7 +85,7 @@ omit the idiom brackets~\citep{McBridePaterson:08} $\idiom{\wild}$ to indicate
 where the $\later$ ``effects'' happen.
 
 \subsection{Total Encoding in Guarded Cubical Agda}
-\label{sec:totality-details}
+\label{sec:totality-detail}
 
 Building on \Cref{sec:guarded-types}, we will now outline the changes necessary to encode |eval| in Guarded Cubical
 Agda, a system implementing Ticked Cubical Type Theory~\citep{tctt}, as well
@@ -837,7 +837,7 @@ In other words, if every environment lookup produces a |Step| constructor, then
 our semantics is total by coinduction.
 Such an argument is quite natural to encode in guarded recursive types, hence
 our use of Guarded Cubical Agda is appealing.
-See \Cref{sec:totality-details} for the details of the encoding in Agda.
+See \Cref{sec:totality-detail} for the details of the encoding in Agda.
 \end{proofsketch}
 
 %Encoding the productivity argument in Guarded Cubical Agda was far easier and is
@@ -848,6 +848,6 @@ See \Cref{sec:totality-details} for the details of the encoding in Agda.
 %approximation order and partiality.
 %In essence, we are using guarded type theory as a meta language in the sense of
 %\citet{Moggi:07}.}
-%See \Cref{sec:totality-details} for the details of this encoding.
+%See \Cref{sec:totality-detail} for the details of this encoding.
 
 

@@ -15,12 +15,11 @@
 \PassOptionsToPackage{prologue,dvipsnames}{xcolor}
 
 \documentclass[acmsmall,review]{acmart}\settopmatter{printfolios=true,printccs=false,printacmref=false}
-%\documentclass[acmsmall,review]{acmart}\settopmatter{printfolios=true}
+%\documentclass[acmsmall,review,anonymous]{acmart}\settopmatter{printfolios=true,printccs=false,printacmref=false}
 
 %% Journal information
 %%
 \setcopyright{rightsretained}
-\acmPrice{}
 \acmDOI{10.1145/1111111}
 \acmYear{2024}
 \copyrightyear{2024}
@@ -210,7 +209,6 @@
 %include Adequacy.lhs
 %include StaticAnalysis.lhs
 %include Soundness.lhs
-%include ModSound.lhs
 %include RelatedWork.lhs
 
 %\begin{acks}

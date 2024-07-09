@@ -23,12 +23,14 @@ set = P . Set.singleton
 \end{code}
 %endif
 
-\section{Generic Sound By-Name and By-Need Interpretation}
+\section{Generic Abstract By-Name and By-Need Interpretation}
 \label{sec:soundness}
 
 \begin{toappendix}
+\label{sec:soundness-detail}
+
 So far, we have seen how to \emph{use} the abstraction
-\Cref{thm:soundness-by-need}, but not proved it.
+\Cref{thm:abstract-by-need}, but not proved it.
 Proving this theorem correct is the goal of this section,
 and we approach the problem from the bottom up.
 
@@ -50,9 +52,9 @@ Here we give the proofs for the main body, often deferring to
 
 \begin{figure}
 \[\ruleform{\begin{array}{c}
-  α_{\mathcal{S}} : (|(Name :-> DNeed) -> DNeed|) \rightleftarrows (|(Name :-> hat D) -> hat D|) : γ_{\mathcal{S}}
+  α_{\mathcal{S}} : (|(Name :-> DNeed) -> DNeed|) \to (|(Name :-> hat D) -> hat D|)
   \\
-  α_{\Environments} : \pow{(|Name :-> DNeed|) \times |HeapNeed|} \rightleftarrows (|Name :-> hat D|) : γ_{\Environments}
+  α_{\Environments} : |HeapNeed| \times \pow{(|Name :-> DNeed|)} \rightleftarrows (|Name :-> hat D|) : γ_{\Environments}
   \\
   α_{\Domain{}} : |HeapNeed| \to \pow{|DNeed|} \rightleftarrows |hat D| : γ_{\Domain{}}
   \\
@@ -64,8 +66,8 @@ Here we give the proofs for the main body, often deferring to
 \belowdisplayskip=0pt
 \arraycolsep=2pt
 \[\begin{array}{lcl}
-α_{\mathcal{S}}(S)(\widehat{ρ}) & = & α_\Traces(\{\  S(ρ)(μ) \mid (ρ,μ) ∈ γ_{\Environments}(\widehat{ρ}) \ \}) \\
-α_{\Environments}(R)(x) & = & α_\Traces(\{\  ρ(x)(μ) \mid (ρ,μ) ∈ R \ \}) \\
+α_{\mathcal{S}}(S)(\widehat{ρ}) & = & α_\Traces(\{\  S(ρ)(μ) \mid (μ,ρ) ∈ γ_{\Environments}(\widehat{ρ}) \ \}) \\
+α_{\Environments}(E)(x) & = & α_\Traces(\{\  ρ(x)(μ) \mid (μ,ρ) ∈ E \ \}) \\
 α_{\Domain{}}(μ)(D) & = & α_\Traces(\{\  d(μ) \mid d ∈ D \ \}) \\
 α_\Traces(T) & = & \Lub \{\ β_\Traces(τ) \mid τ ∈ T \ \} \\
 \\[-0.75em]
@@ -86,70 +88,77 @@ of the form
   α_{\mathcal{S}}(|evalNeed1 e|) ⊑ |evalD2 (hat D) e|.
 \]
 This statement can be read as follows:
-for a closed expression |e|, the \emph{static analysis} result |evalD (hat D) e emp|
+For an expression |e|, the \emph{static analysis} |evalD2 (hat D) e|
 on the right-hand side \emph{overapproximates} ($⊒$) a property of the by-need
-\emph{semantics} |evalNeed e emp emp| on the left-hand side\sven{This is confusing. The formula above is for open and closed expressions. But here you explain closed expressions for the empty heap. Just say that the the abstract semantics overapproximates the concrete semantics with respect to the galois connection $\alpha_{\mathcal{S}}$\cite{cousot79}.}.
+\emph{semantics} |evalNeed1 e| on the left-hand side.
 The abstraction function $α_{\mathcal{S}}$, given in
-\Cref{fig:abstract-name-need}, generalises this notion to open expressions and
-defines the semantic property of interest in terms of the abstract semantic
-domain |hat D| of |evalD (hat D) e ρ|, which is short for |eval e ρ :: hat D|.
+\Cref{fig:abstract-name-need}, defines the semantic property of interest in
+terms of the abstract semantic domain |hat D| of |evalD2 (hat D) e ρ|, which is
+short for |eval e ρ :: hat D|.
 That is: the type class instances on |hat D| determine $α_{\mathcal{S}}$, and
 hence the semantic property that is soundly abstracted by |evalD (hat D) e ρ|.
 
 We will instantiate the theorem at |UD| in order to prove that usage analysis
 |evalUsg e ρ = evalD UD e ρ| infers absence, just as absence analysis in
 \Cref{sec:problem}.
-This proof will be much simpler than the proof for \Cref{thm:absence-correct}\sven{Explain why: ..., because we do not prove a complicated substituion lemma.}.
-%The main body will only discuss abstraction of closed terms, but the underlying
-%\Cref{thm:soundness-by-need} in the Appendix considers open terms as well.
+This proof will be much simpler than the proof for \Cref{thm:absence-correct},
+because the complicated preservation proof is reusably contained in
+the abstract interpretation theorem.
 
 \begin{figure}
-  \[\begin{array}{c}
-    \inferrule[\textsc{Mono}]{|d1 ⊑ d2| \\ |f1 ⊑ f2|}{%
-      |apply f1 d1 ⊑ apply f2 d2|%
-      \textit{ and so on, for all methods of |Trace|, |Domain|, |HasBind|}} \\
+  \belowdisplayskip=0pt
+  \[\begin{array}{cc}
+    \multicolumn{2}{c}{\inferrule[\textsc{Mono}]
+      {}
+      {\text{|step|, |stuck|, |fun|, |apply|, |con|, |select|, |bind| monotone}}} \\
     \\[-0.5em]
     \inferrule[\textsc{Step-App}]{}{%
-      |step ev (apply d a) ⊑ apply (step ev d) a|} \qquad
+      |step ev (apply d a) ⊑ apply (step ev d) a|}
+    &
     \inferrule[\textsc{Step-Sel}]{}{%
       |step ev (select d alts) ⊑ select (step ev d) alts|} \\
     \\[-0.5em]
-    \inferrule[\textsc{Unwind-Stuck}]{}{%
-      \textstyle|stuck ⊑ Lub (apply stuck a, select stuck alts)|} \hspace{1.5em}
-    \inferrule[\textsc{Intro-Stuck}]{}{%
-      \begin{array}{@@{}l@@{}c@@{}l@@{}}|stuck|&{}⊑{} &\textstyle|Lub (apply (con k ds) a, select (fun x f) alts)| \arcr & ⊔ & \textstyle|Lub (select (con k ds) alts || k {-"\not"-}∈ dom alts)|\end{array}} \\
+    \inferrule[\textsc{Stuck-App}]
+      {|d ∈ set (stuck, con k ds)|}
+      {|stuck ⊑ apply d a|}
+    &
+    \inferrule[\textsc{Stuck-Sel}]
+      {|d ∈ set (stuck, fun x f) ∪ set (con k ds || k {-"\not"-}∈ dom alts)|}
+      {|stuck ⊑ select d alts|} \\
     \\[-0.5em]
-    \inferrule[\textsc{Beta-App}]{%
-      |f d = step App2 (evalD (hat D) e (ext ρ x d))|}{%
-      |f a ⊑ apply (fun x f) a|} \qquad
-    \inferrule[\textsc{Beta-Sel}]{%
-      |(alts ! k) ds = step Case2 (evalD (hat D) er (exts ρ xs ds))|}{%
-      |(alts ! k) ds ⊑ select (con k ds) alts|} \\
+    \inferrule[\textsc{Beta-App}]
+      {|f| \text{ polymorphic}}
+      {|f a ⊑ apply (fun x f) a|}
+    &
+    \inferrule[\textsc{Beta-Sel}]
+      {|alts| \text{ polymorphic} \\ |k ∈ dom alts|}
+      {|(alts ! k) ds ⊑ select (con k ds) alts|} \\
     \\[-0.5em]
-    \inferrule[\textsc{Bind-ByName}]{|rhs d1 = evalD (hat D) e1 (ext ρ x (step (Look x) d1))|\\ |body d1 = step Let1 (evalD (hat D) e2 (ext ρ x d1))|}{|body (lfp rhs) ⊑ bind rhs body|}
+    \inferrule[\textsc{ByName-Bind}]
+      {|rhs, body|\text{ polymorphic}}
+      {|body (lfp rhs) ⊑ bind rhs body|}
+    &
+    \fcolorbox{lightgray}{white}{$\begin{array}{c}
+      \inferrule[\textsc{Step-Inc}]{}{|d ⊑ step ev d|}
+      \qquad
+      \inferrule[\textsc{Update}]{}{|step Upd d = d|}
+    \end{array}$}
   \end{array}\]
-  \fcolorbox{lightgray}{white}{$\begin{array}{c}
-    \inferrule[\textsc{Step-Inc}]{}{|d ⊑ step ev d|}
-    \qquad
-    \inferrule[\textsc{Update}]{}{|step Upd d = d|} \\
-  \end{array}$}
-  \caption{By-name and \fcolorbox{lightgray}{white}{by-need} abstraction laws for type class instances of abstract domain |hat D|\\
-  \sven{Use the more general version of \textsc{BetaApp}: $\forall f. f a \sqsubseteq \ldots$.}\\
-  \sven{For \textsc{Mono} write $\mathit{apply}, \mathit{fun}, \mathit{con}, ... \text{are monotone}$}\\
-  \sven{Replace \textsc{Unwind-Stuck} and \textsc{Intro-Stuck} by $\forall d\ldotp \mathit{stuck} \sqsubseteq d$. This makes figure 12 look less scary.}
-  }
+  \caption{By-name and \fcolorbox{lightgray}{white}{by-need} abstraction laws for type class instances of abstract domain |hat D|}
   \label{fig:abstraction-laws}
 \end{figure}
 
-\subsection{Sound By-Name and By-Need Interpretation}
+\subsection{A Reusable Abstract By-Need Interpretation Theorem}
 
-This subsection is dedicated to the following derived inference rule for sound
-by-need interpretation (\Cref{thm:soundness-by-need}), referring to the
-\emph{abstraction laws} in \Cref{fig:abstraction-laws} by name:\sven{Top-Down explanation is often easier to understand: First name the goal, then explain how to achieve it: "To prove an analysis sound, we first prove theorem 6 corresponding to the following inference: ... What's left is to prove soundness lemmas shown in Figure 12."}
+In this subsection, we explain and prove \Cref{thm:abstract-by-need} for
+abstract by-need interpretation, which we will apply to prove usage analysis
+sound in \Cref{sec:usage-sound}.
+The theorem corresponds to the following derived inference rule, referring to
+the \emph{abstraction laws} in \Cref{fig:abstraction-laws} by name:
 \[\begin{array}{c}
   \inferrule{%
-    \textsc{Mono} \\ \textsc{Step-App} \\ \textsc{Step-Sel} \\ \textsc{Unwind-Stuck} \\
-    \textsc{Intro-Stuck} \\ \textsc{Beta-App} \\ \textsc{Beta-Sel} \\ \textsc{Bind-ByName} \\
+    \textsc{Mono} \\ \textsc{Step-App} \\ \textsc{Step-Sel} \\ \textsc{Stuck-App} \\
+    \textsc{Stuck-Sel} \\ \textsc{Beta-App} \\ \textsc{Beta-Sel} \\ \textsc{ByName-Bind} \\
     \textsc{Step-Inc} \\ \textsc{Update}
   }{%
   α_{\mathcal{S}}(|evalNeed1 e|) ⊑ |evalD2 (hat D) e|
@@ -157,42 +166,58 @@ by-need interpretation (\Cref{thm:soundness-by-need}), referring to the
 \end{array}\]
 \noindent
 In other words: prove the abstraction laws for an abstract domain |hat D| of
-your choosing and we give you a proof of sound abstract by-need
-interpretation for the static analysis |evalD (hat D)|!
+your choosing (such as |UD|) and we give you a proof of sound abstract by-need
+interpretation for the static analysis |evalD2 (hat D)|!
 
 Note that \emph{we} get to determine the abstraction function $α_{\mathcal{S}}$ based
 on the |Trace|, |Domain| and |Lat| instance on \emph{your} |hat D|.
-\Cref{fig:abstract-name-need} replicates the gist of how $α_{\mathcal{S}}$ is thus derived.
+\Cref{fig:abstract-name-need} defines how $α_{\mathcal{S}}$ is thus derived.
 
-For a closed expression |e|, $α_{\mathcal{S}}(|evalNeed1 e|)(|emp|)$\sven{Why the closed version here again? That's not what the theorem in section 7.0 stated.} simplifies
-to $β_\Traces(|evalNeed e emp emp|)$, which folds the by-need
-trace into an abstract domain element in |hat D|.
-Since |hat D| has a |Lat| instance, such a $β_\Traces$ is called a \emph{representation
-function}~\citep[Section 4.3]{Nielson:99}, giving rise to the Galois
-connection $α_\Traces \rightleftarrows γ_\Traces$.
-Function $β_\Traces$ eliminates every |Step ev| in the trace with a call to
-|step ev|, and eliminates every concrete |Value| at the end of the trace with a
-call to the corresponding |Domain| method.
+Let us calculate |αS| for the closed example expression
+$\pe \triangleq \Let{i}{(\Lam{y}{\Lam{x}{x}})~i}{i}$:
+\begin{align}
+    & |αS^(evalNeed1 (({-" \Let{i}{(\Lam{y}{\Lam{x}{x}})~i}{i} "-})))^(emp)| \notag \\
+={} & |βT^(evalNeed (({-" \Let{i}{(\Lam{y}{\Lam{x}{x}})~i}{i} "-})) emp emp)| \label{eqn:abs-ex1} \\
+={} & |βT|(\perform{evalNeed (read "let i = (λy.λx.x) i in i") emp emp :: T (ValueNeed, HeapNeed)}) \label{eqn:abs-ex2} \\
+={} & \textstyle|step Let1 $ step (Look "i") $ ... $ fun (\(hat d) -> Lub (βT^({-" \AppET \smallstep \varid{d}([0\!\!↦\!\!\wild]) "-}space) || d ∈ γD^({-"[0\!\!↦\!\!\wild]"-}space)^((hat d))))| \notag \\
+⊑{} & \textstyle|step Let1 $ step (Look "i") $ ... $ fun (\(hat d) -> step App2 (hat d))| \label{eqn:abs-ex3} \\
+={} & |MkUT (singenv i U1) (UCons U1 (Rep Uω)) :: UD| \label{eqn:abs-ex4} \\
+={} & |evalUsg (({-" \Let{i}{(\Lam{y}{\Lam{x}{x}})~i}{i} "-})) emp| \notag
+\end{align}
+\noindent
+In (\ref{eqn:abs-ex1}), $α_{\mathcal{S}}(|evalNeed1 e|)(|emp|)$ simplifies to |βT^(evalNeed e emp
+emp)|.
+Function |βT| then folds the by-need trace (\ref{eqn:abs-ex2}) into an abstract
+domain element in |hat D|.
+It does so by eliminating every |Step ev| in the trace with a call to
+|step ev|, and every concrete |Value| at the end of the trace with a
+call to the corresponding |Domain| method, following the structure of
+types as in \citet{Backhouse:04}.
+Since |hat D| has a |Lat| instance, |βT| is a \emph{representation
+function}~\citep[Section 4.3]{Nielson:99}, giving rise to Galois connections
+$α_\Traces \rightleftarrows γ_\Traces$ and
+$α_\Domain(μ) \rightleftarrows γ_\Domain(μ)$.
+This implies that $α_\Domain(μ) \circ γ_\Domain(μ) ⊑ \mathit{id}$,
+justifying the approximation step $(⊑)$ in (\ref{eqn:abs-ex3}).
+For the concrete example, we instantiate |hat D| to |UD| in step
+(\ref{eqn:abs-ex4}) to assert that the resulting usage type indeed
+coincides with the result of |evalUsg1|, as predicted by the abstract
+interpretation theorem.
 
-To that end, the final heap |μ| is \emph{persisted} into a Galois connection
-$α_{\Domain{}}(|μ|) \rightleftarrows γ_{\Domain{}}(|μ|)$.
-The precise definition of this Galois connection is best left to the Appendix.
-Very roughly, $α_{\Domain{}}(|μ|)$ abstracts entries of concrete environments |ρ ! x|
-of the form |Step (Look y) (fetch a)| into entries of abstract environments
-|hat ρ ! x|, resolving all |fetch a| operations using entries |μ ! a| in the
-persisted heap.
-
-When the trace ends in a |Con| value, every field denotation |d| is abstracted
-via $α_{\Domain{}}(|μ|)(|d|)$.
-When the trace ends in a |Fun| value, an abstract argument denotation |hat d| is
-concretised to call the concrete function |f|, and the resulting trace is
-recursively abstracted via $α_\Traces$ afterwards.\sven{All of these details about the galois connection distract from the interesting part, the proof of theorem 6. You showed what the definition of the galois connection is in figure 11, no need to explain it in much detail. Maybe explain $\alpha_T$, because this is the unusual one. Providing an example how a set of two traces are abstracted should be sufficient.}
+The abstraction function |αD| for by-need elements |d| is a bit unusual because
+it is \emph{indexed} by a heap to give meaning to adresses referenced by |d|.
+Our framework is carefully set up in a way that |αD^(μ)| is preserved when |μ|
+is modified by memoisation ``in the future'', reminiscent of
+\citeauthor{Kripke:63}'s possible worlds.
+For similar reasons, the abstraction function for environments pairs up
+definable by-need environments |ρ|, the entries of which are of the form (|step
+Look y) (fetch a)|, with heaps |μ|.
 
 Thanks to fixing $α_{\mathcal{S}}$, we can prove the following abstraction theorem,
 corresponding to the inference rule at the begin of this subsection:
 
-\begin{theorem}[Sound By-need Interpretation]
-\label{thm:soundness-by-need}
+\begin{theorem}[Abstract By-need Interpretation]
+\label{thm:abstract-by-need}
 Let |e| be an expression, |hat D| a domain with instances for |Trace|, |Domain|, |HasBind| and
 |Lat|, and let $α_{\mathcal{S}}$ be the abstraction function from \Cref{fig:abstract-name-need}.
 If the abstraction laws in \Cref{fig:abstraction-laws} hold,
@@ -204,236 +229,336 @@ that is,
 \end{theorem}
 
 Let us unpack law $\textsc{Beta-App}$ to see how the abstraction laws in
-\Cref{fig:abstraction-laws} are to be understood\sven{Change Figure 12 to use the more general version of \textsc{BetaApp}, because we prove this more general version.}.
-For a preliminary reading, it is best to ignore the syntactic premises above
-inference lines.
-To prove $\textsc{Beta-App}$, one has to show that |forall f a x. f a ⊑ apply
-(fun x f) a| in the abstract domain |hat D|.
+\Cref{fig:abstraction-laws} are to be understood.
+To prove $\textsc{Beta-App}$, one has to show that
+|forall f a x. f a ⊑ apply (fun x f) a| in the abstract domain |hat D|.
 This states that summarising |f| through |fun|, then |apply|ing the summary to
 |a| must approximate a direct call to |f|;
 it amounts to proving correct the summary mechanism.
-%\footnote{To illustrate this point: If we were to pick dynamic |Value|s as the
-%summary as in the ``collecting semantics'' |D (ByNeed UT)|, we would not need to
-%show anything! Then |apply (return (Fun f)) a = f a|.}
 In \Cref{sec:problem}, we have proved a substitution \Cref{thm:absence-subst},
 which is a syntactic form of this statement.
-We will need a similar lemma for usage analysis below, and it is useful to
-illustrate the next point, so we prove it here:
+The ``$|f|\text{ polymorphic}$'' premise asserts that |f| is definable at
+polymorphic type |forall d. (Trace d, Domain d, HasBind d) => d -> d|, which is
+important to prove \textsc{Beta-App} (in \Cref{sec:mod-subst}).
+
+Law \textsc{Beta-Sel} states a similar property for data constructor redexes.
+Law \textsc{ByName-Bind} expresses that the abstract |bind| implementation must
+be sound for by-name evaluation, that is, it must approximate passing the least
+fixpoint |lfp| of the |rhs| functional to |body|.
+The remaining laws are congruence rules involving |step| and |stuck| as well as
+a monotonicity requirement for all involved operations.
+These laws follow the mantra ``evaluation improves approximation''; for
+example, law \textsc{Stuck-App} expresses that applying a stuck term
+or constructor evaluates to (and thus approximates) a stuck term, and
+\textsc{Stuck-Sel} expresses the same for |select| stack frames.
+In the Appendix, we show a result similar to \Cref{thm:abstract-by-need}
+for by-name evaluation which does not require the by-need specific laws
+\textsc{Step-Inc} and \textsc{Update}.
+
+Note that none of the laws mention the concrete semantics or the abstraction
+function $α_{\mathcal{S}}$.
+This is how fixing the concrete semantics and $α_{\mathcal{S}}$ pays off; the usual
+abstraction laws such as
+|αD^(μ)^(apply d a) ⊑ hat apply (αD^(μ)^(d)) (αD^(μ)(a))| further
+decompose into \textsc{Beta-App}.
+We think this is a nice advantage to our approach, because the author of
+the analysis does not need to reason about by-need heaps in order to soundly
+approximate a semantic trace property expressed via |Trace| instance!
+
+\subsection{A Modular Proof for \textsc{Beta-App}}
+\label{sec:mod-subst}
+
+In order to prove usage analysis sound in \Cref{sec:usage-sound}, we need to
+prove that |UD| satisfies the abstraction laws in \Cref{fig:abstraction-laws}.
+In particular, proving law \textsc{Beta-App} is non-trivial as it corresponds
+to the substitution \Cref{thm:absence-subst} of \Cref{sec:problem}, and
+explaining the following proof of \textsc{Beta-App} is the goal of this
+subsection:
 
 \begin{toappendix}
-\label{sec:soundness-detail}
 \begin{abbreviation}[Field access]
   |(MkUT φ' v')^.φ := φ'|, |(MkUT φ' v')^.v = v'|.
 \end{abbreviation}
-
-For concise notation, we define the following abstract substitution operation:
-
-\begin{definition}[Abstract substitution]
-  \label{defn:abs-subst-usage}
-  We call |abssubst φ x φ' := (ext φ x U0) + (φ !? x) * φ'| the
-  \emph{abstract substitution} operation on |Uses|
-  and overload this notation for |UT|, so that
-  |abssubst (MkUT φ v) x φ' := MkUT (abssubst φ x φ') v|.
-\end{definition}
-
-\begin{lemma}
-  \label{thm:abs-syn-subst-usage}
-  |eval (Lam x e `App` y) ρ = abssubst (eval e (ext ρ x (MkUT (singenv x U1) (Rep Uω)))) x ((ρ ! y) ^. φ)|.
-\end{lemma}
-
-The proof below needs to appeal to a couple of congruence lemmas about abstract
-substitution, the proofs of which would be tedious and hard to follow, hence
-they are omitted.
-These are very similar to lemmas we have proven for absence analysis (\cf
-\Cref{thm:lambda-commutes-absence}).
-\begin{lemma}
-\label{thm:push-lambda-usage}
-|evalUsg (Lam y (Lam x e `App` z)) ρ = evalUsg (Lam x (Lam y e) `App` z) ρ|.
-\end{lemma}
-\begin{lemma}
-\label{thm:push-app-usage}
-|evalUsg (Lam x e `App` y `App` z) ρ = evalUsg (Lam x (e `App` z) `App` y) ρ|.
-\end{lemma}
-\begin{lemma}
-\label{thm:push-select-usage}
-\belowdisplayskip0pt\[\begin{array}{ll}
-  \\[-2.4em]
-  & |evalUsg (Case (Lam x e `App` y) (alts (Lam x er `App` y))) (ext ρ x (ρ ! y))| \\
-= & |evalUsg (Lam x (Case e (alts er)) `App` y) ρ|.
-\end{array}\]
-\end{lemma}
-\begin{lemma}
-\label{thm:push-let-usage}
-|evalUsg (Let z (Lam x e1 `App` y) (Lam x e2 `App` y)) ρ = evalUsg (Lam x (Let z e1 e2) `App` y) ρ|.
-\end{lemma}
-
-Now we can finally prove the substitution lemma:
 \end{toappendix}
 
-\begin{lemmarep}[Substitution]
-\label{thm:usage-subst}
-|evalUsg e (ext ρ x (ρ ! y)) ⊑ evalUsg (Lam x e `App` y) ρ|.\sven{This is confusing, since we do not prove this lemma anymore. Replace this lemma by what we actually prove (Lemma 11). Specifically, start with lemma 11 and then explain how the proof works.}
+\begin{lemmarep}[Semantic substitution]
+\label{thm:usage-subst-sem}
+Let |f :: (Trace d, Domain d, HasBind d) => d -> d|, |x :: Name| and |a :: UD|.
+Then |f a ⊑ apply (fun x f) a| in |UD|.
 \end{lemmarep}
 \begin{proof}
-We need to assume that |x| is absent in the range of |ρ|.
-This is a ``freshness assumption'' relating to the identity of |x| that in
-practice is always respected by |evalUsg|.
+We instantiate the free theorem for |f|
+\[
+  \forall A, B.\
+  \forall R ⊆ A \times B.\
+  \forall (\mathit{inst_1}, \mathit{inst_2}) ∈ \mathsf{Dict}(R).\
+  \forall (d_1,d_2) ∈ R.\
+  (f_A(\mathit{inst_1})(d_1), f_B(\mathit{inst_2})(d_2)) ∈ R
+\]
+as follows
+\[\begin{array}{c}
+  A \triangleq B \triangleq |UD|, \qquad \mathit{inst_1} \triangleq \mathit{inst_2} \triangleq \mathit{inst}, \qquad d_1 \triangleq a, \qquad d_2 \triangleq \mathit{pre}(x) \\
+  R_{x,a}(d_1,d_2) \triangleq \forall g.\ d_1 = g(a) \land d_2 = g(\mathit{pre}(x)) \implies g(a) ⊑ \mathit{apply}(\mathit{fun}(x,g),a)  \\
+\end{array}\]
+and get (translated back into Haskell)
+\[
+  \inferrule
+    { (|a|,|pre x|) ∈ R_{|x|,|a|} \\ (\mathit{inst}, \mathit{inst}) ∈ \mathsf{Dict}(R_{|x|,|a|}) }
+    { (|f a|, |f (pre x)|) ∈ R_{|x|,|a|} }
+\]
+where |pre x := MkUT (singenv x U1) (Rep Uω)| defines the proxy for |x|,
+exactly as in the implementation of |fun x|, and $\mathit{inst}$ is the canonical
+instance dictionary for |UD|.
 
-Now we proceed by induction on |e| and only consider non-|stuck| cases.
+We will first apply this inference rule and then show that the goal follows from
+$(|f a|, |f (pre x)|) ∈ R_{|x|,|a|}$.
+
+To apply the inference rule, we must prove its premises.
+Before we do so, it is very helpful to eliminate the quantification over
+arbitrary |g| in the relation $R_{x,a}(d_1,d_2)$.
+To that end, we first need to factor |fun x g = abs x (g (pre x))|, where |abs|
+is defined as follows:
+\begin{spec}
+  abs x (MkUT φ v) = MkUT (ext φ x U0) (UCons (φ !? x) v)
+\end{spec}
+And we simplify $R_{|x|,|a|}(d_1,d_2)$, thus
+\begin{spec}
+  forall g. d1 = g a /\ d2 = g (pre x) ==> g a ⊑ apply (fun x g) a
+<==> {- |fun x g = abs x (g (pre x))| -}
+  forall g. d1 = g a /\ d2 = g (pre x) ==> g a ⊑ apply (abs x (g (pre x))) a
+<==> {- Use |d1 = g a| and |d2 = g (pre x)| -}
+  forall g. d1 = g a /\ d2 = g (pre x) ==> d1 ⊑ apply (abs x d2) a
+<==> {- There exists a |g| satisfying |d1 = g a| and |d2 = g (pre x)| -}
+  d1 ⊑ apply (abs x d2) a
+<==> {- Inline |apply|, |abs|, simplify -}
+  d1 ⊑ let MkUT φ v = d2 in MkUT (ext φ x U0 + (φ !? x) * a^.φ) v
+\end{spec}
+
+Note that this implies |d1^.φ !? x = U0|, because |ext φ x U0 !? x = U0|
+and |a^.φ !? x = U0| by the scoping discipline.
+
+It turns out that $R_{|x|,|a|}$ is reflexive on all |d| for which |d^.φ ?! x =
+U0|; indeed, then the inequality becomes an equality.
+(This corresponds to summarising a function that does not use its
+argument.)
+That is a fact that we need in the |stuck|, |fun|, |con| and |select| cases
+below, so we prove it here:
+\begin{spec}
+  forall d. d ⊑ MkUT (ext (d^.φ) x U0 + (d^.φ !? x) * a^.φ) (d^.v)
+<==> {- Use |(d^.φ ?! x) = U0| -}
+  forall d. d ⊑ MkUT (d^.φ) (d^.v) = d
+\end{spec}
+The last proposition is reflexivity on $⊑$.
+
+Now we prove the premises of the abstraction theorem:
 \begin{itemize}
-  \item \textbf{Case }|Var z|:
-    When |x //= z|, we have
+  \item $(|a|,|pre x|) ∈ R_{|x|,|a|}$:
+    The proposition unfolds to
     \begin{spec}
-        evalUsg (Var z) (ext ρ x (ρ ! y))
-    =   {- |x //= z| -}
-        ρ ! z
-    =   {- Refold |evalUsg| -}
-        evalUsg (Var z) (ext ρ x (prx x))
-    =   {- |((ρ ! z)^.φ) ! x = U0| -}
-        abssubst (evalUsg (Var z) (ext ρ x (prx x))) x ((ρ ! y)^.φ)
-    =   {- Definition of |evalUsg| -}
-        evalUsg (Lam x (Var z) `App` y) ρ
+      a ⊑ let MkUT φ v = pre x in MkUT (ext φ x U0 + (φ !? x) * a^.φ) v
+    <==> {- Unfold |pre|, simplify -}
+      a ⊑ MkUT (a^.φ) (Rep Uω)
     \end{spec}
-    Otherwise, we have |x = z|.
-    \begin{spec}
-        evalUsg (Var z) (ext ρ x (ρ ! y))
-    =   {- |x = y|, unfold -}
-        ρ ! y
-    ⊑   {- |v ⊑ (Rep Uω)| -}
-        MkUT ((ρ ! y)^.φ) (Rep Uω)
-    =   {- Definition of abstract substitution -}
-        abssubst (prx x) x ((ρ ! y)^.φ)
-    =   {- Refold |evalUsg| -}
-        abssubst (evalUsg (Var z) (ext ρ x (prx x))) x ((ρ ! y)^.φ)
-    =   {- Definition of |evalUsg| -}
-        evalUsg (Lam x (Var z) `App` y) ρ
-    \end{spec}
+    The latter follows from |a^.v ⊑ Rep Uω| because |Rep Uω| is the Top element.
 
-  \item \textbf{Case} |Lam z e|:
-    \begin{spec}
-        evalUsg (Lam z e) (ext ρ x (ρ ! y))
-    =   {- Unfold |evalUsg| -}
-        fun z (\d -> step App2 $ evalUsg e (ext (ext ρ x (ρ ! y)) z d))
-    =   {- Rearrange, $|x| \not= |z|$ -}
-        fun z (\d -> step App2 $ evalUsg e (ext (ext ρ z d) x (ρ ! y)))
-    ⊑   {- Induction hypothesis, $|x| \not= |z|$ -}
-        fun z (\d -> step App2 $ evalUsg (Lam x e `App` y) (ext ρ z d))
-    =   {- Refold |evalUsg| -}
-        evalUsg (Lam z (Lam x e `App` y)) ρ
-    =   {- $|x| \not= |z|$, \Cref{thm:push-lambda-usage} -}
-        evalUsg (Lam x (Lam z e) `App` y) ρ
-    \end{spec}
+  \item $(\mathit{inst}, \mathit{inst}) ∈ \mathsf{Dict}(R_{|x|,|a|})$:
+    By the relational interpretation of products, we get one subgoal per instance method.
+    \begin{itemize}
+      \item \textbf{Case |step|}.
+        Goal: $\inferrule{(|d1|,|d2|) ∈ R_{|x|,|a|}}{(|step ev d1|, |step ev d2|) ∈ R_{|x|,|a|}}$. \\
+        Assume the premise $(|d1|,|d2|) ∈ R_{|x|,|a|}$, show the goal.
+        All cases other than |ev = Look y| are trivial, because then |step ev d = d| and the goal follows by the premise.
+        So let |ev = Look y|. The goal is to show
+        \begin{spec}
+          step (Look y) d1 ⊑ let MkUT φ v = step (Look y) d2 in MkUT (ext φ x U0 + (φ !? x) * a^.φ) v
+        \end{spec}
+        We begin by unpacking the assumption $(|d1|,|d2|) ∈ R_{|x|,|a|}$ to show it:
+        \begin{spec}
+          d1 ⊑ let MkUT φ v = d2 in MkUT (ext φ x U0 + (φ !? x) * a^.φ) v
+        ==>   {- |step (Look y)| is monotonic -}
+          step (Look y) d1 ⊑ step (Look y) (MkUT (ext (d2^.φ) x U0 + (d2^.φ !? x) * a^.φ) (d2^.v))
+        <==> {- Refold |step (Look y)| -}
+          step (Look y) d1 ⊑ MkUT (ext (d2^.φ) x U0 + singenv y U1 + (d2^.φ !? x) * a^.φ) (d2^.v)
+        <==>  {- |step (Look y)| preserves value and $|x| \not= |y|$ because |y| is let-bound -}
+          step (Look y) d1 ⊑ let MkUT φ v = step (Look y) d2 in MkUT (ext φ x U0 + (φ !? x) * a^.φ) v
+        \end{spec}
 
-  \item \textbf{Case} |App e z|:
-    Consider first the case |x = z|.
-    This case is exemplary of the tedious calculation required to bring
-    the substitution outside.
-    We abbreviate |prx x := MkUT (singenv x U1) (Rep Uω)|.
-    \begin{spec}
-        evalUsg (App e z) (ext ρ x (ρ ! y))
-    =   {- Unfold |evalUsg|, |x = z| -}
-        apply (evalUsg e (ext ρ x (ρ ! y))) (ρ ! y)
-    ⊑   {- Induction hypothesis -}
-        apply (evalUsg (Lam x e `App` y) ρ) (ρ ! y)
-    =   {- Unfold |apply|, |evalUsg| -}
-        let MkUT φ v = abssubst (evalUsg e (ext ρ x (prx x))) x ((ρ ! y)^.φ) in
-        case peel v of (u,v2) -> MkUT (φ + u * ((ρ!y)^.φ)) v2
-    =   {- Unfold |abssubst| -}
-        let MkUT φ v = evalUsg e (ext ρ x (prx x)) in
-        case peel v of (u,v2) -> MkUT (ext φ x U0 + (φ !? x) * ((ρ!y)^.φ) + u * ((ρ!y)^.φ)) v2
-    =   {- Refold |abssubst| -}
-        let MkUT φ v = evalUsg e (ext ρ x (prx x)) in
-        case peel v of (u,v2) -> abssubst (MkUT (φ + u * ((prx x)^.φ)) v2) x ((ρ!y)^.φ)
-    =   {- Move out |abssubst|, refold |apply| -}
-        abssubst (apply (evalUsg e (ext ρ x (prx x))) (prx x)) x ((ρ ! y)^.φ)
-    =   {- Refold |evalUsg| -}
-        evalUsg (Lam x (App e z) `App` y) ρ
-    \end{spec}
-    When |x //= z|:
-    \begin{spec}
-        evalUsg (App e z) (ext ρ x (ρ ! y))
-    =   {- Unfold |evalUsg|, |x //= z| -}
-        apply (evalUsg e (ext ρ x (ρ ! y))) (ρ ! z)
-    ⊑   {- Induction hypothesis -}
-        apply (evalUsg (Lam x e `App` y) ρ) (ρ ! z)
-    =   {- Refold |evalUsg| -}
-        evalUsg (Lam x e `App` y `App` z) ρ
-    =   {- \Cref{thm:push-app-usage} -}
-        evalUsg (Lam x (e `App` z) `App` y) ρ
-    \end{spec}
+      \item \textbf{Case |stuck|}.
+        Goal: $(|stuck|, |stuck|) ∈ R_{|x|,|a|}$ \\
+        Follows from reflexivity, because |stuck = bottom|, and |bottom^.φ !? x = U0|.
 
-  \item \textbf{Case} |ConApp k xs|:
-    Let us concentrate on the case of a unary constructor application |xs =
-    [z]|; the multi arity case is not much different.
-    \begin{spec}
-        evalUsg (ConApp k [z]) (ext ρ x (ρ ! y))
-    =   {- Unfold |evalUsg| -}
-        foldl apply (MkUT emp (Rep Uω)) [(ext ρ x (ρ ! y)) ! z]
-    ⊑   {- Similar to |Var| case -}
-        foldl apply (MkUT emp (Rep Uω)) [abssubst ((ext ρ x (prx x)) ! z) x ((ρ ! y)^.φ)]
-    =   {- |x| dead in |MkUT emp (Rep Uω)|, push out substitution -}
-        abssubst (foldl apply (MkUT emp (Rep Uω)) [(ext ρ x (prx x)) ! z]) x ((ρ ! y)^.φ)
-    =   {- Refold |evalUsg| -}
-        evalUsg (Lam x (ConApp k [z]) `App` y) ρ
-    \end{spec}
+      \item \textbf{Case |fun|}.
+        Goal: $\inferrule{\forall (|d1|,|d2|) ∈ R_{|x|,|a|} \implies (|f1 d1|, |f2 d2|) ∈ R_{|x|,|a|}}{(|fun y f1|, |fun y f2|) ∈ R_{|x|,|a|}}$. \\
+        Additionally, we may assume $|x| \not= |y|$ by lexical scoping.
 
-  \item \textbf{Case} |Case e alts|:
-    We concentrate on the single alternative |er|, single field binder |z| case.
-    \begin{spec}
-        evalUsg (Case e (singenv k ([z], er))) (ext ρ x (ρ ! y))
-    =   {- Unfold |evalUsg|, |step Case2 = id| -}
-        select (evalUsg e (ext ρ x (ρ ! y))) (singenv k (\[d] -> evalUsg er (ext (ext ρ x (ρ ! y)) z d)))
-    =   {- Unfold |select| -}
-        evalUsg e (ext ρ x (ρ ! y)) >> evalUsg er (ext (ext ρ x (ρ ! y)) z (MkUT emp (Rep Uω)))
-    ⊑   {- Induction hypothesis -}
-        evalUsg (Lam x e `App` y) ρ >> evalUsg (Lam x er `App` y) (ext ρ z (MkUT emp (Rep Uω)))
-    =   {- Refold |select|, |evalUsg| -}
-        evalUsg (Case (Lam x e `App` y) alts) (ext ρ x (ρ ! y))
-    =   {- Refold |select|, |evalUsg| -}
-        evalUsg (Case (Lam x e `App` y) (singenv k ([z], Lam x er `App` y))) (ext ρ x (ρ ! y))
-    =   {- \Cref{thm:push-select-usage} -}
-        evalUsg (Lam x (Case e (singenv k ([z], er))) `App` y) ρ
-    \end{spec}
+        Now assume the premise. The goal is to show
+        \begin{spec}
+          fun y f1 ⊑ let MkUT φ v = fun y f2 in MkUT (ext φ x U0 + (φ !? x) * a^.φ) v
+        \end{spec}
 
-  \item \textbf{Case} |Let|:
-    \begin{spec}
-        evalUsg (Let z e1 e2) (ext ρ x (ρ ! y))
-    =   {- Unfold |evalUsg| -}
-        bind  (\d1 -> evalUsg e1 (ext (ext ρ x (ρ ! y)) z (step (Look z) d1)))
-              (\d1 -> step Let1 (evalUsg e2 (ext (ext ρ x (ρ ! y)) z (step (Look z) d1))))
-    =   {- Induction hypothesis; note that |x| is absent in |ρ| and thus the fixpoint -}
-        bind  (\d1 -> evalUsg (Lam x e1 `App` y) (ext z (step (Look z) d1)))
-              (\d1 -> step Let1 (evalUsg (Lam x e2 `App` y) (ext z (step (Look z) d1))))
-    =   {- Refold |evalUsg| -}
-        evalUsg (Let z (Lam x e1 `App` y) (Lam x e1 `App` y)) ρ
-    =   {- \Cref{thm:push-let-usage} -}
-        evalUsg (Lam x (Let z e1 e2) `App` y) ρ
-    \end{spec}
+        Recall that |fun y f = abs y (f (pre y))| and that |abs y| is monotonic.
+
+        Note that we have $(|pre y|, |pre y|) ∈ R_{|x|,|a|}$ because of $|x| \not= |y|$ and reflexivity.
+        That in turn yields $(|f1 (pre y), f2 (pre y)|) ∈ R_{|x|,|a|}$ by assumption.
+        This is useful to kickstart the following proof, showing the goal:
+        \begin{spec}
+          f1 (pre y) ⊑ let MkUT φ v = f2 (pre y) in MkUT (ext φ x U0 + (φ !? x) * a^.φ) v
+        ==>   {- Monotonicity of |abs y| -}
+          abs y (f1 (pre y)) ⊑ abs y (let MkUT φ v = f2 (pre y) in MkUT (ext φ x U0 + (φ !? x) * a^.φ) v)
+        <==>  {- $|x| \not= |y|$ and |a^.φ !? y = U0| due to scoping, |φ !? x| unaffected by floating |abs| -}
+          abs y (f1 (pre y)) ⊑ let MkUT φ v = abs y (f2 (pre y)) in MkUT (ext φ x U0 + (φ !? x) * a^.φ) v
+        <==>  {- Rewrite |abs y (f (pre y)) = fun y f| -}
+          fun y f1 ⊑ let MkUT φ v = fun y f2 in MkUT (ext φ x U0 + (φ !? x) * a^.φ) v
+        \end{spec}
+
+      \item \textbf{Case |apply|}.
+        Goal: $\inferrule{(|l1|,|l2|) ∈ R_{|x|,|a|} \\ (|r1|,|r2|) ∈ R_{|x|,|a|}}{(|apply l1 r1|, |apply l2 r2|) ∈ R_{|x|,|a|}}$. \\
+        Assume the premises. The goal is to show
+        \begin{spec}
+          apply l1 r1 ⊑ let MkUT φ v = apply l2 r2 in MkUT (ext φ x U0 + (φ !? x) * a^.φ) v
+        \end{spec}
+
+        \begin{spec}
+          apply l1 r1
+        ⊑  {- |l1 ⊑ apply (abs x l2)|, |r2 ⊑ apply (abs x r2)|, monotonicity -}
+          apply  (let MkUT φ v = l2 in MkUT (ext φ x U0 + (φ !? x) * a^.φ) v)
+                 (let MkUT φ v = r2 in MkUT (ext φ x U0 + (φ !? x) * a^.φ) v)
+        ⊑  {- Componentwise, see below -}
+          let MkUT φ v = apply l2 r2 in MkUT (ext φ x U0 + (φ !? x) * a^.φ) v
+        \end{spec}
+
+        For the last step, we show the inequality for |φ| and |v| independently.
+        For values, it is easy to see by calculation that the value is
+        |v := snd (peel l2^.v)| in both cases.
+        The proof for the |Uses| component is quite algebraic;
+        we will abbreviate |u := fst (peel l2^.v)|:
+        \begin{spec}
+          (apply  (let MkUT φ v = l2 in MkUT (ext φ x U0 + (φ !? x) * a^.φ) v)
+                  (let MkUT φ v = r2 in MkUT (ext φ x U0 + (φ !? x) * a^.φ) v))^.φ
+        =  {- Unfold |apply| -}
+          ext (l2^.φ) x U0 + (l2^.φ !? x) * a^.φ + u * (ext (r2^.φ) x U0 + (r2^.φ !? x) * a^.φ)
+        =  {- Distribute |u * (φ1 + φ2) = u*φ1 + u*φ2| -}
+          ext (l2^.φ) x U0 + (l2^.φ !? x) * a^.φ + u * ext (r2^.φ) x U0 + u * (r2^.φ !? x) * a^.φ
+        =  {- Commute -}
+          ext (l2^.φ) x U0 + u * ext (r2^.φ) x U0 + (l2^.φ !? x) * a^.φ + u * (r2^.φ !? x) * a^.φ
+        =  {- |ext φ1 x U0 + ext φ2 x U0 = ext (φ1 + φ2) x U0|, |u*φ1 + u*φ2 = u * (φ1+φ2)| -}
+          ext (l2^.φ + u * r2^.φ) x U0 + ((l2^.φ + u * r2^.φ) !? x) * a^.φ
+        =  {- Refold |apply| -}
+          let MkUT φ _ = apply l2 r2 in ext φ x U0 + (φ !? x) * a^.φ
+        \end{spec}
+
+      \item \textbf{Case |con|}.
+        Goal: $\inferrule{\many{(|d1|,|d2|) ∈ R_{|x|,|a|}}}{(|con k (many d1)|, |con k (many d2)|) ∈ R_{|x|,|a|}}$. \\
+        We have shown that |apply| is compatible with $R_{|x|,|a|}$, and |foldl|
+        is so as well by parametricity.
+        The field denotations |many d1| and |many d2| satisfy $R_{|x|,|a|}$ by
+        assumption; hence to show the goal it is sufficient to show that
+        $(|MkUT emp (Rep Uω)|, |MkUT emp (Rep Uω)|) ∈ R_{|x|,|a|}$.
+        And that follows by reflexivity since |emp ?! x = U0|.
+
+      \item \textbf{Case |select|}.
+        Goal: $\inferrule{(|d1|,|d2|) ∈ R_{|x|,|a|} \\ (|fs1|,|fs2|) ∈ |Tag :-> ([Rxa] -> Rxa)|}{(|select d1 fs1|, |select d2 fs2|) ∈ R_{|x|,|a|}}$. \\
+        Similar to the |con| case, large parts of the implementation are
+        compatible with |Rxa| already.
+        With $(|MkUT emp (Rep Uω)|, |MkUT emp (Rep Uω)|) ∈ R_{|x|,|a|}$ proved
+        in the |con| case, it remains to be shown that |lub :: [UD] -> UD| and
+        |(>>) :: UD -> UD -> UD| preserve |Rxa|.
+        The proof for |(>>)| is very similar to but simpler than the |apply|
+        case, where a subexpression similar to |MkUT (φ1 + φ2) b| occurs.
+        The proof for |lub| follows from the proof for the least upper bound
+        operator |⊔|.
+
+        So let |(l1,l2), (r1,r2) ∈ Rxa| and show that |(l1 ⊔ r1, l2 ⊔ r2) ∈ Rxa|.
+        The assumptions imply that |l1^.v ⊑ l2^.v| and |r1^.v ⊑ r2^.v|, so
+        |(l1 ⊔ r1)^.v ⊑ (l2 ⊔ r2)^.v| follows by properties of least upper bound operators.
+
+        Let us now consider the |Uses| component.
+        The goal is to show
+        \begin{spec}
+          (l1 ⊔ r1)^.φ ⊑ (let MkUT φ v = l2 ⊔ r2 in MkUT (ext φ x U0 + (φ !? x) * a^.φ) v)^.φ
+        \end{spec}
+
+        For the proof, we need the algebraic identity |forall a b c d. a + c ⊔
+        b + d ⊑ a ⊔ b + c ⊔ d| in |U|.
+        This can be proved by exhaustive enumeration of all 81 cases; the
+        inequality is proper when |a = d = U1| and |b = c = U0| (or vice versa).
+        Thus we conclude the proof:
+        \begin{spec}
+          (l1 ⊔ r1)^.φ = l1^.φ ⊔ r1^.φ
+        =  {- By assumption, |l1 ⊑ apply (abs x l2)| and |r1 ⊑ apply (abs x r2)|; monotonicity -}
+          (ext (l2^.φ) x U0 + (l2^.φ !? x) * a^.φ) ⊔ (ext (r2^.φ) x U0 + (r2^.φ !? x) * a^.φ)
+        ⊑  {- Follows from |forall a b c d. a + c ⊔ b + d ⊑ a ⊔ b + c ⊔ d| in |U| -}
+          (ext (l2^.φ) x U0 ⊔ ext (r2^.φ) x U0) + ((l2^.φ !? x)*a^.φ ⊔ (r2^.φ !? x)*a^.φ)
+        =  {- |ext φ1 x U0 ⊔ ext φ2 x U0 = ext (φ1 ⊔ φ2) x U0| -}
+          ext ((l2 ⊔ r2)^.φ) x U0 + ((l2 ⊔ r2)^.φ !? x) * a^.φ
+        =  {- Refold |MkUT φ v| -}
+          (let MkUT φ v = l2 ⊔ r2 in MkUT (ext φ x U0 + (φ !? x) * a^.φ) v)^.φ
+        \end{spec}
+
+      \item \textbf{Case |bind|}.
+        Goal: $\inferrule{\forall (|d1|,|d2|) ∈ R_{|x|,|a|} \implies (|f1 d1|, |f2 d2|), (|g1 d1|, |g2 d2|) ∈ R_{|x|,|a|}}{(|bind f1 g1|, |bind f2 g2|) ∈ R_{|x|,|a|}}$. \\
+        By the assumptions, the definition |bind f g = g (kleeneFix f)|
+        preserves |Rxa| if |kleeneFix| does.
+        Since |kleeneFix :: Lat a => (a -> a) -> a| is parametric, it suffices
+        to show that the instance of |Lat| preserves |Rxa|.
+        We have already shown that |⊔| preserves |Rxa|, and we have also shown
+        that |stuck = bottom| preserves |Rxa|.
+        Hence we have shown the goal.
+
+        In \Cref{sec:usage-analysis}, we introduced a widening operator
+        |widen :: UD -> UD| to the definition of |bind|, that is, we defined
+        |bind rhs body = body (kleeneFix (widen . rhs))|.
+        For such an operator, we would additionally need to show that |widen|
+        preserves |Rxa|.
+        Since the proposed cutoff operator in \Cref{sec:usage-analysis} only
+        affects the |UValue| component, the only proof obligation is to show
+        monotonicity:
+        |forall d1 d2. d1^.v ⊑ d2^.v ==> (widen d1)^.v ⊑ (widen d2)^.v|.
+        This is a requirement that our our widening operator must satisfy anyway.
+    \end{itemize}
 \end{itemize}
+
+This concludes the proof that $(|f a|, |f (pre x)|) ∈ R_{|x|,|a|}$.
+What remains to be shown is that this implies the overall goal
+|f a ⊑ apply (fun x f) a|:
+\begin{spec}
+  (f a, f (pre x)) ∈ Rxa
+<==>  {- Definition of |Rxa| -}
+  f a ⊑ let MkUT φ v = f (pre x) in MkUT (ext φ x U0 + (φ !? x) * a^.φ) v
+<==>  {- refold |apply|, |fun| -}
+  f a ⊑ apply (fun x f) a
+\end{spec}
 \end{proof}
 
-In order to apply this lemma in step $⊑$ below, it is important that the
-premise provides the \emph{strongest characterisation} of |f| in terms of the
-syntactic definition |f d := step App2 (evalD UD e (ext ρ x d))|.
-Then we get, for |a := ρ ! y :: UD|,
-\begin{equation}
-  \label{eqn:usage-beta-app}
-  \hspace{-1ex}
-  |f a = step App2 (evalD UD e (ext ρ x a)) = evalD UD e (ext ρ x a) ⊑ evalD UD (Lam x e `App` y) ρ = apply (fun x f) a|
-\end{equation}
-Without the syntactic premise of \textsc{Beta-App} to rule out undefinable
-entities in |UD -> UD|, the rule cannot be proved for usage analysis; we give a counterexample
-in the Appendix (\Cref{ex:syntactic-beta-app}).%
-\footnote{Finding domains where all entities $d$ are definable is the classic full
-abstraction problem~\citep{Plotkin:77}.}
-We discuss concerns of proof modularity in \Cref{sec:mod-sound}.
+Before we discuss this new proof, note that the proof for
+\Cref{thm:absence-subst} has a serious drawback: It relies on knowing the
+complete definition of $\semabs{\wild}$ and thus is \emph{non-modular}.
+As a result, the proof complexity scales in the size of the interpreter, and
+whenever the definition of $\semabs{\wild}$ changes, \Cref{thm:absence-subst}
+must be updated.
+The complexity of such non-modular proofs would become unmanageable for large
+denotational interpreters such as for WebAssembly~\citep{Brandl:23}.
+
+The new proof for \textsc{Beta-App}, dubbed \emph{semantic substitution}, fares
+much better because it does not reference the interpreter definition |eval|
+\emph{at all}.
+Instead, its complexity scales with the number of operations supported in the
+\emph{semantic domain} of the interpreter for a much more \emph{modular} proof.
+This modular proof appeals to parametricity~\citep{Reynolds:83} of |f|'s
+polymorphic type |forall d. (Trace d, Domain d, HasBind d) => d -> d|.
+Of course, any function defined by the generic interpreter satisfies this
+requirement.
+Without the premise of \textsc{Beta-App}, the law cannot be proved
+for usage analysis; we give a counterexample in the Appendix
+(\Cref{ex:syntactic-beta-app}).
 
 \begin{toappendix}
-The following example shows why we need syntactic premises in \Cref{fig:abstraction-laws}.
-It defines a monotone, but non-syntactic |f :: UD -> UD| for which
+The following example shows why we need the ``polymorphic'' premises in
+\Cref{fig:abstraction-laws}.
+It defines a monotone, but non-polymorphic |f :: UD -> UD| for which
 |f a {-" \not⊑ "-} apply (fun x f) a|.
-So if we did not have the syntactic premises, we would not be able to prove usage
-analysis correct.
+So if we did not have the premises, we would not be able to prove usage analysis
+correct.
 \begin{example}
 \label{ex:syntactic-beta-app}
 Let |z //= x //= y|.
@@ -452,47 +577,56 @@ To see that, let |a := MkUT (singenv y U1) (Rep Uω) :: UD| and consider
 \end{example}
 \end{toappendix}
 
-Rule \textsc{Beta-Sel} states a similar substitution property for data
-constructor redexes, which is why it needs to duplicate much of the |cont|
-function in \Cref{fig:eval} into its premise.
-Rule \textsc{Bind-ByName} expresses that the abstract |bind| implementation must
-be sound for by-name evaluation, that is, it must approximate passing the least
-fixpoint |lfp| of the |rhs| functional to |body|.
-%\footnote{We expect that for sound by-value abstraction it suffices to replace
-%\textsc{Bind-ByName} with a law \textsc{Bind-ByValue} mirroring the |bind|
-%instance of |ByValue|, but have not attempted a formal proof.}
-The remaining rules are congruence rules involving |step| and |stuck| as well as
-a monotonicity requirement for all involved operations.
-These rules follow the mantra ``evaluation improves approximation''; for example,
-rule \textsc{Intro-Stuck} expresses that applying a constructor or scrutinising
-a function evaluates to (and thus approximates) a stuck term, and
-\textsc{Unwind-Stuck} expresses that stuckness unwinds through |apply| and
-|select| stack frames.
-In the Appendix, we show a result similar to \Cref{thm:soundness-by-need}
-for by-name evaluation which does not require the by-need specific rules
-\textsc{Step-Inc} and \textsc{Update}.
-
-Note that none of the laws mention the concrete semantics or the abstraction
-function $α_{\mathcal{S}}$.
-This is how fixing the concrete semantics and $α_{\mathcal{S}}$ pays off; the usual
-abstraction laws such as
-$α(|apply d a|) ⊑ |hat apply ({-" α "-} (d)) ({-" α "-} (a))|$ further
-decompose for $α = α_{\mathcal{S}}$ into \textsc{Beta-App}.
-We think this is a nice advantage to our approach, because the author of
-the analysis does not need to reason about the concrete semantics in order to
-soundly approximate a semantic trace property expressed via |Trace| instance!
+To prove \Cref{thm:usage-subst-sem}, we encode |f|'s type in System $F$
+as $f : \forall X.\ \mathsf{Dict}(X) \to X \to X$ (where $\mathsf{Dict}(|d|)$
+encodes the type class dictionaries of |(Trace d, Domain d, HasBind d)|) and
+derive the following free theorem:
+\[
+  \forall A, B.\
+  \forall R ⊆ A \times B.\
+  \forall (\mathit{inst_1}, \mathit{inst_2}) ∈ \mathsf{Dict}(R).\
+  \forall (d_1,d_2) ∈ R.\
+  (f_A(\mathit{inst_1})(d_1), f_B(\mathit{inst_2})(d_2)) ∈ R
+\]
+%$\mathsf{Dict}(R)$ here means that the related type class methods preserve $R$.
+The key to making use of parametricity is to find a useful instantiation of this
+theorem, of relation $R$ in particular.
+We successfully proved \textsc{Beta-App} with the following instantiation:
+\[\begin{array}{c}
+  A \triangleq B \triangleq |UD|, \qquad \mathit{inst_1} \triangleq \mathit{inst_2} \triangleq \mathit{inst}, \qquad d_1 \triangleq a, \qquad d_2 \triangleq \mathit{pre}(x) \\
+  R_{x,a}(d_1,d_2) \triangleq \forall g.\ d_1 = g(a) \land d_2 = g(\mathit{pre}(x)) \implies g(a) ⊑ \mathit{apply}(\mathit{fun}(x,g),a)  \\
+\end{array}\]
+where $\mathit{pre}(x) \triangleq |MkUT (singenv x U1) (Rep Uω)|$ is the
+argument that the implementation of |fun x f| passes to |f| and $\mathit{inst}$ is
+the canonical instance dictionary at |UD|.
+This yields the following inference rule:
+\[
+\inferrule[]
+  { a ⊑ \mathit{apply}(\mathit{fun}(x,\mathit{id}),a)
+  \\ (\mathit{inst},\mathit{inst}) ∈ \mathsf{Dict}(R_{x,a})}
+  { f_|UD|(\mathit{inst})(a) ⊑ \mathit{apply}(\mathit{fun}(x,f_|UD|(\mathit{inst})),a) }
+\]
+where $(\mathit{inst},\mathit{inst}) ∈ \mathsf{Dict}(R_{x,a})$ entails showing
+one lemma per type class method, such as
+\[
+  \forall f_1,f_2.\ (\forall d_1,d_2.\ R_{x,a}(d_1,d_2) \implies R_{x,a}(f_1(d_1),f_2(d_2))) \implies R_{x,a}(\mathit{fun}(f_1),\mathit{fun}(f_2)).
+\]
+Proving each of these 7+1 lemmas concludes the proof of \Cref{thm:usage-subst-sem}.
+Next, we will use \Cref{thm:usage-subst-sem} to instantiate
+\Cref{thm:abstract-by-need} for usage analysis.
 
 \subsection{A Much Simpler Proof That Usage Analysis Infers Absence}
+\label{sec:usage-sound}
 
-Equipped with the generic soundness \Cref{thm:soundness-by-need},
+Equipped with the generic soundness \Cref{thm:abstract-by-need},
 we will prove in this subsection that usage analysis from \Cref{sec:abstraction}
 infers absence in the same sense as absence analysis from \Cref{sec:problem}.
 The reason we do so is to evaluate the proof complexity of our approach against
 the preservation-style proof framework in \Cref{sec:problem}.
 
-Specifically, \Cref{thm:soundness-by-need} makes it very simple to relate
-by-need semantics with usage analysis, taking the place of the absence
-analysis-specific preservation \Cref{thm:preserve-absent}:
+Specifically, \Cref{thm:abstract-by-need} makes it very simple to relate
+by-need semantics with usage analysis, taking the place of the
+absence-analysis-specific preservation \Cref{thm:preserve-absent}:
 
 \begin{corollaryrep}[|evalUsg1| abstracts |evalNeed1|]
 \label{thm:usage-abstracts-need}
@@ -501,22 +635,22 @@ Let |e| be an expression and $α_{\mathcal{S}}$ the abstraction function from
 Then $α_{\mathcal{S}}(|evalNeed1 e|) ⊑ |evalUsg1 e|$.
 \end{corollaryrep}
 \begin{proof}
-By \Cref{thm:soundness-by-need}, it suffices to show the abstraction laws
+By \Cref{thm:abstract-by-need}, it suffices to show the abstraction laws
 in \Cref{fig:abstraction-laws}.
 \begin{itemize}
   \item \textsc{Mono}:
     Always immediate, since |⊔| and |+| are the only functions matching on |U|,
     and these are monotonic.
-  \item \textsc{Unwind-Stuck}, \textsc{Intro-Stuck}:
+  \item \textsc{Stuck-App}, \textsc{Stuck-Sel}:
     Trivial, since |stuck = bottom|.
   \item \textsc{Step-App}, \textsc{Step-Sel}, \textsc{Step-Inc}, \textsc{Update}:
     Follows by unfolding |step|, |apply|, |select| and associativity of |+|.
   \item \textsc{Beta-App}:
-    Follows from \Cref{thm:usage-subst}; see \Cref{eqn:usage-beta-app}.
+    Follows from \Cref{thm:usage-subst-sem}.
   \item \textsc{Beta-Sel}:
     Follows by unfolding |select| and |con| and applying a lemma very similar to
-    \Cref{thm:usage-subst} multiple times.
-  \item \textsc{Bind-ByName}:
+    \Cref{thm:usage-subst-sem} multiple times.
+  \item \textsc{ByName-Bind}:
     |kleeneFix| approximates the least fixpoint |lfp| since the iteratee |rhs|
     is monotone.
     We have said elsewhere that we omit a widening operator for |rhs| that
@@ -636,7 +770,7 @@ The final step is just algebra.
 
 \subsection{Evaluation}
 
-Let us compare to the preservation-style proof framework in \Cref{sec:problem}.\sven{This needs to go into more detail how our \textsc{BetaApp} proof is simpler than a substition lemma: Our proof is over semantic operation, whereas a substitution lemma is over syntax of the language. The latter is more complicated because it involes a recursive fixpoint semantics, whereas our proof solely relates a number of simpler semantic operations.}
+Let us compare to the preservation-style proof framework in \Cref{sec:problem}.
 \begin{itemize}
   \item
     Where there were multiple separate \emph{semantic artefacts} such as a separate
@@ -652,11 +786,19 @@ Let us compare to the preservation-style proof framework in \Cref{sec:problem}.\
     \Cref{thm:usage-abstracts-need} in half a page (we encourage the
     reader to take a look) replaces a tedious, error-prone and incomplete
     \emph{proof for the preservation lemma}.
-    Of course, we lean on \Cref{thm:soundness-by-need} to prove what
+    Of course, we lean on \Cref{thm:abstract-by-need} to prove what
     amounts to a preservation lemma; the difference is that our proof properly
     accounts for heap update and can be shared with other analyses that are
     sound \wrt by-name and by-need.
     Thus, we achieve our goal of proving semantic distractions ``once and for all''.
+  \item
+    Furthermore, the proof for \Cref{thm:usage-abstracts-need} is
+    \emph{modular} because \Cref{thm:usage-subst-sem} appeals to
+    parametricity, in constrast to \Cref{thm:absence-subst}.
+    More work needs to be done to achieve a modular proof of
+    the underlying \Cref{thm:abstract-by-need}, however.
+    The (omitted) proof for abstract by-\textbf{name} interpretation in the
+    Appendix (\Cref{thm:abstract-by-name}) is already modular.
 \end{itemize}
 
 \begin{toappendix}
@@ -723,6 +865,40 @@ fillC (UpdateHeap x ectxt e1) e2  = Let x (fillC ectxt e1) e2
 \end{lemma}
 \begin{proof}
   By induction on |e|.
+\end{proof}
+
+For concise notation, we define the following abstract substitution operation:
+
+\begin{definition}[Abstract substitution]
+  \label{defn:abs-subst-usage}
+  We call |abssubst φ x φ' := (ext φ x U0) + (φ !? x) * φ'| the
+  \emph{abstract substitution} operation on |Uses|
+  and overload this notation for |UT|, so that
+  |abssubst (MkUT φ v) x φ' := MkUT (abssubst φ x φ') v|.
+\end{definition}
+
+From \Cref{thm:usage-subst-sem}, we can derive the following auxiliary lemma:
+\begin{lemma}
+  \label{thm:usage-subst-abs}
+  If |x| does not occur in |ρ|, then
+  |evalUsg e (ext ρ x d) ⊑ abssubst (evalUsg e (ext ρ x (MkUT (singenv x U1) (Rep Uω)))) x (d^.φ)|.
+\end{lemma}
+\begin{proof}
+  Define |f (hat d) := evalUsg e (ext ρ x (hat d))| and |a := d|.
+  Note that |f| could be defined polymorphically as
+  |f d = eval e (ext ρ x d)|, for suitably polymorphic |ρ|.
+  Furthermore, |x| could well be lambda-bound, since it does not occur in the
+  range of |ρ| (and that is really what we need).
+  Hence we may apply \Cref{thm:usage-subst-sem} to get
+  \begin{spec}
+    evalUsg e (ext ρ x d)
+  ⊑   {- \Cref{thm:usage-subst-sem} -}
+    apply (fun x (\(hat d) -> evalUsg e (ext ρ x (hat d)))) d
+  =   {- Inline |apply|, |fun| -}
+    let MkUT φ v = evalUsg e (ext ρ x (MkUT (singenv x U1) (Rep Uω))) in MkUT (ext φ x U0 + (φ !? x) * d^.φ) v
+  =   {- Refold |abssubst| -}
+    abssubst (evalUsg e (ext ρ x (MkUT (singenv x U1) (Rep Uω)))) x d^.φ
+  \end{spec}
 \end{proof}
 
 \begin{lemma}[Context closure]
@@ -794,7 +970,7 @@ By induction on the size of |ectxt| and cases on |ectxt|:
         (evalUsg (Let y e1 (fillC ectxt e)) ρE)^.φ !? x
     =   {- Definition of |evalUsg| -}
         (evalUsg (fillC ectxt e) (ext ρE y (step (Look y) (kleeneFix (\d -> evalUsg e1 (ext ρE y (step (Look y) d)))))))^.φ !? x
-    ⊑   {- Abstract substitution; \Cref{thm:usage-subst} -}
+    ⊑   {- Abstract substitution; \Cref{thm:usage-subst-abs} -}
         (abssubst (evalUsg (fillC ectxt e) (ext ρE y (MkUT (singenv y U1) (Rep Uω)))) y (
           step (Look y) (kleeneFix (\d -> evalUsg e1 (ext ρE y (step (Look y) d)))))) ^.φ !? x
     =   {- Unfold |abssubst|, |(MkUT φ v)^.φ = φ| -}
@@ -818,7 +994,7 @@ By induction on the size of |ectxt| and cases on |ectxt|:
         (evalUsg (Let y (fillC ectxt e) e1) ρE)^.φ !? x
     =   {- Definition of |evalUsg| -}
         (evalUsg e1 (ext ρE y (step (Look y) (kleeneFix (\d -> evalUsg (fillC ectxt e) (ext ρE y (step (Look y) d)))))))^.φ !? x
-    ⊑   {- Abstract substitution; \Cref{thm:usage-subst} -}
+    ⊑   {- Abstract substitution; \Cref{thm:usage-subst-abs} -}
         (abssubst (evalUsg e1 (ext ρE y (MkUT (singenv y U1) (Rep Uω)))) y (
           step (Look y) (kleeneFix (\d -> evalUsg (fillC ectxt e) (ext ρE y (step (Look y) d)))))) ^.φ !? x
     =   {- Unfold |abssubst|, |(MkUT φ v)^.φ = φ| -}

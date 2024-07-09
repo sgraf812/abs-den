@@ -13,6 +13,7 @@ analysis}~\citep{SPJ:94}, a higher-order form of neededness analysis to inform
 removal of dead bindings in a compiler.
 
 \subsection{Object Language}
+\label{sec:lang}
 
 To set the stage, we start by defining the object language of this work, an
 untyped lambda calculus with \emph{recursive} let bindings and algebraic data
@@ -801,7 +802,7 @@ By cases on the transition.
     derivation) of the trace $σ' \smallstep^* σ_1$ to show \Cref{eqn:absent-upd}.
 
     This reasoning was not specific to $\semabs{\wild}$ at all.
-    We will show a more general result in Lemma \labelcref{thm:memo-improves}
+    We will show a more general result in \Cref{thm:abstract-by-name}
     that can be reused across many more analyses.
 
     Assuming \Cref{eqn:absent-upd} has been proved, we proceed
@@ -927,7 +928,7 @@ it, is enormous.
     information in step (3), we noticed that we actually got stuck in the $\UpdateT$
     case, and would need to redo the proof using step-indexing~\citep{AppelMcAllester:01}.
     This case hides the thorniest of surprises; at least that was
-    our experience while proving \Cref{thm:eval-preserves-need} which gives a
+    our experience while proving \Cref{thm:abstract-by-need} which gives a
     proper account.
 
     Although the proof in \citet{Sergey:14} is perceived as detailed and
@@ -975,7 +976,7 @@ $\semabs{\wild}$, as suggested above) demonstrates that we can
 our semantics.
 Since both semantics and analysis are derived from the same compositional
 generic interpreter, the equivalent of the preservation proof for usage analysis
-in \Cref{thm:usage-abstracts-need-closed} takes no more than a substitution
+in \Cref{thm:usage-abstracts-need} takes no more than a substitution
 lemma and a bit of plumbing.
 Hence our \emph{denotational interpreter} does not only enjoy useful
 compositional semantics and analyses as instances, the soundness proofs become

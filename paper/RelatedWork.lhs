@@ -119,13 +119,14 @@ least.
 Our solution delegates this complexity to the underlying theory of guarded
 recursive type theory~\citep{tctt}.
 
-We deliberately tried to provide a simple framework and thus stuck to cartesian
-(\ie pointwise) abstraction of environments as in \citet[Chapter
-27]{Cousot:21}, but we expect relational abstractions to work just as well.
-Our generic denotational interpreter is a higher-order generalisation of the
-generic abstract interpreter in \citet[Chapter 21]{Cousot:21}.
-Our abstraction laws in \Cref{fig:abstraction-laws} correspond to Definition 27.1
-and \Cref{thm:soundness-by-need-closed} to Theorem 27.4.
+% TODO: Comment back in for final version
+%We deliberately tried to provide a simple framework and thus stuck to cartesian
+%(\ie pointwise) abstraction of environments as in \citet[Chapter
+%27]{Cousot:21}, but we expect relational abstractions to work just as well.
+%Our generic denotational interpreter is a higher-order generalisation of the
+%generic abstract interpreter in \citet[Chapter 21]{Cousot:21}.
+%Our abstraction laws in \Cref{fig:abstraction-laws} correspond to Definition 27.1
+%and \Cref{thm:abstract-by-need} to Theorem 27.4.
 
 \subsubsection*{Abstractions of Reachable States}
 CFA~\citep{Shivers:91} computes a useful control-flow graph abstraction for
@@ -158,9 +159,9 @@ The trace transformers of \Cref{sec:interp} enable reuse along a different dimen
 %as well.
 
 A big advantage of the big-step framework of \citet{Keidel:18} is that
-soundness proofs are modular in the sense of \Cref{sec:mod-sound}.
+soundness proofs are modular in the sense of \Cref{sec:mod-subst}.
 In the future, we hope to modularise the proof for
-\Cref{thm:soundness-by-need-closed}.
+\Cref{thm:abstract-by-need}.
 
 \subsubsection*{Summaries of Functionals \vs Call Strings}
 \citet{Lomet:77} used procedure summaries to capture aliasing effects,
@@ -218,7 +219,7 @@ the Glasgow Haskell Compiler.
 We intend to use our framework to describe improvements to Demand Analysis in
 the future.
 A soundness proof would require a slightly different Galois connection than
-\Cref{fig:name-need-gist}, because Demand Analysis is not sound \wrt by-name
+\Cref{fig:abstract-name-need}, because Demand Analysis is not sound \wrt by-name
 evaluation; a testament to its precision.
 
 

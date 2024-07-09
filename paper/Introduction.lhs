@@ -30,8 +30,6 @@ up'' and the soundness proof is relatively straightforward.
 Indeed, one can often break up the proof into manageable sub goals by regarding
 the analysis as an \emph{abstract interpretation} of the compositional
 semantics~\citep{Cousot:21}.
-%particularly when the abstract operations of the
-%analysis correspond to concrete operations in the semantics.
 
 Alas, traditional denotational semantics does not model operational details --
 and yet those details might be the whole point of the analysis.
@@ -53,13 +51,6 @@ Now we have two unappealing alternatives:
   approach~\citep{SharirPnueli:78}, reanalysing function bodies at call sites.
   Hence the new analysis becomes non-modular, leading to scalability problems
   for a compiler.
-  %\slpj{It's hard
-  %to understand this critique.  Better: ``Reimagine and reimplement the analysis as an abstraction of the
-  %reachable states of an operational semantics.  Now the analysis and semantics
-  %``line up'' again, so the soundness proof is relatively simple.  Alas, this
-  %approach has significant shortcomings that we outline in \Cref{blah}''.}
-  %\sg{Better? I think that connecting reanalysing function bodies with modularity
-  %is pretty succinct and convincing.}
 \end{itemize}
 
 In this paper, we resolve the tension by exploring \emph{denotational

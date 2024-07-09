@@ -250,10 +250,12 @@ Otherwise, |d = Ret v| for some |v :: Value|.
 \end{spec}
 \end{proof}
 
-What follows is the sound abstraction proof by parametricity:
+What follows is the sound abstraction proof by parametricity.
+Note that its statement fixes the interpreter to |eval|, however the proof would
+still work if generalised to \emph{any} definition with the same type as |eval|!
 
 \begin{theorem}[Sound By-name Interpretation]
-\label{thm:soundness-by-name}
+\label{thm:abstract-by-name}
 Let |e| be an expression, |hat D| a domain with instances for |Trace|, |Domain|, |HasBind| and
 |Lat|, and let $α_{\mathcal{S}}$ be the abstraction function from \Cref{fig:abstract-name}.
 If the by-name abstraction laws in \Cref{fig:abstraction-laws} hold,
@@ -322,9 +324,9 @@ direct to argue in terms of the latter.
         By cases over |v|.
         \begin{itemize}
           \item \textbf{Case |v = Stuck|}:
-            Then |βT^(stuck) = hat stuck ⊑ (hat apply) (hat stuck) (hat a)| by assumption \textsc{Unwind-Stuck}.
+            Then |βT^(stuck) = hat stuck ⊑ (hat apply) (hat stuck) (hat a)| by assumption \textsc{Stuck-App}.
           \item \textbf{Case |v = Con k ds|}:
-            Then |βT^(stuck) = hat stuck ⊑ (hat apply) ((hat con) k (hat ds)) (hat a)| by assumption \textsc{Intro-Stuck}, for the suitable |hat ds|.
+            Then |βT^(stuck) = hat stuck ⊑ (hat apply) ((hat con) k (hat ds)) (hat a)| by assumption \textsc{Stuck-App}, for the suitable |hat ds|.
           \item \textbf{Case |v = Fun g|}:
             Then
             \begin{spec}
@@ -359,11 +361,11 @@ direct to argue in terms of the latter.
         By cases over |v|. The first three all correspond to when the continuation of |select| gets stuck.
         \begin{itemize}
           \item \textbf{Case |v = Stuck|}:
-            Then |βT^(stuck) = hat stuck ⊑ (hat select) (hat stuck) (hat alts)| by assumption \textsc{Unwind-Stuck}.
+            Then |βT^(stuck) = hat stuck ⊑ (hat select) (hat stuck) (hat alts)| by assumption \textsc{Stuck-Sel}.
           \item \textbf{Case |v = Fun f|}:
-            Then |βT^(stuck) = hat stuck ⊑ (hat select) ((hat fun) (hat f)) (hat alts)| by assumption \textsc{Intro-Stuck}, for the suitable |hat f|.
+            Then |βT^(stuck) = hat stuck ⊑ (hat select) ((hat fun) (hat f)) (hat alts)| by assumption \textsc{Stuck-Sel}, for the suitable |hat f|.
           \item \textbf{Case |v = Con k ds|, $|k| \not∈ |dom alts|$}:
-            Then |βT^(stuck) = hat stuck ⊑ (hat select) ((hat con) k (hat ds)) (hat alts)| by assumption \textsc{Intro-Stuck}, for the suitable |hat ds|.
+            Then |βT^(stuck) = hat stuck ⊑ (hat select) ((hat con) k (hat ds)) (hat alts)| by assumption \textsc{Stuck-Sel}, for the suitable |hat ds|.
           \item \textbf{Case |v = Con k ds|, $|k| ∈ |dom alts|$}:
             Then
             \begin{spec}
@@ -383,7 +385,7 @@ direct to argue in terms of the latter.
   \item \textbf{Case |bind|}.
     Goal: $\inferrule{(\forall (|d|,|(hat d)|) ∈ R.\ (|rhs d|, |hat rhs (hat d)|) ∈ R) \\ (\forall (|d|,|(hat d)|) ∈ R.\ (|body d|, |hat body (hat d)|) ∈ R)}
                      {(|bind rhs body|, |(hat bind) (hat rhs) (hat body)|) ∈ R}$. \\
-    It is |bind rhs body = body (fix rhs)| and |(hat body) (lfp (hat rhs)) ⊑ (hat bind) (hat rhs) (hat body)| by Assumption \textsc{Bind-ByName}.
+    It is |bind rhs body = body (fix rhs)| and |(hat body) (lfp (hat rhs)) ⊑ (hat bind) (hat rhs) (hat body)| by Assumption \textsc{ByName-Bind}.
     Let us first establish that $(|fix rhs|, |lfp (hat rhs)|) ∈ R$, leaning on
     our theory about safety extension in \Cref{sec:safety-extension}:
     \begin{spec}
@@ -403,7 +405,7 @@ direct to argue in terms of the latter.
 \subsection{Abstract By-need Soundness, in Detail}
 \label{sec:by-need-soundness}
 
-The goal of this section is to prove \Cref{thm:soundness-by-name} correct,
+The goal of this section is to prove \Cref{thm:abstract-by-name} correct,
 which is applicable for analyses that are sound both \wrt to by-name
 as well as by-need, such as usage analysis or perhaps type analysis in
 \Cref{sec:type-analysis} (we have however not proven it so).
@@ -627,7 +629,7 @@ results of the abstraction function:
 \begin{lemma}[Heap progression preserves abstraction]
   \label{thm:heap-progress-mono}
   Let |hat D| be a domain with instances for |Trace|, |Domain|, |HasBind| and
-  |Lat|, satisfying \textsc{Beta-App}, \textsc{Beta-Sel}, \textsc{Bind-ByName}
+  |Lat|, satisfying \textsc{Beta-App}, \textsc{Beta-Sel}, \textsc{ByName-Bind}
   and \textsc{Step-Inc} from \Cref{fig:abstraction-laws}.
   \[ |μ1 ~> μ2 /\ adom d ⊆ dom μ1 ==> βD^(μ2)^(d) ⊑ βD^(μ1)^(d)|. \]
 \end{lemma}
@@ -686,7 +688,7 @@ Proceed by cases on |e|. Only the |Var| and |Let| cases are interesting.
           βT^(Step Update (evalNeed v ρ2 μ2))
         = {- |μ2 = ext μ3 a (memo a (evalNeed2 v ρ2))| -}
           βD^(μ3)^(memo a (evalNeed2 v ρ2))
-        ⊑   {- |evalNeed e1 ρ1 μ1 = many (Step ev) (evalNeed v ρ2 μ3)|, \textsc{Step-Inc} -}
+        ⊑   {- |evalNeed e1 ρ1 μ1 = many (Step ev) (evalNeed v ρ2 μ3)|, assumption \textsc{Step-Inc} -}
           βD^(μ1)^(memo a (evalNeed2 e1 ρ1))
         \end{spec}
     \end{itemize}
@@ -698,7 +700,7 @@ The preceding lemma corresponds to the $\UpdateT$ step of the preservation
 hand-waving.
 Here, we hand-wave no more!
 
-In order to prove the main soundness \Cref{thm:soundness-by-need},
+In order to prove the main soundness \Cref{thm:abstract-by-need},
 we need two more auxiliary lemmas about |(>>=)| and environment
 access.
 
@@ -777,11 +779,11 @@ yields three subgoals (under $\later$):
 \end{itemize}
 \end{proof}
 
-Finally, we can prove \Cref{thm:soundness-by-need}:
+Finally, we can prove \Cref{thm:abstract-by-need}:
 
-% Keep up to date with {thm:soundness-by-need}
+% Keep up to date with {thm:abstract-by-need}
 {
-\renewcommand{\thetheorem}{\ref{thm:soundness-by-need}}
+\renewcommand{\thetheorem}{\ref{thm:abstract-by-need}}
 \begin{theorem}[Sound By-need Interpretation]
 Let |e| be an expression, |hat D| a domain with instances for |Trace|, |Domain|, |HasBind| and
 |Lat|, and let $α_{\mathcal{S}}$ be the abstraction function from \Cref{fig:abstract-name-need}.
@@ -841,7 +843,7 @@ We proceed by Löb induction and cases over |e|.
     \end{spec}
 
   \item \textbf{Case} |App e x|:
-    Very similar to the |apply| case in \Cref{thm:soundness-by-name}.
+    Very similar to the |apply| case in \Cref{thm:abstract-by-name}.
     There is one exception: We must apply \Cref{thm:heap-progress-mono}
     to argument denotations.
 
@@ -868,9 +870,9 @@ We proceed by Löb induction and cases over |e|.
         By cases over |v|.
         \begin{itemize}
           \item \textbf{Case |v = Stuck|}:
-            Then |βT^(stuck μ2) = hat stuck ⊑ (hat apply) (hat stuck) (hat a)| by assumption \textsc{Unwind-Stuck}.
+            Then |βT^(stuck μ2) = hat stuck ⊑ (hat apply) (hat stuck) (hat a)| by assumption \textsc{Stuck-App}.
           \item \textbf{Case |v = Con k ds|}:
-            Then |βT^(stuck μ2) = hat stuck ⊑ (hat apply) ((hat con) k (hat ds)) (hat a)| by assumption \textsc{Intro-Stuck}, for the suitable |hat ds|.
+            Then |βT^(stuck μ2) = hat stuck ⊑ (hat apply) ((hat con) k (hat ds)) (hat a)| by assumption \textsc{Stuck-App}, for the suitable |hat ds|.
           \item \textbf{Case |v = Fun g|}:
             Note that |g| has a parametric definition, of the form |(\d -> step App2 (eval e1 (ext ρ x d)))|.
             This is important to apply \textsc{Beta-App} below.
@@ -889,7 +891,7 @@ We proceed by Löb induction and cases over |e|.
     \end{itemize}
 
   \item \textbf{Case} |Case e alts|:
-    Very similar to the |select| case in \Cref{thm:soundness-by-name}.
+    Very similar to the |select| case in \Cref{thm:abstract-by-name}.
 
     The cases where the interpreter returns |stuck| follow by parametricity.
     Otherwise, we have
@@ -916,11 +918,11 @@ We proceed by Löb induction and cases over |e|.
         By cases over |v|.
         \begin{itemize}
           \item \textbf{Case |v = Stuck|}:
-            Then |βT^(stuck μ2) = hat stuck ⊑ (hat select) (hat stuck) (hat alts)| by assumption \textsc{Unwind-Stuck}.
+            Then |βT^(stuck μ2) = hat stuck ⊑ (hat select) (hat stuck) (hat alts)| by assumption \textsc{Stuck-Sel}.
           \item \textbf{Case |v = Fun f|}:
-            Then |βT^(stuck μ2) = hat stuck ⊑ (hat select) ((hat fun) (hat f)) (hat alts)| by assumption \textsc{Intro-Stuck}, for the suitable |hat f|.
+            Then |βT^(stuck μ2) = hat stuck ⊑ (hat select) ((hat fun) (hat f)) (hat alts)| by assumption \textsc{Stuck-Sel}, for the suitable |hat f|.
           \item \textbf{Case |v = Con k ds|, $|k| \not∈ |dom alts|$}:
-            Then |βT^(stuck μ2) = hat stuck ⊑ (hat select) ((hat con) k (hat ds)) (hat alts)| by assumption \textsc{Intro-Stuck}, for the suitable |hat ds|.
+            Then |βT^(stuck μ2) = hat stuck ⊑ (hat select) ((hat con) k (hat ds)) (hat alts)| by assumption \textsc{Stuck-Sel}, for the suitable |hat ds|.
           \item \textbf{Case |v = Con k ds|, $|k| ∈ |dom alts|$}:
             Note that |alts| has a parametric definition.
             This is important to apply \textsc{Beta-Sel} below.
@@ -966,7 +968,7 @@ We proceed by Löb induction and cases over |e|.
         step Let1 (eval e2 (ext (βD^(μ) << ρ) x (lfp (\(hat d1) -> step (Look x) (eval e1 (ext (βD^(μ) << ρ) x (hat d1)))))))
     =   {- Partially unroll fixpoint -}
         step Let1 (eval e2 (ext (βD^(μ) << ρ) x (step (Look x) (lfp (\(hat d1) -> eval e1 (ext (βD^(μ) << ρ) x (step (Look x) (hat d1))))))))
-    ⊑   {- Assumption \textsc{Bind-ByName}, with |hat ρ = βD^(μ) << ρ| -}
+    ⊑   {- Assumption \textsc{ByName-Bind}, with |hat ρ = βD^(μ) << ρ| -}
         bind  (\d1 -> eval e1 (ext (βD^(μ) << ρ) x (step (Look x) d1)))
               (\d1 -> step Let1 (eval e2 (ext (βD^(μ) << ρ) x (step (Look x) d1))))
     =   {- Refold |eval (Let x e1 e2) (βD^(μ) << ρ)| -}
@@ -986,7 +988,7 @@ holds for a particular heap |μ1|, this abstraction will hold for any heap |μ2|
 that the semantics may progress to.
 
 Unfortunately, this indexing also means that we cannot apply parametricity
-to prove the sound abstraction \Cref{thm:soundness-by-need}, as we did for
+to prove the sound abstraction \Cref{thm:abstract-by-need}, as we did for
 by-name abstraction.
 Such a proof would be bound to fail whenever the heap is extended (in |bind|),
 because then the index of the soundness relation must change as well.
@@ -994,7 +996,7 @@ Concretely, we would need roughly the following free theorem
 \[
   |(bind, bind) ∈ Later (Later (Rel(ext μ a d)) -> Rel(ext μ a d)) -> (Later (Rel(ext μ a d)) -> Rel(ext μ a d)) -> Rel(μ)|
 \]
-for the soundness relation of \Cref{thm:soundness-by-need}
+for the soundness relation of \Cref{thm:abstract-by-need}
 \[
   R_|μ|(|d|, |hat d|) \triangleq |βD^(μ)^(d) ⊑ hat d|.
 \]
@@ -1007,7 +1009,7 @@ tactic that would be \emph{inspired} by parametricity, given a means for
 annotating how the heap index changes in |bind|.
 
 Although we do not formally acknowledge this, the soundness relation |Rel(μ)|
-of \Cref{thm:soundness-by-need} is reminiscent of a \emph{Kripke logical
+of \Cref{thm:abstract-by-need} is reminiscent of a \emph{Kripke logical
 relation}~\citep{Ahmed:04}.
 In this analogy, definable heaps correspond to the \emph{possible worlds} of
 \citet{Kripke:63} with heap progression |(~>)| as the \emph{accessibility
