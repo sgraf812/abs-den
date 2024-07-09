@@ -322,9 +322,9 @@ direct to argue in terms of the latter.
         By cases over |v|.
         \begin{itemize}
           \item \textbf{Case |v = Stuck|}:
-            Then |βT^(stuck) = hat stuck ⊑ (hat apply) (hat stuck) (hat a)| by assumption \textsc{Unwind-Stuck}.
+            Then |βT^(stuck) = hat stuck ⊑ (hat apply) (hat stuck) (hat a)| by assumption \textsc{Stuck-App}.
           \item \textbf{Case |v = Con k ds|}:
-            Then |βT^(stuck) = hat stuck ⊑ (hat apply) ((hat con) k (hat ds)) (hat a)| by assumption \textsc{Intro-Stuck}, for the suitable |hat ds|.
+            Then |βT^(stuck) = hat stuck ⊑ (hat apply) ((hat con) k (hat ds)) (hat a)| by assumption \textsc{Stuck-App}, for the suitable |hat ds|.
           \item \textbf{Case |v = Fun g|}:
             Then
             \begin{spec}
@@ -359,11 +359,11 @@ direct to argue in terms of the latter.
         By cases over |v|. The first three all correspond to when the continuation of |select| gets stuck.
         \begin{itemize}
           \item \textbf{Case |v = Stuck|}:
-            Then |βT^(stuck) = hat stuck ⊑ (hat select) (hat stuck) (hat alts)| by assumption \textsc{Unwind-Stuck}.
+            Then |βT^(stuck) = hat stuck ⊑ (hat select) (hat stuck) (hat alts)| by assumption \textsc{Stuck-Sel}.
           \item \textbf{Case |v = Fun f|}:
-            Then |βT^(stuck) = hat stuck ⊑ (hat select) ((hat fun) (hat f)) (hat alts)| by assumption \textsc{Intro-Stuck}, for the suitable |hat f|.
+            Then |βT^(stuck) = hat stuck ⊑ (hat select) ((hat fun) (hat f)) (hat alts)| by assumption \textsc{Stuck-Sel}, for the suitable |hat f|.
           \item \textbf{Case |v = Con k ds|, $|k| \not∈ |dom alts|$}:
-            Then |βT^(stuck) = hat stuck ⊑ (hat select) ((hat con) k (hat ds)) (hat alts)| by assumption \textsc{Intro-Stuck}, for the suitable |hat ds|.
+            Then |βT^(stuck) = hat stuck ⊑ (hat select) ((hat con) k (hat ds)) (hat alts)| by assumption \textsc{Stuck-Sel}, for the suitable |hat ds|.
           \item \textbf{Case |v = Con k ds|, $|k| ∈ |dom alts|$}:
             Then
             \begin{spec}
@@ -383,7 +383,7 @@ direct to argue in terms of the latter.
   \item \textbf{Case |bind|}.
     Goal: $\inferrule{(\forall (|d|,|(hat d)|) ∈ R.\ (|rhs d|, |hat rhs (hat d)|) ∈ R) \\ (\forall (|d|,|(hat d)|) ∈ R.\ (|body d|, |hat body (hat d)|) ∈ R)}
                      {(|bind rhs body|, |(hat bind) (hat rhs) (hat body)|) ∈ R}$. \\
-    It is |bind rhs body = body (fix rhs)| and |(hat body) (lfp (hat rhs)) ⊑ (hat bind) (hat rhs) (hat body)| by Assumption \textsc{Bind-ByName}.
+    It is |bind rhs body = body (fix rhs)| and |(hat body) (lfp (hat rhs)) ⊑ (hat bind) (hat rhs) (hat body)| by Assumption \textsc{ByName-Bind}.
     Let us first establish that $(|fix rhs|, |lfp (hat rhs)|) ∈ R$, leaning on
     our theory about safety extension in \Cref{sec:safety-extension}:
     \begin{spec}
@@ -627,7 +627,7 @@ results of the abstraction function:
 \begin{lemma}[Heap progression preserves abstraction]
   \label{thm:heap-progress-mono}
   Let |hat D| be a domain with instances for |Trace|, |Domain|, |HasBind| and
-  |Lat|, satisfying \textsc{Beta-App}, \textsc{Beta-Sel}, \textsc{Bind-ByName}
+  |Lat|, satisfying \textsc{Beta-App}, \textsc{Beta-Sel}, \textsc{ByName-Bind}
   and \textsc{Step-Inc} from \Cref{fig:abstraction-laws}.
   \[ |μ1 ~> μ2 /\ adom d ⊆ dom μ1 ==> βD^(μ2)^(d) ⊑ βD^(μ1)^(d)|. \]
 \end{lemma}
@@ -686,7 +686,7 @@ Proceed by cases on |e|. Only the |Var| and |Let| cases are interesting.
           βT^(Step Update (evalNeed v ρ2 μ2))
         = {- |μ2 = ext μ3 a (memo a (evalNeed2 v ρ2))| -}
           βD^(μ3)^(memo a (evalNeed2 v ρ2))
-        ⊑   {- |evalNeed e1 ρ1 μ1 = many (Step ev) (evalNeed v ρ2 μ3)|, \textsc{Step-Inc} -}
+        ⊑   {- |evalNeed e1 ρ1 μ1 = many (Step ev) (evalNeed v ρ2 μ3)|, assumption \textsc{Step-Inc} -}
           βD^(μ1)^(memo a (evalNeed2 e1 ρ1))
         \end{spec}
     \end{itemize}
@@ -868,9 +868,9 @@ We proceed by Löb induction and cases over |e|.
         By cases over |v|.
         \begin{itemize}
           \item \textbf{Case |v = Stuck|}:
-            Then |βT^(stuck μ2) = hat stuck ⊑ (hat apply) (hat stuck) (hat a)| by assumption \textsc{Unwind-Stuck}.
+            Then |βT^(stuck μ2) = hat stuck ⊑ (hat apply) (hat stuck) (hat a)| by assumption \textsc{Stuck-App}.
           \item \textbf{Case |v = Con k ds|}:
-            Then |βT^(stuck μ2) = hat stuck ⊑ (hat apply) ((hat con) k (hat ds)) (hat a)| by assumption \textsc{Intro-Stuck}, for the suitable |hat ds|.
+            Then |βT^(stuck μ2) = hat stuck ⊑ (hat apply) ((hat con) k (hat ds)) (hat a)| by assumption \textsc{Stuck-App}, for the suitable |hat ds|.
           \item \textbf{Case |v = Fun g|}:
             Note that |g| has a parametric definition, of the form |(\d -> step App2 (eval e1 (ext ρ x d)))|.
             This is important to apply \textsc{Beta-App} below.
@@ -916,11 +916,11 @@ We proceed by Löb induction and cases over |e|.
         By cases over |v|.
         \begin{itemize}
           \item \textbf{Case |v = Stuck|}:
-            Then |βT^(stuck μ2) = hat stuck ⊑ (hat select) (hat stuck) (hat alts)| by assumption \textsc{Unwind-Stuck}.
+            Then |βT^(stuck μ2) = hat stuck ⊑ (hat select) (hat stuck) (hat alts)| by assumption \textsc{Stuck-Sel}.
           \item \textbf{Case |v = Fun f|}:
-            Then |βT^(stuck μ2) = hat stuck ⊑ (hat select) ((hat fun) (hat f)) (hat alts)| by assumption \textsc{Intro-Stuck}, for the suitable |hat f|.
+            Then |βT^(stuck μ2) = hat stuck ⊑ (hat select) ((hat fun) (hat f)) (hat alts)| by assumption \textsc{Stuck-Sel}, for the suitable |hat f|.
           \item \textbf{Case |v = Con k ds|, $|k| \not∈ |dom alts|$}:
-            Then |βT^(stuck μ2) = hat stuck ⊑ (hat select) ((hat con) k (hat ds)) (hat alts)| by assumption \textsc{Intro-Stuck}, for the suitable |hat ds|.
+            Then |βT^(stuck μ2) = hat stuck ⊑ (hat select) ((hat con) k (hat ds)) (hat alts)| by assumption \textsc{Stuck-Sel}, for the suitable |hat ds|.
           \item \textbf{Case |v = Con k ds|, $|k| ∈ |dom alts|$}:
             Note that |alts| has a parametric definition.
             This is important to apply \textsc{Beta-Sel} below.
@@ -966,7 +966,7 @@ We proceed by Löb induction and cases over |e|.
         step Let1 (eval e2 (ext (βD^(μ) << ρ) x (lfp (\(hat d1) -> step (Look x) (eval e1 (ext (βD^(μ) << ρ) x (hat d1)))))))
     =   {- Partially unroll fixpoint -}
         step Let1 (eval e2 (ext (βD^(μ) << ρ) x (step (Look x) (lfp (\(hat d1) -> eval e1 (ext (βD^(μ) << ρ) x (step (Look x) (hat d1))))))))
-    ⊑   {- Assumption \textsc{Bind-ByName}, with |hat ρ = βD^(μ) << ρ| -}
+    ⊑   {- Assumption \textsc{ByName-Bind}, with |hat ρ = βD^(μ) << ρ| -}
         bind  (\d1 -> eval e1 (ext (βD^(μ) << ρ) x (step (Look x) d1)))
               (\d1 -> step Let1 (eval e2 (ext (βD^(μ) << ρ) x (step (Look x) d1))))
     =   {- Refold |eval (Let x e1 e2) (βD^(μ) << ρ)| -}

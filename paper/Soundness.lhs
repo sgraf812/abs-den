@@ -52,7 +52,7 @@ Here we give the proofs for the main body, often deferring to
 \[\ruleform{\begin{array}{c}
   α_{\mathcal{S}} : (|(Name :-> DNeed) -> DNeed|) \rightleftarrows (|(Name :-> hat D) -> hat D|) : γ_{\mathcal{S}}
   \\
-  α_{\Environments} : \pow{(|Name :-> DNeed|) \times |HeapNeed|} \rightleftarrows (|Name :-> hat D|) : γ_{\Environments}
+  α_{\Environments} : |HeapNeed| \times \pow{(|Name :-> DNeed|)} \rightleftarrows (|Name :-> hat D|) : γ_{\Environments}
   \\
   α_{\Domain{}} : |HeapNeed| \to \pow{|DNeed|} \rightleftarrows |hat D| : γ_{\Domain{}}
   \\
@@ -64,8 +64,8 @@ Here we give the proofs for the main body, often deferring to
 \belowdisplayskip=0pt
 \arraycolsep=2pt
 \[\begin{array}{lcl}
-α_{\mathcal{S}}(S)(\widehat{ρ}) & = & α_\Traces(\{\  S(ρ)(μ) \mid (ρ,μ) ∈ γ_{\Environments}(\widehat{ρ}) \ \}) \\
-α_{\Environments}(R)(x) & = & α_\Traces(\{\  ρ(x)(μ) \mid (ρ,μ) ∈ R \ \}) \\
+α_{\mathcal{S}}(S)(\widehat{ρ}) & = & α_\Traces(\{\  S(ρ)(μ) \mid (μ,ρ) ∈ γ_{\Environments}(\widehat{ρ}) \ \}) \\
+α_{\Environments}(E)(x) & = & α_\Traces(\{\  ρ(x)(μ) \mid (μ,ρ) ∈ E \ \}) \\
 α_{\Domain{}}(μ)(D) & = & α_\Traces(\{\  d(μ) \mid d ∈ D \ \}) \\
 α_\Traces(T) & = & \Lub \{\ β_\Traces(τ) \mid τ ∈ T \ \} \\
 \\[-0.75em]
@@ -86,70 +86,77 @@ of the form
   α_{\mathcal{S}}(|evalNeed1 e|) ⊑ |evalD2 (hat D) e|.
 \]
 This statement can be read as follows:
-for a closed expression |e|, the \emph{static analysis} result |evalD (hat D) e emp|
+for an expression |e|, the \emph{static analysis} |evalD2 (hat D) e|
 on the right-hand side \emph{overapproximates} ($⊒$) a property of the by-need
-\emph{semantics} |evalNeed e emp emp| on the left-hand side\sven{This is confusing. The formula above is for open and closed expressions. But here you explain closed expressions for the empty heap. Just say that the the abstract semantics overapproximates the concrete semantics with respect to the galois connection $\alpha_{\mathcal{S}}$\cite{cousot79}.}.
+\emph{semantics} |evalNeed1 e| on the left-hand side.
 The abstraction function $α_{\mathcal{S}}$, given in
-\Cref{fig:abstract-name-need}, generalises this notion to open expressions and
-defines the semantic property of interest in terms of the abstract semantic
-domain |hat D| of |evalD (hat D) e ρ|, which is short for |eval e ρ :: hat D|.
+\Cref{fig:abstract-name-need}, defines the semantic property of interest in
+terms of the abstract semantic domain |hat D| of |evalD (hat D) e ρ|, which is
+short for |eval e ρ :: hat D|.
 That is: the type class instances on |hat D| determine $α_{\mathcal{S}}$, and
 hence the semantic property that is soundly abstracted by |evalD (hat D) e ρ|.
 
 We will instantiate the theorem at |UD| in order to prove that usage analysis
 |evalUsg e ρ = evalD UD e ρ| infers absence, just as absence analysis in
 \Cref{sec:problem}.
-This proof will be much simpler than the proof for \Cref{thm:absence-correct}\sven{Explain why: ..., because we do not prove a complicated substituion lemma.}.
-%The main body will only discuss abstraction of closed terms, but the underlying
-%\Cref{thm:soundness-by-need} in the Appendix considers open terms as well.
+This proof will be much simpler than the proof for \Cref{thm:absence-correct},
+because the complicated preservation proof is reusably contained in
+abstraction theorem.
 
 \begin{figure}
-  \[\begin{array}{c}
-    \inferrule[\textsc{Mono}]{|d1 ⊑ d2| \\ |f1 ⊑ f2|}{%
-      |apply f1 d1 ⊑ apply f2 d2|%
-      \textit{ and so on, for all methods of |Trace|, |Domain|, |HasBind|}} \\
+  \[\begin{array}{cc}
+    \multicolumn{2}{c}{\inferrule[\textsc{Mono}]
+      {}
+      {\textit{|step|, |stuck|, |fun|, |apply|, |con|, |select|, |bind| are monotone}}} \\
     \\[-0.5em]
     \inferrule[\textsc{Step-App}]{}{%
-      |step ev (apply d a) ⊑ apply (step ev d) a|} \qquad
+      |step ev (apply d a) ⊑ apply (step ev d) a|}
+    &
     \inferrule[\textsc{Step-Sel}]{}{%
       |step ev (select d alts) ⊑ select (step ev d) alts|} \\
     \\[-0.5em]
-    \inferrule[\textsc{Unwind-Stuck}]{}{%
-      \textstyle|stuck ⊑ Lub (apply stuck a, select stuck alts)|} \hspace{1.5em}
-    \inferrule[\textsc{Intro-Stuck}]{}{%
-      \begin{array}{@@{}l@@{}c@@{}l@@{}}|stuck|&{}⊑{} &\textstyle|Lub (apply (con k ds) a, select (fun x f) alts)| \arcr & ⊔ & \textstyle|Lub (select (con k ds) alts || k {-"\not"-}∈ dom alts)|\end{array}} \\
+    \inferrule[\textsc{Stuck-App}]
+      {|d ∈ set (stuck, con k ds)|}
+      {|stuck ⊑ apply d a|}
+    &
+    \inferrule[\textsc{Stuck-Sel}]
+      {|d ∈ set (stuck, fun x f) ∪ set (con k ds || k {-"\not"-}∈ dom alts)|}
+      {|stuck ⊑ select d alts|} \\
     \\[-0.5em]
-    \inferrule[\textsc{Beta-App}]{%
-      |f d = step App2 (evalD (hat D) e (ext ρ x d))|}{%
-      |f a ⊑ apply (fun x f) a|} \qquad
-    \inferrule[\textsc{Beta-Sel}]{%
-      |(alts ! k) ds = step Case2 (evalD (hat D) er (exts ρ xs ds))|}{%
-      |(alts ! k) ds ⊑ select (con k ds) alts|} \\
+    \inferrule[\textsc{Beta-App}]
+      {|f| \textit{ polymorphic}}
+      {|f a ⊑ apply (fun x f) a|}
+    &
+    \inferrule[\textsc{Beta-Sel}]
+      {|alts| \textit{ polymorphic} \\ |k ∈ dom alts|}
+      {|(alts ! k) ds ⊑ select (con k ds) alts|} \\
     \\[-0.5em]
-    \inferrule[\textsc{Bind-ByName}]{|rhs d1 = evalD (hat D) e1 (ext ρ x (step (Look x) d1))|\\ |body d1 = step Let1 (evalD (hat D) e2 (ext ρ x d1))|}{|body (lfp rhs) ⊑ bind rhs body|}
+    \multicolumn{2}{c}{
+      \inferrule[\textsc{ByName-Bind}]
+        {}
+        {|body (lfp rhs) ⊑ bind rhs body|}
+      \qquad
+      \fcolorbox{lightgray}{white}{$\begin{array}{c}
+        \inferrule[\textsc{Step-Inc}]{}{|d ⊑ step ev d|}
+        \qquad
+        \inferrule[\textsc{Update}]{}{|step Upd d = d|}
+      \end{array}$}}
   \end{array}\]
-  \fcolorbox{lightgray}{white}{$\begin{array}{c}
-    \inferrule[\textsc{Step-Inc}]{}{|d ⊑ step ev d|}
-    \qquad
-    \inferrule[\textsc{Update}]{}{|step Upd d = d|} \\
-  \end{array}$}
-  \caption{By-name and \fcolorbox{lightgray}{white}{by-need} abstraction laws for type class instances of abstract domain |hat D|\\
-  \sven{Use the more general version of \textsc{BetaApp}: $\forall f. f a \sqsubseteq \ldots$.}\\
-  \sven{For \textsc{Mono} write $\mathit{apply}, \mathit{fun}, \mathit{con}, ... \text{are monotone}$}\\
-  \sven{Replace \textsc{Unwind-Stuck} and \textsc{Intro-Stuck} by $\forall d\ldotp \mathit{stuck} \sqsubseteq d$. This makes figure 12 look less scary.}
-  }
+
+  \caption{By-name and \fcolorbox{lightgray}{white}{by-need} abstraction laws for type class instances of abstract domain |hat D|}
   \label{fig:abstraction-laws}
 \end{figure}
 
 \subsection{Sound By-Name and By-Need Interpretation}
 
-This subsection is dedicated to the following derived inference rule for sound
-by-need interpretation (\Cref{thm:soundness-by-need}), referring to the
-\emph{abstraction laws} in \Cref{fig:abstraction-laws} by name:\sven{Top-Down explanation is often easier to understand: First name the goal, then explain how to achieve it: "To prove an analysis sound, we first prove theorem 6 corresponding to the following inference: ... What's left is to prove soundness lemmas shown in Figure 12."}
+To prove an analysis sound, we first prove \Cref{thm:soundness-by-need} for
+sound by-need interpretation.
+The theorem corresponds to the following derived inference rule, referring to
+the \emph{abstraction laws} in \Cref{fig:abstraction-laws} by name:
 \[\begin{array}{c}
   \inferrule{%
-    \textsc{Mono} \\ \textsc{Step-App} \\ \textsc{Step-Sel} \\ \textsc{Unwind-Stuck} \\
-    \textsc{Intro-Stuck} \\ \textsc{Beta-App} \\ \textsc{Beta-Sel} \\ \textsc{Bind-ByName} \\
+    \textsc{Mono} \\ \textsc{Step-App} \\ \textsc{Step-Sel} \\ \textsc{Stuck-App} \\
+    \textsc{Stuck-Sel} \\ \textsc{Beta-App} \\ \textsc{Beta-Sel} \\ \textsc{ByName-Bind} \\
     \textsc{Step-Inc} \\ \textsc{Update}
   }{%
   α_{\mathcal{S}}(|evalNeed1 e|) ⊑ |evalD2 (hat D) e|
@@ -158,35 +165,34 @@ by-need interpretation (\Cref{thm:soundness-by-need}), referring to the
 \noindent
 In other words: prove the abstraction laws for an abstract domain |hat D| of
 your choosing and we give you a proof of sound abstract by-need
-interpretation for the static analysis |evalD (hat D)|!
+interpretation for the static analysis |evalD2 (hat D)|!
 
 Note that \emph{we} get to determine the abstraction function $α_{\mathcal{S}}$ based
 on the |Trace|, |Domain| and |Lat| instance on \emph{your} |hat D|.
-\Cref{fig:abstract-name-need} replicates the gist of how $α_{\mathcal{S}}$ is thus derived.
+\Cref{fig:abstract-name-need} defines how $α_{\mathcal{S}}$ is thus derived.
 
-For a closed expression |e|, $α_{\mathcal{S}}(|evalNeed1 e|)(|emp|)$\sven{Why the closed version here again? That's not what the theorem in section 7.0 stated.} simplifies
-to $β_\Traces(|evalNeed e emp emp|)$, which folds the by-need
-trace into an abstract domain element in |hat D|.
-Since |hat D| has a |Lat| instance, such a $β_\Traces$ is called a \emph{representation
+Let us first consider |αS| for a closed expression |e|.
+In that case, $α_{\mathcal{S}}(|evalNeed1 e|)(|hat ρ|)$ simplifies to
+|βT^(|evalNeed e emp emp|)|, which folds the by-need trace into an
+abstract domain element in |hat D|.
+Since |hat D| has a |Lat| instance, such a |βT| is called a \emph{representation
 function}~\citep[Section 4.3]{Nielson:99}, giving rise to the Galois
 connection $α_\Traces \rightleftarrows γ_\Traces$.
-Function $β_\Traces$ eliminates every |Step ev| in the trace with a call to
+Function |βT| eliminates every |Step ev| in the trace with a call to
 |step ev|, and eliminates every concrete |Value| at the end of the trace with a
 call to the corresponding |Domain| method.
 
-To that end, the final heap |μ| is \emph{persisted} into a Galois connection
-$α_{\Domain{}}(|μ|) \rightleftarrows γ_{\Domain{}}(|μ|)$.
-The precise definition of this Galois connection is best left to the Appendix.
-Very roughly, $α_{\Domain{}}(|μ|)$ abstracts entries of concrete environments |ρ ! x|
-of the form |Step (Look y) (fetch a)| into entries of abstract environments
-|hat ρ ! x|, resolving all |fetch a| operations using entries |μ ! a| in the
-persisted heap.
+Abstraction of values follows type structure~\citep{Backhouse:04}.
+EXAMPLE
 
-When the trace ends in a |Con| value, every field denotation |d| is abstracted
-via $α_{\Domain{}}(|μ|)(|d|)$.
-When the trace ends in a |Fun| value, an abstract argument denotation |hat d| is
-concretised to call the concrete function |f|, and the resulting trace is
-recursively abstracted via $α_\Traces$ afterwards.\sven{All of these details about the galois connection distract from the interesting part, the proof of theorem 6. You showed what the definition of the galois connection is in figure 11, no need to explain it in much detail. Maybe explain $\alpha_T$, because this is the unusual one. Providing an example how a set of two traces are abstracted should be sufficient.}
+What is non-standard is that the abstraction function |αD| for by-need elements
+|d| is \emph{indexed} by a heap to give meaning to adresses referenced by |d|.
+Our framework is carefully set up in a way that |αD^(μ)| is preserved when |μ|
+is modified by memoisation ``in the future'', reminiscent of
+\citeauthor{Kripke:63}'s worlds.
+For similar reasons, the abstraction function for environments pairs up
+definable by-need environments |ρ|, the entries of which are of the form (|step
+Look y) (fetch a)|, and heaps |μ|.
 
 Thanks to fixing $α_{\mathcal{S}}$, we can prove the following abstraction theorem,
 corresponding to the inference rule at the begin of this subsection:
@@ -455,11 +461,11 @@ To see that, let |a := MkUT (singenv y U1) (Rep Uω) :: UD| and consider
 Rule \textsc{Beta-Sel} states a similar substitution property for data
 constructor redexes, which is why it needs to duplicate much of the |cont|
 function in \Cref{fig:eval} into its premise.
-Rule \textsc{Bind-ByName} expresses that the abstract |bind| implementation must
+Rule \textsc{ByName-Bind} expresses that the abstract |bind| implementation must
 be sound for by-name evaluation, that is, it must approximate passing the least
 fixpoint |lfp| of the |rhs| functional to |body|.
 %\footnote{We expect that for sound by-value abstraction it suffices to replace
-%\textsc{Bind-ByName} with a law \textsc{Bind-ByValue} mirroring the |bind|
+%\textsc{ByName-Bind} with a law \textsc{Bind-ByValue} mirroring the |bind|
 %instance of |ByValue|, but have not attempted a formal proof.}
 The remaining rules are congruence rules involving |step| and |stuck| as well as
 a monotonicity requirement for all involved operations.
@@ -507,7 +513,7 @@ in \Cref{fig:abstraction-laws}.
   \item \textsc{Mono}:
     Always immediate, since |⊔| and |+| are the only functions matching on |U|,
     and these are monotonic.
-  \item \textsc{Unwind-Stuck}, \textsc{Intro-Stuck}:
+  \item \textsc{Stuck-App}, \textsc{Stuck-Sel}:
     Trivial, since |stuck = bottom|.
   \item \textsc{Step-App}, \textsc{Step-Sel}, \textsc{Step-Inc}, \textsc{Update}:
     Follows by unfolding |step|, |apply|, |select| and associativity of |+|.
@@ -516,7 +522,7 @@ in \Cref{fig:abstraction-laws}.
   \item \textsc{Beta-Sel}:
     Follows by unfolding |select| and |con| and applying a lemma very similar to
     \Cref{thm:usage-subst} multiple times.
-  \item \textsc{Bind-ByName}:
+  \item \textsc{ByName-Bind}:
     |kleeneFix| approximates the least fixpoint |lfp| since the iteratee |rhs|
     is monotone.
     We have said elsewhere that we omit a widening operator for |rhs| that
