@@ -15,14 +15,14 @@ decEq-ℕ : (x y : ℕ) → Dec (x ≡ y)
 decEq-ℕ zero zero = yes refl
 decEq-ℕ zero (suc y) = no znots
 decEq-ℕ (suc y) zero = no snotz
-decEq-ℕ (suc x) (suc y) with decEq-ℕ x y 
+decEq-ℕ (suc x) (suc y) with decEq-ℕ x y
 ... | yes p = yes (cong suc p)
 ... | no np = no (λ p → np (injSuc p))
 
-instance 
+instance
   decEq-ℕ-imp : {x y : ℕ} → Dec (x ≡ y)
   decEq-ℕ-imp {x} {y} = decEq-ℕ x y
-  
+
 Alt : Set
 
 data Exp : Set where
@@ -37,7 +37,6 @@ Alt = Con × List Var × Exp
 
 findAlt : Con → List Alt → Maybe (List Var × Exp)
 findAlt _ [] = nothing
-findAlt K ((K' , vs , rhs) ∷ xs) with decEq-ℕ K K' 
-... | yes _ = just (vs , rhs) 
+findAlt K ((K' , vs , rhs) ∷ xs) with decEq-ℕ K K'
+... | yes _ = just (vs , rhs)
 ... | no  _ = findAlt K xs
-
