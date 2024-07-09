@@ -593,8 +593,8 @@ that we know of.%
 Here is an example evaluating $\Let{i}{(\Lam{y}{\Lam{x}{x}})~i}{i~i}$, starting
 in an empty \hypertarget{ex:eval-need-trace2}{heap}:
 
-< ghci> evalNeed (read "let i = (λy.λx.x) i in i i") emp emp :: T (Value _, Heap _)
-$\perform{evalNeed (read "let i = (λy.λx.x) i in i i") emp emp :: T (Value _, Heap _)}$
+< ghci> evalNeed (read "let i = (λy.λx.x) i in i i") emp emp :: T (ValueNeed, HeapNeed)
+$\perform{evalNeed (read "let i = (λy.λx.x) i in i i") emp emp :: T (ValueNeed, HeapNeed)}$
 \\[\belowdisplayskip]
 \noindent
 This trace is in clear correspondence to the earlier by-need LK trace
