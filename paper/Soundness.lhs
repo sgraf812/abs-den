@@ -38,9 +38,9 @@ We will discuss why it is safe to approximate guarded fixpoints with
 least fixpoints and why the definition of the Galois connection in
 \Cref{fig:abstract-name-need} as a fold over the trace is well-defined
 in \Cref{sec:safety-extension}.
-Then we will go on to prove abstract by-name soundness in
-\Cref{sec:by-name-soundness}, and finally by-need soundness in
-\Cref{sec:by-need-soundness}.
+Then we will go on to prove sound abstract by-name interpretation in
+\Cref{sec:by-name-soundness}, and finally sound abstract by-need interpretation
+in \Cref{sec:by-need-soundness}.
 
 %include soundness-appendix.lhs
 
@@ -618,7 +618,7 @@ Next, we will use \Cref{thm:usage-subst-sem} to instantiate
 \subsection{A Much Simpler Proof That Usage Analysis Infers Absence}
 \label{sec:usage-sound}
 
-Equipped with the generic soundness \Cref{thm:abstract-by-need},
+Equipped with the generic abstract interpretation \Cref{thm:abstract-by-need},
 we will prove in this subsection that usage analysis from \Cref{sec:abstraction}
 infers absence in the same sense as absence analysis from \Cref{sec:problem}.
 The reason we do so is to evaluate the proof complexity of our approach against
@@ -758,7 +758,7 @@ with the |step| implementation of |UT|;
 The |Look x| event on the right-hand side implies that its image under |α| is
 at least $[|x| ↦ |U1|]$.
 
-Step \labelcref{arrow:usg-abs} applies the central soundness
+Step \labelcref{arrow:usg-abs} applies the central abstract interpretation
 \Cref{thm:usage-abstracts-need} that is the main topic of this section,
 abstracting the dynamic trace property in terms of the static semantics.
 

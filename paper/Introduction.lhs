@@ -78,7 +78,6 @@ We make the following contributions:
   denotational interpreter and its type class algebra in Haskell.
   We demonstrate the ease with which different instances of our interpreter
   endow our object language with call-by-name, call-by-need and call-by-value
-  \sg{Remove call-by-value? But it's still true!}
   evaluation strategies, each producing (abstractions of) small-step
   abstract machine traces.
 \item A concrete instantiation of a denotational interpreter is \emph{total}

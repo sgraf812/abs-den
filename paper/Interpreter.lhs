@@ -344,10 +344,8 @@ $\perform{eval (read "let i = λx.x in i i") emp :: D (ByName T)}$,
 \\[\belowdisplayskip]
 \noindent
 where $\langle\lambda\rangle$
-%\sven{Is it possible to spell out what the lambda is? Its just $\langle λx.x \rangle$, correct? I know that it its not possible in Haskell, but maybe just here in the paper.}
 means that the trace ends in a |Fun| value.
-We cannot print |DName| or |Fun|ctions thereof, but in this case the result would be the value $\Lam{x}{x}$.
-%\sg{Is this clarifying sentence helpful? I don't really think so...}
+We cannot generally print |DName| or |Fun|ctions thereof, but in this case the result would be the value $\Lam{x}{x}$.
 This is in direct correspondence to the earlier call-by-name small-step trace
 \labelcref{ex:trace} in \Cref{sec:op-sem}.
 
@@ -396,7 +394,6 @@ $\perform{takeName 5 $ eval (read "let x = x in x") emp :: T (Maybe (Value (ByNa
 $\perform{takeName 9 $ eval (read "let w = λy. y y in w w") emp :: T (Maybe (Value (ByName T)))}$
 \\[\belowdisplayskip]
 \noindent
-
 The reason |eval| is productive is due to the coinductive nature of |T|'s
 definition in Haskell.%
 \footnote{In a strict language, we need to introduce a thunk in

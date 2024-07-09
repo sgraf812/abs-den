@@ -56,7 +56,7 @@ denotational interpreters:
 
   \item
     \Cref{sec:type-analysis} defines a \emph{type analysis} with
-    let generalisation that implements \citeauthor{Milner:78}'s Algorithm J,
+    let generalisation that implements \citeauthor{Milner:78}'s Algorithm~J,
     inferring polytypes such as $\forall α_3.\ \mathtt{option}\;(α_3
     \rightarrow α_3)$ that act as summaries.
 
@@ -297,15 +297,15 @@ concatenation and then running our interpreter at, \eg $|D (ByName UT)| \cong
 It is nice to explore whether the |Trace| instance encodes the desired
 operational property in this way, but of little practical relevance because
 this interpreter instance will diverge whenever the input expression diverges.
-We fix this in the next subsection by introducing a finitely represented
-|UValue| to replace |Value UT|.
+We will now fix this by introducing a finitely represented |UValue| to replace
+|Value UT|.
 
 \subsubsection{Value Abstraction |UValue| and Summarisation in |Domain UD|}
 
-In this subsection, we complement the trace type |UT| from the previous
-subsection with a corresponding semantic value type |UValue| to get the
-finitely represented semantic domain |UD = UT UValue| in \Cref{fig:usage-analysis}, and thus a
-\emph{static usage analysis} |evalUsg| when we instantiate |eval| at |UD|.
+We complement the trace type |UT| with an abstract value type |UValue|
+to get the finitely represented semantic domain |UD = UT UValue| in
+\Cref{fig:usage-analysis}, and thus a \emph{static usage analysis} |evalUsg|
+when we instantiate |eval| at |UD|.
 
 %If we want to assess usage cardinality statically, we have to find a more
 %abstract, finite representation of |Value|.%
@@ -488,7 +488,7 @@ closedType d = runJ (generaliseTy d)
 instance Domain (J Type) where
   stuck                                 =  return Wrong
   fun _ {-" \iffalse "-}_{-" \fi "-} f  =  do θα <- freshTyVar; θ <- f (return θα); return (θα :->: θ)
-  apply v a                             =  do θ1  <- v; θ2  <- a; θα  <- freshTyVar; unify (θ1, θ2 :->: θα); return θα {-" ... \iffalse "-}
+  apply v a                             =  do θ1  <- v; θ2  <- a; θα  <- freshTyVar; unify (θ1, θ2 :->: θα); return θα {-" \iffalse "-}
   con _ k ds = do
     con_app_ty <- instantiateCon k
     arg_tys <- sequence ds
@@ -525,7 +525,7 @@ Computing least fixpoints is common practice in static program analysis.
 However, some abstract domains employ quite different fixpoint strategies.
 The abstract domain of the type analysis we sketch in this subsection is
 an interesting example:
-Type analysis --- specifically, \citeauthor{Milner:78}'s Algorithm J ---
+Type analysis --- specifically, \citeauthor{Milner:78}'s Algorithm~J ---
 computes fixpoints by generating and solving a constraint system via
 unification.
 Furthermore, since the domain is familiar, it is a good one to study in the
@@ -534,7 +534,7 @@ context of denotational interpreters.
 \Cref{fig:type-analysis} outlines the abstract domain |J Type| at which the
 generic denotational interpreter can be instantiated to perform Type analysis.
 We omit implementational details that are derivative of Milner's description of
-Algorithm J.
+Algorithm~J.
 The full implementation can be found in the extract generated from this
 document, but the provided code is sufficiently exemplary of the approach.
 The decompressed form of this subsection can be found in
@@ -559,15 +559,15 @@ form |instantiatePolyTy σ| for a polytype |σ|, while lambda- and field-bound
 variables are denoted by |return θ|, yielding the same monotype |θ| at all use
 sites.
 Thus, let-bound denotations instantiate polytypes on-the-fly at occurrence
-sites, just as in Algorithm J.
+sites, just as in Algorithm~J.
 
 The |Domain (J Type)| instance bears no surprises:
 |stuck| terms are denoted by the monotype |Wrong| and the definition of |fun|
-and |apply| are literal translations of Algorithm J.
+and |apply| are literal translations of Algorithm~J.
 
 The generalisation machinery comes to bear in the implementation
 of |bind|, which implements a combination of the $\mathit{fix}$ and $\mathit{let}$
-cases in Algorithm J, computing fixpoints by unification (|uniFix|).
+cases in Algorithm~J, computing fixpoints by unification (|uniFix|).
 %It is best understood by tracing the right-hand side of $o$ in the following
 %example:
 %\[|evalTy (({-" \Let{i}{\Lam{x}{x}}{\Let{o}{\mathit{Some}(i)}{o}} "-})|
@@ -712,14 +712,14 @@ Computing least fixpoints is common practice in static program analysis.
 However, some abstract domains employ quite different fixpoint strategies.
 The abstract domain of the type analysis we define in this subsection is
 an interesting example:
-Type analysis --- specifically, \citeauthor{Milner:78}'s Algorithm J ---
+Type analysis --- specifically, \citeauthor{Milner:78}'s Algorithm~J ---
 computes fixpoints by generating and solving a constraint system via
 unification.
 
 \Cref{fig:type-analysis} outlines the abstract domain |J Type| at which the
 generic denotational interpreter can be instantiated to perform Type analysis.
 We omit implementational details that are derivative of Milner's description of
-Algorithm J.
+Algorithm~J.
 The full implementation can be found in the extract generated from this
 document, but the provided code is sufficiently exemplary of the approach.
 
@@ -736,7 +736,7 @@ where $θ$ ranges over a monomorphic |Type| that can be either a type variable
 The |Wrong| type indicates a type error and is printed as $\textbf{wrong}$.
 
 Key to the analysis is its abstract trace type |J|, the name of which refers to the ambient
-effects of Milner's Algorithm J, offering means to invoke unification (|unify|),
+effects of Milner's Algorithm~J, offering means to invoke unification (|unify|),
 fresh name generation (|freshTyVar|, |instantiatePolyTy|) and let
 generalisation (|generaliseTy|).
 Our type |J| implements these effects by maintaining two pieces of state via the
@@ -766,23 +766,23 @@ of let-bound variables in the interpreter environment |ρ| is of the form
 variables are denoted by |return θ|, yielding the same monotype |θ| at all use
 sites.
 Thus, let-bound denotations instantiate polytypes on-the-fly at occurrence
-sites, just as in Algorithm J.
+sites, just as in Algorithm~J.
 
 As expected, |stuck| terms are denoted by the monotype |Wrong|.
-The definition of |fun| resembles the abstraction rule of Algorithm J,
+The definition of |fun| resembles the abstraction rule of Algorithm~J,
 in that it draws a fresh variable type |θα :: Type| (of the form |TyVar α|)
 to stand for the type of the argument.
 This type is passed as a monotype |return θα| to the body denotation
 |f|, where it will be added to the environment (\cf \Cref{fig:eval}) in order to
 compute the result type |θ| of the function body.
 The type for the whole function is then |θα :->: θ|.
-The definition for |apply| is a literal translation of Algorithm J as well.
+The definition for |apply| is a literal translation of Algorithm~J as well.
 The cases for |con| and |select| are omitted as their implementation follows
 a similar routine.
 
 The generalisation and instantiation machinery comes to bear in the implementation
 of |bind|, which implements a combination of the $\mathit{fix}$ and $\mathit{let}$
-cases in Algorithm J, computing fixpoints by unification (|uniFix|).
+cases in Algorithm~J, computing fixpoints by unification (|uniFix|).
 It is best understood by tracing the right-hand side of $o$ in the following
 example:
 \[|evalTy (({-" \Let{i}{\Lam{x}{x}}{\Let{o}{\mathit{Some}(i)}{o}} "-})|
