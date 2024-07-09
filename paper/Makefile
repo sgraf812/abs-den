@@ -7,7 +7,7 @@ main: abs-den.pdf
 
 supplement.zip: Interpreter.hs StaticAnalysis.hs Soundness.hs hs/*.hs ../agda/*.agda
 	sh -c "cd ..; git archive -o paper/supplement.zip --prefix=agda/ HEAD:agda"
-	nix run nixpkgs#zip -- -j supplement.zip Interpreter.hs StaticAnalysis.hs Soundness.hs ./hs/{Annotated,Exp,Order,Sergey14}.hs
+	nix run nixpkgs#zip -- -j supplement.zip Interpreter.hs StaticAnalysis.hs Soundness.hs ./hs/{Annotated,Exp,Order}.hs
 
 abs-den.tex: *.lhs *.fmt
 	LANG=C.UTF-8 lhs2TeX --poly -o $@ abs-den.lhs
