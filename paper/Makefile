@@ -45,8 +45,8 @@ watch-test:
 	ls [A-Z]*.lhs | entr -n make test
 
 submission: abs-den.pdf supplement.zip
-	@grep '^\\usepackage\[appendix=append,bibliography=common\]{apxproof}' abs-den.lhs # Test for correct apxproof settings
-	@grep '^\\documentclass\[acmsmall,review,anonymous\]{acmart}' abs-den.lhs # Test for submission mode
+	grep '^\\usepackage\[appendix=append,bibliography=common\]{apxproof}' abs-den.lhs # Test for correct apxproof settings
+	grep '^\\documentclass\[acmsmall,review,anonymous\]{acmart}' abs-den.lhs # Test for submission mode
 
 # For submission to arXiv
 arxiv.zip: abs-den.tex macros.tex utf8-symbols.sty references.bib

@@ -721,8 +721,7 @@ generic denotational interpreter can be instantiated to perform Type analysis.
 We omit implementational details that are derivative of Milner's description of
 Algorithm J.
 The full implementation can be found in the extract generated from this
-document\sg{TODO: Which extract? Where?}, but the provided code is sufficiently
-exemplary of the approach.
+document, but the provided code is sufficiently exemplary of the approach.
 
 Type analysis |evalTy| infers the most general type of an expression, \eg
 \[|evalTy (({-" \Let{f}{\Lam{g}{\Lam{x}{g~x}}}{f} "-})|

@@ -181,10 +181,9 @@ pointfree style.
 Note that we will omit |ByName| newtype wrappers, as in many other preceding
 sections, as well as the |Name| passed to |fun| as a poor man's De Bruijn level.
 
-\sg{Revisit after by-need}
 Compared to the by-need trace abstraction in \Cref{fig:abstract-name-need}, the
 by-name trace abstraction function in \Cref{fig:abstract-name} is rather
-straightforward, because it simply follows the type structure.
+straightforward because no heap is involved.
 
 Note that the recursion in |βT| is defined in terms of the least fixpoint;
 we discussed in \Cref{sec:safety-extension} why this is a natural choice.
@@ -254,7 +253,7 @@ What follows is the sound abstraction proof by parametricity.
 Note that its statement fixes the interpreter to |eval|, however the proof would
 still work if generalised to \emph{any} definition with the same type as |eval|!
 
-\begin{theorem}[Sound By-name Interpretation]
+\begin{theorem}[Abstract By-name Interpretation]
 \label{thm:abstract-by-name}
 Let |e| be an expression, |hat D| a domain with instances for |Trace|, |Domain|, |HasBind| and
 |Lat|, and let $α_{\mathcal{S}}$ be the abstraction function from \Cref{fig:abstract-name}.
@@ -405,7 +404,7 @@ direct to argue in terms of the latter.
 \subsection{Abstract By-need Soundness, in Detail}
 \label{sec:by-need-soundness}
 
-The goal of this section is to prove \Cref{thm:abstract-by-name} correct,
+The goal of this section is to prove \Cref{thm:abstract-by-need} correct,
 which is applicable for analyses that are sound both \wrt to by-name
 as well as by-need, such as usage analysis or perhaps type analysis in
 \Cref{sec:type-analysis} (we have however not proven it so).
@@ -784,7 +783,7 @@ Finally, we can prove \Cref{thm:abstract-by-need}:
 % Keep up to date with {thm:abstract-by-need}
 {
 \renewcommand{\thetheorem}{\ref{thm:abstract-by-need}}
-\begin{theorem}[Sound By-need Interpretation]
+\begin{theorem}[Abstract By-need Interpretation]
 Let |e| be an expression, |hat D| a domain with instances for |Trace|, |Domain|, |HasBind| and
 |Lat|, and let $α_{\mathcal{S}}$ be the abstraction function from \Cref{fig:abstract-name-need}.
 If the abstraction laws in \Cref{fig:abstraction-laws} hold,
