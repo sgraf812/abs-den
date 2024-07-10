@@ -30,7 +30,7 @@ This language is very similar to that of \citet{Launchbury:93} and \citet{Sestof
 It is factored into \emph{A-normal form}, that is, the arguments of applications
 are restricted to be variables, so the difference between lazy and eager
 semantics is manifest in the semantics of $\mathbf{let}$.
-Note that $\Lam{x}{x}$ (with an overbar) denotes syntax, whereas $\fn{x}{x+1}$
+Note that $\Lam{x}{x}$ (with an overline) denotes syntax, whereas $\fn{x}{x+1}$
 denotes an anonymous mathematical function.
 In this section, only the highlighted parts are relevant and $\mathbf{let}$ is
 considered non-recursive, but the interpreter definition in \Cref{sec:interp}

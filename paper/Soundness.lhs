@@ -205,7 +205,7 @@ coincides with the result of |evalUsg1|, as predicted by the abstract
 interpretation theorem.
 
 The abstraction function |αD| for by-need elements |d| is a bit unusual because
-it is \emph{indexed} by a heap to give meaning to adresses referenced by |d|.
+it is \emph{indexed} by a heap to give meaning to addresses referenced by |d|.
 Our framework is carefully set up in a way that |αD^(μ)| is preserved when |μ|
 is modified by memoisation ``in the future'', reminiscent of
 \citeauthor{Kripke:63}'s possible worlds.
@@ -400,7 +400,7 @@ Now we prove the premises of the abstraction theorem:
 
         Note that we have $(|pre y|, |pre y|) ∈ R_{|x|,|a|}$ because of $|x| \not= |y|$ and reflexivity.
         That in turn yields $(|f1 (pre y), f2 (pre y)|) ∈ R_{|x|,|a|}$ by assumption.
-        This is useful to kickstart the following proof, showing the goal:
+        This is useful to kick-start the following proof, showing the goal:
         \begin{spec}
           f1 (pre y) ⊑ let MkUT φ v = f2 (pre y) in MkUT (ext φ x U0 + (φ !? x) * a^.φ) v
         ==>   {- Monotonicity of |abs y| -}
@@ -794,7 +794,7 @@ Let us compare to the preservation-style proof framework in \Cref{sec:problem}.
   \item
     Furthermore, the proof for \Cref{thm:usage-abstracts-need} is
     \emph{modular} because \Cref{thm:usage-subst-sem} appeals to
-    parametricity, in constrast to \Cref{thm:absence-subst}.
+    parametricity, in contrast to \Cref{thm:absence-subst}.
     More work needs to be done to achieve a modular proof of
     the underlying \Cref{thm:abstract-by-need}, however.
     The (omitted) proof for abstract by-\textbf{name} interpretation in the

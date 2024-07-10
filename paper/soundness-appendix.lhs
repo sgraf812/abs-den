@@ -274,7 +274,7 @@ A \triangleq |DName|, B \triangleq |hat D|, R(|d|, |hat d|) \triangleq |αD ^ ((
 Note that $(|ρ|,|hat ρ|) ∈ (\mathsf{Name} \pfun R) \Longleftrightarrow |αE ^
 ((set ρ)) ⊑ hat ρ <==> ρ ∈ γE ^ ((hat ρ))|$ by simple calculation.
 
-The above instantation yields, in Haskell,
+The above instantiation yields, in Haskell,
 \[
   \inferrule
     {(|inst|, |hat inst|) ∈ \mathsf{Dict}(R) \\ |ρ ∈ γE ^ ((hat ρ))|}
@@ -421,7 +421,7 @@ proven by appealing to parametricity.
 The reason we need to index correctness relations by a heap is as follows:
 Although in \Cref{sec:evaluation-strategies} we considered an element |d|
 as an atomic denotation, such a denotation actually only carries meaning when it
-travels together with a heap |μ| that ties the adresses that |d| references to
+travels together with a heap |μ| that ties the addresses that |d| references to
 actual meaning.
 
 There are \emph{many} elements (functions!) |d :: DNeed|, many with very
@@ -578,7 +578,7 @@ By Löb induction and cases on |e|.
 %evaluation in turn implies that |μ1 ~> μ2|.
 
 It is often necessary, but non-trivial to cope with equality of elements |d|
-modulo readressing.
+modulo readdressing.
 Fortunately, we only need to consider equality in the abstract, that is,
 modulo |βD|, where |βD^(μ)^(d) := αD^(μ)^((set d))| is the representation
 function of |αD|.
@@ -598,7 +598,7 @@ where |ρ2| and |μ2| are renamings of |ρ1| and |μ1| defined as follows:
 Simple proof by Löb induction and cases on |e|.
 \end{proof}
 
-Readressing allows us to prove an abstract pendant of the venerable \emph{frame
+Readdressing allows us to prove an abstract pendant of the venerable \emph{frame
 rule} of separation logic:
 
 \begin{lemma}[Abstract frame rule]
@@ -617,7 +617,7 @@ Only the cases that access the heap are interesting.
     fetched satisfies |adom ρ1 ⊆ dom μ| so that we may apply the induction
     hypothesis.
   \item \textbf{Case} |Let x e1 e2|:
-    Follows by the induction hypothesis after readressing the extended heap
+    Follows by the induction hypothesis after readdressing the extended heap
     (\Cref{thm:abstract-readdressing}) so that the induction hypothesis can be applied.
 \end{itemize}
 \end{proof}

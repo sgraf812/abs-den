@@ -1545,7 +1545,7 @@ their free variables (|keepAlive|).
 %meaning that it is not possible to derive any meaningful correctness statement
 %about |keepAlive|.
 
-The |HasBind| type class accomodates both non-recursive as well as mutually
+The |HasBind| type class accommodates both non-recursive as well as mutually
 recursive let bindings.
 The |BindHint| is used to communicate whether such a binding comes from
 the on-the-fly ANF-isation pass of the interpreter (|BindArg|) or whether it was
@@ -1592,7 +1592,7 @@ eval (Let b@(NonRec x rhs) body) ρ =
 denotational interpreter.
 The actual definition takes around 100 lines of Haskell.
 Its highlights include erasure of types, a new case for literals, on-the-fly
-ANFisation in the application case and picking out data constructor application
+ANF-isation in the application case and picking out data constructor application
 from regular function application in order to η-expand accordingly in
 |evalConApp|.
 Whenever an ANF-ised argument is looked up, a |LookArg| event is emitted;
