@@ -45,7 +45,7 @@ This gives us a \emph{static program analysis}.
 %0CFA control-flow analysis and GHC's Demand Analysis as denotational
 %interpreters.
 
-We can get a wide range of static analyses, by choosing an appropriate semantic domain.
+We can get a wide range of static analyses by choosing appropriate semantic domains.
 For example, we have successfully realised the following analyses as
 denotational interpreters:
 \begin{itemize}

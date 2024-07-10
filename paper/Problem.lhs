@@ -10,14 +10,14 @@ What is so difficult about proving a compositional, summary-based analysis sound
 \wrt a non-compositional small-step operational semantics?
 We will demonstrate the challenges in this section, by way of a simplified \emph{absence
 analysis}~\citep{SPJ:94}, a higher-order form of neededness analysis to inform
-removal of dead bindings in a compiler.
+removal of dead code in a compiler.
 
 \subsection{Object Language}
 \label{sec:lang}
 
 To set the stage, we start by defining the object language of this work, an
-untyped lambda calculus with \emph{recursive} let bindings and algebraic data
-types:
+untyped lambda calculus with \emph{\textbf{recursive}} let bindings and
+algebraic data types:
 \[
 \arraycolsep=3pt
 \begin{array}{rrclcrrclcl}
@@ -889,7 +889,7 @@ and Lemmas below reference \citet{Sergey:14}):
   \item Give a declarative type system that characterises the results of the
     analysis (\ie $\semabs{\wild}$) in a lenient (upwards closed) way.
     In case of \Cref{thm:absence-correct}, we define an analysis function on
-    machine configurations for the proof.
+    machine configurations for the proof (\Cref{fig:absence-ext}).
   \item Prove that evaluation of well-typed terms in the instrumented
     semantics is bisimilar to evaluation of the term in the standard semantics,
     \ie does not get stuck when the standard semantics would not.
@@ -927,9 +927,8 @@ it, is enormous.
     While proving that a single step $σ_1 \smallstep σ_2$ preserves analysis
     information in step (3), we noticed that we actually got stuck in the $\UpdateT$
     case, and would need to redo the proof using step-indexing~\citep{AppelMcAllester:01}.
-    This case hides the thorniest of surprises; at least that was
-    our experience while proving \Cref{thm:abstract-by-need} which gives a
-    proper account.
+    This case mutates the heap and thus is notoriously difficult; we give a
+    proper account in \Cref{thm:abstract-by-need}.
 
     Although the proof in \citet{Sergey:14} is perceived as detailed and
     rigorous, it is quite terse in the corresponding \textsc{EUpd} case of the

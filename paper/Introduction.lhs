@@ -46,8 +46,8 @@ Now we have two unappealing alternatives:
 \item Reimagine and reimplement the analysis as an abstraction of the
   reachable states of an operational semantics.
   This is the essence of the \emph{Abstracting Abstract Machines} (AAM)
-  \cite{aam} recipe,
-  a very fruitful framework, but one that follows the \emph{call strings}
+  \cite{aam} recipe.
+  A very fruitful framework, but one that follows the \emph{call strings}
   approach~\citep{SharirPnueli:78}, reanalysing function bodies at call sites.
   Hence the new analysis becomes non-modular, leading to scalability problems
   for a compiler.
@@ -61,8 +61,8 @@ Our denotational interpreters generate small-step traces embellished with
 arbitrary operational detail and enjoy a straightforward encoding in typical
 higher-order programming languages.
 Static analyses arise as instantiations of the same generic interpreter,
-enabling succinct, shared soundness proofs just like for AAM or big-step
-definitional interpreters~\citep{adi,Keidel:18}.
+enabling succinct, shared and modular soundness proofs just like for AAM or
+big-step definitional interpreters~\citep{adi,Keidel:18}.
 However, the shared, compositional structure enables a wide range of summary
 mechanisms in static analyses that we think are beyond the reach of
 non-compositional reachable-states abstractions like AAM.
