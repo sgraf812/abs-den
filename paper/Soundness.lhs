@@ -43,11 +43,6 @@ Then we will go on to prove sound abstract by-name interpretation in
 in \Cref{sec:by-need-soundness}.
 
 %include soundness-appendix.lhs
-
-\subsection{Usage Analysis Proofs}
-
-Here we give the proofs for the main body, often deferring to
-\Cref{sec:by-need-soundness}.
 \end{toappendix}
 
 \begin{figure}
@@ -216,7 +211,7 @@ Look y) (fetch a)|, with heaps |μ|.
 Thanks to fixing $α_{\mathcal{S}}$, we can prove the following abstraction theorem,
 corresponding to the inference rule at the begin of this subsection:
 
-\begin{theorem}[Abstract By-need Interpretation]
+\begin{theoremrep}[Abstract By-need Interpretation]
 \label{thm:abstract-by-need}
 Let |e| be an expression, |hat D| a domain with instances for |Trace|, |Domain|, |HasBind| and
 |Lat|, and let $α_{\mathcal{S}}$ be the abstraction function from \Cref{fig:abstract-name-need}.
@@ -226,7 +221,187 @@ that is,
 \[
   α_{\mathcal{S}}(|evalNeed1 e|) ⊑ |evalD2 (hat D) e|.
 \]
-\end{theorem}
+\end{theoremrep}
+\begin{proof}
+We simplify our proof obligation to the single-trace case:
+\begin{spec}
+    forall e. αS^(evalNeed1 e) ⊑ evalD2 (hat D) e
+  <==>  {- Unfold |αS|, |αT| -}
+    forall e (hat ρ). Lub (βT^(evalNeed e ρ μ) | (ρ,μ) ∈ γE^((hat ρ))) ⊑ (evalD (hat D) e (hat ρ))
+  <==>  {- |(ρ,μ) ∈ γE^((hat ρ)) <==> αE^((set (ρ,μ))) ⊑ hat ρ|, unfold |αE|, refold |βD| -}
+    forall e ρ μ. βT^(evalNeed e ρ μ) ⊑ (evalD (hat D) e (βD^(μ) << ρ))
+\end{spec}
+where |βT := αT . set| and |βD^(μ) := αD^(μ) . set| are the representation
+functions corresponding to |αT| and |αD|.
+We proceed by Löb induction and cases over |e|.
+\begin{itemize}
+  \item \textbf{Case} |Var x|:
+    The case $|x| \not∈ |dom ρ|$ follows by reflexivity.
+    Otherwise, let |ρ ! x = Step (Look y) (fetch a)|.
+    \begin{spec}
+        βT^((ρ ! x) μ)
+    ⊑   {- \Cref{thm:by-need-env-unroll} -}
+        step (Look y) (evalD (hat D) e1 (βD^(μ) << ρ1))
+    =   {- Refold |βD| -}
+        βD^(μ)^(ρ ! x)
+    \end{spec}
+
+  \item \textbf{Case} |Lam x body|:
+    \begin{spec}
+        βT^(evalNeed (Lam x body) ρ μ)
+    =   {- Unfold |evalNeed2|, |βT| -}
+        fun (\(hat d) -> Lub (step App2 (βT^(evalNeed body (ext ρ x d) μ)) | d ∈ γD^(μ) (hat d)))
+    ⊑   {- Induction hypothesis -}
+        fun (\(hat d) -> Lub (step App2 (evalD (hat D) body (βD^(μ) << (ext ρ x d))) | d ∈ γD^(μ) (hat d)))
+    ⊑   {- Least upper bound / |αD^(μ) . γD^(μ) ⊑ id| -}
+        fun (\(hat d) -> step App2 (evalD (hat D) body (ext (βD^(μ) << ρ) x (hat d))))
+    =   {- Refold |evalD (hat D)| -}
+        evalD (hat D) (Lam x body) (βD^(μ) << ρ)
+    \end{spec}
+
+  \item \textbf{Case} |ConApp k xs|:
+    \begin{spec}
+        βT^(evalNeed (ConApp k xs) ρ μ)
+    =   {- Unfold |evalNeed2|, |βT| -}
+        con k (map ((βD^(μ) << ρ) !) xs)
+    =   {- Refold |evalD (hat D)| -}
+        evalD (hat D) (Lam x body) (βD^(μ) << ρ)
+    \end{spec}
+
+  \item \textbf{Case} |App e x|:
+    Very similar to the |apply| case in \Cref{thm:abstract-by-name}.
+    There is one exception: We must apply \Cref{thm:heap-progress-mono}
+    to argument denotations.
+
+    The |stuck| case is simple.
+    Otherwise, we have
+    \begin{spec}
+      βT^(evalNeed (App e x) ρ μ)
+    =   {- Unfold |evalNeed2|, |βT|, |apply| -}
+      step App1 ((evalNeed e ρ >>= \v -> case v of Fun f -> f (ρ ! x); _ -> stuck) μ)
+    ⊑   {- Apply \Cref{thm:by-need-bind}; see below -}
+      step App1 ((hat apply) (evalD (hat D) e (βD^(μ) << ρ)) (βD^(μ)^(ρ ! x)))
+    =   {- Refold |evalD (hat D)| -}
+      evalD (hat D) e (βD^(μ) << ρ)
+    \end{spec}
+
+    In the $⊑$ step, we apply \Cref{thm:by-need-bind} under |step App1|, which
+    yields three subgoals (under $\later$):
+    \begin{itemize}
+      \item |βT^(evalNeed e ρ μ) ⊑ evalD (hat D) e (βD^(μ) << ρ)|:
+        By induction hypothesis.
+      \item |forall ev (hat d'). (hat step) ev ((hat apply) (hat d') (βD^(μ)^(ρ ! x))) ⊑ (hat apply) ((hat step) ev (hat d')) (βD^(μ)^(ρ ! x))|:
+        By assumption \textsc{Step-App}.
+      \item |forall v μ2. μ ~> μ2 ==> βT^((case v of Fun g -> g (ρ ! x); _ -> stuck) μ2) ⊑ (hat apply) (βT^(Ret (v, μ2))) (βD^(μ)^(ρ ! x))|:
+        By cases over |v|.
+        \begin{itemize}
+          \item \textbf{Case |v = Stuck|}:
+            Then |βT^(stuck μ2) = hat stuck ⊑ (hat apply) (hat stuck) (hat a)| by assumption \textsc{Stuck-App}.
+          \item \textbf{Case |v = Con k ds|}:
+            Then |βT^(stuck μ2) = hat stuck ⊑ (hat apply) ((hat con) k (hat ds)) (hat a)| by assumption \textsc{Stuck-App}, for the suitable |hat ds|.
+          \item \textbf{Case |v = Fun g|}:
+            Note that |g| has a parametric definition, of the form |(\d -> step App2 (eval e1 (ext ρ x d)))|.
+            This is important to apply \textsc{Beta-App} below.
+            \begin{spec}
+                βT^(g (ρ!x) μ2)
+              ⊑  {- |id ⊑ γD^(μ2) . αD^(μ2)|, rearrange -}
+                (αD^(μ2) . powMap g . γD^(μ2)) (βD^(μ2)^(ρ!x))
+              ⊑  {- |βD^(μ2)^(ρ!x) ⊑ βD^(μ)^(ρ!x)| by {thm:heap-progress-mono} -}
+                (αD^(μ2) . powMap g . γD^(μ2)) (βD^(μ)^(ρ!x))
+              ⊑  {- Assumption \textsc{Beta-App} -}
+                (hat apply) ((hat fun) (αD^(μ2) . powMap g . γD^(μ2))) (βD^(μ)^(ρ!x))
+              =  {- Definition of |βT|, |v| -}
+                (hat apply) (βT^(Ret v, μ2)) (βD^(μ)^(ρ!x))
+            \end{spec}
+        \end{itemize}
+    \end{itemize}
+
+  \item \textbf{Case} |Case e alts|:
+    Very similar to the |select| case in \Cref{thm:abstract-by-name}.
+
+    The cases where the interpreter returns |stuck| follow by parametricity.
+    Otherwise, we have
+    (for the suitable definition of |hat alts|, which satisfies
+    |αD^(μ2) . powMap (alts ! k) . map (γD^(μ2)) ⊑ (hat alts) ! k| by induction)
+    \begin{spec}
+      βT^(evalNeed (Case e alts) ρ μ)
+    =   {- Unfold |evalNeed2|, |βT|, |apply| -}
+      step Case1 ((evalNeed e ρ >>= \v -> case v of Con k ds | k ∈ dom alts -> (alts!k) ds; _ -> stuck) μ)
+    ⊑   {- Apply \Cref{thm:by-need-bind}; see below -}
+      step Case1 ((hat select) (evalD (hat D) e (βD^(μ) << ρ)) (hat alts))
+    =   {- Refold |evalD (hat D)| -}
+      evalD (hat D) e (βD^(μ) << ρ)
+    \end{spec}
+
+    In the $⊑$ step, we apply \Cref{thm:by-need-bind} under |step Case1|, which
+    yields three subgoals (under $\later$):
+    \begin{itemize}
+      \item |βT^(evalNeed e ρ μ) ⊑ evalD (hat D) e (βD^(μ) << ρ)|:
+        By induction hypothesis.
+      \item |forall ev (hat d'). (hat step) ev ((hat select) (hat d') (hat alts)) ⊑ (hat select) ((hat step) ev (hat d')) (hat alts)|:
+        By assumption \textsc{Step-Select}.
+      \item |forall v μ2. μ ~> μ2 ==> βT^((case v of Con k ds || k ∈ dom alts -> (alts ! k) ds; _ -> stuck) μ2) ⊑ (hat select) (βT^(Ret (v, μ2))) (hat alts)|:
+        By cases over |v|.
+        \begin{itemize}
+          \item \textbf{Case |v = Stuck|}:
+            Then |βT^(stuck μ2) = hat stuck ⊑ (hat select) (hat stuck) (hat alts)| by assumption \textsc{Stuck-Sel}.
+          \item \textbf{Case |v = Fun f|}:
+            Then |βT^(stuck μ2) = hat stuck ⊑ (hat select) ((hat fun) (hat f)) (hat alts)| by assumption \textsc{Stuck-Sel}, for the suitable |hat f|.
+          \item \textbf{Case |v = Con k ds|, $|k| \not∈ |dom alts|$}:
+            Then |βT^(stuck μ2) = hat stuck ⊑ (hat select) ((hat con) k (hat ds)) (hat alts)| by assumption \textsc{Stuck-Sel}, for the suitable |hat ds|.
+          \item \textbf{Case |v = Con k ds|, $|k| ∈ |dom alts|$}:
+            Note that |alts| has a parametric definition.
+            This is important to apply \textsc{Beta-Sel} below.
+            \begin{spec}
+                βT^((alts ! k) ds μ2)
+              ⊑  {- |id ⊑ γD^(μ2) . αD^(μ2)|, rearrange -}
+                (αD^(μ2) . powMap (alts ! k) . map (γD^(μ2))) (map (αD^(μ2) . set) ds)
+              ⊑  {- Abstraction property of |hat alts| -}
+                (hat alts ! k) (map (αD^(μ2) . set) ds)
+              ⊑  {- Assumption \textsc{Beta-Sel} -}
+                (hat select) ((hat con) k (map (αD^(μ2) . set) ds)) (hat alts)
+              =  {- Definition of |βT|, |v| -}
+                (hat select) (βT^(Ret v)) (hat alts)
+            \end{spec}
+        \end{itemize}
+    \end{itemize}
+
+  \item \textbf{Case} |Let x e1 e2|:
+    We can make one step to see
+    \begin{spec}
+      evalNeed (Let x e1 e2) ρ μ = Step Let1 (evalNeed e2 ρ1 μ1),
+    \end{spec}
+    where |ρ1 := ext ρ x (step (Look x) (fetch a))|,
+    |a := nextFree μ|,
+    |μ1 := ext μ a (memo a (evalNeed2 e1 ρ1))|.
+
+    Then |(βD^(μ1) << ρ1) ! y ⊑ (βD^(μ) << ρ) ! y| whenever $|x| \not= |y|$
+    by \Cref{thm:heap-progress-mono},
+    and |(βD^(μ1) << ρ1) ! x = step (Look x) (βD^(μ1)^(evalNeed e1 ρ1))|.
+    \begin{spec}
+        βT^(evalNeed (Let x e1 e2) ρ μ)
+    =   {- Unfold |evalNeed2| -}
+        βT^(bind  (\d1 -> evalNeed2 e1 ρ1) (\d1 -> Step Let1 (evalNeed2 e2 ρ1)) μ)
+    =   {- Unfold |bind|, $|a| \not\in |dom μ|$, unfold |βT| -}
+        step Let1 (βT^(evalNeed e2 ρ1 μ1))
+    ⊑   {- Induction hypothesis -}
+        step Let1 (eval e2 (βD^(μ1) << ρ1))
+    ⊑   {- By \Cref{thm:by-need-env-unroll}, unfolding |ρ1|  -}
+        step Let1 (eval e2 (ext (βD^(μ1) << ρ) x (step (Look x) (eval e1 (ext (βD^(μ1) << ρ) x (βD^(μ1)^(ρ1 ! x)))))))
+    ⊑   {- Least fixpoint -}
+        step Let1 (eval e2 (ext (βD^(μ1) << ρ) x (lfp (\(hat d1) -> step (Look x) (eval e1 (ext (βD^(μ1) << ρ) x (hat d1)))))))
+    ⊑   {- |βD^(μ1)^(ρ ! x) ⊑ βD^(μ)^(ρ ! x)| by \Cref{thm:heap-progress-mono} -}
+        step Let1 (eval e2 (ext (βD^(μ) << ρ) x (lfp (\(hat d1) -> step (Look x) (eval e1 (ext (βD^(μ) << ρ) x (hat d1)))))))
+    =   {- Partially unroll fixpoint -}
+        step Let1 (eval e2 (ext (βD^(μ) << ρ) x (step (Look x) (lfp (\(hat d1) -> eval e1 (ext (βD^(μ) << ρ) x (step (Look x) (hat d1))))))))
+    ⊑   {- Assumption \textsc{ByName-Bind}, with |hat ρ = βD^(μ) << ρ| -}
+        bind  (\d1 -> eval e1 (ext (βD^(μ) << ρ) x (step (Look x) d1)))
+              (\d1 -> step Let1 (eval e2 (ext (βD^(μ) << ρ) x (step (Look x) d1))))
+    =   {- Refold |eval (Let x e1 e2) (βD^(μ) << ρ)| -}
+        eval (Let x e1 e2) (βD^(μ) << ρ)
+    \end{spec}
+\end{itemize}
+\end{proof}
 
 Let us unpack law $\textsc{Beta-App}$ to see how the abstraction laws in
 \Cref{fig:abstraction-laws} are to be understood.
@@ -265,8 +440,64 @@ We think this is a nice advantage to our approach, because the author of
 the analysis does not need to reason about by-need heaps in order to soundly
 approximate a semantic trace property expressed via |Trace| instance!
 
+\begin{toappendix}
+\subsection{Parametricity and Relationship to Kripke-style Logical Relations}
+
+We remarked right at the begin of the previous subsection that the Galois
+connection in \Cref{fig:abstract-name-need} is really a family of definitions
+indexed by a heap |μ|.
+It is not possible to regard the ``abstraction of a |d|'' in isolation;
+rather, \Cref{thm:heap-progress-mono} expresses that once an ``abstraction of a |d|''
+holds for a particular heap |μ1|, this abstraction will hold for any heap |μ2|
+that the semantics may progress to.
+
+Unfortunately, this indexing also means that we cannot apply parametricity
+to prove the sound abstraction \Cref{thm:abstract-by-need}, as we did for
+by-name abstraction.
+Such a proof would be bound to fail whenever the heap is extended (in |bind|),
+because then the index of the soundness relation must change as well.
+Concretely, we would need roughly the following free theorem
+\[
+  |(bind, bind) ∈ Later (Later (Rel(ext μ a d)) -> Rel(ext μ a d)) -> (Later (Rel(ext μ a d)) -> Rel(ext μ a d)) -> Rel(μ)|
+\]
+for the soundness relation of \Cref{thm:abstract-by-need}
+\[
+  R_|μ|(|d|, |hat d|) \triangleq |βD^(μ)^(d) ⊑ hat d|.
+\]
+However, parametricity only yields
+\[
+  |(bind, bind) ∈ (Rel(μ) -> Rel(μ)) -> (Rel(μ) -> Rel(μ)) -> Rel(μ)|
+\]
+We think that a modular proof is still conceivable by defining a custom proof
+tactic that would be \emph{inspired} by parametricity, given a means for
+annotating how the heap index changes in |bind|.
+
+Although we do not formally acknowledge this, the soundness relation |Rel(μ)|
+of \Cref{thm:abstract-by-need} is reminiscent of a \emph{Kripke logical
+relation}~\citep{Ahmed:04}.
+In this analogy, definable heaps correspond to the \emph{possible worlds} of
+\citet{Kripke:63} with heap progression |(~>)| as the \emph{accessibility
+relation}.
+\Cref{thm:heap-progress-mono} states that the relation $R_|μ|$ is monotonic
+\wrt |(~>)|, so we consider it possible to define a Kripke-style logical
+relation over System $F$ types.
+
+Kripke-style logical relations are well-understood in the literature, hence it
+is conceivable that a modular proof technique just as for parametricity exists.
+We have not investigated this avenue so far.
+A modular proof would help our proof framework to scale up to a by-need
+semantics of Haskell, for example, so this avenue bears great potential.
+\end{toappendix}
+
 \subsection{A Modular Proof for \textsc{Beta-App}}
 \label{sec:mod-subst}
+
+\begin{toappendix}
+\subsection{Usage Analysis Proofs}
+
+Here we give the usage analysis proofs for the main body, often deferring to
+\Cref{sec:by-need-soundness}.
+\end{toappendix}
 
 In order to prove usage analysis sound in \Cref{sec:usage-sound}, we need to
 prove that |UD| satisfies the abstraction laws in \Cref{fig:abstraction-laws}.
