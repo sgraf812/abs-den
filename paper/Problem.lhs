@@ -6,11 +6,20 @@
 \section{The Problem We Solve}
 \label{sec:problem}
 
-What is so difficult about proving a compositional, summary-based analysis sound
+What is so difficult about proving a compositional analysis sound
 \wrt a non-compositional small-step operational semantics?
 We will demonstrate the challenges in this section, by way of a simplified \emph{absence
 analysis}~\citep{SPJ:94}, a higher-order form of neededness analysis to inform
 removal of dead code in a compiler.
+
+By way of background, a common feature of compositional analysis is that from a term we compute a
+\emph{summary}, a compact description of the features of the term that are relevant
+to the analysis. For a type analysis, the summary is the term's type; for a strictness
+analysis the summary describes how the term uses its arguments and free variables; and so on.
+Function summaries enable efficient modular higher-order analyses, because it is
+much faster to apply the summary of a function than to re-analyse its
+definition at every use sites.  Typically, the analysis will carry an environment
+mapping each in-scope variable to its summary.
 
 \subsection{Object Language}
 \label{sec:lang}
@@ -114,6 +123,7 @@ It takes an environment $ρ \in \Var \pfun \AbsTy$ containing absence
 information about the free variables of $\pe$ and returns
 an \emph{absence type} $\langle φ, \varsigma \rangle \in \AbsTy$; an abstract
 representation of $\pe$.
+\slpj{So actually, and sadly, $\AbsTy$ is the summary, not $\Summary$.}
 The first component $φ \in \Uses$ of the absence type captures how $\pe$ uses its free
 variables by associating an $\Absence$ flag with each variable.
 When $φ(\px) = \aA$, then $\px$ is absent in $\pe$; otherwise, $φ(\px) = \aU$

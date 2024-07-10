@@ -9,25 +9,21 @@ A \emph{static program analysis} infers facts about a program, such
 as ``this program is well-typed'', ``this higher-order function is always called
 with argument $\Lam{x}{x+1}$'' or ``this program never evaluates $x$''.
 In a functional-language setting, such static analyses are
-often defined \emph{compositionally} on the input term.
+often defined \emph{compositionally} on the input term: the result of analysing
+a term is obtained by analysing its sub-terms separately, and combining the results.
 For example, consider the claim ``|(even 42)| has type |Bool|''.
-Type analysis asserts that |even :: Int -> Bool|, |42 :: Int|, and then applies
-the function type to the argument type to produce the result type |even 42 ::
-Bool|.
-The function type |Int -> Bool| is a \emph{summary} of the definition of |even|:
-Whenever the argument has type |Int|, the result has type |Bool|.
-Function summaries enable efficient modular higher-order analyses, because it is
-much faster to apply the summary of a function instead of reanalysing its
-definition at use sites in other modules.
+Type analysis separately computes |even :: Int -> Bool| and |42 :: Int|, and then
+combines these results to to produce the result type |even 42 :: Bool|.
 
-If the analysis is used in a compiler to inform optimisations, it is
-important to prove it sound, because lacking soundness
-can lead to miscompilation of safety-critical applications~\citep{Sun:16}.
+% Omitting this sentence.. it gets in the way of the page-1 flow
+% If the analysis is used in a compiler to inform optimisations, it is
+% important to prove it sound, because lacking soundness
+% can lead to miscompilation of safety-critical applications~\citep{Sun:16}.
 In order to prove the analysis sound, it is helpful to pick a language
 semantics that is also compositional, such as a \emph{denotational
 semantics}~\citep{ScottStrachey:71}; then the semantics and the analysis ``line
 up'' and the soundness proof is relatively straightforward.
-Indeed, one can often break up the proof into manageable sub goals by regarding
+Indeed, one can often break up the proof into manageable sub-goals by regarding
 the analysis as an \emph{abstract interpretation} of the compositional
 semantics~\citep{Cousot:21}.
 
