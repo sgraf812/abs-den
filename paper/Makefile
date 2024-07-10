@@ -7,7 +7,7 @@ main: abs-den.pdf
 
 supplement.zip: Interpreter.hs StaticAnalysis.hs Soundness.hs hs/*.hs ../agda/*.agda
 	sh -c "cd ..; git archive -o paper/supplement.zip --prefix=agda/ HEAD:agda"
-	nix run nixpkgs#zip -- -j supplement.zip Interpreter.hs StaticAnalysis.hs Soundness.hs ./hs/{Annotated,Exp,Order}.hs
+	nix run nixpkgs#zip -- -j supplement.zip Interpreter.hs StaticAnalysis.hs Soundness.hs ./hs/{Exp,Order}.hs
 
 abs-den.tex: *.lhs *.fmt
 	LANG=C.UTF-8 lhs2TeX --poly -o $@ abs-den.lhs
@@ -46,6 +46,16 @@ watch-test:
 
 submission: abs-den.pdf supplement.zip
 	grep '^\\usepackage\[appendix=append,bibliography=common\]{apxproof}' abs-den.lhs # Test for correct apxproof settings
+	grep '^\\documentclass\[acmsmall,review,anonymous\]{acmart}' abs-den.lhs # Test for submission mode
+
+abs-den-appendix.pdf: abs-den.pdf
+	nix run nixpkgs#pdftk -- abs-den.pdf cat 30-end output abs-den-appendix.pdf
+
+abs-den-main.pdf: abs-den.pdf
+	nix run nixpkgs#pdftk -- abs-den.pdf cat 1-29 output abs-den-main.pdf
+
+popl-submission: abs-den-main.pdf abs-den-appendix.pdf supplement.zip
+	grep '^\\usepackage\[appendix=append,bibliography=common,forwardlinking=no\]{apxproof}' abs-den.lhs # Test for correct apxproof settings
 	grep '^\\documentclass\[acmsmall,review,anonymous\]{acmart}' abs-den.lhs # Test for submission mode
 
 # For submission to arXiv

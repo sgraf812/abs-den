@@ -14,19 +14,19 @@
 % https://github.com/borisveytsman/acmart/issues/406#issuecomment-667180341
 \PassOptionsToPackage{prologue,dvipsnames}{xcolor}
 
-\documentclass[acmsmall,review]{acmart}\settopmatter{printfolios=true,printccs=false,printacmref=false}
-%\documentclass[acmsmall,review,anonymous]{acmart}\settopmatter{printfolios=true,printccs=false,printacmref=false}
+%\documentclass[acmsmall,review]{acmart}\settopmatter{printfolios=true,printccs=false,printacmref=false}
+\documentclass[acmsmall,review,anonymous]{acmart}\settopmatter{printfolios=true,printccs=false,printacmref=false}
 
 %% Journal information
 %%
 \setcopyright{rightsretained}
 \acmDOI{10.1145/1111111}
-\acmYear{2024}
-\copyrightyear{2024}
+\acmYear{2025}
+\copyrightyear{2025}
 %\acmSubmissionID{popl24main-p11-p}
 \acmJournal{PACMPL}
 \acmVolume{1}
-\acmNumber{ICFP}
+\acmNumber{POPL}
 \acmArticle{1}
 \acmMonth{1}
 
@@ -39,8 +39,8 @@
 
 %%%%%%%
 
-\usepackage[appendix=append,bibliography=common]{apxproof}
-\renewcommand{\appendixprelim}{\clearpage\onecolumn\appendix\section*{Start of Appendix}} % Clearly mark the begin of the Appendix inserted by apxproof
+\usepackage[appendix=append,bibliography=common,forwardlinking=no]{apxproof}
+%\renewcommand{\appendixprelim}{\clearpage\onecolumn\appendix\section*{Start of Appendix}} % Clearly mark the begin of the Appendix inserted by apxproof
 \renewcommand{\appendixsectionformat}[2]{Appendix for Section~#1\ (#2)}
 
 %\usepackage{array} % \newcolumntype
