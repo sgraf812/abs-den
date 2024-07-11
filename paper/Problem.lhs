@@ -67,9 +67,9 @@ Throughout the paper we assume that all bound program variables are distinct.
     \semabs{\pe~\px}_ρ & {}={} & \mathit{app}(\semabs{\pe}_{ρ})(ρ(\px)) \\
     \semabs{\Let{\px}{\pe_1}{\pe_2}}_ρ & {}={} & \semabs{\pe_2}_{ρ[\px ↦ \px \both \semabs{\pe_1}_ρ]} \\
     \\[-0.8em]
-    \multicolumn{3}{c}{\mathit{fun}_{\px}( f) {}={} \langle φ[\px↦\aA], φ(\px) \sumcons \varsigma \rangle} \\
-    \multicolumn{3}{c}{\qquad\qquad\text{where } \langle φ, \varsigma \rangle = f(\langle [\px↦\aU], \repU \rangle)} \\
-    \multicolumn{3}{c}{\mathit{app}(\langle φ_f, a \sumcons \varsigma \rangle)(\langle φ_a, \wild \rangle) = \langle φ_f ⊔ (a * φ_a), \varsigma \rangle} \\
+    \multicolumn{3}{c}{\mathit{fun}_{\px}( f) {}={} \langle φ[\px↦\aA], φ(\px) \argcons π \rangle} \\
+    \multicolumn{3}{c}{\qquad\qquad\text{where } \langle φ, π \rangle = f(\langle [\px↦\aU], \repU \rangle)} \\
+    \multicolumn{3}{c}{\mathit{app}(\langle φ_f, a \argcons π \rangle)(\langle φ_a, \wild \rangle) = \langle φ_f ⊔ (a * φ_a), π \rangle} \\
   \end{array}\]
   \end{minipage}%
   %}%
@@ -82,16 +82,16 @@ Throughout the paper we assume that all bound program variables are distinct.
   \begin{array}{rclcl}
     a & {}∈{} & \Absence & {}::={} & \aA \mid \aU \\
     φ & {}∈{} & \Uses    & {}={} & \Var \to \Absence \\
-    \varsigma & {}∈{}    & \Summary & {}::={} & a \sumcons \varsigma \mid \rep{a} \\
-    θ & {}∈{} & \AbsTy   & {}::={} & \langle φ, \varsigma \rangle \\
+    π & {}∈{} & \Args    & {}::={} & a \argcons π \mid \rep{a} \\
+    θ & {}∈{} & \AbsTy   & {}::={} & \langle φ, π \rangle \\
     \\[-0.9em]
-    \multicolumn{5}{c}{\rep{a} \equiv a \sumcons \rep{a}} \\
+    \multicolumn{5}{c}{\rep{a} \equiv a \argcons \rep{a}} \\
   \end{array} \\
   \\[-0.9em]
   \begin{array}{l}
     \aA * φ = [] \quad
     \aU * φ = φ  \\
-    \px \both \langle φ, \varsigma \rangle = \langle φ[\px↦\aU], \varsigma \rangle
+    \px \both \langle φ, π \rangle = \langle φ[\px↦\aU], π \rangle
   \end{array}
   \\[-0.5em]
   \end{array}\]
@@ -121,58 +121,25 @@ $\semabs{\Let{\px}{\pe_1}{\pe_2}}_ρ = \semabs{\pe_2}_{ρ[\px ↦
 \lfp(\fn{θ}{\px \both \semabs{\pe_1}_{ρ[\px↦θ]}})]}$.}
 It takes an environment $ρ \in \Var \pfun \AbsTy$ containing absence
 information about the free variables of $\pe$ and returns
-an \emph{absence type} $\langle φ, \varsigma \rangle \in \AbsTy$; an abstract
+an \emph{absence type} $\langle φ, π \rangle \in \AbsTy$; an abstract
 representation of $\pe$.
-\slpj{So actually, and sadly, $\AbsTy$ is the summary, not $\Summary$.}
 The first component $φ \in \Uses$ of the absence type captures how $\pe$ uses its free
 variables by associating an $\Absence$ flag with each variable.
 When $φ(\px) = \aA$, then $\px$ is absent in $\pe$; otherwise, $φ(\px) = \aU$
 and $\px$ might be used in $\pe$.
-The second component $\varsigma \in \Summary$ of the absence type summarises how $\pe$ uses
+The second component $π \in \Args$ of the absence type describes how $\pe$ uses
 actual arguments supplied at application sites.
-For example, function $f \triangleq \Lam{x}{y}$ has absence type $\langle [y ↦ \aU], \aA \sumcons \repU \rangle$.
+For example, function $f \triangleq \Lam{x}{y}$ has absence type $\langle [y ↦ \aU], \aA \argcons \repU \rangle$.
 Mapping $[y ↦ \aU]$ indicates that $f$ may use its free variable $y$.
 The literal notation $[y ↦ \aU]$ maps any variable other than $y$ to $\aA$.
-Furthermore, summary $\aA \sumcons \repU$ indicates that $f$'s first argument is absent and all further arguments are potentially used.
-The summary $\repU$ denotes an infinite repetition of $\aU$, as expressed by the
-non-syntactic equality $\repU \equiv \aU \sumcons \repU$.
-
-% \sven{You don't need to convince readers that the absence analysis is meaningful. Better focus on giving an example of summeries.}
-% Clearly if $\px$ is not free in $\pe$, then $\px$ is absent in $\pe$, but our
-% analysis does a bit better:
-% Consider the expression $\pe \triangleq \Let{f}{\Lam{x}{y}}{f~v}$.
-% Here, $v$ is a free variable of $\pe$, but it is absent because $f$ discards it.
-% The analysis figures out the same, by recording a summary $\varsigma$ in the
-% absence type for $f$ stored in the environment $ρ$.
-% The summary $\varsigma = \aA \sumcons \repU$ indicates
-% that $f$ is absent in its first argument \sven{This sounds weird. Perhaps: "$f$'s first argument $x$ is absent"} but potentially uses any further arguments\sven{What does this mean? Looks like $f$ only has one argument: $x$}.
-% The summary $\repU$ can be thought of as a finite representation of an infinite
-% list of $\aU$, as expressed by the non-syntactic equality $\aU \equiv \aU
-% \sumcons \repU$, and likewise for $\repA \equiv \aA \sumcons \repA$.
-% Since $f$ also uses $y$, the absence type recorded in the environment at the
-% call site of $f$ looks like $ρ(f) = \langle [f ↦ \aU, y ↦ \aU], \aA
-% \sumcons aU.. \rangle$, indicating that the call $f~v$ uses the free variables
-% $f$ and $y$, \emph{but not} $v$.
-% (Note that the literal notation $[f ↦ \aU, y ↦ \aU] ∈ \Uses$ maps any
-% variable other than $f$ and $y$ to $\aA$.)
-
-%When $\semabs{\pe}_{ρ_{\pe}} = \langle φ, \varsigma \rangle$ and $φ(\px) = \aA$,
-%then $\px$ is absent in $\pe$, where $ρ_{\pe}$ is the free variable environment
-%defined as
-%\[
-%  ρ_{\pe}(\px) \triangleq \langle [\px ↦ \aU], \repU \rangle, \quad \text{(if $\px ∈ \fv(\pe)$)}.
-%\]
-
-%In a slight extension of function update syntax, $[\px ↦ \aU]$ denotes a $φ$
-%where $φ(\px) = \aU$ and $φ(\py) = \aA$ for $\px \not= \py$.
-%Now we can understand $ρ_{\pe}$ to say that evaluation of each free variable
-%$\px$ uses only $\px$, and that any actual argument it is applied to is used,
-%indicated by argument summary $\repU$\ .
+Furthermore, $\aA \argcons \repU$ indicates that $f$'s first argument is absent and all further arguments are potentially used.
+The element $\repU$ denotes an infinite repetition of $\aU$, as expressed by the
+non-syntactic equality $\repU \equiv \aU \argcons \repU$.
 
 We illustrate the analysis at the example expression
 $\pe \triangleq \Let{k}{\Lam{y}{\Lam{z}{y}}}{k~x_1~x_2}$, where the initial
 environment for $\pe$, $ρ_\pe(\px) \triangleq \langle [\px ↦ \aU], \repU \rangle$,
-declares the free variables of $\pe$ with a pessimistic summary $\repU$.
+declares the free variables of $\pe$ with a pessimistic argument description $\repU$.
 \begin{DispWithArrows}[fleqn,mathindent=0em]
       & \semabs{\Let{k}{\Lam{y}{\Lam{z}{y}}}{k~x_1~x_2}}_{ρ_{\pe}} \label{eq:abs-ex-let}
         \Arrow{Unfold $\semabs{\Let{\px}{\pe_1}{\pe_2}}$. NB: Lazy Let!} \\
@@ -184,9 +151,9 @@ declares the free variables of $\pe$ with a pessimistic summary $\repU$.
         \Arrow{Unfold $\semabs{\Lam{\px}{\pe}}$ twice, $\semabs{\px}$} \\
   ={} & \mathit{app}(\mathit{app}(k \both \mathit{fun}_{y}(\fn{θ_y}{\mathit{fun}_{z}(\fn{θ_z}{θ_y})}))(...))(...) \label{eq:abs-ex-summarise}
         \Arrow{Unfold $\mathit{fun}$ twice, simplify} \\
-  ={} & \mathit{app}(\mathit{app}(\langle [k ↦ \aU], \highlight{\aU} \sumcons \aA \sumcons \repU \rangle)(\highlight{ρ_1(x_1)}))(...) \label{eq:abs-apply1}
+  ={} & \mathit{app}(\mathit{app}(\langle [k ↦ \aU], \highlight{\aU} \argcons \aA \argcons \repU \rangle)(\highlight{ρ_1(x_1)}))(...) \label{eq:abs-apply1}
         \Arrow{Unfold $\mathit{app}$, $ρ_1(x_1)=ρ_{\pe}(x_1)$, simplify} \\
-  ={} & \mathit{app}(\langle [k ↦ \aU,x_1↦\aU], \highlight{\aA} \sumcons \repU \rangle)(\highlight{ρ_1(x_2)}) \label{eq:abs-apply2}
+  ={} & \mathit{app}(\langle [k ↦ \aU,x_1↦\aU], \highlight{\aA} \argcons \repU \rangle)(\highlight{ρ_1(x_2)}) \label{eq:abs-apply2}
         \Arrow{Unfold $\mathit{app}$, simplify} \\
   ={} & \langle [k ↦ \aU,x_1↦\aU], \repU \rangle
 \end{DispWithArrows}
@@ -196,13 +163,13 @@ an absence type for the let right-hand side of $k$.
 The steps up until \labelcref{eq:abs-ex-summarise} successively expose
 applications of the $\mathit{app}$ and $\mathit{fun}$ helper functions applied
 to environment entries for the involved variables.
-Step \labelcref{eq:abs-ex-summarise} then computes the summary as part of the absence type
-$\mathit{fun}_y(\fn{θ_y}{\mathit{fun}_z(\fn{θ_z}{θ_y})}) = \langle [], \aU \sumcons \aA \sumcons \repU \rangle$.
+Step \labelcref{eq:abs-ex-summarise} then computes the summarising absence type
+$\mathit{fun}_y(\fn{θ_y}{\mathit{fun}_z(\fn{θ_z}{θ_y})}) = \langle [], \aU \argcons \aA \argcons \repU \rangle$.
 The $\Uses$ component is empty because $\Lam{y}{\Lam{z}{y}}$ has no free variables,
 and $k \both ...$ will add $[k↦\aU]$ as the single use.
 The $\mathit{app}$ steps \labelcref{eq:abs-apply1,eq:abs-apply2} simply zip up
 the uses of arguments $ρ_1(x_1)$ and $ρ_1(x_2)$ with the $\Absence$ flags
-in the summary $\aU \sumcons \aA \sumcons \repU$ as highlighted, adding the
+in $\aU \argcons \aA \argcons \repU$ as highlighted, adding the
 $\Uses$ from $ρ_1(x_1) = \langle [x_1 ↦ \aU], \repU \rangle$ but \emph{not}
 from $ρ_1(x_2)$, because the first actual argument ($x_1$) is used whereas the
 second ($x_2$) is absent.
@@ -218,11 +185,11 @@ thanks to the summary mechanism.
 %⊏ \aU$ on $\Absence$ flags.
 %The order on $\Uses$, $φ_1 ⊑ φ_2$, is defined pointwise, and the order on
 %$\AbsTy$ is the product order.
-%The order on $\Summary$ is non-structural:
-%The inequations $\repA ⊑ a \sumcons \varsigma ⊑ \repU$ and the
-%product ordering on $a \sumcons \varsigma$ define a smallest preorder,
-%and the partial order on $\Summary$ is this preorder modulo the non-syntactic
-%equivalences $\aA \sumcons \repA \equiv \repA$, $\aU \sumcons \repU \equiv
+%The order on $\Args$ is non-structural:
+%The inequations $\repA ⊑ a \argcons π ⊑ \repU$ and the
+%product ordering on $a \argcons π$ define a smallest preorder,
+%and the partial order on $\Args$ is this preorder modulo the non-syntactic
+%equivalences $\aA \argcons \repA \equiv \repA$, $\aU \argcons \repU \equiv
 %\repU$, with $\repA$ as the bottom element.
 
 %In general, we can make the following \emph{soundness statement}:
@@ -231,18 +198,6 @@ thanks to the summary mechanism.
 
 \subsection{Function Summaries, Compositionality and Modularity}
 \label{sec:summaries}
-
-%\sven{I don't understand the purpose of this section. This section motivates why summery-based analyses are useful, but this doesn't motivate the problem we are solving. The problem we solve is to prove summary-based analyses sound illustrated in Section 2.4. I would drop this section entirely.}
-%
-%\sg{Section 2 is about substantiating the claim in the Introduction that we
-%have two established alternatives that are \emph{unappealing}:
-%Alt (1): Proof despite structural mismatch. Implies complicated proofs. The bulk
-%of this section is about substantiating this claim.
-%Alt (2): Reformulate the analysis in terms of AAM/CFA. But then we give up on
-%summaries and lose modularity. That's what I want to substantiate in this subsection.
-%So I added the following paragraph.
-%Perhaps I should move this entire subsection to Related Work and point to that at the end of 2.2?}
-
 
 Instead of coming up with a summary mechanism, we could simply have ``inlined''
 $k$ during analysis of the example above to see that $x_2$ is absent in a simple
@@ -272,7 +227,7 @@ Let us say that our example function $k = (\Lam{y}{\Lam{z}{y}})$ is defined in
 module A and there is a use site $(k~x_1~x_2)$ in module B.
 Then a \emph{modular analysis} must not reanalyse A.$k$ at its use site in B.
 Our analysis $\semabs{\wild}$ facilitates that easily, because it can
-serialise the summarised $\AbsTy$ for $k$ into module A's signature file.
+serialise the $\AbsTy$ summary for $k$ into module A's signature file.
 Do note that this would not have been possible for the functional
 $(\fn{θ_y}{\fn{θ_z}{θ_y}}) : \AbsTy \to \AbsTy \to \AbsTy$ that describes the
 inline expansion of $k$, which a call-strings-based absence analysis would need
@@ -286,84 +241,11 @@ static analyses such as $\semabs{\wild}$.
 Compositionality implies that $\semabs{\Let{f}{\Lam{x}{\pe_{\mathit{big}}}}{f~f~f~f}}$
 is a function of $\semabs{\Lam{x}{\pe_{\mathit{big}}}}$, and the summary mechanism
 prevents having to reanalyse $\pe_{\mathit{big}}$ repeatedly for each call of $f$.
-%In order to satisfy the scalability requirements of a compiler and
-%guarantee termination of the analysis in the first place, it is
-%important not to repeat the work of analysing $\semabs{\pe_{\mathit{big}}}$
-%at every use site of $f$.
-%Thus, it is necessary to summarise $\semabs{\Lam{x}{\pe_{\mathit{big}}}}$ into
-%a finite $\AbsTy$, rather than to call the inline expansion
-%of type $\AbsTy \to \AbsTy$ multiple times, ruling out an analysis that is
-%purely based on call strings.
-
-%This summary mechanism is manifest in the $\mathit{fun}$ and $\mathit{app}$
-%functions we deliberately extracted out, encoding a contract between function
-%definitions and their call sites.
-%
-%We can give a more formal definition of what a summary mechanism is in terms of
-%abstract interpretation~\citep{Cousot:21}:
-%In this work, a \emph{function summary} is an approximation to, or abstraction
-%of, the function's abstract transformer implied by the considered analysis.
-%
-%In case of $\semabs{\Lam{\px}{\pe}}$, the implied abstract transformer is the
-%function $f^\sharp_{ρ,\pe,\px} \triangleq \fn{θ}{\semabs{\pe}_{ρ[\px ↦
-%θ]}}$ passed to $\mathit{fun}_\px$,%
-%\footnote{Note that in contrast to let-bound names, the syntactic parameter
-%$\px$ is used as a convenient proxy for a De Bruijn level, if you wonder about
-%the scoping semantics.}
-%which \emph{summarises} (\ie abstracts)
-%$f^\sharp_{ρ,\pe,\px}$ into something finite (\ie not a function).
-%The produced summary is concretised back in $\semabs{\pe~\px}$ through
-%$\mathit{app}$ which encodes the adjoint (``reverse'') operation.
-%More concretely, $f^\sharp_{ρ,\pe,\px}(θ) ⊑
-%\mathit{app}(\mathit{fun}_\px(f^\sharp_{ρ,\pe,\px}))(θ)$ for any choice of
-%$ρ$, $\pe$, $\px$ and $θ$, suggesting a Galois connection between abstract
-%transformers in $\AbsTy \to \AbsTy$ and $\AbsTy$.%
-%\footnote{We will see at the end of \Cref{sec:by-name-soundness} why it is
-%important to restrict the Galois connection to syntactic $f^\sharp_{ρ,\pe,\px}$
-%and not arbitrary monotone functions in $\AbsTy \to \AbsTy$.}
-%
-%If we unfold $f^\sharp_{ρ,\pe,\px}$ and refold $\semabs{\wild}$ twice in
-%the above statement, we can recognise it as a \emph{substitution lemma},
-%so called because the (delayed) substitution carried out when beta reducing
-%$(\Lam{\px}{\pe})~\py$ to $\pe[\px:=\py]$ preserves analysis results:%
-%\footnote{All proofs can be found in the Appendix; in case of the extended
-%version via clickable links.}
-%\footnote{An inconsequential observation: The other half of the Galois connection
-%proof, $\mathit{fun}_\px \circ \mathit{app} \mathbin{\ddot{⊑}} \mathit{id}$,
-%corresponds to eta expansion $\semabs{\Lam{\px}{\pe~\px}}_ρ ⊑
-%\semabs{\pe}_ρ$.}
-
-%We conjecture that every substitution lemma has a summary mechanism it proves
-%correct; that is why they are capstone lemmas in type system soundness
-%proofs~\citep{tapl} and a crucial part in proving $\semabs{\wild}$ correct.
 
 \subsection{Problem: Proving Soundness of Summary-Based Analyses}
 
 In this subsection, we demonstrate the difficulty of proving summary-based
 analyses sound.
-
-%\sven{The storyline can be streamlined. Right now the story is:
-%\begin{itemize}
-%\item To prove the absence analysis sound, we need to show Theorem 1.
-%\item Why is it difficult to prove?
-%\item But before we explain the difficulty, we must first define absence in Definition 2.
-%\item Furthermore, before we explain the difficulty, we must also prove substitution in Lemma 3.
-%\item Now we look at some existing proofs of such analyses and why they are difficult...
-%\end{itemize}
-%I propose the following storyline:
-%\begin{itemize}
-%\item To prove the absence analysis sound, we need to show Theorem 1.
-%\item Theorem 1 (Combine theorem 1 and definition 2):
-%  If $\semabs{\pe}_{ρ_\pe} = \langle φ, \varsigma \rangle$ and $φ(\px) = \aA$, implies $\px$ is absent in $\pe$.
-%  $\px$ is absent in $\pe$ if there exists no trace ... that evaluates $\px$.
-%\item The proof is in the appendix. The proof is exemplary for more ambitious proofs such as ...
-%\item Here are the reasons why such proofs are difficult (1) ... (2) ... (3) ...
-%\end{itemize}
-%In the last point you can incorporate the substitution lemma and why it is difficult}
-%
-%\sg{We refer to Def 2 and Lemma 3 later on; they are a recurring scheme.
-%Lemma 3 is not too difficult to prove and always necessary for a summary-based analysis.
-%I tried to leave some forward references to clarify.}
 
 \begin{theoremrep}[$\semabs{\wild}$ infers absence]
   \label{thm:absence-correct}
@@ -377,14 +259,14 @@ analyses sound.
 %  That is a subtle point that I don't want to expand on here;
 %  it is distracting for newcomers and somewhat obvious to experts of modular
 %  analyses and program transformations.}
-  If $\semabs{\pe}_{ρ_\pe} = \langle φ, \varsigma \rangle$ and $φ(\px) = \aA$,
+  If $\semabs{\pe}_{ρ_\pe} = \langle φ, π \rangle$ and $φ(\px) = \aA$,
   then $\px$ is absent in $\pe$.
 \end{theoremrep}
 \begin{proof}
   See \hyperlink{proof:absence-correct}{the proof at the end of this section}.
 \end{proof}
 
-What are the main obstacles to prove it?
+What are the main obstacles to prove this Theorem?
 As the first step, we must define what absence \emph{means}, in a formal sense.
 There are many ways to do so, and it is not at all clear which is best.
 One plausible definition is in terms of the standard operational semantics in
@@ -418,10 +300,10 @@ The partial order on $\AbsTy$ necessary for computing the least fixpoint $\lfp$
 follows structurally from $\aA ⊏ \aU$ (\ie product order, pointwise order).
 
 \begin{abbreviation}
-  The syntax $θ.φ$ for an $\AbsTy$ $θ = \langle φ, \varsigma \rangle$
+  The syntax $θ.φ$ for an $\AbsTy$ $θ = \langle φ, π \rangle$
   returns the $φ$ component of $θ$.
-  The syntax $θ.\varsigma$
-  returns the $\varsigma$ component of $θ$.
+  The syntax $θ.π$
+  returns the $π$ component of $θ$.
 \end{abbreviation}
 
 \begin{definition}[Abstract substitution]
@@ -429,7 +311,7 @@ follows structurally from $\aA ⊏ \aU$ (\ie product order, pointwise order).
   We call $φ[\px \Mapsto φ'] \triangleq φ[\px↦\aA] ⊔ (φ(\px) * φ')$ the
   \emph{abstract substitution} operation on $\Uses$
   and overload this notation for $\AbsTy$, so that
-  $(\langle φ, \varsigma \rangle)[\px \Mapsto φ_\py] \triangleq \langle φ[\px \Mapsto φ_\py], \varsigma \rangle$.
+  $(\langle φ, π \rangle)[\px \Mapsto φ_\py] \triangleq \langle φ[\px \Mapsto φ_\py], π \rangle$.
 \end{definition}
 
 Abstract substitution is useful to give a concise description of the effect of
@@ -537,13 +419,13 @@ By induction on $\pe$.
     ={} & \semabs{(\Lam{\px}{\pz})~\py}_ρ
     \end{DispWithArrows*}
     Otherwise, we have $\px = \pz$,
-    thus $ρ(\px) = \langle [\px ↦ \aU], \varsigma = \repU \rangle$,
+    thus $ρ(\px) = \langle [\px ↦ \aU], π = \repU \rangle$,
     and thus
     \begin{DispWithArrows*}[fleqn,mathindent=4em]
         & \semabs{\pz}_{ρ[\px↦ρ(\py)]}
         \Arrow{$\px = \pz$} \\
     ={} & ρ(\py)
-        \Arrow{$\varsigma ⊑ \repU$} \\
+        \Arrow{$π ⊑ \repU$} \\
     ⊑{} & \langle ρ(\py).φ, \repU \rangle
         \Arrow{Definition of $\wild[\wild\Mapsto\wild]$} \\
     ={} & (\langle [\px ↦ \aU], \repU \rangle)[\px ↦ ρ(\py).φ]
@@ -620,7 +502,7 @@ The following lemma captures this intuition:
 \begin{lemma}[Diagonal factoring]
 \label{thm:diag-fact}
 Let $ρ$ and $ρ_Δ$ be two environments such that
-$\forall \px.\ ρ(\px).\varsigma = ρ_Δ(\px).\varsigma$.
+$\forall \px.\ ρ(\px).π = ρ_Δ(\px).π$.
 
 If $ρ_Δ.φ(\px) ⊑ ρ_Δ.φ(\py)$ if and only if $\px = \py$,
 then every instantiation of $\semabs{\pe}$ factors through $\semabs{\pe}_{ρ_Δ}$,
@@ -675,7 +557,7 @@ By induction on $\pe$.
         \Arrow{Unfold $\semabs{\wild}$} \\
     ={} & \semabs{\pe_2}_{ρ[\py↦\lfp(\fn{θ}{\py \both \semabs{\pe_1}_{ρ[\py ↦ θ]}})]}
         \Arrow{Induction hypothesis} \\
-    ={} & \semabs{\pe_2}_{ρ[\py↦\lfp(\fn{θ}{\py \both (\semabs{\pe_1}_{{ρ_Δ}[\py ↦ \langle [\py ↦ \aU], θ.\varsigma \rangle]})[\many{\px \Mapsto ρ(\px).φ}, \py \Mapsto θ.φ]})]}
+    ={} & \semabs{\pe_2}_{ρ[\py↦\lfp(\fn{θ}{\py \both (\semabs{\pe_1}_{{ρ_Δ}[\py ↦ \langle [\py ↦ \aU], θ.π \rangle]})[\many{\px \Mapsto ρ(\px).φ}, \py \Mapsto θ.φ]})]}
         \Arrow{Again, backwards} \\
     ={} & \semabs{\pe_2}_{ρ[\py↦\lfp(\fn{θ}{\py \both (\semabs{\pe_1}_{{ρ_Δ}[\py ↦ θ]})[\many{\px \Mapsto ρ(\px).φ}]})]} \\
         & \text{\emph{Similarly for $\pe_2$, hand-waving to push out the subst as in \Cref{thm:push-let-absence}}} \\
@@ -860,8 +742,8 @@ and only if $[\px ↦ \aU] ⊑ (\semabs{\pe}_{\tr}).φ$.
 With \Cref{thm:diag-fact}, we can decompose
 \begin{DispWithArrows*}[fleqn,mathindent=1em]
        & [\px ↦ \aU] \Arrow{Above result} \\
-  {}⊑{}& (\semabs{\pe}_{\tr}).φ \Arrow{$\tr_Δ(\px) \triangleq \langle [\px ↦ \aU], \tr(\px).\varsigma \rangle$, \Cref{thm:diag-fact}} \\
-  {}={}& ((\semabs{\pe}_{\tr_Δ})[\many{\py \Mapsto \tr(\py).φ}]).φ \Arrow{$\varsigma ⊑ \repU$, hence $\tr_Δ ⊑ \tr_\pe$} \\
+  {}⊑{}& (\semabs{\pe}_{\tr}).φ \Arrow{$\tr_Δ(\px) \triangleq \langle [\px ↦ \aU], \tr(\px).π \rangle$, \Cref{thm:diag-fact}} \\
+  {}={}& ((\semabs{\pe}_{\tr_Δ})[\many{\py \Mapsto \tr(\py).φ}]).φ \Arrow{$π ⊑ \repU$, hence $\tr_Δ ⊑ \tr_\pe$} \\
   {}⊑{}& ((\semabs{\pe}_{\tr_\pe})[\many{\py \Mapsto \tr(\py).φ}]).φ \Arrow{Definition of $\wild[\wild \Mapsto \wild]$} \\
   {}={}& \Lub \{ \tr(\py).φ \mid \semabs{\pe}_{\tr_\pe}.φ(\py) = \aU \}
 \end{DispWithArrows*}
@@ -885,8 +767,8 @@ preservation-style proof technique at heart.
 %4.1]{Nielson:99}, applicable to \emph{trace properties}, but not to
 %\emph{hyperproperties}~\citep{ClarksonSchneider:10}.}
 The proof of \citet{Sergey:14} for a generalisation of $\semabs{\wild}$
-is roughly structured as follows (starred* references to Figures and Lemmas
-below reference \citet{Sergey:14}):
+is roughly structured as follows (starred* references of Figures and Lemmas
+refer to \citet{Sergey:14}):
 
 \begin{enumerate}
   \item Instrument a standard call-by-need semantics (a variant of our reference

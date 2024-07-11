@@ -243,7 +243,7 @@ instance Applicative UT where
 
 instance Show UValue where
   show (Rep u) = "\\conid{Rep}\\;" ++ show u
-  show (UCons u v) = show u ++ " \\sumcons " ++ show v
+  show (UCons u v) = show u ++ " \\argcons " ++ show v
 \end{code}
 %endif
 \\[-1em]
@@ -312,10 +312,10 @@ when we instantiate |eval| at |UD|.
 %\footnote{In particular, the negative recursive occurrence in
 %|Fun :: (τ (highlight Value τ) -> ...) -> Value τ| is disqualifying.}
 
-The definition of |UValue| is just a copy of $\varsigma ∈ \Summary$ in
+The definition of |UValue| is just a copy of $π ∈ \Args$ in
 \Cref{fig:absence} that lists argument usage |U| instead of $\Absence$ flags;
 the entire intuition transfers.
-For example, the |UValue| summarising $\Lam{y}{\Lam{z}{y}}$ is
+For example, the |UValue| abstracting $\Lam{y}{\Lam{z}{y}}$ is
 |UCons U1 (UCons U0 (Rep Uω))|, because the first argument is used once while
 the second is used 0 times.
 What we previously called absence types $θ ∈ \AbsTy$ in \Cref{fig:absence} is
@@ -375,14 +375,14 @@ De Bruijn level.}
 Every use of |x|'s proxy will contribute a usage of |U1| on |x|, and multiple
 uses in the lambda body would accumulate to a usage of |Uω|.
 In this case there is only a single use of |x| and the final usage |φ !? x =
-U1| from the lambda body will be prepended to the summarised value.
+U1| from the lambda body will be prepended to the value abstraction.
 Occurrences of |x| unleash the uninformative top value (|Rep Uω|) from |x|'s
 proxy for lack of knowing the actual argument at call sites.
 
 The definition of |apply| to apply such summaries to an argument is nearly the
 same as in \Cref{fig:absence}, except for the use of |+| instead of $⊔$ to
 carry over |U1 + U1 = Uω|, and an explicit |peel| to view a |UValue| in terms
-of $\sumcons$ (it is |Rep u == UCons u (Rep u)|).
+of $\argcons$ (it is |Rep u == UCons u (Rep u)|).
 The usage |u| thus pelt from the value determines how often the actual
 argument was evaluated, and multiplying the uses of the argument |φ2| with |u|
 accounts for that.

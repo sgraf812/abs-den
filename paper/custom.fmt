@@ -249,9 +249,9 @@
 %%format (Rep u) = u "\mathsf{..}"
 %format AAA = "\concolor{\mathsf{U_0..}}"
 %format UUU = "\concolor{\mathsf{U_\omega..}}"
-%format UCons (a) (b) = a " \sumcons " b
+%format UCons (a) (b) = a " \argcons " b
 %format UD2 = "\concolor{\mathsf{\widehat{D_U}}}"
-%format BCons (a) (b) = a " \sumcons_\concolor{\mathsf{B}} " b
+%format BCons (a) (b) = a " \argcons_\concolor{\mathsf{B}} " b
 %format BRep = "\conid{Rep_B}"
 %format BValue = "\concolor{\mathsf{Value_B}}"
 %format BD = "\concolor{\mathsf{D_B}}"
