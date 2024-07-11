@@ -78,8 +78,9 @@
 
 \usepackage{utf8-symbols}
 \input{macros}
+%\settoggle{hidetodos}{true}
 
-\ifnonanon{\usepackage[mark]{gitinfo2}}
+%\usepackage[mark]{gitinfo2}
 
 %include custom.fmt
 \newcommand{\kwcolor}[1]{{\color{BlueViolet} #1}}

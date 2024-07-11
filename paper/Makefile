@@ -47,6 +47,7 @@ watch-test:
 submission: abs-den.pdf supplement.zip
 	grep '^\\usepackage\[appendix=append,bibliography=common\]{apxproof}' abs-den.lhs # Test for correct apxproof settings
 	grep '^\\documentclass\[acmsmall,review,anonymous\]{acmart}' abs-den.lhs # Test for submission mode
+	grep '^\\settoggle{hidetodos}{true}' abs-den.lhs # Test for TODOs
 
 abs-den-appendix.pdf: abs-den.pdf
 	nix run nixpkgs#pdftk -- abs-den.pdf cat 30-end output abs-den-appendix.pdf
@@ -57,6 +58,7 @@ abs-den-main.pdf: abs-den.pdf
 popl-submission: abs-den-main.pdf abs-den-appendix.pdf supplement.zip
 	grep '^\\usepackage\[appendix=append,bibliography=common,forwardlinking=no\]{apxproof}' abs-den.lhs # Test for correct apxproof settings
 	grep '^\\documentclass\[acmsmall,review,anonymous\]{acmart}' abs-den.lhs # Test for submission mode
+	grep '^\\settoggle{hidetodos}{true}' abs-den.lhs # Test for TODOs
 
 # For submission to arXiv
 arxiv.zip: abs-den.tex macros.tex utf8-symbols.sty references.bib
