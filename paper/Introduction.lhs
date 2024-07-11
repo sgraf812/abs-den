@@ -10,10 +10,11 @@ as ``this program is well-typed'', ``this higher-order function is always called
 with argument $\Lam{x}{x+1}$'' or ``this program never evaluates $x$''.
 In a functional-language setting, such static analyses are
 often defined \emph{compositionally} on the input term: the result of analysing
-a term is obtained by analysing its sub-terms separately, and combining the results.
+a term is obtained by analysing its subterms separately, and combining the results.
 For example, consider the claim ``|(even 42)| has type |Bool|''.
 Type analysis separately computes |even :: Int -> Bool| and |42 :: Int|, and then
-combines these results to to produce the result type |even 42 :: Bool|.
+combines these results to to produce the result type |even 42 :: Bool|,
+without looking at the definition of |even| again.
 
 % Omitting this sentence.. it gets in the way of the page-1 flow
 % If the analysis is used in a compiler to inform optimisations, it is
@@ -23,7 +24,7 @@ In order to prove the analysis sound, it is helpful to pick a language
 semantics that is also compositional, such as a \emph{denotational
 semantics}~\citep{ScottStrachey:71}; then the semantics and the analysis ``line
 up'' and the soundness proof is relatively straightforward.
-Indeed, one can often break up the proof into manageable sub-goals by regarding
+Indeed, one can often break up the proof into manageable subgoals by regarding
 the analysis as an \emph{abstract interpretation} of the compositional
 semantics~\citep{Cousot:21}.
 

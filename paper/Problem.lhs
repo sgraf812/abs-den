@@ -12,15 +12,6 @@ We will demonstrate the challenges in this section, by way of a simplified \emph
 analysis}~\citep{SPJ:94}, a higher-order form of neededness analysis to inform
 removal of dead code in a compiler.
 
-By way of background, a common feature of compositional analysis is that from a term we compute a
-\emph{summary}, a compact description of the features of the term that are relevant
-to the analysis. For a type analysis, the summary is the term's type; for a strictness
-analysis the summary describes how the term uses its arguments and free variables; and so on.
-Function summaries enable efficient modular higher-order analyses, because it is
-much faster to apply the summary of a function than to re-analyse its
-definition at every use sites.  Typically, the analysis will carry an environment
-mapping each in-scope variable to its summary.
-
 \subsection{Object Language}
 \label{sec:lang}
 
@@ -163,7 +154,7 @@ an absence type for the let right-hand side of $k$.
 The steps up until \labelcref{eq:abs-ex-summarise} successively expose
 applications of the $\mathit{app}$ and $\mathit{fun}$ helper functions applied
 to environment entries for the involved variables.
-Step \labelcref{eq:abs-ex-summarise} then computes the summarising absence type
+Step \labelcref{eq:abs-ex-summarise} then computes the absence type
 $\mathit{fun}_y(\fn{θ_y}{\mathit{fun}_z(\fn{θ_z}{θ_y})}) = \langle [], \aU \argcons \aA \argcons \repU \rangle$.
 The $\Uses$ component is empty because $\Lam{y}{\Lam{z}{y}}$ has no free variables,
 and $k \both ...$ will add $[k↦\aU]$ as the single use.
@@ -177,8 +168,8 @@ The join on $\Uses$ follows pointwise from the order $\aA ⊏ \aU$, \ie $(φ_1
 ⊔ φ_2)(\px) \triangleq φ_1(\px) ⊔ φ_2(\px)$.
 
 The analysis result $[k ↦ \aU,x_1↦\aU]$ infers $k$ and $x_1$ as
-potentially used and $x_2$ as absent, despite it occurring in argument position,
-thanks to the summary mechanism.
+potentially used and $x_2$ as absent, despite $x_2$ occurring in argument position,
+thanks to the bookkeeping of $\Args$.
 
 %Since $\semabs{\wild}$ computes least fixpoints at recursive let bindings,
 %$\AbsTy$ is equipped with a semi-lattice structure, induced by the order $\aA
@@ -196,51 +187,64 @@ thanks to the summary mechanism.
 %$\px$ is absent in $\pe$ when $\px \not∈ \semabs{\pe}_{\tr_\pe}$.
 %Thus, $\semabs{\wild}$ can be used in a compiler to enable absent code removal.
 
-\subsection{Function Summaries, Compositionality and Modularity}
+\subsection{Compositionality, Summaries and Modularity}
 \label{sec:summaries}
 
-Instead of coming up with a summary mechanism, we could simply have ``inlined''
-$k$ during analysis of the example above to see that $x_2$ is absent in a simple
-first-order sense.
-The \emph{call strings} approach to interprocedural program
-analysis~\citep{SharirPnueli:78} turns this idea into a static analysis,
-and the AAM recipe could be used to derive an absence analysis based on call
-strings that is sound by construction.
-In this subsection, we argue that following this paths gives up on modularity,
-and thus leads to scalability problems in a compiler.
+The absence type $\langle [], \aU \argcons \aA \argcons \repU \rangle$
+above is a finite \emph{summary} of the lambda term $\Lam{y}{\Lam{z}{y}}$.
+Let us define what we mean by ``summary'' in order to understand what is so
+appealing about a summary-based analysis such as $\semabs{\wild}$.
 
-Let us clarify that by a \emph{summary mechanism}, we mean a mechanism for
-approximating the semantics of a function call in terms of the domain of a
-static analysis, often yielding a symbolic, finite representation.
-In the definition of $\semabs{\wild}$, we took care to explicate the mechanism
+Just as a denotational semantics, the interpreter $\semabs{\wild}$
+\emph{denotes} a term in a \emph{semantic domain} ($\AbsTy$).
+This interpretation is \emph{compositional}:
+the denotation of a term is a recombination of the denotations of its subterms.
+
+In order for a denotational semantics to faithfully and compositionally
+denote lambda terms, its semantic domain must contain infinite elements.
+However, every element of the semantic domain $\AbsTy$ of absence analysis is
+\emph{finitely representable} (data, even!), so the denotation of lambda terms
+must be approximate in some sense.
+We call such a finitely representable and thus approximate denotation
+a \emph{summary}.
+
+The approximate nature of summaries is best appreciated when analysing
+β-redexes such as $\semabs{(\Lam{\px}{\pe})~\py}$, which invokes the
+\emph{summary mechanism}.
+In the definition of $\semabs{\wild}$, we took care to explicate this mechanism
 via $\mathit{fun}$ and $\mathit{app}$.
 The former approximates a functional $(\fn{θ}{...}) : \AbsTy \to \AbsTy$ into
 a finite $\AbsTy$, and $\mathit{app}$ encodes the adjoint (``reverse'')
-operation.%
-%\footnote{Proving that $\mathit{fun}$ and $\mathit{app}$ form a Galois connection
-%is indeed important for a soundness proof and corresponds to a substitution
-%\Cref{thm:absence-subst}.}
+operation.
 
 To support efficient separate compilation, a compiler analysis must be
-\emph{modular}, and summaries are indispensable in achieving that.
+\emph{modular}, and summaries are \emph{indispensable} in achieving that.
 Let us say that our example function $k = (\Lam{y}{\Lam{z}{y}})$ is defined in
 module A and there is a use site $(k~x_1~x_2)$ in module B.
 Then a \emph{modular analysis} must not reanalyse A.$k$ at its use site in B.
 Our analysis $\semabs{\wild}$ facilitates that easily, because it can
 serialise the $\AbsTy$ summary for $k$ into module A's signature file.
-Do note that this would not have been possible for the functional
-$(\fn{θ_y}{\fn{θ_z}{θ_y}}) : \AbsTy \to \AbsTy \to \AbsTy$ that describes the
-inline expansion of $k$, which a call-strings-based absence analysis would need
-to invoke at every use site.
+
+Now, instead of coming up with a summary mechanism, we could simply have
+``inlined'' $k$ during analysis of the example above to see that $x_2$ is absent
+in a simple first-order sense.
+The \emph{call strings} approach to interprocedural program
+analysis~\citep{SharirPnueli:78} turns this idea into a static analysis,
+and the AAM recipe could be used to derive an absence analysis based on call
+strings that is sound by construction.
+Alas, following this paths gives up on modularity, because a call-strings-based
+analysis would need to invoke the functional
+$(\fn{θ_y}{\fn{θ_z}{θ_y}}) : \AbsTy \to \AbsTy \to \AbsTy$ that describes
+$k$'s inline expansion \emph{at every use site}.
 
 The same way summaries enable efficient \emph{inter}-module compilation,
-they enable efficient \emph{intra}-module compilation for \emph{compositional}
-static analyses such as $\semabs{\wild}$.
-%\footnote{\citet{Cousot:02} understand modularity as degrees of compositionality;
-%a compositional analysis is thus modular.}
-Compositionality implies that $\semabs{\Let{f}{\Lam{x}{\pe_{\mathit{big}}}}{f~f~f~f}}$
-is a function of $\semabs{\Lam{x}{\pe_{\mathit{big}}}}$, and the summary mechanism
-prevents having to reanalyse $\pe_{\mathit{big}}$ repeatedly for each call of $f$.
+they enable efficient \emph{intra}-module compilation:
+Compositionality implies that $\semabs{\Let{f}{\Lam{x}{\pe_{\mathit{big}}}}{f~f~f}}$
+is a function of $\semabs{\Lam{x}{\pe_{\mathit{big}}}}$, and finite summaries
+prevent having to reanalyse $\pe_{\mathit{big}}$ repeatedly for each call of $f$.
+
+This is why summary-based analysis are great: they are \emph{fast} and
+reasonably precise.
 
 \subsection{Problem: Proving Soundness of Summary-Based Analyses}
 
