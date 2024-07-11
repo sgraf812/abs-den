@@ -876,8 +876,7 @@ They are necessary components in a soundness proof, and substitution is not
 too difficult to prove for a simple summary mechanism.
 Building on these definitions, we may finally attempt the proof for
 \Cref{thm:absence-correct}.
-We suggest for the reader to have a cursory look by clicking on the theorem
-number, linking to the Appendix.
+We suggest for the reader to have a cursory look at the proof in the Appendix.
 The proof is exemplary of far more ambitious proofs such as in
 \citet{Sergey:14} and \citet[Section 4]{Breitner:16}.
 Though seemingly disparate, these proofs all follow an established
@@ -886,8 +885,8 @@ preservation-style proof technique at heart.
 %4.1]{Nielson:99}, applicable to \emph{trace properties}, but not to
 %\emph{hyperproperties}~\citep{ClarksonSchneider:10}.}
 The proof of \citet{Sergey:14} for a generalisation of $\semabs{\wild}$
-is roughly structured as follows (non-clickable references to Figures
-and Lemmas below reference \citet{Sergey:14}):
+is roughly structured as follows (starred* references to Figures and Lemmas
+below reference \citet{Sergey:14}):
 
 \begin{enumerate}
   \item Instrument a standard call-by-need semantics (a variant of our reference
@@ -914,11 +913,11 @@ it, is enormous.
     semantics in \citet{Sergey:14} becomes non-deterministic.
     Does this instrumentation still express the desired semantic property?
   \item Step (2) all but duplicates a complicated analysis
-    definition (\ie $\semabs{\wild}$) into a type system (in Figure 7) with
+    definition (\ie $\semabs{\wild}$) into a type system (in Figure 7*) with
     subtle adjustments expressing invariants for the preservation proof.
   \item
     Furthermore, step (2) extends this type system to small-step machine
-    configurations (in Figure 13), \ie stacks and heaps, the scoping of which
+    configurations (in Figure 13*), \ie stacks and heaps, the scoping of which
     is mutually recursive.%
     \footnote{We believe that this extension can always be derived systematically from a
     context lemma~\citep[Lemma 3.2]{MoranSands:99} and imitating what the type
@@ -931,7 +930,7 @@ it, is enormous.
   \item
     This is all setup before step (3) proves interesting properties about the
     semantic domain of the analysis.
-    Among the more interesting properties is the \emph{substitution lemma} A.8
+    Among the more interesting properties is the \emph{substitution lemma} A.8*
     to be applied during beta reduction; exactly as in our proof.
   \item
     While proving that a single step $σ_1 \smallstep σ_2$ preserves analysis
@@ -942,7 +941,7 @@ it, is enormous.
 
     Although the proof in \citet{Sergey:14} is perceived as detailed and
     rigorous, it is quite terse in the corresponding \textsc{EUpd} case of the
-    single-step safety proof in lemma A.6.
+    single-step safety proof in Lemma A.6*.
 \end{itemize}
 
 

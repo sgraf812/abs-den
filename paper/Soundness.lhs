@@ -781,7 +781,7 @@ Of course, any function defined by the generic interpreter satisfies this
 requirement.
 Without the premise of \textsc{Beta-App}, the law cannot be proved
 for usage analysis; we give a counterexample in the Appendix
-(\Cref{ex:syntactic-beta-app}).
+(\Cref*{ex:syntactic-beta-app}).
 
 \begin{toappendix}
 The following example shows why we need the ``polymorphic'' premises in
@@ -857,7 +857,7 @@ the preservation-style proof framework in \Cref{sec:problem}.
 
 Specifically, \Cref{thm:abstract-by-need} makes it very simple to relate
 by-need semantics with usage analysis, taking the place of the
-absence-analysis-specific preservation \Cref{thm:preserve-absent}:
+absence-analysis-specific preservation lemma:
 
 \begin{corollaryrep}[|evalUsg1| abstracts |evalNeed1|]
 \label{thm:usage-abstracts-need}
@@ -954,7 +954,7 @@ trace into a |φ' :: Uses|, \eg
     = |MkUT [ i {-" ↦ "-} Uω, x {-" ↦ "-} U1 ] (...)|$.
 Clearly, it is |φ' !? x ⊒ U1|, because there is at least one |Look x|.
 \Cref{thm:usage-abstracts-need} and a context invariance
-\Cref{thm:usage-bound-vars-context} prove that the computed |φ|
+\Cref*{thm:usage-bound-vars-context} prove that the computed |φ|
 approximates |φ'|, so |φ !? x ⊒ φ' !? x ⊒ U1 //= U0|.
 \end{proofsketch}
 \begin{proof}
@@ -1007,7 +1007,7 @@ Let us compare to the preservation-style proof framework in \Cref{sec:problem}.
     Where there were multiple separate \emph{semantic artefacts} such as a separate
     small-step semantics and an extension of the absence analysis function to
     machine configurations $σ$ in order to state preservation
-    (\Cref{thm:preserve-absent}), our proof only has a single semantic artefact
+    (\Cref*{thm:preserve-absent}), our proof only has a single semantic artefact
     that needs to be defined and understood: the denotational interpreter,
     albeit with different instantiations.
   \item

@@ -61,7 +61,7 @@ denotational interpreters:
     \rightarrow α_3)$ that act as summaries.
 
   \item
-    \Cref{sec:0cfa} defines 0CFA \emph{control-flow analysis}~\citep{Shivers:91},
+    \Cref*{sec:0cfa} defines 0CFA \emph{control-flow analysis}~\citep{Shivers:91},
     a non-modular analysis lacking a finite summary mechanism, simply as a
     proof of concept.
 
@@ -78,14 +78,14 @@ denotational interpreters:
     Demand Analysis is the real-world implementation of the cardinality analysis
     work of \citet{Sergey:14}, generalising usage analysis and implementing
     strictness analysis as well.
-    For a report of this case study, we defer to \Cref{sec:demand-analysis}.
+    For a report of this case study, we defer to \Cref*{sec:demand-analysis}.
 
   \item
     Static compiler analyses such as Demand Analysis usually drive a subsequent
     optimisation, for which a single denotation for the entire program is
     insufficient.
     Rather, we need one for every sub-expression, or at least every binding.
-    \Cref{sec:annotations} proposes a very slight generalisation of the
+    \Cref*{sec:annotations} proposes a very slight generalisation of the
     |Domain| type class that lifts a stateless analysis into a stateful
     analysis writing out annotations for let bindings in a separate, global map.
     As a substantial bonus, we can use another stateful map to cache the
@@ -538,7 +538,7 @@ Algorithm~J.
 The full implementation can be found in the extract generated from this
 document, but the provided code is sufficiently exemplary of the approach.
 The decompressed form of this subsection can be found in
-\Cref{sec:type-analysis-detail}, including many examples.
+\Cref*{sec:type-analysis-detail}, including many examples.
 
 Type analysis |evalTy| infers the most general Hindley-Milner polytype of an expression, \eg
 \[|evalTy (({-" \Let{i}{\Lam{x}{x}}{\Let{o}{\mathit{Some}(i)}{o}} "-})|

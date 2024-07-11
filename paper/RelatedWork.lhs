@@ -36,7 +36,7 @@ simpler, rigorously defined (\Cref{sec:totality}) and proven adequate \wrt
 \citeauthor{Sestoft:97}'s by-need semantics (\Cref{sec:adequacy}).
 \citet{HackettHutton:19} define a denotational cost semantics for call-by-need,
 but unfortunately we fail to see how their approach can be extended to
-totally generate detailed by-need small-step traces, \cf \Cref{sec:clair}.
+totally generate detailed by-need small-step traces, \cf \Cref*{sec:clair}.
 
 \citet{Sestoft:97} related the derivations of
 \citeauthor{Launchbury:93}'s big-step natural semantics for our language to

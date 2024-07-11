@@ -242,7 +242,7 @@ expressed in the following theorem:
   open configurations and prove it by Löb induction.
   Then it suffices to prove that $α_{\STraces}$ preserves the observable properties of
   interest.
-  The full proof for a rigorous reformulation of the proposition can be found in \Cref{sec:adequacy-detail}.
+  The full proof for a rigorous reformulation of the proposition can be found in \Cref*{sec:adequacy-detail}.
 \end{proofsketch}
 \begin{proof}
   $|evalNeed e emp emp| = α(\init(\pe) \smallstep ..., \StopF)$ follows directly
@@ -837,7 +837,7 @@ In other words, if every environment lookup produces a |Step| constructor, then
 our semantics is total by coinduction.
 Such an argument is quite natural to encode in guarded recursive types, hence
 our use of Guarded Cubical Agda is appealing.
-See \Cref{sec:totality-detail} for the details of the encoding in Agda.
+See \Cref*{sec:totality-detail} for the details of the encoding in Agda.
 \end{proofsketch}
 
 %Encoding the productivity argument in Guarded Cubical Agda was far easier and is
