@@ -253,14 +253,15 @@ instance Show UValue where
 
 In order to recover usage analysis as an instance of our generic interpreter, we
 must define its finitely represented semantic domain |UD|.
-A good first step to take in that direction is to replace the potentially
+A good first step is to replace the potentially
 infinite traces |T| in dynamic semantic domains such as |DName| with finite data
 such as |UT| in \Cref{fig:usage-analysis}.
 A \emph{usage trace} |MkUT φ val :: UT v| is a pair of a value |val :: v|
 and a finite map |φ :: Uses|, mapping variables to a \emph{usage} |U|.
 The usage |φ !? x| assigned to |x| is meant to approximate the number of |Look x|
 events; |U0| means ``at most 0 times'', |U1| means ``at most 1 times'',
-and |Uω| means ``an unknown number of times''.
+and |Uω| means ``an unknown number of times''. \slpj{This |φ !? x| is strange.  Why bang questionmark?  Later... ah, now I see that it's just the lookup operation, but I thought it
+was strange new math notation.  I'd write |lookupUsage φ x|.}
 In this way, |UT| is an \emph{abstraction} of |T|: it squashes all |Look x|
 events into a single entry |φ !? x :: U| and discards all other events.
 

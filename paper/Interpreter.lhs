@@ -92,7 +92,7 @@ for a functional language which we instantiate with different semantic domains.
 The choice of semantic domain determines the \emph{evaluation strategy}
 (call-by-name, call-by-value, call-by-need) and the degree to which
 \emph{operational detail} can be observed.
-Yet different semantic domains give rise to useful \emph{summary-based} static
+Other semantic domains give rise to useful \emph{summary-based} static
 analyses such as usage analysis in \Cref{sec:abstraction}.
 The major contribution of our framework is that the derived summary-based
 analyses may observe operational detail in an intuitive and semantically

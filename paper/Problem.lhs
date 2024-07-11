@@ -216,6 +216,8 @@ via $\mathit{fun}$ and $\mathit{app}$.
 The former approximates a functional $(\fn{θ}{...}) : \AbsTy \to \AbsTy$ into
 a finite $\AbsTy$, and $\mathit{app}$ encodes the adjoint (``reverse'')
 operation.
+operation.%
+\slpj{I'm not sure what a functional is, how this sentence relates to the sumary story.}
 
 To support efficient separate compilation, a compiler analysis must be
 \emph{modular}, and summaries are \emph{indispensable} in achieving that.
@@ -248,8 +250,8 @@ reasonably precise.
 
 \subsection{Problem: Proving Soundness of Summary-Based Analyses}
 
-In this subsection, we demonstrate the difficulty of proving summary-based
-analyses sound.
+In this subsection, we demonstrate the difficulty of proving soundness for summary-based
+analyses.  Here is the theorem we might want to prove:
 
 \begin{theoremrep}[$\semabs{\wild}$ infers absence]
   \label{thm:absence-correct}
@@ -270,9 +272,9 @@ analyses sound.
   See \hyperlink{proof:absence-correct}{the proof at the end of this section}.
 \end{proof}
 
-What are the main obstacles to prove this Theorem?
-As the first step, we must define what absence \emph{means}, in a formal sense.
-There are many ways to do so, and it is not at all clear which is best.
+As the first step, we must define precisely what absence (used in the theorem statement)
+\emph{means}.
+% There are many ways to do so, and it is not at all clear which is best.
 One plausible definition is in terms of the standard operational semantics in
 \Cref{sec:op-sem}:
 
@@ -284,11 +286,10 @@ One plausible definition is in terms of the standard operational semantics in
   that looks up the heap entry of $\px$, \ie it evaluates $\px$.
   Otherwise, $\px$ is \emph{absent} in $\pe$.
 \end{definitionrep}
-
-Note that absence is a property of many different traces, each embedding the
-expression $\pe$ in different machine contexts so as to justify rewrites via
-contextual improvement~\citep{MoranSands:99}.
-Furthermore, we must prove sound the summary mechanism, captured in the
+Note that absence of $\px$ means that $\px$ is not looked up \emph{regardless of
+the context in which $\pe$ is used}, hence the quantificaton over $\rho, \mu$
+and \kappa$~\citep{MoranSands:99}.
+Furthermore \slpj{very unclear why we we need this}, we must prove sound the summary mechanism, captured in the
 following \emph{substitution lemma}~\citep{tapl}:%
 %\footnote{This statement amounts to $id ⊑ \mathit{app} \circ \mathit{fun}_x$,
 %one half of a Galois connection.
@@ -832,7 +833,7 @@ it, is enormous.
 
 
 The main takeaway:
-Although analysis and semantics might be reasonably simple, the soundness
+Although analysis and semantics might be reasonably simple taken individually, the soundness
 proof that relates both is \emph{not}; it necessitates an explosion in formal
 artefacts and the parts of the proof that concern the domain of the analysis are
 drowned in coping with semantic subtleties that ultimately could be shared with
@@ -846,6 +847,7 @@ rigorously and separately}, once and for all, and then instantiate this
 framework for absence analysis or cardinality analysis, so that only the
 highlights of the preservation proof such as the substitution lemma need to be
 shown.
+\slp{There are two things going on here. (1) difficulty of connecting a compositional analysis with an operational semantics; and (2) the desire to avoid duplicated work in soundess proofs. The amin point here is (1), so it is distracting to talk about (2).}
 
 Abstract interpretation provides such a framework.
 Alas, the book of \citet{Cousot:21} starts from a \emph{compositional} semantics
@@ -863,7 +865,7 @@ called at most once, for example.}
 
 For these reasons, we set out to find a \textbf{\emph{compositional semantics
 that exhibits operational detail}} just like the trace-generating semantics of
-\citet{Cousot:21}, and were successful.
+\citet{Cousot:21}.
 The example of usage analysis in \Cref{sec:abstraction} (generalising
 $\semabs{\wild}$, as suggested above) demonstrates that we can
 \textbf{\emph{derive summary-based analyses as an abstract interpretation}} from
