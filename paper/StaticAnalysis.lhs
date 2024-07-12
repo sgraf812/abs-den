@@ -281,7 +281,7 @@ Consider as an example the by-name trace evaluating $\pe \triangleq
 We would like to abstract this trace into |MkUT [i ↦ U1, j ↦ Uω] dots|.
 One plausible way to achieve this is to replace every |Step (Look x) dots|
 in the by-name trace with a call to |step (Look x) dots| from the |Trace UT|
-instance in \Cref{fig:usage-analysis}, quite similar to |foldr step| on lists.
+instance in \Cref{fig:usage-analysis}, essentially folding over the trace.
 The |step| implementation increments the usage of |x| whenever a |Look x|
 event occurs.
 The addition operation used to carry out incrementation is defined in type class
@@ -293,11 +293,10 @@ For example, |U0 + u = u| and |U1 + U1 = Uω| in |U|, as well as |U0 * u = U0|,
 These operations lift to |Uses| pointwise, \eg
 |[i ↦ U1] + (Uω * [j ↦ U1]) = [i ↦ U1, j ↦ Uω]|.
 
-Following through on the |foldr step| idea to abstract a |T| into |UT|
-amounts to what \citet{adi} call a \emph{collecting semantics} of the interpreter.
-Such semantics-specific collecting variants are easily achievable for us as
-well.
-It is as simple as defining a |Monad| instance on |UT| mirroring trace
+Abstracting |T| into |UT| but keeping the concrete semantic |Value| definition
+amounts to what \citet{adi} call a \emph{collecting semantics}.
+To recover such an analysis-specific collecting semantics,
+it is sufficient to define a |Monad| instance on |UT| mirroring trace
 concatenation and then running our interpreter at, \eg $|D (ByName UT)| \cong
 |UT (Value UT)|$ on expression $\pe$ from earlier:
 \[
@@ -392,7 +391,7 @@ proxy for lack of knowing the actual argument at call sites.
 The definition of |apply| to apply such summaries to an argument is nearly the
 same as in \Cref{fig:absence}, except for the use of |+| instead of $⊔$ to
 carry over |U1 + U1 = Uω|, and an explicit |peel| to view a |UValue| in terms
-of $\argcons$ (it is |Rep u == UCons u (Rep u)|).
+of $\argcons$ (it is $|Rep u| \equiv |UCons u (Rep u)|$).
 The usage |u| thus pelt from the value determines how often the actual
 argument was evaluated, and multiplying the uses of the argument |φ2| with |u|
 accounts for that.
