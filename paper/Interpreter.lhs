@@ -611,12 +611,12 @@ instances for call-by-value in this section.
 The first one is a plain old by-value encoding the representation of which is
 isomorphic to |D T|, just like for |DName|.
 However, this instance is partial for the original recursive |Let| construct.
-Our second instance augments call-by-value with a lazy initialisation
-technique~\citep{Nakata:06} involving a mutable heap, thus sharing its
-representation with |D (ByNeed T)|.
+In order to recover a total by-value semantics, our second instance augments
+call-by-value with a lazy initialisation technique~\citep{Nakata:06} involving a
+mutable heap, thus sharing its representation with |DNeed|.
 The third and final by-value domain models clairvoyant
-call-by-value~\citep{HackettHutton:19}, which unfortunately proves to be partial
-as well.
+call-by-value~\citep{HackettHutton:19}, which unfortunately proves to be
+partial, and more fundamentally so than the partial by-value instance.
 
 \subsection{Call-by-value}
 
