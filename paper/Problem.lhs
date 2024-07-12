@@ -196,12 +196,12 @@ Let us define what we mean by ``summary'' in order to understand what is so
 appealing about a summary-based analysis such as $\semabs{\wild}$.
 
 Just as a denotational semantics, the interpreter $\semabs{\wild}$
-\emph{denotes} a term in a \emph{semantic domain} ($\AbsTy$).
+\emph{denotates} a term in a \emph{semantic domain} ($\AbsTy$).
 This interpretation is \emph{compositional}:
 the denotation of a term is a recombination of the denotations of its subterms.
 
 In order for a denotational semantics to faithfully and compositionally
-denote lambda terms, its semantic domain must contain infinite elements.
+denotate lambda terms, its semantic domain must contain infinite elements.
 However, every element of the semantic domain $\AbsTy$ of absence analysis is
 \emph{finitely representable} (data, even!), so the denotation of lambda terms
 must be approximate in some sense.
