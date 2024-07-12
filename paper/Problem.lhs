@@ -209,7 +209,7 @@ We call such a finitely representable and thus approximate denotation
 a \emph{summary}.
 
 The approximate nature of summaries is best appreciated when analysing
-β-redexes such as $\semabs{(\Lam{\px}{\pe})~\py}$, which invokes the
+beta redexes such as $\semabs{(\Lam{\px}{\pe})~\py}$, which invokes the
 \emph{summary mechanism}.
 In the definition of $\semabs{\wild}$, we took care to explicate this mechanism
 via $\mathit{fun}$ and $\mathit{app}$.
@@ -838,15 +838,14 @@ proof that relates both is \emph{not}; it necessitates an explosion in formal
 artefacts and the parts of the proof that concern the domain of the analysis are
 drowned in coping with semantic subtleties that ultimately could be shared with
 similar analyses.
-Furthermore, the inevitable hand-waving in proofs of this size around said
-semantic subtleties diminishes confidence in the soundness of the proof
-to the point where trust can only be recovered by full mechanisation.
+%Furthermore, the inevitable hand-waving in proofs of this size around said
+%semantic subtleties diminishes confidence in the soundness of the proof
+%to the point where trust can only be recovered by full mechanisation.
 
-It would be preferable to find a framework to \emph{prove these distractions
-rigorously and separately}, once and for all, and then instantiate this
-framework for absence analysis or cardinality analysis, so that only the
-highlights of the preservation proof such as the substitution lemma need to be
-shown.
+It would be preferable to find a framework to \emph{prove these semantic
+subtleties rigorously and separately}, and then instantiate this framework for
+absence analysis or cardinality analysis, so that only the highlights of the
+preservation proof such as the substitution lemma need to be shown.
 \slp{There are two things going on here. (1) difficulty of connecting a compositional analysis with an operational semantics; and (2) the desire to avoid duplicated work in soundess proofs. The amin point here is (1), so it is distracting to talk about (2).}
 
 Abstract interpretation provides such a framework.
@@ -870,10 +869,11 @@ The example of usage analysis in \Cref{sec:abstraction} (generalising
 $\semabs{\wild}$, as suggested above) demonstrates that we can
 \textbf{\emph{derive summary-based analyses as an abstract interpretation}} from
 our semantics.
-Since both semantics and analysis are derived from the same compositional
-generic interpreter, the equivalent of the preservation proof for usage analysis
-in \Cref{thm:usage-abstracts-need} takes no more than a substitution
-lemma and a bit of plumbing.
+
+Since both semantics and analysis are \textbf{\emph{derived from the same
+generic interpreter}}, the equivalent of the preservation proof
+for usage analysis in \Cref{thm:usage-abstracts-need} takes no more than a
+substitution lemma and a bit of plumbing.
 Hence our \emph{denotational interpreter} does not only enjoy useful
 compositional semantics and analyses as instances, the soundness proofs become
 compositional in the semantic domain as well.
