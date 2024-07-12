@@ -78,7 +78,7 @@
 
 \usepackage{utf8-symbols}
 \input{macros}
-%\settoggle{hidetodos}{true}
+\settoggle{hidetodos}{true}
 
 %\usepackage[mark]{gitinfo2}
 
