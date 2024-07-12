@@ -709,7 +709,7 @@ By cases on the transition.
     derivation) of the trace $σ' \smallstep^* σ_1$ to show \Cref{eqn:absent-upd}.
 
     This reasoning was not specific to $\semabs{\wild}$ at all.
-    We will show a more general result in \Cref{thm:abstract-by-name}
+    We will show a more general result in \Cref{thm:abstract-by-need}
     that can be reused across many more analyses.
 
     Assuming \Cref{eqn:absent-upd} has been proved, we proceed
