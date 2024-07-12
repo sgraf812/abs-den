@@ -260,8 +260,17 @@ A \emph{usage trace} |MkUT φ val :: UT v| is a pair of a value |val :: v|
 and a finite map |φ :: Uses|, mapping variables to a \emph{usage} |U|.
 The usage |φ !? x| assigned to |x| is meant to approximate the number of |Look x|
 events; |U0| means ``at most 0 times'', |U1| means ``at most 1 times'',
-and |Uω| means ``an unknown number of times''. \slpj{This |φ !? x| is strange.  Why bang questionmark?  Later... ah, now I see that it's just the lookup operation, but I thought it
-was strange new math notation.  I'd write |lookupUsage φ x|.}
+and |Uω| means ``an unknown number of times''.
+%\slpj{This |φ !? x| is strange. Why bang questionmark? Later... ah, now I see
+%that it's just the lookup operation, but I thought it was strange new math
+%notation. I'd write |lookupUsage φ x|.}
+%\sg{I'm inlinced to keep it. Here are my reasons:
+%    |lookupUsage| would still not tell you how it is defined;
+%    you would still need to search for it. Searching for !? is no harder.
+%    Besides, space is precious, and !? is used *a lot* in the proofs of the
+%    Appendix.
+%    It is also the natural operator, given that we use the standard operator
+%    (!) for env lookup.}
 In this way, |UT| is an \emph{abstraction} of |T|: it squashes all |Look x|
 events into a single entry |φ !? x :: U| and discards all other events.
 
@@ -555,10 +564,13 @@ when that happens:
 \[|evalTy (({-" \Let{x}{\mathit{None}()}{x~x} "-}))|
   = \perform{evalTy (read "let x = None() in x x")}.\]
 Throughout the analysis, the invariant is maintained that the |J Type|
-denotations of let-bound variables in the interpreter environment |ρ| are of the
+summaries of let-bound variables in the interpreter environment |ρ| are of the
 form |instantiatePolyTy σ| for a polytype |σ|, while lambda- and field-bound
 variables are denoted by |return θ|, yielding the same monotype |θ| at all use
 sites.
+(Use of the term ``summary'' is justified because both |σ| and |θ| are data,
+and it would be easy to defunctionalise |instantiatePolyTy σ| and |return θ|
+to be data as well.)
 Thus, let-bound denotations instantiate polytypes on-the-fly at occurrence
 sites, just as in Algorithm~J.
 

@@ -214,8 +214,8 @@ beta redexes such as $\semabs{(\Lam{\px}{\pe})~\py}$, which invokes the
 In the definition of $\semabs{\wild}$, we took care to explicate this mechanism
 via the adjoint functions $\mathit{fun}$ and $\mathit{app}$.
 For the summary mechanism to be sound, we must have
-$\semabs{\pe[\px \setminus \py]} ⊑ \semabs{(\Lam{\px}{\pe})~\py}$
-(where $\pe[\px \setminus \py]$ substitutes $\py$ for $\px$ in $\pe$).
+$\semabs{\pe[\py / \px]} ⊑ \semabs{(\Lam{\px}{\pe})~\py}$
+(where $\pe[\py / \px]$ substitutes $\py$ for $\px$ in $\pe$).
 %\slpj{I'm not sure how this sentence relates to the sumary story.}
 %\sg{Trying to say that what constitutes a sound summary mechanism does not
 %only depend on $fun$ or the $\AbsTy$ it produces; it also depends on how that
@@ -230,6 +230,16 @@ Then a \emph{modular analysis} must not reanalyse A.$k$ at its use site in B.
 Our analysis $\semabs{\wild}$ facilitates that easily, because it can
 serialise the $\AbsTy$ summary for $k$ into module A's signature file.
 
+The same way summaries enable efficient \emph{inter}-module compilation,
+they enable efficient \emph{intra}-module compilation:
+Compositionality implies that $\semabs{\Let{f}{\Lam{x}{\pe_{\mathit{big}}}}{f~f~f}}$
+is a function of $\semabs{\Lam{x}{\pe_{\mathit{big}}}}$, and finite summaries
+prevent having to reanalyse $\pe_{\mathit{big}}$ repeatedly for each call of $f$.
+
+This is why summary-based analyses are great: they scale.
+
+\subsection{Summaries \vs Abstracting Abstract Machines}
+
 Now, instead of coming up with a summary mechanism, we could simply have
 ``inlined'' $k$ during analysis of the example above to see that $x_2$ is absent
 in a simple first-order sense.
@@ -240,21 +250,13 @@ strings that is sound by construction.
 Alas, following this paths gives up on modularity, because a call-strings-based
 analysis would need to invoke the function
 $(\fn{θ_y}{\fn{θ_z}{θ_y}}) : \AbsTy \to \AbsTy \to \AbsTy$ that describes
-$k$'s inline expansion \emph{at every use site}.
-
-The same way summaries enable efficient \emph{inter}-module compilation,
-they enable efficient \emph{intra}-module compilation:
-Compositionality implies that $\semabs{\Let{f}{\Lam{x}{\pe_{\mathit{big}}}}{f~f~f}}$
-is a function of $\semabs{\Lam{x}{\pe_{\mathit{big}}}}$, and finite summaries
-prevent having to reanalyse $\pe_{\mathit{big}}$ repeatedly for each call of $f$.
-
-This is why summary-based analysis are great: they are \emph{fast} and
-reasonably precise.
+$k$'s inline expansion \emph{at every use site}, leading to scalability problems in a compiler.
 
 \subsection{Problem: Proving Soundness of Summary-Based Analyses}
 
 In this subsection, we demonstrate the difficulty of proving soundness for summary-based
-analyses.  Here is the theorem we might want to prove:
+analyses. For absence analysis, we have proved (in the Appendix) the following
+correctness statement:
 
 \begin{theoremrep}[$\semabs{\wild}$ infers absence]
   \label{thm:absence-correct}
@@ -767,8 +769,7 @@ $\tr$), we must have $(\semabs{\pe}_{\tr_\pe}).φ(\px) = \aU$, as required.
 
 \Cref{defn:absence} and the substitution \Cref{thm:absence-subst} will make
 a reappearance in \Cref{sec:soundness}.
-They are necessary components in a soundness proof, and substitution is not
-too difficult to prove for a simple summary mechanism.
+They are necessary components of a soundness proof.
 Building on these definitions, we may finally attempt the proof for
 \Cref{thm:absence-correct}.
 We suggest for the reader to have a cursory look at the proof in the Appendix.
@@ -798,7 +799,7 @@ refer to \citet{Sergey:14}):
     semantics is bisimilar to evaluation of the term in the standard semantics,
     \ie does not get stuck when the standard semantics would not.
     A classic \emph{logical relation}~\citep{Nielson:99}.
-    In our case, we prove that evaluation preserves the analysis result.
+    %In our case, we prove that evaluation preserves the analysis result.
 \end{enumerate}
 Alas, the effort in comprehending such a proof in detail, let alone formulating
 it, is enormous.
@@ -838,50 +839,54 @@ it, is enormous.
     rigorous, it is quite terse in the corresponding \textsc{EUpd} case of the
     single-step safety proof in Lemma A.6*.
 \end{itemize}
-
-
-The main takeaway:
-Although analysis and semantics might be reasonably simple taken individually, the soundness
-proof that relates both is \emph{not}; it necessitates an explosion in formal
-artefacts and the parts of the proof that concern the domain of the analysis are
-drowned in coping with semantic subtleties that ultimately could be shared with
-similar analyses.
+\noindent
+There are two main problems to address, and we believe the first causes the second.
+\begin{enumerate}
+  \item
+    Although analysis and semantics are individually simple, it is conceptually
+    difficult to connect them, causing an explosion of formal artefacts.
+    This is because one is compositional while the other is not.
+  \item
+    Compared to analysis and semantics, the soundness proof is rather
+    complicated because it is \emph{entangled}:
+    The parts of the proof that concern the domain of the analysis are drowned in
+    coping with semantic subtleties that ultimately could be shared with similar
+    analyses.
+\end{enumerate}
 %Furthermore, the inevitable hand-waving in proofs of this size around said
 %semantic subtleties diminishes confidence in the soundness of the proof
 %to the point where trust can only be recovered by full mechanisation.
 
-It would be preferable to find a framework to \emph{prove these semantic
-subtleties rigorously and separately}, and then instantiate this framework for
-absence analysis or cardinality analysis, so that only the highlights of the
-preservation proof such as the substitution lemma need to be shown.
-\slpj{There are two things going on here. (1) difficulty of connecting a compositional analysis with an operational semantics; and (2) the desire to avoid duplicated work in soundess proofs. The amin point here is (1), so it is distracting to talk about (2).}
+Abstract interpretation~\citep{Cousot:77} provides a framework to tackle problem
+(2), but its systematic applications seem to require a structurally matching
+semantics.
+For example, the book of \citet{Cousot:21} starts from a \emph{compositional},
+trace-generating semantics for an imperative first-order language to derive
+compositional analyses.
 
-Abstract interpretation provides such a framework.
-Alas, the book of \citet{Cousot:21} starts from a \emph{compositional} semantics
-to derive compositional analyses, but small-step operational semantics are
-non-compositional!
-This begs the question if we could have started from a compositional
-denotational semantics.
-While we could have done so for absence or strictness analysis, denotational
-semantics is insufficient to express \emph{operational properties} such as
-\emph{usage cardinality}, \ie ``$\pe$ evaluates $\px$ at most $u$ times'',
-but usage cardinality is the entire point of the analysis in \citet{Sergey:14}.%
+In this work we present the \textbf{\emph{denotational interpreter}} design
+pattern to solve both problems above.
+Inspired by \citeauthor{Cousot:21}, we define a \textbf{\emph{compositional
+semantics that exhibits operational detail}} for higher-order languages;
+one in which it is possible to express \emph{operational properties} such as
+\emph{usage cardinality}, \ie ``$\pe$ evaluates $\px$ at most $u$ times'', as
+required in \citet{Sergey:14}.%
 \footnote{Useful applications of the ``at most once'' cardinality are given in
 \citet{Turner:95,Sergey:14}, motivating inlining into function bodies that are
 called at most once, for example.}
 
-For these reasons, we set out to find a \textbf{\emph{compositional semantics
-that exhibits operational detail}} just like the trace-generating semantics of
-\citet{Cousot:21}.
 The example of usage analysis in \Cref{sec:abstraction} (generalising
-$\semabs{\wild}$, as suggested above) demonstrates that we can
-\textbf{\emph{derive summary-based analyses as an abstract interpretation}} from
-our semantics.
+$\semabs{\wild}$) demonstrates that we can \textbf{\emph{derive summary-based
+analyses as an abstract interpretation}} from our semantics.
 
 Since both semantics and analysis are \textbf{\emph{derived from the same
-generic interpreter}}, the equivalent of the preservation proof
+generic interpreter}}, solving problem (1), we can prove usage analysis to be an
+\emph{abstract interpretation} of call-by-need semantics.
+Doing so disentangles the preservation proof such that the proof
 for usage analysis in \Cref{thm:usage-abstracts-need} takes no more than a
-substitution lemma and a bit of plumbing.
-Hence our \emph{denotational interpreter} does not only enjoy useful
-compositional semantics and analyses as instances, the soundness proofs become
-compositional in the semantic domain as well.
+semantic substitution lemma and a bit of plumbing, solving problem (2).
+%Intriguingly, \Cref{thm:usage-abstracts-need} can be proved without referring to
+%the shared interpreter definition or the Galois connection at all, by appealing
+%to parametricity to prove \Cref{thm:usage-subst-sem}.
+%This suggests that our approach scales to large interpreters such as for
+%WebAssembly~\citep{Brandl:23}.

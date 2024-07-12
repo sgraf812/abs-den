@@ -489,7 +489,7 @@ A modular proof would help our proof framework to scale up to a by-need
 semantics of Haskell, for example, so this avenue bears great potential.
 \end{toappendix}
 
-\subsection{A Modular Proof for \textsc{Beta-App}}
+\subsection{A Modular Proof for \textsc{Beta-App}: A Simpler Substitution Lemma}
 \label{sec:mod-subst}
 
 \begin{toappendix}
@@ -499,20 +499,31 @@ Here we give the usage analysis proofs for the main body, often deferring to
 \Cref{sec:by-need-soundness}.
 \end{toappendix}
 
-In order to prove usage analysis sound in \Cref{sec:usage-sound}, we need to
-prove that |UD| satisfies the abstraction laws in \Cref{fig:abstraction-laws}.
-In particular, proving law \textsc{Beta-App} is non-trivial as it corresponds
-to the substitution \Cref{thm:absence-subst} of \Cref{sec:problem}, and
-explaining the following proof of \textsc{Beta-App} is the goal of this
-subsection:
+In order to instantiate \Cref{thm:abstract-by-need} for usage analysis in
+\Cref{sec:usage-sound}, we need to prove in particular that |UD| satisfies the
+abstraction law \textsc{Beta-App} in \Cref{fig:abstraction-laws}.
+\textsc{Beta-App} corresponds to the syntactic substitution
+\Cref{thm:absence-subst} of \Cref{sec:problem}, and this subsection presents its
+proof.
 
+Before we discuss this proof, note that the proof for
+\Cref{thm:absence-subst} has a serious drawback: It relies on knowing the
+complete definition of $\semabs{\wild}$ and thus is \emph{non-modular}.
+As a result, the proof complexity scales in the size of the interpreter, and
+whenever the definition of $\semabs{\wild}$ changes, \Cref{thm:absence-subst}
+must be updated.
+The complexity of such non-modular proofs would become unmanageable for large
+denotational interpreters such as for WebAssembly~\citep{Brandl:23}.
+
+For \textsc{Beta-App}, dubbed \emph{semantic substitution}, the proof fares much
+better:
 \begin{toappendix}
 \begin{abbreviation}[Field access]
   |(MkUT φ' v')^.φ := φ'|, |(MkUT φ' v')^.v = v'|.
 \end{abbreviation}
 \end{toappendix}
 
-\begin{lemmarep}[Semantic substitution]
+\begin{lemmarep}[\textsc{Beta-App}, Semantic substitution]
 \label{thm:usage-subst-sem}
 Let |f :: (Trace d, Domain d, HasBind d) => d -> d|, |x :: Name| fresh and |a :: UD|.
 Then |f a ⊑ apply (fun x f) a| in |UD|.
@@ -761,20 +772,11 @@ What remains to be shown is that this implies the overall goal
 \end{spec}
 \end{proof}
 
-Before we discuss this new proof, note that the proof for
-\Cref{thm:absence-subst} has a serious drawback: It relies on knowing the
-complete definition of $\semabs{\wild}$ and thus is \emph{non-modular}.
-As a result, the proof complexity scales in the size of the interpreter, and
-whenever the definition of $\semabs{\wild}$ changes, \Cref{thm:absence-subst}
-must be updated.
-The complexity of such non-modular proofs would become unmanageable for large
-denotational interpreters such as for WebAssembly~\citep{Brandl:23}.
-
-The new proof for \textsc{Beta-App}, dubbed \emph{semantic substitution}, fares
-much better because it does not reference the interpreter definition |eval|
-\emph{at all}.
-Instead, its complexity scales with the number of operations supported in the
-\emph{semantic domain} of the interpreter for a much more \emph{modular} proof.
+As can be seen, its statement does not refer to the interpreter definition
+|eval| \emph{at all}.
+Instead, the complexity of its proof scales with the number of \emph{abstract
+operations} supported in the semantic domain of the interpreter for a much more
+\emph{modular} proof.
 This modular proof appeals to parametricity~\citep{Reynolds:83} of |f|'s
 polymorphic type |forall d. (Trace d, Domain d, HasBind d) => d -> d|.
 Of course, any function defined by the generic interpreter satisfies this
@@ -842,11 +844,11 @@ one lemma per type class method, such as
 \[
   \forall f_1,f_2.\ (\forall d_1,d_2.\ R_{x,a}(d_1,d_2) \implies R_{x,a}(f_1(d_1),f_2(d_2))) \implies R_{x,a}(\mathit{fun}(f_1),\mathit{fun}(f_2)).
 \]
-Proving each of these 7+1 lemmas concludes the proof of \Cref{thm:usage-subst-sem}.
+Discharging each of these 7+1 subgoals concludes the proof of \Cref{thm:usage-subst-sem}.
 Next, we will use \Cref{thm:usage-subst-sem} to instantiate
 \Cref{thm:abstract-by-need} for usage analysis.
 
-\subsection{A Much Simpler Proof That Usage Analysis Infers Absence}
+\subsection{A Simpler Proof That Usage Analysis Infers Absence}
 \label{sec:usage-sound}
 
 Equipped with the generic abstract interpretation \Cref{thm:abstract-by-need},
@@ -999,37 +1001,38 @@ doesn't change when an expression is put in an arbitrary evaluation context.
 The final step is just algebra.
 \end{proof}
 
-\subsection{Evaluation}
+\subsection{Comparison to Ad-hoc Preservation Proof}
 
 Let us compare to the preservation-style proof framework in \Cref{sec:problem}.
 \begin{itemize}
   \item
-    Where there were multiple separate \emph{semantic artefacts} such as a separate
-    small-step semantics and an extension of the absence analysis function to
-    machine configurations $σ$ in order to state preservation
-    (\Cref*{thm:preserve-absent}), our proof only has a single semantic artefact
-    that needs to be defined and understood: the denotational interpreter,
-    albeit with different instantiations.
+    Where there were multiple separate \emph{semantic artefacts} in
+    \Cref{sec:problem}, such as a small-step semantics and an extension
+    of the absence analysis to machine configurations $σ$ in order to
+    state preservation (\Cref*{thm:preserve-absent}), our proof only has a
+    single semantic artefact that needs to be defined and understood: the
+    denotational interpreter, albeit with different instantiations.
   \item
 %    The substitution lemma is common to both approaches and indispensable in
 %    proving the summary mechanism correct.
     What is more important is that a simple proof for
     \Cref{thm:usage-abstracts-need} in half a page (we encourage the
     reader to take a look) replaces a tedious, error-prone and incomplete
-    \emph{proof for the preservation lemma}.
-    Of course, we lean on \Cref{thm:abstract-by-need} to prove what
+    \emph{proof for the preservation lemma} of \Cref{sec:problem}
+    (\Cref*{thm:preserve-absent}).
+    Of course, in this section we lean on \Cref{thm:abstract-by-need} to prove what
     amounts to a preservation lemma; the difference is that our proof properly
     accounts for heap update and can be shared with other analyses that are
     sound \wrt by-name and by-need.
-    Thus, we achieve our goal of proving semantic distractions ``once and for all''.
+    Thus, we achieve our goal of disentangling semantic details from the proof.
   \item
-    Furthermore, the proof for \Cref{thm:usage-abstracts-need} is
-    \emph{modular} because \Cref{thm:usage-subst-sem} appeals to
-    parametricity, in contrast to \Cref{thm:absence-subst}.
+    Furthermore, the proof for \Cref{thm:usage-abstracts-need} by parametricity
+    in this section is \emph{modular}, in contrast to \Cref{thm:absence-subst}
+    which is proven by cases over the interpreter definition.
     More work needs to be done to achieve a modular proof of
     the underlying \Cref{thm:abstract-by-need}, however.
     The (omitted) proof for abstract by-\textbf{name} interpretation in the
-    Appendix (\Cref{thm:abstract-by-name}) is already modular.
+    Appendix (\Cref*{thm:abstract-by-name}) is already modular.
 \end{itemize}
 
 \begin{toappendix}
