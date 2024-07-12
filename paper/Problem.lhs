@@ -212,12 +212,15 @@ The approximate nature of summaries is best appreciated when analysing
 beta redexes such as $\semabs{(\Lam{\px}{\pe})~\py}$, which invokes the
 \emph{summary mechanism}.
 In the definition of $\semabs{\wild}$, we took care to explicate this mechanism
-via $\mathit{fun}$ and $\mathit{app}$.
-The former approximates a functional $(\fn{θ}{...}) : \AbsTy \to \AbsTy$ into
-a finite $\AbsTy$, and $\mathit{app}$ encodes the adjoint (``reverse'')
-operation.
-operation.%
-\slpj{I'm not sure what a functional is, how this sentence relates to the sumary story.}
+via the adjoint functions $\mathit{fun}$ and $\mathit{app}$.
+For the summary mechanism to be sound, we must have
+$\semabs{\pe[\px \setminus \py]} ⊑ \semabs{(\Lam{\px}{\pe})~\py}$
+(where $\pe[\px \setminus \py]$ substitutes $\py$ for $\px$ in $\pe$).
+%\slpj{I'm not sure how this sentence relates to the sumary story.}
+%\sg{Trying to say that what constitutes a sound summary mechanism does not
+%only depend on $fun$ or the $\AbsTy$ it produces; it also depends on how that
+%$\AbsTy$ is interpreted during beta reduction.
+%The key is to  ``adjoint'' here.}
 
 To support efficient separate compilation, a compiler analysis must be
 \emph{modular}, and summaries are \emph{indispensable} in achieving that.
@@ -235,7 +238,7 @@ analysis~\citep{SharirPnueli:78} turns this idea into a static analysis,
 and the AAM recipe could be used to derive an absence analysis based on call
 strings that is sound by construction.
 Alas, following this paths gives up on modularity, because a call-strings-based
-analysis would need to invoke the functional
+analysis would need to invoke the function
 $(\fn{θ_y}{\fn{θ_z}{θ_y}}) : \AbsTy \to \AbsTy \to \AbsTy$ that describes
 $k$'s inline expansion \emph{at every use site}.
 
@@ -286,11 +289,16 @@ One plausible definition is in terms of the standard operational semantics in
   that looks up the heap entry of $\px$, \ie it evaluates $\px$.
   Otherwise, $\px$ is \emph{absent} in $\pe$.
 \end{definitionrep}
-Note that absence of $\px$ means that $\px$ is not looked up \emph{regardless of
-the context in which $\pe$ is used}, hence the quantificaton over $\rho, \mu$
-and \kappa$~\citep{MoranSands:99}.
-Furthermore \slpj{very unclear why we we need this}, we must prove sound the summary mechanism, captured in the
-following \emph{substitution lemma}~\citep{tapl}:%
+Absence of $\px$ means that $\px$ is not looked up \emph{regardless of
+the context in which $\pe$ is used}, to justify rewrites via contextual
+improvement~\citep{MoranSands:99}.
+Furthermore, we must prove that the summary mechanism approximates beta
+reduction, captured syntactically in the following \emph{substitution
+lemma}~\citep{tapl}:%
+% \slpj{very unclear why we we need this}
+% \sg{Well, look at the proof for thm:absence-correct. It's all there. Perhaps
+%     you meant "I don't know what proving sound the summary mechanism means".
+%     I tried to improve.}
 %\footnote{This statement amounts to $id ⊑ \mathit{app} \circ \mathit{fun}_x$,
 %one half of a Galois connection.
 %The other half $\mathit{fun}_x \circ \mathit{app} ⊑ id$ is eta-expansion
@@ -846,7 +854,7 @@ It would be preferable to find a framework to \emph{prove these semantic
 subtleties rigorously and separately}, and then instantiate this framework for
 absence analysis or cardinality analysis, so that only the highlights of the
 preservation proof such as the substitution lemma need to be shown.
-\slp{There are two things going on here. (1) difficulty of connecting a compositional analysis with an operational semantics; and (2) the desire to avoid duplicated work in soundess proofs. The amin point here is (1), so it is distracting to talk about (2).}
+\slpj{There are two things going on here. (1) difficulty of connecting a compositional analysis with an operational semantics; and (2) the desire to avoid duplicated work in soundess proofs. The amin point here is (1), so it is distracting to talk about (2).}
 
 Abstract interpretation provides such a framework.
 Alas, the book of \citet{Cousot:21} starts from a \emph{compositional} semantics
