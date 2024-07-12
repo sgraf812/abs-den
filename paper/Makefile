@@ -3,7 +3,7 @@ PDFLATEX := pdflatex -halt-on-error
 
 main: abs-den.pdf
 
-.PHONY: main quick watch clean
+.PHONY: main quick watch clean submission popl-submission
 
 supplement.zip: Interpreter.hs StaticAnalysis.hs Soundness.hs hs/*.hs ../agda/*.agda
 	sh -c "cd ..; git archive -o paper/supplement.zip --prefix=agda/ HEAD:agda"
@@ -59,6 +59,7 @@ popl-submission: abs-den-main.pdf abs-den-appendix.pdf supplement.zip
 	grep '^\\usepackage\[appendix=append,bibliography=common,forwardlinking=no\]{apxproof}' abs-den.lhs # Test for correct apxproof settings
 	grep '^\\documentclass\[acmsmall,review,anonymous\]{acmart}' abs-den.lhs # Test for submission mode
 	grep '^\\settoggle{hidetodos}{true}' abs-den.lhs # Test for TODOs
+	nix run nixpkgs#zip -- -j supplement.zip abs-den-appendix.pdf
 
 # For submission to arXiv
 arxiv.zip: abs-den.tex macros.tex utf8-symbols.sty references.bib
