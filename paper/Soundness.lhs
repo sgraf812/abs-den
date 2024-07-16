@@ -88,7 +88,7 @@ on the right-hand side \emph{overapproximates} ($⊒$) a property of the by-need
 \emph{semantics} |evalNeed1 e| on the left-hand side.
 The abstraction function $α_{\mathcal{S}}$, given in
 \Cref{fig:abstract-name-need}, defines the semantic property of interest in
-terms of the abstract domain |hat D| of |evalD2 (hat D) e ρ|, which is
+terms of the abstract domain |hat D| of |evalD (hat D) e ρ|, which is
 short for |eval e ρ :: hat D|.
 That is: the type class instances on |hat D| determine $α_{\mathcal{S}}$, and
 hence the semantic property that is soundly abstracted by |evalD (hat D) e ρ|.
