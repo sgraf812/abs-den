@@ -386,10 +386,10 @@ direct to argue in terms of the latter.
                      {(|bind rhs body|, |(hat bind) (hat rhs) (hat body)|) ∈ R}$. \\
     It is |bind rhs body = body (fix rhs)| and |(hat body) (lfp (hat rhs)) ⊑ (hat bind) (hat rhs) (hat body)| by Assumption \textsc{ByName-Bind}.
     Let us first establish that $(|fix rhs|, |lfp (hat rhs)|) ∈ R$, leaning on
-    our theory about safety extension in \Cref{sec:safety-extension}:
+    our theory about guarded fixpoint abstraction in \Cref{sec:safety-extension}:
     \begin{spec}
-      αD ^ ((set (fix rhs)))
-    ⊑  {- By \Cref{thm:safety-extension} -}
+      αD ^ (set (fix rhs))
+    ⊑  {- By \Cref{thm:guarded-fixpoint-abstraction} -}
       lfp (αD . powMap rhs . γD)
     =  {- Unfolding |powMap|, |αD| -}
       lfp (\(hat d) -> Lub (βT^(rhs d) | d ∈ γD (hat d))
@@ -433,7 +433,7 @@ by our interpreter:
   We write |needd d|, |needenv ρ| or |needheap μ| to say that the by-need
   element |d|, environment |ρ| or heap |μ| is \emph{definable}, defined as
   \begin{itemize}
-    \item |needenv ρ := forall x ∈ dom ρ. exists x a. ρ ! x = step (Look y) (fetch a)|.
+    \item |needenv ρ := forall x ∈ dom ρ. exists y a. ρ ! x = step (Look y) (fetch a)|.
     \item |adom ρ := set (a || ρ ! x = step (Look y) (fetch a))|.
     \item |needd d := exists e ρ. needenv ρ /\ d = evalNeed2 e ρ|.
     \item |adom d := adom ρ| where |d = evalNeed2 e ρ|.
@@ -671,10 +671,11 @@ Proceed by cases on |e|. Only the |Var| and |Let| cases are interesting.
         \begin{spec}
           βD^((ext μ1 a1 (memo a1 (evalNeed2 e ρ))))^(memo a (evalNeed2 e1 ρ1)) ⊑ βD^(μ1)^(memo a (evalNeed2 e1 ρ1))
         \end{spec}
-        This follows by applying the abstract frame rule (\Cref{thm:abstract-frame}).
+        This follows by applying the abstract frame rule (\Cref{thm:abstract-frame}),
+        because |adom ρ1 ⊆ dom μ1|.
 
       \item \textbf{Case} $\inferrule*[vcenter,left=\progresstomemo]{|μ1 ! a1 = memo a1 (evalNeed2 e ρ3)| \quad |Later (evalNeed e ρ3 μ1 = many (Step ev) (evalNeed v ρ4 μ3))|}{|μ1 ~> ext μ3 a1 (memo a1 (evalNeed2 v ρ4))|}$:\\
-        We get to refine |μ2 = ext μ3 a1 (memo a1 (evalNeed2 v ρ2))|.
+        We get to refine |μ2 = ext μ3 a1 (memo a1 (evalNeed2 v ρ4))|.
         When $|a1| \not= |a|$, we have |μ1 ! a = μ2 ! a| and the goal follows as in the \progresstoext case.
         Otherwise, |a = a1|, |e1 = e|, |ρ3 = ρ1|, |ρ4 = ρ2|, |e2 = v|.
 
@@ -687,7 +688,15 @@ Proceed by cases on |e|. Only the |Var| and |Let| cases are interesting.
           βT^(Step Update (evalNeed v ρ2 μ2))
         = {- |μ2 = ext μ3 a (memo a (evalNeed2 v ρ2))| -}
           βD^(μ3)^(memo a (evalNeed2 v ρ2))
-        ⊑   {- |evalNeed e1 ρ1 μ1 = many (Step ev) (evalNeed v ρ2 μ3)|, assumption \textsc{Step-Inc} -}
+        ⊑   {- Assumption \textsc{Step-Inc} -}
+          many (step ev) (βD^(μ3)(memo a (evalNeed2 v ρ2)))
+        =   {- Unfold |memo|, |βD| -}
+          many (step ev) (βT^(evalNeed v ρ2 μ3 >>= upd))
+        =   {- Refold |βT|, |>>=| -}
+          βT^(many (Step ev) (evalNeed v ρ2 μ3) >>= upd)
+        =   {- |evalNeed e1 ρ1 μ1 = many (Step ev) (evalNeed v ρ2 μ3)| -}
+          βT^(evalNeed e1 ρ1 μ1 >>= upd)
+        =   {- Refold |memo|, |βD| -}
           βD^(μ1)^(memo a (evalNeed2 e1 ρ1))
         \end{spec}
     \end{itemize}
