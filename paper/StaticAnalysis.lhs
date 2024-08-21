@@ -799,7 +799,7 @@ It is best understood by tracing the right-hand side of $o$ in the following
 example:
 \[|evalTy (({-" \Let{i}{\Lam{x}{x}}{\Let{o}{\mathit{Some}(i)}{o}} "-})|
   = \perform{evalTy (read "let i = λx.x in let o = Some(i) in o")}\]
-The recursive knot is tied in the |do| block passed to |generaliseTy|.
+The implementation of |bind| ties the recursive knot by calling |uniFix|.
 It works by calling the iteratee |rhs| (corresponding to $\mathit{Some}(i)$)
 with a fresh unification variable type |θα|, for example $α_1$.
 The result of the call to |rhs| in turn is a monotype |θ|,
@@ -810,12 +810,12 @@ Then |θα| is unified with |θ|, substituting $α_1$ with
 $\mathtt{option}\;(α_3 \rightarrow α_3)$.
 This concludes the implementation of Milner's $\mathit{fix}$ case.
 
-For Milner's $\mathit{let}$ case, the type |θα| is
-generalised to $\forall α_3.\ \mathtt{option}\;(α_3 \rightarrow α_3)$
-by universally quantifying the generic variable $α_3$.
+For Milner's $\mathit{let}$ case, the type |θα| returned by the call to
+|uniFix| is generalised to $\forall α_3.\ \mathtt{option}\;(α_3 \rightarrow
+α_3)$ by universally quantifying the generic variable $α_3$.
 It is easy for |generaliseTy| to deduce that $α_3$ must be generic \wrt the
-right-hand side, because $α_3$ does not occur in the set of used |Name|s prior
-to the call to |rhs|.
+right-hand side, because $α_3$ was freshly drawn in |uniFix| and thus does not
+occur in the set of used |Name|s prior to the call to |generaliseTy|.
 The generalised polytype |σ| is then instantiated afresh via |instantiatePolyTy
 σ| at every use site of $o$ in the let body, implementing polymorphic
 instantiation.

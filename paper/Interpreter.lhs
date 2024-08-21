@@ -152,7 +152,7 @@ assocs = Map.assocs
 \subsection{Semantic Domain} \label{sec:dna}
 
 Just as traditional denotational semantics, denotational interpreters
-assign meaning to programs in some \emph{semantic domain}.
+assign meaning to programs in some semantic domain.
 Traditionally, the semantic domain |D| comprises \emph{semantic values} such as
 base values (integers, strings, etc.) and functions |D -> D|.
 One of the main features of these semantic domains is that they lack
@@ -321,18 +321,21 @@ keys present in the map, and |(`elem`)| for membership tests in that set.
 
 Our denotational interpreter |eval :: Exp -> (Name :-> DName) -> DName| can
 have a similar type as |dsem|.
-However, to derive both dynamic semantics and static analysis as instances of the same
+However, to derive both dynamic semantics and static analyses as instances of the same
 generic interpreter |eval|, we need to vary the type of its semantic domain,
 which is naturally expressed using type class overloading, thus:
 \[
 |eval  ::  (Trace d, Domain d, HasBind d) =>  Exp -> (Name :-> d) -> d|.
 \]
-We have parameterised the semantic domain |d| over three type classes |Trace|, |Domain| and |HasBind|, whose signatures are given in \Cref{fig:trace-classes}.
+We have parameterised the semantic domain |d| over three type classes
+--- |Trace|, |Domain| and |HasBind| --- whose signatures are given in
+\Cref{fig:trace-classes}.
 %\footnote{One can think of these type classes as a fold-like final encoding~\citep{Carette:07} of a domain. However, the significance is in the \emph{decomposition} of the domain, not the choice of encoding.}
 Each of the three type classes offer knobs that we will tweak to derive
 different evaluation strategies as well as static analyses.
 
-\Cref{fig:eval} gives the complete definition of |eval| together with instances for domain |DName| that we introduced in \Cref{sec:dna}.
+\Cref{fig:eval} gives the complete definition of |eval| together with type class
+instances for domain |DName| that we introduced in \Cref{sec:dna}.
 Together this is enough to actually run the denotational interpreter to produce traces.
 We use |read :: String -> Exp| as a parsing function and a |Show| instance for
 |D τ| that displays traces.
@@ -376,8 +379,8 @@ computes a |d| such that |d = rhs d| and passes the recursively-defined |d| to
 Strict languages can define this fixpoint as |d () = rhs (d ())|.}
 Doing so yields a call-by-name evaluation strategy, because the trace |d|
 will be unfolded at every occurrence of |x| in the right-hand side |e1|.
-We will shortly see examples of eager evaluation strategies that will yield from
-|d| inside |bind| instead of calling |body| immediately.
+The Appendix contains examples of eager evaluation strategies that will yield
+from |d| inside |bind| instead of calling |body| immediately.
 
 We conclude this subsection with a few examples.
 First we demonstrate that our interpreter is \emph{productive}:
@@ -598,7 +601,8 @@ This trace is in clear correspondence to the earlier by-need LK trace
 \labelcref{ex:trace2}.
 We can observe memoisation at play:
 Between the first bracket of $\LookupT$ and $\UpdateT$ events, the heap entry
-for $i$ goes through a beta reduction before producing a value.
+for $i$ goes through a beta reduction $\AppIT \smallstep \AppET$ before
+producing a value.
 This work is cached, so that the second $\LookupT$ bracket does not do any beta
 reduction.
 

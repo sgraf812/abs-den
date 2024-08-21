@@ -1078,7 +1078,7 @@ In other words: every machine configuration $σ$ corresponds to an evaluation
 context $\pE$ and a focus expression $\pe$ such that there exists a trace
 $\init(\pE[\pe]) \smallstep^* σ$ consisting purely of search transitions,
 which is equivalent to all states in the trace except possibly the last being
-evaluation states.
+search states.
 
 We encode evaluation contexts in Haskell as follows, overloading hole filling notation |fillC|:
 \begin{spec}

@@ -273,9 +273,10 @@ is finite (note that $0 ∈ ℕ$), and $ℕ$ when $n = ω$ is infinite.
 The \emph{source} state $σ_0$ exists for finite and infinite traces, while the
 \emph{target} state $σ_n$ is only defined when $n \not= ω$ is finite.
 When the control expression of a state $σ$ (selected via $\ctrl(σ)$) is a value
-$\pv$, we call $σ$ a \emph{return} state and say that the continuation (selected
-via $\cont(σ)$) drives evaluation.
-Otherwise, $σ$ is an \emph{evaluation} state and $\ctrl(σ)$ drives evaluation.
+$\pv$, we call $σ$ a \emph{reduction} state and the continuation (selected
+via $\cont(σ)$) determines the next transition.
+Otherwise, $σ$ is a \emph{search} state and $\ctrl(σ)$ determines the next
+transition.
 
 An important kind of trace is an \emph{interior trace}, one that never leaves
 the evaluation context of its source state:
@@ -294,11 +295,11 @@ the evaluation context of its source state:
 
 A \emph{balanced trace}~\citep{Sestoft:97} is an interior trace that is about to
 return from the initial evaluation context; it corresponds to a big-step
-evaluation of the initial focus expression:
+evaluation of the initial control expression:
 
 \begin{definition}[Balanced]
   An interior trace $(σ_i)_{i∈\overline{n}}$ is
-  \emph{balanced} if the target state exists and is a return
+  \emph{balanced} if the target state exists and is a reduction
   state with continuation $\cont(σ_0)$.
 \end{definition}
 
@@ -391,14 +392,14 @@ maximal traces, as the following lemma formalises:
 \item[$\Leftarrow$:]
   Let $(σ_i)_{i∈\overline{n}}$ be balanced, diverging or stuck. \\
   If $(σ_i)_{i∈\overline{n}}$ is balanced, then it is interior, and $σ_n$ is
-  a return state with continuation $\cont(σ_0)$.
+  a reduction state with continuation $\cont(σ_0)$.
   Now suppose there would exist $σ_{n+1}$ such that
   $(σ_i)_{i∈\overline{n+1}}$ was interior.
   Then the transition $σ_n \smallstep σ_{n+1}$ must be one of the
-  \emph{returning transition rules} $\UpdateT$, $\AppET$ and $\CaseET$, which
-  are the only ones in which $σ_n$ is a return state (\ie $\ctrl(σ_n)$ is a
+  \emph{reduction transition rules} $\UpdateT$, $\AppET$ and $\CaseET$, which
+  are the only ones in which $σ_n$ is a reduction state (\ie $\ctrl(σ_n)$ is a
   value $\pv$).
-  But all return transitions leave $\cont(σ_0)$, which is in contradiction to
+  But all reduction transitions leave $\cont(σ_0)$, which is in contradiction to
   interiority of $(σ_i)_{i∈\overline{n+1}}$.
   Thus, $(σ_i)_{i∈\overline{n}}$ is maximal. \\
   If $(σ_i)_{i∈\overline{n}}$ is diverging, it is interior and infinite,
@@ -494,7 +495,7 @@ In our example, we focus on |Look y| events that carry with them the |y ::
 Name| of the let binding that allocated the heap entry.
 This event corresponds precisely to a $\LookupT(\py)$ transition, so $α_\Events(σ)$
 maps $σ$ to |Look y| when $σ$ is about to make a $\LookupT(\py)$ transition.
-In that case, the focus expression must be $\px$, and $\py$ is the first
+In that case, the control expression must be $\px$, and $\py$ is the first
 component of the heap entry $μ(ρ(\px))$.
 The other cases are similar.
 
@@ -577,7 +578,7 @@ The preservation property is formally expressed as follows:
   The second point follows by a similar inductive argument as in \Cref{thm:abs-length}.
 
   In the other cases, we may assume that $n$ is finite.
-  If $(σ_i)_{i∈\overline{n}}$ is balanced, then $σ_n$ is a return state with
+  If $(σ_i)_{i∈\overline{n}}$ is balanced, then $σ_n$ is a reduction state with
   continuation $\cont(σ_0)$, so its control expression is a value.
   Then $α_{\STraces}$ will conclude with |Ret (αValue _ _)|, and the latter is
   never |Ret (Stuck, _)|.
@@ -630,8 +631,8 @@ We do so by cases over $\pe$, abbreviating |tm := αHeap μ| and |tr := αEnv ρ
     Since $\LookupT$ does not apply (otherwise $n > 0$), we must have $\px
     \not∈ \dom(ρ)$, and hence |τ = Ret (Stuck, _)| by calculation as well.
 
-    Otherwise, $σ_1 \triangleq (\pe', ρ_1, μ, \UpdateF(\pa) \pushF κ), σ_0 \smallstep σ_1$
-    via $\LookupT(\py)$, and $ρ(\px) = \pa, μ(\pa) = (\py, ρ_1, \pe')$.
+    Otherwise, $σ_1 \triangleq (\pe', ρ', μ, \UpdateF(\pa) \pushF κ), σ_0 \smallstep σ_1$
+    via $\LookupT(\py)$, and $ρ(\px) = \pa, μ(\pa) = (\py, ρ', \pe')$.
     This matches |tr ! x = step (Look y) (fetch a)| in the interpreter.
 
     It suffices to show that the tails equate \emph{later}.
@@ -646,34 +647,36 @@ We do so by cases over $\pe$, abbreviating |tm := αHeap μ| and |tr := αEnv ρ
 
     Let us define |τl := (idiom (evalNeed e' tr' tm))| and apply the induction
     hypothesis $IH$ to the maximal trace starting at $σ_1$.
-    This yields an equality
+    This trace has length $m-1$ for some $m > 0$.
+    The induction hypothesis yields the equality
     \[
-      IH \aplater (σ_{i+1})_{i∈\overline{m}} ∈ \idiom{α_{\STraces}((σ_{i+1})_{i∈\overline{m}},\UpdateF(\pa) \pushF κ) = τ^{\later}}
+      IH \aplater (σ_{i+1})_{i∈\overline{m-1}} ∈ \idiom{α_{\STraces}((σ_{i+1})_{i∈\overline{m-1}},\UpdateF(\pa) \pushF κ) = τ^{\later}}
     \]
     Any |Step|s in |τl| match the transitions of
-    $(σ_{i+1})_{i∈\overline{m}}$ per $IH$, and |>>=| simply forwards these
+    $(σ_{i+1})_{i∈\overline{m-1}}$ per $IH$, and |>>=| simply forwards these
     |Step|s.
     What remains to be shown is that the continuation passed to |>>=|
     operates correctly.
 
     If |τl| is infinite, we are done, because the continuation is never called.
-    If |τl| ends in |Ret (Stuck, tm)|, then the continuation
-    will return |Ret (Stuck, tm)|, indicating by \Cref{thm:abs-length} and
-    \Cref{thm:abs-max-trace} that $(σ_{i+1})_{i∈\overline{n-1}}$ is stuck and
-    hence $(σ_i)_{i∈\overline{n}}$ is stuck as well with the compatible heap
-    from $σ_{n-1}$.
+    If |τl| ends in |Ret (Stuck, tmm)|, then $(σ_{i+1})_{i∈\overline{m-1}}$
+    is stuck as well by \Cref{thm:abs-max-trace}.
+    Then so is $(σ_{i})_{i∈\overline{m}}$ and it turns out that $n = m$.
+    Likewise, the continuation of |τl| will return |Ret (Stuck, tmm)| unchanged,
+    where |tmm| corresponds to the final heap in $σ_m$ via $α_\Heaps$.
 
-    Otherwise |τl| ends after $m-1$ |Step|s with |Ret (val,tmm)| and
-    by \Cref{thm:abs-max-trace} $(σ_{i+1})_{i∈\overline{m}}$ is balanced; hence
+    Otherwise |τl| ends with |Ret (val,tmm)| and
+    by \Cref{thm:abs-max-trace} $(σ_{i+1})_{i∈\overline{m-1}}$ is balanced; hence
     $\cont(σ_m) = \UpdateF(\pa) \pushF κ$ and $\ctrl(σ_m)$ is a value.
     So $σ_m = (\pv,ρ_m,μ_m,\UpdateF(\pa) \pushF κ)$ and the
-    $\UpdateT$ transition fires, reaching $(\pv,ρ_m,μ_m[\pa ↦ (\py, ρ_m, \pv)],κ)$
-    and this must be the target state $σ_n$ (so $m = n-2$), because it remains
-    a return state and has continuation $κ$, so $(σ_i)_{i∈\overline{n}}$ is
-    balanced.
+    $\UpdateT$ transition fires, reaching
+    $σ_{m+1} \triangleq (\pv,ρ_m,μ_m[\pa ↦ (\py, ρ_m, \pv)],κ)$.
+    It turns out that $n=m+1$ and $σ_{m+1}$ is the target state $σ_n$.
+    That is because $σ_{m+1}$ remains a reduction state and has continuation
+    $κ$, so $(σ_i)_{i∈\overline{m+1}}$ is balanced.
     Likewise, the continuation argument of |>>=| does a |Step Upd| on
     |Ret (val,tmm)|, updating the heap.
-    By cases on $\pv$ and the |Domain (DNeed)| instance we can see that
+    By cases on $\pv$ and the |Domain DNeed| instance we can see that
     \begin{spec}
          Ret (val,ext tmm a (memo a (return val)))
       =  Ret (val,ext tmm a (memo a (evalNeed2 v trm)))
@@ -704,9 +707,9 @@ We do so by cases over $\pe$, abbreviating |tm := αHeap μ| and |tr := αEnv ρ
     \end{spec}
     (where |trm| corresponds to the environment in $σ_m$ in the usual way,
     similarly for |tmm|).
-    The |apply| implementation of |Domain (DNeed)| applies the |Fun| value
+    The |apply| implementation of |Domain DNeed| applies the |Fun| value
     to the argument denotation |tr ! x|, hence it remains to be shown that
-    |evalNeed e' (ext trm y (tr x)) tmm| is equal to
+    |evalNeed e' (ext trm y (tr ! x)) tmm| is equal to
     $α_{\STraces}((σ_{i+m+1})_{i∈\overline{k}}, κ)$ \emph{later},
     where $(σ_{i+m+1})_{i∈\overline{k}}$ is the maximal trace starting at
     $σ_{m+1}$.
@@ -729,8 +732,8 @@ We do so by cases over $\pe$, abbreviating |tm := αHeap μ| and |tr := αEnv ρ
 
   \item \textbf{Case $\Let{\px}{\pe_1}{\pe_2}$}:
     Let $σ_0 = (\Let{\px}{\pe_1}{\pe_2},ρ,μ,κ)$.
-    Then $σ_1 = (\pe_2, ρ_1, μ',κ)$ by $\LetIT$, where $ρ_1 = ρ[\px↦\pa_{\px,i}],
-    μ' = μ[\pa_{\px,i}↦(\px,ρ_1,\pe_1)]$.
+    Then $σ_1 = (\pe_2, ρ', μ',κ)$ by $\LetIT$, where $ρ' = ρ[\px↦\pa],
+    μ' = μ[\pa↦(\px,ρ',\pe_1)]$, $\pa \not\in \dom(μ)$.
     Since the stack does not grow, maximality from the tail $(σ_{i+1})_{i∈\overline{n-1}}$
     transfers to $(σ_{i})_{i∈\overline{n}}$.
     Straightforward application of the induction hypothesis to
@@ -776,14 +779,14 @@ notion of adequacy from before.
       \begin{itemize}
         \item
           If $(σ_i)_{i∈\overline{n}}$ is balanced, its target state $σ_n$
-          is a return state that must also have the empty continuation, hence it
+          is a reduction state that must also have the empty continuation, hence it
           is a final state.
         \item
           If $(σ_i)_{i∈\overline{n}}$ is stuck, it is finite and maximal, but not balanced, so its
-          target state $σ_n$ cannot be a return state;
+          target state $σ_n$ cannot be a reduction state;
           otherwise maximality implies $σ_n$ has an (initial) empty continuation
-          and the trace would be balanced. On the other hand, the only returning
-          transitions apply to return states, so maximality implies there is no
+          and the trace would be balanced. On the other hand, the only reduction
+          transitions apply to reduction states, so maximality implies there is no
           $σ'$ such that $σ \smallstep σ'$ whatsoever.
         \item
           If $(σ_i)_{i∈\overline{n}}$ is diverging, $n=ω$ and for every $σ$ with

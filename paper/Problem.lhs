@@ -786,7 +786,7 @@ refer to \citet{Sergey:14}):
 
 \begin{enumerate}
   \item Instrument a standard call-by-need semantics (a variant of our reference
-    in \Cref{sec:op-sem}) such that heap lookups decrement a per-address
+    semantics in \Cref{sec:op-sem}) such that heap lookups decrement a per-address
     counter; when heap lookup is attempted and the counter is 0, the machine is stuck.
     For absence, the instrumentation is simpler: the $\LookupT$
     transition in \Cref{fig:lk-semantics} carries the let-bound variable that is
@@ -815,10 +815,10 @@ it, is enormous.
     Furthermore, step (2) extends this type system to small-step machine
     configurations (in Figure 13*), \ie stacks and heaps, the scoping of which
     is mutually recursive.%
-    \footnote{We believe that this extension can always be derived systematically from a
-    context lemma~\citep[Lemma 3.2]{MoranSands:99} and imitating what the type
-    system does on the closed expression derivable from a configuration via the
-    context lemma.}
+    \footnote{We believe that this extension to machine configurations can
+    always be derived systematically from a context lemma~\citep[Lemma
+    3.2]{MoranSands:99} and imitating what the type system does on the closed
+    expression derivable from a configuration via the context lemma.}
     Another page worth of Figures; the amount of duplicated proof artifacts is
     staggering.
     In our case, the analysis function on machine configurations is about as
@@ -868,7 +868,7 @@ In this work we present the \textbf{\emph{denotational interpreter}} design
 pattern to solve both problems above.
 Inspired by \citeauthor{Cousot:21}, we define a \textbf{\emph{compositional
 semantics that exhibits operational detail}} for higher-order languages;
-one in which it is possible to express \emph{operational properties} such as
+one with which it is possible to express \emph{operational properties} such as
 \emph{usage cardinality}, \ie ``$\pe$ evaluates $\px$ at most $u$ times'', as
 required in \citet{Sergey:14}.%
 \footnote{Useful applications of the ``at most once'' cardinality are given in
@@ -876,8 +876,8 @@ required in \citet{Sergey:14}.%
 called at most once, for example.}
 
 The example of usage analysis in \Cref{sec:abstraction} (generalising
-$\semabs{\wild}$) demonstrates that we can \textbf{\emph{derive summary-based
-analyses as an abstract interpretation}} from our semantics.
+$\semabs{\wild}$) demonstrates that we can \textbf{\emph{define summary-based
+analyses}} as denotational interpreters.
 
 Since both semantics and analysis are \textbf{\emph{derived from the same
 generic interpreter}}, solving problem (1), we can prove usage analysis to be an

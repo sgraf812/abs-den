@@ -10,10 +10,10 @@ as ``this program is well-typed'', ``this higher-order function is always called
 with argument $\Lam{x}{x+1}$'' or ``this program never evaluates $x$''.
 In a functional-language setting, such static analyses are
 often defined \emph{compositionally} on the input term: the result of analysing
-a term is obtained by analysing its subterms separately, and combining the results.
+a term is obtained by analysing its subterms separately and combining the results.
 For example, consider the claim ``|(even 42)| has type |Bool|''.
 Type analysis separately computes |even :: Int -> Bool| and |42 :: Int|, and then
-combines these results to to produce the result type |even 42 :: Bool|,
+combines these results to produce the result type |even 42 :: Bool|,
 without looking at the definition of |even| again.
 
 % Omitting this sentence.. it gets in the way of the page-1 flow
@@ -50,8 +50,8 @@ Now we have two unappealing alternatives:
   for a compiler.
 \end{itemize}
 
-In this paper, we resolve the tension by exploring \emph{denotational
-interpreters}: total, mathematical objects that live at the intersection of
+In this paper, we resolve the tension by exploring \textbf{\emph{denotational
+interpreters}}: total, mathematical objects that live at the intersection of
 structurally-defined \emph{definitional interpreters}~\citep{Reynolds:72} and
 denotational semantics.
 Our denotational interpreters generate small-step traces embellished with
@@ -76,7 +76,7 @@ We make the following contributions:
   We demonstrate the ease with which different instances of our interpreter
   endow our object language with call-by-name, call-by-need and call-by-value
   evaluation strategies, each producing (abstractions of) small-step
-  abstract machine traces.
+  machine traces.
 \item A concrete instantiation of a denotational interpreter is \emph{total}
   if it coinductively yields a (possibly infinite) trace for every input
   program, including ones that diverge.
