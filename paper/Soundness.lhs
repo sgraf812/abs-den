@@ -842,7 +842,7 @@ This yields the following inference rule:
 where $(\mathit{inst},\mathit{inst}) ∈ \mathsf{Dict}(R_{x,a})$ entails showing
 one lemma per type class method, such as
 \[
-  \forall f_1,f_2.\ (\forall d_1,d_2.\ R_{x,a}(d_1,d_2) \implies R_{x,a}(f_1(d_1),f_2(d_2))) \implies R_{x,a}(\mathit{fun}(f_1),\mathit{fun}(f_2)).
+  \forall f_1,f_2.\ (\forall d_1,d_2.\ R_{x,a}(d_1,d_2) \implies R_{x,a}(f_1(d_1),f_2(d_2))) \implies R_{x,a}(\mathit{fun}(y,f_1),\mathit{fun}(y,f_2)).
 \]
 Discharging each of these 7+1 subgoals concludes the proof of \Cref{thm:usage-subst-sem}.
 Next, we will use \Cref{thm:usage-subst-sem} to instantiate
