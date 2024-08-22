@@ -49,9 +49,9 @@ in \Cref{sec:by-need-soundness}.
 \[\ruleform{\begin{array}{c}
   α_{\mathcal{S}} : (|(Name :-> DNeed) -> DNeed|) \to (|(Name :-> hat D) -> hat D|)
   \\
-  α_{\Environments} : |HeapNeed| \times \pow{(|Name :-> DNeed|)} \rightleftarrows (|Name :-> hat D|) : γ_{\Environments}
+  α_{\Environments} : \pow{|HeapNeed| \times (|Name :-> DNeed|)} \rightleftarrows (|Name :-> hat D|) : γ_{\Environments}
   \\
-  α_{\Domain{}} : |HeapNeed| \to \pow{|DNeed|} \rightleftarrows |hat D| : γ_{\Domain{}}
+  α_{\Domain{}} : |HeapNeed| \to (\pow{|DNeed|} \rightleftarrows |hat D|) : γ_{\Domain{}}
   \\
   α_\Traces : \pow{|T (ValueNeed, HeapNeed)|} \rightleftarrows |hat D| : γ_\Traces
   \qquad
@@ -237,14 +237,10 @@ We proceed by Löb induction and cases over |e|.
 \begin{itemize}
   \item \textbf{Case} |Var x|:
     The case $|x| \not∈ |dom ρ|$ follows by reflexivity.
-    Otherwise, let |ρ ! x = Step (Look y) (fetch a)|.
-    \begin{spec}
-        βT^((ρ ! x) μ)
-    ⊑   {- \Cref{thm:by-need-env-unroll} -}
-        step (Look y) (evalD (hat D) e1 (βD^(μ) << ρ1))
-    =   {- Refold |βD| -}
-        βD^(μ)^(ρ ! x)
-    \end{spec}
+    Otherwise,
+    \[
+      |βT^(evalNeed (Var x) ρ μ) = βT^((ρ ! x) μ) = evalD (hat D) (Var x) (βD^(μ) << ρ)|.
+    \]
 
   \item \textbf{Case} |Lam x body|:
     \begin{spec}

@@ -1061,8 +1061,7 @@ In our case, |tag2flds| is just a singleton environment $[S ↦ [\{S(x)\}]]$.
 This environment is subsequently joined with the alternatives of the case expression.
 The only alternative that matches is $S(z) \to z$, where $z$ is bound to $\{S(x)\}$
 from the information in the |ConCache|.
-The alternative $Z() \to x$ is dead because the case scrutinee $x$ does not
-evaluate to shape $Z()$.
+The alternative $Z() \to x$ is dead because |v| does not contain a label $Z()$.
 
 For another example involving the |FunCache|, consider the example \Cref{ex:cfa}.
 When the lambda expression $\Lam{x}{x}$ in the right-hand side of $i$ is

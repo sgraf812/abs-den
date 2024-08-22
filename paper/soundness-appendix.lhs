@@ -62,7 +62,7 @@ traces soundly approximates $P$ on infinite traces as well:
 \[
   \forall |hat d|.\ P ∩ \Traces^{*} ⊆ |γ|(|hat d|) \Longrightarrow P ∩ \Traces^{\infty} ⊆ |γinf|(|hat d|),
 \]
-where the \emph{extension} $|αinf| : (\pow{\Traces^{*}},⊆) \rightleftarrows (|hat D|, ⊑) : |γinf|$ of
+where the \emph{extension} $|αinf| : (\pow{\Traces^{\infty}},⊆) \rightleftarrows (|hat D|, ⊑) : |γinf|$ of
 $|α|\rightleftarrows|γ|$ is defined by the following abstraction function:
 \[
   |αinf|(P) \triangleq |α|(\{ |τ2| \mid \exists |τ1|∈P.\ |τ2| \lessdot |τ1| \})
@@ -75,21 +75,22 @@ representation function~\citep[Section 4.3]{Nielson:99}
   |βinf|(|τ1|) \triangleq |α|({\textstyle \bigcup} \{ |τ2| \mid |τ2| \lessdot |τ1| \}).
 \]
 Now let $|τ| ∈ P ∩ \Traces^{\infty}$.
-The goal is to show that $|τ| ∈ |γinf|(|hat d|)$, which we rewrite as follows:
+The goal is to show $|τ| ∈ |γinf|(|hat d|)$, as follows:
 \begin{spec}
-      τ ∈ γinf (hat d)
-<==>  {- Galois -}
-      βinf τ ⊑ hat d
-<==>  {- Definition of |βinf| -}
-      α (Cup (τ2 | τ2 <. τ1)) ⊑ hat d
-<==>  {- Galois -}
-      Cup (τ2 | τ2 <. τ1) ⊆ γ (hat d)
+      τ ∈ {-" P "-}
+==>   {- $P$ safety property -}
+      (forall τ2. τ2 <. τ ==> τ2 ∈ {-" P ∩ \Traces^{*} "-})
+==>   {- Assumption $P ∩ \Traces^{*} ⊆ |γ|(|hat d|)$ -}
+      (forall τ2. τ2 <. τ ==> τ2 ∈ γ (hat d))
 <==>  {- Definition of Union -}
-      forall τ2. τ2 <. τ ==> τ2 ∈ γ (hat d)
+      Cup (τ2 | τ2 <. τ) ⊆ γ (hat d)
+<==>  {- Galois -}
+      α (Cup (τ2 | τ2 <. τ)) ⊑ hat d
+<==>  {- Definition of |βinf| -}
+      βinf τ ⊑ hat d
+<==>  {- Galois -}
+      τ ∈ γinf (hat d)
 \end{spec}
-Now, $P$ is a safety property and $|τ| ∈ P$, so for any
-prefix |τ2| of |τ| we have $|τ2| ∈ P ∩ \Traces^{*}$.
-Hence the goal follows by assumption that $P ∩ \Traces^{*} ⊆ |γ|(|hat d|)$.
 \end{proof}
 
 From now on, we tacitly assume that all trace properties of interest are safety
@@ -718,38 +719,45 @@ It is |βT^((d >>= f) μ1) ⊑ hat f (hat d)| if
 \begin{enumerate}
   \item |βT^(d μ1) ⊑ hat d|, and
   \item for all events |ev| and elements |hat d'|, |(hat step) ev ((hat f) (hat d')) ⊑ (hat f) ((hat step) ev (hat d'))|, and
-  \item for all values |v| and heaps |μ2| such that |μ1 ~> μ2|, |βT^(f v μ2) ⊑ (hat f) (βT^(Ret (v, μ2)))|.
+  \item for all values |v| and heaps |μ2| such that |μ1 ~> μ2|, \hfuzz=2em|βT^(f v μ2) ⊑ (hat f) (βT^(Ret (v, μ2)))|.
 \end{enumerate}
 \end{lemma}
 \begin{proof}
+By assumption (1), it suffices to show |βT^((d >>= f) μ1) ⊑ hat f (βT^(d μ1))|.
+Let us first consider the case where the trace |τ := d μ1| is infinite; then
+|τ = (d >>= f) μ1| and hence |βT^((d >>= f) μ1) = βT^(τ)|.
 By Löb induction.
-
-If |d μ1 = Step ev (d' μ1')|, define |hat d' := βT^(d' μ1')| and note that
-|μ1 ~> μ1'| for the definable |d| as in \Cref{thm:eval-progression} (we will
-always instantiate the original |d| to |evalNeed2 e ρ|).
-We get
 \begin{spec}
-  βT^((d >>= f) μ1) = βT^(Step ev ((d' >>= f) μ1')) = (hat step) ev (βT^((d' >>= f) μ1'))
-⊑  {- Induction hypothesis at |βT^(d' μ1') = hat d'|, Monotonicity of |hat step| -}
-  hat step ev ((hat f) (βT^(d' μ1')))
+  βT^((d >>= f) μ1) = βT^(τ) = βT^(Step ev τ') = (hat step) ev (βT^(τ'))
+⊑  {- Induction hypothesis at |βT^(τ')|, Monotonicity of |hat step| -}
+  hat step ev ((hat f) (βT^(τ')))
 ⊑  {- Assumption (2) -}
-  (hat f) ((hat step) ev (βT^(d' μ1'))) = (hat f) (βT^(d μ1))
-⊑  {- Assumption (1) -}
-  (hat f) (hat d)
+  (hat f) ((hat step) ev (βT^(τ'))) = (hat f) (βT^(τ))
 \end{spec}
-Note that in order to apply the induction hypothesis at |μ1'| above, we need
-refine assumption (3) to apply at any |μ2| such that |μ1' ~> μ2|.
+
+Otherwise, |d μ1| is finite and |d = evalNeed2 e ρ1| for some |e|,|ρ1| since
+|d| is definable.
+Then |evalNeed e ρ1 μ1 = many (Step ev) (evalNeed v ρ2 μ2)| for some number
+of events |many ev|, |v|, |ρ2| and |μ2|.
+By \Cref{thm:eval-progression}, we have |μ1 ~> μ2|.
+We proceed by induction on |many ev|.
+
+The induction step is the same as in the infinite case above;
+we shift the |Step| transition out of the argument to |βT|, apply the induction
+hypothesis and apply assumption (2).
+
+The interesting case is the base case, when |many ev| is empty
+and |evalNeed e ρ1 μ1 = evalNeed v ρ2 μ2|.
+Then we get, defining |sv| as |return sv := evalNeed2 v ρ2|,
+\begin{spec}
+  βT^((return sv >>= f) μ2) = βT^(f sv μ2)
+⊑  {- Assumption (3) at |μ1 ~> μ2| -}
+  (hat f) (βT^(Ret sv, μ2)) = (hat f) (βT^(evalNeed v ρ2 μ2))
+\end{spec}
+Note that in order to apply assumption (3) at |μ2| above, we need that
+|μ1 ~> μ2|.
 This would not be possible without generalising for any such |μ2| in the first
 place.
-
-Otherwise, |d = return v| for some |v :: Value|.
-\begin{spec}
-  βT^((return v >>= f) μ1) = βT^(f v μ1)
-⊑  {- Assumption (3) -}
-  (hat f) (βT^(Ret v, μ1)) = (hat f) (βT^(d μ1))
-⊑  {- Assumption (1) -}
-  (hat f) (hat d)
-\end{spec}
 \end{proof}
 
 \begin{lemma}[By-need environment unrolling]
@@ -760,15 +768,16 @@ and let |μ1 := (ext μ a (memo a (evalNeed e1 ρ1))), ρ1 := ext ρ x (step (Lo
 If |Later (forall e ρ μ. βT^(evalNeed e ρ μ) ⊑ (evalD (hat D) e (βD^(μ) << ρ)))|,
 then |βD^(μ1)^(ρ1 ! x) ⊑ step (Look x) (evalD (hat D) e1 (βD^(μ1) << ρ1))|.
 \end{lemma}
-\begin{proof} $ $
+\begin{proof}
+Note that the antecedent is exactly the Löb induction hypothesis of \Cref{thm:abstract-by-need}.
 \begin{spec}
-  βD^(μ1)^(ρ1 ! x)
-=   {- |needenv ρ1|, |needheap μ1|, unfold |βD| and |fetch a| -}
-  step (Look x) (βT^(memo a (evalNeed e1 ρ1) μ1))
+  βD^(μ)^(ρ ! x)
+=   {- Unfold |ρ ! x|, |μ ! a|, |βD| and |fetch a| -}
+  step (Look x) (βT^(memo a (evalNeed2 e1 ρ1) μ))
 =   {- Unfold |memo a| -}
-  step (Look x) (βT^((evalNeed e1 ρ1 >>= upd) μ1))
+  step (Look x) (βT^((evalNeed2 e1 ρ1 >>= upd) μ))
 ⊑   {- Apply \Cref{thm:by-need-bind}; see below -}
-  step (Look x) (evalD (hat D) e1 (βD^(μ1) << ρ1))
+  step (Look x) (evalD (hat D) e1 (βD^(μ) << ρ1))
 \end{spec}
 
 In the last step, we apply \Cref{thm:by-need-bind} under |step (Look x)|, which
