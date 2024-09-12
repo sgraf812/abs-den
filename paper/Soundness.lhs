@@ -10,6 +10,7 @@ module Soundness where
 import Prelude hiding ((+), (*))
 import Data.Set (Set)
 import qualified Data.Set as Set
+import qualified Data.Map as Map
 import Interpreter
 
 instance Eq (D (ByName T)) where
@@ -127,7 +128,7 @@ the abstract interpretation theorem.
     &
     \inferrule[\textsc{Beta-Sel}]
       {|alts| \text{ polymorphic} \\ |k ∈ dom alts|}
-      {|(alts ! k) ds ⊑ select (con k ds) alts|} \\
+      {|(alts Map.! k) ds ⊑ select (con k ds) alts|} \\
     \\[-0.5em]
     \inferrule[\textsc{ByName-Bind}]
       {|rhs, body|\text{ polymorphic}}
@@ -952,8 +953,8 @@ trace into a |φ' :: Uses|, \eg
     = |MkUT [ i {-" ↦ "-} Uω, x {-" ↦ "-} U1 ] (...)|$.
 Clearly, it is |φ' !? x ⊒ U1|, because there is at least one |Look x|.
 \Cref{thm:usage-abstracts-need} and a context invariance
-\Cref*{thm:usage-bound-vars-context} prove that the computed |φ|
-approximates |φ'|, so |φ !? x ⊒ φ' !? x ⊒ U1 //= U0|.
+\Cref*{thm:usage-bound-vars-context} in the Appendix prove that the computed
+|φ| approximates |φ'|, so |φ !? x ⊒ φ' !? x ⊒ U1 //= U0|.
 \end{proofsketch}
 \begin{proof}
 We show the contraposition, that is,

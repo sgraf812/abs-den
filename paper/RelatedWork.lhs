@@ -167,7 +167,7 @@ In the future, we hope to modularise the proof for
 \citet{Lomet:77} used procedure summaries to capture aliasing effects,
 crediting the approach to untraceable reports by \citet{Allen:74} and
 \citet{Rosen:75}.
-\citet{SharirPnueli:78} were aware of both \cite{Cousot:77} and \cite{Allen:74},
+\citet{SharirPnueli:78} were aware of the work of both \citet{Cousot:77} and \citet{Allen:74},
 and generalised aliasing summaries into the ``functional approach'' to
 interprocedural data flow analysis, distinguishing it from the ``call strings
 approach'' (\ie $k$-CFA).

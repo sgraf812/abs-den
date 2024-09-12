@@ -170,6 +170,8 @@ The join on $\Uses$ follows pointwise from the order $\aA ⊏ \aU$, \ie $(φ_1
 The analysis result $[k ↦ \aU,x_1↦\aU]$ infers $k$ and $x_1$ as
 potentially used and $x_2$ as absent, despite $x_2$ occurring in argument position,
 thanks to the bookkeeping of $\Args$.
+The absence type $\langle [], \aU \argcons \aA \argcons \repU \rangle$
+above is a finite \emph{summary} of the lambda term $\Lam{y}{\Lam{z}{y}}$.
 
 %Since $\semabs{\wild}$ computes least fixpoints at recursive let bindings,
 %$\AbsTy$ is equipped with a semi-lattice structure, induced by the order $\aA
@@ -190,8 +192,6 @@ thanks to the bookkeeping of $\Args$.
 \subsection{Compositionality, Summaries and Modularity}
 \label{sec:summaries}
 
-The absence type $\langle [], \aU \argcons \aA \argcons \repU \rangle$
-above is a finite \emph{summary} of the lambda term $\Lam{y}{\Lam{z}{y}}$.
 Let us define what we mean by ``summary'' in order to understand what is so
 appealing about a summary-based analysis such as $\semabs{\wild}$.
 

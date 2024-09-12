@@ -98,7 +98,7 @@ The major contribution of our framework is that the derived summary-based
 analyses may observe operational detail in an intuitive and semantically
 meaningful way.
 Adhering to our design pattern pays off in that it enables sharing of soundness
-proofs, thus drastically simplifying the soundness proof obligation per derived
+proofs, thus drastically simplifying the soundness proof obligations per derived
 analysis (\Cref{sec:soundness}).
 
 Denotational interpreters can be implemented in any higher-order language such as OCaml, Scheme or Java with explicit thunks, but we picked Haskell for convenience.%
