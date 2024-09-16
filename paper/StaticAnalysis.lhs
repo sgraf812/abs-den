@@ -512,10 +512,10 @@ instance Domain (J Type) where
       let TyConApp tc tc_args = res_ty
       unify (con_ty, res_ty)
       ks_tys <- enumerateCons tc tc_args
-      tys <- forM ks_tys $ \(k,tys) ->
+      tys <- forM ks_tys (\(k,tys) ->
         case List.find (\(k',_) -> k' == k) fs of
           Just (_,f) -> f tys
-          _          -> stuck
+          _          -> stuck)
       case tys of
         []      -> stuck
         ty:tys' -> mapM (\ty' -> unify (ty,ty')) tys' >> return ty

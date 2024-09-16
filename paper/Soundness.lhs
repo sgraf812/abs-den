@@ -175,8 +175,8 @@ $\pe \triangleq \Let{i}{(\Lam{y}{\Lam{x}{x}})~i}{i}$:
     & |αS^(evalNeed1 (({-" \Let{i}{(\Lam{y}{\Lam{x}{x}})~i}{i} "-})))^(emp)| \notag \\
 ={} & |βT^(evalNeed (({-" \Let{i}{(\Lam{y}{\Lam{x}{x}})~i}{i} "-})) emp emp)| \label{eqn:abs-ex1} \\
 ={} & |βT|(\perform{evalNeed (read "let i = (λy.λx.x) i in i") emp emp :: T (ValueNeed, HeapNeed)}) \label{eqn:abs-ex2} \\
-={} & \textstyle|step Let1 $ step (Look "i") $ ... $ fun (\(hat d) -> Lub (βT^({-" \AppET \smallstep \varid{d}([0\!\!↦\!\!\wild]) "-}space) || d ∈ γD^({-"[0\!\!↦\!\!\wild]"-}space)^((hat d))))| \notag \\
-⊑{} & \textstyle|step Let1 $ step (Look "i") $ ... $ fun (\(hat d) -> step App2 (hat d))| \label{eqn:abs-ex3} \\
+={} & \textstyle|step Let1 (step (Look "i") (... (fun (\(hat d) -> Lub (βT^({-" \AppET \smallstep \varid{d}([0\!\!↦\!\!\wild]) "-}space) || d ∈ γD^({-"[0\!\!↦\!\!\wild]"-}space)^((hat d)))))))| \notag \\
+⊑{} & \textstyle|step Let1 (step (Look "i") (... (fun (\(hat d) -> step App2 (hat d)))))| \label{eqn:abs-ex3} \\
 ={} & |MkUT (singenv i U1) (UCons U1 (Rep Uω)) :: UD| \label{eqn:abs-ex4} \\
 ={} & |evalUsg (({-" \Let{i}{(\Lam{y}{\Lam{x}{x}})~i}{i} "-})) emp| \notag
 \end{align}

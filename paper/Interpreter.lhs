@@ -238,10 +238,10 @@ eval  ::  (Trace d, Domain d, HasBind d)
 eval e ρ = case e of
   Var x  | x ∈ dom ρ  -> ρ ! x
          | otherwise  -> stuck
-  Lam x body -> fun x {-" \iffalse "-}(label e){-" \fi "-} $ \d ->
-    step App2 (eval body ((ext ρ x d)))
-  App e x  | x ∈ dom ρ  -> step App1 $
-               apply (eval e ρ) (ρ ! x)
+  Lam x body ->
+    fun x {-" \iffalse "-}(label e){-" \fi "-} (\d -> step App2 (eval body ((ext ρ x d))))
+  App e x  | x ∈ dom ρ  ->
+               step App1 (apply (eval e ρ) (ρ ! x))
            | otherwise  -> stuck
   Let x e1 e2 -> bind {-" \iffalse "-}x{-" \fi "-}
     (\d1 -> eval e1 (ext ρ x (step (Look x) d1)))
@@ -251,8 +251,8 @@ eval e ρ = case e of
     -> con {-" \iffalse "-}(label e){-" \fi "-} k (map (ρ !) xs)
     | otherwise
     -> stuck
-  Case e alts -> step Case1 $
-    select (eval e ρ) (cont << alts)
+  Case e alts ->
+    step Case1 (select (eval e ρ) (cont << alts))
     where
        cont (xs, er) ds  |  length xs == length ds
                          =  step Case2 (eval er (exts ρ xs ds))
@@ -390,10 +390,10 @@ To observe prefixes, we use a function |takeT :: Int -> T v -> T (Maybe v)|:
 |takeT n τ| returns the first |n| steps of |τ| and replaces the final value
 with |Nothing| (printed as $...$) if it goes on for longer.
 
-< ghci> takeT 5 $ eval (read "let x = x in x") emp :: T (Maybe (Value T))
+< ghci> takeT 5 (eval (read "let x = x in x") emp) :: T (Maybe (Value T))
 $\perform{takeName 5 $ eval (read "let x = x in x") emp :: T (Maybe (Value (ByName T)))}$
 
-< ghci> takeT 9 $ eval (read "let w = λy. y y in w w") emp :: T (Maybe (Value T))
+< ghci> takeT 9 (eval (read "let w = λy. y y in w w") emp) :: T (Maybe (Value T))
 $\perform{takeName 9 $ eval (read "let w = λy. y y in w w") emp :: T (Maybe (Value (ByName T)))}$
 \\[\belowdisplayskip]
 \noindent
@@ -705,7 +705,7 @@ Alas, this model of call-by-value does not yield a total interpreter!
 Consider the case when the right-hand side accesses its value before yielding
 one, \eg
 
-< ghci> takeT 5 $ evalValue (read "let x = x in x x") emp
+< ghci> takeT 5 (evalValue (read "let x = x in x x") emp)
 $\LetOT\xhookrightarrow{\hspace{1.1ex}}\LookupT(x)\xhookrightarrow{\hspace{1.1ex}}\LetIT\xhookrightarrow{\hspace{1.1ex}}\AppIT\xhookrightarrow{\hspace{1.1ex}}\LookupT(x)\xhookrightarrow{\hspace{1.1ex}}\texttt{\textasciicircum{}CInterrupted}$
 \\[\belowdisplayskip]
 \noindent
@@ -770,7 +770,7 @@ $\perform{evalVInit (read "let x = x in x x") emp emp :: T (Value _, Heap _)}$
 
 \begin{figure}
 \begin{spec}
-evalClair e ρ = runClair $ eval e ρ :: T (Value (Clairvoyant T))
+evalClair e ρ = runClair (eval e ρ) :: T (Value (Clairvoyant T))
 
 data Fork f a = Empty | Single a | Fork (f a) (f a); data ParT m a = ParT (m (Fork (ParT m) a))
 instance Monad τ => Alternative (ParT τ) where
@@ -782,11 +782,11 @@ runClair :: D (Clairvoyant T) -> T (Value (Clairvoyant T))
 instance (Extract τ, Monad τ, forall v. Trace (τ v)) => HasBind (D (Clairvoyant τ)) where
   bind # rhs body = Clairvoyant (skip <|> let') >>= body
     where  skip = return (Clairvoyant empty)
-           let' = fmap return $ step Let0 $ ... ^^ fix ... rhs ... getValue ...
+           let' = fmap return (step Let0 (... ^^ fix ... rhs ... getValue ...))
 \end{spec}
 %if style == newcode
 \begin{code}
-evalClair e ρ = runClair $ eval e ρ :: T (Value (Clairvoyant T))
+evalClair e ρ = runClair (eval e ρ) :: T (Value (Clairvoyant T))
 
 data Fork f a = Empty | Single !a | Fork (f a) (f a)
   deriving Functor
