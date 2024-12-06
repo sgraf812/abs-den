@@ -438,22 +438,18 @@ semantics.
 More importantly, in order to prove usage analysis sound \wrt by-need evaluation
 in \Cref{sec:soundness}, we need to define a semantic domain for call-by-need!
 It turns out that the interpreter thus derived is the --- to our knowledge ---
-first provably adequate denotational semantics for call-by-need (\Cref{sec:adequacy}).
+first denotational semantics for call-by-need that bisimulates the LK machine
+(\Cref{sec:adequacy}).
 
-Although the main body discusses only by-name and by-need semantics,
-we provide instances for call-by-value as well as clairvoyant
-semantics~\citep{HackettHutton:19} in \Cref{sec:more-eval-strat} as well.
+The main body discusses a by-name, by-need and a simple by-value semantics.
+Beyond that, \Cref{sec:more-eval-strat} provides lazy initialisation and
+clairvoyant~\citep{HackettHutton:19} by-value semantics as well.
 
 \subsubsection{Call-by-name}
 
 Following a similar approach as~\citet{adi}, we maximise reuse by instantiating
 the same |D| at different wrappers of |T|, rather than reinventing |Value| and |T|.
-Hence we redefine
-%\sven{Redefinitions are very confusing, because readers may miss them. Why don't we present this as the original definition of |DName| to begin with?}
-%\sg{I'm hesitant because the reader then is exposed early to a deep stack
-%of type synonyms/newtypes. We would need to write |ByName T (Maybe (Value
-%(ByName T)))| in a couple of places; seems a bit too much faff.}
-by-name semantics via the following |ByName| newtype wrapper:
+Hence we redefine by-name semantics via the following |ByName| newtype wrapper:
 \begin{code}
 evalName e ρ = eval e ρ :: D (ByName T)
 newtype ByName τ v = ByName { unByName :: τ v } deriving (Monad, Trace)
@@ -471,6 +467,102 @@ We call |ByName τ| a \emph{trace transformer} because it inherits its |Monad|
 and |Trace| instance from |τ|, in reminiscence to Galois transformers~\citep{Darais:15}.
 The old |DName| can be recovered as |D (ByName T)| and we refer to its
 interpreter instance as |evalName e ρ|.
+
+\subsubsection{Call-by-value}
+
+\begin{figure}
+\begin{code}
+evalValue e ρ = eval e ρ :: D (ByValue T)
+
+newtype ByValue τ v = ByValue { unByValue :: τ v }
+ifPoly(instance Monad τ => Monad (ByValue τ) where ...)
+instance Trace (τ v) => Trace (ByValue τ v) where {-" ... \iffalse "-}
+  step e (ByValue τ) = ByValue (step e τ) {-" \fi "-}
+
+class Extract τ where getValue :: τ v -> v
+instance Extract T where getValue (Ret v) = v; getValue (Step _ τ) = getValue τ
+
+instance (Trace (D (ByValue τ)), Monad τ, Extract τ) => HasBind (D (ByValue τ)) where
+  bind # rhs body = step Let0 (do  let  d = rhs (return v)          :: D (ByValue τ)
+                                        v = getValue (unByValue d)  :: Value (ByValue τ)
+                                   v1 <- d; body (return v1))
+\end{code}
+%if style == newcode
+\begin{code}
+deriving instance Functor τ     => Functor (ByValue τ)
+deriving instance Applicative τ => Applicative (ByValue τ)
+deriving instance Monad τ       => Monad (ByValue τ)
+\end{code}
+%endif
+\\[-1em]
+\caption{Call-by-value }
+\label{fig:by-value}
+\end{figure}
+
+Call-by-value eagerly evaluates a let-bound RHS and then substitutes its
+\emph{value}, rather than the reduction trace that led to the value, into every
+use site.
+
+The call-by-value evaluation strategy is implemented by the |ByValue| trace
+transformer shown in \Cref{fig:by-value}.
+Function |bind| defines a denotation |d :: D (ByValue τ)| of the right-hand
+side by mutual recursion with |v :: Value (ByValue τ)| that we will discuss
+shortly.
+
+As its first action, |bind| yields a brand-new |Let0| event that we assume was
+added to the definition of |Event|, announcing in the trace that the right-hand
+side of a |Let| is to be evaluated.
+Then monadic bind |v1 <- d; body (return v1)| yields steps from the right-hand
+side |d| until its value |v1 :: Value (ByValue τ)| is reached, which is then
+passed |return|ed (\ie wrapped in |Ret|) to the let |body|.
+Note that the steps in |d| are yielded \emph{eagerly}, and only once, rather
+than duplicating the trace at every use site in |body|, as the by-name form
+|body d| would.
+
+To understand the recursive definition of the denotation of the right-hand side |d|
+and its value |v|,
+consider the case |τ = T|.
+Then |return = Ret| and we get |d = rhs (Ret v)| for the value |v| at the end of
+the trace |d|, as computed by the type class instance method |getValue :: T v ->
+v|.
+%\footnote{The keen reader may have noted that we could use |Extract| to define a
+%|MonadFix| instance for deterministic |τ|.}
+The effect of |Ret (getValue (unByValue d))| is that of stripping all |Step|s from |d|.%
+%\footnote{We could have defined |d| as one big guarded fixpoint |fix (rhs .
+%return . getValue . unByValue)|, but some co-authors prefer to see the expanded
+%form.}
+%\sg{Is |let d = rhs (strip d); strip = return . getValue . unByValue in ...|
+%perhaps a more intuitive decomposition than |d|/|v|? Simon?}
+
+Since nothing about |getValue| is particularly special to |T|, it lives in its
+own type class |Extract| so that we get a |HasBind| instance for different
+types of |Trace|s, such as more abstract ones in \Cref{sec:abstraction}.
+
+Let us trace $\Let{i}{(\Lam{y}{\Lam{x}{x}})~i}{i~i}$ for call-by-value:
+
+< ghci> evalValue (read "let i = (λy.λx.x) i in i i") emp
+$\perform{evalValue (read "let i = (λy.λx.x) i in i i") emp}$
+\\[\belowdisplayskip]
+\noindent
+The beta reduction of $(\Lam{y}{\Lam{x}{x}})~i$ now happens once within the
+$\LetOT$/$\LetIT$ bracket; the two subsequent $\LookupT$ events immediately halt
+with a value.
+
+However, care must be taken not to run the interpreter on a right-hand side that
+accesses its value before producing one, as in the following example:
+
+< ghci> takeT 5 (evalValue (read "let x = x in x x") emp)
+$\LetOT\xhookrightarrow{\hspace{1.1ex}}\LookupT(x)\xhookrightarrow{\hspace{1.1ex}}\LetIT\xhookrightarrow{\hspace{1.1ex}}\AppIT\xhookrightarrow{\hspace{1.1ex}}\LookupT(x)\xhookrightarrow{\hspace{1.1ex}}\texttt{\textasciicircum{}CInterrupted}$
+\\[\belowdisplayskip]
+\noindent
+This loops forever unproductively.
+Typically, strict languages work around this semantic singularity in either of
+two ways:
+They enforce termination of the recursive RHS statically (OCaml, ML), or they
+use \emph{lazy initialisation} techniques~\citep{Nakata:10,Nakata:06} (Scheme,
+recursive modules in OCaml).
+\Cref{sec:more-eval-strat} explores an interpreter instance employing lazy
+initialisation.
 
 \subsubsection{Call-by-need}
 \label{sec:by-need-instance}
@@ -609,108 +701,15 @@ reduction.
 \begin{toappendix}
 \label{sec:more-eval-strat}
 
-To show that our denotational interpreter pattern equally well applies to
-by-value evaluation strategies, we introduce three more concrete semantic domain
-instances for call-by-value in this section.
-The first one is a plain old by-value encoding the representation of which is
-isomorphic to |D T|, just like for |DName|.
-However, this instance is partial for the original recursive |Let| construct.
-In order to recover a total by-value semantics, our second instance augments
-call-by-value with a lazy initialisation technique~\citep{Nakata:06} involving a
+In this Section, we introduce two more concrete semantic domain instances for
+call-by-value.
+In order to recover a total by-value semantics accepting the same language as
+our lazy evaluation strategies, our first instance augments call-by-value with
+a lazy initialisation technique~\citep{Nakata:06} involving a
 mutable heap, thus sharing its representation with |DNeed|.
-The third and final by-value domain models clairvoyant
-call-by-value~\citep{HackettHutton:19}, which unfortunately proves to be
-partial, and more fundamentally so than the partial by-value instance.
-
-\subsection{Call-by-value}
-
-\begin{figure}
-\begin{code}
-evalValue e ρ = eval e ρ :: D (ByValue T)
-
-newtype ByValue τ v = ByValue { unByValue :: τ v }
-ifPoly(instance Monad τ => Monad (ByValue τ) where ...)
-instance Trace (τ v) => Trace (ByValue τ v) where {-" ... \iffalse "-}
-  step e (ByValue τ) = ByValue (step e τ) {-" \fi "-}
-
-class Extract τ where getValue :: τ v -> v
-instance Extract T where getValue (Ret v) = v; getValue (Step _ τ) = getValue τ
-
-instance (Trace (D (ByValue τ)), Monad τ, Extract τ) => HasBind (D (ByValue τ)) where
-  bind # rhs body = step Let0 (do  let  d = rhs (return v)          :: D (ByValue τ)
-                                        v = getValue (unByValue d)  :: Value (ByValue τ)
-                                   v1 <- d; body (return v1))
-\end{code}
-%if style == newcode
-\begin{code}
-deriving instance Functor τ     => Functor (ByValue τ)
-deriving instance Applicative τ => Applicative (ByValue τ)
-deriving instance Monad τ       => Monad (ByValue τ)
-\end{code}
-%endif
-\\[-1em]
-\caption{Call-by-value }
-\label{fig:by-value}
-\end{figure}
-
-Call-by-value eagerly evaluates a let-bound RHS and then substitutes its
-\emph{value}, rather than the reduction trace that led to the value, into every
-use site.
-
-The call-by-value evaluation strategy is implemented with the |ByValue| trace transformer shown in \Cref{fig:by-value}.
-Function |bind| defines a denotation |d :: D (ByValue τ)| of the right-hand
-side by mutual recursion with |v :: Value (ByValue τ)| that we will discuss
-shortly.
-
-As its first action, |bind| yields a brand-new |Let0| event that we assume was
-added to the definition of |Event|, announcing in the trace that the right-hand
-side of a |Let| is to be evaluated.
-Then monadic bind |v1 <- d; body (return v1)| yields steps from the right-hand
-side |d| until its value |v1 :: Value (ByValue τ)| is reached, which is then
-passed |return|ed (\ie wrapped in |Ret|) to the let |body|.
-Note that the steps in |d| are yielded \emph{eagerly}, and only once, rather
-than duplicating the trace at every use site in |body|, as the by-name form
-|body d| would.
-
-To understand the recursive definition of the denotation of the right-hand side |d|
-and its value |v|,
-consider the case |τ = T|.
-Then |return = Ret| and we get |d = rhs (Ret v)| for the value |v| at the end of
-the trace |d|, as computed by the type class instance method |getValue :: T v ->
-v|.
-%\footnote{The keen reader may have noted that we could use |Extract| to define a
-%|MonadFix| instance for deterministic |τ|.}
-The effect of |Ret (getValue (unByValue d))| is that of stripping all |Step|s from |d|.%
-%\footnote{We could have defined |d| as one big guarded fixpoint |fix (rhs .
-%return . getValue . unByValue)|, but some co-authors prefer to see the expanded
-%form.}
-%\sg{Is |let d = rhs (strip d); strip = return . getValue . unByValue in ...|
-%perhaps a more intuitive decomposition than |d|/|v|? Simon?}
-
-Since nothing about |getValue| is particularly special to |T|, it lives in its
-own type class |Extract| so that we get a |HasBind| instance for different
-types of |Trace|s, such as more abstract ones in \Cref{sec:abstraction}.
-
-Let us trace $\Let{i}{(\Lam{y}{\Lam{x}{x}})~i}{i~i}$ for call-by-value:
-
-< ghci> evalValue (read "let i = (λy.λx.x) i in i i") emp
-$\perform{evalValue (read "let i = (λy.λx.x) i in i i") emp}$
-\\[\belowdisplayskip]
-\noindent
-The beta reduction of $(\Lam{y}{\Lam{x}{x}})~i$ now happens once within the
-$\LetOT$/$\LetIT$ bracket; the two subsequent $\LookupT$ events immediately halt
-with a value.
-
-Alas, this model of call-by-value does not yield a total interpreter!
-Consider the case when the right-hand side accesses its value before yielding
-one, \eg
-
-< ghci> takeT 5 (evalValue (read "let x = x in x x") emp)
-$\LetOT\xhookrightarrow{\hspace{1.1ex}}\LookupT(x)\xhookrightarrow{\hspace{1.1ex}}\LetIT\xhookrightarrow{\hspace{1.1ex}}\AppIT\xhookrightarrow{\hspace{1.1ex}}\LookupT(x)\xhookrightarrow{\hspace{1.1ex}}\texttt{\textasciicircum{}CInterrupted}$
-\\[\belowdisplayskip]
-\noindent
-This loops forever unproductively, rendering the interpreter unfit as a
-denotational semantics.
+The second domain models clairvoyant call-by-value~\citep{HackettHutton:19},
+which unfortunately proves to be partial in a more fundamental way than even the
+original by-value instance.
 
 \begin{figure}
 \begin{code}
@@ -893,7 +892,8 @@ This renders Clairvoyant call-by-value inadequate for verifying properties of
 infinite executions.
 \end{toappendix}
 
-The examples so far suggest that |evalNeed2| agrees with the LK machine on
+\medskip
+The examples so far suggested that |evalNeed2| agrees with the LK machine on
 \emph{many} programs.
 The next section proves that |evalNeed2| agrees with the LK machine on
 \emph{all} programs, including ones that diverge.
