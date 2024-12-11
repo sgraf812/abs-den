@@ -107,7 +107,7 @@
 \setlength{\pdfpagewidth}{\paperwidth}
 
 \title{Abstracting Denotational Interpreters}
-\subtitle{A Pattern for Sound, Compositional and Higher-order Static Program Analysis}
+\subtitle{A Design Pattern for Sound, Compositional and Higher-order Static Program Analysis}
 
 \author{Sebastian Graf}
 \affiliation{%
@@ -136,20 +136,21 @@
 \begin{abstract}
   We explore \emph{denotational interpreters}:
   denotational semantics that produce coinductive traces of a corresponding
-  small-step operational semantics.
+  abstract machine.
   By parameterising our denotational interpreter over the semantic domain
   and then varying it, we recover \emph{dynamic semantics} with different
   evaluation strategies as well as \emph{summary-based static analyses} such as type
   analysis, all from the same generic interpreter.
   Among our contributions is the first denotational semantics for call-by-need
-  that is provably adequate in a strong, compositional sense.
+  that is provably bisimilar to the corresponding abstract machine.
   The generated traces lend themselves well to describe \emph{operational properties}
   such as how often a variable is evaluated, and hence enable static analyses
   abstracting these operational properties.
   Since static analysis and dynamic semantics share the same generic interpreter
   definition, soundness proofs via abstract interpretation decompose into
-  showing small abstraction laws about the abstract domain, thus obviating
-  complicated ad-hoc preservation-style proof frameworks.
+  (1) showing small abstraction laws about the abstract domain and
+  (2) establishing a logical relation that can be shared per semantics, where
+  (1) is considerably simpler than (2).
 \end{abstract}
 
 %% 2012 ACM Computing Classification System (CSS) concepts

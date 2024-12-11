@@ -442,7 +442,7 @@ first denotational semantics for call-by-need that bisimulates the LK machine
 (\Cref{sec:adequacy}).
 
 The main body discusses a by-name, by-need and a simple by-value semantics.
-Beyond that, \Cref{sec:more-eval-strat} provides lazy initialisation and
+Beyond that, \Cref*{sec:more-eval-strat} provides lazy initialisation and
 clairvoyant~\citep{HackettHutton:19} by-value semantics as well.
 
 \subsubsection{Call-by-name}
@@ -561,7 +561,7 @@ two ways:
 They enforce termination of the recursive RHS statically (OCaml, ML), or they
 use \emph{lazy initialisation} techniques~\citep{Nakata:10,Nakata:06} (Scheme,
 recursive modules in OCaml).
-\Cref{sec:more-eval-strat} explores an interpreter instance employing lazy
+\Cref*{sec:more-eval-strat} explores an interpreter instance employing lazy
 initialisation.
 
 \subsubsection{Call-by-need}

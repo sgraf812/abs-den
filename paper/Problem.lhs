@@ -238,19 +238,19 @@ prevent having to reanalyse $\pe_{\mathit{big}}$ repeatedly for each call of $f$
 
 This is why summary-based analyses are great: they scale.
 
-\subsection{Summaries \vs Abstracting Abstract Machines}
-
-Now, instead of coming up with a summary mechanism, we could simply have
-``inlined'' $k$ during analysis of the example above to see that $x_2$ is absent
-in a simple first-order sense.
-The \emph{call strings} approach to interprocedural program
-analysis~\citep{SharirPnueli:78} turns this idea into a static analysis,
-and the AAM recipe could be used to derive an absence analysis based on call
-strings that is sound by construction.
-Alas, following this paths gives up on modularity, because a call-strings-based
-analysis would need to invoke the function
-$(\fn{θ_y}{\fn{θ_z}{θ_y}}) : \AbsTy \to \AbsTy \to \AbsTy$ that describes
-$k$'s inline expansion \emph{at every use site}, leading to scalability problems in a compiler.
+%\subsection{Summaries \vs Abstracting Abstract Machines}
+%
+%Now, instead of coming up with a summary mechanism, we could simply have
+%``inlined'' $k$ during analysis of the example above to see that $x_2$ is absent
+%in a simple first-order sense.
+%The \emph{call strings} approach to interprocedural program
+%analysis~\citep{SharirPnueli:78} turns this idea into a static analysis,
+%and the AAM recipe could be used to derive an absence analysis based on call
+%strings that is sound by construction.
+%Alas, following this paths gives up on modularity, because a call-strings-based
+%analysis would need to invoke the function
+%$(\fn{θ_y}{\fn{θ_z}{θ_y}}) : \AbsTy \to \AbsTy \to \AbsTy$ that describes
+%$k$'s inline expansion \emph{at every use site}, leading to scalability problems in a compiler.
 
 \subsection{Problem: Proving Soundness of Summary-Based Analyses}
 
@@ -780,26 +780,17 @@ preservation-style proof technique at heart.
 %\footnote{A ``mundane approach`` according to \citet[Section
 %4.1]{Nielson:99}, applicable to \emph{trace properties}, but not to
 %\emph{hyperproperties}~\citep{ClarksonSchneider:10}.}
-The proof of \citet{Sergey:14} for a generalisation of $\semabs{\wild}$
-is roughly structured as follows (starred* references of Figures and Lemmas
-refer to \citet{Sergey:14}):
-
+The proof for \Cref{thm:absence-correct} is roughly structured as follows
+(starred* references refer to the Appendix):
 \begin{enumerate}
-  \item Instrument a standard call-by-need semantics (a variant of our reference
-    semantics in \Cref{sec:op-sem}) such that heap lookups decrement a per-address
-    counter; when heap lookup is attempted and the counter is 0, the machine is stuck.
-    For absence, the instrumentation is simpler: the $\LookupT$
-    transition in \Cref{fig:lk-semantics} carries the let-bound variable that is
-    looked up.
-  \item Give a declarative type system that characterises the results of the
-    analysis (\ie $\semabs{\wild}$) in a lenient (upwards closed) way.
-    In case of \Cref{thm:absence-correct}, we define an analysis function on
-    machine configurations for the proof (\Cref{fig:absence-ext}).
-  \item Prove that evaluation of well-typed terms in the instrumented
-    semantics is bisimilar to evaluation of the term in the standard semantics,
-    \ie does not get stuck when the standard semantics would not.
+  \item Instrument a standard call-by-need semantics.
+    For absence, the instrumentation is simple: the $\LookupT$ transition in
+    \Cref{fig:lk-semantics} carries the let-bound variable that is looked up.
+  \item Extend the analysis function to machine configurations
+    (\Cref*{fig:absence-ext}*).
+  \item Prove that evaluation \emph{preserves} the analysis result
+    (\Cref*{thm:preserve-absent}*).
     A classic \emph{logical relation}~\citep{Nielson:99}.
-    %In our case, we prove that evaluation preserves the analysis result.
 \end{enumerate}
 Alas, the effort in comprehending such a proof in detail, let alone formulating
 it, is enormous.
@@ -808,37 +799,83 @@ it, is enormous.
     The instrumentation (1) can be semantically non-trivial; for example the
     semantics in \citet{Sergey:14} becomes non-deterministic.
     Does this instrumentation still express the desired semantic property?
-  \item Step (2) all but duplicates a complicated analysis
-    definition (\ie $\semabs{\wild}$) into a type system (in Figure 7*) with
-    subtle adjustments expressing invariants for the preservation proof.
   \item
-    Furthermore, step (2) extends this type system to small-step machine
-    configurations (in Figure 13*), \ie stacks and heaps, the scoping of which
-    is mutually recursive.%
+    Step (2) extends an often complicated analysis (\ie $\semabs{\wild}$) to
+    abstract machine configurations, \ie stacks and heaps, the
+    scoping of which is mutually recursive.%
     \footnote{We believe that this extension to machine configurations can
     always be derived systematically from a context lemma~\citep[Lemma
-    3.2]{MoranSands:99} and imitating what the type system does on the closed
+    3.2]{MoranSands:99} and imitating what the analysis does on the closed
     expression derivable from a configuration via the context lemma.}
-    Another page worth of Figures; the amount of duplicated proof artifacts is
-    staggering.
     In our case, the analysis function on machine configurations is about as
     long as on expressions.
-  \item
-    This is all setup before step (3) proves interesting properties about the
-    semantic domain of the analysis.
-    Among the more interesting properties is the \emph{substitution lemma} A.8*
-    to be applied during beta reduction; exactly as in our proof.
   \item
     While proving that a single step $σ_1 \smallstep σ_2$ preserves analysis
     information in step (3), we noticed that we actually got stuck in the $\UpdateT$
     case, and would need to redo the proof using step-indexing~\citep{AppelMcAllester:01}.
-    This case mutates the heap and thus is notoriously difficult; we give a
-    proper account in \Cref{thm:abstract-by-need}.
-
-    Although the proof in \citet{Sergey:14} is perceived as detailed and
-    rigorous, it is quite terse in the corresponding \textsc{EUpd} case of the
-    single-step safety proof in Lemma A.6*.
+    This case mutates the heap and thus is notoriously difficult on an entirely
+    orthogonal axis; we give a proper account in \Cref{thm:abstract-by-need}.
 \end{itemize}
+
+%The proof of \citet{Sergey:14} for a generalisation of $\semabs{\wild}$
+%is roughly structured as follows (starred* references of Figures and Lemmas
+%refer to \citet{Sergey:14}):
+%
+%\begin{enumerate}
+%  \item Instrument a standard call-by-need semantics (a variant of our reference
+%    semantics in \Cref{sec:op-sem}) such that heap lookups decrement a per-address
+%    counter; when heap lookup is attempted and the counter is 0, the machine is stuck.
+%    For absence, the instrumentation is simpler: the $\LookupT$
+%    transition in \Cref{fig:lk-semantics} carries the let-bound variable that is
+%    looked up.
+%  \item Give a declarative type system that characterises the results of the
+%    analysis (\ie $\semabs{\wild}$) in a lenient (upwards closed) way.
+%    In case of \Cref{thm:absence-correct}, we define an analysis function on
+%    machine configurations for the proof (\Cref{fig:absence-ext}).
+%  \item Prove that evaluation of well-typed terms in the instrumented
+%    semantics is bisimilar to evaluation of the term in the standard semantics,
+%    \ie does not get stuck when the standard semantics would not.
+%    A classic \emph{logical relation}~\citep{Nielson:99}.
+%    %In our case, we prove that evaluation preserves the analysis result.
+%\end{enumerate}
+%Alas, the effort in comprehending such a proof in detail, let alone formulating
+%it, is enormous.
+%\begin{itemize}
+%  \item
+%    The instrumentation (1) can be semantically non-trivial; for example the
+%    semantics in \citet{Sergey:14} becomes non-deterministic.
+%    Does this instrumentation still express the desired semantic property?
+%  \item Step (2) all but duplicates a complicated analysis
+%    definition (\ie $\semabs{\wild}$) into a type system (in Figure 7*) with
+%    subtle adjustments expressing invariants for the preservation proof.
+%  \item
+%    Furthermore, step (2) extends this type system to small-step machine
+%    configurations (in Figure 13*), \ie stacks and heaps, the scoping of which
+%    is mutually recursive.%
+%    \footnote{We believe that this extension to machine configurations can
+%    always be derived systematically from a context lemma~\citep[Lemma
+%    3.2]{MoranSands:99} and imitating what the type system does on the closed
+%    expression derivable from a configuration via the context lemma.}
+%    Another page worth of Figures; the amount of duplicated proof artifacts is
+%    staggering.
+%    In our case, the analysis function on machine configurations is about as
+%    long as on expressions.
+%  \item
+%    This is all setup before step (3) proves interesting properties about the
+%    semantic domain of the analysis.
+%    Among the more interesting properties is the \emph{substitution lemma} A.8*
+%    to be applied during beta reduction; exactly as in our proof.
+%  \item
+%    While proving that a single step $σ_1 \smallstep σ_2$ preserves analysis
+%    information in step (3), we noticed that we actually got stuck in the $\UpdateT$
+%    case, and would need to redo the proof using step-indexing~\citep{AppelMcAllester:01}.
+%    This case mutates the heap and thus is notoriously difficult; we give a
+%    proper account in \Cref{thm:abstract-by-need}.
+%
+%    Although the proof in \citet{Sergey:14} is perceived as detailed and
+%    rigorous, it is quite terse in the corresponding \textsc{EUpd} case of the
+%    single-step safety proof in Lemma A.6*.
+%\end{itemize}
 \noindent
 There are two main problems to address, and we believe the first causes the second.
 \begin{enumerate}
@@ -859,15 +896,15 @@ There are two main problems to address, and we believe the first causes the seco
 
 Abstract interpretation~\citep{Cousot:77} provides a framework to tackle problem
 (2), but its systematic applications seem to require a structurally matching
-semantics.
+semantics (1).
 For example, the book of \citet{Cousot:21} starts from a \emph{compositional},
 trace-generating semantics for an imperative first-order language to derive
 compositional analyses.
 
 In this work we present the \textbf{\emph{denotational interpreter}} design
 pattern to solve both problems above.
-Inspired by \citeauthor{Cousot:21}, we define a \textbf{\emph{compositional
-semantics that exhibits operational detail}} for higher-order languages;
+Inspired by \citeauthor{Cousot:21}, we define a \textbf{\emph{compositional,
+trace-generating semantics}} for higher-order languages;
 one with which it is possible to express \emph{operational properties} such as
 \emph{usage cardinality}, \ie ``$\pe$ evaluates $\px$ at most $u$ times'', as
 required in \citet{Sergey:14}.%
@@ -881,12 +918,11 @@ analyses}} as denotational interpreters.
 
 Since both semantics and analysis are \textbf{\emph{derived from the same
 generic interpreter}}, solving problem (1), we can prove usage analysis to be an
-\emph{abstract interpretation} of call-by-need semantics.
-Doing so disentangles the preservation proof such that the proof
-for usage analysis in \Cref{thm:usage-abstracts-need} takes no more than a
-semantic substitution lemma and a bit of plumbing, solving problem (2).
-%Intriguingly, \Cref{thm:usage-abstracts-need} can be proved without referring to
-%the shared interpreter definition or the Galois connection at all, by appealing
-%to parametricity to prove \Cref{thm:usage-subst-sem}.
-%This suggests that our approach scales to large interpreters such as for
-%WebAssembly~\citep{Brandl:23}.
+\emph{abstract interpretation} of call-by-need semantics, in two steps:
+First, we show a generic soundness theorem parameterised over an analysis domain
+satisfying certain \emph{abstraction laws}, among which there is a semantic
+substitution lemma, and then we show that usage analysis satisfies these
+abstraction laws.
+Intriguingly, by appealing to parametricity, none of the abstraction laws refer
+to the definition of the interpreter, thus our framework disentagles semantic
+concerns from the theory of the abstract domain, solving (2).

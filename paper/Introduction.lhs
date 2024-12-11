@@ -5,9 +5,9 @@
 \section{Introduction}
 \label{sec:introduction}
 
-A \emph{static program analysis} infers facts about a program, such
-as ``this program is well-typed'', ``this higher-order function is always called
-with argument $\Lam{x}{x+1}$'' or ``this program never evaluates $x$''.
+A \emph{static program analysis} infers semantic properties about a program,
+such as ``this program is well-typed'', ``this higher-order function is always
+called with argument $\Lam{x}{x+1}$'' or ``this program never evaluates $x$''.
 In a functional-language setting, such static analyses are
 often defined \emph{compositionally} on the input term: the result of analysing
 a term is obtained by analysing its subterms separately and combining the results.
@@ -20,13 +20,17 @@ without looking at the definition of |even| again.
 % If the analysis is used in a compiler to inform optimisations, it is
 % important to prove it sound, because lacking soundness
 % can lead to miscompilation of safety-critical applications~\citep{Sun:16}.
-In order to prove the analysis sound, it is helpful to pick a language
+
+Often, a good explanation of a static analysis is by analogy to the semantic
+property it is supposed to approximate.
+If properly formalised, the analogy doubles as a statement of \emph{soundness}.
+To prove a compositional analysis sound, it is helpful to pick a language
 semantics that is also compositional, such as a \emph{denotational
 semantics}~\citep{ScottStrachey:71}; then the semantics and the analysis ``line
-up'' and the soundness proof is relatively straightforward.
-Indeed, one can often break up the proof into manageable subgoals by regarding
-the analysis as an \emph{abstract interpretation} of the compositional
-semantics~\citep{Cousot:21}.
+up'' and the soundness proof/explanation is relatively straightforward.
+One can regard the analysis as an \emph{abstract interpretation} of the
+compositional semantics~\citep{Cousot:21} and further break up the proof into
+manageable subgoals decoupled from the definition of analysis or semantics.
 
 Alas, traditional denotational semantics does not model operational details --
 and yet those details might be the whole point of the analysis.
@@ -44,25 +48,23 @@ Now we have two unappealing alternatives:
   reachable states of an operational semantics.
   This is the essence of the \emph{Abstracting Abstract Machines} (AAM)
   \cite{aam} recipe.
-  A very fruitful framework, but one that follows the \emph{call strings}
-  approach~\citep{SharirPnueli:78}, reanalysing function bodies at call sites.
-  Hence the new analysis becomes non-modular, leading to scalability problems
-  for a compiler.
+%  A very fruitful framework, but one that follows the \emph{call strings}
+%  approach~\citep{SharirPnueli:78}, reanalysing function bodies at call sites.
+%  Hence the new analysis becomes non-modular, leading to scalability problems
+%  for a compiler.
 \end{itemize}
 
-In this paper, we resolve the tension by exploring \textbf{\emph{denotational
+In this paper, we explore a third alternative, \textbf{\emph{denotational
 interpreters}}: total, mathematical objects that live at the intersection of
-structurally-defined \emph{definitional interpreters}~\citep{Reynolds:72} and
+compositionally-defined \emph{definitional interpreters}~\citep{Reynolds:72} and
 denotational semantics.
-Our denotational interpreters generate small-step traces embellished with
-arbitrary operational detail and enjoy a straightforward encoding in typical
-higher-order programming languages.
+Our denotational interpreters generate abstract machine traces and enjoy a
+straightforward encoding in typical higher-order programming languages.
 Static analyses arise as instantiations of the same generic interpreter,
 enabling succinct, shared and modular soundness proofs just like for AAM or
 big-step definitional interpreters~\citep{adi,Keidel:18}.
-However, the shared, compositional structure enables a wide range of summary
-mechanisms in static analyses that we think are beyond the reach of
-non-compositional reachable-states abstractions like AAM.
+However, the compositional structure enables a wide range of summary mechanisms
+in static analyses that we found difficult to achieve using an AAM approach.
 
 We make the following contributions:
 \begin{itemize}
@@ -70,12 +72,12 @@ We make the following contributions:
   We use a concrete example (absence analysis) to argue for
   the usefulness of compositional, summary-based analysis in \Cref{sec:problem}
   and we demonstrate the difficulty of conducting an ad-hoc soundness proof
-  \wrt a non-compositional small-step operational semantics.
+  \wrt a non-compositional abstract machine semantics.
 \item \Cref{sec:interp} walks through the definition of our generic
   denotational interpreter and its type class algebra in Haskell.
   We demonstrate the ease with which different instances of our interpreter
   endow our object language with call-by-name, call-by-need and call-by-value
-  evaluation strategies, each producing (abstractions of) small-step
+  evaluation strategies, each producing (abstractions of) abstract
   machine traces.
 \item A concrete instantiation of a denotational interpreter is \emph{total}
   if it coinductively yields a (possibly infinite) trace for every input
@@ -83,10 +85,9 @@ We make the following contributions:
   \Cref{sec:totality} proves that the by-name and by-need instantiations are
   total by embedding the generic interpreter and its instances in Guarded Cubical
   Agda.
-\item \Cref{sec:adequacy} proves that the by-need instantiation of our
-  denotational interpreter adequately generates an abstraction of a trace
-  in the lazy Krivine machine~\citep{Sestoft:97}, preserving its length as well
-  as arbitrary operational information about each transition taken.
+\item \Cref{sec:adequacy} proves that the traces generated by the by-need
+  instantiation of our denotational interpreter are bisimilar to traces in the
+  lazy Krivine machine~\citep{Sestoft:97}.
 \item In \Cref{sec:abstraction} we instantiate the generic interpreter with
   finite, abstract semantic domains.
   In doing so, we recover summary-based usage analysis, a generalisation

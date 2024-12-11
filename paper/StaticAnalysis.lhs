@@ -530,65 +530,6 @@ instance HasBind (J Type) where
 \label{fig:type-analysis}
 \end{figure}
 
-Computing least fixpoints is common practice in static program analysis.
-However, some abstract domains employ quite different fixpoint strategies.
-The abstract domain of the type analysis we sketch in this subsection is
-an interesting example:
-Type analysis --- specifically, \citeauthor{Milner:78}'s Algorithm~J ---
-computes fixpoints by generating and solving a constraint system via
-unification.
-Furthermore, since the domain is familiar, it is a good one to study in the
-context of denotational interpreters.
-
-\Cref{fig:type-analysis} outlines the abstract domain |J Type| at which the
-generic denotational interpreter can be instantiated to perform Type analysis.
-We omit implementational details that are derivative of Milner's description of
-Algorithm~J.
-The full implementation can be found in the extract generated from this
-document, but the provided code is sufficiently exemplary of the approach.
-The decompressed form of this subsection can be found in
-\Cref*{sec:type-analysis-detail}, including many examples.
-
-Type analysis |evalTy| infers the most general Hindley-Milner polytype of an expression, \eg
-\[|evalTy (({-" \Let{i}{\Lam{x}{x}}{\Let{o}{\mathit{Some}(i)}{o}} "-})|
-  = \perform{evalTy (read "let i = λx.x in let o = Some(i) in o")}.\]
-Key to the analysis is its abstract trace type |J|, offering means to invoke
-unification (|unify|), fresh name generation (|freshTyVar|, |instantiatePolyTy|)
-and let generalisation (|generaliseTy|).
-Type |J| implements these effects by maintaining a unifying substitution and
-a set of used names via the standard monad transformer |StateT|.
-Unification failure is signalled by returning |Nothing| in the base monad
-|Maybe|, and function |closedType| for handling |J| effects will return |Wrong|
-when that happens:
-\[|evalTy (({-" \Let{x}{\mathit{None}()}{x~x} "-}))|
-  = \perform{evalTy (read "let x = None() in x x")}.\]
-Throughout the analysis, the invariant is maintained that the |J Type|
-summaries of let-bound variables in the interpreter environment |ρ| are of the
-form |instantiatePolyTy σ| for a polytype |σ|, while lambda- and field-bound
-variables are denoted by |return θ|, yielding the same monotype |θ| at all use
-sites.
-(Use of the term ``summary'' is justified because both |σ| and |θ| are data,
-and it would be easy to defunctionalise |instantiatePolyTy σ| and |return θ|
-to be data as well.)
-Thus, let-bound denotations instantiate polytypes on-the-fly at occurrence
-sites, just as in Algorithm~J.
-
-The |Domain (J Type)| instance bears no surprises:
-|stuck| terms are denoted by the monotype |Wrong| and the definition of |fun|
-and |apply| are literal translations of Algorithm~J.
-
-The generalisation machinery comes to bear in the implementation
-of |bind|, which implements a combination of the $\mathit{fix}$ and $\mathit{let}$
-cases in Algorithm~J, computing fixpoints by unification (|uniFix|).
-%It is best understood by tracing the right-hand side of $o$ in the following
-%example:
-%\[|evalTy (({-" \Let{i}{\Lam{x}{x}}{\Let{o}{\mathit{Some}(i)}{o}} "-})|
-%  = \perform{evalTy (read "let i = λx.x in let o = Some(i) in o")}\]
-
-\begin{toappendix}
-\subsection{Type Analysis: Algorithm J}
-\label{sec:type-analysis-detail}
-
 %if style == newcode
 \begin{code}
 deriving instance Eq TyCon
@@ -727,6 +668,8 @@ an interesting example:
 Type analysis --- specifically, \citeauthor{Milner:78}'s Algorithm~J ---
 computes fixpoints by generating and solving a constraint system via
 unification.
+Furthermore, since the domain is familiar, it is a good one to study in the
+context of denotational interpreters.
 
 \Cref{fig:type-analysis} outlines the abstract domain |J Type| at which the
 generic denotational interpreter can be instantiated to perform Type analysis.
@@ -735,91 +678,45 @@ Algorithm~J.
 The full implementation can be found in the extract generated from this
 document, but the provided code is sufficiently exemplary of the approach.
 
-Type analysis |evalTy| infers the most general type of an expression, \eg
-\[|evalTy (({-" \Let{f}{\Lam{g}{\Lam{x}{g~x}}}{f} "-})|
-  = \perform{evalTy (read "let f = λg.λx.g x in f")}.\]
+Type analysis |evalTy| infers the most general Hindley-Milner polytype of an expression, \eg
+\[|evalTy (({-" \Let{i}{\Lam{x}{x}}{\Let{o}{\mathit{Some}(i)}{o}} "-})|
+  = \perform{evalTy (read "let i = λx.x in let o = Some(i) in o")}.\]
 The most general type can be \emph{polymorphic} when it universally quantifies
-over \emph{generic} type variables such as $α_4$ and $α_5$ above.
+over \emph{generic} type variables such as $α_6$ above.
 In general, such a |PolyType| is of the form $\forall \many{\alpha}.\ θ$,
 where $θ$ ranges over a monomorphic |Type| that can be either a type variable
-|TyVar α| (we will use |θα| as meta variable for this form), a function type
+|TyVar α| (we use |θα| as meta variable for this form), a function type
 |θ1 :->: θ2|, or a type constructor application |TyConApp|, where
 |TyConApp OptionTyCon [θ1]| is printed as $\mathtt{option}~θ_1$.
 The |Wrong| type indicates a type error and is printed as $\textbf{wrong}$.
 
-Key to the analysis is its abstract trace type |J|, the name of which refers to the ambient
-effects of Milner's Algorithm~J, offering means to invoke unification (|unify|),
-fresh name generation (|freshTyVar|, |instantiatePolyTy|) and let
-generalisation (|generaliseTy|).
-Our type |J| implements these effects by maintaining two pieces of state via the
-standard monad transformer |StateT|:
-\begin{enumerate}
-  \item
-    a consistent set of type constraints as a unifying substitution |Subst|.
-  \item
-    the set of used names as a |Set Name|.
-    This is to supply fresh names in |freshTyVar|
-    and to instantiate a polytype $\forall α. α \to α$ to a monotype $α_1
-    \to α_1$ for fresh $α_1$ as done by |instantiatePolyTy|, but also to
-    identify the type variables which are \emph{generic}~\citep{Milner:78} in
-    the ambient type context and hence may be generalised by |generaliseTy|.
-\end{enumerate}
+Type |J| implements these effects by maintaining a unifying substitution and
+a set of used names via the standard monad transformer |StateT|.
 Unification failure is signalled by returning |Nothing| in the base monad
 |Maybe|, and function |closedType| for handling |J| effects will return |Wrong|
 when that happens:
-\[|evalTy (({-" \Let{x}{\mathit{None}()}{x~x} "-})|
-  = \perform{evalTy (read "let x = None() in x x")}\]
-The operational detail offered by |Trace| is ignored by |J|, but the |Domain|
-and |HasBind| instances for the abstract semantic domain |J Type| are quite
-interesting.
-Throughout the analysis, the invariant is maintained that the |J Type| denotation
-of let-bound variables in the interpreter environment |ρ| is of the form
-|instantiatePolyTy σ| for a polytype |σ|, while lambda- and field-bound
+\[|evalTy (({-" \Let{x}{\mathit{None}()}{x~x} "-}))|
+  = \perform{evalTy (read "let x = None() in x x")}.\]
+Throughout the analysis, the invariant is maintained that the |J Type|
+summaries of let-bound variables in the interpreter environment |ρ| are of the
+form |instantiatePolyTy σ| for a polytype |σ|, while lambda- and field-bound
 variables are denoted by |return θ|, yielding the same monotype |θ| at all use
 sites.
+(Use of the term ``summary'' is justified because both |σ| and |θ| are data,
+and it would be easy to defunctionalise |instantiatePolyTy σ| and |return θ|
+to be data as well.)
 Thus, let-bound denotations instantiate polytypes on-the-fly at occurrence
 sites, just as in Algorithm~J.
 
-As expected, |stuck| terms are denoted by the monotype |Wrong|.
-The definition of |fun| resembles the abstraction rule of Algorithm~J,
-in that it draws a fresh variable type |θα :: Type| (of the form |TyVar α|)
-to stand for the type of the argument.
-This type is passed as a monotype |return θα| to the body denotation
-|f|, where it will be added to the environment (\cf \Cref{fig:eval}) in order to
-compute the result type |θ| of the function body.
-The type for the whole function is then |θα :->: θ|.
-The definition for |apply| is a literal translation of Algorithm~J as well.
-The cases for |con| and |select| are omitted as their implementation follows
-a similar routine.
+The |Domain (J Type)| instance bears no surprises:
+|stuck| terms are denoted by the monotype |Wrong| and the definition of |fun|
+and |apply| are literal translations of Algorithm~J.
 
-The generalisation and instantiation machinery comes to bear in the implementation
+The generalisation machinery comes to bear in the implementation
 of |bind|, which implements a combination of the $\mathit{fix}$ and $\mathit{let}$
 cases in Algorithm~J, computing fixpoints by unification (|uniFix|).
-It is best understood by tracing the right-hand side of $o$ in the following
-example:
-\[|evalTy (({-" \Let{i}{\Lam{x}{x}}{\Let{o}{\mathit{Some}(i)}{o}} "-})|
-  = \perform{evalTy (read "let i = λx.x in let o = Some(i) in o")}\]
-The implementation of |bind| ties the recursive knot by calling |uniFix|.
-It works by calling the iteratee |rhs| (corresponding to $\mathit{Some}(i)$)
-with a fresh unification variable type |θα|, for example $α_1$.
-The result of the call to |rhs| in turn is a monotype |θ|,
-for example $\mathtt{option}\;(α_3 \rightarrow α_3)$ for \emph{generic}
-$α_3$, meaning that $α_3$ is a fresh name introduced in the right-hand side
-while instantiating the polymorphic identity function $i$.
-Then |θα| is unified with |θ|, substituting $α_1$ with
-$\mathtt{option}\;(α_3 \rightarrow α_3)$.
-This concludes the implementation of Milner's $\mathit{fix}$ case.
 
-For Milner's $\mathit{let}$ case, the type |θα| returned by the call to
-|uniFix| is generalised to $\forall α_3.\ \mathtt{option}\;(α_3 \rightarrow
-α_3)$ by universally quantifying the generic variable $α_3$.
-It is easy for |generaliseTy| to deduce that $α_3$ must be generic \wrt the
-right-hand side, because $α_3$ was freshly drawn in |uniFix| and thus does not
-occur in the set of used |Name|s prior to the call to |generaliseTy|.
-The generalised polytype |σ| is then instantiated afresh via |instantiatePolyTy
-σ| at every use site of $o$ in the let body, implementing polymorphic
-instantiation.
-
+\begin{toappendix}
 \subsection{Control-flow Analysis}
 \label{sec:0cfa}
 
@@ -1710,9 +1607,9 @@ Finding a good abstraction that achieves this without exposing the whole
 environment is left for future work.
 \end{toappendix}
 
-\smallskip
+\medskip
 \noindent
 It is nice that usage and type analysis fit into the same
 framework as the call-by-need semantics.
-Another important benefit is that correctness proofs become simpler, as we will
-see next.
+Another important benefit is that otherwise monolithic correctness proofs can be
+broken down into smaller, systematic and reusable steps, as we will see next.
