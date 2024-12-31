@@ -215,8 +215,8 @@
 
 %\begin{acks}
 %We would like to thank the anonymous POPL reviewers for their feedback.
-%, as well as Joachim Breitner, András Kovács, Bohdan Liesnikov, Anthony
-% Travers and Sebastian Ullrich.
+%, as well as Jonathan Brachthäuser, Joachim Breitner, András Kovács, Bohdan
+%Liesnikov, Anthony Travers and Sebastian Ullrich.
 %\end{acks}
 
 \clearpage
