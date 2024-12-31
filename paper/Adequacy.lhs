@@ -115,20 +115,18 @@ The full, type-checked development is available in the Supplement.
       \item
         Then the method types of |Domain| use a Sigma type to encode conformance
         to |p|.
-        For example, the type of |Fun| changes to |(Σ D p -> D) -> D|.
+        For example, the type of |fun| changes to |(Σ D p -> D) -> D|.
       \item
-        The reason why we need to encode this fact is that the guarded recursive
-        data type |Value| has a constructor the type of which amounts to
+        The guarded recursive data type |Value| has a constructor
         |Fun :: (Name times Later (D τ) -> D τ) -> Value τ|, breaking the
         previously discussed negative recursive cycle by a $\later$, and
         expecting |x::Name|, |d::Later (D τ)| such that the original |D τ| can
         be recovered as |step (Look x) d|.
         This is in contrast to the original definition |Fun :: (D τ -> D τ) ->
         Value τ| which would \emph{not} type-check.
-        One can understand |Fun| as carrying the ``closure'' resulting from
-        \emph{defunctionalising}~\citep{Reynolds:72} a |Σ D p|, and that this
-        defunctionalisation is presently necessary in Agda to eliminate negative
-        cycles.
+        The concrete |Domain| implementation then translates between |Σ D p|
+        and |Name times Later (D τ)|, essentially
+        \emph{defunctionalising}~\citep{Reynolds:72} the latter into the former.
     \end{enumerate}
   \item
     Expectedly, |HasBind| becomes more complicated because it encodes the
