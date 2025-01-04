@@ -1,0 +1,626 @@
+POPL 2025 Paper #101 Reviews and Comments
+===========================================================================
+Paper #101 Abstracting Denotational Interpreters
+
+
+Review #101A
+===========================================================================
+* Updated: Oct 7, 2024
+
+Overall merit
+-------------
+2. Weak reject
+
+Reviewer expertise
+------------------
+4. Expert
+
+Paper summary
+-------------
+The paper develops a framework for designing abstract interpreters via
+denotational interpreters. These abstract interpreters fully denote program
+terms into the meta-language's function space, and they emerge from a highly
+parameterized framework that streamlines abstract interpreter design,
+implementation and proofs of soundness. The framework is very cleverly
+constructed to minimize proof burden on the analysis designer.
+
+Comments for authors
+--------------------
+I have mixed feelings about this paper. Overall I think it is a great results
+that warrants publication, but that also requires re-framing in the way it is
+presented.
+
+My biggest complaint with the paper is that it over-claims on what has been
+achieved, makes incorrect comparisons with prior work, and is misleading about
+its technical achievements.
+
+On the other hand, it is a very impressive technical result, that if framed
+properly, would be in clear "strong accept" territory in my eyes.
+
+Strengths:
+
+- Streamlining the design, implementation and proof of parameterized abstract
+  interpreters is an important problem space, and this paper has something
+  very interesting to say on it.
+
+- There is a useful paradigm here in constructing highly parameterized abstract
+  interpreters that simplifies implementation and minimizes proof burden.
+
+- All things said, the framework design, metatheory and proofs are substantial,
+  intricate and beautiful.
+
+- The paper fills an important gap in the literature on generic frameworks for
+  abstract interpreter design and correctness proofs via denotational
+  interpreter design.
+
+Weaknesses:
+
+- The paper over-claims, misrepresents prior work, and misleads the reader on
+  technical achievements.
+
+Here is what the paper has actually achieved:
+
+- The paper develops a denotational interpreter for Lazy Krivine machines,
+  interpreting untyped lambda calculus into infinite event traces, and where
+  events correspond to structural rules of an operational semantics. 
+  Semantics properties that can be easily stated as properties of these traces
+  are well supported by this approach.
+
+  Although the implementation is presented in Haskell, the metatheory is done
+  using Guarded Cubical Agda (e.g., Lob induction), where issues of
+  nontermination and co-inductive data/property/relation definitions are
+  significantly streamlined. The definition of the concrete semantics in
+  Cubical Agda looks nearly identical to (and perhaps are in correspondence
+  with) a simple (potentially looping) interpreter in Haskell.
+
+  This leads to a concrete semantics (and denotational interpreter) that is
+  very elegant and easy to manipulate, but this semantics must be justified
+  using Lob induction w.r.t. the ground truth Lazy Krivine machine semantics.
+  (None of this is a limitation of the paper, in fact it's a strength.)
+
+- The paper develops an alternative abstract denotational interpreter that
+  implements a variable usage analysis. (A second abstract interpreter for type
+  analysis is also developed.)
+
+- Due to the strong structural similarities between their concrete and abstract
+  denotational interpreters, and significant additional cleverness (a strong
+  contribution of the paper!), the paper is able to reduce the proof burden for
+  the correctness argument by (1) proving pieces of a templated correctness
+  theorem, and (2) exploiting parametricity in various semantic function
+  definitions.
+
+What has the reader learned?
+
+- Guarded Type Theory (both on-paper, and/or using Guarded Cubical Agda) is a
+  *wonderful* setting for defining alternative concrete semantics that are
+  then used as the basis of systematic abstraction and abstract interpretation.
+  This can be somewhat painful at first to prove (e.g., using Lob induction)
+  the alternative concrete semantics correctly captures a more operational
+  ground truth, but arguably this is very much worth it, e.g., compare the
+  proofs in Appendix C of the paper with that of Sergey et al 2017. Once this
+  is done, the abstract interpreter can be designed as a very compact
+  denotational interpreter, and the proof burden is minimal from there on out.
+
+- "structural" aspects of program execution, like variable usage analysis,
+  can be folded into this denotational interpreter paradigm by incorporating
+  event traces into the concrete semantics.
+
+- "summary" based analyses like type inference can be encoded in this
+  paradigm very naturally as well.
+
+What are the caveats?
+
+- To get the benefits of this approach, you must define a non-standard concrete
+  semantics in the form of a denotational interpreter embedded in Guarded Type
+  Theory, and define your abstract interpreter as a denotational interpreter as
+  well. If you're unwilling or uninterested in using Guarded Type Theory (*and*
+  you are interested in justifying the both the correctness and well-formedness
+  of the non-standard concrete semantics), then this approach may not be
+  beneficial in that setting.
+
+- It isn't obvious to me that the design, implementation, and proof of
+  correctness for each of the analyses presented (usage analysis and type
+  inference) aren't analogously simple if we encoded them in classic AAM or ADI
+  paradigms. E.g., the implementations of summary-based analyses appear to be
+  just as natural and simple in AAM and ADI settings. And once you're in a
+  Guarded Cubical Agda setting with Lob induction, the proofs may be even
+  simpler still. The only thing I can think of is the exploitation of
+  parametricity in semantic function definitions, which may not be possible
+  outside of this denotational interpreter setting.
+
+- It appears the use of event traces as the concrete semantic domain is
+  somewhat critical to well-formedness. E.g., in the Guarded Cubical Agda
+  definition, there is a guardedness condition that ensures infinite trace
+  streams are always productive. If we picked a more classic concrete
+  denotation---e.g., just the values that terms evaluate to, a la Scott's
+  original denotational construction---then we may run into well-definedness
+  problems, as I don't think its as easy to encode fixpoints and bottom values
+  as it is to encode (productive) infinite streams.
+
+I recommend that the authors re-frame the paper with this feedback in mind.
+
+Higher-level Comments:
+
+- The paper often conflates denotational interpreters with (the original
+  setting of) denotational semantics, and in a problematic way. E.g., claims
+  are made regarding the benefits of denotational semantics that do not
+  transfer to denotational interpreters, however the approach is based strictly
+  on denotational interpreters and not denotational semantics.
+
+  Suggestion: consider framing things not in terms of denotational semantics,
+  but always in terms of denotational interpreters, and more specifically,
+  interpreters that are accepted as describing well-defined mathematical
+  objects by proof assistants based on type theory, e.g., Guarded Cubical Agda.
+  The paper's interpretation of denotational semantics is close to "any
+  interpreter you write in Haskell is a denotational semantics", and this is
+  more misleading than it is helpful or insightful.
+
+- The paper is very critical of laborious proof efforts from prior work, and
+  claims to invent new paradigms that obviate the need for those proof efforts.
+  However, the paradigm developed is not an alternative approach for completing
+  the same proofs. In fact, the use of Guarded Type Theory in the paper's
+  approach plays a heavy (perhaps the heaviest) role in streamlining those
+  prior proof efforts.
+
+  Suggestion: frame the tedious logical relation and step-indexing effort from
+  prior work as being mitigated by this paper's use of Guarded Type Theory and
+  Lob induction, which is already well understood to be the compositional
+  solution to the tedium of step-indexing.
+
+- The paper deeply interleaves technical mathematical definitions, code/Haskell
+  definitions, and programming interface abstractions. This leads to a
+  presentation where both the code and the mathematical ideas being
+  communicated are difficult for the reader to follow, both due to lack of
+  precision and concision due to using a rather complex Haskell library as the
+  descriptive device to present all of the ideas.
+
+  Suggestion: avoid developing technical ideas as piles of Haskell type class
+  definitions and instances. Consider developing things using standard discrete
+  math notations, and as non-generic at first. Then, describe informally how
+  certain types, functions or parameters can be swapped for other ones, and
+  reference informally the code in supplemental material for how everything
+  clicks together using Haskell type classes.
+
+Low level comments:
+
+- L27: You reference Scott/Strachey denotational semantics here, but never use
+  a construction that is in any way related to their work. Consider framing the
+  paper around denotational interpreters (not semantics) from the outset, and
+  not misleading your reader by making it seem like you will be developing
+  denotational semantics in the Scott/Strachey sense. (Technically, yes, you
+  are developing denotational semantics, but that doesn't mean your reader will
+  not be mislead by your current framing of things.)
+
+- L27: You mention the term "compositional" frequently, and sometimes are
+  explicit about "compositional" meaning the interpretation for something is a
+  combination of interpretations of its parts. I recommend being extra precise
+  whenever you mention compositional in this way, as compositionality means
+  many things, and you're touching on just one narrowly defined meaning for the
+  word "compositional" here.
+
+- L50: Here you criticize AAM for reanalysing function bodies at call sites.
+  This is indeed a limitation of AAM, and a strong motivation (and potentially
+  even the definition...) for summary-based analyses. However, the two analyses
+  you instantiate are perfectly easy to define in AAM (small-step) or ADI
+  (big-step) based settings, so it's misleading to frame things this way at
+  this point in your introduction.
+
+- Section 2.2: I recommend presenting π more explicitly as your abstract domain
+  for functions, e.g., maybe just pull the first sentence from Section 2.3 up
+  into Section 2.2.
+
+- Section 2.5: You need to significantly tone down your framing of prior work
+  here. You have brushed these details into your appendix, using Lob induction
+  and Guarded Type Theory techniques, and you're making it sound as if those
+  prior proof efforts should just be compared to your Section 7 developments,
+  which is misleading. I recommend framing this as "you can design an
+  abstraction, and relate this directly to your operational semantics in one
+  go, and this is painful because you don't have any intermediate structure to
+  exploit. Our idea is to re-frame the concrete semantics as a very elegant
+  denotational interpreter (embedded in Guarded Type Theory), which once
+  justified, significantly streamlines the rest of the proof effort".
+
+  Also in this section you attempt to classify AAM-style analyses as being good
+  for global-style analyses like CFA, and your approach as being good for
+  summary-based analyses like the toy Absence analysis. I don't think any of
+  this is actually true. It's straightforward to define your absence analysis
+  using AAM, and I think it would also be straightforward to define 0CFA using
+  your technique. (If it's not easy to define 0CFA using your approach I'd be
+  concerned!) I think the authors are trying to motivate their work by
+  incorrectly claiming that the "compositional" nature of denotational
+  interpreters is somehow significantly more powerful than the AAM paradigm for
+  summary-based analyses. I recommend focusing on the more tangible and
+  substantiated (and nontrivial!) advantages of the authors approach (see my
+  notes about framing above), as I didn't find this story of exploiting
+  compositionality actually held any water at the end of the day.
+
+- Fig 5: This interpreter looks very similar to the one from ADI, with the
+  exception that lambdas evaluate to Haskell's function space (recursively
+  calling the interpreter inside the function body), and application just calls
+  those functions rather than recursively calling the interpreter. I would just
+  note the similarity.
+
+# Update Post Author Response
+
+My enthusiasm for the paper has fallen after the author response.
+
+Regarding the AAM approach and analysis summaries, the authors are mistaken.
+
+Please see "Soft Contract Verification" by Nguyen, Tobin-Hachstadt and Van Horn for an example of an AAM style analysis that computes summaries.
+
+In more simple and intuitive terms... the ability to compute function summaries essentially comes down to whether or not when a function (lambda) is analyzed at its definitions site, it is (1) just immediately stored as code (a closure) and re-analyzed when called, or (2) evaluated at its definition site in order to compute a summary. *The decision to do this is unrelated to the overall paradigm being used*. You can do this with AAM, ADI, or using the ideas expressed in this paper. Even if the author's position is that an AAM analysis *must* take the approach of (1) (which I don't think is true), then there is still the issue that you don't need any of the ideas in this paper to extend AAM or ADI to take the approach of (2), which invalidates many of the claims of the paper that one *must* adopt this framework in order to achieve function summaries. If the point of this paper is that doing function summaries with AAM is more cumbersome that doing function summaries with the proposed approach, this would be a fine claim to make in a paper, so long as it is supported by evidence.
+
+Lastly, regarding Scott domains and guarded type theory... The authors claim in the paper that the use of their framework saves a lot of additional proof work. The reviewers pointed out that the use Guarded Type Theory is responsible for a large portion of this reduction in proof work. In the rebuttal the authors say they could have just as well used Scott domains, but this would "take a bit more work". The reviewers are wanting to know how much of the proof work being reduced is due to use of Guarded Type Theory, and how much is due to the paradigm proposed by the authors that is independent of the underlying denotational semantics. I remain concerned there isn't much gained by the proposed framework once the proof savings due to use of using Guarded Type Theory are taken out of the picture.
+
+
+
+Review #101B
+===========================================================================
+
+Overall merit
+-------------
+2. Weak reject
+
+Reviewer expertise
+------------------
+3. Knowledgeable
+
+Paper summary
+-------------
+The paper introduces a technique inspired by denotational semantics for
+deriving sound static analyses for a language. At a
+high-level, the starting point of the technique is an interpreter for the
+language that maps programs, expressed in some abstract data type, to
+traces that describe the evaluation steps the interpret performs
+to produce the value/result (if any) of the evaluation. The interpreter
+is parameterized by a type, which describes its results (trace and final value), 
+instances of a trace type class, which provides the specifics of
+how the traces are assembled; a domain type class, which determines the
+specifics of the evaluation/meaning of the expressions of the language;
+and a bind type class that specifies how the language handles recursion.   
+Providing different parameters to the interpreter can change its evaluation
+strategy, add extra registers for bookkeeping, and affect the ``coarseness'' 
+of the produced traces and value. 
+
+The paper demonstrates the flexibility offered by these knobs by (i) defining
+a call-by-name and a call-by-need interpreter for a small recursive
+language, and (ii) by defining a usage analysis and a type analysis for the
+call-by-need interpreter (the appendix presents a couple more analysis
+including a prototype of a subset of the demand analysis of GHC).
+
+The main argument of the paper is that its denotational interpreters
+simplify the soundness of proofs of static analyses. To demonstrate that
+the paper provides a description of a proof that the usage analysis for
+the call-by-need interpreter indeed accounts correctly for uses of
+variables in three steps.  The first step involves establishing the
+conditions for a generic abstract interpretation soundness property for
+any ``abstract'' interpreter, such as the interpreter that computes the
+usage analysis. The property states that the abstract interpreter over
+approximates an abstraction of the concrete interpreter where the
+abstraction is a galois connection derived from the instances-parameters
+of the abstract interpreter. Establishing the property of generic
+soundness for the presented call-by-need interpreter boil down to proving
+a set of approximation lemmas about the operations of the
+instances-parameters of the abstract interpreter. The second step of the
+proof of  usage soundness involves showing that the parameters of the
+usage interpreter satisfy the necessary lemmas for generic soundness.
+The third step of the proof of usage soundness soundness is an implication
+from the generic soundness for the usage interpreter: if a use of variable
+is recorded in a trace of the concrete call-by-need interpreter then the
+variable is marked as used at least once in the trace of the abstract
+interpreter.
+
+Comments for authors
+--------------------
+Major points
+============
+
+This is an interesting paper and the construction of the interpreters and
+the overall framework is elegant. 
+
+That said, I am not convinced by the arguments about how this approach
+simplifies the proofs for static analyses: 
+
+1) The paper mentions multiple times that the method needs only one ``semantic
+artifact'' in contrast to syntactic techniques. But this depends on what
+one considers to be the ground truth. If the ground truth is the
+operational semantics then the denotational interpreter is a second
+artifact that needs to be produced. The paper seems to agree that the
+ground truth lies with the operational interpreter since it bothers to
+provide an adequacy theorem. 
+
+2) Proving the adequacy theorem is as difficult as showing that
+operational semantics and its collecting semantics (or any other machine
+with configurations for bookkeeping) are equivalent. 
+
+3) Section 7.3 does not take adequacy to its logical conclusion. Instead
+it claims that the desired property for the usage interpreter is that it
+over-approximates denotational absence. But since the ground truth lies
+with the operational there needs to be a proof that connects Definition 2
+and Definition 9. 
+
+4) The construction of the denotational interpreter with events and traces
+has already baked in the collecting semantics. Hence, the whole framework
+should be compared with an operational approach that starts with a machine
+that does all the necessary bookkeeping. The current comparison seems to
+have an apples-to-oranges problem.
+
+5) The paper emphasizes that the laws in figure 12 are independent of the
+abstract interpreter and only depend on the operations of the abstract
+domain. While this is true and it is very nice that the paper factors them
+out, what is missing is a comparison between proving these steps and proving
+the hard steps of the syntactic proof of soundness of the usage analysis.
+In addition, since the main argument is that of modularity, there should
+be an examination about how the two proofs, the one with the operational
+and the one with the denotational interpreter, have to change when new
+features are added to a language. 
+
+
+In addition to the above: 
+
+-- I found a bit unfair the comparison with the Sergey et al. paper. The
+goal of that paper is a modular practical analysis, not a modular proof of
+its soundness. 
+
+-- As Darais et al. have shown, it is possible to organize definitional
+interpreters in a monadic way so that they facilitate the construction of
+static analyses. The monadic nature of those interpreters also allows
+them to prove a generic soundness and termination (totality) of their
+interpreters. So, it is unclear what is the innovation and benefit from
+denotational interpreters. 
+
+-- I am confused about the discussion about abstracting abstract
+machines (AAM) and call strings. While it is true that the original AAM
+paper has the issue discussed in this paper and that issue is inherited by
+the CFA framework, an abstract machine can be easily extended with
+registers that keep track of summaries. 
+
+-- The paper makes in multiple places the claim that it is the first paper
+that proves adequacy for a call-by-need functional language. This is true
+with some qualifiers. Nakata 2010, which is in the references but does not
+appear in the paper, has an adequacy proof for its denotational semantics
+and a natural semantics. The paper should compare with Nakata and clarify
+up front that the difference is that it aims for a stronger notion that
+includes trace events. (BTW, the proof of adequacy is simple in this paper
+exactly because the denotational interpreter is really a monadic version
+of a  collecting semantics for the operational semantics).
+
+Overall, the paper is cool but it looks more suitable for a pearl rather
+than a regular paper. 
+
+
+
+A few typos
+===========
+
+line 25: duplicated "to"
+
+line 378: obligation --> obligations
+
+line 506: the eager interpreters are in the appendix, not the paper
+
+Fig 12: Is the ``!'' in ``alt!'' a typo?
+
+line 1131: lemma 51 is also in the appendix
+
+line 1205: \citet instead of \cite
+
+
+
+Comment @A1 by Administrator
+---------------------------------------------------------------------------
+Dear authors, 
+
+We are expecting a third review for your paper; unfortunately, one reviewer was not able to complete their review on time, but we are expecting this review in the next few days. I will be monitoring this paper to make sure it gets its full set of reviews and you have enough time to respond to them, but please let me know if you have any concerns about the review process, either through this platform or by e-mail. 
+
+With apologies for the delayed review,
+Armando Solar-Lezama
+PC-chair for POPL 2025
+asolar@csail.mit.edu
+
+
+
+Review #101C
+===========================================================================
+* Updated: Sep 13, 2024, 11:53:38 AM AoE
+
+Overall merit
+-------------
+4. Strong accept
+
+Reviewer expertise
+------------------
+2. Some familiarity
+
+Paper summary
+-------------
+This is a temporary review for the author response period.
+
+Comments for authors
+--------------------
+I would like to better understand the limitations (or the lack
+thereof) of the approach for practical static analyses purposes. But
+before that, I am also slightly worried about the following question.
+What is the price to pay for such a fine-grained denotational
+semantics with a domain of traces? For example, how do you relate such
+a semantics to a collapsed-trace variant with a domain of base values
+and functions? Is abstraction (summarizing the trace) enough to get
+there, and how do you map such a classical denotational semantics to a
+denotational interpreter (i.e., a trace-based one)?
+
+Is this correct to view the paper as the formal realization of a
+useful bridge between (domain-parametric) denotational abstract
+interpreters and abstract interpreters from static analysis? In other
+ways, everything is abstract interpretation, for real...
+
+Nit: there are 4 different arrows in the type expression on line 433, and
+I'm not sure this helps readability... I'm also not sure why
+discussing language-specific concepts such as type classes when it
+really seems to only be a question of set-theoretic quantification
+over domains of some sort. Any justification for this? Similarly but
+even less relevant: the usage of $ is super Haskell-specific and I
+don't really see the added value of removing parentheses from a
+mathematical denotation in a paper: more explicit association helps
+readability.
+
+Is it possible to model relational abstract domains this way? E.g.,
+linear/affine constraints between variables (polyhedra)?
+
+What about widening operators? The usage of a naive one is mentioned
+on l870. How can one represent more symbolic, real-world ones?
+
+Same question about context-sensitive and control flow partitioning
+techniques: summarization may need to distinguish among instantiation
+contexts for a variable. E.g., even and odd iterations of a loop, or
+context-sensitive pointer analyses.
+
+* Details.
+
+The reference Sharir and Pnueli 78 seems incomplete.
+
+
+
+Rebuttal Response by Author [Sebastian Graf <sgraf1337@gmail.com>] (1674 words)
+---------------------------------------------------------------------------
+We thank the reviewers for the helpful feedback and comments.
+
+## Main Response
+
+
+#### Tone down critique of Sergey et al.
+
+Thank you.  We will re-frame the comparison with Sergey et al. along the lines suggested by Reviewer A: "Our idea is to re-frame the concrete semantics ...".
+
+#### Defining summary-based analysis using an AAM approach
+
+We were unable to define a summary-based analysis using AAM, and would welcome references that succeed in doing so.  We are skeptical of their existence: 
+
+* When exactly would an AAM approach compute a summary? 
+* Is its type in the concrete well-defined? (I.e., it cannot simply be $\mathcal{P}(\mathit{State}) \to \mathcal{P}(\mathit{State})$ if summaries are part of $\mathit{State}$)
+* When and how would it be applied? 
+* How would the summary mechanism be proved correct? 
+* Would the analysis result apply in arbitrary evaluation contexts as in our approach? 
+
+We are eager to learn, and will readily retract or modify our claims, based on evidence of such summary-based analyses using AAM. 
+
+#### Use of Guarded Type Theory
+
+We are happy that our application of Guarded Type Theory enlightened reviewer A, but we do not think that Guarded Type Theory is central to denotational interpreters. We could have used Scott domains as a model, but we prefer guarded domains for similar reasons that we prefer writing C over assembly; convenience is one of them. See also "Denotational Semantics using Guarded Domains vs. Scott Domains" below for more information.
+
+#### Ground truth
+Denotational interpreters can be ground truth, just as much as big-step semantics can be! Adequacy proofs wrt. small-step semantics are standard practice and enable reuse of decades worth of theorems/definitions, as exemplified by **Lemma** 9, proved in the Appendix.
+  
+#### First adequate call-by-need semantics
+We agree with reviewer B that our novelty claim misses a qualifier.  We suggest "provably adequate call-by-need semantics observably distinct from call-by-name". This rules out the by-name semantics of Nakata, for example. Being able to observe memoisation by counting lookup events is the most important contribution of our by-need semantics.
+      
+#### Relational abstract domains
+
+We have not tried to define a relational analysis with our interpreter, but it is plausible. 
+Naturally, the pointwise/cartesian environment `Name :-> D` would need to be replaced by a relational environment (such as a polyhedron or a system of linear equations). Section 38.3 of [Cousot2021] describes the domain of a similar first-order abstract interpreter (defined in 27.1), so it should be possible in the higher-order case as well. The proofs would need to be redone.
+
+[Cousot2021] Patrick Cousot. 2021. Principles of Abstract Interpretation. MIT Press.
+
+#### Prefer standard math notation over type classes
+
+We tried using math notation in an earlier, rejected version of the paper.  Moving to Haskell code was a huge relief, because it provided **precision** that "standard" (but invariably informal) maths notation never does.  Now we know for certain that the definitions are complete, type-correct, and executable.  Crucially, they are also unambiguous for the reader.
+
+In particular, a major payload of the paper is the ability to *parameterise* the interpreter over an underlying domain.  The precise details of the parameterisation are necessarily subtle, and type classes are precisely the right tool. Indeed, many proof assistants support type classes; they have an intuitive desugaring and lead to concise definitions. 
+
+
+
+
+---
+
+Below, we give more detailed answers for each of the individual reviewers.
+
+## Rev A
+
+> unwilling or uninterested in using Guarded Type Theory [...], then this approach may not be beneficial
+
+We respectfully disagree. Denotational interpreters can be modelled in Scott domains as well; see "Denotational Semantics using Guarded Domains vs. Scott Domains" below. It just takes a bit more work.
+
+> Use of event traces as the concrete semantic domain is somewhat critical to well-formedness
+
+To some extent, yes. Only the lookup event is necessary to guard the variable case to ensure productivity; see "Denotational Semantics using Guarded Domains vs. Scott Domains" below.
+
+> conflates denotational interpreters with (the original setting of) denotational semantics ... The paper's interpretation of denotational semantics is close to "any interpreter you write in Haskell is a denotational semantics", and this is more misleading than it is helpful or insightful.
+
+We do not think it misleading; see "Denotational Semantics using Guarded Domains vs. Scott Domains" below. Any Haskell interpreter proven productive *defines* a kind of (very intensional, non-abstract) denotational semantics.
+
+## Rev B
+
+> there needs to be a proof that connects Definition 2 and Definition 9.
+
+Indeed there is; that is why it is **Lemma** 9, as explained in the paragraph preceding it.
+You can follow its proof in the Appendix.
+
+> the whole framework should be compared with an operational approach that starts with a machine that does all the necessary bookkeeping.
+
+But the presented LK machine already *does* all the necessary book-keeping; otherwise we could not define the (deterministic!) function $α_\mathbb{S^\infty}$ in Fig. 7 (which says what to *throw away* from the LK trace) and prove the interpreter adequate wrt. the LK machine with it.
+
+> what is missing is a comparison between proving these steps and proving the hard steps of the syntactic proof of soundness of the usage analysis.
+
+We assume "proving these steps" refers to proving the laws in Fig. 12. This is the payload of the proof for Corollary 8, which references Lemma 7 and otherwise takes up half a page in the Appendix. This is discussed in 7.4.
+
+> The monadic nature of those interpreters [of Darais et al.] also allows them to prove a generic soundness and termination (totality) of their interpreters.
+
+The proposed monadic abstract interpreter framework does not discuss function summaries, for example.
+Furthermore, we are doubtful that it can be used to define a type analysis such as Algorithm J that infers principal types and that terminates in a reasonable amount of time.
+
+> typos
+
+Thank you!
+
+## Rev. C
+
+> the price to pay for such a fine-grained denotational semantics
+
+The infamous "full abstraction" problem first described by [Plotkin1977] means that it is hard to define useful, self-contained semantic equivalences in any higher-order domain. Our work does not worsen that problem much, because the events can easily be discarded in the definition of an equivalence relation (your idea of a "collapsed-trace variant"). An infinite trace corresponds to Scott's bottom, see "Denotational Semantics using Guarded Domains vs. Scott Domains" below.
+
+One workaround for full abstraction is to reason in terms of contextual equivalence of the object language. A more sophisticated approach is to define a custom logical relation for one's use case and prove that the semantics preserves it. Abstraction theorems are examples of this; in particular our proof for by-name soundness building on parametricity.
+
+[Plotkin1977] Gordon Plotkin, 1977. LCF considered as a programming language. Theoretical Computer Science, Volume 5, Issue 3, Pages 223-255, ISSN 0304-3975, https://doi.org/10.1016/0304-3975(77)90044-5
+
+> widening operators
+
+We are unfamiliar with sophisticated widening operators. It is certainly possible to access the old and the new value of fixpoint iteration and combine them at will (in the implementation of `bind`). Are there other requirements for the widening operators you have in mind?
+
+> summarization may need to distinguish among instantiation contexts for a variable
+
+We *think* these can be represented using monotone function spaces, the argument of which captures an abstraction of the call context. The function is represented by a subset of its graph (e.g., `[even :-> 23, odd :-> 42]`).
+Demand transformers of Sergey et al. are examples of this. For a given use site of an expression (e.g. a call with two arguments), the expression's demand transformar maps a *demand*, capturing the evaluation context of the use site, to how the free variables of the expression are used (a refinement of the `Uses` map φ in the paper). 
+We intend to define similar analyses in the future, but it likely needs to start from a CPS-style denotational semantics.
+      
+
+
+
+## Denotational Semantics using Guarded Domains vs. Scott Domains
+
+First off, simple guarded domains can be modelled by Scott domains. This was first described in
+
+[AMB2013] Robert Atkey and Conor McBride, 2013. Productive coprogramming with guarded recursion. SIGPLAN Not. 48, 9 (September 2013), 197–208. https://doi.org/10.1145/2544174.2500597
+
+and extended to full guarded dependent type theory (with a correspondingly more complicated model) in
+
+[BB2018] Aleš Bizjak, Lars Birkedal, 2018. A model of guarded recursion via generalised equilogical spaces. Theoretical Computer Science, Volume 722, Pages 1-18, ISSN 0304-3975, https://doi.org/10.1016/j.tcs.2018.02.012.
+
+Roughly, any definition in simple guarded type theory can be understood in terms of a *total* element of a suitable Scott domain $D$ (a directed-complete partial order).
+
+An element $d$ is *total* iff, whenever there exists $d'$ such that $d ⊑ d'$, then $d = d'$. 
+The converse notion is "partial": An element $d$ is *partial* iff there exists $d'$ such that $d' ⊐ d$.
+
+The main difference to classical denotational semantics is in how non-termination is modelled.
+
+Classical denotational semantics mapping into Scott domains express non-termination by returning the finite, partial element $⊥$.
+However, denotational semantics mapping into guarded domains express non-termination by infinite, total elements such as $(1,(1,(1,...)))$ (an infinite nesting of lazy pairs), or, in case of our denotational interpreters, $\mathit{step}(\mathrm{look}(x), \mathit{step}(\mathrm{look}(x),...))$.
+Indeed, the $\mathrm{look}$ step guarding variable lookup is vital for the well-definedness of denotational semantics expressed in terms of guarded domains; the remaining steps emitting $\mathrm{upd}$, $\mathrm{let}$, $\mathrm{app}_i$, $\mathrm{case}_i$ events could just be discarded. 
+
+**There is no reason why one couldn't define a denotational semantics mapping into a Scott domain that represents non-termination by such infinite, total elements!**
+Doing so would *exactly* correspond to denotational semantics expressed as denotational semantics in a guarded domain.
+Historically, using $⊥$ has just been the more common choice.
+
+Note that reasoning about and defining entities in Scott domains is complicated because of the approximation order $⊑$, leading to continuity requirements for functions, etc.
+On total elements, the approximation order becomes discrete, which is why in guarded type theories one does not need to bother with approximation; an immense boon.
+Thus, guarded type theory insulates from reasoning about the approximation order in the same sense as (reasonable) use of C insulates from maintaining a proper stack discipline that is visible in generated assembly code.
+
+This should hopefully be convincing that there is no material difference between a total denotational interpreter and a denotational semantics.
