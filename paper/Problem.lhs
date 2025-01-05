@@ -787,9 +787,9 @@ The proof for \Cref{thm:absence-correct} is roughly structured as follows
     For absence, the instrumentation is simple: the $\LookupT$ transition in
     \Cref{fig:lk-semantics} carries the let-bound variable that is looked up.
   \item Extend the analysis function to machine configurations
-    (\Cref*{fig:absence-ext}*).
+    (\Cref{fig:absence-ext}*).
   \item Prove that evaluation \emph{preserves} the analysis result
-    (\Cref*{thm:preserve-absent}*).
+    (\Cref{thm:preserve-absent}*).
     A classic \emph{logical relation}~\citep{Nielson:99}.
 \end{enumerate}
 Alas, the effort in comprehending such a proof in detail, let alone formulating

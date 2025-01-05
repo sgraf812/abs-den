@@ -780,7 +780,7 @@ Of course, any function defined by the generic interpreter satisfies this
 requirement.
 Without the premise of \textsc{Beta-App}, the law cannot be proved
 for usage analysis; we give a counterexample in the Appendix
-(\Cref*{ex:syntactic-beta-app}).
+(\Cref{ex:syntactic-beta-app}).
 
 \begin{toappendix}
 The following example shows why we need the ``polymorphic'' premises in
@@ -953,7 +953,7 @@ trace into a |φ' :: Uses|, \eg
     = |MkUT [ i {-" ↦ "-} Uω, x {-" ↦ "-} U1 ] (...)|$.
 Clearly, it is |φ' !? x ⊒ U1|, because there is at least one |Look x|.
 \Cref{thm:usage-abstracts-need} and a context invariance
-\Cref*{thm:usage-bound-vars-context} in the Appendix prove that the computed
+\Cref{thm:usage-bound-vars-context} in the Appendix prove that the computed
 |φ| approximates |φ'|, so |φ !? x ⊒ φ' !? x ⊒ U1 //= U0|.
 \end{proofsketch}
 \begin{proof}
@@ -1006,7 +1006,7 @@ Let us compare to the preservation-style proof framework in \Cref{sec:problem}.
     Where there were multiple separate \emph{semantic artefacts} in
     \Cref{sec:problem}, such as a small-step semantics and an extension
     of the absence analysis to machine configurations $σ$ in order to
-    state preservation (\Cref*{thm:preserve-absent}), our proof only has a
+    state preservation (\Cref{thm:preserve-absent}), our proof only has a
     single semantic artefact that needs to be defined and understood: the
     denotational interpreter, albeit with different instantiations.
   \item
@@ -1016,7 +1016,7 @@ Let us compare to the preservation-style proof framework in \Cref{sec:problem}.
     \Cref{thm:usage-abstracts-need} in half a page (we encourage the
     reader to take a look) replaces a tedious, error-prone and incomplete
     \emph{proof for the preservation lemma} of \Cref{sec:problem}
-    (\Cref*{thm:preserve-absent}).
+    (\Cref{thm:preserve-absent}).
     Of course, in this section we lean on \Cref{thm:abstract-by-need} to prove what
     amounts to a preservation lemma; the difference is that our proof properly
     accounts for heap update and can be shared with other analyses that are
@@ -1029,7 +1029,7 @@ Let us compare to the preservation-style proof framework in \Cref{sec:problem}.
     More work needs to be done to achieve a modular proof of
     the underlying \Cref{thm:abstract-by-need}, however.
     The (omitted) proof for abstract by-\textbf{name} interpretation in the
-    Appendix (\Cref*{thm:abstract-by-name}) is already modular.
+    Appendix (\Cref{thm:abstract-by-name}) is already modular.
 \end{itemize}
 
 \begin{toappendix}

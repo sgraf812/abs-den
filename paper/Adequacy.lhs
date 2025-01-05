@@ -244,7 +244,7 @@ and transition events, as expressed in the following bisimulation theorem:
   open configurations and prove it by Löb induction.
   Then it suffices to prove that $α_{\STraces}$ preserves the observable properties of
   interest.
-  \Cref*{sec:adequacy-detail} contains the full proof for a rigorous reformulation of the proposition.
+  \Cref{sec:adequacy-detail} contains the full proof for a rigorous reformulation of the proposition.
 \end{proofsketch}
 \begin{proof}
   The first result is proven by \Cref{thm:need-adequate}, the second and third
@@ -849,7 +849,7 @@ In other words, if every environment lookup produces a |Step| constructor, then
 our semantics is total by coinduction.
 Such an argument is quite natural to encode in guarded recursive types, hence
 our use of Guarded Cubical Agda is appealing.
-See \Cref*{sec:totality-detail} for the details of the encoding in Agda.
+See \Cref{sec:totality-detail} for the details of the encoding in Agda.
 \end{proofsketch}
 
 %Encoding the productivity argument in Guarded Cubical Agda was far easier and is
