@@ -276,8 +276,6 @@ $\pv$, we call $σ$ a \emph{reduction} state and the continuation (selected
 via $\cont(σ)$) determines the next transition.
 Otherwise $\ctrl(σ)$ is not a value, and we call $σ$ a \emph{search} state, in
 which $\ctrl(σ)$ determines the next transition.
-A reduction state $σ$ is \emph{final} when $\cont(σ) = \StopF$, in which case
-there is no further transition.
 
 An important kind of trace is an \emph{interior trace}, one that never leaves
 the evaluation context of its source state:
@@ -423,49 +421,24 @@ One class of maximal traces is of particular interest:
 the maximal trace starting in $\init(\pe)$!
 Whether it is infinite, stuck or balanced is the semantically defining
 \emph{termination observable} of $\pe$.
-Since stuck, balanced and infinite traces are somewhat complex definitions, we
-give a more elementary but equivalent definition as a Lemma below.
-This definition is in terms of whether or not the maximal trace starting in
-$\init(\pe)$ is finite and whether its target state is final.
+\Cref{thm:max-trace-char} ensures that its maximal trace satisfies exactly one
+of the three characterisations.
 
-\begin{lemma}[Termination observable of $\pe$]
+\begin{definition}[Termination observable of $\pe$]
   \label{thm:max-trace-obs}
   Let $(σ_i)_{i∈\overline{n}}$ be the maximal maximal trace starting in $\init(\pe)$.
   Then
   \begin{itemize}
   \setlength{\itemsep}{0pt}
-    \item $n=ω$ if and only if $(σ_i)_{i∈\overline{n}}$ is diverging.
-    \item $σ_n$ is a final state if and only if $(σ_i)_{i∈\overline{n}}$ is balanced.
-    \item $σ_n$ is a non-final state if and only if $(σ_i)_{i∈\overline{n}}$ is stuck.
+    \item $\pe$ is \emph{diverging} if and only if $(σ_i)_{i∈\overline{n}}$ is diverging.
+    \item $\pe$ is \emph{balanced}  if and only if $(σ_i)_{i∈\overline{n}}$ is balanced.
+    \item $\pe$ is \emph{stuck}     if and only if $(σ_i)_{i∈\overline{n}}$ is stuck.
   \end{itemize}
-\end{lemma}
-\begin{proof}
-  Note that by \Cref{thm:max-trace-char}, the maximal trace
-  $(σ_i)_{i∈\overline{n}}$ can only be one of balanced, diverging or stuck.
+\end{definition}
 
-  If $n=ω$, then the trace is infinite and maximal, hence diverging.
-  If it is diverging, then it is infinite, hence $n=ω$.
-
-  Otherwise, $n\not=ω$; the trace is finite and there exists a target state $σ_n$.
-  It suffices to prove that this state is final if and only if the trace is
-  balanced (otherwise it must be stuck and hence non-final).
-
-  Assume that $σ_n$ is final and show that $(σ_i)_{i∈\overline{n}}$ is balanced.
-  By definition of balanced traces, we must show that $σ_n$ is a reduction
-  state and $\cont(σ_0) = \cont(σ_n)$.
-  Since $σ_n$ is final, $\ctrl(σ_n)$ is a value, and hence $σ_n$ is a reduction state.
-  Furthermore, since $σ_n$ is final, $\cont(σ_n) = \StopF$ which is the same
-  as the initial continuation $\cont(σ_0)$.
-
-  Assume that $(σ_i)_{i∈\overline{n}}$ is balanced and show that $σ_n$ is final.
-  By definition of final states, we must show that $\ctrl(σ_n)$ is a value and $\cont(σ_n) = \StopF$.
-  Since $(σ_i)_{i∈\overline{n}}$ is balanced, $σ_n$ is a reduction state and hence $\ctrl(σ_n)$ a value.
-  Furthermore, since $(σ_i)_{i∈\overline{n}}$ is balanced, $\cont(σ_n) =
-  \cont(σ_0) = \StopF$ by definition of $σ_0 = \init(\pe)$.
-\end{proof}
-
-We henceforth refer to this definition as \textbf{\emph{the termination observable of $\pe$}}.
-The goal is to observe this semantic property of $\pe$ using |evalNeed2|.
+We henceforth refer to this three-valued property of $\pe$ as \textbf{\emph{the
+termination observable of $\pe$}}.
+The goal is to decide this semantic property of $\pe$ using |evalNeed2|.
 
 \subsubsection{Abstracting LK Traces}
 
@@ -480,8 +453,8 @@ In order to show that |evalNeed2| preserves the termination observable of |e|,
   we define a family of abstraction functions $α$ from LK traces to by-need
   traces, formally in |T (ValueNeed, HeapNeed)| (\Cref{fig:eval-correctness}),
 \item
-  we show that this function $α$ preserves the termination observable of a given
-  LK trace $\init(\pe) \smallstep ...$ (\Cref{thm:abs-max-trace}), and
+  we show that this function $α$ preserves the termination observable of $\pe$
+  (\Cref{thm:abs-max-trace}), and
 \item
   we show that running |evalNeed e emp emp| is the same as mapping $α$ over
   the LK trace $\init(\pe) \smallstep ...$ (\Cref{thm:need-abstracts-lk}), hence the termination behavior is
@@ -611,18 +584,19 @@ The preservation property is formally expressed as follows:
 
 \begin{lemma}[Abstraction preserves termination observable]
   \label{thm:abs-max-trace}
-  Let $(σ_i)_{i∈\overline{n}}$ be a maximal trace.
-  Then $α_{\STraces}((σ_i)_{i∈\overline{n}}, cont(σ_0))$
+  Let $(σ_i)_{i∈\overline{n}}$ be a maximal trace
+  and $|τ| \triangleq α_{\STraces}((σ_i)_{i∈\overline{n}}, cont(σ_0))$.
+  Then
   \begin{itemize}
   \setlength{\itemsep}{0pt}
-    \item ends in |Ret (Fun _, _)| or |Ret (Con _ _, _)| if and only
-      if $(σ_i)_{i∈\overline{n}}$ is balanced, if and only if $σ_n$ is a final state.
-    \item is infinite if and only if $(σ_i)_{i∈\overline{n}}$ is diverging, if and only if $n=ω$.
-    \item ends in |Ret (Stuck, _)| if and only if $(σ_i)_{i∈\overline{n}}$ is stuck, if and only if $σ_n$ is non-final.
+    \item |τ| is infinite if and only if $(σ_i)_{i∈\overline{n}}$ is diverging.
+    \item |τ| ends in |Ret (Fun _, _)| or |Ret (Con _ _, _)| if and only
+      if $(σ_i)_{i∈\overline{n}}$ is balanced.
+    \item |τ| ends in |Ret (Stuck, _)| if and only if $(σ_i)_{i∈\overline{n}}$ is stuck.
   \end{itemize}
 \end{lemma}
 \begin{proof}
-  The second point follows by a similar inductive argument as in \Cref{thm:abs-length}.
+  The first point follows by a similar inductive argument as in \Cref{thm:abs-length}.
 
   In the other cases, we may assume that $n$ is finite.
   If $(σ_i)_{i∈\overline{n}}$ is balanced, then $σ_n$ is a reduction state with
@@ -635,8 +609,12 @@ The preservation property is formally expressed as follows:
   The stuck case is similar.
 \end{proof}
 
-The previous lemma allows us to apply the classifying terminology of maximal LK
-traces to a |τ :: T| in the range of $α_{\STraces}$.
+Applied to the maximal trace $\init(\pe) \smallstep ...$,
+\Cref{thm:abs-max-trace} shows that the result of $α_{\STraces}$ can be used to
+decide the termination observable of $\pe$.
+
+\Cref{thm:abs-max-trace} allows us to apply the classifying terminology of
+maximal LK traces to a |τ :: T| in the range of $α_{\STraces}$.
 For such a maximal |τ| we will say that it is balanced when it ends with
 |Ret (v, μ)| for a |v /= Stuck|, stuck if ending in |Ret (Stuck, μ)| and diverging if
 infinite.
@@ -791,85 +769,50 @@ We do so by cases over $\pe$, abbreviating |tm := αHeap μ| and |tr := αEnv ρ
 \end{proof}
 
 \Cref{thm:need-abstracts-lk} is the key to proving
-\Cref{thm:need-adequacy-bisimulation}. We do so in two steps:
+\Cref{thm:need-adequacy-bisimulation}. We do so in two steps.
 
-\begin{theorem}[Bisimulation]
-  \label{thm:need-bisimulation-only}
-  Let $\init(\pe) \smallstep ...$ be the maximal LK trace starting in
-  $\init(\pe)$ and |τ := evalNeed e emp emp|.
-  Then both traces have the same length, and the |e :: Event| in every
-  |Step e ^^ ...| occurrence in |τ| corresponds in the intuitive way to the
-  matching small-step transition rule in $\init(\pe) \smallstep ...$.
-\end{theorem}
-\begin{proof}
-  By \Cref{thm:need-abstracts-lk}, $|τ| = α_{\STraces}(\init(\pe) \smallstep ...,\StopF)$.
-  The length argument follows from \Cref{thm:abs-length}.
-  The event argument is obvious from the definition of $α_\Events$.
-\end{proof}
-
-The following theorem formalises the intuitive notion of adequacy from \Cref{thm:need-adequacy-bisimulation}.
-(Recall that a state $σ$ is \emph{final} when $\ctrl(σ)$ is a value and $\cont(σ) = \StopF$.)
+The first step formalises the intuitive notion of adequacy from
+\Cref{thm:need-adequacy-bisimulation}, that is, preservation of the termination
+observable of $\pe$.
 
 \begin{theorem}[Adequacy of |evalNeed2|]
   \label{thm:need-adequate}
   Let |τ := evalNeed e emp emp|.
   \begin{itemize}
     \item
-      |τ| ends with |Ret (Fun _, _)| or |Ret (Con _ _, _)| (is balanced) iff there
-      exists a final state $σ$ such that $\init(\pe) \smallstep^* σ$.
+      |τ| is diverging (of the form |Step _ (Step _ ^^ ...)|) if and only if
+      $\pe$ is diverging.
     \item
-      |τ| ends with |Ret (Stuck, _)| (is stuck) iff there exists a non-final
-      state $σ$ such that $\init(\pe) \smallstep^* σ$ and there exists no $σ'$
-      such that $σ \smallstep σ'$.
+      |τ| is balanced (ends with |Ret (Fun _, _)| or |Ret (Con _ _, _)|) if and
+      only if $\pe$ is balanced.
     \item
-      |τ| is infinite |Step _ (Step _ ^^ ...)| (is diverging) iff for all $σ$ with
-      $\init(\pe) \smallstep^* σ$ there exists $σ'$ with $σ \smallstep σ'$.
+      |τ| is stuck (ends with |Ret (Stuck, _)|) if and only if $\pe$ is stuck.
   \end{itemize}
 \end{theorem}
 \begin{proof}
-  There exists a maximal trace $(σ_i)_{i∈\overline{n}}$ starting
-  from $σ_0 = \init(\pe)$, and by \Cref{thm:need-abstracts-lk} we have
-  $α_{\STraces}((σ_i)_{i∈\overline{n}},\StopF) = |τ|$.
-  \begin{itemize}
-    \item[$\Rightarrow$]
-      \begin{itemize}
-        \item
-          If |τ| is balanced, its target state $σ_n$
-          is a reduction state with $\cont(σ_n) = \StopF$, hence it is a final
-          state.
-        \item
-          If |τ| is stuck, it is finite and maximal, but not balanced, so the
-          target state $σ_n$ cannot be a reduction state;
-          otherwise maximality implies $σ_n$ has an (initial) empty continuation
-          and the trace would be balanced. On the other hand, the only reduction
-          transitions apply to reduction states, so maximality implies there is no
-          $σ'$ such that $σ \smallstep σ'$ whatsoever.
-        \item
-          If $(σ_i)_{i∈\overline{n}}$ is diverging, $n=ω$ and for every $σ$ with
-          $\init(\pe) \smallstep^* σ$ there exists an $i$ such that $σ = σ_i$ by
-          determinism.
-      \end{itemize}
-
-    \item[$\Leftarrow$]
-      \begin{itemize}
-        \item
-          If $σ_n$ is a final state, it has $\cont(σ) = \cont(\init(\pe)) = []$,
-          so the trace is balanced.
-        \item
-          If $σ$ is not a final state, $τ'$ is not balanced. Since there is no
-          $σ'$ such that $σ \smallstep^* σ'$, it is still maximal; hence it must
-          be stuck.
-        \item
-          Suppose that $n∈ℕ_ω$ was finite.
-          Then, if for every choice of $σ$ there exists $σ'$ such that $σ
-          \smallstep σ'$, then there must be $σ_{n+1}$ with $σ_n \smallstep
-          σ_{n+1}$, violating maximality of the trace.
-          Hence it must be infinite.
-          It is also interior, because every stack extends the empty stack,
-          hence it is diverging.
-      \end{itemize}
-  \end{itemize}
+  By \Cref{thm:need-abstracts-lk}, $|τ| = α_{\STraces}(\init(\pe) \smallstep ...,\StopF)$.
+  The goal follows by applying \Cref{thm:abs-max-trace} to this situation.
 \end{proof}
+
+The second step ensures that length and event annotations of the trace are
+preserved.
+Since our focus is on counting $\LookupT$ events, this is a crucial result for
+our work.
+
+\begin{theorem}[Bisimulation]
+  \label{thm:need-bisimulation-only}
+  Let $\init(\pe) \smallstep ...$ be the maximal LK trace starting in
+  $\init(\pe)$ and |τ := evalNeed e emp emp|.
+  Then both traces have the same length, and the |ev :: Event| in every
+  |Step ev ^^ ...| occurrence in |τ| corresponds (via $α_\Events$) to the
+  matching small-step transition rule in $\init(\pe) \smallstep ...$.
+\end{theorem}
+\begin{proof}
+  By \Cref{thm:need-abstracts-lk}, $|τ| = α_{\STraces}(\init(\pe) \smallstep ...,\StopF)$.
+  The length argument follows from \Cref{thm:abs-length}.
+  The event argument follows by Löb induction and the definition of $α_\Events$.
+\end{proof}
+
 \end{toappendix}
 
 \subsection{Totality of |evalName| and |evalNeed2|}
