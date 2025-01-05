@@ -272,6 +272,7 @@
 %format αEnv(h)(e) = "α_\Environments(" h "," e ")"
 %format αState(s) = "α_\States(" s ")"
 %format αSTraces(t) = "α_{\STraces}(" t ")"
+%format αValue(s)(k) = "α_{\Values}(" s "," k ")"
 %format tr = "\varcolor{\tr}"
 %format tr' = "\varcolor{\tr'}"
 %format trm = "\varcolor{\tr_m}"
