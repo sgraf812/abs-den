@@ -893,7 +893,7 @@ machine in favor of one using |evalNeed2|.
 That is a welcome simplification because it leaves us with a single semantic
 artefact --- the denotational interpreter --- instead of an operational
 semantics and a separate static analysis as in \Cref{sec:problem}.
-Thanks to adequacy (\Cref{thm:need-bisimulation}), this new notion is not a
+Thanks to adequacy (\Cref{thm:need-adequacy-bisimulation}), this new notion is not a
 redefinition but provably equivalent to \Cref{defn:absence}:
 \begin{lemmarep}[Denotational absence]
   \label{thm:absence-denotational}
@@ -916,7 +916,7 @@ We proceed as follows:
   {}\Longleftrightarrow{} & \init(\pE[\Let{\px}{\pe'}{\pe}]) \smallstep^* ... \smallstep[\LookupT(\px)] ...
                           \Arrow{Apply $α_{\STraces}$ (\Cref{fig:eval-correctness})} \\
   {}\Longleftrightarrow{} & α_{\STraces}(\init(\pE[\Let{\px}{\pe'}{\pe}]) \smallstep^*, []) = | ... Step (Look x) ...|
-                          \Arrow{\Cref{thm:need-bisimulation}} \\
+                          \Arrow{\Cref{thm:need-adequacy-bisimulation}} \\
   {}\Longleftrightarrow{} & |evalNeed (fillC ectxt (Let x e' e)) emp emp| = |... Step (Look x) ...|
 \end{DispWithArrows}
 Note that the trace we start with is not necessarily an maximal trace,

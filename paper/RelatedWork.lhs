@@ -104,7 +104,7 @@ trees~\citep{interaction-trees,gitrees} would help with that.
 %Probably not; we would try to conduct as much of the proof as possible in the
 %equational theory, \ie on syntax.
 %If need be, we could always switch to denotational interpreters via
-%\Cref{thm:need-bisimulation}, just as in \Cref{thm:absence-denotational}.
+%\Cref{thm:need-adequacy-bisimulation}, just as in \Cref{thm:absence-denotational}.
 %\citet{HackettHutton:19} have done so as well.
 
 \subsubsection*{Abstract Interpretation and Relational Analysis}
@@ -137,7 +137,7 @@ We think that a variant of our denotational interpreter would be a good fit for
 their collecting semantics.
 Specifically, the semantic inclusions of Lemma 2.10 that govern the transition
 to a big-step style interpreter follow simply by adequacy of our interpreter,
-\Cref{thm:need-bisimulation}.
+\Cref{thm:need-adequacy-bisimulation}.
 
 Abstracting Abstract Machines~\citep{aam} derives
 a computable \emph{reachable states semantics}~\citep{Cousot:21} from any
