@@ -39,7 +39,7 @@
 
 %%%%%%%
 
-\usepackage[appendix=append,bibliography=common,forwardlinking=no]{apxproof}
+\usepackage[appendix=append,bibliography=common,forwardlinking=yes]{apxproof}
 %\renewcommand{\appendixprelim}{\clearpage\onecolumn\appendix\section*{Start of Appendix}} % Clearly mark the begin of the Appendix inserted by apxproof
 \renewcommand{\appendixsectionformat}[2]{Appendix for Section~#1\ (#2)}
 
