@@ -78,8 +78,14 @@ in \Cref{sec:by-need-soundness}.
 \label{fig:abstract-name-need}
 \end{figure}
 
-In this section we prove and apply a generic abstract interpretation theorem
-of the form
+Recall that usage analysis is supposed to infer the semantic property of
+absence (\Cref{defn:absence}) in order to inform dead code elimination.
+In this section, we prove that usage analysis indeed infers absence.
+For that, it is necessary to relate the analysis result to a property of the
+program semantics.
+The resulting approximation relation is well understood via abstract
+interpretation~\citep{Cousot:77} and we capture it in a generalised statement of
+the form
 \[
   α_{\mathcal{S}}(|evalNeed1 e|) ⊑ |evalD2 (hat D) e|.
 \]
@@ -97,9 +103,9 @@ hence the semantic property that is soundly abstracted by |evalD (hat D) e ρ|.
 We will instantiate the theorem at |UD| in order to prove that usage analysis
 |evalUsg e ρ = evalD UD e ρ| infers absence, just as absence analysis in
 \Cref{sec:problem}.
-This proof will be much simpler than the proof for \Cref{thm:absence-correct},
-because the complicated preservation proof is reusably contained in
-the abstract interpretation theorem.
+This proof will be simpler and less ad-hoc than the proof for
+\Cref{thm:absence-correct}, because the complicated preservation proof is
+reusably contained in the abstract interpretation theorem.
 
 \begin{figure}
   \belowdisplayskip=0pt
@@ -431,7 +437,7 @@ Note that none of the laws mention the concrete semantics or the abstraction
 function $α_{\mathcal{S}}$.
 This is how fixing the concrete semantics and $α_{\mathcal{S}}$ pays off; the usual
 abstraction laws such as
-|αD^(μ)^(apply d a) ⊑ hat apply (αD^(μ)^(d)) (αD^(μ)(a))| further
+|αD^(μ)^(apply d a) ⊑ hat apply (αD^(μ)^(d)) (αD^(μ)^(a))| further
 decompose into \textsc{Beta-App}.
 We think this is a nice advantage to our approach, because the author of
 the analysis does not need to reason about by-need heaps in order to soundly
@@ -522,7 +528,7 @@ better:
 
 \begin{lemmarep}[\textsc{Beta-App}, Semantic substitution]
 \label{thm:usage-subst-sem}
-Let |f :: (Trace d, Domain d, HasBind d) => d -> d|, |x :: Name| fresh and |a :: UD|.
+Let |f :: forall d. (Trace d, Domain d, HasBind d) => d -> d|, |x :: Name| fresh and |a :: UD|.
 Then |f a ⊑ apply (fun x f) a| in |UD|.
 \end{lemmarep}
 \begin{proof}
@@ -893,7 +899,7 @@ machine in favor of one using |evalNeed2|.
 That is a welcome simplification because it leaves us with a single semantic
 artefact --- the denotational interpreter --- instead of an operational
 semantics and a separate static analysis as in \Cref{sec:problem}.
-Thanks to adequacy (\Cref{thm:need-adequacy-bisimulation}), this new notion is not a
+Thanks to bisimilarity (\Cref{thm:need-adequacy-bisimulation}), this new notion is not a
 redefinition but provably equivalent to \Cref{defn:absence}:
 \begin{lemmarep}[Denotational absence]
   \label{thm:absence-denotational}
@@ -914,8 +920,6 @@ We proceed as follows:
                           \label{arrow:usg-context}
                           \Arrow{$\pE \triangleq \mathit{trans}(\hole,ρ,μ,κ)$} \\
   {}\Longleftrightarrow{} & \init(\pE[\Let{\px}{\pe'}{\pe}]) \smallstep^* ... \smallstep[\LookupT(\px)] ...
-                          \Arrow{Apply $α_{\STraces}$ (\Cref{fig:eval-correctness})} \\
-  {}\Longleftrightarrow{} & α_{\STraces}(\init(\pE[\Let{\px}{\pe'}{\pe}]) \smallstep^*, []) = | ... Step (Look x) ...|
                           \Arrow{\Cref{thm:need-adequacy-bisimulation}} \\
   {}\Longleftrightarrow{} & |evalNeed (fillC ectxt (Let x e' e)) emp emp| = |... Step (Look x) ...|
 \end{DispWithArrows}
