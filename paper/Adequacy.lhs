@@ -218,7 +218,7 @@ the trace at the end of
 Function $α_{\STraces}$, defined in \Cref{fig:eval-correctness}, preserves a
 number of important observable properties, such as termination behavior (\ie
 stuck, diverging, or balanced execution~\citep{Sestoft:97}), length of the trace
-and transition events, as expressed in the following bisimulation theorem:
+and transition events, as expressed in the following theorem:
 
 \begin{toappendix}
 \subsection{Bisimulation}

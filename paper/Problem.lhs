@@ -894,7 +894,7 @@ There are two main problems to address, and we believe the first causes the seco
 %semantic subtleties diminishes confidence in the soundness of the proof
 %to the point where trust can only be recovered by full mechanisation.
 
-Abstract interpretation~\citep{Cousot:77} provides a framework to tackle problem
+\emph{Abstract interpretation}~\citep{Cousot:77} provides a framework to tackle problem
 (2), but its systematic applications seem to require a structurally matching
 semantics (1).
 For example, the book of \citet{Cousot:21} starts from a \emph{compositional},
@@ -918,7 +918,7 @@ analyses}} as denotational interpreters.
 
 Since both semantics and analysis are \textbf{\emph{derived from the same
 generic interpreter}}, solving problem (1), we can prove usage analysis to be an
-\emph{abstract interpretation} of call-by-need semantics, in two steps:
+abstract interpretation of call-by-need semantics, in two steps:
 First, we show a generic soundness theorem parameterised over an analysis domain
 satisfying certain \emph{abstraction laws}, among which there is a semantic
 substitution lemma, and then we show that usage analysis satisfies these
