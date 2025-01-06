@@ -1506,3 +1506,24 @@ series = {POPL '94}
   location = {Nice, Nice, France},
   series = {TLDI '07}
 }
+
+
+@inproceedings{Nguyen:14,
+  author = {Nguyen, Ph\'{u}c C. and Tobin-Hochstadt, Sam and Van Horn, David},
+  title = {Soft contract verification},
+  year = {2014},
+  isbn = {9781450328739},
+  publisher = {Association for Computing Machinery},
+  address = {New York, NY, USA},
+  url = {https://doi.org/10.1145/2628136.2628156},
+  doi = {10.1145/2628136.2628156},
+  abstract = {Behavioral software contracts are a widely used mechanism for governing the flow of values between components. However, run-time monitoring and enforcement of contracts imposes significant overhead and delays discovery of faulty components to run-time.To overcome these issues, we present soft contract verification, which aims to statically prove either complete or partial contract correctness of components, written in an untyped, higher-order language with first-class contracts. Our approach uses higher-order symbolic execution, leveraging contracts as a source of symbolic values including unknown behavioral values, and employs an updatable heap of contract invariants to reason about flow-sensitive facts. We prove the symbolic execution soundly approximates the dynamic semantics and that verified programs can't be blamed.The approach is able to analyze first-class contracts, recursive data structures, unknown functions, and control-flow-sensitive refinements of values, which are all idiomatic in dynamic languages. It makes effective use of an off-the-shelf solver to decide problems without heavy encodings. The approach is competitive with a wide range of existing tools - including type systems, flow analyzers, and model checkers - on their own benchmarks.},
+  booktitle = {Proceedings of the 19th ACM SIGPLAN International Conference on Functional Programming},
+  pages = {139–152},
+  numpages = {14},
+  keywords = {higher-order contracts, symbolic execution},
+  location = {Gothenburg, Sweden},
+  series = {ICFP '14}
+}
+
+

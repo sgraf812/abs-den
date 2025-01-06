@@ -29,14 +29,14 @@
 \subsubsection*{Call-by-need, Semantics}
 Arguably, \citet{Josephs:89} described the first denotational by-need semantics,
 predating the work of \citet{Launchbury:93} and \citet{Sestoft:97}, but not
-the more machine-centric (rather than transition system centric) work on the
+the more machine-centric work on the
 G-machine~\citep{Johnsson:84}.
 We improve on \citeauthor{Josephs:89}'s work in that our encoding is
 simpler, rigorously defined (\Cref{sec:totality}) and proven adequate \wrt
 \citeauthor{Sestoft:97}'s by-need semantics (\Cref{sec:adequacy}).
 \citet{HackettHutton:19} define a denotational cost semantics for call-by-need,
-but unfortunately we fail to see how their approach can be extended to
-totally generate detailed by-need small-step traces, \cf \Cref{sec:clair}.
+but unfortunately we were unable to factor their approach into a productive
+definition, \cf \Cref{sec:clair}.
 
 \citet{Sestoft:97} related the derivations of
 \citeauthor{Launchbury:93}'s big-step natural semantics for our language to
@@ -132,6 +132,7 @@ recursive type theory~\citep{tctt}.
 CFA~\citep{Shivers:91} computes a useful control-flow graph abstraction for
 higher-order programs, thus lifting classic intraprocedural analyses such as
 constant propagation to the interprocedural setting.
+
 \citet{MontaguJensen:21} derive CFA from small-step traces.
 We think that a variant of our denotational interpreter would be a good fit for
 their collecting semantics.
@@ -147,13 +148,19 @@ states.
 \citet{adi} and others apply the AAM recipe to big-step interpreters in the style
 of \citeauthor{Reynolds:72}.
 
+An advantage of operational semantics and AAM compared to our denotational
+approach is the focus on syntax, enabling proofs entirely within an equational
+theory.
+In our framework, proofs may appeal to parametricity or otherwise must take
+caution to consider definable elements only.
+
 Whenever AAM is involved, abstraction follows some monadic structure inherent to
 dynamic semantics~\citep{Sergey:13,adi}.
 In our work, this is apparent in the |Domain (D τ)| instance depending on
 |Monad τ|.
 Decomposing such structure into a layer of reusable monad transformers has been
 the subject of \citet{Darais:15} and \citet{Keidel:19}.
-The trace transformers of \Cref{sec:interp} enable reuse along a different dimension.
+%The trace transformers of \Cref{sec:interp} enable reuse along a different dimension.
 %Likewise, \citet{Keidel:23} discusses a sound, declarative approach to reuse
 %fixpoint combinators which we hope to apply in implementations of our framework
 %as well.
@@ -181,9 +188,11 @@ inter-modular analysis led \citet[Section 3.8.2]{Shivers:91} to implement
 the $\mathit{xproc}$ summary mechanism.
 He also acknowledged the need for accurate intra-modular summary mechanisms for
 scalability reasons in Section 11.3.2.
-We are however doubtful that the powerset-centric AAM approach could integrate
-summary mechanisms; the whole recipe rests on the fact that the set of
-expressions and thus evaluation contexts is finite.
+
+We wonder how the powerset-centric AAM approach could be
+parameterised over an arbitrary summary mechanism such as in our framework.
+While some AAM-inspired approaches \citep{Nguyen:14} support a fixed set of
+summaries, these require custom reductions in the semantics.
 
 \citet{Mangal:14} have shown that a summary-based analysis can be equivalent
 to $\infty$-CFA for arbitrary complete lattices and outperform 2-CFA in both
@@ -216,12 +225,11 @@ the Glasgow Haskell Compiler.
 %as absence in call-by-need.
 %Alas, since the Clairvoyant instantiation of our denotational interpreter is
 %partial, such a proof would carry no meaning for partial inputs.
-We intend to use our framework to describe improvements to Demand Analysis in
+We intend to build on our framework to describe improvements to Demand Analysis in
 the future.
-A soundness proof would require a slightly different Galois connection than
+However, a soundness proof would require a different Galois connection than
 \Cref{fig:abstract-name-need}, because Demand Analysis is not sound \wrt by-name
-evaluation; a testament to its precision.
-
+evaluation.
 
 %\subsubsection*{Denotational Semantics}
 %Recent work on \emph{Clairvoyant call-by-value}
