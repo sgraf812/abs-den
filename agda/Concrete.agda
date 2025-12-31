@@ -240,12 +240,6 @@ stepLookFetch {τ} x a = mkByNeed (λ μ →
   let d▹ = fst (well-addressed μ a) in
   step (look x) (λ α → ByNeed.get (transport (≡-▸HeapD τ) d▹ α) μ))
 
-fetch : ∀ {τ} {{_ : Monad τ}} → Addr → ▹(D (ByNeed τ))
-
--- It is evident that `stepLookFetch x a` is the same as `step (look x) (fetch a)`:
-same-thing :  ∀ {τ x a} {{_ : Monad τ}} {{_ : ∀ {V} → Trace (τ V)}}
-              → step (look x) (fetch {τ} a) ≡ stepLookFetch x a
-
 -- Unfortunately, it is hard to decompose `stepLookFetch` into
 -- separate function calls to `step` and `fetch`,
 -- because the latter will then need to bind the tick variable `α`
@@ -264,6 +258,12 @@ postulate
 -- We think that rule `flip-tick` and its rewrite rule look rather benign
 -- for its only use site in `fetch`. Note that the rewrite rule cannot even
 -- fire when α flows into μ due to the order of quantification!
+
+fetch : ∀ {τ} {{_ : Monad τ}} → Addr → ▹(D (ByNeed τ))
+
+-- It is evident that `stepLookFetch x a` is the same as `step (look x) (fetch a)`:
+same-thing :  ∀ {τ x a} {{_ : Monad τ}} {{_ : ∀ {V} → Trace (τ V)}}
+              → step (look x) (fetch {τ} a) ≡ stepLookFetch x a
 
 fetch {τ} a = map▹ mkByNeed (flip-tick (λ μ →
   let d▹ = fst (well-addressed μ a) in

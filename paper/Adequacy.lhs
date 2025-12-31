@@ -96,7 +96,7 @@ Building on \Cref{sec:guarded-types}, we will now outline the changes necessary 
 Agda, a system implementing Ticked Cubical Type Theory~\citep{tctt}, as well
 as the concrete instances |D (ByName T)| and |D (ByNeed T)| from
 \Cref{fig:trace-instances,fig:by-need}.
-The full, type-checked development is available in the Supplement.
+The full development is available in the Supplement and type-checks with Agda 2.7.0.1 by running \texttt{agda Concrete.agda}.
 \begin{itemize}
   \item We need to delay in |step|; thus its definition in |Trace| changes to
     |step :: Event -> Later d -> d|.
