@@ -53,7 +53,7 @@ Throughout the paper we assume that all bound program variables are distinct.
   \arraycolsep=0pt
   \abovedisplayskip=0pt
   \[\begin{array}{rcl}
-    \semabs{\px}_ρ & {}={} & ρ(\px) \\
+    \semabs{\px}_ρ & {}={} & \begin{cases} ρ(\px) & \text{if $\px \in ρ$} \\ \aA & \text{otherwise} \end{cases} \\
     \semabs{\Lam{\px}{\pe}}_ρ & {}={} & \mathit{fun}_{\px}( \fn{θ}{\semabs{\pe}_{ρ[\px ↦ θ]}}) \\
     \semabs{\pe~\px}_ρ & {}={} & \mathit{app}(\semabs{\pe}_{ρ})(ρ(\px)) \\
     \semabs{\Let{\px}{\pe_1}{\pe_2}}_ρ & {}={} & \semabs{\pe_2}_{ρ[\px ↦ \px \both \semabs{\pe_1}_ρ]} \\
@@ -75,14 +75,13 @@ Throughout the paper we assume that all bound program variables are distinct.
     φ & {}∈{} & \Uses    & {}={} & \Var \to \Absence \\
     π & {}∈{} & \Args    & {}::={} & a \argcons π \mid \rep{a} \\
     θ & {}∈{} & \AbsTy   & {}::={} & \langle φ, π \rangle \\
-    \\[-0.9em]
-    \multicolumn{5}{c}{\rep{a} \equiv a \argcons \rep{a}} \\
   \end{array} \\
-  \\[-0.9em]
-  \begin{array}{l}
-    \aA * φ = [] \quad
-    \aU * φ = φ  \\
-    \px \both \langle φ, π \rangle = \langle φ[\px↦\aU], π \rangle
+  \\[-0.8em]
+  \begin{array}{rcl}
+    \rep{a} & {}\equiv{} & a \argcons \rep{a} \\
+    \aA * φ & {}={} & [] \\
+    \aU * φ & {}={} & φ  \\
+    \px \both \langle φ, π \rangle & {}={} & \langle φ[\px↦\aU], π \rangle
   \end{array}
   \\[-0.5em]
   \end{array}\]
