@@ -143,8 +143,7 @@ The full development is available in the Supplement and type-checks with Agda 2.
     by delaying heap entries, |Heap τ = Addr :-> Later (D τ)|.
   \item
     We need to pass around |Tick| binders in |eval| in a way that the type
-    checker is satisfied; a simple exercise.
-    We find it remarkable how non-invasive these adjustment are!
+    checker is satisfied.
 \end{itemize}
 
 Thus we have proven that |eval| is a total, mathematical function, and

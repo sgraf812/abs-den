@@ -255,9 +255,20 @@ postulate
                      → flip-tick f α μ ≣ f μ α
 {-# REWRITE flip-tick-beta #-}
 
--- We think that rule `flip-tick` and its rewrite rule look rather benign
--- for its only use site in `fetch`. Note that the rewrite rule cannot even
--- fire when α flows into μ due to the order of quantification!
+-- The postulate above is unsafe in general. See also the discussion in the README.
+-- Do note though that every use of `fetch` is guarded by a `step`, and we show
+-- that this composition is equal to `stepLookFetch`, which has a
+-- sound definition in `D`. The key is that `step` does not modify the
+-- heap. If we were pursuing a formalized correctness proof about the
+-- ByNeed semantics, we would opt for one of the following approaches to
+-- get rid of the postulate:
+--   * specialise the interpreter for `ByNeed` and then be able to
+--     use the fused `stepLookFetch` directly.
+--     It is possible to eta-expand the recursive function over the heap
+--     argument.
+--   * Or, better: Refine the type of `HasBind` and `look (step x)` such
+--     that the heap is passed before the tick. We tried that but ran into
+--     trouble while constructing the domain.
 
 fetch : ∀ {τ} {{_ : Monad τ}} → Addr → ▹(D (ByNeed τ))
 
