@@ -11,6 +11,7 @@ What is so difficult about proving a compositional analysis sound
 We will demonstrate the challenges in this section, by way of a simplified \emph{absence
 analysis}~\citep{SPJ:94}, a higher-order form of neededness analysis to inform
 removal of dead code in a compiler.
+We recap what constitutes a function summary and why summary-based analyses are useful.
 
 \subsection{Object Language}
 \label{sec:lang}
@@ -193,6 +194,8 @@ above is a finite \emph{summary} of the lambda term $\Lam{y}{\Lam{z}{y}}$.
 
 Let us define what we mean by ``summary'' in order to understand what is so
 appealing about a summary-based analysis such as $\semabs{\wild}$.
+Readers familiar with summary-base analyses and their advantages over
+control-flow analyses may skip this section.
 
 Just as a denotational semantics, the interpreter $\semabs{\wild}$
 \emph{denotes} a term in a \emph{semantic domain} ($\AbsTy$).
@@ -236,6 +239,10 @@ is a function of $\semabs{\Lam{x}{\pe_{\mathit{big}}}}$, and finite summaries
 prevent having to reanalyse $\pe_{\mathit{big}}$ repeatedly for each call of $f$.
 
 This is why summary-based analyses are great: they scale.
+But not only that, summary-based analyses such as absence analysis have been
+shown to be more precise than control-flow analyses such as ones derived by
+direct abstraction of machine states~\citep{Mangal:14}.
+We will later discuss a (modestly degenerate) example when discussing usage analysis.
 
 %\subsection{Summaries \vs Abstracting Abstract Machines}
 %
@@ -773,7 +780,7 @@ Building on these definitions, we may finally attempt the proof for
 \Cref{thm:absence-correct}.
 We suggest for the reader to have a cursory look at the proof in the Appendix.
 The proof is exemplary of far more ambitious proofs such as in
-\citet{Sergey:14} and \citet[Section 4]{Breitner:16}.
+\citet{Gustavsson:01}, \citet{Sergey:14} and \citet[Section 4]{Breitner:16}.
 Though seemingly disparate, these proofs all follow an established
 preservation-style proof technique at heart.
 %\footnote{A ``mundane approach`` according to \citet[Section
@@ -880,14 +887,18 @@ There are two main problems to address, and we believe the first causes the seco
 \begin{enumerate}
   \item
     Although analysis and semantics are individually simple, it is conceptually
-    difficult to connect them, causing an explosion of formal artefacts.
-    This is because one is compositional while the other is not.
+    difficult to connect them, causing a proliferation of formal artefacts, such
+    as instrumented non-standard semantics and an extended analysis definition
+    on machine configurations that is much more complicated than the original analysis.
+    This is because the semantics is operational.
   \item
     Compared to analysis and semantics, the soundness proof is rather
     complicated because it is \emph{entangled}:
     The parts of the proof that concern the domain of the analysis are drowned in
-    coping with semantic subtleties that ultimately could be shared with similar
-    analyses.
+    coping with semantic subtleties (update stack frames, etc.) that ultimately
+    could be shared with similar analyses.
+    It would be great to separate these concerns and potentially reuse the
+    proof parts handling semantic subtleties.
 \end{enumerate}
 %Furthermore, the inevitable hand-waving in proofs of this size around said
 %semantic subtleties diminishes confidence in the soundness of the proof
@@ -897,13 +908,16 @@ There are two main problems to address, and we believe the first causes the seco
 (2), but its systematic applications seem to require a structurally matching
 semantics (1).
 For example, the book of \citet{Cousot:21} starts from a \emph{compositional},
-trace-generating semantics for an imperative first-order language to derive
+trace-generating semantics for an imperative \emph{first-order} language to derive
 compositional analyses.
+However, it was unclear to the authors how Cousot's coinductive construction of a
+first-order trace domain could be adjusted to serve as a trace-generating
+domain for a \emph{higher-order} language.
 
 In this work we present the \textbf{\emph{denotational interpreter}} design
 pattern to solve both problems above.
 Inspired by \citeauthor{Cousot:21}, we define a \textbf{\emph{compositional,
-trace-generating semantics}} for higher-order languages;
+trace-generating semantics}} for \emph{higher-order} languages;
 one with which it is possible to express \emph{operational properties} such as
 \emph{usage cardinality}, \ie ``$\pe$ evaluates $\px$ at most $u$ times'', as
 required in \citet{Sergey:14}.%

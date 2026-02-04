@@ -39,7 +39,7 @@
 
 %%%%%%%
 
-\usepackage[appendix=append,bibliography=common,forwardlinking=yes]{apxproof}
+\usepackage[appendix=strip,bibliography=common,forwardlinking=yes]{apxproof}
 %\renewcommand{\appendixprelim}{\clearpage\onecolumn\appendix\section*{Start of Appendix}} % Clearly mark the begin of the Appendix inserted by apxproof
 \renewcommand{\appendixsectionformat}[2]{Appendix for Section~#1\ (#2)}
 
@@ -139,8 +139,8 @@
   abstract machine.
   By parameterising our denotational interpreter over the semantic domain
   and then varying it, we recover \emph{dynamic semantics} with different
-  evaluation strategies as well as \emph{summary-based static analyses} such as type
-  analysis, all from the same generic interpreter.
+  evaluation strategies as well as \emph{summary-based static analyses} such as
+  type-based analyses, all from the same generic interpreter.
   Among our contributions is the first denotational semantics for call-by-need
   that is provably bisimilar to the corresponding abstract machine.
   The generated traces lend themselves well to describe \emph{operational properties}
