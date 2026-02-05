@@ -138,9 +138,9 @@
   denotational semantics that produce coinductive traces of a corresponding
   abstract machine.
   By parameterising our denotational interpreter over the semantic domain
-  and then varying it, we recover \emph{dynamic semantics} with different
-  evaluation strategies as well as \emph{summary-based static analyses} such as
-  type-based analyses, all from the same generic interpreter.
+  and then varying it, we recover \emph{dynamic semantics} as well as
+  \emph{summary-based static analyses} such as type-based analyses, all from the
+  same generic interpreter.
   Among our contributions is the first denotational semantics for call-by-need
   that is provably bisimilar to the corresponding abstract machine.
   The generated traces lend themselves well to describe \emph{operational properties}
