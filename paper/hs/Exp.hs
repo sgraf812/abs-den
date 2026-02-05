@@ -2,7 +2,6 @@ module Exp where
 
 import Control.Monad
 import Control.Monad.Trans.State
-import Data.Foldable
 import Debug.Trace
 import qualified Text.ParserCombinators.ReadPrec as Read
 import qualified Text.ParserCombinators.ReadP as ReadP
@@ -190,7 +189,7 @@ instance Read PreExp where
         (f:args) <- Read.readP_to_Prec $ \prec ->
           ReadP.sepBy1 (Read.readPrec_to_P Read.readPrec (prec+1)) spaces1
         guard $ not $ null args
-        pure (foldl' PApp f args)
+        pure (foldl PApp f args)
     , Read.prec lamPrec $ do
         c <- Read.get
         guard (c `elem` "λΛ@#%\\") -- multiple short-hands for Lam

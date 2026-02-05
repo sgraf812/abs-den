@@ -156,11 +156,6 @@ instance Monad UT where
   return a = MkUT emp a
   MkUT φ1 a >>= k = let MkUT φ2 b = k a in MkUT (φ1+φ2) b
 \end{code}
-%if style == newcode
-\begin{code}
-instance Extract UT where getValue (MkUT _ v) = v
-\end{code}
-%endif
 \end{minipage}
 \\
 \begin{minipage}{0.63\textwidth}
@@ -177,8 +172,6 @@ instance Domain UD where
   select d fs                            =
     d >> lub  [  f (replicate (conArity k) (MkUT emp (Rep Uω)))
               |  (k,f) <- assocs fs ]
-
-instance HasBind UD where
   bind # rhs body = body (kleeneFix rhs)
 \end{code}
 \end{minipage}%
@@ -519,11 +512,10 @@ instance Domain (J Type) where
       case tys of
         []      -> stuck
         ty:tys' -> mapM (\ty' -> unify (ty,ty')) tys' >> return ty
+  bind # rhs body = do σ <- generaliseTy (uniFix rhs); body (instantiatePolyTy σ)
 {-" \fi "-}
 uniFix :: (J Type -> J Type) -> J Type
 uniFix rhs = do θα <- freshTyVar; θ <- rhs (return θα); unify (θα, θ); return θα
-instance HasBind (J Type) where
-  bind # rhs body = do σ <- generaliseTy (uniFix rhs); body (instantiatePolyTy σ)
 \end{code}
 \vspace{-1em}
 \caption{Type analysis with let generalisation (Algorithm J)}
@@ -735,16 +727,6 @@ updFunCache :: Label -> (CD -> CD) -> State Cache ()
 cachedCall :: Labels -> Labels -> CD
 cachedCons :: Labels -> State Cache (Tag :-> [Labels])
 
-instance HasBind CD where{-" ... \iffalse "-}
-  bind # rhs body = go bottom >>= body . return
-    where
-      go :: Labels -> CD
-      go v = do
-        cache <- get
-        v' <- rhs (return v)
-        cache' <- get
-        if v' ⊑ v && cache' ⊑ cache then do { v'' <- rhs (return v'); if v' /= v'' then error "blah" else return v' } else go v'
-{-" \fi "-}
 instance Trace CD where step _ = id
 instance Domain CD where
   stuck = return bottom
@@ -764,6 +746,16 @@ instance Domain CD where
     tag2flds <- cachedCons v
     lub <$> sequence  [  f (map return (tag2flds ! k))
                       |  (k,f) <- Map.assocs fs, k ∈ dom tag2flds ]
+  {-" ... \iffalse "-}
+  bind # rhs body = go bottom >>= body . return
+    where
+      go :: Labels -> CD
+      go v = do
+        cache <- get
+        v' <- rhs (return v)
+        cache' <- get
+        if v' ⊑ v && cache' ⊑ cache then do { v'' <- rhs (return v'); if v' /= v'' then error "blah" else return v' } else go v'
+{-" \fi "-}
 \end{code}
 
 %if style == newcode
@@ -1054,22 +1046,20 @@ ifPoly(instance Monad (AnnT s d) where ...)
 instance Trace d => Trace (AnnD s d) where
   step ev (AnnT f) = AnnT (\refs -> step ev <$> f refs)
 
-instance StaticDomain d => Domain (AnnD s d) where {-" ... \iffalse "-}
+instance (Lat d, StaticDomain d) => Domain (AnnD s d) where {-" ... \iffalse "-}
   stuck = return stuck
   fun x l f = funS x l f
   con l k ds = con l k <$> sequence ds
   apply f d = apply <$> f <*> d
   select md mfs = selectS md mfs {-" \fi "-}
-
-readCache   :: Lat d => Name -> AnnD s d
-writeCache  :: Name -> d -> AnnT s d ()
-annotate    :: StaticDomain d => Name -> AnnD s d -> AnnD s d
-
-instance (Lat d, StaticDomain d) => HasBind (AnnD s d) where
   bind x rhs body = do
     init <- readCache x
     let rhs' d1 = do d2 <- rhs (return d1); writeCache x d2; return d2
     annotate x (bindS x init rhs' (body . return))
+
+readCache   :: Lat d => Name -> AnnD s d
+writeCache  :: Name -> d -> AnnT s d ()
+annotate    :: StaticDomain d => Name -> AnnD s d -> AnnD s d
 \end{code}
 %if style == newcode
 \begin{code}
