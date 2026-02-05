@@ -283,24 +283,26 @@ instances |UVec U| and |UVec Uses|, together with scalar multiplication.
 %space because |U| lacks inverses, but the intuition is close enough.}
 For example, |U0 + u = u| and |U1 + U1 = Uω| in |U|, as well as |U0 * u = U0|,
 |Uω * U1 = Uω|.
-These operations lift to |Uses| pointwise, \eg
+These operations lift to |Uses| pointwise, \eg,
 |[i ↦ U1] + (Uω * [j ↦ U1]) = [i ↦ U1, j ↦ Uω]|.
 
-Abstracting |T| into |UT| but keeping the concrete semantic |Value| definition
-amounts to what \citet{adi} call a \emph{collecting semantics}.
-To recover such an analysis-specific collecting semantics,
-it is sufficient to define a |Monad| instance on |UT| mirroring trace
-concatenation and then running our interpreter at, \eg $|D (ByName UT)| \cong
-|UT (Value UT)|$ on expression $\pe$ from earlier:
-\[
-  |eval (({-"\Let{i}{\Lam{x}{x}}{\Let{j}{\Lam{y}{y}}{i~j~j}}"-})) emp| = \perform{eval (read "let i = λx.x in let j = λy.y in i j j") emp :: D (ByName UT)}| :: D (ByName UT)|.
-\]
-\noindent
+%Abstracting |T| into |UT| but keeping the concrete semantic |Value| definition
+%amounts to what \citet{adi} call a \emph{collecting semantics}.
+%To recover such an analysis-specific collecting semantics,
+%it is sufficient to define a |Monad| instance on |UT| mirroring trace
+%concatenation and then running our interpreter at, \eg $|D (ByName UT)| \cong
+%|UT (Value UT)|$ on expression $\pe$ from earlier:
+%\[
+%  |eval (({-"\Let{i}{\Lam{x}{x}}{\Let{j}{\Lam{y}{y}}{i~j~j}}"-})) emp| = \perform{eval (read "let i = λx.x in let j = λy.y in i j j") emp :: D (ByName UT)}| :: D (ByName UT)|.
+%\]
+%\noindent
 It is nice to explore whether the |Trace| instance encodes the desired
 operational property in this way, but of little practical relevance because
-this interpreter instance will diverge whenever the input expression diverges.
+the fold will diverge whenever the input expression diverges.
+In abstract interpretation terms: the most precise abstraction of the collecting
+semantics is not generally decidable; this is a consequence of Rice's theorem.
 We will now fix this by introducing a finitely represented |UValue| to replace
-|Value UT|.
+|Value UT| and recover a computable analysis.
 
 \subsubsection{Value Abstraction |UValue| and Summarisation in |Domain UD|}
 
@@ -408,8 +410,8 @@ uses in case alternatives, one of which will be taken.
 Note that the finite representation of the type |UD| rules out injective
 implementations of |fun x :: (UD -> UD) -> UD| and thus requires the
 aforementioned \emph{approximate} summary mechanism.
-There is another potential source of approximation: the |HasBind|
-instance discussed next.
+There is another potential source of approximation: the |bind|
+implementation discussed next.
 
 \begin{figure}
 \begin{spec}
@@ -422,15 +424,15 @@ kleeneFix f = go bottom where go x = let x' = f x in if x' ⊑ x then x' else go
 \label{fig:lat}
 \end{figure}
 
-\subsubsection{Finite Fixpoint Strategy in |HasBind UD| and Totality}
+\subsubsection{Finite Fixpoint Strategy and Totality}
 \label{sec:usage-fixpoint}
 
-The third and last ingredient to recover a static analysis is the fixpoint
-strategy in |HasBind UD|, to be used for recursive let bindings.
+The third and final ingredient to recover a static analysis is the fixpoint
+strategy in the |bind| method, to be used for recursive let bindings.
 
 For the dynamic semantics in \Cref{sec:interp} we made liberal use of
 \emph{guarded fixpoints}, that is, recursively defined values such as |let d =
-rhs d in body d| in |HasBind DName| (\Cref{fig:eval}).
+rhs d in body d| in |Domain DName| (\Cref{fig:eval}).
 At least for |evalName| and |evalNeed2|, we have proved in \Cref{sec:adequacy}
 that these fixpoints always exist by a coinductive argument.
 Alas, among other things this argument relies on the |Step| constructor --- and
@@ -460,9 +462,11 @@ The iteration procedure terminates whenever the type class instances of |UD| are
 monotone and there are no infinite ascending chains in |UD|.
 Alas, our |UValue| indeed contains such infinite chains, for example, |UCons U1
 (UCons U1 (UCons dots Rep U0))|!
+It is worth noting that this is not an artifact of the unityped nature of |Exp|;
+it can be reproduced in any system with recursive types.
 This is easily worked around in practice by employing appropriate monotone
 widening measures such as trimming any |UValue| at depth 10 to flat |Rep Uω|.
-The resulting definition of |HasBind| is safe for by-name and by-need semantics.%
+The resulting definition of |bind| is safe for by-name and by-need semantics.%
 %\footnote{Never mind totality; why is the use of \emph{least} fixpoints even correct?
 %The fact that we are approximating a safety property~\citep{Lamport:77} is
 %important.
@@ -1175,7 +1179,7 @@ extracting information on a let-bound |x| from the denotation |d|.
 The instance for |UD| instantiates |Ann UD| to bound variable use |U|, and
 |extractAnn x (MkUT φ v)| isolates the free variable use |φ ! x| as annotation.
 The remaining type class methods |funS|, |selectS| and |bindS| are
-simple monadic generalisations of their counterparts in |Domain| and |HasBind|.
+simple monadic generalisations of their counterparts in |Domain|.
 
 The implementation of |StaticDomain| requires very little extra code to
 maintain, because the original definitions of |fun|, |select| and |bind| can be
@@ -1195,7 +1199,7 @@ bind' x rhs body = runIdentity (bindS x bottom (coerce rhs) (coerce body))
 Any reasonable instance of |StaticDomain| must satisfy the laws |fun = fun'|,
 |select = select'| and |bind = bind'|.
 (As can be seen in \Cref{fig:annotations} and above, we needed to slightly revise
-the |HasBind| type class in order to pass the name |x| of the let-bound variable
+the |Domain| type class in order to pass the name |x| of the let-bound variable
 to |bind| and |bindS|, similar as for |fun|.)
 
 Let us now look at how |AnnT| extends the pure, single-result usage analysis
@@ -1220,7 +1224,7 @@ The induced instance |Domain (AnnD s d)| is implemented
 by lifting operations |stuck|, |apply| and |con| into monadic |AnnT s d| context
 and by calling |funS| and |selectS|.
 Finally, the stateful nature of the domain |AnnD s d| is exploited in the
-|HasBind (AnnD s d)| instance, in two ways:
+|bind| implementation, in two ways:
 
 \begin{itemize}
   \item
@@ -1408,11 +1412,9 @@ class Domain d where
   select :: d -> CoreExpr -> Id -> [DAlt d] -> d
   erased :: d
   keepAlive :: [d] -> d -> d
-type DAlt d = (AltCon, [Id], d -> [d] -> d)
-
-data BindHint = BindArg Id | BindLet Bind
-class HasBind d where
   bind :: BindHint -> [[d] -> d] -> ([d] -> d) -> d
+type DAlt d = (AltCon, [Id], d -> [d] -> d)
+data BindHint = BindArg Id | BindLet Bind
 \end{spec}
 \caption{A |Domain| interface for GHC Core}
 \label{fig:core-domain}
@@ -1443,7 +1445,7 @@ their free variables (|keepAlive|).
 %meaning that it is not possible to derive any meaningful correctness statement
 %about |keepAlive|.
 
-The |HasBind| type class accommodates both non-recursive as well as mutually
+The |bind| method accommodates both non-recursive as well as mutually
 recursive let bindings.
 The |BindHint| is used to communicate whether such a binding comes from
 the on-the-fly ANF-isation pass of the interpreter (|BindArg|) or whether it was
@@ -1456,7 +1458,7 @@ a manifest let binding in the Core program (|BindLet|).
 
 \begin{figure}
 \begin{spec}
-type D d = (Trace d, Domain d, HasBind d)
+type D d = (Trace d, Domain d)
 anfise      ::  D d => [Expr] -> (Name :-> d) -> ([d] -> d) -> d
 evalConApp  ::  D d => DataCon -> [d] -> d
 
@@ -1498,8 +1500,7 @@ this is simply for a lack of a globally unique |Id|.
 In the |Let| case, the call |keepAliveUnfRules| makes sure to keep alive
 the free variables of inline unfoldings and rewrite rules attached to |x|.
 
-The |Domain| and |HasBind| instance for the concrete semantics |D (ByNeed T)|
-is routine.
+The |Domain| instance for the concrete semantics |D (ByNeed T)| is routine.
 The resulting denotational interpreter can execute GHC Core expressions.
 To demonstrate this, we wrote a small REPL around it:
 \begin{Verbatim}
@@ -1538,7 +1539,6 @@ instance Trace (DmdD s) where
     if isBoundAtTopLvl env x then ... else pure (v, φ + singenv x (C_11 :*: sd))
   step _ d = d
 instance Domain (DmdD s) where ...
-instance HasBind (DmdD s) where ...
 \end{spec}
 \caption{A rough outline of the semantic domain of Demand Analysis}
 \label{fig:dmd-domain}
@@ -1570,7 +1570,7 @@ However, Demand Analysis only ever maintains one particular point of the indexed
 domain, that is, every expression is analysed under one particular |SubDemand|.
 This |SubDemand| may increase during fixpoint iteration, though, causing another
 round of analysis.
-We apply the typical widening measures in |HasBind|, so in practice Demand
+We apply the typical widening measures in |bind|, so in practice Demand
 Analysis has not run into infinite loops for a couple of years.
 
 Type |DmdVal| is the similar to |UValue|, except that it lists full |Demand|s

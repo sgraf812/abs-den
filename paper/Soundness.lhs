@@ -49,13 +49,13 @@ in \Cref{sec:by-need-soundness}.
 \[\ruleform{\begin{array}{c}
   α_{\mathcal{S}} : (|(Name :-> DNeed) -> DNeed|) \to (|(Name :-> hat D) -> hat D|)
   \\
-  α_{\Environments} : \pow{|HeapNeed| \times (|Name :-> DNeed|)} \rightleftarrows (|Name :-> hat D|) : γ_{\Environments}
+  α_{\Environments} : \pow{|Heap| \times (|Name :-> DNeed|)} \rightleftarrows (|Name :-> hat D|) : γ_{\Environments}
   \\
-  α_{\Domain{}} : |HeapNeed| \to (\pow{|DNeed|} \rightleftarrows |hat D|) : γ_{\Domain{}}
+  α_{\Domain{}} : |Heap| \to (\pow{|DNeed|} \rightleftarrows |hat D|) : γ_{\Domain{}}
   \\
-  α_\Traces : \pow{|T (ValueNeed, HeapNeed)|} \rightleftarrows |hat D| : γ_\Traces
+  α_\Traces : \pow{|T (ValueNeed, Heap)|} \rightleftarrows |hat D| : γ_\Traces
   \qquad
-  β_\Traces : |T (ValueNeed, HeapNeed)| \to |hat D|
+  β_\Traces : |T (ValueNeed, Heap)| \to |hat D|
   \qquad
 \end{array}}\]
 \belowdisplayskip=0pt
@@ -179,7 +179,7 @@ $\pe \triangleq \Let{i}{(\Lam{y}{\Lam{x}{x}})~i}{i}$:
 \begin{align}
     & |αS^(evalNeed1 (({-" \Let{i}{(\Lam{y}{\Lam{x}{x}})~i}{i} "-})))^(emp)| \notag \\
 ={} & |βT^(evalNeed (({-" \Let{i}{(\Lam{y}{\Lam{x}{x}})~i}{i} "-})) emp emp)| \label{eqn:abs-ex1} \\
-={} & |βT|(\perform{evalNeed (read "let i = (λy.λx.x) i in i") emp emp :: T (ValueNeed, HeapNeed)}) \label{eqn:abs-ex2} \\
+={} & |βT|(\perform{evalNeed (read "let i = (λy.λx.x) i in i") emp emp :: T (ValueNeed, Heap)}) \label{eqn:abs-ex2} \\
 ={} & \textstyle|step Let1 (step (Look "i") (... (fun (\(hat d) -> Lub (βT^({-" \AppET \smallstep \varid{d}([0\!\!↦\!\!\wild]) "-}space) || d ∈ γD^({-"[0\!\!↦\!\!\wild]"-}space)^((hat d)))))))| \notag \\
 ⊑{} & \textstyle|step Let1 (step (Look "i") (... (fun (\(hat d) -> step App2 (hat d)))))| \label{eqn:abs-ex3} \\
 ={} & |MkUT (singenv i U1) (UCons U1 (Rep Uω)) :: UD| \label{eqn:abs-ex4} \\
@@ -219,7 +219,7 @@ corresponding to the inference rule at the begin of this subsection:
 
 \begin{theoremrep}[Abstract By-need Interpretation]
 \label{thm:abstract-by-need}
-Let |e| be an expression, |hat D| a domain with instances for |Trace|, |Domain|, |HasBind| and
+Let |e| be an expression, |hat D| a domain with instances for |Trace|, |Domain| and
 |Lat|, and let $α_{\mathcal{S}}$ be the abstraction function from \Cref{fig:abstract-name-need}.
 If the abstraction laws in \Cref{fig:abstraction-laws} hold,
 then |evalD2 (hat D)| is an abstract interpreter that is sound \wrt $α_{\mathcal{S}}$,
@@ -415,7 +415,7 @@ it amounts to proving correct the summary mechanism.
 In \Cref{sec:problem}, we have proved a substitution \Cref{thm:absence-subst},
 which is a syntactic form of this statement.
 The ``$|f|\text{ polymorphic}$'' premise asserts that |f| is definable at
-polymorphic type |forall d. (Trace d, Domain d, HasBind d) => d -> d|, which is
+polymorphic type |forall d. (Trace d, Domain d) => d -> d|, which is
 important to prove \textsc{Beta-App} (in \Cref{sec:mod-subst}).
 
 Law \textsc{Beta-Sel} states a similar property for data constructor redexes.
@@ -527,7 +527,7 @@ better:
 
 \begin{lemmarep}[\textsc{Beta-App}, Semantic substitution]
 \label{thm:usage-subst-sem}
-Let |f :: forall d. (Trace d, Domain d, HasBind d) => d -> d|, |x :: Name| fresh and |a :: UD|.
+Let |f :: forall d. (Trace d, Domain d) => d -> d|, |x :: Name| fresh and |a :: UD|.
 Then |f a ⊑ apply (fun x f) a| in |UD|.
 \end{lemmarep}
 \begin{proof}
@@ -780,7 +780,7 @@ Instead, the complexity of its proof scales with the number of \emph{abstract
 operations} supported in the semantic domain of the interpreter for a much more
 \emph{modular} proof.
 This modular proof appeals to parametricity~\citep{Reynolds:83} of |f|'s
-polymorphic type |forall d. (Trace d, Domain d, HasBind d) => d -> d|.
+polymorphic type |forall d. (Trace d, Domain d) => d -> d|.
 Of course, any function defined by the generic interpreter satisfies this
 requirement.
 Without the premise of \textsc{Beta-App}, the law cannot be proved
@@ -814,7 +814,7 @@ To see that, let |a := MkUT (singenv y U1) (Rep Uω) :: UD| and consider
 
 To prove \Cref{thm:usage-subst-sem}, we encode |f|'s type in System $F$
 as $f : \forall X.\ \mathsf{Dict}(X) \to X \to X$ (where $\mathsf{Dict}(|d|)$
-encodes the type class dictionaries of |(Trace d, Domain d, HasBind d)|) and
+encodes the type class dictionaries of |(Trace d, Domain d)|) and
 derive the following free theorem:
 \[
   \forall A, B.\
