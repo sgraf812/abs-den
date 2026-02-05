@@ -44,9 +44,9 @@
   \label{fig:lk-semantics}
 \end{figure}
 
-Before we get to introduce our novel denotational interpreters, let us
-recall the semantic ground truth of this work and others \citep{Sergey:14,
-Breitner:16}: The Mark II machine of \citet{Sestoft:97} given in
+Before we get to introduce our denotational interpreters design pattern, let us
+recall the semantic ground truth of this work and others \citep{Gustavsson:98,
+Sergey:14, Breitner:16}: The Mark II machine of \citet{Sestoft:97} given in
 \Cref{fig:lk-semantics}, a small-step operational semantics.
 It is a Lazy Krivine (LK) machine implementing call-by-need.
 (A close sibling for call-by-value would be a CESK machine \citep{Felleisen:87}.)
