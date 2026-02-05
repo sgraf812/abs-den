@@ -242,7 +242,8 @@ This is why summary-based analyses are great: they scale.
 But not only that, summary-based analyses such as absence analysis have been
 shown to be more precise than control-flow analyses such as ones derived by
 direct abstraction of machine states~\citep{Mangal:14}.
-We will later discuss a (modestly degenerate) example when discussing usage analysis.
+\Cref{sec:related-work} discusses a (modestly degenerate) example where usage analysis
+is more precise than a hypothetical analysis based on 42-CFA.
 
 %\subsection{Summaries \vs Abstracting Abstract Machines}
 %

@@ -197,18 +197,17 @@ summaries, these require custom reductions in the semantics.
 \citet{Mangal:14} have shown that a summary-based analysis can be equivalent
 to $\infty$-CFA for arbitrary complete lattices and outperform 2-CFA in both
 precision and speed.
-%\Cref{sec:summaries} demonstrates why summary-based analyses scale better.
-%In the Appendix we argue why they can also be more precise
-%To illustrate why they can also be more preicse, consider the Haskell expression
-%
-%< let f n = let i y = y in if n == 0 then 0 else i (f (n-1) + 1) in f 42{-"."-}
-%
-%The definition of |f| is a complicated way to define the identity function.
-%Nevertheless, it is evident that |i| is evaluated at most once, and
-%|evalUsg| would infer this fact for the respective subexpression.
-%On the other hand, $k$-CFA (for $k < 42$) would confuse different recursive
-%activations of |i|, thus conservatively attributing evaluations multiple times,
-%to the effect that |i| is not inferred as used at most once.
+\Cref{sec:summaries} demonstrates why summary-based analyses scale better.
+To illustrate why they can also be more precise, consider the Haskell expression
+
+< let f n = let i y = y in if n == 0 then 0 else i (f (n-1) + 1) in f 42{-"."-}
+
+The definition of |f| is a complicated way to define the identity function.
+Nevertheless, it is evident that |i| is evaluated at most once, and
+|evalUsg| would infer this fact for the respective subexpression.
+On the other hand, $k$-CFA (for $k < 42$) would confuse different recursive
+activations of |i|, thus conservatively attributing evaluations multiple times,
+to the effect that |i| is not inferred as used at most once.
 
 %Given a semantic description of abstract values, it is likely
 %that the implementation of |Domain| can be synthesised using the approach of
@@ -225,7 +224,7 @@ the Glasgow Haskell Compiler.
 %as absence in call-by-need.
 %Alas, since the Clairvoyant instantiation of our denotational interpreter is
 %partial, such a proof would carry no meaning for partial inputs.
-We intend to build on our framework to describe improvements to Demand Analysis in
+We intend to develop our framework to describe improvements to Demand Analysis in
 the future.
 However, a soundness proof would require a different Galois connection than
 \Cref{fig:abstract-name-need}, because Demand Analysis is not sound \wrt by-name
