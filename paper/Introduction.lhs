@@ -75,6 +75,10 @@ analyses that we found difficult to achieve using an AAM approach such as in
 alternative (2).
 To show the usefulness of our approach, we prove that a derived summary-based
 \emph{usage analysis}~\citep{WrightBakerFinch:93} is sound for call-by-need.
+Note that we do not claim that our interpreter/proof setup can be used
+as-is for \emph{just any} analysis; rather we want to share an interesting new
+pattern to define static analyses and writing correctness proofs about
+them without drowning in the details, in the spirit of abstract interpretation.
 % To exemplify this difficulty and show the usefulness of our approach, we prove
 % that a derived summary-based \emph{usage analysis} is sound for call-by-need
 % and give an example where this simple usage analysis can be more precise than
@@ -93,7 +97,7 @@ We make the following contributions:
   denotational interpreter and its type class algebra in Haskell.
   The exposition assumes a by-name evaluation strategy, but we will see how easy
   it is to adjust the interpreter for by-need and by-value strategies, each
-  adjusted definition producing (abstractions of) abstract machine traces.
+  instance producing (abstractions of) abstract machine traces.
   Practical applications will focus on one particular evaluation strategy, of course.
 \item A concrete instantiation of a denotational interpreter is \emph{total}
   if it coinductively yields a (possibly infinite) trace for every input

@@ -905,11 +905,19 @@ There are two main problems to address, and we believe the first causes the seco
 %to the point where trust can only be recovered by full mechanisation.
 
 \emph{Abstract interpretation}~\citep{Cousot:77} provides a framework to tackle problem
-(2), but its systematic applications seem to require a structurally matching
-semantics (1).
-For example, the book of \citet{Cousot:21} starts from a \emph{compositional},
-trace-generating semantics for an imperative \emph{first-order} language to derive
-compositional analyses.
+(2), but its systematic applications to derive executable static analyses seem
+to require a structurally matching semantics (1).
+Given a matching semantics $\mathcal{S}\denot{e}$ and an operational property
+of interest expressed by an abstraction function $α$, the logical relation to
+prove is the sound abstract interpretation theorem $α(\mathcal{S}\denot{e}) ⊑
+\semabs{e}$ (which is roughly the conclusion of our \Cref{thm:abstract-by-need}).
+Note that $α(\mathcal{S}\denot{e})$ is undecidable due to Rice's
+theorem~\citep{Rice:53}, so it is not a good match to \emph{define} the
+analysis, but it is useful to specify it.
+
+The book of \citet{Cousot:21} starts from a \emph{compositional},
+trace-generating semantics for an imperative \emph{first-order} language to
+derive compositional analyses.
 However, it was unclear to the authors how Cousot's coinductive construction of a
 first-order trace domain could be adjusted to serve as a trace-generating
 domain for a \emph{higher-order} language.
@@ -939,3 +947,31 @@ abstraction laws.
 Intriguingly, by appealing to parametricity, none of the abstraction laws refer
 to the definition of the interpreter, thus our framework disentagles semantic
 concerns from the theory of the abstract domain, solving (2).
+
+\subsection{Disclaimer}
+
+Just as with other abstract interpretation frameworks, it is unlikely that
+readers can use our setup as-is.
+Defining the universal, parameterised language semantics was not our goal;
+rather we want to advocate for a design pattern for summary-based static
+analyses that allowed us to decompose the correctness proof obligation into
+manageable and potentially reusable parts.
+We hope that readers can build on our approach without feeling swamped by the
+details, as we once felt.
+
+For example, we fully expect that not many static analyses beyond usage analysis
+satisfy the abstraction laws in \Cref{sec:soundness}, or the semantic domain
+definition might need to be adjusted to match a different source language.
+However, it should be clear that if \emph{a different set} of abstraction laws
+can be proved sufficient, the proof for \Cref{thm:abstract-by-need} is a good
+place to start from, and the parameterised setup means that semantic subtleties
+can be dealt with independently of a complicated analysis definition.
+
+If the reader thinks that concrete denotational interpreters are not a good
+fit for their use case, perhaps because the domain construction involves
+guarded recursion and Löb induction, they can start with an operational
+semantics and still build on our proofs by folding the bisimulation proof
+\Cref{thm:need-adequacy-bisimulation} into the abstract interpretation theorem
+\Cref{thm:abstract-by-need}.
+However, to find the proof in the first place, it was helpful to take the
+intermediate step via a concrete denotational interpreter.

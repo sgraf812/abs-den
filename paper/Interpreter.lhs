@@ -335,7 +335,6 @@ We use |read :: String -> Exp| as a parsing function and a |Show| instance for
 For example, we can evaluate the expression $\Let{i}{\Lam{x}{x}}{i~i}$ like
 this:
 
-\pagebreak
 < ghci> eval (read "let i = λx.x in i i") emp :: DName
 $\perform{eval (read "let i = λx.x in i i") emp :: DName}$,
 \\[\belowdisplayskip]
