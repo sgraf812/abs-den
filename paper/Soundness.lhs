@@ -10,12 +10,11 @@ module Soundness where
 import Prelude hiding ((+), (*))
 import Data.Set (Set)
 import qualified Data.Set as Set
-import qualified Data.Map as Map
 import Interpreter
 
-instance Eq (D (ByName T)) where
+instance Eq DName where
   (==) = undefined
-instance Ord (D (ByName T)) where
+instance Ord DName where
   compare = undefined
 data Pow a = P (Set a) deriving (Eq, Ord)
 powMap :: (a -> b) -> Pow a -> Pow b

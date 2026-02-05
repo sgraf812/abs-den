@@ -420,7 +420,7 @@ as the soundness condition, and that, sadly, such a relation cannot easily be
 proven by appealing to parametricity.
 
 The reason we need to index correctness relations by a heap is as follows:
-Although in \Cref{sec:evaluation-strategies} we considered an element |d|
+Although in \Cref{sec:by-need-instance} we considered an element |d|
 as an atomic denotation, such a denotation actually only carries meaning when it
 travels together with a heap |μ| that ties the addresses that |d| references to
 actual meaning.
