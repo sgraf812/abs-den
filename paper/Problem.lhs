@@ -914,6 +914,9 @@ prove is the sound abstract interpretation theorem $α(\mathcal{S}\denot{e}) ⊑
 Note that $α(\mathcal{S}\denot{e})$ is undecidable due to Rice's
 theorem~\citep{Rice:53}, so it is not a good match to \emph{define} the
 analysis, but it is useful to specify it.
+Furthermore, if we would not already have an analysis definition we
+want to prove correct, we could derive one by \emph{calculational
+design}~\citep{Cousot:21}.
 
 The book of \citet{Cousot:21} starts from a \emph{compositional},
 trace-generating semantics for an imperative \emph{first-order} language to
@@ -923,7 +926,7 @@ first-order trace domain could be adjusted to serve as a trace-generating
 domain for a \emph{higher-order} language.
 
 In this work we present the \textbf{\emph{denotational interpreter}} design
-pattern to solve both problems above.
+pattern to help with both problems above.
 Inspired by \citeauthor{Cousot:21}, we define a \textbf{\emph{compositional,
 trace-generating semantics}} for \emph{higher-order} languages;
 one with which it is possible to express \emph{operational properties} such as
@@ -938,17 +941,18 @@ $\semabs{\wild}$) demonstrates that we can \textbf{\emph{define summary-based
 analyses}} as denotational interpreters.
 
 Since both semantics and analysis are \textbf{\emph{derived from the same
-generic interpreter}}, solving problem (1), we can prove usage analysis to be an
+generic interpreter}}, addressing problem (1), we can prove usage analysis to be an
 abstract interpretation of call-by-need semantics, in two steps:
-First, we show a generic soundness theorem parameterised over an analysis domain
-satisfying certain \emph{abstraction laws}, among which there is a semantic
-substitution lemma, and then we show that usage analysis satisfies these
-abstraction laws.
-Intriguingly, by appealing to parametricity, none of the abstraction laws refer
-to the definition of the interpreter, thus our framework disentagles semantic
-concerns from the theory of the abstract domain, solving (2).
+First, we show a generic soundness theorem (\Cref{thm:abstract-by-need})
+parameterised over an analysis domain satisfying certain \emph{abstraction
+laws}, among which there is a semantic substitution lemma, and then we show that
+usage analysis satisfies these abstraction laws (\Cref{thm:usage-abstracts-need}).
+Intriguingly, by appealing to parametricity (which is optional), none of the
+abstraction laws refer to the definition of the interpreter, thus our framework
+disentagles semantic concerns from the theory of the abstract domain, solving
+(2).
 
-\subsection{Disclaimer}
+\subsection{Disclaimer: What to expect}
 
 Just as with other abstract interpretation frameworks, it is unlikely that
 readers can use our setup as-is.
@@ -969,9 +973,10 @@ can be dealt with independently of a complicated analysis definition.
 
 If the reader thinks that concrete denotational interpreters are not a good
 fit for their use case, perhaps because the domain construction involves
-guarded recursion and Löb induction, they can start with an operational
-semantics and still build on our proofs by folding the bisimulation proof
+guarded recursion and Löb induction and their favourite theorem prover library
+is lacking these foundations, they can start with an operational semantics and
+still build on our proofs by folding the bisimulation proof
 \Cref{thm:need-adequacy-bisimulation} into the abstract interpretation theorem
-\Cref{thm:abstract-by-need}.
+\Cref{thm:abstract-by-need} and do step-indexing manually.
 However, to find the proof in the first place, it was helpful to take the
 intermediate step via a concrete denotational interpreter.
