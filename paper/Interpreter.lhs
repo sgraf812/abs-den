@@ -232,27 +232,27 @@ eval  ::  (Trace d, Domain d)
       =>  Exp -> (Name :-> d) -> d
 eval e ρ = case e of
   Var x  | x ∈ dom ρ  -> ρ ! x
-         | otherwise  -> stuck
+         | otherwise  -> domainfun(stuck)
   Lam x body ->
-    fun x {-" \iffalse "-}(label e){-" \fi "-} (\d -> step App2 (eval body ((ext ρ x d))))
+    domainfun(fun) x {-" \iffalse "-}(label e){-" \fi "-} (\d -> tracefun(step) App2 (eval body ((ext ρ x d))))
   App e x  | x ∈ dom ρ  ->
-               step App1 (apply (eval e ρ) (ρ ! x))
-           | otherwise  -> stuck
-  Let x e1 e2 -> bind {-" \iffalse "-}x{-" \fi "-}
-    (\d1 -> eval e1 (ext ρ x (step (Look x) d1)))
-    (\d1 -> step Let1 (eval e2 (ext ρ x (step (Look x) d1))))
+               tracefun(step) App1 (domainfun(apply) (eval e ρ) (ρ ! x))
+           | otherwise  -> domainfun(stuck)
+  Let x e1 e2 -> domainfun(bind) {-" \iffalse "-}x{-" \fi "-}
+    (\d1 -> eval e1 (ext ρ x (tracefun(step) (Look x) d1)))
+    (\d1 -> tracefun(step) Let1 (eval e2 (ext ρ x (tracefun(step) (Look x) d1))))
   ConApp k xs
     | all (∈ dom ρ) xs, length xs == conArity k
-    -> con {-" \iffalse "-}(label e){-" \fi "-} k (map (ρ !) xs)
+    -> domainfun(con) {-" \iffalse "-}(label e){-" \fi "-} k (map (ρ !) xs)
     | otherwise
-    -> stuck
+    -> domainfun(stuck)
   Case e alts ->
-    step Case1 (select (eval e ρ) (cont << alts))
+    tracefun(step) Case1 (domainfun(select) (eval e ρ) (cont << alts))
     where
        cont (xs, er) ds  |  length xs == length ds
-                         =  step Case2 (eval er (exts ρ xs ds))
+                         =  tracefun(step) Case2 (eval er (exts ρ xs ds))
                          |  otherwise
-                         =  stuck
+                         =  domainfun(stuck)
 \end{code}
 \end{minipage}%
 \begin{minipage}{0.44\textwidth}
@@ -275,18 +275,18 @@ class Domain d where
 evalName e ρ = eval e ρ :: DName
 
 instance Trace (T v) where
-  step = Step
+  tracefun(step) = Step
 
 instance Domain DName where
-  stuck = return Stuck
-  fun _ {-" \iffalse "-}_{-" \fi "-} f = return (Fun f)
-  apply  d a = d >>= \v -> case v of
-    Fun f -> f a; _ -> stuck
-  con {-" \iffalse "-}_{-" \fi "-} k ds = return (Con k ds)
-  select dv alts = dv >>= \v -> case v of
+  domainfun(stuck) = return Stuck
+  domainfun(fun) _ {-" \iffalse "-}_{-" \fi "-} f = return (Fun f)
+  domainfun(apply)  d a = d >>= \v -> case v of
+    Fun f -> f a; _ -> domainfun(stuck)
+  domainfun(con) {-" \iffalse "-}_{-" \fi "-} k ds = return (Con k ds)
+  domainfun(select) dv alts = dv >>= \v -> case v of
     Con k ds | k ∈ dom alts  -> (alts ! k) ds
-    _                        -> stuck
-  bind # rhs body = let d = rhs d in body d
+    _                        -> domainfun(stuck)
+  domainfun(bind) # rhs body = let d = rhs d in body d
 \end{code}
 \\[-2.5em]
 \subcaption{Concrete by-name semantics for |DName|}
@@ -329,7 +329,13 @@ different evaluation strategies as well as static analyses.
 
 \Cref{fig:eval} gives the complete definition of |eval| together with type class
 instances for domain |DName| that we introduced in \Cref{sec:dna}.
-Together this is enough to actually run the denotational interpreter to produce traces.
+We added visible cues in the form of gray boxes in \Cref{fig:eval} to highlight where
+type class method calls (\ie, calls to function parameters) happen, as opposed
+to regular function calls of known definitions.
+These hooks are filled in by the type class instances for |DName| when the
+polymorphic interpreter is instantiated at |DName|, so we also highlighted its
+implementations.
+These type class instances suffice to actually run the denotational interpreter to produce traces.
 We use |read :: String -> Exp| as a parsing function and a |Show| instance for
 |D τ| that displays traces.
 For example, we can evaluate the expression $\Let{i}{\Lam{x}{x}}{i~i}$ like

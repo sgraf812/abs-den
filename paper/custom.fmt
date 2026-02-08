@@ -24,6 +24,8 @@
 %format needd(d) = "Pow (D (ByNeed T))"
 %format needenv(env) = "Pow (Name :-> D (ByNeed T))"
 %format needheap(heap) = "Pow (Heap (ByNeed T))"
+%format tracefun(text) = text
+%format domainfun(text) = text
 
 %else
 
@@ -43,6 +45,8 @@
 %subst keyword a = "\keyword{" a "}"
 %subst dummy = "\wild"
 
+%format tracefun(text) = "{\setlength{\fboxsep}{1pt}\fcolorbox{lightgray}{white}{$" text "$}}"
+%format domainfun(text) = "{\setlength{\fboxsep}{1pt}\fcolorbox{lightgray}{white}{$" text "$}}"
 %format via = "\keyword{via}"
 %format τ = "\varcolor{\tau}"
 %format τ'
