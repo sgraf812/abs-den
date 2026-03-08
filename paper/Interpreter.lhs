@@ -433,9 +433,9 @@ Its model of memoisation brings with it all the usual semantic complexities
 that arise for semantic domains with higher-order state (\ie, that of a strict
 functional language with ref cells), so we think it is enlightening to study
 even if the reader's main interest lies in strict languages.
-Of course, \Cref{sec:more-eval-strat} shows that it is also possible to adjust
-the interpreter for call-by-value, which requires a separate @let rec@ construct
-or lazy initialization techniques.
+Of course, it is also possible to adjust the interpreter for call-by-value,
+which requires a separate @let rec@ construct or lazy initialization techniques.
+We demonstrate this in the Appendix.
 
 In \Cref{sec:soundness}, we build on |DNeed| to prove usage analysis sound \wrt
 by-need evaluation.
@@ -453,10 +453,11 @@ type DNeed = TNeed ValueNeed;
 ifPoly(data ValueNeed = Stuck | Fun (DNeed -> DNeed) | Con Tag [DNeed])
 evalNeed e ρ μ = unTNeed (eval e ρ :: DNeed) μ
 
+instance Monad TNeed where
+  return v = TNeed (\μ -> return (v, μ))
+  x >>= f = TNeed (\μ -> unTNeed x μ >>= \(v, μ) -> unTNeed (f v) μ)
 getN  :: TNeed Heap;           getN    = TNeed (\ μ -> return (μ, μ))
 putN  :: Heap -> TNeed (); ^^  putN μ  = TNeed (\ _ -> return ((), μ))
-ifPoly(instance Monad TNeed where ...)
-
 instance Trace (TNeed v) where step e m = TNeed (step e . unTNeed m)
 
 fetchN :: Addr -> DNeed; fetchN a = getN >>= \μ -> μ ! a
@@ -465,25 +466,6 @@ memoN :: Addr -> DNeed -> DNeed
 memoN a d = d >>= \v -> TNeed (upd v)
   where  upd StuckNeed  μ = return (StuckNeed :: ValueNeed, μ)
          upd v          μ = step Upd (return (v, ext μ a (memoN a (return v))))
-
-ifPoly(instance Domain DName where
-  ...
-  bind # rhs body = do  μ <- getN
-                        let a = nextFree μ
-                        putN (ext μ a (memoN a (rhs (fetchN a))))
-                        body (fetchN a))
-\end{code}
-%if style == newcode
-\begin{code}
-nextFree h = case Map.lookupMax h of
-  Nothing     -> 0
-  Just (k,_)  -> k+1
-
-data ValueNeed = StuckNeed | FunNeed (DNeed -> DNeed) | ConNeed Tag [DNeed]
-
-deriving via StateT Heap T instance Functor TNeed
-deriving via StateT Heap T instance Applicative TNeed
-deriving via StateT Heap T instance Monad TNeed
 
 instance Domain DNeed where
   stuck = return StuckNeed
@@ -498,6 +480,18 @@ instance Domain DNeed where
                         let a = nextFree μ
                         putN (ext μ a (memoN a (rhs (fetchN a))))
                         body (fetchN a)
+\end{code}
+%if style == newcode
+\begin{code}
+nextFree h = case Map.lookupMax h of
+  Nothing     -> 0
+  Just (k,_)  -> k+1
+
+data ValueNeed = StuckNeed | FunNeed (DNeed -> DNeed) | ConNeed Tag [DNeed]
+
+deriving via StateT Heap T instance Functor TNeed
+deriving via StateT Heap T instance Applicative TNeed
+
 \end{code}
 %endif
 \\[-1em]
@@ -523,20 +517,25 @@ In other words, we need a representation $|DNeed| \cong |Heap -> T (Value,
 Heap)|$.
 
 The by-need trace type |TNeed| in \Cref{fig:by-need} solves this type equation.
-It embeds a standard state transformer monad,
-whose key operations |getN| and |putN| are given in \Cref{fig:by-need}.
+It's |Monad| instance is that of a standard state transformer monad.
+That is, it passes around updated |Heap|s adjoined with semantic values, reusing
+the |Monad| instance for |T|.
+Its key operations |getN| and |putN| are given in \Cref{fig:by-need}.
 
 So the denotation of an expression is no longer a trace, but rather a
 \emph{stateful function returning a trace} with state |Heap| in
 which to allocate call-by-need thunks.
-The |Trace| instance of |TNeed| simply forwards to that of |T|, pointwise over
-heaps.
+The |Trace| instance of |TNeed| forwards to that of |T|, pointwise
+over heaps.
 
-We omitted the implementation of the |stuck|, |lam|, |app|, |con| and |select|
-methods of the |Domain| instance, because they are syntactically identical to
-\Cref{fig:trace-instances}.
-However, we have not omitted |bind|, which is the key method that differs for
-|DNeed|, because that is the only place where thunks are allocated.
+The |Domain| instance is mostly the same as for |DName|.
+In fact, the implementations of the |stuck|, |lam|, |app|, |con| and |select|
+methods are \emph{syntactically identical} to
+\Cref{fig:trace-instances}; the different semantics follows entirely from the
+new |Monad| and |Trace| instances, and the only concern of those is to thread
+the |Heap| around.
+However, |bind| is the key method that differs for |DNeed|, because that is the
+only place where thunks are allocated.
 The implementation of |bind| designates a fresh heap address |a|
 to hold the denotation of the right-hand side.
 Both |rhs| and |body| are called with |fetchN a|, a denotation that looks up |a|
@@ -562,10 +561,13 @@ adequacy \wrt an established semantics.}
 Although the code is carefully written, it is worth stressing how
 compact and expressive it is.
 We were able to move from traces to stateful traces just by wrapping traces |T|
-in a state transformer |TNeed|, without modifying the main |eval| function at
-all.
-In doing so, we provide the simplest encoding of a denotational by-need semantics
-that we know of.
+in a state transformer |TNeed|, isolating the implementation of memoisation to a
+single semantic primitive |memo|, with only minimal changes to add the |Upd|
+event to the main |eval| function.
+The semantic intuition built for the by-name interpreter compositionally carries
+over to the by-need interpreter.
+We think that this yields a comparatively simple encoding of a denotational
+by-need semantics.
 
 Here is an example evaluating $\Let{i}{(\Lam{y}{\Lam{x}{x}})~i}{i~i}$, starting
 in an empty \hypertarget{ex:eval-need-trace2}{heap}:
