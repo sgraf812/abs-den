@@ -1,0 +1,71 @@
+{
+  "nodes": {
+    "lean4": {
+      "inputs": {
+        "nixpkgs": "nixpkgs",
+        "nixpkgs-old": "nixpkgs-old",
+        "nixpkgs-older": "nixpkgs-older"
+      },
+      "locked": {
+        "lastModified": 1769411499,
+        "narHash": "sha256-K6lWXZ8XVEv91skjCal+hML2Tzr9G804j9Roq+4HXQQ=",
+        "owner": "leanprover",
+        "repo": "lean4",
+        "rev": "7e01a1bf5c70fc6167d49c345d3bf80596e9a79b",
+        "type": "github"
+      },
+      "original": {
+        "owner": "leanprover",
+        "ref": "v4.28.0",
+        "repo": "lean4",
+        "type": "github"
+      }
+    },
+    "nixpkgs": {
+      "locked": {
+        "lastModified": 1745636243,
+        "narHash": "sha256-kbNvlQZf8wwok3d2X1kM/TlXH/MZ+03ZNv+IPPBx+DM=",
+        "rev": "f771eb401a46846c1aebd20552521b233dd7e18b",
+        "type": "tarball",
+        "url": "https://releases.nixos.org/nixos/unstable/nixos-25.05pre789333.f771eb401a46/nixexprs.tar.xz"
+      },
+      "original": {
+        "type": "tarball",
+        "url": "https://channels.nixos.org/nixos-unstable/nixexprs.tar.xz"
+      }
+    },
+    "nixpkgs-old": {
+      "flake": false,
+      "locked": {
+        "lastModified": 1582018169,
+        "narHash": "sha256-qv1iK1IchpZKSeWL3NEs4U5Jl5QVyNHDdiMJvLOI4Yc=",
+        "type": "tarball",
+        "url": "https://releases.nixos.org/nixos/19.03/nixos-19.03.173691.34c7eb7545d/nixexprs.tar.xz"
+      },
+      "original": {
+        "type": "tarball",
+        "url": "https://channels.nixos.org/nixos-19.03/nixexprs.tar.xz"
+      }
+    },
+    "nixpkgs-older": {
+      "flake": false,
+      "locked": {
+        "lastModified": 1550657948,
+        "narHash": "sha256-BE0XqzNfzvhhtTXv37LyySyq4moL7z1i1hMvwbFNL/I=",
+        "type": "tarball",
+        "url": "https://releases.nixos.org/nixos/18.03/nixos-18.03.133402.cb0e20d6db9/nixexprs.tar.xz"
+      },
+      "original": {
+        "type": "tarball",
+        "url": "https://channels.nixos.org/nixos-18.03/nixexprs.tar.xz"
+      }
+    },
+    "root": {
+      "inputs": {
+        "lean4": "lean4"
+      }
+    }
+  },
+  "root": "root",
+  "version": 7
+}

@@ -962,7 +962,7 @@ rather we want to advocate for a design pattern for summary-based static
 analyses that allowed us to decompose the correctness proof obligation into
 manageable and potentially reusable parts.
 We hope that readers can build on our approach without feeling swamped by the
-details, as we once felt.
+details of a monolithic proof, as we once felt.
 
 For example, we fully expect that not many static analyses beyond usage analysis
 satisfy the abstraction laws in \Cref{sec:soundness}, or the semantic domain
@@ -974,10 +974,10 @@ can be dealt with independently of a complicated analysis definition.
 
 If the reader thinks that concrete denotational interpreters are not a good
 fit for their use case, perhaps because the domain construction involves
-guarded recursion and Löb induction and their favourite theorem prover library
-is lacking these foundations, they can start with an operational semantics and
-still build on our proofs by folding the bisimulation proof
-\Cref{thm:need-adequacy-bisimulation} into the abstract interpretation theorem
-\Cref{thm:abstract-by-need} and do step-indexing manually.
+guarded recursion and Löb induction and their favourite interactive theorem
+prover's support library is lacking these foundations, they can start with an
+operational semantics and still build on our proofs by folding the bisimulation
+proof \Cref{thm:need-adequacy-bisimulation} into the abstract interpretation
+theorem \Cref{thm:abstract-by-need} and do step-indexing manually.
 However, to find the proof in the first place, it was helpful to take the
 intermediate step via a concrete denotational interpreter.
