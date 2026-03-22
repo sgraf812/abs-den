@@ -635,23 +635,22 @@ We think that this yields a comparatively simple encoding of a denotational
 by-need semantics.
 
 \subsubsection{Walkthrough: Memoisation in Action}
-\label{sec:waltkthrough-need}
+\label{sec:walkthrough-need}
 
 Just as \Cref{sec:walkthrough} traced through |eval| for the by-name domain
 |DName|, let us now trace through the characteristic by-need example from trace
 \labelcref{ex:trace2} in \Cref{sec:op-sem}, $\Let{i}{(\Lam{y}{\Lam{x}{x}})~i}{i~i}$,
-to build intuition for how the compositional definition of |eval| with the |DNeed|
-type class instances models memoisation.
+to build intuition for how the |DNeed| type class instances model memoisation.
 The goal is to recover the by-need trace
 $\perform{evalNeed (read "let i = (λy.λx.x) i in i i") emp emp}$
 in the derivation depicted in \Cref{fig:by-need-trace}, purely by equational
 reasoning.
 We abbreviate |Step| to |S| as before and write |many (S ev)| to abbreviate a
 sequence of |Step| constructors with events |ev|.
-Additionally, we will omit wrapping and unwrapping of the |TNeed| constructors,
-so that, e.g., |DNeed| computations can be applied like functions of type
-|Heap -> T (ValueNeed, Heap)|.
-Thus, the current heap state will often appear as an additional argument.
+We also omit wrapping and unwrapping of |TNeed| constructors,
+so that |DNeed| computations can be applied directly as functions of type
+|Heap -> T (ValueNeed, Heap)|;
+thus the current heap state will often appear as an additional argument.
 
 \begin{figure}
 \begin{spec}
@@ -687,48 +686,54 @@ Thus, the current heap state will often appear as an additional argument.
 \label{fig:by-need-trace}
 \end{figure}
 
-The compositional unfolding of |eval| is just the same as in the by-name
-walkthrough in \Cref{sec:walkthrough}.
-However, the |bind| implementation for |DNeed|, unfolded in Step (1), is very
-different to the guarded fixpoint tied by |DName|.
-Note that the monadic operations |>>=|, |getN| and |putN| have immediately been
-unfolded and applied to the concrete empty heap |emp|.
-The code allocates a fresh heap address |a = 0| \wrt the empty heap and stores the
-memoised right-hand side |memoN 0 (...)| at that address, producing heap |μ1|.
-Step (2) inlines |a = 0| and moves |μ1| into the shared |where| context at the
+The compositional unfolding of |eval| proceeds just as in the by-name
+walkthrough of \Cref{sec:walkthrough}.
+However, the |bind| implementation for |DNeed|, unfolded in Step~(1), is very
+different from the guarded fixpoint tied by |DName|.
+The monadic operations |>>=|, |getN| and |putN| have been immediately unfolded
+and applied to the concrete empty heap |emp|.
+The resulting code allocates a fresh heap address |a = 0| and stores the memoised
+right-hand side |memoN 0 (...)| at that address, producing heap |μ1|.
+Step~(2) inlines |a = 0| and moves |μ1| into the shared |where| clause at the
 bottom of the figure.
 Environment |ρ1| stores a single binding for $i$, ensuring that every future
 reference to $i$ wraps the heap access |fetchN 0| in |S (Look "i")|.
-This indirection through the mutable heap implements the fixpoint.
+This indirection through the mutable heap takes the place of the guarded fixpoint.
 
-Step (3) interprets the application expression $i~i$ completely, similar as for
-by-name.
-Step (4) unfolds the definition of |apply|, abbreviating the continuation
-expressing beta reduction as |k1|.
-Step (5) further unfolds |fetch|, accessing the heap entry for address 0.
-Unfolding |memoN| in Step (6) exposes the |upd| continuation, abbreviated in |k2|.
-Step (7) goes through another beta reduction sequence (similar as before).
-Step (8) compacts the trace prefix to reclaim horizontal space, and Step (9)
-simply unfolds |eval| as in the |DName| case to arrive at the value of $i$.
+Step~(3) interprets the application $i~i$, as for by-name.
+Step~(4) unfolds |apply|, abbreviating the beta-reduction continuation as |k1|,
+and Step~(5) further unfolds |fetchN|, reading the heap entry at address~0.
+Unfolding |memoN| in Step~(6) exposes the |upd| continuation, abbreviated as |k2|:
+evaluate the right-hand side to a value, update the heap, then resume with |k1|.
+Step~(7) evaluates the right-hand side through another beta reduction,
+and Step~(8) compacts the resulting trace prefix to reclaim horizontal space.
+Step~(9) unfolds |eval| for the inner lambda $\Lam{x}{x}$ to arrive at the
+|Fun| value of $i$.
 
-Step (10) is the key one: it performs an update transition by passing the |Fun|
-value to |upd| in the contination |k2|.
-This replaces the thunk at address |0| with |memoN 0 (return v)|, where
-|v = Fun (\d -> Step App2 d)|, producing the updated heap |μ2| --- memoisation.
-Then |k1| resumes in Step (11) to perform beta reduction as before,
-calling the |Fun| value |\d -> Step App2 d| with argument
-|Step (Look "i") (fetchN 0)|, emitting |App2| and looking up $i$ a second time.
-The second |fetchN 0| reads the updated heap |μ2|.
-The entry is now of the form |memoN 0 (return v)|, which produces |v| immediately
-in Step (12) --- no beta reduction occurs.
-The |memoN| combinator emits a final |Upd| (a no-op update, since
-|v| is already cached) in Step (13) and returns |v|.
-This is the payoff of memoisation: between the first $\LookupT(i)$ and
-$\UpdateT$, a beta reduction $\AppIT \xhookrightarrow{} \AppET \xhookrightarrow{} \ldots$ takes place;
-between the second $\LookupT(i)$ and $\UpdateT$, no work is done.
-The final trace matches LK machine trace (2) from Section 3.
+Step~(10) is the key one: it passes the |Fun| value to |upd| in
+continuation~|k2|, which emits an |Upd| event and replaces the thunk at
+address~|0| with |memoN 0 (return v)|, where |v = Fun (\d -> Step App2 d)|,
+producing the updated heap |μ2| --- this is memoisation.
+Step~(11) then resumes with |k1|, performing beta reduction: the |Fun| value
+|\d -> Step App2 d| is called with argument |Step (Look "i") (fetchN 0)|,
+emitting |App2| and triggering a second lookup of $i$.
+
+Now the payoff: |fetchN 0| reads the \emph{updated} heap |μ2|, where the entry
+is |memoN 0 (return v)|.
+Since |return v| produces |v| immediately, no beta reduction occurs --- Step~(12)
+simply reaches the cached value.
+The |memoN| combinator emits a final |Upd| in Step~(13), a no-op since |v| is
+already stored, and returns |v|.
+Comparing the two $\LookupT(i)$--$\UpdateT$ brackets makes the effect of
+memoisation vivid:
+the first bracket ($\LookupT(i) \xhookrightarrow{} \AppIT \xhookrightarrow{} \AppET \xhookrightarrow{} \UpdateT$)
+performs a beta reduction to evaluate the thunk;
+the second ($\LookupT(i) \xhookrightarrow{} \UpdateT$) returns the cached
+result immediately.
+The final trace matches LK machine trace~\labelcref{ex:trace2} from \Cref{sec:op-sem}.
+
 As in \Cref{sec:walkthrough}, no single clause of |eval| sees the full trace.
-The generic interpreter definition is unchanged from the by-name case; all the
+The generic interpreter definition is unchanged from the by-name case; all
 memoisation machinery lives in |bind|, |memoN|, and |fetchN|, local to the
 |DNeed| type class instances.
 
