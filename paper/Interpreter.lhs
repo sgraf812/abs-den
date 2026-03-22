@@ -336,6 +336,12 @@ These hooks are filled in by the type class instances for |DName| when the
 polymorphic interpreter is instantiated at |DName|, so we also highlighted its
 implementations.
 These type class instances suffice to actually run the denotational interpreter to produce traces.
+
+Having fixed the type class instances for |DName| in \Cref{fig:trace-instances},
+we write |evalName e ρ| for |eval e ρ| instantiated for domain |DName|.
+We introduce similar shorthands |evalNeed1| and |evalUsg1| for the by-need and
+usage analysis instantiations in \Cref{sec:by-need-instance,sec:abstraction}.
+
 We use |read :: String -> Exp| as a parsing function and a |Show| instance for
 |D τ| that displays traces.
 For example, we can evaluate the expression $\Let{i}{\Lam{x}{x}}{i~i}$ like
@@ -350,33 +356,32 @@ means that the trace ends in a |Fun| value.
 We cannot generally print |DName| or |Fun|ctions thereof, but in this case the result would be the value $\Lam{x}{x}$.
 This is in direct correspondence to the earlier call-by-name small-step trace
 \labelcref{ex:trace} in \Cref{sec:op-sem}.
+Henceforth, we write expressions in the mathematical meta notation of
+\Cref{sec:lang} rather than as Haskell strings, e.g.,
+|evalName (({-" \Let{i}{\Lam{x}{x}}{i~i} "-})) emp| in place of
+|evalName (read "let i = λx.x in i i") emp|.
+\Cref{sec:walkthrough} walks through the intermediate reduction steps for this
+example; for now we focus on a general description of the interpreter.
 
 The definition of |eval|, given in \Cref{fig:eval}, is by structural recursion over the input expression.
-For example, to get the denotation of |Lam x body|, we must recursively invoke |eval| on |body|, extending the environment to bind |x| to its denotation.
-We wrap that body denotation in |step App2|, to prefix the trace of |body| with an |App2| event whenever the function is invoked, where |step| is a method of class |Trace|.
-Finally, we use |fun| to build the returned denotation; the details necessarily depend on the |Domain|, so |fun| is a method of class |Domain|.
-While the lambda-bound |x::Name| passed to |fun| is ignored in the
-|Domain DName| instance of the concrete by-name semantics, it is useful for
-abstract domains such as that of usage analysis (\Cref{sec:abstraction}).
-(We refrain from passing field binders or other syntactic tokens in |select|
-and let binders in |bind| as well, because the analyses considered do not need
-them.)
-The other cases follow a similar pattern; they each do some work, before handing
-off to type class methods to do the domain-specific work.
-
-The |bind| method is used to give meaning to recursive let bindings:
-it takes two functionals
-for building the denotation of the right-hand side and that of the let body,
-given a denotation for the right-hand side.
-The concrete implementation for |bind| given in \Cref{fig:trace-instances}
-computes a |d| such that |d = rhs d| and passes the recursively-defined |d| to
-|body|.%
-\footnote{Such a |d| corresponds to the \emph{guarded fixpoint} of |rhs|.
-Strict languages can define this fixpoint as |d () = rhs (d ())|.}
-Doing so yields a call-by-name evaluation strategy, because the trace |d|
-will be unfolded at every occurrence of |x| in the right-hand side |e1|.
-The Appendix contains examples of eager evaluation strategies that will yield
-from |d| inside |bind| instead of calling |body| immediately.
+For |Lam x body|, the interpreter recursively computes the body's denotation in
+an extended environment, prefixes it with |step App2|, and wraps the result via
+|fun|.
+The details of this necessarily depend on the particular |Domain|, so both
+|step| and |fun| are methods of this type class.
+The other cases follow a similar pattern:
+each does some structural work before handing off to domain-specific type class methods.
+The name |x| passed to |fun| is ignored for |DName| but needed by abstract
+domains (\Cref{sec:abstraction}).
+The |bind| method gives meaning to recursive let bindings via two
+functionals, one for the right-hand side and one for the body.
+For |DName| (\Cref{fig:trace-instances}), |bind| ties the knot via a
+\emph{guarded fixpoint} |d = rhs d| and passes |d| to |body|, yielding
+call-by-name evaluation.%
+\footnote{Strict languages can define the guarded fixpoint as |d () = rhs (d ())|.}
+Crucially, the |Let| case of |eval| also wraps every future reference to the bound
+variable |x| in |step (Look x)|, making variable lookup observable --- a mechanism
+we explore in \Cref{sec:walkthrough}.
 
 A helpful analogy to abstract machine reduction by one of our reviewers is in order.
 Every expression that appears as control expression in the LK machine from
@@ -388,8 +393,68 @@ prefix that corresponds to evaluating $\pe$ as the focus expression of a valid
 machine configuration $(\pe, ρ, μ, κ)$.
 The semantic value describes how that trace continues when the focus expression
 reaches a value, indexed by the evaluation context $(ρ, μ, κ)$.
+The following walkthrough makes this analogy concrete.
 
-We conclude this subsection with a few examples.
+\subsubsection{Walkthrough: From Compositional Definition to Operational Trace}
+\label{sec:walkthrough}
+
+Before exploring further instances such as for by-need evaluation, let us
+pause and trace through our concrete example from above in detail, to build
+intuition for how a compositional definition can produce small-step operational
+traces.
+We fix the by-name domain |DName| and work through $\Let{i}{\Lam{x}{x}}{i~i}$
+step by step, showing which clause of |eval| fires.
+
+The goal is to recover the by-name trace from \labelcref{ex:trace} in
+\Cref{sec:op-sem},
+$\perform{evalName (read "let i = λx.x in i i") emp}$,
+purely from the compositional structure of |eval|.
+We inline the |DName| type class instances (\Cref{fig:trace-instances})
+as we see fit.
+To save horizontal space, we'll abbreviate |Step| to |S|.
+\begin{align}
+    & |eval (({-" \Let{i}{\Lam{x}{x}}{i~i} "-})) emp| \notag \\
+={} & |let d = eval (({-" \Lam{x}{x} "-})) emp in S Let1 (eval (({-" i~i "-})) (singenv "i" (S (Look "i") d)))| \label{eqn:eval-ex1} \\
+={} & |let d = eval (({-" \Lam{x}{x} "-})) emp in S Let1 (S App1 (apply (S (Look "i") d) (S (Look "i") d)))| \label{eqn:eval-ex2} \\
+={} & |let d = Ret (Fun (\d -> S App2 d)) in S Let1 (S App1 (apply (S (Look "i") d) (...))| \label{eqn:eval-ex3} \\
+={} & |let d = ... ^^ in S Let1 (S App1 (S (Look "i") (S App2 (S (Look "i") d))))| \label{eqn:eval-ex4} \\
+={} & |S Let1 (S App1 (S (Look "i") (S App2 (S (Look "i") (Ret (Fun (\d -> S App2 d)))))))| \label{eqn:eval-ex5} \\
+={} & \perform{evalName (read "let i = λx.x in i i") emp} \notag
+\end{align}
+\noindent
+Step (\ref{eqn:eval-ex1}) unfolds the definition of the |Let| case and the |bind| implementation.
+The |bind| for |DName| computes a guarded fixpoint |let d = rhs d in body d|
+and the |Let| case of |eval| wraps every future reference to |i| in
+|Step (Look "i") d|, so a |Look "i"| event will be emitted at each use of |i|.
+Variable lookup becomes observable because it is wired into the environment
+at the \emph{binding site}.
+
+Step (\ref{eqn:eval-ex2}) unfolds |eval| for the |App| case ($i~i$) and |Var|
+case ($i$) in the application head.
+Both cases look up |"i"| in the environment, yielding |Step (Look "i") d| for both
+the function and argument positions.
+Step (\ref{eqn:eval-ex3}) evaluates the right-hand side:
+|eval| dispatches on the |Lam| case for $\Lam{x}{x}$, and |fun| for |DName| wraps
+the body denotation in |Ret (Fun ^^ ...)|.
+Note the |Step App2| pre-wired inside the
+|Fun| value --- it will be emitted whenever this function is applied.
+Since $\Lam{x}{x}$ does not mention $i$, the definition of |d| is independent of
+its self-reference, and the guarded fixpoint is immediate.
+
+Step (\ref{eqn:eval-ex4}) is the key one: it unfolds |apply| for |DName| using monadic
+bind |(>>=)| for |T|.  Recall that |Step ev tau >>= k = Step ev (tau >>= k)|
+threads through |Step| constructors, and |Ret v >>= k = k v| dispatches on
+the value.  So |(>>=)| replays the |Look "i"| event from the function
+denotation, reaches the |Fun| value inside |d|, and calls |(\d -> Step App2 d)| with
+argument |Step (Look "i") d| (elided as |...| in the previous line to save space).
+Step (\ref{eqn:eval-ex5}) substitutes |d|, and the final line prints the trace
+in familiar meta notation, recovering the by-name trace from \Cref{sec:op-sem}.
+
+No single clause sees the full trace; each contributes a fragment, and |(>>=)| for
+|T| glues them into a coherent whole.
+
+\subsubsection{Further Examples}
+We conclude this subsection with a few input/output pair examples.
 First we demonstrate that our interpreter is \emph{productive}:
 we can observe prefixes of diverging traces without risking a looping
 interpreter.
@@ -397,11 +462,11 @@ To observe prefixes, we use a function |takeT :: Int -> T v -> T (Maybe v)|:
 |takeT n τ| returns the first |n| steps of |τ| and replaces the final value
 with |Nothing| (printed as $...$) if it goes on for longer.
 
-< ghci> takeT 5 (eval (read "let x = x in x") emp) :: T (Maybe Value)
-$\perform{takeT 5 $ eval (read "let x = x in x") emp :: T (Maybe Value)}$
+< ghci> takeT 5 (evalName (({-" \Let{x}{x}{x} "-})) emp) :: T (Maybe Value)
+$\perform{takeT 5 $ evalName (read "let x = x in x") emp :: T (Maybe Value)}$
 
-< ghci> takeT 9 (eval (read "let w = λy. y y in w w") emp) :: T (Maybe Value)
-$\perform{takeT 9 $ eval (read "let w = λy. y y in w w") emp :: T (Maybe Value)}$
+< ghci> takeT 9 (evalName (({-" \Let{w}{\Lam{y}{y~y}}{w~w} "-})) emp) :: T (Maybe Value)
+$\perform{takeT 9 $ evalName (read "let w = λy. y y in w w") emp :: T (Maybe Value)}$
 \\[\belowdisplayskip]
 \noindent
 The reason |eval| is productive is due to the coinductive nature of |T|'s
@@ -416,11 +481,11 @@ Data constructor values are printed as $Con(K)$, where $K$ indicates the
 Data types allow for interesting ways (type errors) to get |Stuck| (\ie the
 \textbf{wrong} value of \citet{Milner:78}), printed as $\lightning$:
 
-< ghci> eval (read "let zro = Z() in let one = S(zro) in case one of { S(z) -> z }") emp :: DName
-$\perform{eval (read "let zro = Z() in let one = S(zro) in case one of { S(zz) -> zz }") emp :: DName}$
+< ghci> evalName (({-" \Let{\mathit{zro}}{Z}{\Let{\mathit{one}}{S~\mathit{zro}}{\Case{one}{S~\mathit{zz} \rightarrow \mathit{zz}}}} "-})) emp :: DName
+$\perform{evalName (read "let zro = Z() in let one = S(zro) in case one of { S(zz) -> zz }") emp :: DName}$
 
-< ghci> eval (read "let zro = Z() in zro zro") emp :: DName
-$\perform{eval (read "let zro = Z() in zro zro") emp :: DName}$
+< ghci> evalName (({-" \Let{\mathit{zro}}{Z}{\mathit{zro}~\mathit{zro}} "-})) emp :: DName
+$\perform{evalName (read "let zro = Z() in zro zro") emp :: DName}$
 
 \subsection{Call-by-need}
 \label{sec:by-need-instance}
@@ -569,21 +634,103 @@ over to the by-need interpreter.
 We think that this yields a comparatively simple encoding of a denotational
 by-need semantics.
 
-Here is an example evaluating $\Let{i}{(\Lam{y}{\Lam{x}{x}})~i}{i~i}$, starting
-in an empty \hypertarget{ex:eval-need-trace2}{heap}:
+\subsubsection{Walkthrough: Memoisation in Action}
+\label{sec:waltkthrough-need}
 
-< ghci> evalNeed (read "let i = (λy.λx.x) i in i i") emp emp :: T (ValueNeed, Heap)
-$\perform{evalNeed (read "let i = (λy.λx.x) i in i i") emp emp :: T (ValueNeed, Heap)}$
-\\[\belowdisplayskip]
-\noindent
-This trace is in clear correspondence to the earlier by-need LK trace
-\labelcref{ex:trace2}.
-We can observe memoisation at play:
-Between the first bracket of $\LookupT$ and $\UpdateT$ events, the heap entry
-for $i$ goes through a beta reduction $\AppIT \smallstep \AppET$ before
-producing a value.
-This work is cached, so that the second $\LookupT$ bracket does not do any beta
-reduction.
+Just as \Cref{sec:walkthrough} traced through |eval| for the by-name domain
+|DName|, let us now trace through the characteristic by-need example from trace
+\labelcref{ex:trace2} in \Cref{sec:op-sem}, $\Let{i}{(\Lam{y}{\Lam{x}{x}})~i}{i~i}$,
+to build intuition for how the compositional definition of |eval| with the |DNeed|
+type class instances models memoisation.
+The goal is to recover the by-need trace
+$\perform{evalNeed (read "let i = (λy.λx.x) i in i i") emp emp}$
+in the derivation depicted in \Cref{fig:by-need-trace}, purely by equational
+reasoning.
+We abbreviate |Step| to |S| as before and write |many (S ev)| to abbreviate a
+sequence of |Step| constructors with events |ev|.
+Additionally, we will omit wrapping and unwrapping of the |TNeed| constructors,
+so that, e.g., |DNeed| computations can be applied like functions of type
+|Heap -> T (ValueNeed, Heap)|.
+Thus, the current heap state will often appear as an additional argument.
+
+\begin{figure}
+\begin{spec}
+   evalNeed (({-" \Let{i}{(\Lam{y}{\Lam{x}{x}})~i}{i~i} "-})) emp emp
+=  let a = nextFree emp in {-" \hfill\textsc{(1)} "-}
+   let μ1 = singenv a (memoN a (evalNeed2 (({-" (\Lam{y}{\Lam{x}{x}})~i "-})) (singenv "i" (S (Look "i" (fetchN a)))))) in
+   S Let1 (evalNeed (({-" i~i "-})) (singenv "i" (S (Look "i" (fetchN a)))) μ1)
+=  S Let1 (evalNeed (({-" i~i "-})) ρ1 μ1) {-" \hfill\textsc{(2)} "-}
+=  S Let1 (S App1 (apply (S (Look "i") (fetchN 0)) (S (Look "i") (fetchN 0)) μ1)) {-" \hfill\textsc{(3)} "-}
+=  S Let1 (S App1 (S (Look "i") (fetchN 0 μ1) >>= k1)) {-" \hfill\textsc{(4)} "-}
+=  S Let1 (S App1 (S (Look "i") (memoN 0 (evalNeed2 (({-" (\Lam{y}{\Lam{x}{x}})~i "-})) ρ1) μ1) >>= k1)) {-" \hfill\textsc{(5)} "-}
+=  S Let1 (S App1 (S (Look "i") (evalNeed (({-" (\Lam{y}{\Lam{x}{x}})~i "-})) ρ1 μ1 >>= k2))) {-" \hfill\textsc{(6)} "-}
+=  S Let1 (S App1 (S (Look "i") (S App1 (S App2 (evalNeed (({-" \Lam{x}{x} "-})) ρ2 μ1 >>= k2))))) {-" \hfill\textsc{(7)} "-}
+=  many (S ev) (evalNeed (({-" \Lam{x}{x} "-})) ρ2 μ1 >>= k2) {-" \hfill\textsc{(8)} "-}
+=  many (S ev) (Ret (Fun (\d -> S App2 d), μ1) >>= k2) {-" \hfill\textsc{(9)} "-}
+=  many (S ev) (S Upd (Ret (Fun (\d -> S App2 d), μ2) >>= k1)) {-" \hfill\textsc{(10)} "-}
+=  many (S ev) (S Upd (S App2 (S (Look "i") (fetchN 0 μ2)))) {-" \hfill\textsc{(11)} "-}
+=  many (S ev) (S Upd (S App2 (S (Look "i") (Ret (Fun (\d -> S App2 d), μ2) >>= k3)))) {-" \hfill\textsc{(12)} "-}
+=  many (S ev) (S Upd (S App2 (S (Look "i") (S Upd (Ret (Fun (\d -> S App2 d), μ2)))))) {-" \hfill\textsc{(13)} "-}
+=  {-" \LetIT\xhookrightarrow{}\!\AppIT\xhookrightarrow{}\!\LookupT(i)\xhookrightarrow{}\!\AppIT\xhookrightarrow{}\!\AppET\xhookrightarrow{}\!\UpdateT\xhookrightarrow{}\!\AppET\xhookrightarrow{}\!\LookupT(i)\xhookrightarrow{}\!\UpdateT\xhookrightarrow{}\!\langle (\lambda,[0\!\! \mapsto \!\! \wild]) \rangle "-}
+ where
+   ρ1 = singenv "i" (S (Look "i" (fetchN 0)))
+   μ1 = singenv 0 (memoN 0 (evalNeed2 (({-" (\Lam{y}{\Lam{x}{x}})~i "-})) ρ1))
+   k1 (v, μ') = case v of Fun f -> f (S (Look "i") (fetchN 0)); _ -> stuck
+   k2 (v, μ') = upd 0 v μ' >>= k1
+   ev = [Let1, App1, Look "i", App1, App2]
+   ρ2 = env2 "i" (S (Look "i" (fetchN 0))) "y" (S (Look "i" (fetchN 0)))
+   μ2 = singenv 0 (memoN 0 (return (Fun (\d -> S App2 d))))
+   k3 (v, μ') = upd 0 v μ'
+\end{spec}
+\\[-1em]
+\caption{Walking through by-need evaluation for $\Let{i}{(\Lam{y}{\Lam{x}{x}})~i}{i~i}$}
+\label{fig:by-need-trace}
+\end{figure}
+
+The compositional unfolding of |eval| is just the same as in the by-name
+walkthrough in \Cref{sec:walkthrough}.
+However, the |bind| implementation for |DNeed|, unfolded in Step (1), is very
+different to the guarded fixpoint tied by |DName|.
+Note that the monadic operations |>>=|, |getN| and |putN| have immediately been
+unfolded and applied to the concrete empty heap |emp|.
+The code allocates a fresh heap address |a = 0| \wrt the empty heap and stores the
+memoised right-hand side |memoN 0 (...)| at that address, producing heap |μ1|.
+Step (2) inlines |a = 0| and moves |μ1| into the shared |where| context at the
+bottom of the figure.
+Environment |ρ1| stores a single binding for $i$, ensuring that every future
+reference to $i$ wraps the heap access |fetchN 0| in |S (Look "i")|.
+This indirection through the mutable heap implements the fixpoint.
+
+Step (3) interprets the application expression $i~i$ completely, similar as for
+by-name.
+Step (4) unfolds the definition of |apply|, abbreviating the continuation
+expressing beta reduction as |k1|.
+Step (5) further unfolds |fetch|, accessing the heap entry for address 0.
+Unfolding |memoN| in Step (6) exposes the |upd| continuation, abbreviated in |k2|.
+Step (7) goes through another beta reduction sequence (similar as before).
+Step (8) compacts the trace prefix to reclaim horizontal space, and Step (9)
+simply unfolds |eval| as in the |DName| case to arrive at the value of $i$.
+
+Step (10) is the key one: it performs an update transition by passing the |Fun|
+value to |upd| in the contination |k2|.
+This replaces the thunk at address |0| with |memoN 0 (return v)|, where
+|v = Fun (\d -> Step App2 d)|, producing the updated heap |μ2| --- memoisation.
+Then |k1| resumes in Step (11) to perform beta reduction as before,
+calling the |Fun| value |\d -> Step App2 d| with argument
+|Step (Look "i") (fetchN 0)|, emitting |App2| and looking up $i$ a second time.
+The second |fetchN 0| reads the updated heap |μ2|.
+The entry is now of the form |memoN 0 (return v)|, which produces |v| immediately
+in Step (12) --- no beta reduction occurs.
+The |memoN| combinator emits a final |Upd| (a no-op update, since
+|v| is already cached) in Step (13) and returns |v|.
+This is the payoff of memoisation: between the first $\LookupT(i)$ and
+$\UpdateT$, a beta reduction $\AppIT \xhookrightarrow{} \AppET \xhookrightarrow{} \ldots$ takes place;
+between the second $\LookupT(i)$ and $\UpdateT$, no work is done.
+The final trace matches LK machine trace (2) from Section 3.
+As in \Cref{sec:walkthrough}, no single clause of |eval| sees the full trace.
+The generic interpreter definition is unchanged from the by-name case; all the
+memoisation machinery lives in |bind|, |memoN|, and |fetchN|, local to the
+|DNeed| type class instances.
 
 \begin{toappendix}
 \label{sec:more-eval-strat}
@@ -776,7 +923,7 @@ $\perform{evalVInit (read "let x = x in x x") emp emp :: T (ValueVInit, HeapVIni
 \end{toappendix}
 
 \medskip
-The examples so far suggested that |evalNeed2| agrees with the LK machine on
+This example suggests that |evalNeed2| agrees with the LK machine on
 \emph{many} programs.
 The next section proves that |evalNeed2| agrees with the LK machine on
 \emph{all} programs, including ones that diverge.

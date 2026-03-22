@@ -211,8 +211,7 @@ all, such that
 where $\init(\pe) \smallstep ...$ denotes the \emph{maximal} (\ie longest
 possible) LK trace evaluating the closed expression $\pe$.
 For example, for the LK trace \labelcref{ex:trace2}, $α_{\STraces}$ produces
-the trace at the end of
-\hyperlink{ex:eval-need-trace2}{\Cref*{sec:by-need-instance}}.
+the trace in \Cref{fig:by-need-trace}.
 
 Function $α_{\STraces}$, defined in \Cref{fig:eval-correctness}, preserves a
 number of important observable properties, such as termination behavior (\ie
