@@ -1,68 +1,58 @@
 {
   "nodes": {
-    "lean4": {
+    "flake-utils": {
       "inputs": {
-        "nixpkgs": "nixpkgs",
-        "nixpkgs-old": "nixpkgs-old",
-        "nixpkgs-older": "nixpkgs-older"
+        "systems": "systems"
       },
       "locked": {
-        "lastModified": 1769411499,
-        "narHash": "sha256-K6lWXZ8XVEv91skjCal+hML2Tzr9G804j9Roq+4HXQQ=",
-        "owner": "leanprover",
-        "repo": "lean4",
-        "rev": "7e01a1bf5c70fc6167d49c345d3bf80596e9a79b",
+        "lastModified": 1731533236,
+        "narHash": "sha256-l0KFg5HjrsfsO/JpG+r7fRrqm12kzFHyUHqHCVpMMbI=",
+        "owner": "numtide",
+        "repo": "flake-utils",
+        "rev": "11707dc2f618dd54ca8739b309ec4fc024de578b",
         "type": "github"
       },
       "original": {
-        "owner": "leanprover",
-        "ref": "v4.28.0",
-        "repo": "lean4",
+        "owner": "numtide",
+        "repo": "flake-utils",
         "type": "github"
       }
     },
     "nixpkgs": {
       "locked": {
-        "lastModified": 1745636243,
-        "narHash": "sha256-kbNvlQZf8wwok3d2X1kM/TlXH/MZ+03ZNv+IPPBx+DM=",
-        "rev": "f771eb401a46846c1aebd20552521b233dd7e18b",
-        "type": "tarball",
-        "url": "https://releases.nixos.org/nixos/unstable/nixos-25.05pre789333.f771eb401a46/nixexprs.tar.xz"
+        "lastModified": 1773646010,
+        "narHash": "sha256-iYrs97hS7p5u4lQzuNWzuALGIOdkPXvjz7bviiBjUu8=",
+        "owner": "nixos",
+        "repo": "nixpkgs",
+        "rev": "5b2c2d84341b2afb5647081c1386a80d7a8d8605",
+        "type": "github"
       },
       "original": {
-        "type": "tarball",
-        "url": "https://channels.nixos.org/nixos-unstable/nixexprs.tar.xz"
-      }
-    },
-    "nixpkgs-old": {
-      "flake": false,
-      "locked": {
-        "lastModified": 1582018169,
-        "narHash": "sha256-qv1iK1IchpZKSeWL3NEs4U5Jl5QVyNHDdiMJvLOI4Yc=",
-        "type": "tarball",
-        "url": "https://releases.nixos.org/nixos/19.03/nixos-19.03.173691.34c7eb7545d/nixexprs.tar.xz"
-      },
-      "original": {
-        "type": "tarball",
-        "url": "https://channels.nixos.org/nixos-19.03/nixexprs.tar.xz"
-      }
-    },
-    "nixpkgs-older": {
-      "flake": false,
-      "locked": {
-        "lastModified": 1550657948,
-        "narHash": "sha256-BE0XqzNfzvhhtTXv37LyySyq4moL7z1i1hMvwbFNL/I=",
-        "type": "tarball",
-        "url": "https://releases.nixos.org/nixos/18.03/nixos-18.03.133402.cb0e20d6db9/nixexprs.tar.xz"
-      },
-      "original": {
-        "type": "tarball",
-        "url": "https://channels.nixos.org/nixos-18.03/nixexprs.tar.xz"
+        "owner": "nixos",
+        "ref": "nixos-unstable",
+        "repo": "nixpkgs",
+        "type": "github"
       }
     },
     "root": {
       "inputs": {
-        "lean4": "lean4"
+        "flake-utils": "flake-utils",
+        "nixpkgs": "nixpkgs"
+      }
+    },
+    "systems": {
+      "locked": {
+        "lastModified": 1681028828,
+        "narHash": "sha256-Vy1rq5AaRuLzOxct8nz4T6wlgyUR7zLU309k9mBC768=",
+        "owner": "nix-systems",
+        "repo": "default",
+        "rev": "da67096a3b9bf56a91d16901293e51ba5b49a27e",
+        "type": "github"
+      },
+      "original": {
+        "owner": "nix-systems",
+        "repo": "default",
+        "type": "github"
       }
     }
   },

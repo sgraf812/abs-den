@@ -1,8 +1,4 @@
-[package]
 name = "AbsDen"
-leanOptions = [
-  { name = "autoImplicit", value = false }
-]
 
 [[lean_lib]]
 name = "AbsDen"

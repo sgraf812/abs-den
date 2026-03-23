@@ -1,102 +1,100 @@
-/-!
-# Denotational interpreter and type class algebra
-
-Ported from Semantics.agda. The generic interpreter is parameterized by
-type classes `Trace` and `Domain`. `HasBind` has been merged into `Domain`
-(as in the paper).
-
-All types are stage-indexed: a "value" at stage `n` is `D n`, and the
-later modality is handled via the `Psh` infrastructure from `ToposOfTrees`.
--/
 import AbsDen.Syntax
 import AbsDen.Env
-import AbsDen.ToposOfTrees
+import AbsDen.World
 
-open Psh in
+/-!
+# Denotational interpreter
 
-/-! ## Events (trace labels) -/
+The interpreter is generic, parameterized by a family `D : Nat → Type` satisfying
+the type class `Domain D`.
 
-inductive Event where
-  | look : Var → Event
-  | update : Event
-  | app1 : Event
-  | app2 : Event
-  | case1 : Event
-  | case2 : Event
-  | let1 : Event
-deriving Repr, BEq
-
-/-! ## Type class definitions
-
-We work with stage-indexed types `D : Nat → Type` throughout.
-The "later" of `D` at stage `n` is `Laterₜ D n`:
-  - At stage 0: `PUnit`
-  - At stage `n+1`: `D n`
+Environment entries are `EnvEntry D n = Var × Later D n`.
+The `look` event is baked into the entry at `let` binding sites, not at
+reference sites, matching Agda's `Σ D is-env`.
 -/
 
-/-- The `Trace` class provides a `step` operation that consumes an event
-    and a delayed value, producing a value. -/
-class Trace (D : Nat → Type) where
-  step : Event → Laterₜ D n → D n
+/-! ## Semantic operations -/
 
-/-- The predicate characterising environment elements:
-    an element `d : D n` is an "env element" if it has the form
-    `step (look x) d▹` for some variable `x` and delayed `d▹`. -/
-structure IsEnv (D : Nat → Type) [Trace D] (n : Nat) where
-  val : D n
-  var : Var
-  delayed : Laterₜ D n
-  eq : val = Trace.step (Event.look var) delayed
+/-- Global elements of a step-indexed family. -/
+abbrev El (F : Nat → Type) := {n : Nat} → F n
 
-/-- The `Domain` class provides the semantic operations.
-    `HasBind` is merged in (as `bind`). -/
-class Domain (D : Nat → Type) [Trace D] where
-  stuck : D n
-  fn : (IsEnv D n → D n) → D n
-  apply : D n → IsEnv D n → D n
-  con : Con → List (IsEnv D n) → D n
-  select : D n → List (Con × (List (IsEnv D n) → D n)) → D n
-  bind : Laterₜ (fun n => Laterₜ D n → D n) n → (Laterₜ D n → D n) → D n
+/-- Environment entry: `Var × ▹D`. -/
+abbrev EnvEntry (D : Nat → Type) : Nat → Type := world(Var × ▹D)
+
+/-- Semantic domain: a World with denotational operations. -/
+class Domain (D : Nat → Type) extends World D where
+  step   : El world(Event → D → D)
+  stuck  : El D
+  fn     : El world((D → D) → D)
+  apply  : El world(D → D → D)
+  con    : El world(Con → List D → D)
+  select : El world(D → List (Con × (List D → D)) → D)
+  bind   : El world((D → D) → (D → D) → D)
+
+/-! ## Domain helpers at the current stage -/
+
+namespace Domain
+
+def step' {D : Nat → Type} [Domain D] {n : Nat} (e : Event) (d : D n) : D n :=
+  Domain.step n (Nat.le_refl n) e n (Nat.le_refl n) d
+
+def fn' {D : Nat → Type} [Domain D] {n : Nat} (f : world(D → D) n) : D n :=
+  Domain.fn n (Nat.le_refl n) f
+
+def apply' {D : Nat → Type} [Domain D] {n : Nat} (dv : D n) (da : D n) : D n :=
+  Domain.apply n (Nat.le_refl n) dv n (Nat.le_refl n) da
+
+def con' {D : Nat → Type} [Domain D] {n : Nat} (K : Con) (ds : List (D n)) : D n :=
+  Domain.con n (Nat.le_refl n) K n (Nat.le_refl n) ds
+
+def select' {D : Nat → Type} [Domain D] {n : Nat}
+    (dv : D n) (alts : List (Con × world(List D → D) n)) : D n :=
+  Domain.select n (Nat.le_refl n) dv n (Nat.le_refl n) alts
+
+def bind' {D : Nat → Type} [Domain D] {n : Nat}
+    (rhs : World.Function D D n)
+    (body : World.Function D D n) : D n :=
+  Domain.bind n (Nat.le_refl n) rhs n (Nat.le_refl n) body
+
+end Domain
 
 /-! ## The generic interpreter -/
 
-/-- The denotational interpreter, defined via guarded recursion (`fix`).
-    Parameterised over `D` with `Trace` and `Domain` instances. -/
-def eval {D : Nat → Type} [Trace D] [Domain D] (e : Exp) (ρ : Env (IsEnv D n)) : D n :=
-  Psh.fix
-    (Psh.mk (fun n => Exp → Env (IsEnv D n) → D n) (fun f e ρ => sorry))
-    (fun n recurse => sem n recurse)
-    n e ρ
-where
-  sem (n : Nat) (recurse : Laterₜ (fun n => Exp → Env (IsEnv D n) → D n) n)
-      : Exp → Env (IsEnv D n) → D n
-    | .ref x, ρ =>
-      match ρ.lookup x with
-      | none => Domain.stuck
-      | some ⟨d, _, _, _⟩ => d
-    | .lam x body, ρ =>
-      Domain.fn (fun d => Trace.step .app2 (mapSem recurse (fun rec => rec body (ρ.bind x d))))
-    | .app e x, ρ =>
-      match ρ.lookup x with
-      | none => Domain.stuck
-      | some d => Trace.step .app1 (mapSem recurse (fun rec => Domain.apply (rec e ρ) d))
-    | .let' x e₁ e₂, ρ =>
-      Domain.bind
-        (mapSem recurse (fun rec d₁ =>
-          rec e₁ (ρ.bind x (IsEnv.mk (Trace.step (.look x) d₁) x d₁ rfl))))
-        (fun d₁ => Trace.step .let1 (mapSem recurse (fun rec =>
-          rec e₂ (ρ.bind x (IsEnv.mk (Trace.step (.look x) d₁) x d₁ rfl)))))
-    | .conapp K xs, ρ =>
-      match ρ.pmapList xs with
-      | none => Domain.stuck
-      | some ds => Domain.con K ds
-    | .case' eₛ alts, ρ =>
-      Trace.step .case1 (mapSem recurse (fun rec =>
-        Domain.select (rec eₛ ρ) (alts.map (fun alt =>
-          (alt.con, fun ds => Trace.step .case2
-            (mapSem recurse (fun rec => rec alt.rhs (ρ.bindMany alt.vars ds))))))))
-  mapSem {A : Type} (recurse : Laterₜ (fun n => Exp → Env (IsEnv D n) → D n) n)
-      (f : (Exp → Env (IsEnv D n) → D n) → A) : Laterₜ (fun _ => A) n :=
-    match n with
-    | 0 => PUnit.unit
-    | _ + 1 => f recurse
+/-- Postfix notation for World.restrict: `ρ↓` restricts to the current step. -/
+macro:max x:term "↓" : term => `(World.restrict $x)
+
+/-- The generic denotational interpreter. -/
+def eval {D : Nat → Type} [Domain D] : (e : Exp) → El world(Env D → D)
+  | .ref x => fun _ _ ρ => match ρ.find? x with
+    | some entry => entry
+    | none => Domain.stuck
+  | .lam x body => fun k _ ρ =>
+    Domain.fn' (fun j hj entry => Domain.step' .app2 (eval body j (Nat.le_refl j) ((ρ↓).bind x entry)))
+  | .app e₁ x => fun k _ ρ => match ρ.find? x with
+    | some entry =>
+      Domain.step' .app1 (Domain.apply' (eval e₁ k (Nat.le_refl k) ρ) entry)
+    | none => Domain.stuck
+  | .conapp K xs => fun _ _ ρ => match ρ.pmapList xs with
+    | some ds => Domain.con' K ds
+    | none => Domain.stuck
+  | .case' eₛ alts => fun k _ ρ =>
+    Domain.step' .case1 (
+      Domain.select' (eval eₛ k (Nat.le_refl k) ρ)
+        (alts.map fun alt =>
+          (alt.con, fun j hj ds =>
+            Domain.step' .case2 (eval alt.rhs j (Nat.le_refl j) ((ρ↓).bindMany alt.vars ds)))))
+  | .let' x e₁ e₂ => fun k _ ρ =>
+    let rhs : World.Function D D k := fun j hj dx =>
+      eval e₁ j (Nat.le_refl j) ((ρ↓).bind x (Domain.step' (.look x) dx))
+    let body : World.Function D D k :=
+      fun j hj dx =>
+        Domain.step' .let1 (eval e₂ j (Nat.le_refl j) ((ρ↓).bind x (Domain.step' (.look x) dx)))
+    Domain.bind' rhs body
+termination_by e => sizeOf e
+decreasing_by
+  all_goals simp_wf
+  all_goals first | omega | skip
+  · have h_list : sizeOf alt < sizeOf alts := List.sizeOf_lt_of_mem ‹alt ∈ alts›
+    have h_rhs : sizeOf alt.rhs < sizeOf alt := by
+      cases alt; simp [Alt.mk.sizeOf_spec]; omega
+    omega

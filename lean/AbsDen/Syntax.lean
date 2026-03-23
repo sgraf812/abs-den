@@ -8,32 +8,38 @@ constructors, case expressions, and let bindings.
 abbrev Var := Nat
 abbrev Con := Nat
 
-inductive Exp where
-  | ref : Var → Exp
-  | lam : Var → Exp → Exp
-  | app : Exp → Var → Exp
-  | let' : Var → Exp → Exp → Exp
-  | conapp : Con → List Var → Exp
-  | case' : Exp → List Alt → Exp
-with Alt where
-  | mk : Con → List Var → Exp → Alt
+/-! ## Events -/
+
+/-- Trace events for recording evaluation steps. -/
+inductive Event where
+  | look : Var → Event
+  | update : Event
+  | app1 : Event
+  | app2 : Event
+  | case1 : Event
+  | case2 : Event
+  | let1 : Event
 deriving Repr, BEq
 
-namespace Alt
+mutual
+  inductive Exp where
+    | ref : Var → Exp
+    | lam : Var → Exp → Exp
+    | app : Exp → Var → Exp
+    | let' : Var → Exp → Exp → Exp
+    | conapp : Con → List Var → Exp
+    | case' : Exp → List Alt → Exp
+  deriving Repr
 
-def con : Alt → Con
-  | .mk K _ _ => K
-
-def vars : Alt → List Var
-  | .mk _ vs _ => vs
-
-def rhs : Alt → Exp
-  | .mk _ _ e => e
-
-end Alt
+  structure Alt where
+    con : Con
+    vars : List Var
+    rhs : Exp
+  deriving Repr
+end
 
 def findAlt (K : Con) : List Alt → Option (List Var × Exp)
   | [] => none
-  | (.mk K' vs rhs) :: alts =>
-    if K == K' then some (vs, rhs)
+  | alt :: alts =>
+    if K == alt.con then some (alt.vars, alt.rhs)
     else findAlt K alts
