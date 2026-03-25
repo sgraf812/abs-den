@@ -117,16 +117,16 @@ for a higher-order language, it was unclear to us how to derive a compositional,
 The required changes to the domain definitions seemed daunting, to say the
 least.
 Our solution delegates this complexity to the underlying theory of guarded
-recursive type theory~\citep{tctt}.
+recursive type theory~\citep{tctt} and define our interpreter in terms of the
+abstract interface offered by the topos of trees.
 
-% TODO: Comment back in for final version
-%We deliberately tried to provide a simple framework and thus stuck to cartesian
-%(\ie pointwise) abstraction of environments as in \citet[Chapter
-%27]{Cousot:21}, but we expect relational abstractions to work just as well.
-%Our generic denotational interpreter is a higher-order generalisation of the
-%generic abstract interpreter in \citet[Chapter 21]{Cousot:21}.
-%Our abstraction laws in \Cref{fig:abstraction-laws} correspond to Definition 27.1
-%and \Cref{thm:abstract-by-need} to Theorem 27.4.
+We deliberately tried to provide a simple framework and thus stuck to cartesian
+(\ie pointwise) abstraction of environments as in \citet[Chapter 27]{Cousot:21},
+but we expect relational abstractions to work just as well.
+Our generic denotational interpreter is a higher-order generalisation of the
+generic abstract interpreter in \citet[Chapter 21]{Cousot:21}.
+Our abstraction laws in \Cref{fig:abstraction-laws} correspond to Definition 27.1
+and \Cref{thm:abstract-by-need} to Theorem 27.4.
 
 \subsubsection*{Abstractions of Reachable States}
 CFA~\citep{Shivers:91} computes a useful control-flow graph abstraction for
