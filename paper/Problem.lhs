@@ -912,19 +912,22 @@ Given a matching semantics $\mathcal{S}\denot{e}$ and an operational property
 of interest expressed by an abstraction function $α$, the logical relation to
 prove is the sound abstract interpretation theorem $α(\mathcal{S}\denot{e}) ⊑
 \semabs{e}$ (which is roughly the conclusion of our \Cref{thm:abstract-by-need}).
-Note that $α(\mathcal{S}\denot{e})$ is undecidable due to Rice's
-theorem~\citep{Rice:53}, so it is not a good match to \emph{define} the
-analysis, but it is useful to specify it.
-Furthermore, if we would not already have an analysis definition we
-want to prove correct, we could derive one by \emph{calculational
-design}~\citep{Cousot:21}.
+Here $α(\mathcal{S}\denot{e})$ is the most precise analysis for property $α$,
+but is in general undecidable by Rice's theorem~\citep{Rice:53}; it specifies
+$\semabs{e}$ rather than defining it.
+The analysis $\semabs{e}$ is thus \emph{sound} but \emph{incomplete}, trading
+precision for efficient decidability.
+Alternatively, $\semabs{e}$ could be derived from the semantics by
+\emph{calculational design}~\citep{Cousot:21}.
 
 The book of \citet{Cousot:21} starts from a \emph{compositional},
 trace-generating semantics for an imperative \emph{first-order} language to
 derive compositional analyses.
 However, it was unclear to the authors how Cousot's coinductive construction of a
 first-order trace domain could be adjusted to serve as a trace-generating
-domain for a \emph{higher-order} language.
+domain for a \emph{higher-order} language; the negative recursion in the
+domain equation to support function values and mutable state is impossible to
+solve with coinduction.
 
 In this work we present the \textbf{\emph{denotational interpreter}} design
 pattern to help with both problems above.
@@ -948,10 +951,10 @@ First, we show a generic soundness theorem (\Cref{thm:abstract-by-need})
 parameterised over an analysis domain satisfying certain \emph{abstraction
 laws}, among which there is a semantic substitution lemma, and then we show that
 usage analysis satisfies these abstraction laws (\Cref{thm:usage-abstracts-need}).
-Intriguingly, by appealing to parametricity (which is optional), none of the
-abstraction laws refer to the definition of the interpreter, thus our framework
-disentagles semantic concerns from the theory of the abstract domain, solving
-(2).
+Intriguingly, by appealing to parametricity (which is optional and can be
+replaced with a more conventional proof strategy), none of the abstraction laws refer
+to the definition of the interpreter, thus our framework disentagles semantic
+concerns from the theory of the abstract domain, solving (2).
 
 \subsection{Disclaimer: What to expect}
 
