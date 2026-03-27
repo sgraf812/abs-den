@@ -1013,6 +1013,18 @@ can be proved sufficient, the proof for \Cref{thm:abstract-by-need} is a good
 place to start from, and the parameterised setup means that semantic subtleties
 can be dealt with independently of a complicated analysis definition.
 
+Although we focus on a lazy functional language, the core semantic challenge we
+address --- soundly abstracting higher-order mutable state --- is not specific
+to lazy evaluation.
+Call-by-need memoisation requires a heap of closures that are read, evaluated,
+and updated, which is precisely the semantic structure shared by strict
+functional languages with mutable references (\eg., ML) and object-oriented
+languages with stateful interfaces (\eg, Java).
+We chose call-by-need because it is the semantics that GHC's static analyses
+approximate.
+We expect the denotational interpreter pattern to transfer to other language
+paradigms that share this structure.
+
 If the reader thinks that concrete denotational interpreters are not a good
 fit for their use case, perhaps because the domain construction involves
 guarded recursion and Löb induction and their favourite interactive theorem
