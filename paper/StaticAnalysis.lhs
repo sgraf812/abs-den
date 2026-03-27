@@ -108,8 +108,7 @@ denotational interpreters:
 
 \end{itemize}
 
-In the following, we discuss usage analysis (\Cref{sec:usage-analysis}) and type
-analysis (\Cref{sec:type-analysis}) in detail.
+In the following, we discuss usage analysis (\Cref{sec:usage-analysis}) in detail.
 
 \subsection{Usage Analysis}
 \label{sec:usage-analysis}
@@ -472,6 +471,8 @@ The resulting definition of |bind| is safe for by-name and by-need semantics.%
 %important.
 %We discuss this topic in \Cref{sec:safety-extension}.}
 
+\begin{toappendix}
+
 \subsection{Type Analysis: Algorithm J}
 \label{sec:type-analysis}
 
@@ -712,7 +713,6 @@ The generalisation machinery comes to bear in the implementation
 of |bind|, which implements a combination of the $\mathit{fix}$ and $\mathit{let}$
 cases in Algorithm~J, computing fixpoints by unification (|uniFix|).
 
-\begin{toappendix}
 \subsection{Control-flow Analysis}
 \label{sec:0cfa}
 
