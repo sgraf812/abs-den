@@ -939,6 +939,10 @@ required in \citet{Sergey:14}.%
 \footnote{Useful applications of the ``at most once'' cardinality are given in
 \citet{Turner:95,Sergey:14}, motivating inlining into function bodies that are
 called at most once, for example.}
+In abstract interpretation terms, our denotational interpreter can be
+instantiated as a more concrete collecting semantics that retains operational
+detail (such as variable lookup events) which a standard denotational
+semantics abstracts away.
 
 The example of usage analysis in \Cref{sec:abstraction} (generalising
 $\semabs{\wild}$) demonstrates that we can \textbf{\emph{define summary-based
