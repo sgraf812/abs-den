@@ -97,7 +97,11 @@ The abstraction function $α_{\mathcal{S}}$, given in
 terms of the abstract domain |hat D| of |evalD (hat D) e ρ|, which is
 short for |eval e ρ :: hat D|.
 That is: the type class instances on |hat D| determine $α_{\mathcal{S}}$, and
-hence the semantic property that is soundly abstracted by |evalD (hat D) e ρ|.
+hence the semantic property that is soundly abstracted by |evalD (hat D) e ρ|.%
+\footnote{Again, note that |evalD (hat D) e ρ| is a decidable algorithm, in
+contrast to $α_{\mathcal{S}}(|evalNeed1 e|)$.
+To give just one example, computing the latter diverges whenever the evaluation
+of |e| diverges.}
 
 We will instantiate the theorem at |UD| in order to prove that usage analysis
 |evalUsg e ρ = evalD UD e ρ| infers absence, just as absence analysis in
