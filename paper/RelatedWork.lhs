@@ -128,6 +128,11 @@ generic abstract interpreter in \citet[Chapter 21]{Cousot:21}.
 Our abstraction laws in \Cref{fig:abstraction-laws} correspond to Definition 27.1
 and \Cref{thm:abstract-by-need} to Theorem 27.4.
 
+\citet{Giacobazzi:25} study compositionality of best correct
+approximations in abstract interpretation. Our setting is different --- we do
+not aim for best abstractions, but rather for sound, computable abstractions at
+the cost of some precision.
+
 \subsubsection*{Abstractions of Reachable States}
 CFA~\citep{Shivers:91} computes a useful control-flow graph abstraction for
 higher-order programs, thus lifting classic intraprocedural analyses such as
