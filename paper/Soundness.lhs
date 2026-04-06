@@ -513,13 +513,14 @@ abstraction law \textsc{Beta-App} in \Cref{fig:abstraction-laws}.
 proof.
 
 Before we discuss this proof, note that the proof for
-\Cref{thm:absence-subst} has a serious drawback: It relies on knowing the
+\Cref{thm:absence-subst} has a drawback: It relies on knowing the
 complete definition of $\semabs{\wild}$ and thus is \emph{non-modular}.
 As a result, the proof complexity scales in the size of the interpreter, and
 whenever the definition of $\semabs{\wild}$ changes, \Cref{thm:absence-subst}
 must be updated.
-The complexity of such non-modular proofs would become unmanageable for large
-denotational interpreters such as for WebAssembly~\citep{Brandl:23}.
+The complexity of such non-modular proofs would become unmanageable
+on pen and paper for large denotational interpreters such as for
+WebAssembly~\citep{Brandl:23}.
 
 For \textsc{Beta-App}, dubbed \emph{semantic substitution}, the proof fares much
 better:
@@ -1004,6 +1005,14 @@ Finally, step \labelcref{arrow:usg-anal-context} applies
 doesn't change when an expression is put in an arbitrary evaluation context.
 The final step is just algebra.
 \end{proof}
+
+We have therefore proved that usage analysis correctly infers the semantic property
+of absence, as defined in \Cref{sec:problem}.
+From this result, one could further prove that the dead code removal constitutes
+an optimization that \emph{improves} the program in the sense of \citet{MoranSands:99}.
+However, such a proof typically is best carried out in a high-level syntactic
+inequational theory; we do not anticipate that the denotational interpreter
+perspective offers a significant advantage in that context.
 
 \subsection{Comparison to Ad-hoc Preservation Proof}
 
