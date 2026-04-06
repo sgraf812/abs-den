@@ -1,6 +1,0 @@
-name: abs-den
-include:
-  .
-depend:
-  standard-library
-  cubical
