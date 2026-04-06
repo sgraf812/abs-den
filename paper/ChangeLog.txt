@@ -1,0 +1,64 @@
+# Changelog
+
+Changes since 0fa491c
+
+## Domain simplification
+
+Removed the type parameter τ from domain types throughout, shrinking the
+interpreter significantly. Moved by-value instances and type analysis to the
+appendix. Dropped HasBind as a separate type class.
+
+## Reframing the contribution
+
+Rewrote Introduction and Problem to position denotational interpreters as a
+tool to decompose a soundness proof rather than a "third alternative". Softened
+"novel" to "design pattern". Clarified that the most precise abstraction of
+the semantics is undecidable (Rice) and thus specifies rather than defines the
+analysis.
+
+## New subsection: AI, Logical Relations, and Preservation
+
+Added a subsection explaining that the correctness statement can be read
+equivalently as a sound abstract interpretation theorem, a unary step-indexed
+logical relation, and a preservation proof — three traditions describing the
+same proof obligation.
+
+## Disclaimers and scope
+
+Added a "What to expect" disclaimer that the framework is a pattern, not
+plug-and-play. Noted that parametricity is optional. Gave guidance for readers
+whose theorem prover lacks guarded recursion support.
+
+## By-need walkthrough
+
+Added a detailed step-by-step walkthrough figure for by-need evaluation of a
+concrete example, illustrating how the heap models memoisation. Introduced
+notation shorthands and inlined the key instances into the main text. Added
+formatting macros to visually distinguish Trace vs. Domain method calls in the
+interpreter listing.
+
+## Addressing reviewer concerns
+
+- Clarified that the interpreter can be instantiated as a more concrete
+  collecting semantics, not just as an abstraction (addressing the
+  "abstract-to-concrete" comment).
+- Added a paragraph on applicability beyond lazy languages: the same
+  heap-of-closures structure appears in ML and Java; we focus on call-by-need
+  because of GHC.
+- Added a 42-CFA counterexample showing usage analysis can be strictly more
+  precise than k-CFA.
+
+## Related Work
+
+Added comparison to Cousot (2021) (our interpreter generalises his generic
+abstract interpreter; abstraction laws and main theorem correspond to specific
+definitions/theorems there). Added Giacobazzi & Ranzato (POPL 2025) noting their
+best-approximation setting differs from ours. Added Gustavsson (1998) to the
+list of works using Sestoft's Mark II machine.
+
+## Absence/soundness section
+
+Made absence analysis total (returns bottom when a variable is out of scope).
+Added footnote distinguishing the decidable analysis from the undecidable
+semantic property it approximates. Noted that a dead code removal improvement
+proof is possible but best done in a syntactic inequational theory.
