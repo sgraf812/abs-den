@@ -26,11 +26,17 @@ instance : World D := inferInstanceAs (World (World.Fix D.Sig))
 /-! ## Domain operations -/
 
 /-- Abbreviation for the value Rep type used in traces. -/
-abbrev VRep := Value.F.Rep (Later D)
+abbrev VRep := Value.F.Rep (▹ D)
 
 def D.unfold {n : Nat} (d : D n) : T VRep n := World.Fix.unfold d
 
 def D.fold {n : Nat} (t : T VRep n) : D n := World.Fix.fold t
+
+def D.Later.unfold {n : Nat} (dl : ▹ D n) : ▹ (T VRep) n :=
+  Later.map (fun _ => D.unfold) _ dl
+
+def D.Later.fold {n : Nat} (tl : ▹ (T VRep) n) : ▹ D n :=
+  Later.map (fun _ => D.fold) _ tl
 
 instance {n : Nat} {D' : Nat → Type} : Inhabited (Value.F D' n) := ⟨.stuck⟩
 
@@ -40,10 +46,10 @@ def ret {n : Nat} (v : Value.F (▹ D) n) : D n :=
   fold (T.ret (Value.F.toRep _ v))
 
 def step {n : Nat} (e : Event) (dl : ▹ D n) : D n :=
-  fold (T.step e dl)
+  fold (T.step e (Later.map (fun _ => D.unfold) _ dl))
 
 def invis {n : Nat} (dl : ▹ D n) : D n :=
-  fold (T.fold (.invis dl))
+  fold (T.fold (.invis (Later.map (fun _ => D.unfold) _ dl)))
 
 def stuck {n : Nat} : D n := ret .stuck
 
@@ -139,28 +145,35 @@ instance : ToString Exp := ⟨Exp.toString⟩
 
 instance {n : Nat} {α : Type} [BEq α] : BEq (World.Const α n) := inferInstanceAs (BEq α)
 
-partial def traceBisim {n : Nat} (a b : T VRep n) : Bool :=
-  match T.unfold a, T.unfold b with
-  | .ret va, .ret vb => valBisim (Value.F.ofRep _ va) (Value.F.ofRep _ vb)
-  | .step ea xa, .step eb xb => ea == eb && laterBisim xa xb
-  | .invis xa, _ => laterBisim xa (Later.next b)
-  | _, .invis xb => laterBisim (Later.next a) xb
-  | _, _ => false
-where
-  valBisim {n : Nat} (a b : Value.F (Later D) n) : Bool :=
+namespace Bisim
+
+mutual
+  partial def trace {n : Nat} (a b : T VRep n) : Bool :=
+    match T.unfold a, T.unfold b with
+    | .ret va, .ret vb => value (Value.F.ofRep _ va) (Value.F.ofRep _ vb)
+    | .step ea xa, .step eb xb => ea == eb && laterTrace xa xb
+    | .invis xa, _ => laterTrace xa (Later.next b)
+    | _, .invis xb => laterTrace (Later.next a) xb
+    | _, _ => false
+
+  partial def value {n : Nat} (a b : Value.F (▹ D) n) : Bool :=
     match a, b with
     | .stuck, .stuck => true
     | .fn _, .fn _ => true
     | .con Ka dsa, .con Kb dsb =>
       Ka == Kb && dsa.length == dsb.length &&
-      (dsa.zip dsb).all fun (da, db) => laterBisim da db
+      (dsa.zip dsb).all fun (da, db) => laterTrace (D.Later.unfold da) (D.Later.unfold db)
     | _, _ => false
-  laterBisim {n : Nat} (a b : Later D n) : Bool :=
+
+  partial def laterTrace {n : Nat} (a b : ▹ (T VRep) n) : Bool :=
     match n with
     | 0 => true
-    | _ + 1 => traceBisim (D.unfold a) (D.unfold b)
+    | _ + 1 => trace a b
+end
 
-partial def D.bisim {n : Nat} (a b : D n) : Bool := traceBisim a.unfold b.unfold
+end Bisim
+
+def D.bisim {n : Nat} (a b : D n) : Bool := Bisim.trace a.unfold b.unfold
 
 instance {n : Nat} : BEq (D n) := ⟨D.bisim⟩
 
