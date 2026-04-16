@@ -25,8 +25,14 @@ def restrict {F : Nat → Type u} [World F] {n m : Nat} (x : F n) (hm : m ≤ n 
 theorem forall_le_congr {n : Nat} {P Q : (m : Nat) → m ≤ n → Type v}
     (h : ∀ m hm, P m hm = Q m hm) :
     (∀ m (hm : m ≤ n), P m hm) = (∀ m (hm : m ≤ n), Q m hm) := by
-  have : P = Q := funext fun m => funext fun hm => h m hm
-  subst this; rfl
+  have : P = Q := funext fun m => funext fun hm => h m hm; subst this; rfl
+
+/-- Helper: cast through `forall_le_congr` decomposes at each level. -/
+theorem cast_forall_le_congr_apply {n : Nat} {P Q : (m : Nat) → m ≤ n → Type v}
+    (h : ∀ m hm, P m hm = Q m hm)
+    (f : ∀ m (hm : m ≤ n), P m hm) (m : Nat) (hm : m ≤ n) :
+    cast (forall_le_congr h) f m hm = cast (h m hm) (f m hm) := by
+  have : P = Q := funext fun m => funext fun hm => h m hm; subst this; rfl
 
 end World
 
@@ -65,8 +71,8 @@ def Later.next' {F : Nat → Type u} {n : Nat} : F (n - 1) → Later F n :=
   | _ + 1 => fun f a => f a
 
 theorem Later.ext (X Y : Nat → Type u) (n : Nat)
-    (h : ∀ m, m < n → X m = Y m) : Later X n = Later Y n := by
-  cases n with | zero => rfl | succ n' => exact h n' (Nat.lt_succ_self n')
+    (h : ∀ m, m < n → X m = Y m) : Later X n = Later Y n :=
+  match n with | 0 => rfl | n' + 1 => h n' (Nat.lt_succ_self n')
 
 instance {A : Nat → Type u} {n : Nat} [h : ∀ m, Inhabited (A m)] : Inhabited (Later A n) :=
   match n with
@@ -123,7 +129,7 @@ instance instId : LocalFunctor (fun X => X) where
 
 instance instLater : LocalFunctor Later where
   instWorld _ := inferInstance
-  property X Y _ _ n h := by cases n with | zero => rfl | succ m => exact h m (Nat.le_succ m)
+  property _ _ _ _ n h := match n with | 0 => rfl | m + 1 => h m (Nat.le_succ m)
 
 instance instProd [LocalFunctor F₁] [LocalFunctor F₂] :
     LocalFunctor (fun X => World.Prod (F₁ X) (F₂ X)) where
@@ -145,15 +151,13 @@ instance instComp [LocalFunctor F] [LocalFunctor G] :
 instance instWorldComp [Functor G] [LocalFunctor F] :
     LocalFunctor (fun X => World.Comp G (F X)) where
   instWorld A [World A] := inferInstance
-  property X Y _ _ n h := by simp only [World.Comp]; congr 1; exact property X Y n h
+  property X Y _ _ n h := congrArg _ (property X Y n h)
 
 instance instFunction [LocalFunctor F₁] [LocalFunctor F₂] :
     LocalFunctor (fun X => World.Function (F₁ X) (F₂ X)) where
   instWorld A [World A] := inferInstance
   property X Y _ _ n h := by
-    simp only [World.Function]
-    apply World.forall_le_congr
-    intro m hm
+    simp only [World.Function]; apply World.forall_le_congr; intro m hm
     rw [property (F := F₁) X Y m (fun k hk => h k (Nat.le_trans hk hm)),
         property (F := F₂) X Y m (fun k hk => h k (Nat.le_trans hk hm))]
 
@@ -312,7 +316,8 @@ theorem Fix.chain_agree (F : (Nat → Type u) → (Nat → Type u)) [LocalFuncto
   | 0, 0, _ => rfl
   | n' + 1, 0, _ =>
     letI := Fix.chain_world F WorldFunctor.instWorld n'
-    exact LocalFunctor.property _ _ _ fun k hk => by cases Nat.le_zero.mp hk; simp [Later, World.Const]
+    exact LocalFunctor.property _ _ _ fun k hk => by
+      cases Nat.le_zero.mp hk; simp [Later, World.Const]
   | n' + 1, m' + 1, h =>
     letI := Fix.chain_world F WorldFunctor.instWorld n'
     letI := Fix.chain_world F WorldFunctor.instWorld m'
@@ -340,11 +345,11 @@ theorem Fix.eq (F : (Nat → Type u) → (Nat → Type u)) [LocalFunctor F] (n :
   simp only [Fix]
   cases n with
   | zero =>
-    exact LocalFunctor.property (World.Const PUnit) (Later (Fix F)) 0 fun m hm => by
+    exact LocalFunctor.property _ _ 0 fun m hm => by
       cases Nat.le_zero.mp hm; simp [Later, World.Const]
   | succ n' =>
     letI := Fix.chain_world F WorldFunctor.instWorld n'
-    exact LocalFunctor.property (Later (Fix.chain F n')) (Later (Fix F)) (n' + 1) fun m hm =>
+    exact LocalFunctor.property _ _ _ fun m hm =>
       Later.ext _ _ _ fun j hj =>
         Fix.chain_agree F n' j (Nat.le_of_succ_le_succ (Nat.lt_of_lt_of_le hj hm))
 
@@ -366,55 +371,27 @@ theorem Fix.chain_agree_param
     Fix.chain (F X) k m = Fix.chain (F Y) k m := by
   induction k generalizing m with
   | zero =>
-    simp only [Fix.chain]
-    exact (inst₂ (World.Const PUnit)).property X Y m
-      fun j hj => h j (Nat.le_trans hj hm)
+    exact (inst₂ (World.Const PUnit)).property X Y m fun j hj => h j (Nat.le_trans hj hm)
   | succ k' ih =>
-    simp only [Fix.chain]
-    -- Construct World instances on the chains so Later's World instance applies.
-    letI lfX : LocalFunctor (fun Z => F X Z) := inst₁ X
-    letI lfY : LocalFunctor (fun Z => F Y Z) := inst₁ Y
-    letI wChainX : World (Fix.chain (F X) k') :=
-      Fix.chain_world (F X) WorldFunctor.instWorld k'
-    letI wChainY : World (Fix.chain (F Y) k') :=
-      Fix.chain_world (F Y) WorldFunctor.instWorld k'
-    have eq1 : F X (Later (Fix.chain (F X) k')) m
-             = F Y (Later (Fix.chain (F X) k')) m :=
-      (inst₂ (Later (Fix.chain (F X) k'))).property X Y m
-        fun j hj => h j (Nat.le_trans hj hm)
-    have eq2 : F Y (Later (Fix.chain (F X) k')) m
-             = F Y (Later (Fix.chain (F Y) k')) m :=
-      (inst₁ Y).property (Later (Fix.chain (F X) k')) (Later (Fix.chain (F Y) k')) m
-        fun j hj =>
-          Later.ext _ _ _ fun i hi => by
-            have hin : i ≤ n :=
-              Nat.le_of_lt (Nat.lt_of_lt_of_le hi (Nat.le_trans hj hm))
-            have hik : i ≤ k' :=
-              Nat.le_of_lt_succ (Nat.lt_of_lt_of_le hi (Nat.le_trans hj hmk))
-            exact ih i hin hik
-    exact eq1.trans eq2
+    letI := Fix.chain_world (F X) WorldFunctor.instWorld k'
+    letI := Fix.chain_world (F Y) WorldFunctor.instWorld k'
+    exact ((inst₂ _).property X Y m fun j hj => h j (Nat.le_trans hj hm)).trans
+      ((inst₁ Y).property _ _ m fun j hj =>
+        Later.ext _ _ _ fun i hi =>
+          ih i (Nat.le_of_lt (Nat.lt_of_lt_of_le (Nat.lt_of_lt_of_le hi hj) hm))
+            (Nat.le_of_lt_succ (Nat.lt_of_lt_of_le (Nat.lt_of_lt_of_le hi hj) hmk)))
 
 instance Fix.instLocalFunctor (F : (Nat → Type u) → (Nat → Type u) → (Nat → Type u))
     (inst₁ : ∀ X [World X], LocalFunctor (fun Y => F X Y))
     (inst₂ : ∀ Y [World Y], LocalFunctor (fun X => F X Y)) :
     LocalFunctor (fun X => Fix (F X)) where
   instWorld X [World X] := inferInstance
-  property X Y _ _ n h := by
-    simp only [Fix]
-    show Fix.chain (F X) n n = Fix.chain (F Y) n n
-    exact Fix.chain_agree_param F inst₁ inst₂ n h n n
-      (Nat.le_refl n) (Nat.le_refl n)
-
-/-- Helper: cast through `forall_le_congr` decomposes at each level. -/
-theorem cast_forall_le_congr_apply {n : Nat} {P Q : (m : Nat) → m ≤ n → Type v}
-    (h : ∀ m hm, P m hm = Q m hm)
-    (f : ∀ m (hm : m ≤ n), P m hm) (m : Nat) (hm : m ≤ n) :
-    cast (forall_le_congr h) f m hm = cast (h m hm) (f m hm) := by
-  have : P = Q := funext fun m => funext fun hm => h m hm; subst this; rfl
+  property _ _ _ _ n h :=
+    Fix.chain_agree_param F inst₁ inst₂ n h n n (Nat.le_refl n) (Nat.le_refl n)
 
 /-- For `World.Function`-based Fix types, `unfold` after `restrictStep` equals
     `unfold` with a weakened inequality proof. -/
-theorem unfold_restrictStep_Function
+theorem Fix.unfold_restrictStep_Function
     {A B : (Nat → Type u) → (Nat → Type u)} [LocalFunctor A] [LocalFunctor B]
     {n : Nat} (x : Fix (fun X => Function (A X) (B X)) (n + 1))
     (m : Nat) (hm : m ≤ n) :
@@ -424,11 +401,9 @@ theorem unfold_restrictStep_Function
   simp [World.Fix.unfold, World.restrictStep]
   rw [cast_forall_le_congr_apply, cast_forall_le_congr_apply]
   · rfl
-  · intro k hk
-    congr 1 <;> exact LocalFunctor.property _ _ k
+  · intro k hk; congr 1 <;> exact LocalFunctor.property _ _ k
       (fun j hj => Later.ext _ _ j (fun i hi => Fix.chain_agree _ n i (by omega)))
-  · intro k hk
-    congr 1 <;> exact LocalFunctor.property _ _ k
+  · intro k hk; congr 1 <;> exact LocalFunctor.property _ _ k
       (fun j hj => Later.ext _ _ j (fun i hi => Fix.chain_agree _ n i (by omega)))
 
 end World

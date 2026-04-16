@@ -92,9 +92,7 @@ def eval {D : Nat → Type} [Domain D] : (e : Exp) → El world(Env D → D)
     Domain.bind' rhs body
 termination_by e => sizeOf e
 decreasing_by
-  all_goals simp_wf
-  all_goals first | omega | skip
-  · have h_list : sizeOf alt < sizeOf alts := List.sizeOf_lt_of_mem ‹alt ∈ alts›
-    have h_rhs : sizeOf alt.rhs < sizeOf alt := by
-      cases alt; simp [Alt.mk.sizeOf_spec]; omega
+  all_goals simp_wf; first | omega | skip
+  · have := List.sizeOf_lt_of_mem ‹alt ∈ alts›
+    have : sizeOf alt.rhs < sizeOf alt := by cases alt; simp [Alt.mk.sizeOf_spec]; omega
     omega
