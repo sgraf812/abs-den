@@ -1,4 +1,5 @@
 name = "AbsDen"
+defaultTargets = ["AbsDen"]
 
 [[lean_lib]]
 name = "AbsDen"

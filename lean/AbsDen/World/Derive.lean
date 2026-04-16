@@ -224,7 +224,7 @@ private def parseCommand (s : String) : CommandElabM Syntax := do
 def deriveWorld (declName : Name) : CommandElabM Unit := do
   let indVal ← liftTermElabM <| getConstInfoInduct declName
   let (ctorAnalyses, _sigLift) ← liftTermElabM <| analyzeInductive declName
-  let (_binders, _names, _recParamName, paramStr, paramNamesStr) ←
+  let (_binders, _names, _recParamName, _paramStr, paramNamesStr) ←
     liftTermElabM <| analyzeParams indVal
   -- Strip current namespace to avoid double-prefixing
   let ns ← getCurrNamespace
@@ -309,7 +309,7 @@ private partial def buildLocalFunctorProof (lift : WorldLift) (xFVar : Expr) :
     let laterConst ← mkConstWithFreshMVarLevels ``Later
     let laterLF ← mkConstWithFreshMVarLevels ``LocalFunctor.instLater
     mkAppOptM ``LocalFunctor.instComp #[some laterConst, some funL, some laterLF, some proofL]
-  | .comp F l => do
+  | .comp _F l => do
     -- instWorldComp : {G} → {F} → [Functor G] → [LF F] → LF (fun X => Comp G (F X))
     let proofL ← buildLocalFunctorProof l xFVar
     let bodyL ← buildCombinatorExpr l xFVar

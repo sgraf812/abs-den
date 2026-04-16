@@ -75,7 +75,7 @@ private def liftTypeApp (head : Syntax) (worldArgs : Array Expr) (worldLevel : L
 
 open Lean Elab Term Meta in
 /-- Recursively elaborate a world expression. Returns `Nat → Type u`. -/
-partial def elabWorldCore (t : Syntax) (expectedType? : Option Expr) : TermElabM Expr := do
+partial def elabWorldCore (t : Syntax) (_expectedType? : Option Expr) : TermElabM Expr := do
   match t with
   | `($a → $b) =>
     let a' ← elabWorldCore a none

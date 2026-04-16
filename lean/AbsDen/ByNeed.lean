@@ -20,7 +20,7 @@ instance : Functor AddrMap where
   map f (m : AddrMap _) := Std.HashMap.fold (fun acc k v => acc.insert k (f v)) ∅ m
 instance : LocalFunctor (World.Comp AddrMap) where
   instWorld _ := inferInstance
-  property X Y n h := by simp only [World.Comp]; congr 1; exact h n (Nat.le_refl n)
+  property X Y _ _ n h := by simp only [World.Comp]; congr 1; exact h n (Nat.le_refl n)
 
 abbrev Heap (D : Nat → Type) : Nat → Type := World.Comp AddrMap D
 instance {D : Nat → Type} {n : Nat} : EmptyCollection (Heap D n) := ⟨(∅ : AddrMap (D n))⟩

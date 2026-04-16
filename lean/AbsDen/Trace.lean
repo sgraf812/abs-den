@@ -2,7 +2,7 @@ import AbsDen.Syntax
 import AbsDen.World
 
 /-!
-# Tracerfamily `T V`
+# Trace type `T`
 
 The trace type is defined via `World.Fix` with signature `T.Sig V`:
 ```
@@ -25,13 +25,17 @@ abbrev T.Sig (V : Nat → Type) := T.F.Rep V
 /-- `T V` is the guarded fixpoint: `T V ≅ V ⊕ (Event × ▹(T V))`. -/
 def T (V : Nat → Type) : Nat → Type := World.Fix (T.Sig V)
 
-instance : LocalFunctor T where
-  instWorld V := World.Fix.instWorld (T.Sig V)
-  property X Y n h := by
-    simp only [T]
-    -- World.Fix (T.Sig X) n = World.Fix (T.Sig Y) n
-    -- Follows from T.Sig X and T.Sig Y agreeing at ≤ n when X and Y agree at ≤ n
-    sorry
+instance T.F.instLocalFunctor_X (V : Nat → Type) [World V] :
+    LocalFunctor (fun X => T.F.Rep V X) := by
+  derive_local_functor
+
+instance T.F.instLocalFunctor_V (X : Nat → Type) [World X] :
+    LocalFunctor (fun V => T.F.Rep V X) := by
+  derive_local_functor
+
+instance : LocalFunctor T :=
+  World.Fix.instLocalFunctor T.F.Rep
+    (fun V => T.F.instLocalFunctor_X V) (fun X => T.F.instLocalFunctor_V X)
 
 namespace T
 
