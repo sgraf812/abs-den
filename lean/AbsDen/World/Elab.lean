@@ -228,7 +228,7 @@ example (D : Nat → Type) : Nat → Type := world(D × D)
 example (D : Nat → Type) : Nat → Type := world(D ⊕ D)
 example (D : Nat → Type) : Nat → Type := world(D → D)
 example (D : Nat → Type) : Nat → Type := world(Nat ⊕ D × D)
-example (D : Nat → Type) : Nat → Type := world(Unit ⊕ (Var × D → D) ⊕ Con × List (Var × D))
+example (D : Nat → Type) : Nat → Type := world(Unit ⊕ (Var × D → D) ⊕ ConTag × List (Var × D))
 example (V W : Nat → Type) : Nat → Type := world(V ⊕ Event × W)
 def testSig (D : Nat → Type) : Nat → Type := world(Nat ⊕ D × D)
 

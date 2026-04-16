@@ -294,14 +294,14 @@ elab_rules : tactic
 
 namespace World
 
-private def Fix.chain (F : (Nat → Type u) → (Nat → Type u)) : Nat → (Nat → Type u)
+def Fix.chain (F : (Nat → Type u) → (Nat → Type u)) : Nat → (Nat → Type u)
   | 0 => F (World.Const PUnit)
   | n + 1 => F (Later (Fix.chain F n))
 
 def Fix (F : (Nat → Type u) → (Nat → Type u)) : Nat → Type u :=
   fun n => Fix.chain F n n
 
-private theorem Fix.chain_agree (F : (Nat → Type u) → (Nat → Type u)) [LocalFunctor F]
+theorem Fix.chain_agree (F : (Nat → Type u) → (Nat → Type u)) [LocalFunctor F]
     (n m : Nat) (h : m ≤ n) : Fix.chain F n m = Fix.chain F m m := by
   match n, m, h with
   | 0, 0, _ => rfl
@@ -317,7 +317,7 @@ private theorem Fix.chain_agree (F : (Nat → Type u) → (Nat → Type u)) [Loc
           (chain_agree F m' j this).symm
 termination_by (n, m)
 
-private theorem Fix.chain_stable (F : (Nat → Type u) → (Nat → Type u)) [LocalFunctor F] (n : Nat) :
+theorem Fix.chain_stable (F : (Nat → Type u) → (Nat → Type u)) [LocalFunctor F] (n : Nat) :
     Fix.chain F (n + 1) n = Fix.chain F n n :=
   Fix.chain_agree F (n + 1) n (Nat.le_succ n)
 
@@ -339,7 +339,7 @@ def Fix.fold {F : (Nat → Type u) → (Nat → Type u)} [LocalFunctor F] {n : N
 def Fix.unfold {F : (Nat → Type u) → (Nat → Type u)} [LocalFunctor F] {n : Nat} :
     Fix F n → F (Later (Fix F)) n := cast (Fix.eq F n)
 
-private def Fix.chain_world (F : (Nat → Type u) → (Nat → Type u))
+def Fix.chain_world (F : (Nat → Type u) → (Nat → Type u))
     (inst : ∀ (X : Nat → Type u), [World X] → World (F X)) :
     (k : Nat) → World (Fix.chain F k)
   | 0 => inst _
@@ -351,6 +351,13 @@ instance Fix.instWorld (F : (Nat → Type u) → (Nat → Type u)) [LocalFunctor
   restrictStep {n} x :=
     letI := Fix.chain_world F WorldFunctor.instWorld (n + 1)
     cast (Fix.chain_stable F n) (World.restrictStep x)
+
+/-- Helper: cast through `forall_le_congr` decomposes at each level. -/
+theorem cast_forall_le_congr_apply {n : Nat} {P Q : (m : Nat) → m ≤ n → Type v}
+    (h : ∀ m hm, P m hm = Q m hm)
+    (f : ∀ m (hm : m ≤ n), P m hm) (m : Nat) (hm : m ≤ n) :
+    cast (forall_le_congr h) f m hm = cast (h m hm) (f m hm) := by
+  have : P = Q := funext fun m => funext fun hm => h m hm; subst this; rfl
 
 end World
 

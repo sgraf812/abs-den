@@ -27,8 +27,8 @@ class Domain (D : Nat → Type) extends World D where
   stuck  : El D
   fn     : El world((D → D) → D)
   apply  : El world(D → D → D)
-  con    : El world(Con → List D → D)
-  select : El world(D → List (Con × (List D → D)) → D)
+  con    : El world(ConTag → List D → D)
+  select : El world(D → List (ConTag × (List D → D)) → D)
   bind   : El world((D → D) → (D → D) → D)
 
 /-! ## Domain helpers at the current stage -/
@@ -44,11 +44,11 @@ def fn' {D : Nat → Type} [Domain D] {n : Nat} (f : world(D → D) n) : D n :=
 def apply' {D : Nat → Type} [Domain D] {n : Nat} (dv : D n) (da : D n) : D n :=
   Domain.apply n (Nat.le_refl n) dv n (Nat.le_refl n) da
 
-def con' {D : Nat → Type} [Domain D] {n : Nat} (K : Con) (ds : List (D n)) : D n :=
+def con' {D : Nat → Type} [Domain D] {n : Nat} (K : ConTag) (ds : List (D n)) : D n :=
   Domain.con n (Nat.le_refl n) K n (Nat.le_refl n) ds
 
 def select' {D : Nat → Type} [Domain D] {n : Nat}
-    (dv : D n) (alts : List (Con × world(List D → D) n)) : D n :=
+    (dv : D n) (alts : List (ConTag × world(List D → D) n)) : D n :=
   Domain.select n (Nat.le_refl n) dv n (Nat.le_refl n) alts
 
 def bind' {D : Nat → Type} [Domain D] {n : Nat}

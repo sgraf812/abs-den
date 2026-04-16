@@ -56,7 +56,7 @@ def stuck {n : Nat} : D n := ret .stuck
 def fn {n : Nat} (f : world(D → D) n) : D n :=
   ret (.fn (fun m h dl => (Later.hmap m (fun k hk => f k (by omega)) dl)))
 
-def con {n : Nat} (K : Con) (ds : world(List D) n) : D n :=
+def con {n : Nat} (K : ConTag) (ds : world(List D) n) : D n :=
   ret (.con K (ds.map Later.next))
 
 end D
@@ -84,7 +84,7 @@ instance : Domain D where
     D.bind (dv↓) fun j hj v =>
       match v with
       | .con K ds =>
-        match alts.find? (fun (p : Con × _) => p.1 == K) with
+        match alts.find? (fun (p : ConTag × _) => p.1 == K) with
         | some (_, f) =>
           D.invis (Later.hmap j (fun i _h ds' => f i (by omega) ds') (Later.sequence _ ds))
         | none => D.stuck

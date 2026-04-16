@@ -36,7 +36,7 @@ example (D : Nat → Type) (d : D 0) :
 -- Test 5: Two constructors with Comp — deriving World and LocalFunctor
 inductive ValF' (D : Nat → Type) (n : Nat) where
   | stuck : ValF' D n
-  | con : Con → world(List (Var × D)) n → ValF' D n
+  | con : ConTag → world(List (Var × D)) n → ValF' D n
   deriving World, LocalFunctor
 example : LocalFunctor ValF'.Rep := inferInstance
 

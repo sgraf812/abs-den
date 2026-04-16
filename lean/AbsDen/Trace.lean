@@ -62,7 +62,7 @@ end T
 inductive Value.F (D : Nat → Type) (n : Nat) where
   | stuck : Value.F D n
   | fn : world(D → D) n → Value.F D n
-  | con : Con → world(List D) n → Value.F D n
+  | con : ConTag → world(List D) n → Value.F D n
   deriving World
 
 deriving instance LocalFunctor for Value.F

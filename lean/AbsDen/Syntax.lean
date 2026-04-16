@@ -6,7 +6,7 @@ constructors, case expressions, and let bindings.
 -/
 
 abbrev Var := Nat
-abbrev Con := Nat
+abbrev ConTag := Nat
 
 /-! ## Events -/
 
@@ -27,18 +27,18 @@ mutual
     | lam : Var → Exp → Exp
     | app : Exp → Var → Exp
     | let' : Var → Exp → Exp → Exp
-    | conapp : Con → List Var → Exp
+    | conapp : ConTag → List Var → Exp
     | case' : Exp → List Alt → Exp
   deriving Repr
 
   structure Alt where
-    con : Con
+    con : ConTag
     vars : List Var
     rhs : Exp
   deriving Repr
 end
 
-def findAlt (K : Con) : List Alt → Option (List Var × Exp)
+def findAlt (K : ConTag) : List Alt → Option (List Var × Exp)
   | [] => none
   | alt :: alts =>
     if K == alt.con then some (alt.vars, alt.rhs)
