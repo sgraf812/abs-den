@@ -3,7 +3,7 @@
 %if style == newcode
 %include custom.fmt
 \begin{code}
-{-# OPTIONS_GHC -Wno-noncanonical-monad-instances -Wno-unused-matches #-}
+{-# OPTIONS_GHC -Wno-noncanonical-monad-instances -Wno-unused-matches -Wno-star-is-type #-}
 {-# LANGUAGE TypeFamilies #-}
 {-# LANGUAGE DerivingVia #-}
 
@@ -147,21 +147,19 @@ instance UVec Uses where {-" ... \iffalse "-}
 \end{minipage}%
 \begin{minipage}{0.6\textwidth}
 \begin{code}
-data UT v = MkUT Uses v
-instance Trace (UT v) where
-  step (Look x)  (MkUT φ v)  = MkUT (singenv x U1 + φ) v
-  step _         τ           = τ
-instance Monad UT where
-  return a = MkUT emp a
-  MkUT φ1 a >>= k = let MkUT φ2 b = k a in MkUT (φ1+φ2) b
+-- TODO: reformat!
 \end{code}
 \end{minipage}
 \\
 \begin{minipage}{0.63\textwidth}
 \begin{code}
+data UT v = MkUT Uses v
+
 evalUsg e ρ = eval e ρ :: UD
 
 instance Domain UD where
+  step (Look x)  (MkUT φ v)  = MkUT (singenv x U1 + φ) v
+  step _         τ           = τ
   stuck                                  = bottom
   fun x {-" \iffalse "-}_{-" \fi "-} f   = case f (MkUT (singenv x U1) (Rep Uω)) of
     MkUT φ v -> MkUT (ext φ x U0) (UCons (φ !? x) v)
@@ -172,6 +170,10 @@ instance Domain UD where
     d >> lub  [  f (replicate (conArity k) (MkUT emp (Rep Uω)))
               |  (k,f) <- assocs fs ]
   bind # rhs body = body (kleeneFix rhs)
+
+instance Monad UT where
+  return a = MkUT emp a
+  MkUT φ1 a >>= k = let MkUT φ2 b = k a in MkUT (φ1+φ2) b
 \end{code}
 \end{minipage}%
 \begin{minipage}{0.3\textwidth}
@@ -491,8 +493,9 @@ freshTyVar :: J Type; qquad         instantiatePolyTy  :: PolyType -> J Type
 unify :: Constraint -> J (); qquad  generaliseTy       :: J Type -> J PolyType
 closedType :: J Type -> PolyType {-" \iffalse "-}
 closedType d = runJ (generaliseTy d)
-{-" \fi "-}; qquad                  instance Trace (J v) where step _ = id
+{-" \fi "-}
 instance Domain (J Type) where
+  step _ = id
   stuck                                 =  return Wrong
   fun _ {-" \iffalse "-}_{-" \fi "-} f  =  do θα <- freshTyVar; θ <- f (return θα); return (θα :->: θ)
   apply v a                             =  do θ1  <- v; θ2  <- a; θα  <- freshTyVar; unify (θ1, θ2 :->: θα); return θα {-" \iffalse "-}
@@ -731,8 +734,8 @@ updFunCache :: Label -> (CD -> CD) -> State Cache ()
 cachedCall :: Labels -> Labels -> CD
 cachedCons :: Labels -> State Cache (Tag :-> [Labels])
 
-instance Trace CD where step _ = id
 instance Domain CD where
+  step _ = id
   stuck = return bottom
   fun _ ell f = do
     updFunCache ell f
@@ -1047,10 +1050,8 @@ runAnn    :: (forall s. AnnD s d) -> (d, Name :-> Ann d)
 
 ifPoly(instance Monad (AnnT s d) where ...)
 
-instance Trace d => Trace (AnnD s d) where
-  step ev (AnnT f) = AnnT (\refs -> step ev <$> f refs)
-
 instance (Lat d, StaticDomain d) => Domain (AnnD s d) where {-" ... \iffalse "-}
+  step ev (AnnT f) = AnnT (\refs -> step ev <$> f refs)
   stuck = return stuck
   fun x l f = funS x l f
   con l k ds = con l k <$> sequence ds

@@ -3,7 +3,7 @@
 %if style == newcode
 %include custom.fmt
 \begin{code}
-{-# OPTIONS_GHC -Wno-simplifiable-class-constraints -Wno-unused-matches #-}
+{-# OPTIONS_GHC -Wno-simplifiable-class-constraints -Wno-unused-matches -Wno-noncanonical-monad-instances #-}
 {-# LANGUAGE DerivingStrategies #-}
 {-# LANGUAGE DerivingVia #-}
 {-# LANGUAGE PartialTypeSignatures #-}
@@ -165,11 +165,11 @@ We choose |DName|, defined below, as the first example of such a semantic domain
 because it is simple and illustrative of the approach.
 Instantiated at |DName|, our generic interpreter will produce precisely the
 traces of the by-\textbf{\textrm{na}}me variant of the Krivine machine in
-\Cref{fig:lk-semantics}.%
-\footnote{For a realistic implementation, we would define |D| as a |newtype| to
-keep type class resolution decidable and non-overlapping. We will however stick
-to a |type| synonym in this presentation in order to elide noisy wrapping and
-unwrapping of constructors.}
+\Cref{fig:lk-semantics}, hence the subscript in |DName|.%
+%\footnote{For a realistic implementation, we would define |D| as a |newtype| to
+%keep type class resolution decidable and non-overlapping. We will however stick
+%to a |type| synonym in this presentation in order to elide noisy wrapping and
+%unwrapping of constructors.}
 
 \begin{minipage}{0.62\textwidth}
 \begin{code}
@@ -228,7 +228,7 @@ We postpone worries about well-definedness and totality of this encoding to
 \begin{figure}
 \begin{minipage}{0.55\textwidth}
 \begin{code}
-eval  ::  (Trace d, Domain d)
+eval  ::  (Domain d)
       =>  Exp -> (Name :-> d) -> d
 eval e ρ = case e of
   Var x  | x ∈ dom ρ  -> ρ ! x
@@ -257,10 +257,8 @@ eval e ρ = case e of
 \end{minipage}%
 \begin{minipage}{0.44\textwidth}
 \begin{code}
-class Trace d where
-  step :: Event -> d -> d
-
 class Domain d where
+  step :: Event -> d -> d
   stuck :: d
   fun :: Name -> {-" \iffalse "-}Label -> {-" \fi "-}(d -> d) -> d
   apply :: d -> d -> d
@@ -274,10 +272,8 @@ class Domain d where
 \begin{code}
 evalName e ρ = eval e ρ :: DName
 
-instance Trace (T v) where
-  tracefun(step) = Step
-
 instance Domain DName where
+  domainfun(step) = Step
   domainfun(stuck) = return Stuck
   domainfun(fun) _ {-" \iffalse "-}_{-" \fi "-} f = return (Fun f)
   domainfun(apply)  d a = d >>= \v -> case v of
@@ -318,11 +314,10 @@ However, to derive both dynamic semantics and static analyses as instances of th
 generic interpreter |eval|, we need to vary the type of its semantic domain,
 which is naturally expressed using type class overloading, thus:
 \[
-|eval  ::  (Trace d, Domain d) =>  Exp -> (Name :-> d) -> d|.
+|eval  ::  (Domain d) =>  Exp -> (Name :-> d) -> d|.
 \]
-We have parameterised the semantic domain |d| over two type classes
---- |Trace| and |Domain| --- whose signatures are given in
-\Cref{fig:trace-classes}.
+We have parameterised the semantic domain |d| over a type class |Domain|
+whose signatures are given in \Cref{fig:trace-classes}.
 %\footnote{One can think of these type classes as a fold-like final encoding~\citep{Carette:07} of a domain. However, the significance is in the \emph{decomposition} of the domain, not the choice of encoding.}
 Each of the two type classes offer knobs that we will tweak to derive
 different evaluation strategies as well as static analyses.
@@ -343,7 +338,7 @@ We introduce similar shorthands |evalNeed1| and |evalUsg1| for the by-need and
 usage analysis instantiations in \Cref{sec:by-need-instance,sec:abstraction}.
 
 We use |read :: String -> Exp| as a parsing function and a |Show| instance for
-|D τ| that displays traces.
+|DName| that displays traces.
 For example, we can evaluate the expression $\Let{i}{\Lam{x}{x}}{i~i}$ like
 this:
 
@@ -510,41 +505,41 @@ first denotational semantics for call-by-need that bisimulates the LK machine
 
 \begin{figure}
 \begin{code}
-type Addr = Int; type Heap = Addr :-> DNeed; nextFree :: Heap -> Addr
-ifPoly(data Event  =  ... | Upd)
-newtype TNeed v = TNeed { unTNeed :: Heap -> T (v, Heap) }
-
-type DNeed = TNeed ValueNeed;
-ifPoly(data ValueNeed = Stuck | Fun (DNeed -> DNeed) | Con Tag [DNeed])
 evalNeed e ρ μ = unTNeed (eval e ρ :: DNeed) μ
+type DNeed = TNeed ValueNeed; ifPoly(data ValueNeed = Stuck | Fun (DNeed -> DNeed) | Con Tag [DNeed])
+newtype TNeed v = TNeed { unTNeed :: Heap -> T (v, Heap) }
+type Heap = Addr :-> DNeed; type Addr = Int; nextFree :: Heap -> Addr
+ifPoly(data Event  =  ... | Upd)
 
+instance Domain DNeed where
+  domainfun(step) e m = TNeed (Step e . unTNeed m)
+  domainfun(stuck) = return StuckNeed
+  domainfun(fun) _ _ f = return (FunNeed f)
+  domainfun(apply)  d a = d >>= \v -> case v of
+    FunNeed f -> f a; _ -> stuck
+  domainfun(con) _ k ds = return (ConNeed k ds)
+  domainfun(select) dv alts = dv >>= \v -> case v of
+    ConNeed k ds | k ∈ dom alts  -> (alts ! k) ds
+    _                            -> stuck
+  domainfun(bind) # rhs body = do
+    μ <- getN
+    let a = nextFree μ
+    putN (ext μ a (memoN a (rhs (fetchN a))))
+    body (fetchN a)
+
+-- Implementation details: TODO: Better formatting!
 instance Monad TNeed where
   return v = TNeed (\μ -> return (v, μ))
   x >>= f = TNeed (\μ -> unTNeed x μ >>= \(v, μ) -> unTNeed (f v) μ)
 getN  :: TNeed Heap;           getN    = TNeed (\ μ -> return (μ, μ))
 putN  :: Heap -> TNeed (); ^^  putN μ  = TNeed (\ _ -> return ((), μ))
-instance Trace (TNeed v) where step e m = TNeed (step e . unTNeed m)
 
 fetchN :: Addr -> DNeed; fetchN a = getN >>= \μ -> μ ! a
 
 memoN :: Addr -> DNeed -> DNeed
 memoN a d = d >>= \v -> TNeed (upd v)
   where  upd StuckNeed  μ = return (StuckNeed :: ValueNeed, μ)
-         upd v          μ = step Upd (return (v, ext μ a (memoN a (return v))))
-
-instance Domain DNeed where
-  stuck = return StuckNeed
-  fun _ _ f = return (FunNeed f)
-  apply  d a = d >>= \v -> case v of
-    FunNeed f -> f a; _ -> stuck
-  con _ k ds = return (ConNeed k ds)
-  select dv alts = dv >>= \v -> case v of
-    ConNeed k ds | k ∈ dom alts  -> (alts ! k) ds
-    _                            -> stuck
-  bind # rhs body = do  μ <- getN
-                        let a = nextFree μ
-                        putN (ext μ a (memoN a (rhs (fetchN a))))
-                        body (fetchN a)
+         upd v          μ = Step Upd (return (v, ext μ a (memoN a (return v))))
 \end{code}
 %if style == newcode
 \begin{code}
@@ -590,15 +585,15 @@ Its key operations |getN| and |putN| are given in \Cref{fig:by-need}.
 So the denotation of an expression is no longer a trace, but rather a
 \emph{stateful function returning a trace} with state |Heap| in
 which to allocate call-by-need thunks.
-The |Trace| instance of |TNeed| forwards to that of |T|, pointwise
+The |step| implementation of |DNeed| is like that of |DName|, pointwise
 over heaps.
 
 The |Domain| instance is mostly the same as for |DName|.
 In fact, the implementations of the |stuck|, |lam|, |app|, |con| and |select|
 methods are \emph{syntactically identical} to
 \Cref{fig:trace-instances}; the different semantics follows entirely from the
-new |Monad| and |Trace| instances, and the only concern of those is to thread
-the |Heap| around.
+new |step| implementation and |Monad| instance, and the only concern of those is
+to thread the |Heap| around.
 However, |bind| is the key method that differs for |DNeed|, because that is the
 only place where thunks are allocated.
 The implementation of |bind| designates a fresh heap address |a|
@@ -774,6 +769,7 @@ ifPoly(instance Domain DValue where
 \begin{code}
 data ValueValue = StuckValue | FunValue (DValue -> DValue) | ConValue Tag [DValue]
 instance Domain DValue where
+  step = Step
   stuck = return StuckValue
   fun _ _ f = return (FunValue f)
   apply  d a = d >>= \v -> case v of
@@ -879,8 +875,6 @@ getV = TVInit (\ μ -> return (μ, μ))
 putV :: HeapVInit -> TVInit ()
 putV μ = TVInit (\ _ -> return ((), μ))
 
-instance Trace (TVInit v) where step e m = TVInit (step e . unTVInit m)
-
 fetchV :: Addr -> DVInit
 fetchV a = getV >>= \μ -> μ ! a
 
@@ -890,6 +884,7 @@ memoV a d = d >>= \v -> TVInit (upd v)
          upd v           μ = return (v, ext μ a (memoV a (return v)))
 
 instance Domain DVInit where
+  step e m = TVInit (Step e . unTVInit m)
   stuck = return StuckVInit
   fun _ _ f = return (FunVInit f)
   apply  d a = d >>= \v -> case v of
