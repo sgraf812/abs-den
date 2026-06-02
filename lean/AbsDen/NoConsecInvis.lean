@@ -1,5 +1,4 @@
 import AbsDen.ByNeed
-import AbsDen.World.Naturality
 
 /-!
 # No Triple Consecutive Invisible Steps
@@ -140,10 +139,10 @@ noncomputable def GoodD (n : Nat) (d : D n) : Prop :=
 
 /-- Env entries satisfy the stronger StartsWithStep condition (not just StartsVisible).
     This is needed because env entries are always wrapped in D.step (.look x). -/
-noncomputable def GoodEnv {n : Nat} (ρ : Env (D n)) : Prop :=
-  ∀ x d, ρ.find? x = some d →
+noncomputable def GoodEnv {scope n : Nat} (ρ : Env D scope n) : Prop :=
+  ∀ (x : Fin scope),
     ∀ m (hm : m ≤ n) μ, GoodHeap m μ →
-      StartsWithStep m (d.unfold m hm μ) ∧ TraceGood 2 m (d.unfold m hm μ)
+      StartsWithStep m ((ρ x).unfold m hm μ) ∧ TraceGood 2 m ((ρ x).unfold m hm μ)
 
 /-! ## Basic lemmas -/
 
@@ -640,61 +639,51 @@ theorem GoodHeap_set {n : Nat} (μ : Heap (▹ D) n) (hμ : GoodHeap n μ)
   · cases hdb; exact hdl
   · exact hμ b db (by rwa [Std.HashMap.get?_eq_getElem?])
 
+/-- `World.restrictStep` on `Env D scope` is pointwise. -/
+private theorem Env_restrictStep_apply {scope n : Nat} (ρ : Env D scope (n+1)) (x : Fin scope) :
+    (World.restrictStep (F := Env D scope) ρ) x = World.restrictStep (ρ x) := rfl
+
+/-- `World.restrict` on `Env D scope` is pointwise restriction. -/
+private theorem Env_restrict_apply {scope : Nat} :
+    ∀ {n m : Nat} (ρ : Env D scope n) (hm : m ≤ n) (x : Fin scope),
+    World.restrict (F := Env D scope) ρ hm x = World.restrict (ρ x) hm := by
+  intro n m ρ hm x
+  match n with
+  | 0 =>
+    have : m = 0 := Nat.le_zero.mp hm; subst this
+    simp [World.restrict.eq_1]
+  | n + 1 =>
+    rw [World.restrict.eq_1]; split
+    · next heq => subst heq; simp [World.restrict.eq_1]
+    · next hne =>
+      have hm' := Nat.lt_succ_iff.mp (Nat.lt_of_le_of_ne hm hne)
+      show World.restrict (World.restrictStep ρ) hm' x = _
+      rw [Env_restrict_apply (World.restrictStep ρ) hm' x, Env_restrictStep_apply]
+      symm
+      rw [World.restrict.eq_1, dif_neg hne]
+  termination_by n _ _ _ _ => n
+
 /-
-`GoodEnv` is preserved by restriction (Functor.map version).
+`GoodEnv` is preserved by `World.restrict`.
 -/
-theorem GoodEnv_restrict {n m : Nat} (ρ : Env (D n)) (hρ : GoodEnv ρ)
-    (hm : m ≤ n) : GoodEnv (Functor.map (World.restrict (hm := hm)) ρ) := by
-  intro x d hd k hk μ hμ
-  have hfind : Env.find? ((fun x => World.restrict x hm) <$> ρ) x =
-      Option.map (fun x => World.restrict x hm) (Env.find? ρ x) := AddrMap_get?_map _ _ _
-  rw [hfind] at hd
-  cases hget : Env.find? ρ x with
-  | none => simp [hget] at hd
-  | some d' =>
-    simp [hget] at hd; subst hd; simp only [D_unfold_restrict]
-    exact hρ x d' hget k (Nat.le_trans hk hm) μ hμ
-
-/-- `GoodEnv` is preserved by `World.restrictStep`. -/
-theorem GoodEnv_restrictStep {n : Nat} (ρ : Heap D (n+1)) (hρ : GoodEnv ρ) :
-    GoodEnv (World.restrictStep (F := Heap D) ρ) := by
-  intro x d hd k hk μ hμ
-  have h_map : Std.HashMap.get? (World.restrictStep (F := Heap D) ρ) x =
-      Option.map World.restrictStep (Std.HashMap.get? ρ x) := by
-    show Std.HashMap.get? (Functor.map World.restrictStep ρ) x = _
-    exact AddrMap_get?_map _ ρ x
-  rw [show Env.find? _ x = Std.HashMap.get? _ x from rfl, h_map] at hd
-  cases hget : Std.HashMap.get? ρ x with
-  | none => rw [hget] at hd; exact absurd hd (by simp [Option.map])
-  | some d' =>
-    rw [hget] at hd; simp [Option.map] at hd; subst hd
-    rw [D_unfold_restrictStep]
-    exact hρ x d' (by rwa [show Env.find? ρ x = Std.HashMap.get? ρ x from rfl])
-           k (Nat.le_succ_of_le hk) μ hμ
-
-/-- `GoodEnv` is preserved by `World.restrict` (direct version). -/
-theorem GoodEnv_world_restrict {n m : Nat} (ρ : Heap D n) (hρ : GoodEnv ρ)
-    (hm : m ≤ n) : GoodEnv (World.restrict (F := Heap D) ρ hm) := by
-  rw [World.restrict.eq_1]; split
-  · next heq => subst heq; exact hρ
-  · next hne => match n with
-    | 0 => exact absurd (Nat.le_zero.mp hm) hne
-    | _ + 1 => exact GoodEnv_world_restrict _ (GoodEnv_restrictStep ρ hρ) _
+theorem GoodEnv_world_restrict {scope n m : Nat} (ρ : Env D scope n) (hρ : GoodEnv ρ)
+    (hm : m ≤ n) : GoodEnv (World.restrict (F := Env D scope) ρ hm) := by
+  intro x k hk μ hμ
+  rw [Env_restrict_apply, D_unfold_restrict]
+  exact hρ x k (Nat.le_trans hk hm) μ hμ
 
 /-
 `GoodEnv` is preserved by bind.
 -/
-theorem GoodEnv_bind {n : Nat} (ρ : Env (D n)) (hρ : GoodEnv ρ)
-    (x : Var) (d : D n)
+theorem GoodEnv_bind {scope n : Nat} (ρ : Env D scope n) (hρ : GoodEnv ρ)
+    (d : D n)
     (hd : ∀ m (hm : m ≤ n) μ, GoodHeap m μ →
       StartsWithStep m (d.unfold m hm μ) ∧ TraceGood 2 m (d.unfold m hm μ)) :
-    GoodEnv (ρ.bind x d) := by
-  intro y d' hfind k hk μ hμ
-  simp only [Env.bind, Env.find?, Std.HashMap.get?_eq_getElem?] at hfind
-  rw [Std.HashMap.getElem?_insert] at hfind
-  split at hfind
-  · cases hfind; exact hd k hk μ hμ
-  · exact hρ y d' (by rwa [Env.find?, Std.HashMap.get?_eq_getElem?]) k hk μ hμ
+    GoodEnv (ρ.bind d) := by
+  intro y k hk μ hμ
+  refine Fin.cases ?_ ?_ y
+  · exact hd k hk μ hμ
+  · intro i; exact hρ i k hk μ hμ
 
 theorem StartsWithStep_imp_StartsVisible {n : Nat} {t : T VH n}
     (h : StartsWithStep n t) : StartsVisible n t := by
@@ -731,14 +720,64 @@ theorem GoodD_of_GoodLater {n : Nat} (d : D n) (hd : GoodLater (n + 1) d) :
   simp only [unfoldLater] at h'
   exact ⟨StartsWithStep_imp_StartsVisible h'.1, h'.2⟩
 
-theorem GoodEnv_to_GoodD {n : Nat} {ρ : Env (D n)} (hρ : GoodEnv ρ) (x : Var) (d : D n)
-    (hfind : ρ.find? x = some d) : GoodD n d := by
+theorem GoodEnv_to_GoodD {scope n : Nat} {ρ : Env D scope n} (hρ : GoodEnv ρ) (x : Fin scope) :
+    GoodD n (ρ x) := by
   intro m hm μ hμ
-  have h := hρ x d hfind m hm μ hμ
+  have h := hρ x m hm μ hμ
   exact ⟨StartsWithStep_imp_StartsVisible h.1, h.2⟩
 
-theorem GoodEnv_to_GoodLater_next {n : Nat} {ρ : Env (D n)} (hρ : GoodEnv ρ) (x : Var) (d : D n)
-    (hfind : ρ.find? x = some d) : GoodLater n (Later.next d) := by
+theorem GoodEnv_to_GoodLater_next {scope n : Nat} {ρ : Env D scope n} (hρ : GoodEnv ρ)
+    (x : Fin scope) : GoodLater n (Later.next (ρ x)) := by
+  cases n with
+  | zero => exact GoodLater_zero _
+  | succ n =>
+    unfold GoodLater; intro k hk μ hμ
+    simp only [unfoldLater]
+    show StartsWithStep k ((World.restrictStep (ρ x)).unfold k hk μ) ∧
+         TraceGood 2 k ((World.restrictStep (ρ x)).unfold k hk μ)
+    rw [D_unfold_restrictStep]
+    exact hρ x k (Nat.le_succ_of_le hk) μ hμ
+
+/-
+Helper: Env.mapList gives entries with GoodEnv-strength conditions.
+-/
+theorem mapList_good {scope n : Nat} (ρ : Env D scope n) (hρ : GoodEnv ρ)
+    (xs : List (Fin scope)) :
+    ∀ d, d ∈ ρ.mapList xs → ∀ m (hm : m ≤ n) μ, GoodHeap m μ →
+      StartsWithStep m (d.unfold m hm μ) ∧ TraceGood 2 m (d.unfold m hm μ) := by
+  intro d hd m hm μ hμ
+  obtain ⟨x, _, rfl⟩ := List.mem_map.mp hd
+  exact hρ x m hm μ hμ
+
+/-
+Helper: Env.bindMany preserves GoodEnv.
+-/
+theorem GoodEnv_bindMany {scope n : Nat} (ρ : Env D scope n) (hρ : GoodEnv ρ)
+    (ds : List (D n))
+    (hds : ∀ d, d ∈ ds → ∀ m (hm : m ≤ n) μ, GoodHeap m μ →
+      StartsWithStep m (d.unfold m hm μ) ∧ TraceGood 2 m (d.unfold m hm μ)) :
+    GoodEnv (ρ.bindMany ds) := by
+  induction ds with
+  | nil => exact hρ
+  | cons d ds ih =>
+    apply GoodEnv_bind _ (ih (fun d' hd' => hds d' (.tail _ hd'))) d
+    exact fun m hm μ hμ => hds d (.head _) m hm μ hμ
+
+/-- Fundamental lemma for .ref -/
+theorem fundamental_ref {scope : Nat} (x : Fin scope) {n : Nat} (ρ : Env D scope n)
+    (hρ : GoodEnv ρ) :
+    GoodD n (eval (D := D) (.ref x) n (Nat.le_refl n) ρ) := by
+  simp only [eval, Env.lookup]
+  exact GoodEnv_to_GoodD hρ x
+
+/-- Fundamental lemma for .conapp -/
+theorem fundamental_conapp {scope : Nat} (K : ConTag) (xs : List (Fin scope)) {n : Nat}
+    (ρ : Env D scope n) (hρ : GoodEnv ρ) :
+    GoodD n (eval (D := D) (.conapp K xs) n (Nat.le_refl n) ρ) := by
+  simp only [eval, Domain.con']
+  apply GoodD_con
+  intro d hd
+  have hgood := mapList_good ρ hρ xs d hd
   cases n with
   | zero => exact GoodLater_zero _
   | succ n =>
@@ -747,67 +786,7 @@ theorem GoodEnv_to_GoodLater_next {n : Nat} {ρ : Env (D n)} (hρ : GoodEnv ρ) 
     show StartsWithStep k ((World.restrictStep d).unfold k hk μ) ∧
          TraceGood 2 k ((World.restrictStep d).unfold k hk μ)
     rw [D_unfold_restrictStep]
-    exact hρ x d hfind k (Nat.le_succ_of_le hk) μ hμ
-
-/-
-Helper: Env.pmapList gives entries with GoodEnv-strength conditions.
--/
-theorem pmapList_good {n : Nat} (ρ : Env (D n)) (hρ : GoodEnv ρ)
-    (xs : List Var) (ds : List (D n)) (hds : ρ.pmapList xs = some ds) :
-    ∀ d, d ∈ ds → ∀ m (hm : m ≤ n) μ, GoodHeap m μ →
-      StartsWithStep m (d.unfold m hm μ) ∧ TraceGood 2 m (d.unfold m hm μ) := by
-  have h_exists_x : ∀ d ∈ ds, ∃ x ∈ xs, ρ.find? x = some d := by
-    induction xs generalizing ds <;> simp_all +decide [Env.pmapList]
-    cases h : ρ.find? ‹_› <;> simp_all +decide [Option.bind_eq_some_iff]; grind
-  exact fun d hd m hm μ hμ =>
-    hρ _ _ (h_exists_x d hd |> Classical.choose_spec |> And.right) m hm μ hμ
-
-/-
-Helper: Env.bindMany preserves GoodEnv.
--/
-theorem GoodEnv_bindMany {n : Nat} (ρ : Env (D n)) (hρ : GoodEnv ρ)
-    (xs : List Var) (ds : List (D n))
-    (hds : ∀ d, d ∈ ds → ∀ m (hm : m ≤ n) μ, GoodHeap m μ →
-      StartsWithStep m (d.unfold m hm μ) ∧ TraceGood 2 m (d.unfold m hm μ)) :
-    GoodEnv (ρ.bindMany xs ds) := by
-  unfold Env.bindMany; induction xs generalizing ρ ds with
-  | nil => simp [List.zip]; exact hρ
-  | cons x xs ih => cases ds with
-    | nil => simp [List.zip]; exact hρ
-    | cons d ds =>
-      simp [List.zip]
-      apply ih (Std.HashMap.insert ρ x d)
-      · exact GoodEnv_bind ρ hρ x d (fun m hm μ hμ => hds d (.head _) m hm μ hμ)
-      · intro d' hd' m hm μ hμ; exact hds d' (.tail _ hd') m hm μ hμ
-
-/-- Fundamental lemma for .ref -/
-theorem fundamental_ref (x : Var) {n : Nat} (ρ : Env (D n)) (hρ : GoodEnv ρ) :
-    GoodD n (eval (D := D) (.ref x) n (Nat.le_refl n) ρ) := by
-  simp [eval]
-  cases h : ρ.find? x with
-  | none => exact GoodD_stuck
-  | some d => exact GoodEnv_to_GoodD hρ x d h
-
-/-- Fundamental lemma for .conapp -/
-theorem fundamental_conapp (K : ConTag) (xs : List Var) {n : Nat} (ρ : Env (D n)) (hρ : GoodEnv ρ) :
-    GoodD n (eval (D := D) (.conapp K xs) n (Nat.le_refl n) ρ) := by
-  simp [eval, Domain.con']
-  cases h : ρ.pmapList xs with
-  | none => exact GoodD_stuck
-  | some ds =>
-    apply GoodD_con
-    intro d hd
-    have hgood := pmapList_good ρ hρ xs ds h d hd
-    -- Convert StartsWithStep + TraceGood to GoodLater n (Later.next d)
-    cases n with
-    | zero => exact GoodLater_zero _
-    | succ n =>
-      unfold GoodLater; intro k hk μ hμ
-      simp only [unfoldLater]
-      show StartsWithStep k ((World.restrictStep d).unfold k hk μ) ∧
-           TraceGood 2 k ((World.restrictStep d).unfold k hk μ)
-      rw [D_unfold_restrictStep]
-      exact hgood k (Nat.le_succ_of_le hk) μ hμ
+    exact hgood k (Nat.le_succ_of_le hk) μ hμ
 
 /-- Helper: GoodLater (k+1) dl gives the GoodEnv condition for dl : D k -/
 theorem GoodLater_to_GoodEnv_cond {k : Nat} (dl : D k) (hdl : GoodLater (k+1) dl) :
@@ -889,22 +868,22 @@ theorem GoodD_invis_of_GoodLater {n : Nat} (dl : ▹ D n) (hdl : GoodLater n dl)
 /-
 `Later.next (World.restrict entry hj)` is `GoodLater j` when `entry` comes from a `GoodEnv`.
 -/
-theorem GoodLater_entry_restrict {n j : Nat} {ρ : Env (D n)} (hρ : GoodEnv ρ)
-    (x : Var) (entry : D n) (hfind : ρ.find? x = some entry) (hj : j ≤ n) :
-    GoodLater j (Later.next (World.restrict entry hj)) := by
+theorem GoodLater_entry_restrict {scope n j : Nat} {ρ : Env D scope n} (hρ : GoodEnv ρ)
+    (x : Fin scope) (hj : j ≤ n) :
+    GoodLater j (Later.next (World.restrict (ρ x) hj)) := by
   cases j with
   | zero => exact GoodLater_zero _
   | succ k =>
     unfold GoodLater; intro m hm μ hμ
     simp only [unfoldLater]
-    have h_eq : unfoldLater (Later.next (World.restrict entry hj)) m hm μ =
-        entry.unfold m (by omega) μ := by
-      show (World.restrictStep (World.restrict entry hj)).unfold m hm μ = _
+    have h_eq : unfoldLater (Later.next (World.restrict (ρ x) hj)) m hm μ =
+        (ρ x).unfold m (by omega) μ := by
+      show (World.restrictStep (World.restrict (ρ x) hj)).unfold m hm μ = _
       rw [D_unfold_restrictStep, D_unfold_restrict]
     simp only [h_eq]
-    exact hρ x entry hfind m (by omega) μ hμ
+    exact hρ x m (by omega) μ hμ
 
-theorem apply_kont_TraceGood {n : Nat} {ρ : Env (D n)} {x : Var} (entry : D n) (hρ : GoodEnv ρ) (hfind : ρ.find? x = some entry)
+theorem apply_kont_TraceGood {scope n : Nat} {ρ : Env D scope n} (x : Fin scope) (hρ : GoodEnv ρ)
     {j : Nat} (hj : j ≤ n) (vh : VH j)
     (hfn : ∀ (g : World.Function (Later D) (Later D) j),
       vh.1 = .inr (.inl g) → ∀ k' (hk' : k' ≤ j) (dl : ▹ D k'),
@@ -913,7 +892,7 @@ theorem apply_kont_TraceGood {n : Nat} {ρ : Env (D n)} {x : Var} (entry : D n) 
       vh.1 = .inr (.inr (K, ds)) → ∀ (dl : ▹ D j), dl ∈ ds → GoodLater j dl)
     (hheap : ∀ a (dl : ▹ D j), Std.HashMap.get? vh.2 a = some dl → GoodLater j dl) :
     TraceGood 2 j ((match Value.F.ofRep (Later D) vh.1 with
-      | .fn g => D.invis (g j (Nat.le_refl j) (Later.next (World.restrict entry)))
+      | .fn g => D.invis (g j (Nat.le_refl j) (Later.next (World.restrict (ρ x))))
       | _ => D.stuck).unfold j (Nat.le_refl j) vh.2) := by
         unfold Value.F.ofRep
         rcases vh with ⟨v, μ⟩
@@ -921,9 +900,9 @@ theorem apply_kont_TraceGood {n : Nat} {ρ : Env (D n)} {x : Var} (entry : D n) 
         · -- stuck case
           simp; exact (GoodD_stuck j (Nat.le_refl j) μ hheap).2
         · -- fn case
-          show TraceGood 2 j ((D.invis (g j (Nat.le_refl j) (Later.next (World.restrict entry (hm := hj))))).unfold j (Nat.le_refl j) μ)
+          show TraceGood 2 j ((D.invis (g j (Nat.le_refl j) (Later.next (World.restrict (ρ x) (hm := hj))))).unfold j (Nat.le_refl j) μ)
           exact GoodD_invis_of_GoodLater _ (hfn g rfl j (Nat.le_refl j) _
-            (GoodLater_entry_restrict hρ x entry hfind hj)) j (Nat.le_refl j) μ hheap
+            (GoodLater_entry_restrict hρ x hj)) j (Nat.le_refl j) μ hheap
         · -- con case
           simp; exact (GoodD_stuck j (Nat.le_refl j) μ hheap).2
 
@@ -946,34 +925,31 @@ theorem stuck_unfold_good (j : Nat) (μ : Heap (▹ D) j)
       exact ⟨fun g hg => absurd hg (by simp), fun K ds hds => absurd hds (by simp), hμ⟩
 
 /-- Fundamental lemma for .app -/
-theorem fundamental_app (e₁ : Exp) (x : Var) {n : Nat} (ρ : Env (D n)) (hρ : GoodEnv ρ)
-    (ih_e₁ : ∀ {m : Nat} (ρ' : Env (D m)), GoodEnv ρ' →
+theorem fundamental_app {scope : Nat} (e₁ : Exp scope) (x : Fin scope) {n : Nat}
+    (ρ : Env D scope n) (hρ : GoodEnv ρ)
+    (ih_e₁ : ∀ {m : Nat} (ρ' : Env D scope m), GoodEnv ρ' →
       GoodD m (eval (D := D) e₁ m (Nat.le_refl m) ρ')) :
     GoodD n (eval (D := D) (.app e₁ x) n (Nat.le_refl n) ρ) := by
   simp only [eval.eq_3]
-  cases hfind : ρ.find? x with
-  | none => exact GoodD_stuck
-  | some entry =>
-    -- Unfold Domain.apply' to D.bind
-    show GoodD n (D.step .app1 (Later.next
-      (D.bind (World.restrict (eval (D := D) e₁ n (Nat.le_refl n) ρ))
-        (fun j hj v => match v with
-          | .fn g => D.invis (g j (Nat.le_refl j) (Later.next (World.restrict entry)))
-          | _ => D.stuck))))
-    apply GoodD_step_of_TraceGood
-    -- World.restrict with le_refl is identity
-    have h_restr : World.restrict (eval (D := D) e₁ n (Nat.le_refl n) ρ) = eval (D := D) e₁ n (Nat.le_refl n) ρ := by
-      rw [World.restrict.eq_1, dif_pos rfl]; simp
-    rw [h_restr]
-    apply D_bind_TraceGood _ _ (ih_e₁ ρ hρ)
-    · exact fun j hj vh hfn hcon hheap =>
-        apply_kont_TraceGood entry hρ hfind hj vh hfn hcon hheap
-    · -- hkont_stuck: at stuck values, the apply kont produces D.stuck
-      intro j hj μ' hμ'
-      -- Value.F.ofRep _ (Sum.inl PUnit.unit) = .stuck, match reduces to D.stuck
-      show (NotRet j (D.stuck.unfold j _ μ') ∨ IsRetStuck j (D.stuck.unfold j _ μ')) ∧
-           ∀ k', TraceGood k' j (D.stuck.unfold j _ μ')
-      exact stuck_unfold_good j μ' hμ'
+  -- Unfold Domain.apply' to D.bind
+  show GoodD n (D.step .app1 (Later.next
+    (D.bind (World.restrict (eval (D := D) e₁ n (Nat.le_refl n) ρ))
+      (fun j hj v => match v with
+        | .fn g => D.invis (g j (Nat.le_refl j) (Later.next (World.restrict (ρ.lookup x))))
+        | _ => D.stuck))))
+  apply GoodD_step_of_TraceGood
+  -- World.restrict with le_refl is identity
+  have h_restr : World.restrict (eval (D := D) e₁ n (Nat.le_refl n) ρ) = eval (D := D) e₁ n (Nat.le_refl n) ρ := by
+    rw [World.restrict.eq_1, dif_pos rfl]; simp
+  rw [h_restr]
+  apply D_bind_TraceGood _ _ (ih_e₁ ρ hρ)
+  · exact fun j hj vh hfn hcon hheap =>
+      apply_kont_TraceGood x hρ hj vh hfn hcon hheap
+  · -- hkont_stuck: at stuck values, the apply kont produces D.stuck
+    intro j hj μ' hμ'
+    show (NotRet j (D.stuck.unfold j _ μ') ∨ IsRetStuck j (D.stuck.unfold j _ μ')) ∧
+         ∀ k', TraceGood k' j (D.stuck.unfold j _ μ')
+    exact stuck_unfold_good j μ' hμ'
 
 /-- Later.sequence at succ level is the identity. -/
 theorem Later_sequence_succ {k : Nat} (ds : List (D k)) :
@@ -996,118 +972,116 @@ theorem Value_F_ofRep_con_inv {F : Nat → Type} [World F] {n : Nat}
   · simp [Value.F.ofRep] at h
   · simp [Value.F.ofRep] at h; rcases h with ⟨rfl, rfl⟩; rfl
 
+/-! ## Membership-style relation on `AltList` -/
+
+/-- `alt ∈ alts`-style relation on AltList. -/
+inductive AltMem {scope : Nat} : (con : ConTag) → (vars : List Name) →
+    Exp (scope + vars.length) → AltList scope → Prop where
+  | head : ∀ c vs rhs rest, AltMem c vs rhs (.cons c vs rhs rest)
+  | tail : ∀ c vs rhs c' vs' rhs' rest,
+      AltMem c vs rhs rest → AltMem c vs rhs (.cons c' vs' rhs' rest)
+
+private theorem AltMem_sizeOf_lt {scope : Nat} :
+    ∀ {c : ConTag} {vs : List Name} {rhs : Exp (scope + vs.length)} {alts : AltList scope},
+      AltMem c vs rhs alts → sizeOf rhs < sizeOf alts := by
+  intro c vs rhs alts h
+  induction h with
+  | head => simp; omega
+  | tail c' vs' rhs' rest _ ih =>
+    show sizeOf rhs < sizeOf (AltList.cons c' vs' rhs' rest)
+    simp [AltList.cons.sizeOf_spec]; omega
+
+/-- Recover the membership witness and closed form of `f` from `find?` over `evalAlts`. -/
+private theorem evalAlts_find_some_inv
+    {scope k : Nat} (ρ : Env D scope k) (K : ConTag)
+    (entry : ConTag × world(List D → D) k) :
+    ∀ (alts : AltList scope),
+    List.find? (fun p => p.fst == K) (evalAlts ρ alts) = some entry →
+    ∃ vs rhs, AltMem entry.1 vs rhs alts ∧ entry.1 = K ∧
+      entry.2 = (fun j (_ : j ≤ k) ds =>
+        Domain.step' .case2
+          (if h : ds.length = vs.length then
+            eval rhs j (Nat.le_refl j) (h ▸ (ρ↓).bindMany ds)
+          else Domain.stuck))
+  | .nil, hfind => by simp [evalAlts] at hfind
+  | .cons c vs rhs rest, hfind => by
+    simp only [evalAlts, List.find?] at hfind
+    split at hfind
+    · next hbeq =>
+      have hcK : c = K := by simpa using hbeq
+      cases hfind
+      exact ⟨vs, rhs, .head c vs rhs rest, hcK, rfl⟩
+    · next hne =>
+      obtain ⟨vs', rhs', hmem, heq, hf⟩ := evalAlts_find_some_inv ρ K entry rest hfind
+      exact ⟨vs', rhs', .tail _ _ _ _ _ _ _ hmem, heq, hf⟩
+  termination_by alts _ => sizeOf alts
+
 /-
 Fundamental lemma for .case'
 -/
-theorem fundamental_case (eₛ : Exp) (alts : List Alt) {n : Nat}
-    (ρ : Env (D n)) (hρ : GoodEnv ρ)
-    (ih_eₛ : ∀ {m : Nat} (ρ' : Env (D m)), GoodEnv ρ' →
+theorem fundamental_case {scope : Nat} (eₛ : Exp scope) (alts : AltList scope) {n : Nat}
+    (ρ : Env D scope n) (hρ : GoodEnv ρ)
+    (ih_eₛ : ∀ {m : Nat} (ρ' : Env D scope m), GoodEnv ρ' →
       GoodD m (eval (D := D) eₛ m (Nat.le_refl m) ρ'))
-    (ih_alts : ∀ alt, alt ∈ alts → ∀ {m : Nat} (ρ' : Env (D m)), GoodEnv ρ' →
-      GoodD m (eval (D := D) alt.rhs m (Nat.le_refl m) ρ')) :
+    (ih_alts : ∀ {c vs rhs}, AltMem c vs rhs alts →
+      ∀ {m : Nat} (ρ' : Env D (scope + vs.length) m), GoodEnv ρ' →
+      GoodD m (eval (D := D) rhs m (Nat.le_refl m) ρ')) :
     GoodD n (eval (D := D) (.case' eₛ alts) n (Nat.le_refl n) ρ) := by
   simp only [eval.eq_5]
-  -- Goal: GoodD n (Domain.step' .case1 (Domain.select' (eval eₛ) alts_map))
-  -- Domain.step' .case1 X = D.step .case1 (Later.next X) definitionally
   apply GoodD_step_of_TraceGood
-  -- Goal: ∀ m hm μ, GoodHeap m μ → TraceGood 2 m ((Domain.select' ...).unfold m hm μ)
-  -- Domain.select' for ByNeed = D.bind (dv↓) select_kont
-  have h_restr : World.restrict (eval (D := D) eₛ n (Nat.le_refl n) ρ) = eval (D := D) eₛ n (Nat.le_refl n) ρ := by
+  have h_restr : World.restrict (eval (D := D) eₛ n (Nat.le_refl n) ρ) =
+      eval (D := D) eₛ n (Nat.le_refl n) ρ := by
     rw [World.restrict.eq_1, dif_pos rfl]; simp
   intro m hm μ hμ
   simp only [Domain.select', Domain.select, h_restr]
   apply D_bind_TraceGood _ _ (ih_eₛ ρ hρ) _ _ m hm μ hμ
   · intro j hj vh hfn hcon hheap
-    -- The goal has nested matches. Use split to case-split.
     split
     next K ds heq =>
-      -- heq : Value.F.ofRep (Later D) vh.fst = Value.F.con K ds
-      -- Split on List.find? result
       split
-      next _ f hfind =>
-        -- found matching alt: D.invis (Later.hmap j ... (Later.sequence j ds))
-        apply GoodD_invis_of_GoodLater _ _ j (Nat.le_refl j) vh.2 hheap;
-        cases j <;> simp_all +decide [ Later_sequence_succ ];
-        · exact GoodLater_zero _;
-        · obtain ⟨ a, ha₁, ha₂, ha₃ ⟩ := hfind;
-          rw [ ← ha₃ ];
-          apply GoodLater_of_step;
-          apply ih_alts a (by
-          exact List.mem_of_find?_eq_some ha₁);
-          apply GoodEnv_bindMany;
-          · exact GoodEnv_world_restrict ρ hρ _;
-          · intro d hd m hm μ hμ;
-            have := hcon K ds ( Value_F_ofRep_con_inv heq ) d hd;
-            exact GoodLater_to_GoodEnv_cond d this m hm μ hμ
+      next entryK f hfind =>
+        obtain ⟨vs, rhs, hmem, _heqK, hfeq⟩ :=
+          evalAlts_find_some_inv ρ K (entryK, f) alts hfind
+        simp only [] at hfeq
+        apply GoodD_invis_of_GoodLater _ _ j (Nat.le_refl j) vh.2 hheap
+        cases j with
+        | zero => exact GoodLater_zero _
+        | succ j' =>
+          show GoodLater (j'+1) (Later.hmap (j'+1)
+            (fun i _h ds' => f i (by omega) ds')
+            (Later.sequence _ ds))
+          rw [Later_sequence_succ]
+          show GoodLater (j'+1) (f j' _ ds)
+          rw [hfeq]
+          apply GoodLater_of_step
+          by_cases hlen : ds.length = vs.length
+          · rw [dif_pos hlen]
+            have hcon_ds := hcon K ds (Value_F_ofRep_con_inv heq)
+            have h_env_at_ds : GoodEnv ((ρ↓).bindMany ds : Env D (scope + ds.length) j') :=
+              GoodEnv_bindMany _ (GoodEnv_world_restrict ρ hρ _) ds
+                (fun d hd k' hk' μ' hμ' =>
+                  GoodLater_to_GoodEnv_cond d (hcon_ds d hd) k' hk' μ' hμ')
+            have h_env : GoodEnv (hlen ▸ ((ρ↓).bindMany ds) : Env D (scope + vs.length) j') := by
+              -- Abstract over the unknown length so subst can fire.
+              have key : ∀ (m : Nat) (h : ds.length = m) (env : Env D (scope + ds.length) j'),
+                  GoodEnv env → GoodEnv (h ▸ env : Env D (scope + m) j') := by
+                intros m h env henv; subst h; exact henv
+              exact key vs.length hlen _ h_env_at_ds
+            exact ih_alts hmem _ h_env
+          · rw [dif_neg hlen]
+            exact GoodD_stuck
       next hfind =>
-        -- no matching alt: D.stuck
         exact (GoodD_stuck j (Nat.le_refl j) vh.2 (by simpa using hheap)).2
     next => exact (GoodD_stuck j (Nat.le_refl j) vh.2 (by simpa using hheap)).2
-  · -- hkont_stuck for select: at stuck, the select kont produces D.stuck
-    intro j hj μ' hμ'
+  · intro j hj μ' hμ'
     show (NotRet j (D.stuck.unfold j _ μ') ∨ IsRetStuck j (D.stuck.unfold j _ μ')) ∧
          ∀ k', TraceGood k' j (D.stuck.unfold j _ μ')
     exact stuck_unfold_good j μ' hμ'
 
-/-! ## Heap-invariant versions for the let case -/
-
-/-- GoodD relative to a heap invariant Inv. -/
-noncomputable def GoodD_Inv (Inv : ∀ m, Heap (▹ D) m → Prop) (n : Nat) (d : D n) : Prop :=
-  ∀ m (hm : m ≤ n) μ, GoodHeap m μ → Inv m μ →
-    StartsVisible m (d.unfold m hm μ) ∧ TraceGood 2 m (d.unfold m hm μ)
-
-/-- GoodEnv relative to a heap invariant Inv. -/
-noncomputable def GoodEnv_Inv (Inv : ∀ m, Heap (▹ D) m → Prop) {n : Nat} (ρ : Env (D n)) : Prop :=
-  ∀ x d, ρ.find? x = some d →
-    ∀ m (hm : m ≤ n) μ, GoodHeap m μ → Inv m μ →
-      StartsWithStep m (d.unfold m hm μ) ∧ TraceGood 2 m (d.unfold m hm μ)
-
-theorem GoodD_to_Inv {Inv : ∀ m, Heap (▹ D) m → Prop} {n : Nat} {d : D n}
-    (hd : GoodD n d) : GoodD_Inv Inv n d := fun m hm μ hμ _ => hd m hm μ hμ
-
-theorem GoodEnv_to_Inv {Inv : ∀ m, Heap (▹ D) m → Prop} {n : Nat} {ρ : Env (D n)}
-    (hρ : GoodEnv ρ) : GoodEnv_Inv Inv ρ := fun x d hfind m hm μ hμ _ => hρ x d hfind m hm μ hμ
-
-theorem GoodEnv_Inv_to_GoodD_Inv {Inv : ∀ m, Heap (▹ D) m → Prop} {n : Nat}
-    {ρ : Env (D n)} (hρ : GoodEnv_Inv Inv ρ) (x : Var) (d : D n)
-    (hfind : ρ.find? x = some d) : GoodD_Inv Inv n d := fun m hm μ hμ hInv =>
-  ⟨StartsWithStep_imp_StartsVisible (hρ x d hfind m hm μ hμ hInv).1,
-   (hρ x d hfind m hm μ hμ hInv).2⟩
-
-theorem GoodEnv_Inv_world_restrict {Inv : ∀ m, Heap (▹ D) m → Prop}
-    {n m : Nat} (ρ : Heap D n) (hρ : GoodEnv_Inv Inv ρ) (hm : m ≤ n) :
-    GoodEnv_Inv Inv (Functor.map (World.restrict (hm := hm)) ρ) := by
-  intro x d hd k hk μ hμ hInv
-  have hfind : Env.find? ((fun x => World.restrict x hm) <$> ρ) x =
-      Option.map (fun x => World.restrict x hm) (Env.find? ρ x) := by
-    show Std.HashMap.get? (Functor.map _ ρ) x = _
-    exact AddrMap_get?_map _ _ _
-  rw [hfind] at hd
-  cases hget : Env.find? ρ x with
-  | none => simp [hget] at hd
-  | some d' =>
-    simp [hget] at hd; subst hd
-    simp only [D_unfold_restrict]
-    exact hρ x d' hget k (Nat.le_trans hk hm) μ hμ hInv
-
-theorem GoodEnv_Inv_bind {Inv : ∀ m, Heap (▹ D) m → Prop} {n : Nat}
-    (ρ : Env (D n)) (hρ : GoodEnv_Inv Inv ρ)
-    (x : Var) (d : D n)
-    (hd : ∀ m (hm : m ≤ n) μ, GoodHeap m μ → Inv m μ →
-      StartsWithStep m (d.unfold m hm μ) ∧ TraceGood 2 m (d.unfold m hm μ)) :
-    GoodEnv_Inv Inv (ρ.bind x d) := by
-  intro y d' hfind k hk μ hμ hInv
-  simp only [Env.bind, Env.find?, Std.HashMap.get?_eq_getElem?] at hfind
-  rw [Std.HashMap.getElem?_insert] at hfind
-  split at hfind
-  · cases hfind; exact hd k hk μ hμ hInv
-  · exact hρ y d' (by rwa [Env.find?, Std.HashMap.get?_eq_getElem?]) k hk μ hμ hInv
-
-
 /-- The fetch-based entry for the let-bound variable satisfies GoodEnv conditions.
     At heaps with address a: step → invis → invis → d_at_a (good from GoodHeap).
     At heaps without a: step → invis → ret(stuck) (OK with IsRetStuck relaxation). -/
-theorem fetch_entry_good (x : Var) (a : Addr) {n : Nat} :
+theorem fetch_entry_good (x : Name) (a : Addr) {n : Nat} :
     ∀ m (hm : m ≤ n) (μ : Heap (▹ D) m), GoodHeap m μ →
       StartsWithStep m ((D.step (.look x) (Later.next (D.invis (fetch a)))).unfold m hm μ) ∧
       TraceGood 2 m ((D.step (.look x) (Later.next (D.invis (fetch a)))).unfold m hm μ) := by
@@ -1461,31 +1435,22 @@ theorem GoodLater_memo : ∀ (a : Addr) {m : Nat} (d : ▹ D (m + 1)),
 -- stuck_memo_TraceGood
 
 /-- Fundamental lemma for .let' -/
-theorem fundamental_let (x : Var) (e₁ e₂ : Exp) {n : Nat}
-    (ρ : Env (D n)) (hρ : GoodEnv ρ)
-    (ih_e₁ : ∀ {m : Nat} (ρ' : Env (D m)), GoodEnv ρ' →
+theorem fundamental_let {scope : Nat} (x : Name) (e₁ e₂ : Exp (scope + 1)) {n : Nat}
+    (ρ : Env D scope n) (hρ : GoodEnv ρ)
+    (ih_e₁ : ∀ {m : Nat} (ρ' : Env D (scope+1) m), GoodEnv ρ' →
       GoodD m (eval (D := D) e₁ m (Nat.le_refl m) ρ'))
-    (ih_e₂ : ∀ {m : Nat} (ρ' : Env (D m)), GoodEnv ρ' →
+    (ih_e₂ : ∀ {m : Nat} (ρ' : Env D (scope+1) m), GoodEnv ρ' →
       GoodD m (eval (D := D) e₂ m (Nat.le_refl m) ρ')) :
     GoodD n (eval (D := D) (.let' x e₁ e₂) n (Nat.le_refl n) ρ) := by
   simp only [eval.eq_6]
   intro m hm μ hμ
   simp only [Domain.bind', Domain.bind, D_fold_unfold]
-  -- The goal is StartsVisible ∧ TraceGood of body.unfold at the extended heap
-  -- Let ext_env := the extended env, a := μ.nextFree
-  -- The env: (World.restrict ρ _).bind x (Domain.step' (.look x) (D.invis (fetch a)))
-  -- The heap: Heap.set μ a (D.memo a (Later.next (eval e₁ m _ ext_env)))
-  -- 1. GoodEnv of extended env
   have h_env_base := GoodEnv_world_restrict ρ hρ hm
-  have h_env := GoodEnv_bind _ h_env_base x _ (fetch_entry_good x μ.nextFree)
-  -- 2. GoodD of rhs: eval e₁ in the extended GoodEnv
+  have h_env := GoodEnv_bind _ h_env_base _ (fetch_entry_good x μ.nextFree)
   have h_rhs := ih_e₁ _ h_env
-  -- The body: D.step .let1 (Later.next (eval e₂ m _ (Env.bind (World.restrict ρ hm) x (D.step ...))))
-  -- The heap: Heap.set μ a (D.memo a (Later.next (eval e₁ m _ ext_env)))
-  -- 3. GoodLater of memo thunk
   have h_memo : GoodLater m (D.memo μ.nextFree
       (Later.next (eval (D := D) e₁ m (Nat.le_refl m)
-        (Env.bind (World.restrict (F := Heap D) ρ hm) x
+        (Env.bind (World.restrict (F := Env D scope) ρ hm)
           (D.step (.look x) (Later.next (D.invis (fetch μ.nextFree)))))))) := by
     cases m with
     | zero => exact GoodLater_zero _
@@ -1495,20 +1460,18 @@ theorem fundamental_let (x : Var) (e₁ e₂ : Exp) {n : Nat}
       simp only [unfoldLater, Later.next]
       rw [D_unfold_restrictStep]
       exact h_rhs k (by omega) μ' hμ'
-  -- 4. GoodHeap of extended heap
   have h_heap := GoodHeap_set μ hμ μ.nextFree _ h_memo
-  -- 5. GoodD of body
   have h_body := GoodD_step_of_TraceGood .let1
     (eval (D := D) e₂ m (Nat.le_refl m)
-      (Env.bind (World.restrict (F := Heap D) ρ hm) x
+      (Env.bind (World.restrict (F := Env D scope) ρ hm)
         (D.step (.look x) (Later.next (D.invis (fetch μ.nextFree))))))
     (fun m' hm' μ'' hμ'' => (ih_e₂ _ h_env m' hm' μ'' hμ'').2)
-  -- 6. Apply at extended heap
   exact h_body m (Nat.le_refl m) _ h_heap
 
 /-- **Fundamental Lemma**: if the environment is good, then `eval e` produces a good `D`.
-    By structural induction on `e` (mutual with `Alt`), using the closure properties. -/
-theorem fundamental_lemma (e : Exp) {n : Nat} (ρ : Env (D n)) (hρ : GoodEnv ρ) :
+    By structural induction on `e`, using the closure properties. -/
+theorem fundamental_lemma {scope : Nat} (e : Exp scope) {n : Nat} (ρ : Env D scope n)
+    (hρ : GoodEnv ρ) :
     GoodD n (eval (D := D) e n (Nat.le_refl n) ρ) := by
   match e with
   | .ref x => exact fundamental_ref x ρ hρ
@@ -1523,42 +1486,45 @@ theorem fundamental_lemma (e : Exp) {n : Nat} (ρ : Env (D n)) (hρ : GoodEnv ρ
       simp only [Later.hmap]
       apply GoodLater_of_step
       apply fundamental_lemma body
-      apply GoodEnv_bind _ (GoodEnv_world_restrict ρ hρ _) x dl
+      apply GoodEnv_bind _ (GoodEnv_world_restrict ρ hρ _) dl
       exact GoodLater_to_GoodEnv_cond dl hdl
   | .app e₁ x =>
     exact fundamental_app e₁ x ρ hρ (fun ρ' hρ' => fundamental_lemma e₁ ρ' hρ')
   | .case' eₛ alts =>
     exact fundamental_case eₛ alts ρ hρ
       (fun ρ' hρ' => fundamental_lemma eₛ ρ' hρ')
-      (fun alt _halt {_m} ρ' hρ' => fundamental_lemma alt.rhs ρ' hρ')
+      (fun {_c _vs _rhs} _ {_m} ρ' hρ' => fundamental_lemma _ ρ' hρ')
   | .let' x e₁ e₂ =>
     exact fundamental_let x e₁ e₂ ρ hρ
       (fun ρ' hρ' => fundamental_lemma e₁ ρ' hρ')
       (fun ρ' hρ' => fundamental_lemma e₂ ρ' hρ')
 termination_by sizeOf e
 decreasing_by
-  all_goals simp_wf; first | omega | skip
-  · have := List.sizeOf_lt_of_mem ‹alt ∈ alts›
-    have : sizeOf alt.rhs < sizeOf alt := by cases alt; simp [Alt.mk.sizeOf_spec]; omega
-    omega
+  all_goals simp_wf
+  all_goals first
+    | omega
+    | (rename_i halt_mem
+       have hlt := AltMem_sizeOf_lt halt_mem
+       omega)
+
 
 /-! ## Main theorems -/
 
 private theorem emptyHeap_good (n : Nat) : GoodHeap n (∅ : Heap (▹ D) n) :=
   fun _ _ h => absurd h (by rw [HashMap_get?_empty]; simp)
 
-private theorem emptyEnv_good (n : Nat) : GoodEnv (Env.empty : Env (D n)) := by
-  intro x d h; rw [show Env.find? Env.empty x = none from HashMap_get?_empty x] at h; cases h
+private theorem emptyEnv_good (n : Nat) : GoodEnv (Env.empty : Env D 0 n) := by
+  intro x; exact x.elim0
 
 /-- **Main Theorem**: every trace produced by `evalByNeed` has at most 2 consecutive
     invisible steps (no triple `T.invis`). -/
-theorem evalByNeed_noTripleInvis (n : Nat) (e : Exp) :
+theorem evalByNeed_noTripleInvis (n : Nat) (e : Exp 0) :
     NoTripleInvis n ((evalByNeed n e).unfold n (Nat.le_refl n) ∅) :=
   TraceGood_implies_NCI 2 n _
     (fundamental_lemma e Env.empty (emptyEnv_good n) n (Nat.le_refl n) ∅ (emptyHeap_good n)).2
 
 /-- The trace of `evalByNeed n e` starts visibly. -/
-theorem evalByNeed_startsVisible (n : Nat) (e : Exp) :
+theorem evalByNeed_startsVisible (n : Nat) (e : Exp 0) :
     StartsVisible n ((evalByNeed n e).unfold n (Nat.le_refl n) ∅) :=
   (fundamental_lemma e Env.empty (emptyEnv_good n) n (Nat.le_refl n) ∅ (emptyHeap_good n)).1
 

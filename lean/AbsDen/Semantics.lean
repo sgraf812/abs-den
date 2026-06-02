@@ -3,23 +3,17 @@ import AbsDen.Env
 import AbsDen.World
 
 /-!
-# Denotational interpreter
+# Denotational interpreter (well-scoped)
 
-The interpreter is generic, parameterized by a family `D : Nat → Type` satisfying
-the type class `Domain D`.
-
-Environment entries are `EnvEntry D n = Var × Later D n`.
-The `look` event is baked into the entry at `let` binding sites, not at
-reference sites, matching Agda's `Σ D is-env`.
+The interpreter is generic over a family `D : Nat → Type` with a `Domain D`
+instance. The environment is the well-scoped `Env D m`, so variable lookup is
+total.
 -/
 
 /-! ## Semantic operations -/
 
 /-- Global elements of a step-indexed family. -/
 abbrev El (F : Nat → Type) := {n : Nat} → F n
-
-/-- Environment entry: `Var × ▹D`. -/
-abbrev EnvEntry (D : Nat → Type) : Nat → Type := world(Var × ▹D)
 
 /-- Semantic domain: a World with denotational operations. -/
 class Domain (D : Nat → Type) extends World D where
@@ -63,36 +57,43 @@ end Domain
 /-- Postfix notation for World.restrict: `ρ↓` restricts to the current step. -/
 macro:max x:term "↓" : term => `(World.restrict $x)
 
+mutual
+
 /-- The generic denotational interpreter. -/
-def eval {D : Nat → Type} [Domain D] : (e : Exp) → El world(Env D → D)
-  | .ref x => fun _ _ ρ => match ρ.find? x with
-    | some entry => entry
-    | none => Domain.stuck
-  | .lam x body => fun k _ ρ =>
-    Domain.fn' (fun j hj entry => Domain.step' .app2 (eval body j (Nat.le_refl j) ((ρ↓).bind x entry)))
-  | .app e₁ x => fun k _ ρ => match ρ.find? x with
-    | some entry =>
-      Domain.step' .app1 (Domain.apply' (eval e₁ k (Nat.le_refl k) ρ) entry)
-    | none => Domain.stuck
-  | .conapp K xs => fun _ _ ρ => match ρ.pmapList xs with
-    | some ds => Domain.con' K ds
-    | none => Domain.stuck
-  | .case' eₛ alts => fun k _ ρ =>
-    Domain.step' .case1 (
-      Domain.select' (eval eₛ k (Nat.le_refl k) ρ)
-        (alts.map fun alt =>
-          (alt.con, fun j hj ds =>
-            Domain.step' .case2 (eval alt.rhs j (Nat.le_refl j) ((ρ↓).bindMany alt.vars ds)))))
-  | .let' x e₁ e₂ => fun k _ ρ =>
-    let rhs : World.Function D D k := fun j hj dx =>
-      eval e₁ j (Nat.le_refl j) ((ρ↓).bind x (Domain.step' (.look x) dx))
+def eval {D : Nat → Type} [Domain D] : {m : Nat} → (e : Exp m) →
+    El (World.Function (Env D m) D)
+  | _, .ref x => fun _ _ ρ => ρ.lookup x
+  | _, .lam _ body => fun _ _ ρ =>
+    Domain.fn' (fun j _ entry =>
+      Domain.step' .app2 (eval body j (Nat.le_refl j) ((ρ↓).bind entry)))
+  | _, .app e₁ x => fun k _ ρ =>
+    Domain.step' .app1 (Domain.apply' (eval e₁ k (Nat.le_refl k) ρ) (ρ.lookup x))
+  | _, .conapp K xs => fun _ _ ρ =>
+    Domain.con' K (ρ.mapList xs)
+  | _, .case' eₛ alts => fun k _ ρ =>
+    Domain.step' .case1
+      (Domain.select' (eval eₛ k (Nat.le_refl k) ρ) (evalAlts ρ alts))
+  | _, .let' name e₁ e₂ => fun k _ ρ =>
+    let rhs : World.Function D D k := fun j _ dx =>
+      eval e₁ j (Nat.le_refl j) ((ρ↓).bind (Domain.step' (.look name) dx))
     let body : World.Function D D k :=
-      fun j hj dx =>
-        Domain.step' .let1 (eval e₂ j (Nat.le_refl j) ((ρ↓).bind x (Domain.step' (.look x) dx)))
+      fun j _ dx =>
+        Domain.step' .let1
+          (eval e₂ j (Nat.le_refl j) ((ρ↓).bind (Domain.step' (.look name) dx)))
     Domain.bind' rhs body
-termination_by e => sizeOf e
-decreasing_by
-  all_goals simp_wf; first | omega | skip
-  · have := List.sizeOf_lt_of_mem ‹alt ∈ alts›
-    have : sizeOf alt.rhs < sizeOf alt := by cases alt; simp [Alt.mk.sizeOf_spec]; omega
-    omega
+
+/-- Build the `select` argument from an `AltList`. The `.case2` step is emitted
+    unconditionally so the trace always starts with a visible event; arity
+    mismatches reduce to `stuck` *under* the step. -/
+def evalAlts {D : Nat → Type} [Domain D] {m k : Nat} (ρ : Env D m k) :
+    AltList m → List (ConTag × world(List D → D) k)
+  | .nil => []
+  | .cons c vs rhs rest =>
+    (c, fun j _ ds =>
+      Domain.step' .case2
+        (if h : ds.length = vs.length then
+          eval rhs j (Nat.le_refl j) (h ▸ (ρ↓).bindMany ds)
+        else Domain.stuck))
+    :: evalAlts ρ rest
+
+end

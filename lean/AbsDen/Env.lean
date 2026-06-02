@@ -1,34 +1,37 @@
 import AbsDen.Syntax
-import Std
+import AbsDen.World.Basic
 
 /-!
-# Environment as HashMap
+# Well-scoped step-indexed environment
 
-Uses `Std.HashMap Var V` for O(1) lookup.
+`Env D m n = Fin m → D n` — a total mapping from de Bruijn indices to
+denotations at step `n`. With well-scoped syntax variable lookup never fails.
+
+Convention: index `0` is the innermost binder. `bind` extends the scope by
+pushing a new innermost binding; `bindMany` binds a list whose head ends up
+innermost.
 -/
 
-def Env (V : Type) : Type := Std.HashMap Var V
+def Env (D : Nat → Type) (m : Nat) : Nat → Type := fun n => Fin m → D n
 
-instance : EmptyCollection (Env V) := ⟨(∅ : Std.HashMap Var V)⟩
-
-instance : Functor Env where
-  map f (ρ : Env _) := Std.HashMap.fold (fun acc k v => acc.insert k (f v)) ∅ ρ
+instance {D : Nat → Type} [World D] {m : Nat} : World (Env D m) where
+  restrictStep ρ := fun i => World.restrictStep (ρ i)
 
 namespace Env
 
-def empty {V : Type} : Env V := ∅
+def empty {D : Nat → Type} {n : Nat} : Env D 0 n := Fin.elim0
 
-def find? {V : Type} (ρ : Env V) (x : Var) : Option V :=
-  Std.HashMap.get? ρ x
+def lookup {D : Nat → Type} {m n : Nat} (ρ : Env D m n) (x : Fin m) : D n := ρ x
 
-def bind {V : Type} (ρ : Env V) (x : Var) (v : V) : Env V :=
-  Std.HashMap.insert ρ x v
+def bind {D : Nat → Type} {m n : Nat} (ρ : Env D m n) (v : D n) : Env D (m+1) n :=
+  Fin.cases v ρ
 
-def bindMany {V : Type} (ρ : Env V) (xs : List Var) (vs : List V) : Env V :=
-  (xs.zip vs).foldl (fun acc (x, v) => acc.insert x v) ρ
+def bindMany {D : Nat → Type} {m n : Nat} (ρ : Env D m n) :
+    (vs : List (D n)) → Env D (m + vs.length) n
+  | [] => ρ
+  | v :: vs => (ρ.bindMany vs).bind v
 
-/-- Map a partial function over a list of keys, looking each up in the env. -/
-def pmapList {V : Type} (ρ : Env V) (xs : List Var) : Option (List V) :=
-  xs.mapM (ρ.find? ·)
+def mapList {D : Nat → Type} {m n : Nat} (ρ : Env D m n) (xs : List (Fin m)) : List (D n) :=
+  xs.map ρ
 
 end Env

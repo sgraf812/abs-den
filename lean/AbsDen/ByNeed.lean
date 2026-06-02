@@ -141,17 +141,16 @@ instance : Domain D where
 
 /-! ## By-need evaluator -/
 
-def evalByNeed (n : Nat) (e : Exp) : D n :=
+def evalByNeed (n : Nat) (e : Exp 0) : D n :=
   eval (D := D) e n (Nat.le_refl n) Env.empty
 
 /-! ========== Tests ========== -/
 
-instance : ToString Exp := ⟨fun e => toString (repr e)⟩
-
-def idId : Exp := .lam 0 (.ref 0)
-def idAppId : Exp := .let' 0 (.lam 1 (.ref 1)) (.app (.ref 0) 0)
-def idAppTrue : Exp := .let' 0 (.conapp 1 []) (.app (.lam 1 (.ref 1)) 0)
-def idAppIdMemo : Exp := .let' 0 (.app (.lam 1 (.lam 2 (.ref 2))) 0) (.app (.ref 0) 0)
+def idId : Exp 0 := .lam 0 (.ref 0)
+def idAppId : Exp 0 := .let' 0 (.lam 1 (.ref 0)) (.app (.ref 0) 0)
+def idAppTrue : Exp 0 := .let' 0 (.conapp 1 []) (.app (.lam 1 (.ref 0)) 0)
+def idAppIdMemo : Exp 0 :=
+  .let' 0 (.app (.lam 1 (.lam 2 (.ref 0))) 0) (.app (.ref 0) 0)
 
 def showValue {n : Nat} : Value.F (Later D) n → String
   | .stuck => "stuck"
@@ -209,7 +208,7 @@ instance {n : Nat} : BEq (D n) := ⟨D.bisim⟩
 def D.anyFn {n : Nat} : D n := D.fn (fun _ _ d => D.invis (Later.next d))
 def D.ev {n : Nat} (e : Event) (d : D n) : D (n + 1) := D.step e d
 
-def test (exp : Exp) (n : Nat) (expected : D n) : Lean.Meta.MetaM Unit := do
+def test (exp : Exp 0) (n : Nat) (expected : D n) : Lean.Meta.MetaM Unit := do
   let actual := evalByNeed n exp
   unless actual == expected do
      throwError s!"Failed for {exp}:\n  expected: {showD expected n}\n  got:      {showD actual n}"

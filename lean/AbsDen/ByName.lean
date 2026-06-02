@@ -94,7 +94,7 @@ instance : Domain D where
 
 /-! ## By-name evaluator -/
 
-def evalByName (n : Nat) (e : Exp) : D n :=
+def evalByName (n : Nat) (e : Exp 0) : D n :=
   eval (D := D) e n (Nat.le_refl n) Env.empty
 
 /-! ========== Tests ========== -/
@@ -121,27 +121,13 @@ partial def showT {n : Nat} (t : T VRep n) (fuel : Nat) : String :=
 
 def showD {n : Nat} (d : D n) (fuel : Nat) : String := showT d.unfold fuel
 
-def idId : Exp := .lam 0 (.ref 0)
-def idAppId : Exp := .let' 0 (.lam 1 (.ref 1)) (.app (.ref 0) 0)
-def idAppTrue : Exp := .let' 0 (.conapp 1 []) (.app (.lam 1 (.ref 1)) 0)
-def idAppIdMemo : Exp := .let' 0 (.app (.lam 1 (.lam 2 (.ref 2))) 0) (.app (.ref 0) 0)
+def idId : Exp 0 := .lam 0 (.ref 0)
+def idAppId : Exp 0 := .let' 0 (.lam 1 (.ref 0)) (.app (.ref 0) 0)
+def idAppTrue : Exp 0 := .let' 0 (.conapp 1 []) (.app (.lam 1 (.ref 0)) 0)
+def idAppIdMemo : Exp 0 :=
+  .let' 0 (.app (.lam 1 (.lam 2 (.ref 0))) 0) (.app (.ref 0) 0)
 
 /-! ## Step-indexed bisimulation and tests -/
-
-mutual
-  def Exp.toString : Exp → String
-    | .ref x => s!"ref {x}"
-    | .lam x e => s!"λ{x}.{e.toString}"
-    | .app e x => s!"({e.toString}) {x}"
-    | .let' x e₁ e₂ => s!"let {x} = {e₁.toString} in {e₂.toString}"
-    | .conapp K xs => s!"K{K}{xs}"
-    | .case' e alts => s!"case {e.toString} of {alts.map Alt.toString}"
-
-  def Alt.toString : Alt → String
-    | ⟨K, vars, rhs⟩ => s!"K{K} {vars} → {rhs.toString}"
-end
-
-instance : ToString Exp := ⟨Exp.toString⟩
 
 instance {n : Nat} {α : Type} [BEq α] : BEq (World.Const α n) := inferInstanceAs (BEq α)
 
@@ -181,7 +167,7 @@ def D.anyFn {n : Nat} : D n := D.fn (fun _ _ _ => default)
 
 def D.ev {n : Nat} (e : Event) (d : D n) : D (n + 1) := D.step e d
 
-def test (exp : Exp) (n : Nat) (expected : D n) : Lean.Meta.MetaM Unit := do
+def test (exp : Exp 0) (n : Nat) (expected : D n) : Lean.Meta.MetaM Unit := do
   let actual := evalByName n exp
   unless actual == expected do
      throwError s!"Failed for {exp}:\n  expected: {showD expected n}\n  got:      {showD actual n}"

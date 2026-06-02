@@ -1,5 +1,4 @@
 import AbsDen.World.Basic
-import AbsDen.Env
 import Lean.Elab.Term
 
 /-!
@@ -214,7 +213,6 @@ example : Nat → Type := world(▹ Unit)
 -- Comp
 example (D : Nat → Type) : Nat → Type := world(List D)
 example (D : Nat → Type) : Nat → Type := world(Option D)
-example (D : Nat → Type) : Nat → Type := world(Env D)
 example (D : Nat → Type) (n : Nat) : Type := world(D) n
 example (D : Nat → Type) : Nat → Type := world(List D → D)
 example (D : Nat → Type) : Nat → Type := world(D → List D)
@@ -228,8 +226,8 @@ example (D : Nat → Type) : Nat → Type := world(D × D)
 example (D : Nat → Type) : Nat → Type := world(D ⊕ D)
 example (D : Nat → Type) : Nat → Type := world(D → D)
 example (D : Nat → Type) : Nat → Type := world(Nat ⊕ D × D)
-example (D : Nat → Type) : Nat → Type := world(Unit ⊕ (Var × D → D) ⊕ ConTag × List (Var × D))
-example (V W : Nat → Type) : Nat → Type := world(V ⊕ Event × W)
+example (D : Nat → Type) : Nat → Type := world(Unit ⊕ (Nat × D → D) ⊕ Nat × List (Nat × D))
+example (V W : Nat → Type) (E : Type) : Nat → Type := world(V ⊕ E × W)
 def testSig (D : Nat → Type) : Nat → Type := world(Nat ⊕ D × D)
 
 -- Fixpoint
