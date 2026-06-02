@@ -6,3 +6,4 @@ import AbsDen.Semantics
 import AbsDen.Trace
 import AbsDen.ByName
 import AbsDen.ByNeed
+import AbsDen.NoConsecInvis

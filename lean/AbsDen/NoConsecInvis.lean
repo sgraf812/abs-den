@@ -1,5 +1,4 @@
 import AbsDen.ByNeed
-import AbsDen.World.Naturality
 
 /-!
 # No Triple Consecutive Invisible Steps
