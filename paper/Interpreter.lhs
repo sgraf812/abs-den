@@ -75,9 +75,11 @@ takeT n (Step e t) = Step e (takeT (n-1) t)
 \section{A Denotational Interpreter}
 \label{sec:interp}
 
-In this section, we present a generic \emph{denotational interpreter}
-for the language defined in \cref{sec:lang} which we instantiate with different
-semantic domains.
+In this section, we present a generic \emph{denotational interpreter}, which we
+instantiate with different semantic domains.
+Our object language is a standard untyped lambda calculus, extended with recursive
+|let| bindings, (saturated) constructor applications and |case| expressions, with
+arguments restricted to variables; its syntax is given in \Cref{fig:syntax}.
 Instantiated at \emph{concrete} semantic domains, the interpreter becomes a
 semantics for the language.
 To this end, we will see that the interpreter definition can be easily adjusted
@@ -159,9 +161,9 @@ It is possible to describe usage cardinality as a property of the traces
 thus generated, as required for a soundness proof of usage analysis.
 We choose |DName|, defined below, as the first example of such a semantic domain,
 because it is simple and illustrative of the approach.
-Instantiated at |DName|, our generic interpreter will produce precisely the
-traces of the by-\textbf{\textrm{na}}me variant of the Krivine machine in
-\Cref{fig:lk-semantics}, hence the subscript in |DName|.%
+Instantiated at |DName|, our generic interpreter produces precisely the
+traces of the by-\textbf{\textrm{na}}me variant of the Krivine machine
+(\Cref{sec:op-sem}), hence the subscript in |DName|.%
 %\footnote{For a realistic implementation, we would define |D| as a |newtype| to
 %keep type class resolution decidable and non-overlapping. We will however stick
 %to a |type| synonym in this presentation in order to elide noisy wrapping and
@@ -345,10 +347,10 @@ $\perform{eval (read "let i = λx.x in i i") emp :: DName}$,
 where $\langle\lambda\rangle$
 means that the trace ends in a |Fun| value.
 We cannot generally print |DName| or |Fun|ctions thereof, but in this case the result would be the value $\Lam{x}{x}$.
-This is in direct correspondence to the earlier call-by-name small-step trace
-\labelcref{ex:trace} in \Cref{sec:op-sem}.
-Henceforth, we write expressions in the mathematical meta notation of
-\Cref{sec:lang} rather than as Haskell strings, e.g.,
+We show in \Cref{sec:op-sem} that this trace matches that of a standard
+call-by-name abstract machine, the Krivine machine.
+Henceforth, we write expressions in mathematical meta notation rather than as
+Haskell strings, e.g.,
 |evalName (({-" \Let{i}{\Lam{x}{x}}{i~i} "-})) emp| in place of
 |evalName (read "let i = λx.x in i i") emp|.
 \Cref{sec:walkthrough} walks through the intermediate reduction steps for this
@@ -374,17 +376,17 @@ Crucially, the |Let| case of |eval| also wraps every future reference to the bou
 variable |x| in |step (Look x)|, making variable lookup observable --- a mechanism
 we explore in \Cref{sec:walkthrough}.
 
-A helpful analogy to abstract machine reduction by one of our reviewers is in order.
-Every expression that appears as control expression in the LK machine from
-\Cref{sec:op-sem} is a subexpression of the original program.
-The meaning of a subexpression is determined purely in terms of what happens
-when it is in the control position of valid configurations.
-By analogy, the denotational interpreter maps the subexpression $\pe$ to a trace
-prefix that corresponds to evaluating $\pe$ as the focus expression of a valid
-machine configuration $(\pe, ρ, μ, κ)$.
-The semantic value describes how that trace continues when the focus expression
-reaches a value, indexed by the evaluation context $(ρ, μ, κ)$.
-The following walkthrough makes this analogy concrete.
+The interpreter admits a purely operational reading.
+The behaviour of a subexpression $\pe$ is determined by what happens when $\pe$ is
+the expression under evaluation, closed by an environment $ρ$ and placed in an
+evaluation context.
+Accordingly, |eval| maps $\pe$ to the trace prefix produced while $\pe$ is
+evaluated under $ρ$, and the value ending that prefix describes how evaluation
+continues once $\pe$ reaches a value, as a function of the surrounding context;
+the following walkthrough makes this concrete.
+This reading is only an analogy, though: the trace semantics is intensional,
+identifying fewer programs than contextual equivalence and so falling short of
+full abstraction.
 
 \subsubsection{Walkthrough: From Compositional Definition to Operational Trace}
 \label{sec:walkthrough}
@@ -396,10 +398,9 @@ traces.
 We fix the by-name domain |DName| and work through $\Let{i}{\Lam{x}{x}}{i~i}$
 step by step, showing which clause of |eval| fires.
 
-The goal is to recover the by-name trace from \labelcref{ex:trace} in
-\Cref{sec:op-sem},
-$\perform{evalName (read "let i = λx.x in i i") emp}$,
-purely from the compositional structure of |eval|.
+The goal is to see how the compositional structure of |eval| alone produces the
+small-step trace
+$\perform{evalName (read "let i = λx.x in i i") emp}$.
 We inline the |DName| type class instances (\Cref{fig:trace-instances})
 as we see fit.
 To save horizontal space, we'll abbreviate |Step| to |S|.
@@ -439,7 +440,7 @@ the value.  So |(>>=)| replays the |Look "i"| event from the function
 denotation, reaches the |Fun| value inside |d|, and calls |(\d -> Step App2 d)| with
 argument |Step (Look "i") d| (elided as |...| in the previous line to save space).
 Step (\ref{eqn:eval-ex5}) substitutes |d|, and the final line prints the trace
-in familiar meta notation, recovering the by-name trace from \Cref{sec:op-sem}.
+in familiar meta notation.
 
 No single clause sees the full trace; each contributes a fragment, and |(>>=)| for
 |T| glues them into a coherent whole.
@@ -496,8 +497,8 @@ We demonstrate this in the Appendix.
 In \Cref{sec:soundness}, we build on |DNeed| to prove usage analysis sound \wrt
 by-need evaluation.
 It turns out that the interpreter thus derived is the --- to our knowledge ---
-first denotational semantics for call-by-need that bisimulates the LK machine
-(\Cref{sec:adequacy}).
+first denotational semantics for call-by-need that bisimulates the lazy Krivine
+machine (\Cref{sec:op-sem,sec:adequacy}).
 
 \begin{figure}
 \begin{code}
@@ -609,8 +610,8 @@ v)|, which immediately yields |v| after performing a |step Upd| that does
 nothing.%
 \footnote{More serious semantics would omit updates after the first
 evaluation as an \emph{optimisation}, \ie update with |ext μ a (return v)|,
-but doing so complicates relating the semantics to \Cref{fig:lk-semantics},
-where omission of update frames for values behaves differently.
+but doing so complicates relating the semantics to the lazy Krivine machine
+(\Cref{sec:op-sem}), where omission of update frames for values behaves differently.
 For now, our goal is not to formalise this optimisation, but rather to show
 adequacy \wrt an established semantics.}
 
@@ -629,8 +630,8 @@ by-need semantics.
 \label{sec:walkthrough-need}
 
 Just as \Cref{sec:walkthrough} traced through |eval| for the by-name domain
-|DName|, let us now trace through the characteristic by-need example from trace
-\labelcref{ex:trace2} in \Cref{sec:op-sem}, $\Let{i}{(\Lam{y}{\Lam{x}{x}})~i}{i~i}$,
+|DName|, let us now trace through the characteristic by-need example
+$\Let{i}{(\Lam{y}{\Lam{x}{x}})~i}{i~i}$,
 to build intuition for how the |DNeed| type class instances model memoisation.
 The goal is to recover the by-need trace
 $\perform{evalNeed (read "let i = (λy.λx.x) i in i i") emp emp}$
@@ -721,7 +722,8 @@ the first bracket ($\LookupT(i) \xhookrightarrow{} \AppIT \xhookrightarrow{} \Ap
 performs a beta reduction to evaluate the thunk;
 the second ($\LookupT(i) \xhookrightarrow{} \UpdateT$) returns the cached
 result immediately.
-The final trace matches LK machine trace~\labelcref{ex:trace2} from \Cref{sec:op-sem}.
+This trace coincides with that of the lazy Krivine machine, as we show in
+\Cref{sec:adequacy}.
 
 As in \Cref{sec:walkthrough}, no single clause of |eval| sees the full trace.
 The generic interpreter definition is unchanged from the by-name case; all
@@ -919,7 +921,7 @@ $\perform{evalVInit (read "let x = x in x x") emp emp :: T (ValueVInit, HeapVIni
 \end{toappendix}
 
 \medskip
-This example suggests that |evalNeed2| agrees with the LK machine on
+This example suggests that |evalNeed2| agrees with the lazy Krivine machine on
 \emph{many} programs.
-The next section proves that |evalNeed2| agrees with the LK machine on
+The next section proves that |evalNeed2| agrees with it on
 \emph{all} programs, including ones that diverge.

@@ -205,10 +205,10 @@
 \maketitle
 
 %include Introduction.lhs
-%include Problem.lhs
-%include OpSem.lhs
 %include Interpreter.lhs
+%include OpSem.lhs
 %include Adequacy.lhs
+%include Problem.lhs
 %include StaticAnalysis.lhs
 %include Soundness.lhs
 %include RelatedWork.lhs
