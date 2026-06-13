@@ -3,95 +3,81 @@ import AbsDen.Semantics
 /-!
 # Logical relations on semantic domains
 
-A `LR D` packages two step-indexed predicates on a semantic domain `D`:
+A `LR D` packages two step-indexed sub-presheaves on a semantic domain `D`:
 
-- `P : D n → Prop` — conclusion-side (admits `T.ret`-shaped values).
-- `Thunk : Later D n → Prop` — argument-side (requires the trace to start with a
-  visible step at the next unfolding).
+- `Comp : World.Pred D` — the *computation* side. Holds for `D`-values whose
+  unfoldings are well-behaved.
+- `Thunk : World.Pred (Later D)` — the *thunk* side. Holds for `Later D`-values
+  that represent heap-allocated thunks: their first unfolding step is visible
+  and forces to a `Comp`.
 
-Coherences `Thunk_to_P` and `step_to_Thunk` connect the two. The fundamental lemma
-`LR.fundamental` is a structural induction over `Exp` using only these fields.
+Coherences `Thunk_to_Comp` and `step_to_Thunk` mediate between the two. The
+fundamental lemma `LR.fundamental` is a structural induction over `Exp` using
+only these fields.
 -/
 
-/-- A unary logical relation on the semantic domain `D`.
-
-The argument-side condition `Thunk` factors as `▹P ⊓ StartsVisible`. Rather than
-carrying `Thunk` as a redundant field, we carry `StartsVisible` and derive `Thunk`. -/
+/-- A unary logical relation on the semantic domain `D`. -/
 structure LR (D : Nat → Type) [Domain D] where
-  /-- Conclusion-side sub-presheaf of `D`. -/
-  P : World.Pred D
-  /-- "First step is visible" sub-presheaf of `Later D`. -/
-  StartsVisible : World.Pred (Later D)
+  /-- Computation-side sub-presheaf of `D`. -/
+  Comp : World.Pred D
+  /-- Thunk-side sub-presheaf of `Later D`. -/
+  Thunk : World.Pred (Later D)
 
-  /-- Wrapping in `Domain.step'` produces a `StartsVisible` value. -/
-  step_visible : ∀ {n : Nat} (ev : Event) (d : D n),
-    StartsVisible.holds (n := n+1) (Domain.step' ev d : D n)
+  /-- Forcing a `Thunk` produces a `Comp`. -/
+  Thunk_to_Comp : ∀ {n : Nat} (d : D n),
+    Thunk.holds (n := n+1) d → Comp.holds d
+  /-- Step-wrapping a `Comp`-value yields a `Thunk`. -/
+  step_to_Thunk : ∀ {n : Nat} (ev : Event) (d : D n),
+    Comp.holds d → Thunk.holds (n := n+1) (Domain.step' ev d : D n)
 
-  /-- `Domain.stuck` is in the relation. -/
-  stuck : ∀ {n : Nat}, P.holds (Domain.stuck (D := D) (n := n))
+  /-- `Domain.stuck` is a `Comp`. -/
+  stuck : ∀ {n : Nat}, Comp.holds (Domain.stuck (D := D) (n := n))
 
-  /-- Closure under `Domain.step'`. -/
+  /-- Closure of `Comp` under `Domain.step'`. -/
   step : ∀ {n : Nat} (ev : Event) (d : D n),
-    P.holds d → P.holds (Domain.step' ev d)
+    Comp.holds d → Comp.holds (Domain.step' ev d)
 
-  /-- `Domain.fn'` closure: the function preserves `Thunk` on its `Later`-argument
-      under the `Later.hmap` that `Domain.fn'` introduces. -/
+  /-- `Domain.fn'` closure: the function maps `Thunk`s to `Thunk`s. -/
   fn : ∀ {n : Nat} (f : world(D → D) n),
     (∀ (m : Nat) (hm : m ≤ n) (dl : Later D m),
-      (P.laterLift.And StartsVisible).holds dl →
-      (P.laterLift.And StartsVisible).holds
-        (Later.hmap m (fun k _hk => f k (by omega)) dl)) →
-    P.holds (Domain.fn' f)
+      Thunk.holds dl →
+      Thunk.holds (Later.hmap m (fun k _hk => f k (by omega)) dl)) →
+    Comp.holds (Domain.fn' f)
 
-  /-- `Domain.con'` closure: each field, viewed at one index up, is `Thunk`. -/
+  /-- `Domain.con'` closure: each field is a `Thunk`. -/
   con : ∀ {n : Nat} (K : ConTag) (ds : List (D n)),
-    (∀ d, d ∈ ds → (P.laterLift.And StartsVisible).holds (n := n+1) d) →
-    P.holds (Domain.con' K ds)
+    (∀ d, d ∈ ds → Thunk.holds (n := n+1) d) →
+    Comp.holds (Domain.con' K ds)
 
   /-- Closure for the `.app1`-wrapped application produced by `eval (.app …)`. -/
   app_closed : ∀ {n : Nat} (dv da : D n),
-    P.holds dv → (P.laterLift.And StartsVisible).holds (n := n+1) da →
-    P.holds (Domain.step' .app1 (Domain.apply' dv da))
+    Comp.holds dv → Thunk.holds (n := n+1) da →
+    Comp.holds (Domain.step' .app1 (Domain.apply' dv da))
 
   /-- Closure for the `.case1`-wrapped case discrimination produced by
       `eval (.case' …)`. -/
   case_closed : ∀ {n : Nat} (dv : D n)
       (alts : List (ConTag × world(List D → D) n)),
-    P.holds dv →
+    Comp.holds dv →
     (∀ (K : ConTag) (f : world(List D → D) n), (K, f) ∈ alts →
       ∀ (m : Nat) (hm : m ≤ n) (ds : List (D m)),
-        (∀ d, d ∈ ds → (P.laterLift.And StartsVisible).holds (n := m+1) d) →
-        (P.laterLift.And StartsVisible).holds (n := m+1) (f m hm ds : D m)) →
-    P.holds (Domain.step' .case1 (Domain.select' dv alts))
+        (∀ d, d ∈ ds → Thunk.holds (n := m+1) d) →
+        Thunk.holds (n := m+1) (f m hm ds : D m)) →
+    Comp.holds (Domain.step' .case1 (Domain.select' dv alts))
 
   /-- `Domain.bind'` closure, parameterized by the wrapping event. -/
   bind_closed : ∀ {n : Nat} (ev : Event) (rhs body : World.Function D D n),
     (∀ (m : Nat) (hm : m ≤ n) (dx : D m),
-      (P.laterLift.And StartsVisible).holds (n := m+1)
-        (Domain.step' ev dx : D m) → P.holds (rhs m hm dx)) →
+      Thunk.holds (n := m+1) (Domain.step' ev dx : D m) →
+      Comp.holds (rhs m hm dx)) →
     (∀ (m : Nat) (hm : m ≤ n) (dx : D m),
-      (P.laterLift.And StartsVisible).holds (n := m+1)
-        (Domain.step' ev dx : D m) → P.holds (body m hm dx)) →
-    P.holds (Domain.bind' rhs body)
+      Thunk.holds (n := m+1) (Domain.step' ev dx : D m) →
+      Comp.holds (body m hm dx)) →
+    Comp.holds (Domain.bind' rhs body)
 
 namespace LR
 
 variable {D : Nat → Type} [Domain D]
-
-/-! ## Derived `Thunk` and its coherences -/
-
-/-- The argument-side sub-presheaf, derived as `▹P ⊓ StartsVisible`. -/
-def Thunk (lr : LR D) : World.Pred (Later D) := lr.P.laterLift.And lr.StartsVisible
-
-theorem Thunk_to_P (lr : LR D) {n : Nat} (d : D n)
-    (hThunk : lr.Thunk.holds (n := n+1) d) : lr.P.holds d := by
-  have h := (World.Pred.And_holds _ _ _).mp hThunk
-  exact (World.Pred.laterLift_holds_succ lr.P d).mp h.1
-
-theorem step_to_Thunk (lr : LR D) {n : Nat} (ev : Event) (d : D n) (hP : lr.P.holds d) :
-    lr.Thunk.holds (n := n+1) (Domain.step' ev d : D n) := by
-  refine (World.Pred.And_holds _ _ _).mpr ⟨?_, lr.step_visible ev d⟩
-  exact (World.Pred.laterLift_holds_succ lr.P _).mpr (lr.step ev d hP)
 
 /-! ## HashMap-level helpers (private)
 
@@ -255,17 +241,17 @@ theorem pmapList_good (lr : LR D) {n : Nat} (ρ : Env (D n)) (hρ : lr.env ρ)
 
 /-! ## Fundamental lemma -/
 
-/-- **Fundamental Lemma.** If `ρ` is good, then `eval e ρ` satisfies `lr.P`.
+/-- **Fundamental Lemma.** If `ρ` is good, then `eval e ρ` satisfies `lr.Comp`.
     Structural induction on `e` using only the closure laws and coherences
     packaged in `lr`. -/
 theorem fundamental (lr : LR D) :
     ∀ (e : Exp) {n : Nat} (ρ : Env (D n)), lr.env ρ →
-      lr.P.holds (eval (D := D) e n (Nat.le_refl n) ρ)
+      lr.Comp.holds (eval (D := D) e n (Nat.le_refl n) ρ)
   | .ref x, n, ρ, hρ => by
     simp only [eval]
     cases h : ρ.find? x with
     | none => exact lr.stuck
-    | some d => exact lr.Thunk_to_P d (hρ x d h)
+    | some d => exact lr.Thunk_to_Comp d (hρ x d h)
   | .conapp K xs, n, ρ, hρ => by
     simp only [eval]
     cases h : ρ.pmapList xs with
@@ -325,9 +311,10 @@ decreasing_by
 
 /-- The trivial logical relation: both predicates always true. -/
 def trivial : LR D where
-  P := World.Pred.ofClosed (fun _ => True) (fun _ _ => True.intro)
-  StartsVisible := World.Pred.ofClosed (fun _ => True) (fun _ _ => True.intro)
-  step_visible := fun _ _ => by simp
+  Comp := World.Pred.ofClosed (fun _ => True) (fun _ _ => True.intro)
+  Thunk := World.Pred.ofClosed (fun _ => True) (fun _ _ => True.intro)
+  Thunk_to_Comp := fun _ _ => by simp
+  step_to_Thunk := fun _ _ _ => by simp
   stuck := by simp
   step := fun _ _ _ => by simp
   fn := fun _ _ => by simp

@@ -157,109 +157,61 @@ private theorem apply_kont_TraceGood_GL {n : Nat} (entry : D n)
 
 /-! ## `LR.good` -/
 
-/-- The "starts visibly with a step" predicate, isolated from `GoodLater`'s
-    `TraceGood 2` content. -/
-private noncomputable def StartsVisibleNCI : ∀ {n : Nat}, Later D n → Prop
-  | 0, _ => True
-  | _ + 1, dl =>
-    ∀ m (hm : m ≤ _) μ, GoodHeap m μ → StartsWithStep m (unfoldLater dl m hm μ)
-
-private theorem StartsVisibleNCI_restrictStep {n : Nat} (dl : Later D (n + 1))
-    (hdl : StartsVisibleNCI dl) :
-    StartsVisibleNCI (World.restrictStep dl) := by
-  cases n with
-  | zero => trivial
-  | succ k =>
-    intro m hm μ hμ
-    show StartsWithStep m (unfoldLater (World.restrictStep dl) m hm μ)
-    have heq : @D.unfold k (World.restrictStep dl) m hm μ =
-               @D.unfold (k+1) dl m (Nat.le_succ_of_le hm) μ :=
-      D_unfold_restrictStep dl m hm μ
-    show StartsWithStep m (@D.unfold k (World.restrictStep dl) m hm μ)
-    rw [heq]
-    exact hdl m (Nat.le_succ_of_le hm) μ hμ
-
-/-- `GoodLater (n+1)` factors as `GoodD n` (the conclusion-side at one lower
-    level) conjoined with the "starts visibly" witness. -/
-private theorem GoodLater_iff_GoodD_and_SV {n : Nat} (d : D n) :
-    GoodLater (n+1) d ↔ GoodD n d ∧ @StartsVisibleNCI (n+1) d := by
-  unfold GoodLater
-  constructor
-  · intro h
-    refine ⟨?_, ?_⟩
-    · intro m hm μ hμ
-      have hh := h m hm μ hμ
-      exact ⟨StartsWithStep_imp_StartsVisible hh.1, hh.2⟩
-    · intro m hm μ hμ
-      exact (h m hm μ hμ).1
-  · rintro ⟨hgd, hsv⟩ m hm μ hμ
-    exact ⟨hsv m hm μ hμ, (hgd m hm μ hμ).2⟩
-
-private noncomputable def goodP : World.Pred D :=
+private noncomputable def goodComp : World.Pred D :=
   World.Pred.ofClosed (fun {n} d => GoodD n d) GoodD_restrictStep
 
-private noncomputable def goodSV : World.Pred (Later D) :=
-  World.Pred.ofClosed (@StartsVisibleNCI) StartsVisibleNCI_restrictStep
+private noncomputable def goodThunk : World.Pred (Later D) :=
+  World.Pred.ofClosed (fun {n} dl => GoodLater n dl) GoodLater_restrictStep
 
-private theorem goodP_holds {n : Nat} (d : D n) : goodP.holds d ↔ GoodD n d :=
+private theorem goodComp_holds {n : Nat} (d : D n) : goodComp.holds d ↔ GoodD n d :=
   World.Pred.ofClosed_holds _ _ d
 
-private theorem goodSV_holds {n : Nat} (dl : Later D n) :
-    goodSV.holds dl ↔ StartsVisibleNCI dl :=
+private theorem goodThunk_holds {n : Nat} (dl : Later D n) :
+    goodThunk.holds dl ↔ GoodLater n dl :=
   World.Pred.ofClosed_holds _ _ dl
 
-/-- The derived `Thunk` on `(goodP, goodSV)` is propositionally `GoodLater` at
-    successor levels. -/
 private theorem goodThunk_holds_succ {n : Nat} (d : D n) :
-    (goodP.laterLift.And goodSV).holds (n := n+1) d ↔ GoodLater (n+1) d := by
-  rw [World.Pred.And_holds, World.Pred.laterLift_holds_succ,
-      goodP_holds, goodSV_holds]
-  exact (GoodLater_iff_GoodD_and_SV d).symm
+    goodThunk.holds (n := n+1) d ↔ GoodLater (n+1) d :=
+  goodThunk_holds (n := n+1) d
 
 /-- The logical relation `(GoodD, GoodLater)` packaged as an `LR ByNeed.D`. -/
 noncomputable def good : LR D where
-  P := goodP
-  StartsVisible := goodSV
-  step_visible := by
-    intro n ev d
-    rw [goodSV_holds]
-    show ∀ m (hm : m ≤ n) μ, GoodHeap m μ →
-      StartsWithStep m (unfoldLater (Domain.step' ev d : D n) m hm μ)
-    intro m _ μ _
-    cases m with
-    | zero => trivial
-    | succ k =>
-      show StartsWithStep (k+1) ((D.step ev (Later.next d)).unfold (k+1) _ μ)
-      simp only [D_step_eq]
-      unfold StartsWithStep
-      simp [T.step, T_uf]
-  stuck := by intro n; rw [goodP_holds]; exact GoodD_stuck
+  Comp := goodComp
+  Thunk := goodThunk
+  Thunk_to_Comp := by
+    intro n d h
+    rw [goodThunk_holds] at h
+    rw [goodComp_holds]
+    exact GoodD_of_GoodLater d h
+  step_to_Thunk := by
+    intro n ev d h
+    rw [goodComp_holds] at h
+    rw [goodThunk_holds]
+    exact GoodLater_of_step ev d h
+  stuck := by intro n; rw [goodComp_holds]; exact GoodD_stuck
   step := by
     intro n ev d hd
-    rw [goodP_holds] at hd
-    rw [goodP_holds]
+    rw [goodComp_holds] at hd
+    rw [goodComp_holds]
     exact GoodD_step _ ev d hd
   fn := by
     intro n f hThunk
-    rw [goodP_holds]
+    rw [goodComp_holds]
     apply GoodD_fn
     intro m hm dl hgl
-    cases m with
-    | zero => exact GoodLater_zero _
-    | succ k =>
-      have := hThunk (k+1) hm dl ((goodThunk_holds_succ dl).mpr hgl)
-      exact (goodThunk_holds_succ _).mp this
+    have := hThunk m hm dl ((goodThunk_holds dl).mpr hgl)
+    exact (goodThunk_holds _).mp this
   con := by
     intro n K ds hds
-    rw [goodP_holds]
+    rw [goodComp_holds]
     apply GoodD_con K ds
     intro d hd
     have hgl : GoodLater (n+1) d := (goodThunk_holds_succ d).mp (hds d hd)
     exact GoodLater_next_of_GoodLater_succ d hgl
   app_closed := by
     intro n dv da hdv hThunk_da
-    rw [goodP_holds] at hdv
-    rw [goodP_holds]
+    rw [goodComp_holds] at hdv
+    rw [goodComp_holds]
     have hThunk_da : GoodLater (n+1) da := (goodThunk_holds_succ da).mp hThunk_da
     show GoodD n (D.step .app1 (Later.next
       (D.bind (World.restrict dv) (fun j _hj v =>
@@ -277,8 +229,8 @@ noncomputable def good : LR D where
       exact stuck_unfold_good j μ' hμ'
   case_closed := by
     intro n dv alts hdv halts
-    rw [goodP_holds] at hdv
-    rw [goodP_holds]
+    rw [goodComp_holds] at hdv
+    rw [goodComp_holds]
     show GoodD n (D.step .case1 (Later.next (Domain.select' dv alts)))
     apply GoodD_step_of_TraceGood
     have h_restr : World.restrict dv = dv := by
@@ -296,7 +248,7 @@ noncomputable def good : LR D where
           cases j
           · exact GoodLater_zero _
           · simp only [Later.hmap, Later_sequence_succ]
-            apply (goodThunk_holds_succ _).mp
+            apply (goodThunk_holds _).mp
             apply halts _ f hmem _ _ ds
             intro d hd
             exact (goodThunk_holds_succ d).mpr
@@ -311,16 +263,16 @@ noncomputable def good : LR D where
       exact stuck_unfold_good j μ' hμ'
   bind_closed := by
     intro n ev rhs body hrhs hbody
-    rw [goodP_holds]
+    rw [goodComp_holds]
     intro m hm μ hμ
     simp only [Domain.bind', Domain.bind, D_fold_unfold]
     have hThunk_fetch : GoodLater (m+1)
         ((Domain.step' ev (D.invis (fetch μ.nextFree)) : D m) : Later D (m+1)) :=
       Thunk_step_invis_fetch ev μ.nextFree
-    have hThunk_fetch' := (goodThunk_holds_succ _).mpr hThunk_fetch
+    have hThunk_fetch' := (goodThunk_holds _).mpr hThunk_fetch
     have h_rhs := hrhs m hm (D.invis (fetch μ.nextFree)) hThunk_fetch'
     have h_body := hbody m hm (D.invis (fetch μ.nextFree)) hThunk_fetch'
-    rw [goodP_holds] at h_rhs h_body
+    rw [goodComp_holds] at h_rhs h_body
     have h_memo : GoodLater m (D.memo μ.nextFree
         (Later.next (rhs m hm (D.invis (fetch μ.nextFree))))) := by
       cases m with
@@ -352,7 +304,7 @@ private theorem emptyEnv_good (n : Nat) : good.env (Env.empty : Env (D n)) :=
 theorem evalByNeed_noTripleInvis (n : Nat) (e : Exp) :
     NoTripleInvis n ((evalByNeed n e).unfold n (Nat.le_refl n) ∅) := by
   have : GoodD n (eval (D := D) e n (Nat.le_refl n) Env.empty) :=
-    (goodP_holds _).mp (LR.fundamental good e Env.empty (emptyEnv_good n))
+    (goodComp_holds _).mp (LR.fundamental good e Env.empty (emptyEnv_good n))
   exact TraceGood_implies_NCI 2 n _
     (this n (Nat.le_refl n) ∅ (emptyHeap_good n)).2
 
@@ -360,7 +312,7 @@ theorem evalByNeed_noTripleInvis (n : Nat) (e : Exp) :
 theorem evalByNeed_startsVisible (n : Nat) (e : Exp) :
     StartsVisible n ((evalByNeed n e).unfold n (Nat.le_refl n) ∅) := by
   have : GoodD n (eval (D := D) e n (Nat.le_refl n) Env.empty) :=
-    (goodP_holds _).mp (LR.fundamental good e Env.empty (emptyEnv_good n))
+    (goodComp_holds _).mp (LR.fundamental good e Env.empty (emptyEnv_good n))
   exact (this n (Nat.le_refl n) ∅ (emptyHeap_good n)).1
 
 end ByNeed
