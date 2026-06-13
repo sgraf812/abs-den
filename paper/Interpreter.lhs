@@ -75,11 +75,7 @@ takeT n (Step e t) = Step e (takeT (n-1) t)
 \section{A Denotational Interpreter}
 \label{sec:interp}
 
-In this section, we present a generic \emph{denotational interpreter}%
-\footnote{This term was coined by \citet{Might:10}. We find it fitting,
-because a denotational interpreter is both a \emph{denotational
-semantics}~\citep{ScottStrachey:71} as well as a total \emph{definitional
-interpreter}~\citep{Reynolds:72}.}
+In this section, we present a generic \emph{denotational interpreter}
 for the language defined in \cref{sec:lang} which we instantiate with different
 semantic domains.
 Instantiated at \emph{concrete} semantic domains, the interpreter becomes a
