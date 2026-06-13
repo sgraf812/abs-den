@@ -4,7 +4,7 @@ import AbsDen.NoConsecInvis
 /-!
 # `LR.good` for the by-need domain
 
-Instantiates `LR D` for `ByNeed.D` with `P := GoodD`, `Thunk := GoodLater`. The
+Instantiates `LR D` for `ByNeed.D` with `P := GoodD`, `Lookup := GoodLater`. The
 main theorems `evalByNeed_noTripleInvis` and `evalByNeed_startsVisible` are
 derived as direct consequences of `LR.fundamental good`.
 -/
@@ -157,36 +157,36 @@ private theorem apply_kont_TraceGood_GL {n : Nat} (entry : D n)
 
 /-! ## `LR.good` -/
 
-private noncomputable def goodComp : World.Pred D :=
+private noncomputable def goodP : World.Pred D :=
   World.Pred.ofClosed (fun {n} d => GoodD n d) GoodD_restrictStep
 
-private noncomputable def goodThunk : World.Pred (Later D) :=
+private noncomputable def goodLookup : World.Pred (Later D) :=
   World.Pred.ofClosed (fun {n} dl => GoodLater n dl) GoodLater_restrictStep
 
-private theorem goodComp_holds {n : Nat} (d : D n) : goodComp.holds d ↔ GoodD n d :=
+private theorem goodComp_holds {n : Nat} (d : D n) : goodP.holds d ↔ GoodD n d :=
   World.Pred.ofClosed_holds _ _ d
 
-private theorem goodThunk_holds {n : Nat} (dl : Later D n) :
-    goodThunk.holds dl ↔ GoodLater n dl :=
+private theorem goodLookup_holds {n : Nat} (dl : Later D n) :
+    goodLookup.holds dl ↔ GoodLater n dl :=
   World.Pred.ofClosed_holds _ _ dl
 
-private theorem goodThunk_holds_succ {n : Nat} (d : D n) :
-    goodThunk.holds (n := n+1) d ↔ GoodLater (n+1) d :=
-  goodThunk_holds (n := n+1) d
+private theorem goodLookup_holds_succ {n : Nat} (d : D n) :
+    goodLookup.holds (n := n+1) d ↔ GoodLater (n+1) d :=
+  goodLookup_holds (n := n+1) d
 
 /-- The logical relation `(GoodD, GoodLater)` packaged as an `LR ByNeed.D`. -/
 noncomputable def good : LR D where
-  Comp := goodComp
-  Thunk := goodThunk
-  Thunk_to_Comp := by
+  P := goodP
+  Lookup := goodLookup
+  Lookup_to_P := by
     intro n d h
-    rw [goodThunk_holds] at h
+    rw [goodLookup_holds] at h
     rw [goodComp_holds]
     exact GoodD_of_GoodLater d h
-  step_to_Thunk := by
+  step_to_Lookup := by
     intro n ev d h
     rw [goodComp_holds] at h
-    rw [goodThunk_holds]
+    rw [goodLookup_holds]
     exact GoodLater_of_step ev d h
   stuck := by intro n; rw [goodComp_holds]; exact GoodD_stuck
   step := by
@@ -195,24 +195,24 @@ noncomputable def good : LR D where
     rw [goodComp_holds]
     exact GoodD_step _ ev d hd
   fn := by
-    intro n f hThunk
+    intro n f hLookup
     rw [goodComp_holds]
     apply GoodD_fn
     intro m hm dl hgl
-    have := hThunk m hm dl ((goodThunk_holds dl).mpr hgl)
-    exact (goodThunk_holds _).mp this
+    have := hLookup m hm dl ((goodLookup_holds dl).mpr hgl)
+    exact (goodLookup_holds _).mp this
   con := by
     intro n K ds hds
     rw [goodComp_holds]
     apply GoodD_con K ds
     intro d hd
-    have hgl : GoodLater (n+1) d := (goodThunk_holds_succ d).mp (hds d hd)
+    have hgl : GoodLater (n+1) d := (goodLookup_holds_succ d).mp (hds d hd)
     exact GoodLater_next_of_GoodLater_succ d hgl
   app_closed := by
-    intro n dv da hdv hThunk_da
+    intro n dv da hdv hLookup_da
     rw [goodComp_holds] at hdv
     rw [goodComp_holds]
-    have hThunk_da : GoodLater (n+1) da := (goodThunk_holds_succ da).mp hThunk_da
+    have hLookup_da : GoodLater (n+1) da := (goodLookup_holds_succ da).mp hLookup_da
     show GoodD n (D.step .app1 (Later.next
       (D.bind (World.restrict dv) (fun j _hj v =>
         match v with
@@ -224,7 +224,7 @@ noncomputable def good : LR D where
     rw [h_restr]
     apply D_bind_TraceGood _ _ hdv
     · intro j hj vh hfn hcon hheap
-      exact apply_kont_TraceGood_GL da hThunk_da hj vh hfn hcon hheap
+      exact apply_kont_TraceGood_GL da hLookup_da hj vh hfn hcon hheap
     · intro j hj μ' hμ'
       exact stuck_unfold_good j μ' hμ'
   case_closed := by
@@ -248,10 +248,10 @@ noncomputable def good : LR D where
           cases j
           · exact GoodLater_zero _
           · simp only [Later.hmap, Later_sequence_succ]
-            apply (goodThunk_holds _).mp
+            apply (goodLookup_holds _).mp
             apply halts _ f hmem _ _ ds
             intro d hd
-            exact (goodThunk_holds_succ d).mpr
+            exact (goodLookup_holds_succ d).mpr
               (hcon K ds (Value_F_ofRep_con_inv heq) d hd)
         next hfind =>
           exact (GoodD_stuck j (Nat.le_refl j) vh.2 (by simpa using hheap)).2
@@ -266,12 +266,12 @@ noncomputable def good : LR D where
     rw [goodComp_holds]
     intro m hm μ hμ
     simp only [Domain.bind', Domain.bind, D_fold_unfold]
-    have hThunk_fetch : GoodLater (m+1)
+    have hLookup_fetch : GoodLater (m+1)
         ((Domain.step' ev (D.invis (fetch μ.nextFree)) : D m) : Later D (m+1)) :=
       Thunk_step_invis_fetch ev μ.nextFree
-    have hThunk_fetch' := (goodThunk_holds _).mpr hThunk_fetch
-    have h_rhs := hrhs m hm (D.invis (fetch μ.nextFree)) hThunk_fetch'
-    have h_body := hbody m hm (D.invis (fetch μ.nextFree)) hThunk_fetch'
+    have hLookup_fetch' := (goodLookup_holds _).mpr hLookup_fetch
+    have h_rhs := hrhs m hm (D.invis (fetch μ.nextFree)) hLookup_fetch'
+    have h_body := hbody m hm (D.invis (fetch μ.nextFree)) hLookup_fetch'
     rw [goodComp_holds] at h_rhs h_body
     have h_memo : GoodLater m (D.memo μ.nextFree
         (Later.next (rhs m hm (D.invis (fetch μ.nextFree))))) := by

@@ -5,13 +5,12 @@ import AbsDen.Semantics
 
 A `LR D` packages two step-indexed sub-presheaves on a semantic domain `D`:
 
-- `Comp : World.Pred D` — the *computation* side. Holds for `D`-values whose
+- `P : World.Pred D` — the *defining* predicate. Holds for `D`-values whose
   unfoldings are well-behaved.
-- `Thunk : World.Pred (Later D)` — the *thunk* side. Holds for `Later D`-values
-  that represent heap-allocated thunks: their first unfolding step is visible
-  and forces to a `Comp`.
+- `Lookup : World.Pred (Later D)` — env/heap-storable `P`-values: their first
+  unfolding step is a `.look`-style event that, when consumed, exposes a `P`.
 
-Coherences `Thunk_to_Comp` and `step_to_Thunk` mediate between the two. The
+Coherences `Lookup_to_P` and `step_to_Lookup` mediate between the two. The
 fundamental lemma `LR.fundamental` is a structural induction over `Exp` using
 only these fields.
 -/
@@ -19,61 +18,61 @@ only these fields.
 /-- A unary logical relation on the semantic domain `D`. -/
 structure LR (D : Nat → Type) [Domain D] where
   /-- Computation-side sub-presheaf of `D`. -/
-  Comp : World.Pred D
-  /-- Thunk-side sub-presheaf of `Later D`. -/
-  Thunk : World.Pred (Later D)
+  P : World.Pred D
+  /-- Lookup-side sub-presheaf of `Later D`. -/
+  Lookup : World.Pred (Later D)
 
-  /-- Forcing a `Thunk` produces a `Comp`. -/
-  Thunk_to_Comp : ∀ {n : Nat} (d : D n),
-    Thunk.holds (n := n+1) d → Comp.holds d
-  /-- Step-wrapping a `Comp`-value yields a `Thunk`. -/
-  step_to_Thunk : ∀ {n : Nat} (ev : Event) (d : D n),
-    Comp.holds d → Thunk.holds (n := n+1) (Domain.step' ev d : D n)
+  /-- Forcing a `Lookup` produces a `P`. -/
+  Lookup_to_P : ∀ {n : Nat} (d : D n),
+    Lookup.holds (n := n+1) d → P.holds d
+  /-- Step-wrapping a `P`-value yields a `Lookup`. -/
+  step_to_Lookup : ∀ {n : Nat} (ev : Event) (d : D n),
+    P.holds d → Lookup.holds (n := n+1) (Domain.step' ev d : D n)
 
-  /-- `Domain.stuck` is a `Comp`. -/
-  stuck : ∀ {n : Nat}, Comp.holds (Domain.stuck (D := D) (n := n))
+  /-- `Domain.stuck` is a `P`. -/
+  stuck : ∀ {n : Nat}, P.holds (Domain.stuck (D := D) (n := n))
 
-  /-- Closure of `Comp` under `Domain.step'`. -/
+  /-- Closure of `P` under `Domain.step'`. -/
   step : ∀ {n : Nat} (ev : Event) (d : D n),
-    Comp.holds d → Comp.holds (Domain.step' ev d)
+    P.holds d → P.holds (Domain.step' ev d)
 
-  /-- `Domain.fn'` closure: the function maps `Thunk`s to `Thunk`s. -/
+  /-- `Domain.fn'` closure: the function maps `Lookup`s to `Lookup`s. -/
   fn : ∀ {n : Nat} (f : world(D → D) n),
     (∀ (m : Nat) (hm : m ≤ n) (dl : Later D m),
-      Thunk.holds dl →
-      Thunk.holds (Later.hmap m (fun k _hk => f k (by omega)) dl)) →
-    Comp.holds (Domain.fn' f)
+      Lookup.holds dl →
+      Lookup.holds (Later.hmap m (fun k _hk => f k (by omega)) dl)) →
+    P.holds (Domain.fn' f)
 
-  /-- `Domain.con'` closure: each field is a `Thunk`. -/
+  /-- `Domain.con'` closure: each field is a `Lookup`. -/
   con : ∀ {n : Nat} (K : ConTag) (ds : List (D n)),
-    (∀ d, d ∈ ds → Thunk.holds (n := n+1) d) →
-    Comp.holds (Domain.con' K ds)
+    (∀ d, d ∈ ds → Lookup.holds (n := n+1) d) →
+    P.holds (Domain.con' K ds)
 
   /-- Closure for the `.app1`-wrapped application produced by `eval (.app …)`. -/
   app_closed : ∀ {n : Nat} (dv da : D n),
-    Comp.holds dv → Thunk.holds (n := n+1) da →
-    Comp.holds (Domain.step' .app1 (Domain.apply' dv da))
+    P.holds dv → Lookup.holds (n := n+1) da →
+    P.holds (Domain.step' .app1 (Domain.apply' dv da))
 
   /-- Closure for the `.case1`-wrapped case discrimination produced by
       `eval (.case' …)`. -/
   case_closed : ∀ {n : Nat} (dv : D n)
       (alts : List (ConTag × world(List D → D) n)),
-    Comp.holds dv →
+    P.holds dv →
     (∀ (K : ConTag) (f : world(List D → D) n), (K, f) ∈ alts →
       ∀ (m : Nat) (hm : m ≤ n) (ds : List (D m)),
-        (∀ d, d ∈ ds → Thunk.holds (n := m+1) d) →
-        Thunk.holds (n := m+1) (f m hm ds : D m)) →
-    Comp.holds (Domain.step' .case1 (Domain.select' dv alts))
+        (∀ d, d ∈ ds → Lookup.holds (n := m+1) d) →
+        Lookup.holds (n := m+1) (f m hm ds : D m)) →
+    P.holds (Domain.step' .case1 (Domain.select' dv alts))
 
   /-- `Domain.bind'` closure, parameterized by the wrapping event. -/
   bind_closed : ∀ {n : Nat} (ev : Event) (rhs body : World.Function D D n),
     (∀ (m : Nat) (hm : m ≤ n) (dx : D m),
-      Thunk.holds (n := m+1) (Domain.step' ev dx : D m) →
-      Comp.holds (rhs m hm dx)) →
+      Lookup.holds (n := m+1) (Domain.step' ev dx : D m) →
+      P.holds (rhs m hm dx)) →
     (∀ (m : Nat) (hm : m ≤ n) (dx : D m),
-      Thunk.holds (n := m+1) (Domain.step' ev dx : D m) →
-      Comp.holds (body m hm dx)) →
-    Comp.holds (Domain.bind' rhs body)
+      Lookup.holds (n := m+1) (Domain.step' ev dx : D m) →
+      P.holds (body m hm dx)) →
+    P.holds (Domain.bind' rhs body)
 
 namespace LR
 
@@ -161,9 +160,9 @@ private theorem env_find?_map {V W : Type} (f : V → W) (ρ : Env V) (x : Var) 
 /-! ## Env-level closure -/
 
 /-- An environment is *good* when every entry, viewed at one index up,
-    satisfies `lr.Thunk`. -/
+    satisfies `lr.Lookup`. -/
 def env (lr : LR D) {n : Nat} (ρ : Env (D n)) : Prop :=
-  ∀ x d, ρ.find? x = some d → lr.Thunk.holds (n := n+1) d
+  ∀ x d, ρ.find? x = some d → lr.Lookup.holds (n := n+1) d
 
 /-- The empty env is good. -/
 theorem env_empty (lr : LR D) {n : Nat} :
@@ -188,7 +187,7 @@ theorem env_restrictStep (lr : LR D) {n : Nat} (ρ : Env (D (n+1)))
   | none => rw [hget] at hd; exact absurd hd (by simp [Option.map])
   | some d' =>
     rw [hget] at hd; simp [Option.map] at hd; subst hd
-    exact lr.Thunk.closed d' (hρ x d' hget)
+    exact lr.Lookup.closed d' (hρ x d' hget)
 
 /-- Good envs are preserved by `World.restrict`. -/
 theorem env_world_restrict (lr : LR D) {n m : Nat} (ρ : Env (D n))
@@ -204,9 +203,9 @@ theorem env_world_restrict (lr : LR D) {n m : Nat} (ρ : Env (D n))
       exact env_world_restrict lr _ (env_restrictStep lr ρ hρ) _
   termination_by n
 
-/-- Binding a `Thunk`-value extends a good env. -/
+/-- Binding a `Lookup`-value extends a good env. -/
 theorem env_bind (lr : LR D) {n : Nat} (ρ : Env (D n)) (hρ : lr.env ρ)
-    (x : Var) (d : D n) (hd : lr.Thunk.holds (n := n+1) d) :
+    (x : Var) (d : D n) (hd : lr.Lookup.holds (n := n+1) d) :
     lr.env (ρ.bind x d) := by
   intro y d' hfind
   simp only [Env.bind, Env.find?, Std.HashMap.get?_eq_getElem?] at hfind
@@ -215,9 +214,9 @@ theorem env_bind (lr : LR D) {n : Nat} (ρ : Env (D n)) (hρ : lr.env ρ)
   · cases hfind; exact hd
   · exact hρ y d' (by rwa [Env.find?, Std.HashMap.get?_eq_getElem?])
 
-/-- Binding many `Thunk`-values extends a good env. -/
+/-- Binding many `Lookup`-values extends a good env. -/
 theorem env_bindMany (lr : LR D) {n : Nat} (ρ : Env (D n)) (hρ : lr.env ρ)
-    (xs : List Var) (ds : List (D n)) (hds : ∀ d, d ∈ ds → lr.Thunk.holds (n := n+1) d) :
+    (xs : List Var) (ds : List (D n)) (hds : ∀ d, d ∈ ds → lr.Lookup.holds (n := n+1) d) :
     lr.env (ρ.bindMany xs ds) := by
   unfold Env.bindMany
   induction xs generalizing ρ ds with
@@ -230,10 +229,10 @@ theorem env_bindMany (lr : LR D) {n : Nat} (ρ : Env (D n)) (hρ : lr.env ρ)
       · exact env_bind lr ρ hρ x d (hds d (.head _))
       · intro d' hd'; exact hds d' (.tail _ hd')
 
-/-- `pmapList` results from a good env are pointwise `Thunk`. -/
+/-- `pmapList` results from a good env are pointwise `Lookup`. -/
 theorem pmapList_good (lr : LR D) {n : Nat} (ρ : Env (D n)) (hρ : lr.env ρ)
     (xs : List Var) (ds : List (D n)) (hds : ρ.pmapList xs = some ds) :
-    ∀ d, d ∈ ds → lr.Thunk.holds (n := n+1) d := by
+    ∀ d, d ∈ ds → lr.Lookup.holds (n := n+1) d := by
   have h_exists_x : ∀ d ∈ ds, ∃ x ∈ xs, ρ.find? x = some d := by
     induction xs generalizing ds <;> simp_all +decide [Env.pmapList]
     cases h : ρ.find? ‹_› <;> simp_all +decide [Option.bind_eq_some_iff]; grind
@@ -241,17 +240,17 @@ theorem pmapList_good (lr : LR D) {n : Nat} (ρ : Env (D n)) (hρ : lr.env ρ)
 
 /-! ## Fundamental lemma -/
 
-/-- **Fundamental Lemma.** If `ρ` is good, then `eval e ρ` satisfies `lr.Comp`.
+/-- **Fundamental Lemma.** If `ρ` is good, then `eval e ρ` satisfies `lr.P`.
     Structural induction on `e` using only the closure laws and coherences
     packaged in `lr`. -/
 theorem fundamental (lr : LR D) :
     ∀ (e : Exp) {n : Nat} (ρ : Env (D n)), lr.env ρ →
-      lr.Comp.holds (eval (D := D) e n (Nat.le_refl n) ρ)
+      lr.P.holds (eval (D := D) e n (Nat.le_refl n) ρ)
   | .ref x, n, ρ, hρ => by
     simp only [eval]
     cases h : ρ.find? x with
     | none => exact lr.stuck
-    | some d => exact lr.Thunk_to_Comp d (hρ x d h)
+    | some d => exact lr.Lookup_to_P d (hρ x d h)
   | .conapp K xs, n, ρ, hρ => by
     simp only [eval]
     cases h : ρ.pmapList xs with
@@ -260,14 +259,14 @@ theorem fundamental (lr : LR D) :
   | .lam x body, n, ρ, hρ => by
     simp only [eval]
     apply lr.fn
-    intro m hm dl hThunk
-    match m, dl, hThunk with
-    | 0, _, hThunk => exact hThunk
-    | k+1, dl, hThunk =>
+    intro m hm dl hLookup
+    match m, dl, hLookup with
+    | 0, _, hLookup => exact hLookup
+    | k+1, dl, hLookup =>
       simp only [Later.hmap]
-      apply lr.step_to_Thunk
+      apply lr.step_to_Lookup
       apply fundamental lr body
-      apply env_bind lr _ _ x dl hThunk
+      apply env_bind lr _ _ x dl hLookup
       exact env_world_restrict lr ρ hρ (by omega)
   | .app e₁ x, n, ρ, hρ => by
     simp only [eval]
@@ -284,21 +283,21 @@ theorem fundamental (lr : LR D) :
     · intro K f hmem m hm ds hds
       obtain ⟨alt, halt_mem, halt_eq⟩ := List.mem_map.mp hmem
       cases halt_eq
-      apply lr.step_to_Thunk
+      apply lr.step_to_Lookup
       apply fundamental lr alt.rhs
       apply env_bindMany lr _ _ alt.vars ds hds
       exact env_world_restrict lr ρ hρ hm
   | .let' x e₁ e₂, n, ρ, hρ => by
     simp only [eval]
     apply lr.bind_closed (.look x)
-    · intro m hm dx hThunk
+    · intro m hm dx hLookup
       apply fundamental lr e₁
-      apply env_bind lr _ _ x _ hThunk
+      apply env_bind lr _ _ x _ hLookup
       exact env_world_restrict lr ρ hρ hm
-    · intro m hm dx hThunk
+    · intro m hm dx hLookup
       apply lr.step
       apply fundamental lr e₂
-      apply env_bind lr _ _ x _ hThunk
+      apply env_bind lr _ _ x _ hLookup
       exact env_world_restrict lr ρ hρ hm
 termination_by e _ _ _ => sizeOf e
 decreasing_by
@@ -311,10 +310,10 @@ decreasing_by
 
 /-- The trivial logical relation: both predicates always true. -/
 def trivial : LR D where
-  Comp := World.Pred.ofClosed (fun _ => True) (fun _ _ => True.intro)
-  Thunk := World.Pred.ofClosed (fun _ => True) (fun _ _ => True.intro)
-  Thunk_to_Comp := fun _ _ => by simp
-  step_to_Thunk := fun _ _ _ => by simp
+  P := World.Pred.ofClosed (fun _ => True) (fun _ _ => True.intro)
+  Lookup := World.Pred.ofClosed (fun _ => True) (fun _ _ => True.intro)
+  Lookup_to_P := fun _ _ => by simp
+  step_to_Lookup := fun _ _ _ => by simp
   stuck := by simp
   step := fun _ _ _ => by simp
   fn := fun _ _ => by simp
