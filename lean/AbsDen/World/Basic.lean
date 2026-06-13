@@ -102,6 +102,217 @@ def World.Comp (G : Type u → Type v) [Functor G] (A : Nat → Type u) : Nat �
 instance [Functor G] [World A] : World (World.Comp G A) where
   restrictStep := Functor.map World.restrictStep
 
+/-! ## Subobject classifier and sub-presheaves -/
+
+/-- The subobject classifier of the topos of trees: step-indexed truth values.
+    `IProp n` is the type of sieves on `n`, represented as downward-closed
+    `Nat → Prop` predicates clipped to `{0, …, n}`. The clipping enforces
+    extensionality: two values of `IProp n` are equal iff their underlying
+    predicates are pointwise iff. -/
+def World.IProp (n : Nat) : Type :=
+  { P : Nat → Prop // (∀ m, P (m+1) → P m) ∧ (∀ m, P m → m ≤ n) }
+
+namespace World.IProp
+
+/-- Pointwise iff implies equality. -/
+theorem ext {n : Nat} {p q : IProp n} (h : ∀ m, p.val m ↔ q.val m) : p = q :=
+  Subtype.ext (funext fun m => propext (h m))
+
+/-- The least truth value: never true. -/
+def False {n : Nat} : IProp n :=
+  ⟨fun _ => _root_.False, fun _ h => h, fun _ h => h.elim⟩
+
+/-- The greatest truth value at level `n`: true throughout `{0, …, n}`. -/
+def True {n : Nat} : IProp n :=
+  ⟨fun m => m ≤ n, fun _ h => Nat.le_of_succ_le h, fun _ h => h⟩
+
+/-- Graded truth value: true on `{0, …, k}`. -/
+def upTo {n : Nat} (k : Nat) (hk : k ≤ n) : IProp n :=
+  ⟨fun m => m ≤ k, fun _ h => Nat.le_of_succ_le h, fun _ hm => Nat.le_trans hm hk⟩
+
+/-- Embedding of Lean's `Prop` as a level-uniform truth value. -/
+def OfProp {n : Nat} (p : Prop) : IProp n :=
+  ⟨fun m => p ∧ m ≤ n,
+   fun _ ⟨hp, hm⟩ => ⟨hp, Nat.le_of_succ_le hm⟩,
+   fun _ ⟨_, hm⟩ => hm⟩
+
+/-- Binary meet (intersection of sieves). -/
+def And {n : Nat} (p q : IProp n) : IProp n :=
+  ⟨fun m => p.val m ∧ q.val m,
+   fun _ ⟨hp, hq⟩ => ⟨p.property.1 _ hp, q.property.1 _ hq⟩,
+   fun _ ⟨hp, _⟩ => p.property.2 _ hp⟩
+
+end World.IProp
+
+instance : World World.IProp where
+  restrictStep := fun {n} ⟨P, hclose, _⟩ =>
+    ⟨fun m => P m ∧ m ≤ n,
+     fun m ⟨hPm1, hm1⟩ => ⟨hclose m hPm1, Nat.le_of_succ_le hm1⟩,
+     fun _ ⟨_, hm⟩ => hm⟩
+
+@[simp]
+theorem World.IProp.restrictStep_val {n : Nat} (p : World.IProp (n+1)) (m : Nat) :
+    (World.restrictStep p).val m = (p.val m ∧ m ≤ n) := by
+  obtain ⟨P, hc, hb⟩ := p; rfl
+
+@[simp]
+theorem World.restrict_self {F : Nat → Type u} [World F] {n : Nat} (x : F n) :
+    World.restrict x (Nat.le_refl n) = x := by
+  rw [World.restrict.eq_1, dif_pos rfl]; simp [cast_eq]
+
+/-- One step of restriction descends one level along multi-step restriction. -/
+theorem World.restrict_succ {F : Nat → Type u} [World F]
+    {n m : Nat} (x : F (n+1)) (h : m ≤ n) :
+    World.restrict x (Nat.le_succ_of_le h) = World.restrict (World.restrictStep x) h := by
+  show World.restrict x (Nat.le_succ_of_le h) = _
+  rw [World.restrict.eq_1, dif_neg (by omega : ¬ m = n+1)]
+
+/-- A single `restrictStep` factors out of multi-step restriction. -/
+theorem World.restrictStep_restrict {F : Nat → Type u} [World F]
+    {n m : Nat} (x : F n) (h : m+1 ≤ n) :
+    World.restrictStep (World.restrict x h) = World.restrict x (Nat.le_of_succ_le h) := by
+  induction n with
+  | zero => omega
+  | succ n' ih =>
+    by_cases hmn : m = n'
+    · subst hmn
+      have lhs : World.restrict x h = x := by
+        rw [World.restrict.eq_1, dif_pos rfl]; simp [cast_eq]
+      rw [lhs, World.restrict_succ x (Nat.le_refl m), World.restrict_self]
+    · have h' : m+1 ≤ n' := by omega
+      have lhs : World.restrict x h = World.restrict (World.restrictStep x) h' := by
+        show World.restrict x h = _
+        rw [World.restrict.eq_1, dif_neg (by omega : ¬ m+1 = n'+1)]
+      rw [lhs, ih (World.restrictStep x) h']
+      exact (World.restrict_succ x (Nat.le_of_succ_le h')).symm
+
+/-- A sub-presheaf of `F`: a natural transformation `F → World.IProp`, given as
+    the proper subtype of `∀ {n}, F n → World.IProp n` cut out by naturality
+    against `restrictStep`. -/
+def World.Pred (F : Nat → Type u) [World F] : Type u :=
+  { P : ∀ {n}, F n → World.IProp n //
+      ∀ {n} (x : F (n+1)), P (World.restrictStep x) = World.restrictStep (P x) }
+
+namespace World.Pred
+variable {F : Nat → Type u} [World F]
+
+/-- Membership of `x : F n` in the sub-presheaf, given by the top-level truth
+    value of its characteristic morphism. -/
+def holds (p : World.Pred F) {n : Nat} (x : F n) : Prop :=
+  (p.val x).val n
+
+/-- Single-step closure: a derived consequence of naturality plus `IProp`'s
+    downward closure. -/
+theorem closed (p : World.Pred F) {n : Nat} (x : F (n+1))
+    (hx : p.holds x) : p.holds (World.restrictStep x) := by
+  show (p.val (World.restrictStep x)).val n
+  rw [p.property x, World.IProp.restrictStep_val]
+  exact ⟨(p.val x).property.1 n hx, Nat.le_refl _⟩
+
+/-- Smart constructor from a predicate with single-step closure. The
+    characteristic morphism at `x : F n` is the sieve of levels `m ≤ n` at
+    which `World.restrict x` lies in the sub-presheaf. -/
+def ofClosed
+    (holds : ∀ {n}, F n → Prop)
+    (closed : ∀ {n} (x : F (n+1)), holds x → holds (World.restrictStep x)) :
+    World.Pred F :=
+  ⟨fun {n} x =>
+    ⟨fun m => ∃ (h : m ≤ n), holds (World.restrict x h),
+     ⟨fun m ⟨h_succ, hP⟩ =>
+        ⟨Nat.le_of_succ_le h_succ,
+         by have := closed _ hP
+            rwa [World.restrictStep_restrict] at this⟩,
+      fun _ ⟨h, _⟩ => h⟩⟩,
+   fun {n} x => by
+    apply World.IProp.ext
+    intro m
+    constructor
+    · rintro ⟨h_le_n, hP⟩
+      refine ⟨⟨Nat.le_succ_of_le h_le_n, ?_⟩, h_le_n⟩
+      rwa [World.restrict_succ]
+    · rintro ⟨⟨_, hP⟩, h_le_n⟩
+      refine ⟨h_le_n, ?_⟩
+      rwa [← World.restrict_succ]⟩
+
+end World.Pred
+
+/-- A `World.Pred F` is callable as its membership predicate. -/
+instance {F : Nat → Type u} [World F] :
+    CoeFun (World.Pred F) (fun _ => ∀ {n : Nat}, F n → Prop) where
+  coe p := fun {_} x => p.holds x
+
+/-- The carrier sub-presheaf at level `n`. -/
+def World.Pred.carrier {F : Nat → Type u} [World F] (p : World.Pred F) (n : Nat) :
+    Type u := { x : F n // p.holds x }
+
+instance {F : Nat → Type u} [World F] (p : World.Pred F) : World p.carrier where
+  restrictStep := fun ⟨x, hx⟩ => ⟨World.restrictStep x, p.closed x hx⟩
+
+@[simp]
+theorem World.Pred.ofClosed_holds {F : Nat → Type u} [World F]
+    (h : ∀ {m}, F m → Prop)
+    (c : ∀ {m} (x : F (m+1)), h x → h (World.restrictStep x))
+    {n : Nat} (x : F n) :
+    (World.Pred.ofClosed (F := F) h c).holds x ↔ h x := by
+  constructor
+  · rintro ⟨_, hP⟩
+    rwa [World.restrict_self] at hP
+  · intro hh
+    exact ⟨Nat.le_refl _, by rwa [World.restrict_self]⟩
+
+@[simp]
+theorem World.IProp.restrictStep_and {n : Nat} (a b : World.IProp (n+1)) :
+    World.restrictStep (a.And b) = (World.restrictStep a).And (World.restrictStep b) := by
+  apply World.IProp.ext; intro m
+  rw [World.IProp.restrictStep_val]
+  show ((a.val m ∧ b.val m) ∧ m ≤ n) ↔ ((restrictStep a).val m ∧ (restrictStep b).val m)
+  rw [World.IProp.restrictStep_val, World.IProp.restrictStep_val]
+  exact ⟨fun ⟨⟨ha, hb⟩, hm⟩ => ⟨⟨ha, hm⟩, hb, hm⟩,
+         fun ⟨⟨ha, hm⟩, hb, _⟩ => ⟨⟨ha, hb⟩, hm⟩⟩
+
+namespace World.Pred
+variable {F : Nat → Type u} [World F]
+
+/-- Binary meet of sub-presheaves: pointwise intersection of sieves. -/
+def And (p q : World.Pred F) : World.Pred F :=
+  ⟨fun {n} x => (p.val x).And (q.val x),
+   fun {n} x => by
+     show (p.val (World.restrictStep x)).And (q.val (World.restrictStep x)) =
+          World.restrictStep ((p.val x).And (q.val x))
+     rw [p.property x, q.property x, World.IProp.restrictStep_and]⟩
+
+@[simp]
+theorem And_holds (p q : World.Pred F) {n : Nat} (x : F n) :
+    (p.And q).holds x ↔ p.holds x ∧ q.holds x := Iff.rfl
+
+end World.Pred
+
+/-- Underlying predicate of `laterLift`. -/
+def World.Pred.laterLift_holds {F : Nat → Type u} [World F] (p : World.Pred F) :
+    ∀ {n : Nat}, Later F n → Prop
+  | 0, _ => True
+  | _+1, d => p.holds d
+
+private theorem World.Pred.laterLift_closed {F : Nat → Type u} [World F] (p : World.Pred F)
+    {n : Nat} (x : Later F (n+1)) (hx : p.laterLift_holds x) :
+    p.laterLift_holds (World.restrictStep x) := by
+  cases n with
+  | zero => trivial
+  | succ k => exact p.closed x hx
+
+/-- The `▹` modal lift: any sub-presheaf of `F` induces one of `Later F`. -/
+def World.Pred.laterLift {F : Nat → Type u} [World F] (p : World.Pred F) :
+    World.Pred (Later F) :=
+  World.Pred.ofClosed p.laterLift_holds p.laterLift_closed
+
+@[simp]
+theorem World.Pred.laterLift_holds_succ {F : Nat → Type u} [World F] (p : World.Pred F)
+    {n : Nat} (x : F n) :
+    p.laterLift.holds (n := n+1) x ↔ p.holds x := by
+  unfold World.Pred.laterLift
+  rw [World.Pred.ofClosed_holds]
+  rfl
+
 class WorldFunctor (F : (Nat → Type u) → (Nat → Type u)) where
   instWorld A [World A] : World (F A)
 
