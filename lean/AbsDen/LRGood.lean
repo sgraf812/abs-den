@@ -40,6 +40,44 @@ private theorem restrict_later_next' {n : Nat} (d : D n) (k : Nat) (hk : k + 1 �
       dsimp only []
       exact ih (World.restrictStep d) k (by omega)
 
+/-- `D.fold` is a left inverse of `World.Fix.unfold`. -/
+private theorem D_fold_unfold_id {n : Nat} (d : D n) :
+    D.fold (World.Fix.unfold d) = d := by
+  show World.Fix.fold (World.Fix.unfold d) = d
+  unfold World.Fix.fold World.Fix.unfold
+  simp
+
+/-- Extensionality for `D`: two `D` values that agree at every unfolding are
+    equal. -/
+private theorem D_ext {n : Nat} (a b : D n)
+    (h : ∀ (m : Nat) (hm : m ≤ n) (μ : Heap (▹ D) m), D.unfold a m hm μ = D.unfold b m hm μ) :
+    a = b := by
+  rw [← D_fold_unfold_id a, ← D_fold_unfold_id b]
+  congr 1
+  funext m hm μ
+  exact h m hm μ
+
+/-- `Domain.step' ev` is a natural transformation: it commutes with
+    `restrictStep`. -/
+theorem Natural_step_ByNeed (ev : Event) :
+    Natural (fun {n : Nat} (d : D n) => Domain.step' ev d) := by
+  intro n d
+  show D.step ev (Later.next (World.restrictStep d)) =
+       World.restrictStep (D.step ev (Later.next d))
+  apply D_ext
+  intro m hm μ
+  rw [D_unfold_restrictStep]
+  rw [D_step_eq, D_step_eq]
+  congr 2
+  cases m with
+  | zero => rfl
+  | succ k =>
+    show @World.restrict (Later D) _ n _ (Later.next (World.restrictStep d)) _ =
+         @World.restrict (Later D) _ (n+1) _ (Later.next d) _
+    rw [restrict_later_next' (World.restrictStep d) k (by omega),
+        restrict_later_next' d k (by omega)]
+    exact (World.restrict_succ d (by omega : k ≤ n)).symm
+
 /-- A step-wrapped `D.invis (fetch a)` satisfies the env-entry condition for
     any event. -/
 private theorem step_invis_fetch_good (ev : Event) (a : Addr) {n : Nat} :
