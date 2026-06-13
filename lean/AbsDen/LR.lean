@@ -1,5 +1,36 @@
 import AbsDen.Semantics
 
+/-! ## Standalone `Lookup` -/
+
+/-- The "look-step-wrapped P-value" predicate. -/
+def Lookup_holds {D : Nat → Type} [Domain D] (P : World.Pred D)
+    {n : Nat} (x : Later D n) : Prop :=
+  match n, x with
+  | 0, _ => True
+  | m+1, x =>
+    let x : D m := x
+    ∃ ev y, x = Domain.step' ev y ∧ P.holds y
+
+/-- The "look-step-wrapped P-value" sub-presheaf: at level `n+1` on `x : D n`,
+    holds iff `x` is of the form `Domain.step' ev y` for some `P`-good `y`.
+
+    Takes the naturality of `Domain.step'` (one per event) as an explicit
+    hypothesis — this is what makes the closure-under-restriction go through. -/
+def Lookup {D : Nat → Type} [Domain D] (P : World.Pred D)
+    (step_nat : ∀ (ev : Event),
+      Natural (fun {n : Nat} (d : D n) => Domain.step' ev d)) :
+    World.Pred (Later D) :=
+  World.Pred.ofClosed
+    (holds := Lookup_holds P)
+    (closed := fun {n} x hx => by
+      cases n with
+      | zero => trivial
+      | succ k =>
+        obtain ⟨ev, y, hx_eq, hPy⟩ := hx
+        refine ⟨ev, World.restrictStep y, ?_, P.closed y hPy⟩
+        rw [hx_eq]
+        exact (step_nat ev y).symm)
+
 /-!
 # Logical relations on semantic domains
 
