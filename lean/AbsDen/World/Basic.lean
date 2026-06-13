@@ -13,6 +13,12 @@ universe u v
 class World (F : Nat → Type u) where
   restrictStep : {n : Nat} → F (n + 1) → F n
 
+/-- A function between presheaves is *natural* if it commutes with single-step
+    restriction. -/
+def Natural {F : Nat → Type u} {G : Nat → Type v} [World F] [World G]
+    (f : ∀ {n}, F n → G n) : Prop :=
+  ∀ {n : Nat} (x : F (n+1)), f (World.restrictStep x) = World.restrictStep (f x)
+
 namespace World
 
 def restrict {F : Nat → Type u} [World F] {n m : Nat} (x : F n) (hm : m ≤ n := by grind) : F m :=
@@ -187,14 +193,17 @@ theorem World.restrictStep_restrict {F : Nat → Type u} [World F]
       exact (World.restrict_succ x (Nat.le_of_succ_le h')).symm
 
 /-- A sub-presheaf of `F`: a natural transformation `F → World.IProp`, given as
-    the proper subtype of `∀ {n}, F n → World.IProp n` cut out by naturality
-    against `restrictStep`. -/
+    the proper subtype of `∀ {n}, F n → World.IProp n` cut out by `Natural`. -/
 def World.Pred (F : Nat → Type u) [World F] : Type u :=
-  { P : ∀ {n}, F n → World.IProp n //
-      ∀ {n} (x : F (n+1)), P (World.restrictStep x) = World.restrictStep (P x) }
+  { P : ∀ {n}, F n → World.IProp n // Natural (fun {n} (x : F n) => P x) }
 
 namespace World.Pred
 variable {F : Nat → Type u} [World F]
+
+/-- The naturality square of `p.val`, η-reduced for direct use in `rw`. -/
+theorem natural (p : World.Pred F) {n : Nat} (x : F (n+1)) :
+    p.val (World.restrictStep x) = World.restrictStep (p.val x) :=
+  p.property x
 
 /-- Membership of `x : F n` in the sub-presheaf, given by the top-level truth
     value of its characteristic morphism. -/
@@ -206,7 +215,7 @@ def holds (p : World.Pred F) {n : Nat} (x : F n) : Prop :=
 theorem closed (p : World.Pred F) {n : Nat} (x : F (n+1))
     (hx : p.holds x) : p.holds (World.restrictStep x) := by
   show (p.val (World.restrictStep x)).val n
-  rw [p.property x, World.IProp.restrictStep_val]
+  rw [p.natural x, World.IProp.restrictStep_val]
   exact ⟨(p.val x).property.1 n hx, Nat.le_refl _⟩
 
 /-- Smart constructor from a predicate with single-step closure. The
@@ -279,7 +288,7 @@ def And (p q : World.Pred F) : World.Pred F :=
    fun {n} x => by
      show (p.val (World.restrictStep x)).And (q.val (World.restrictStep x)) =
           World.restrictStep ((p.val x).And (q.val x))
-     rw [p.property x, q.property x, World.IProp.restrictStep_and]⟩
+     rw [p.natural x, q.natural x, World.IProp.restrictStep_and]⟩
 
 @[simp]
 theorem And_holds (p q : World.Pred F) {n : Nat} (x : F n) :
