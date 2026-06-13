@@ -44,7 +44,7 @@ relation}~\citep{AppelMcAllester:01} over machine configurations.
 This relation is the creative core of the proof, and under call-by-need it is
 especially delicate: the heap stores computations that may refer back to the
 heap, so the relation must be stratified over recursive heap invariants.
-Both the relation and the proof of its fundamental property grow with the
+Both the relation and the proof that it is a congruence grow with the
 complexity of the semantics and of the analysis.
 
 We tried to find ways to avoid this complexity.
@@ -56,27 +56,25 @@ It sits at the intersection of the executable \emph{definitional
 interpreter}~\citep{Reynolds:72} and the compositional denotational semantics.
 
 The denotation of a term is a (possibly infinite) trace, bisimilar to the
-call-by-need machine's run on that term.
-Thus, to our knowledge, we define the first denotational semantics for
-call-by-need with that property.
+abstract machine's run on that term.
+To our knowledge, this is the first denotational semantics for call-by-need with
+that property.
 
 Moreover, the interpreter is \emph{parameterised} over the semantic domain and
 the operations that interpret each syntactic construct.
-Plugging in one domain yields a conventional semantics in which the
-denotation of a term is a value; plugging in another yields the trace semantics
-just described; and plugging in a third, deliberately finite domain yields a
-static analysis of the same program.
+Plugging in one domain yields the trace semantics just described; plugging in
+another, deliberately finite domain yields a static analysis of the same program.
 Semantics and analysis are thus the same definition at different instantiations.
 
 Because the analysis shares its entire infrastructure with the reference
 semantics it abstracts, semantics and analysis once again ``line up'' and
 soundness becomes markedly easier to prove.
-The key is a reusable \emph{fundamental theorem} for the interpreter, proved once
-and for all in the spirit of parametricity: an analysis is sound as soon as its
-plugged-in operations satisfy a handful of local properties, which we identify
-and characterise.
-A new analysis thus earns its soundness by discharging these properties, never by
-crafting a relation over the abstract machine.
+The congruence proof becomes a simple structural induction over the syntax,
+packaged once and for all as a reusable \emph{fundamental theorem} in the spirit
+of parametricity~\citep{Reynolds:83,Wadler:89}.
+An analysis is then sound as soon as its plugged-in operations satisfy a handful
+of local properties, which we identify and characterise, never by crafting a
+relation over the abstract machine.
 As a concrete example, we prove a summary-based \emph{usage
 analysis}~\citep{WrightBakerFinch:93} sound for call-by-need in half a page.
 
