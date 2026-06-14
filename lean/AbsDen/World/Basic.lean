@@ -28,6 +28,18 @@ def restrict {F : Nat → Type u} [World F] {n m : Nat} (x : F n) (hm : m ≤ n 
     | n' + 1 => restrict (restrictStep x) (Nat.lt_succ_iff.mp (Nat.lt_of_le_of_ne hm h))
   termination_by n
 
+@[simp]
+theorem restrict_self {F : Nat → Type u} [World F] {n : Nat} (x : F n) :
+    restrict x (Nat.le_refl n) = x := by
+  rw [World.restrict.eq_1, dif_pos rfl]; simp [cast_eq]
+
+/-- One step of restriction descends one level along multi-step restriction. -/
+theorem restrict_succ {F : Nat → Type u} [World F]
+    {n m : Nat} (x : F (n+1)) (h : m ≤ n) :
+    restrict x (Nat.le_succ_of_le h) = restrict (restrictStep x) h := by
+  show World.restrict x (Nat.le_succ_of_le h) = _
+  rw [World.restrict.eq_1, dif_neg (by omega : ¬ m = n+1)]
+
 theorem forall_le_congr {n : Nat} {P Q : (m : Nat) → m ≤ n → Type v}
     (h : ∀ m hm, P m hm = Q m hm) :
     (∀ m (hm : m ≤ n), P m hm) = (∀ m (hm : m ≤ n), Q m hm) := by
@@ -58,19 +70,19 @@ def Later.next' {F : Nat → Type u} {n : Nat} : F (n - 1) → Later F n :=
   | 0 => fun _ => PUnit.unit
   | _ + 1 => id
 
-@[inline] def Later.hmap {A B : Nat → Type u} (n : Nat)
+def Later.hmap {A B : Nat → Type u} (n : Nat)
     (f : (m : Nat) → (h : m < n) → A m → B m) : Later A n → Later B n :=
   match n with
   | 0 => fun _ => PUnit.unit
   | m + 1 => fun a => f m (by omega) a
 
-@[inline] def Later.map {A B : Nat → Type u} (f : (m : Nat) → A m → B m)
+def Later.map {A B : Nat → Type u} (f : (m : Nat) → A m → B m)
     (n : Nat) : Later A n → Later B n :=
   match n with
   | 0 => fun _ => PUnit.unit
   | m + 1 => fun a => f m a
 
-@[inline] def Later.ap {A B : Nat → Type u}
+def Later.ap {A B : Nat → Type u}
     (n : Nat) : Later (fun m => A m → B m) n → Later A n → Later B n :=
   match n with
   | 0 => fun _ _ => PUnit.unit
@@ -90,6 +102,36 @@ instance [World F] : World (Later F) where restrictStep := Later.next (F := F)
 def World.Const (S : Type u) : Nat → Type u := fun _ => S
 instance : World (World.Const S) where restrictStep := id
 
+@[simp] theorem World.Const.restrictStep_eq {S : Type u} {n : Nat} (x : World.Const S (n+1)) :
+    World.restrictStep (F := World.Const S) x = x := rfl
+
+/-- Eliminator for `Later F n`: provide a `default` for the degenerate `n = 0`
+    case (where `Later F 0 = PUnit` carries no `F`-content) and a `step` for
+    the `n = k+1` case (where `Later F (k+1) = F k`). -/
+def Later.elim {F : Nat → Type u} {S : Sort v}
+    (default : S) (step : ∀ {k : Nat}, F k → S) :
+    ∀ {n : Nat}, Later F n → S
+  | 0,   _ => default
+  | _+1, f => step f
+
+/-- The **later modality** on propositions: `▷P` is `True` at level 0
+    (vacuously), and the inner `P` at level `k+1`. Standard notation `▷`
+    matches Birkedal–Møgelberg–Schwinghammer and Iris. -/
+def Later.prop {n : Nat} : Later (World.Const Prop) n → Prop :=
+  Later.elim True id
+
+@[inherit_doc Later.prop] prefix:max "▷" => Later.prop
+
+@[simp] theorem Later.next_succ {F : Nat → Type u} [World F] {n : Nat} (x : F (n+1)) :
+    Later.next (F := F) (n := n+1) x = World.restrictStep x := rfl
+
+@[simp] theorem Later.prop_succ {n : Nat} (x : Later (World.Const Prop) (n+1)) :
+    Later.prop (n := n+1) x = (x : Prop) := rfl
+
+@[simp] theorem Later.elim_succ {F : Nat → Type u} {S : Sort v} {default : S}
+    {step : ∀ {k : Nat}, F k → S} {n : Nat} (f : Later F (n+1)) :
+    Later.elim default step (n := n+1) f = step (f : F n) := rfl
+
 def World.Prod (A B : Nat → Type u) : Nat → Type u := fun n => A n × B n
 instance [World A] [World B] : World (World.Prod A B) where
   restrictStep | (a, b) => (World.restrictStep a, World.restrictStep b)
@@ -98,15 +140,189 @@ def World.Sum (A B : Nat → Type u) : Nat → Type u := fun n => A n ⊕ B n
 instance [World A] [World B] : World (World.Sum A B) where
   restrictStep | .inl a => .inl (World.restrictStep a) | .inr b => .inr (World.restrictStep b)
 
+@[simp] theorem World.Sum.restrict_inl {A B : Nat → Type u} [World A] [World B] :
+    ∀ {n m : Nat} (a : A n) (hm : m ≤ n),
+    (World.restrict (Sum.inl a : World.Sum A B n) hm : World.Sum A B m)
+    = Sum.inl (World.restrict a hm) := by
+  intro n
+  induction n with
+  | zero =>
+    intro m a hm
+    have : m = 0 := Nat.le_zero.mp hm
+    subst this
+    rw [@World.restrict_self (World.Sum A B), @World.restrict_self A]
+  | succ n' ih =>
+    intro m a hm
+    by_cases hmn : m = n'+1
+    · subst hmn
+      rw [@World.restrict_self (World.Sum A B), @World.restrict_self A]
+    · have hm' : m ≤ n' := by omega
+      have hL : @World.restrict (World.Sum A B) _ (n'+1) m (Sum.inl a) hm
+              = @World.restrict (World.Sum A B) _ n' m
+                  (@World.restrictStep (World.Sum A B) _ n' (Sum.inl a)) hm' := by
+        have heq : hm = Nat.le_succ_of_le hm' := rfl
+        rw [heq, World.restrict_succ]
+      have hR : @World.restrict A _ (n'+1) m a hm
+              = @World.restrict A _ n' m (@World.restrictStep A _ n' a) hm' := by
+        have heq : hm = Nat.le_succ_of_le hm' := rfl
+        rw [heq, World.restrict_succ]
+      rw [hL]
+      change @World.restrict (World.Sum A B) _ n' m (Sum.inl (World.restrictStep a)) hm' = _
+      rw [ih (World.restrictStep a) hm', hR]
+
+@[simp] theorem World.Sum.restrict_inr {A B : Nat → Type u} [World A] [World B] :
+    ∀ {n m : Nat} (b : B n) (hm : m ≤ n),
+    (World.restrict (Sum.inr b : World.Sum A B n) hm : World.Sum A B m)
+    = Sum.inr (World.restrict b hm) := by
+  intro n
+  induction n with
+  | zero =>
+    intro m b hm
+    have : m = 0 := Nat.le_zero.mp hm
+    subst this
+    rw [@World.restrict_self (World.Sum A B), @World.restrict_self B]
+  | succ n' ih =>
+    intro m b hm
+    by_cases hmn : m = n'+1
+    · subst hmn
+      rw [@World.restrict_self (World.Sum A B), @World.restrict_self B]
+    · have hm' : m ≤ n' := by omega
+      have hL : @World.restrict (World.Sum A B) _ (n'+1) m (Sum.inr b) hm
+              = @World.restrict (World.Sum A B) _ n' m
+                  (@World.restrictStep (World.Sum A B) _ n' (Sum.inr b)) hm' := by
+        have heq : hm = Nat.le_succ_of_le hm' := rfl
+        rw [heq, World.restrict_succ]
+      have hR : @World.restrict B _ (n'+1) m b hm
+              = @World.restrict B _ n' m (@World.restrictStep B _ n' b) hm' := by
+        have heq : hm = Nat.le_succ_of_le hm' := rfl
+        rw [heq, World.restrict_succ]
+      rw [hL]
+      change @World.restrict (World.Sum A B) _ n' m (Sum.inr (World.restrictStep b)) hm' = _
+      rw [ih (World.restrictStep b) hm', hR]
+
 def World.Function (A B : Nat → Type u) : Nat → Type u :=
   fun n => ∀ m, m ≤ n → A m → B m
 instance : World (World.Function A B) where
   restrictStep f m hm := f m (Nat.le_trans hm (Nat.le_succ _))
 
+@[simp] theorem World.Function.restrictStep_eq {A B : Nat → Type u}
+    {n : Nat} (f : World.Function A B (n+1)) (m : Nat) (hm : m ≤ n) :
+    (World.restrictStep (F := World.Function A B) f : World.Function A B n) m hm
+      = f m (Nat.le_trans hm (Nat.le_succ _)) := rfl
+
+/-- `W.restrict` on `Later F` equals `W.restrict` on `F` at the lower level. -/
+theorem World.restrict_Later_eq {F : Nat → Type u} [World F] : ∀ {n m : Nat}
+    (x : F n) (hm : m+1 ≤ n+1),
+    @World.restrict (Later F) _ (n+1) (m+1) x hm
+    = @World.restrict F _ n m x (Nat.le_of_succ_le_succ hm) := by
+  intro n
+  induction n with
+  | zero =>
+    intro m x hm
+    have hm0 : m = 0 := by omega
+    subst hm0
+    rw [@World.restrict_self (Later F) _ 1 x,
+        @World.restrict_self F _ 0 x]
+  | succ n' ih =>
+    intro m x hm
+    by_cases hmn : m+1 = n'+1+1
+    · have hmn' : m = n'+1 := Nat.succ.inj hmn
+      subst hmn'
+      rw [@World.restrict_self (Later F) _ (n'+1+1) x,
+          @World.restrict_self F _ (n'+1) x]
+    · have hm_n'1 : m+1 ≤ n'+1 := by omega
+      have hm_n' : m ≤ n' := Nat.le_of_succ_le_succ hm_n'1
+      have hLHS_eq : @World.restrict (Later F) _ (n'+1+1) (m+1) x hm
+                  = @World.restrict (Later F) _ (n'+1) (m+1)
+                      (@World.restrictStep (Later F) _ (n'+1) x) hm_n'1 := by
+        have hm_eq : hm = Nat.le_succ_of_le hm_n'1 := rfl
+        rw [hm_eq, @World.restrict_succ (Later F)]
+      have hRHS_eq : @World.restrict F _ (n'+1) m x (Nat.le_of_succ_le_succ hm)
+                  = @World.restrict F _ n' m (@World.restrictStep F _ n' x) hm_n' := by
+        have h_proof_eq : Nat.le_of_succ_le_succ hm = Nat.le_succ_of_le hm_n' := rfl
+        rw [h_proof_eq, @World.restrict_succ F]
+      rw [hLHS_eq, hRHS_eq]
+      exact ih (World.restrictStep x) hm_n'1
+
+/-- `W.restrict` on `World.Function` collapses to direct application with composed proof. -/
+@[simp] theorem World.Function.restrict_apply {A B : Nat → Type u} : ∀ {n : Nat}
+    (X : World.Function A B n) {m : Nat} (hm : m ≤ n) {k : Nat} (hk : k ≤ m) (x : A k),
+    World.restrict X hm k hk x = X k (Nat.le_trans hk hm) x := by
+  intro n
+  induction n with
+  | zero =>
+    intro X m hm k hk x
+    have hm0 : m = 0 := Nat.le_zero.mp hm
+    subst hm0
+    have hk0 : k = 0 := Nat.le_zero.mp hk
+    subst hk0
+    have h_r : World.restrict X hm = X := by
+      unfold World.restrict; simp
+    rw [h_r]
+  | succ n' ih =>
+    intro X m hm k hk x
+    by_cases hmn : m = n'+1
+    · subst hmn
+      have h_r : World.restrict X hm = X := by
+        unfold World.restrict; simp
+      rw [h_r]
+    · have hm_n' : m ≤ n' := by omega
+      have h_r : World.restrict X hm
+               = World.restrict (World.restrictStep X) hm_n' := by
+        show World.restrict X hm = _
+        rw [World.restrict.eq_1, dif_neg hmn]
+      rw [h_r, ih (World.restrictStep X) hm_n' hk x]
+      rfl
+
+/-- `W.restrict` on `Later (W.Function)` collapses similarly. Uses defeq
+    `Later (W.Function A B) (n+1) = W.Function A B n`. -/
+@[simp] theorem Later.Function.restrict_apply {A B : Nat → Type u} : ∀ {n : Nat}
+    (X : Later (World.Function A B) (n+1)) {m : Nat} (hm : m+1 ≤ n+1)
+    {k : Nat} (hk : k ≤ m) (x : A k),
+    World.restrict X hm k hk x = (X : World.Function A B n) k
+      (Nat.le_trans hk (Nat.le_of_succ_le_succ hm)) x := by
+  intro n
+  induction n with
+  | zero =>
+    intro X m hm k hk x
+    have hm0 : m+1 = 1 := Nat.le_antisymm hm (Nat.succ_le_succ (Nat.zero_le _))
+    have hm0' : m = 0 := Nat.succ.inj hm0
+    subst hm0'
+    have hk0 : k = 0 := Nat.le_zero.mp hk
+    subst hk0
+    have h_r : World.restrict X hm = X := by
+      unfold World.restrict; simp
+    rw [h_r]
+  | succ n' ih =>
+    intro X m hm k hk x
+    by_cases hmn : m+1 = n'+1+1
+    · have hmn' : m = n'+1 := Nat.succ.inj hmn
+      subst hmn'
+      have h_r : World.restrict X hm = X := by
+        unfold World.restrict; simp
+      rw [h_r]
+    · have hm_n' : m+1 ≤ n'+1 := by omega
+      have h_r : World.restrict X hm
+               = World.restrict (World.restrictStep X) hm_n' := by
+        show World.restrict X hm = _
+        rw [World.restrict.eq_1, dif_neg hmn]
+      rw [h_r, ih (World.restrictStep X) hm_n' hk x]
+      rfl
+
 def World.Comp (G : Type u → Type v) [Functor G] (A : Nat → Type u) : Nat → Type v :=
   fun n => G (A n)
 instance [Functor G] [World A] : World (World.Comp G A) where
   restrictStep := Functor.map World.restrictStep
+
+def Later.ap' {A B : Nat → Type u}
+    (n : Nat) : Later (World.Function A B) n → Later A n → Later B n :=
+  match n with
+  | 0 => fun _ _ => PUnit.unit
+  | _ + 1 => fun f a => f _ (Nat.le_refl _) a
+
+@[simp] theorem Later.ap'_succ {A B : Nat → Type u} {n : Nat}
+    (f : Later (World.Function A B) (n+1)) (a : Later A (n+1)) :
+    Later.ap' (n+1) f a = (f : World.Function A B n) n (Nat.le_refl _) (a : A n) := rfl
 
 /-! ## Subobject classifier and sub-presheaves -/
 
@@ -133,7 +349,7 @@ def True {n : Nat} : IProp n :=
   ⟨fun m => m ≤ n, fun _ h => Nat.le_of_succ_le h, fun _ h => h⟩
 
 /-- Graded truth value: true on `{0, …, k}`. -/
-def upTo {n : Nat} (k : Nat) (hk : k ≤ n) : IProp n :=
+def UpTo {n : Nat} (k : Nat) (hk : k ≤ n) : IProp n :=
   ⟨fun m => m ≤ k, fun _ h => Nat.le_of_succ_le h, fun _ hm => Nat.le_trans hm hk⟩
 
 /-- Embedding of Lean's `Prop` as a level-uniform truth value. -/
@@ -160,18 +376,6 @@ instance : World World.IProp where
 theorem World.IProp.restrictStep_val {n : Nat} (p : World.IProp (n+1)) (m : Nat) :
     (World.restrictStep p).val m = (p.val m ∧ m ≤ n) := by
   obtain ⟨P, hc, hb⟩ := p; rfl
-
-@[simp]
-theorem World.restrict_self {F : Nat → Type u} [World F] {n : Nat} (x : F n) :
-    World.restrict x (Nat.le_refl n) = x := by
-  rw [World.restrict.eq_1, dif_pos rfl]; simp [cast_eq]
-
-/-- One step of restriction descends one level along multi-step restriction. -/
-theorem World.restrict_succ {F : Nat → Type u} [World F]
-    {n m : Nat} (x : F (n+1)) (h : m ≤ n) :
-    World.restrict x (Nat.le_succ_of_le h) = World.restrict (World.restrictStep x) h := by
-  show World.restrict x (Nat.le_succ_of_le h) = _
-  rw [World.restrict.eq_1, dif_neg (by omega : ¬ m = n+1)]
 
 /-- A single `restrictStep` factors out of multi-step restriction. -/
 theorem World.restrictStep_restrict {F : Nat → Type u} [World F]
@@ -296,38 +500,12 @@ theorem And_holds (p q : World.Pred F) {n : Nat} (x : F n) :
 
 end World.Pred
 
-/-- Underlying predicate of `laterLift`. -/
-def World.Pred.laterLift_holds {F : Nat → Type u} [World F] (p : World.Pred F) :
-    ∀ {n : Nat}, Later F n → Prop
-  | 0, _ => True
-  | _+1, d => p.holds d
-
-private theorem World.Pred.laterLift_closed {F : Nat → Type u} [World F] (p : World.Pred F)
-    {n : Nat} (x : Later F (n+1)) (hx : p.laterLift_holds x) :
-    p.laterLift_holds (World.restrictStep x) := by
-  cases n with
-  | zero => trivial
-  | succ k => exact p.closed x hx
-
-/-- The `▹` modal lift: any sub-presheaf of `F` induces one of `Later F`. -/
-def World.Pred.laterLift {F : Nat → Type u} [World F] (p : World.Pred F) :
-    World.Pred (Later F) :=
-  World.Pred.ofClosed p.laterLift_holds p.laterLift_closed
-
-@[simp]
-theorem World.Pred.laterLift_holds_succ {F : Nat → Type u} [World F] (p : World.Pred F)
-    {n : Nat} (x : F n) :
-    p.laterLift.holds (n := n+1) x ↔ p.holds x := by
-  unfold World.Pred.laterLift
-  rw [World.Pred.ofClosed_holds]
-  rfl
-
 class WorldFunctor (F : (Nat → Type u) → (Nat → Type u)) where
   instWorld A [World A] : World (F A)
 
 attribute [instance] WorldFunctor.instWorld
 
-@[inline] def Later.sequence {A : Nat → Type u} [World A]
+def Later.sequence {A : Nat → Type u} [World A]
     (n : Nat) (list : List (Later A n)) : Later (World.Comp List A) n :=
   list.foldr (Later.ap _ ∘ Later.map (fun _ a => (a :: ·)) _) (Later.next [])
 
@@ -633,25 +811,89 @@ def loeb {A : Nat → Type u} [World A] {n : Nat} (f : World.Function (Later A) 
   | 0 => f 0 (by omega) PUnit.unit
   | n + 1 => f (n + 1) (by omega) (loeb (n:=n) (World.restrict f))
 
-/-
-theorem restrictStep_loeb_eq_loeb_restrictStep {A : Nat → Type u} [World A] {n : Nat} {f : World.Function (Later A) A (n + 1)} :
+/-- A Kripke function is *natural* if it commutes with `restrictStep` on input
+    and output across outer levels. The `loeb` fixed-point equation requires
+    its body to be natural. -/
+def World.Function.Natural {A B : Nat → Type u} [World A] [World B] {n : Nat}
+    (f : World.Function A B n) : Prop :=
+  ∀ {m : Nat} (hm : m + 1 ≤ n) (x : A (m+1)),
+    World.restrictStep (f (m+1) hm x)
+      = f m (Nat.le_trans (Nat.le_succ _) hm) (World.restrictStep x)
+
+/-- `restrictStep` of a Natural function is Natural. -/
+theorem World.Function.Natural.restrictStep {A B : Nat → Type u} [World A] [World B]
+    {n : Nat} {f : World.Function A B (n + 1)} (hf : f.Natural) :
+    (World.restrictStep f : World.Function A B n).Natural := by
+  intro m hm x
+  show World.restrictStep (f (m+1) _ x) = f m _ (World.restrictStep x)
+  exact hf _ x
+
+theorem restrictStep_loeb_eq_loeb_restrictStep {A : Nat → Type u} [World A] {n : Nat}
+    {f : World.Function (Later A) A (n + 1)} (hf : f.Natural) :
     World.restrictStep (loeb f) = loeb (World.restrictStep f) := by
-  -- Likely needs naturality as a law of [World A]
-  sorry
+  induction n with
+  | zero =>
+    -- LHS: restrictStep (f 1 refl (loeb_0 (W.restrict f)))
+    --    = restrictStep (f 1 refl (restrictStep f 0 refl PUnit.unit))  [unfold loeb_0 and W.restrict]
+    -- By hf at m=0: restrictStep (f 1 refl Z) = f 0 _ (restrictStep_Later Z), with Z : Later A 1.
+    -- restrictStep_Later Z : Later A 0 = PUnit.unit.
+    show World.restrictStep (loeb (n:=1) f) = loeb (n:=0) (World.restrictStep f)
+    have hZ : (loeb (n:=0) (World.restrict f) : Later A 1) =
+              (World.restrictStep f) 0 (Nat.le_refl _) PUnit.unit := by
+      show (World.restrict (n:=1) (m:=0) f (Nat.zero_le _)) 0 (Nat.le_refl _) PUnit.unit
+         = (World.restrictStep f) 0 (Nat.le_refl _) PUnit.unit
+      have : World.restrict (n:=1) (m:=0) f (Nat.zero_le _) = World.restrictStep f := by
+        unfold World.restrict; simp
+      rw [this]
+    show World.restrictStep (f 1 (Nat.le_refl _) (loeb (n:=0) (World.restrict f)))
+       = (World.restrictStep f) 0 (Nat.le_refl _) PUnit.unit
+    rw [hf (m:=0) (Nat.le_refl _) (loeb (n:=0) (World.restrict f))]
+    -- Goal: f 0 _ (restrictStep (loeb_0 ...)) = (restrictStep f) 0 _ PUnit.unit
+    show f 0 _ (World.restrictStep (loeb (n:=0) (World.restrict f))) = f 0 _ PUnit.unit
+    -- restrictStep on Later A 0 = PUnit gives PUnit.unit.
+    rfl
+  | succ n ih =>
+    show World.restrictStep (f (n+2) (Nat.le_refl _) (loeb (n:=n+1) (World.restrict f)))
+       = loeb (n:=n+1) (World.restrictStep f)
+    rw [hf (m:=n+1) (Nat.le_refl _) (loeb (n:=n+1) (World.restrict f))]
+    -- Goal: f (n+1) _ (restrictStep_Later (loeb_{n+1} (W.restrict f))) = loeb_{n+1} (restrictStep f)
+    show f (n+1) _ (World.restrictStep (loeb (n:=n+1) (World.restrict f)))
+       = (World.restrictStep f) (n+1) (Nat.le_refl _) (loeb (n:=n) (World.restrict (World.restrictStep f)))
+    -- W.restrict f at proof n+1 ≤ n+2 = restrictStep f
+    have hWf : World.restrict (n:=n+2) (m:=n+1) f (Nat.le_succ _) = World.restrictStep f := by
+      unfold World.restrict; simp
+    rw [hWf]
+    -- Goal: f (n+1) _ (restrictStep (loeb_{n+1} (restrictStep f)))
+    --     = f (n+1) _ (loeb_n (W.restrict (restrictStep f)))
+    -- By IH applied to restrictStep f (which is Natural by hf.restrictStep):
+    --   restrictStep (loeb_{n+1} (restrictStep f)) = loeb_n (restrictStep (restrictStep f))
+    have hIH := ih (f := World.restrictStep f) hf.restrictStep
+    -- W.restrict (restrictStep f) at proof n ≤ n+1 = restrictStep (restrictStep f).
+    have hWrf : World.restrict (n:=n+1) (m:=n) (World.restrictStep f) (Nat.le_succ _)
+              = World.restrictStep (World.restrictStep f) := by
+      unfold World.restrict; simp
+    rw [hWrf, ← hIH]
+    -- LHS and RHS now both have the same X = restrictStep (loeb (restrictStep f));
+    -- f (n+1) refl X = (restrictStep f) (n+1) refl X by def of restrictStep on
+    -- World.Function (just weakens proof).
+    rfl
 
-theorem next_loeb_eq_loeb_restrict {A : Nat → Type u} [World A] {n : Nat} {f : World.Function (Later A) A (n + 1)} :
-    Later.next (loeb f) = loeb (n:=n) (World.restrict f) := by
-  simp only [Later.next, World.restrict, Nat.left_eq_add, Nat.succ_ne_self, ↓reduceDIte, cast_eq]
-  apply restrictStep_loeb_eq_loeb_restrictStep
-
-theorem loeb.eq {A : Nat → Type u} [World A] {n : Nat} {f : World.Function (Later A) A n} :
+theorem loeb.eq {A : Nat → Type u} [World A] {n : Nat} {f : World.Function (Later A) A n}
+    (hf : f.Natural) :
     loeb f = f n (Nat.le_refl _) (Later.next (loeb f)) := by
   induction n with
   | zero => rfl
   | succ n ih =>
-    conv => lhs; rw[loeb]
-    rw [next_loeb_eq_loeb_restrict]
--/
+    show f (n+1) (Nat.le_refl _) (loeb (n:=n) (World.restrict f))
+       = f (n+1) (Nat.le_refl _) (Later.next (loeb f))
+    congr 1
+    -- Goal: loeb (W.restrict f) = Later.next (loeb f) = restrictStep (loeb f)
+    show loeb (n:=n) (World.restrict f) = World.restrictStep (loeb f)
+    have h : World.restrict (n:=n+1) (m:=n) f (Nat.le_succ _) = World.restrictStep f := by
+      unfold World.restrict
+      simp [Nat.succ_ne_self]
+    rw [h]
+    exact (restrictStep_loeb_eq_loeb_restrictStep hf).symm
 
 /-! ## Tests -/
 

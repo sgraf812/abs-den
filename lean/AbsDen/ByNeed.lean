@@ -110,6 +110,82 @@ def D.memo {n : Nat} (a : Addr) (d : ▹ D n) : ▹ D n :=
                Std.HashMap.insert μ' a (World.restrict memoThunk (by omega)))))
   ) d
 
+/-! ## Equational lemmas and naturality helpers -/
+
+@[simp] theorem D_fold_unfold {n : Nat} (f : world(Heap (▹ D) → T VH) n) (m : Nat)
+    (hm : m ≤ n) (μ : Heap (▹ D) m) :
+    D.unfold (D.fold f) m hm μ = f m hm μ := by
+  simp [D.unfold, D.fold, World.Fix.unfold, World.Fix.fold]
+
+@[simp] theorem D_step_eq {n : Nat} (ev : Event) (dl : ▹ D n) (m : Nat)
+    (hm : m ≤ n) (μ : Heap (▹ D) m) :
+    D.unfold (D.step ev dl) m hm μ =
+    T.step ev (Later.hmap m (fun i _hi d => d.unfold i (Nat.le_refl i) (World.restrict μ (by omega)))
+      (World.restrict dl hm)) := by simp [D.step]
+
+theorem D_unfold_restrictStep {n : Nat} (d : D (n+1)) (m : Nat) (hm : m ≤ n)
+    (μ : Heap (▹ D) m) :
+    (World.restrictStep d).unfold m hm μ = d.unfold m (Nat.le_succ_of_le hm) μ := by
+  unfold D.unfold; exact congrFun (World.Fix.unfold_restrictStep_Function d m hm) μ
+
+theorem D_unfold_restrict {n : Nat} (d : D n) (m : Nat) (hm : m ≤ n)
+    (k : Nat) (hk : k ≤ m) (μ : Heap (▹ D) k) :
+    (World.restrict d hm).unfold k hk μ = d.unfold k (Nat.le_trans hk hm) μ := by
+  match n with
+  | 0 => have : m = 0 := Nat.le_zero.mp hm; subst this; simp
+  | n + 1 =>
+    rw [World.restrict.eq_1]; split
+    · next heq => subst heq; simp
+    · next hne =>
+      have hm' := Nat.lt_succ_iff.mp (Nat.lt_of_le_of_ne hm hne)
+      exact (D_unfold_restrict (World.restrictStep d) m hm' k hk μ).trans
+        (D_unfold_restrictStep d k (Nat.le_trans hk hm') μ)
+  termination_by n
+
+theorem restrict_later_next' {n : Nat} (d : D n) (k : Nat) (hk : k + 1 ≤ n) :
+    @World.restrict (Later D) _ n (k+1) (Later.next d) hk =
+    @World.restrict D _ n k d (by omega) := by
+  induction n generalizing k with
+  | zero => omega
+  | succ n ih =>
+    by_cases hkn' : k = n
+    · subst hkn'
+      rw [World.restrict.eq_1 (F := Later D), dif_pos rfl]
+      rw [World.restrict.eq_1 (F := D), dif_neg (by omega)]
+      dsimp only []
+      rw [World.restrict.eq_1, dif_pos rfl]
+      simp only [cast_eq]; rfl
+    · rw [World.restrict.eq_1 (F := Later D), dif_neg (by omega)]
+      dsimp only []
+      rw [World.restrict.eq_1 (F := D), dif_neg (by omega)]
+      dsimp only []
+      exact ih (World.restrictStep d) k (by omega)
+
+theorem D_fold_unfold_id {n : Nat} (d : D n) :
+    D.fold (World.Fix.unfold d) = d := by
+  show World.Fix.fold (World.Fix.unfold d) = d
+  unfold World.Fix.fold World.Fix.unfold; simp
+
+theorem D_ext {n : Nat} (a b : D n)
+    (h : ∀ (m : Nat) (hm : m ≤ n) (μ : Heap (▹ D) m), D.unfold a m hm μ = D.unfold b m hm μ) :
+    a = b := by
+  rw [← D_fold_unfold_id a, ← D_fold_unfold_id b]; congr 1; funext m hm μ; exact h m hm μ
+
+theorem D.natural_step (ev : Event) {n : Nat} (d : D (n+1)) :
+    D.step ev (Later.next (World.restrictStep d)) =
+    World.restrictStep (D.step ev (Later.next d)) := by
+  apply D_ext; intro m hm μ
+  rw [D_unfold_restrictStep, D_step_eq, D_step_eq]
+  congr 2
+  cases m with
+  | zero => rfl
+  | succ k =>
+    show @World.restrict (Later D) _ n _ (Later.next (World.restrictStep d)) _ =
+         @World.restrict (Later D) _ (n+1) _ (Later.next d) _
+    rw [restrict_later_next' (World.restrictStep d) k (by omega),
+        restrict_later_next' d k (by omega)]
+    exact (World.restrict_succ d (by omega : k ≤ n)).symm
+
 /-! ## Domain instance -/
 
 instance : Domain D where
@@ -138,6 +214,7 @@ instance : Domain D where
       let memoThunk : ▹ D j := D.memo a rhsThunk
       let μ' := Heap.set μ a memoThunk
       (body j (by omega) (D.invis (fetch a))).unfold j (Nat.le_refl j) μ'
+  natural_step ev := D.natural_step ev
 
 /-! ## By-need evaluator -/
 

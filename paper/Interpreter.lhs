@@ -498,17 +498,11 @@ The main focus of this work lies on the call-by-need domain |DNeed| that we
 introduce in this subsection.
 Its model of memoisation brings with it all the usual semantic complexities
 that arise for semantic domains with higher-order state (\ie, that of a strict
-functional language with ref cells), so we think it is enlightening to study
-even if the reader's main interest lies in strict languages.
+functional language with ref cells), so it is worth studying even if the
+reader's main interest is strict languages.
 Of course, it is also possible to adjust the interpreter for call-by-value,
-which requires a separate @let rec@ construct or lazy initialization techniques.
+which requires a separate @let rec@ construct or lazy initialisation techniques.
 We demonstrate this in the Appendix.
-
-In \Cref{sec:soundness}, we build on |DNeed| to prove usage analysis sound \wrt
-by-need evaluation.
-It turns out that the interpreter thus derived is the --- to our knowledge ---
-first denotational semantics for call-by-need that bisimulates the lazy Krivine
-machine (\Cref{sec:op-sem,sec:adequacy}).
 
 \begin{figure}
 \begin{code}
@@ -534,10 +528,11 @@ instance Domain DNeed where
     putN (ext μ a (memoN a (rhs (fetchN a))))
     body (fetchN a)
 
--- Implementation details: TODO: Better formatting!
+-- Implementation details:
 instance Monad TNeed where
   return v = TNeed (\μ -> return (v, μ))
   x >>= f = TNeed (\μ -> unTNeed x μ >>= \(v, μ) -> unTNeed (f v) μ)
+
 getN  :: TNeed Heap;           getN    = TNeed (\ μ -> return (μ, μ))
 putN  :: Heap -> TNeed (); ^^  putN μ  = TNeed (\ _ -> return ((), μ))
 
@@ -566,41 +561,26 @@ deriving via StateT Heap T instance Applicative TNeed
 \label{fig:by-need}
 \end{figure}
 
-The use of a stateful heap is essential to the call-by-need evaluation strategy
-in order to enable memoisation.
-So how do we vary the trace type |τ| such that |τ Value| accommodates state?
-We certainly cannot perform the heap update by updating entries in |ρ|,
-because those entries are immutable once inserted, and we do not want to change
-the generic interpreter.
-That rules out $|τ| \cong |T|$ (as for |DName|), because then repeated
-occurrences of the variable |x| must yield the same trace |ρ ! x|.
-However, the whole point of memoisation is that every evaluation of |x| after
-the first one leads to a potentially different, shorter trace.
-This implies we have to \emph{paramaterise} every occurrence of |x| over the
-current heap |μ| at the time of evaluation, and every evaluation of |x| must
-subsequently update this heap with its value, so that the next evaluation
-of |x| returns the value directly.
-In other words, we need a representation $|DNeed| \cong |Heap -> T (Value,
-Heap)|$.
+In |DName| a variable denotes the fixed trace |ρ ! x|.
+Call-by-need memoisation departs from this: each occurrence must be evaluated
+against the current heap and write back its value, so that later occurrences
+return it directly as a shorter trace.
+This calls for mutable state, so the denotation of an expression must thread a
+|Heap|, taking the form of a \emph{stateful function returning a trace},
+$|DNeed| \cong |Heap -> T (Value, Heap)|$.
 
-The by-need trace type |TNeed| in \Cref{fig:by-need} solves this type equation.
-It's |Monad| instance is that of a standard state transformer monad.
-That is, it passes around updated |Heap|s adjoined with semantic values, reusing
-the |Monad| instance for |T|.
-Its key operations |getN| and |putN| are given in \Cref{fig:by-need}.
-
-So the denotation of an expression is no longer a trace, but rather a
-\emph{stateful function returning a trace} with state |Heap| in
-which to allocate call-by-need thunks.
-The |step| implementation of |DNeed| is like that of |DName|, pointwise
-over heaps.
+The by-need trace type |TNeed| in \Cref{fig:by-need} realises this equation as a
+standard state transformer over |T|: its |Monad| instance threads the updated
+|Heap| alongside the returned value, reusing the |Monad| instance for |T|, with
+key operations |getN| and |putN|.
+The |step| implementation is that of |DName|, pointwise over heaps.
 
 The |Domain| instance is mostly the same as for |DName|.
-In fact, the implementations of the |stuck|, |lam|, |app|, |con| and |select|
+In fact, the implementations of the |stuck|, |fun|, |apply|, |con| and |select|
 methods are \emph{syntactically identical} to
 \Cref{fig:trace-instances}; the different semantics follows entirely from the
-new |step| implementation and |Monad| instance, and the only concern of those is
-to thread the |Heap| around.
+new |step| implementation and |Monad| instance, which merely thread the |Heap|
+through.
 However, |bind| is the key method that differs for |DNeed|, because that is the
 only place where thunks are allocated.
 The implementation of |bind| designates a fresh heap address |a|
@@ -609,7 +589,7 @@ Both |rhs| and |body| are called with |fetchN a|, a denotation that looks up |a|
 in the heap and runs it.
 If we were to omit the |memo| action explained next, we would thus have
 recovered another form of call-by-name semantics based on mutable state instead
-of guarded fixpoints such as for |DNeed|.
+of guarded fixpoints such as for |DName|.
 The whole purpose of the |memo a d| combinator then is to \emph{memoise} the
 computation of |d| the first time we run the computation, via |fetchN a| in the
 |Var| case of |evalNeed2|.
@@ -625,16 +605,12 @@ but doing so complicates relating the semantics to the lazy Krivine machine
 For now, our goal is not to formalise this optimisation, but rather to show
 adequacy \wrt an established semantics.}
 
-Although the code is carefully written, it is worth stressing how
-compact and expressive it is.
-We were able to move from traces to stateful traces just by wrapping traces |T|
-in a state transformer |TNeed|, isolating the implementation of memoisation to a
-single semantic primitive |memo|, with only minimal changes to add the |Upd|
-event to the main |eval| function.
-The semantic intuition built for the by-name interpreter compositionally carries
-over to the by-need interpreter.
-We think that this yields a comparatively simple encoding of a denotational
-by-need semantics.
+The encoding is remarkably compact.
+Moving from by-name to by-need amounts to wrapping |T| in the state transformer
+|TNeed| and isolating memoisation in the single primitive |memoN|; the only
+change to the generic |eval| is the |Upd| event.
+The semantic intuition built for the by-name interpreter carries over
+compositionally to by-need.
 
 \subsubsection{Walkthrough: Memoisation in Action}
 \label{sec:walkthrough-need}
@@ -769,8 +745,8 @@ getValue (Step _ τ)  = getValue τ
 ifPoly(instance Domain DValue where
   ...
   bind # rhs body = DValue $
-    step Let0 (do  let  d = rhs (return v)          :: DValue
-                        v = getValue (unByValue d)  :: Value
+    step Let0 (do  let  d = rhs (return v)  :: DValue
+                        v = getValue d      :: ValueValue
                    v1 <- d; body (return v1)))
 \end{code}
 %if style == newcode
@@ -824,7 +800,7 @@ consider the case |τ = T|.
 Then |return = Ret| and we get |d = rhs (Ret v)| for the value |v| at the end of
 the trace |d|, as computed by the type class instance method |getValue :: T v ->
 v|.
-The effect of |Ret (getValue (unByValue d))| is that of stripping all |Step|s from |d|.
+The effect of |Ret (getValue d)| is that of stripping all |Step|s from |d|.
 
 Let us trace $\Let{i}{(\Lam{y}{\Lam{x}{x}})~i}{i~i}$ for call-by-value:
 
@@ -930,8 +906,8 @@ $\perform{evalVInit (read "let x = x in x x") emp emp :: T (ValueVInit, HeapVIni
 
 \end{toappendix}
 
-\medskip
-This example suggests that |evalNeed2| agrees with the lazy Krivine machine on
-\emph{many} programs.
-The next section proves that |evalNeed2| agrees with it on
-\emph{all} programs, including ones that diverge.
+\smallskip
+
+The examples we have seen so far suggest that |evalNeed2| indeed defines
+a call-by-need semantics.
+The next section will prove this fact.

@@ -207,9 +207,9 @@
 %include Introduction.lhs
 %include Interpreter.lhs
 %include OpSem.lhs
+%include StaticAnalysis.lhs
 %include Adequacy.lhs
 %include Problem.lhs
-%include StaticAnalysis.lhs
 %include Soundness.lhs
 %include RelatedWork.lhs
 

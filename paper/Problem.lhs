@@ -262,22 +262,7 @@ correctness statement:
 \end{proof}
 
 As the first step, we must define precisely what absence (used in the theorem statement)
-\emph{means}.
-% There are many ways to do so, and it is not at all clear which is best.
-One plausible definition is in terms of the standard operational semantics in
-\Cref{sec:op-sem}:
-
-\begin{definitionrep}[Absence]
-  \label{defn:absence}
-  A variable $\px$ is \emph{used} in an expression $\pe$
-  if and only if there exists a trace
-  $(\Let{\px}{\pe'}{\pe},ρ,μ,κ) \smallstep^* ... \smallstep[\LookupT(\px)] ...$
-  that looks up the heap entry of $\px$, \ie it evaluates $\px$.
-  Otherwise, $\px$ is \emph{absent} in $\pe$.
-\end{definitionrep}
-Absence of $\px$ means that $\px$ is not looked up \emph{regardless of
-the context in which $\pe$ is used}, to justify rewrites via contextual
-improvement~\citep{MoranSands:99}.
+\emph{means}; see \Cref{defn:absence}.
 Furthermore, we must prove that the summary mechanism approximates beta
 reduction, captured syntactically in the following \emph{substitution
 lemma}~\citep{tapl}:%

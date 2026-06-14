@@ -30,6 +30,8 @@ class Domain (D : Nat → Type) extends World D where
   con    : El world(ConTag → List D → D)
   select : El world(D → List (ConTag × (List D → D)) → D)
   bind   : El world((D → D) → (D → D) → D)
+  natural_step : ∀ (ev : Event), Natural (fun {n : Nat} (d : D n) =>
+    step n (Nat.le_refl n) ev n (Nat.le_refl n) d)
 
 /-! ## Domain helpers at the current stage -/
 
@@ -96,3 +98,4 @@ decreasing_by
   · have := List.sizeOf_lt_of_mem ‹alt ∈ alts›
     have : sizeOf alt.rhs < sizeOf alt := by cases alt; simp [Alt.mk.sizeOf_spec]; omega
     omega
+

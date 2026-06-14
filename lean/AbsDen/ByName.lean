@@ -91,6 +91,7 @@ instance : Domain D where
       | _ => D.stuck
   bind {_n} _m _hm rhs' k _hk body :=
     body k (Nat.le_refl k) (loeb (fun l h d => rhs' l (by omega) (D.invis d)))
+  natural_step ev := by sorry
 
 /-! ## By-name evaluator -/
 

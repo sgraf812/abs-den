@@ -115,11 +115,26 @@ In the following, we discuss usage analysis (\Cref{sec:usage-analysis}) in detai
 
 In this subsection, we give a detailed account of \emph{usage analysis} as
 an instance of the denotational interpreter.
-Usage analysis generalises the summary-based absence analysis from
-\Cref{sec:problem}.
 It is a compelling example because it illustrates that our framework is suitable
 to infer \emph{operational properties}, such as an upper bound on the number of
 variable lookups.
+A particularly useful special case is \emph{absence}: a variable that is never
+looked up is dead code and may be removed.
+We define this property in terms of the reference semantics of \Cref{sec:op-sem}
+and prove in \Cref{sec:soundness} that usage analysis infers it soundly.
+
+\begin{definitionrep}[Absence]
+  \label{defn:absence}
+  A variable $\px$ is \emph{used} in an expression $\pe$
+  if and only if there exists a trace
+  $(\Let{\px}{\pe'}{\pe},ρ,μ,κ) \smallstep^* ... \smallstep[\LookupT(\px)] ...$
+  that looks up the heap entry of $\px$, \ie it evaluates $\px$.
+  Otherwise, $\px$ is \emph{absent} in $\pe$.
+\end{definitionrep}
+\noindent
+Absence of $\px$ means that $\px$ is not looked up \emph{regardless of the
+context in which $\pe$ is used}, justifying rewrites via contextual
+improvement~\citep{MoranSands:99}.
 
 \subsubsection{Trace Abstraction in |Trace UT|}
 \label{sec:usage-trace-abstraction}
@@ -317,18 +332,13 @@ when we instantiate |eval| at |UD|.
 %\footnote{In particular, the negative recursive occurrence in
 %|Fun :: (τ (highlight Value τ) -> ...) -> Value τ| is disqualifying.}
 
-The definition of |UValue| is just a copy of $π ∈ \Args$ in
-\Cref{fig:absence} that lists argument usage |U| instead of $\Absence$ flags;
-the entire intuition transfers.
+The abstract value type |UValue| records, for each argument position in turn, how
+often a function uses that argument, drawn from |U| (used zero, one, or many
+times).
 For example, the |UValue| abstracting $\Lam{y}{\Lam{z}{y}}$ is
 |UCons U1 (UCons U0 (Rep Uω))|, because the first argument is used once while
-the second is used 0 times.
-What we previously called absence types $θ ∈ \AbsTy$ in \Cref{fig:absence} is
-now the abstract semantic domain |UD|.
-It is now evident that usage analysis is a modest generalisation of absence
-analysis in \Cref{fig:absence}:
-a variable is absent ($\aA$) when it has usage |U0|, otherwise it is used
-($\aU$).
+the second is used zero times.
+Absence is the special case: a variable is absent exactly when its usage is |U0|.
 %\slpj{Why generalise? It makes it a bit more complicated, and more importantly
 %different, than Section 2.}
 %\sg{The main reason (a year back) was to prove that we correctly approximate
@@ -340,8 +350,7 @@ a variable is absent ($\aA$) when it has usage |U0|, otherwise it is used
 
 Consider
 $|evalUsg (({-" \Let{k}{\Lam{y}{\Lam{z}{y}}}{k~x_1~x_2} "-})) ρe|
- = \perform{evalUsg (read "let k = λy.λz.y in k x_1 x_2") (Map.fromList [("x_1", MkUT (singenv "x_1" U1) (Rep Uω)), ("x_2", MkUT (singenv "x_2" U1) (Rep Uω))])}$,
-analysing the example expression from \Cref{sec:problem}.
+ = \perform{evalUsg (read "let k = λy.λz.y in k x_1 x_2") (Map.fromList [("x_1", MkUT (singenv "x_1" U1) (Rep Uω)), ("x_2", MkUT (singenv "x_2" U1) (Rep Uω))])}$.
 Usage analysis successfully infers that $x_1$ is used at most once and that
 $x_2$ is absent, because it does not occur in the reported |Uses|.
 
@@ -363,8 +372,8 @@ may be used many times.
 
 The |Domain| instance is responsible for implementing the summary mechanism.
 While |stuck| expressions do not evaluate anything and hence are denoted by
-|bottom = MkUT emp (Rep U0)|, the |fun| and |apply| functions play exactly the same
-roles as $\mathit{fun}_\px$ and $\mathit{app}$ in \Cref{fig:absence}.
+|bottom = MkUT emp (Rep U0)|, the |fun| and |apply| functions build and apply
+argument summaries, respectively.
 Let us briefly review how the summary for the right-hand side $\Lam{x}{x}$ of
 $i$ in the previous example is computed:
 \begin{spec}
@@ -384,13 +393,60 @@ U1| from the lambda body will be prepended to the value abstraction.
 Occurrences of |x| unleash the uninformative top value (|Rep Uω|) from |x|'s
 proxy for lack of knowing the actual argument at call sites.
 
-The definition of |apply| to apply such summaries to an argument is nearly the
-same as in \Cref{fig:absence}, except for the use of |+| instead of $⊔$ to
-carry over |U1 + U1 = Uω|, and an explicit |peel| to view a |UValue| in terms
-of $\argcons$ (it is $|Rep u| \equiv |UCons u (Rep u)|$).
+The definition of |apply| applies such a summary to an argument using |+| (so
+that |U1 + U1 = Uω|) and an explicit |peel| to view a |UValue| in terms
+of $\argcons$ (recall $|Rep u| \equiv |UCons u (Rep u)|$).
 The usage |u| thus pelt from the value determines how often the actual
 argument was evaluated, and multiplying the uses of the argument |φ2| with |u|
 accounts for that.
+
+To see the summary mechanism end to end, \Cref{fig:usage-trace} traces |evalUsg|
+on $\Let{k}{\Lam{y}{\Lam{z}{y}}}{k~x_1~x_2}$, the example from above, where the
+initial environment |ρe| supplies each free variable $x_i$ with the proxy
+|MkUT (singenv x_i U1) (Rep Uω)|.
+As in the by-name walkthrough of \Cref{sec:walkthrough}, no clause sees the whole
+picture; here the |step| events |App1|, |App2| and |Let1| are moreover the
+identity for |UD|, so only |Look| and the summary operations |fun| and |apply|
+remain.
+
+\begin{figure}
+\begin{spec}
+   evalUsg (({-" \Let{k}{\Lam{y}{\Lam{z}{y}}}{k~x_1~x_2} "-})) ρe
+=  eval (({-" k~x_1~x_2 "-})) ρ1                                          {-" \hfill\textsc{(1)} "-}
+=  apply (apply (ρ1 ! k) (ρ1 ! x_1)) (ρ1 ! x_2)                           {-" \hfill\textsc{(2)} "-}
+=  apply (apply (MkUT (singenv k U1) vk) px1) px2                         {-" \hfill\textsc{(3)} "-}
+=  apply (MkUT (singenv k U1 + singenv x_1 U1) (UCons U0 (Rep Uω))) px2   {-" \hfill\textsc{(4)} "-}
+=  MkUT (singenv k U1 + singenv x_1 U1 + U0 * singenv x_2 U1) (Rep Uω)    {-" \hfill\textsc{(5)} "-}
+=  MkUT (singenv k U1 + singenv x_1 U1) (Rep Uω)
+   where  ρ1 = ext ρe k (step (Look k) dk);  dk = MkUT emp vk;  vk = UCons U1 (UCons U0 (Rep Uω))
+          px1 = MkUT (singenv x_1 U1) (Rep Uω);  px2 = MkUT (singenv x_2 U1) (Rep Uω)
+\end{spec}
+\\[-1em]
+\caption{Walking through usage analysis for $\Let{k}{\Lam{y}{\Lam{z}{y}}}{k~x_1~x_2}$}
+\label{fig:usage-trace}
+\end{figure}
+
+Step~(1) unfolds the |Let| via |bind|, which for |UD| solves the recursive
+binding by Kleene iteration |kleeneFix|.
+As $\Lam{y}{\Lam{z}{y}}$ has no free variables, the fixpoint is reached at once
+and gives |k|'s summary |dk = MkUT emp vk| with |vk = UCons U1 (UCons U0 (Rep Uω))|,
+built by |fun| exactly as the $\Lam{x}{x}$ summary above.
+The binding wraps |dk| in |step (Look k)| before extending the environment to
+|ρ1|, so that each lookup of |k| records one use.
+Step~(2) unfolds the two applications, using |eval (Var k) ρ1 = ρ1 ! k|, and
+Step~(3) reads the environment: |ρ1 ! k| exposes |step (Look k) dk = MkUT (singenv k U1) vk|,
+the single use of |k|, while |ρ1 ! x_1| and |ρ1 ! x_2| are the proxies |px1| and |px2|.
+
+The two |apply| steps are where the summary earns its keep.
+Step~(4) applies |k|'s summary to $x_1$: |peel vk = (U1, UCons U0 (Rep Uω))| says
+the first argument is used once, so |U1 * singenv x_1 U1| retains $x_1$'s use and
+the head |U1| is peeled from the value.
+Step~(5) applies the result to $x_2$: now |peel (UCons U0 (Rep Uω)) = (U0, Rep Uω)|
+says the second argument is absent, so |U0 * singenv x_2 U1| maps $x_2$ to |U0|
+and its use is discarded.
+The final summary infers $x_1$ as used at most once and $x_2$ as absent, even
+though $x_2$ appears in argument position --- the |UValue| is exactly what lets
+|apply| tell the two apart.
 
 The example
 $|evalUsg (({-" \Let{z}{Z()}{\Case{S(z)}{S(n) → n}} "-})) emp|
@@ -455,9 +511,7 @@ generate and solve a constraint system via unification to define fixpoints.
 In case of |UD|, we compute least fixpoints by Kleene iteration |kleeneFix|
 in \Cref{fig:lat}.
 |kleeneFix| requires us to define an order on |UD|, which is induced
-by |U0 ⊏ U1 ⊏ Uω| in the same way that the order
-on $\AbsTy$ in \Cref{sec:absence} was induced from the order $\aA ⊏ \aU$
-on $\Absence$ flags.
+structurally by |U0 ⊏ U1 ⊏ Uω| (pointwise and product orders).
 
 The iteration procedure terminates whenever the type class instances of |UD| are
 monotone and there are no infinite ascending chains in |UD|.
