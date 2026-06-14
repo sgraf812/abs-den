@@ -363,6 +363,39 @@ theorem GoodPBody_natural {N : Nat} :
   unfold GoodPBody
   rw [World.restrict_succ x hm_body]
 
+/-- W.restrict is proof-irrelevant: any two proofs of `m ≤ n` give the same
+    result. Useful to rewrite a generic `m ≤ n+1` to the specific
+    `Nat.le_succ_of_le h` shape so `World.restrict_succ` fires. -/
+theorem World.restrict_proof_irrel {F : Nat → Type u} [World F]
+    {n m : Nat} (x : F n) (h₁ h₂ : m ≤ n) :
+    World.restrict x h₁ = World.restrict x h₂ := by
+  congr
+
+/-- `restrict` at a generic `m ≤ n+1` proof equals `restrict` at the
+    `Nat.le_succ_of_le` form, provided we have `m ≤ n`. -/
+theorem World.restrict_le_succ {F : Nat → Type u} [World F]
+    {n m : Nat} (x : F (n+1)) (hm : m ≤ n+1) (hm' : m ≤ n) :
+    World.restrict x hm = World.restrict (World.restrictStep x) hm' := by
+  rw [World.restrict_proof_irrel x hm (Nat.le_succ_of_le hm'),
+      World.restrict_succ]
+
+/-- The W.restrict on a Later world(D → Prop) commutes through restrictStep on
+    the outer Later instance at corresponding inner levels (proof-irrelevant
+    version, no `Nat.le_succ_of_le` pattern required). -/
+theorem World.restrict_Later_outer_succ {n m : Nat}
+    (DGoodP : Later world(D → Prop) (n+1)) (hm : m ≤ n+1) (hm' : m ≤ n) :
+    @World.restrict (Later world(D → Prop)) _ (n+1) m DGoodP hm
+    = @World.restrict (Later world(D → Prop)) _ n m (World.restrictStep DGoodP) hm' :=
+  World.restrict_le_succ DGoodP hm hm'
+
+/-- `RetGoodP` commutes with `restrictStep` on its `DGoodP` argument. The body
+    uses `W.restrict DGoodP` at various sub-levels with implicit proofs, and
+    proving naturality requires reconciling those proofs via `restrict_le_succ`
+    plus `propext`. Sorried pending a clean lemma. -/
+theorem RetGoodP_restrictStep {n : Nat} (DGoodP : ▹ world(D → Prop) (n+1)) :
+    World.restrictStep (RetGoodP DGoodP : world(VH → Prop) (n+1))
+    = RetGoodP (World.restrictStep DGoodP) := by sorry
+
 /-! ## `goodP : World.Pred D` — wrapping `GoodP` for `LR.good.P` -/
 
 /-- `GoodP` at outer level `n+1`, restricted, equals `GoodP` at outer level
