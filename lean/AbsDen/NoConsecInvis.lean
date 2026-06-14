@@ -379,6 +379,38 @@ theorem World.restrict_le_succ {F : Nat → Type u} [World F]
   rw [World.restrict_proof_irrel x hm (Nat.le_succ_of_le hm'),
       World.restrict_succ]
 
+/-- `restrictStep ∘ W.restrict` at `k+1` equals `W.restrict` at `k`. -/
+theorem World.restrictStep_restrict {F : Nat → Type u} [World F] :
+    ∀ {N k : Nat} (x : F N) (p : k+1 ≤ N) (p' : k ≤ N),
+    World.restrictStep (World.restrict x p : F (k+1)) = World.restrict x p' := by
+  intro N
+  induction N with
+  | zero => intro k x p p'; omega
+  | succ N' ih =>
+    intro k x p p'
+    by_cases hp : k+1 = N'+1
+    · -- k+1 = N'+1, so W.restrict x p = x and restrictStep x = W.restrict x p'.
+      have hk_eq : k = N' := Nat.succ.inj hp
+      subst hk_eq
+      rw [show (World.restrict x p : F (k+1)) = x from
+            World.restrict_self _]
+      have hp'_succ : World.restrict x p' = World.restrict (World.restrictStep x) (Nat.le_refl k) := by
+        have heq : p' = Nat.le_succ_of_le (Nat.le_refl k) := rfl
+        rw [heq, World.restrict_succ]
+      rw [hp'_succ, World.restrict_self]
+    · -- k+1 < N'+1, so W.restrict x p = W.restrict (restrictStep x) (k+1 ≤ N').
+      have hp_le : k+1 ≤ N' := by omega
+      have hp'_le : k ≤ N' := by omega
+      have h_LHS : (World.restrict x p : F (k+1))
+                  = World.restrict (World.restrictStep x) hp_le := by
+        rw [World.restrict_proof_irrel x p (Nat.le_succ_of_le hp_le),
+            World.restrict_succ]
+      have h_RHS : World.restrict x p' = World.restrict (World.restrictStep x) hp'_le := by
+        rw [World.restrict_proof_irrel x p' (Nat.le_succ_of_le hp'_le),
+            World.restrict_succ]
+      rw [h_LHS, h_RHS]
+      exact ih _ hp_le hp'_le
+
 /-- The W.restrict on a Later world(D → Prop) commutes through restrictStep on
     the outer Later instance at corresponding inner levels (proof-irrelevant
     version, no `Nat.le_succ_of_le` pattern required). -/
@@ -448,6 +480,38 @@ theorem RetGoodP_restrictStep {n : Nat} (DGoodP : ▹ world(D → Prop) (n+1)) :
       refine Iff.intro (fun h a dl h_ => ?_) (fun h a dl h_ => ?_)
       · have := h a dl h_; rwa [← key_m]
       · have := h a dl h_; rwa [key_m]
+
+/-- Iterated: `W.restrict` on `RetGoodP DGoodP` equals `RetGoodP (W.restrict DGoodP)`. -/
+theorem RetGoodP_restrict : ∀ {n : Nat} (DGoodP : ▹ world(D → Prop) n)
+    {m : Nat} (hm : m ≤ n),
+    World.restrict (RetGoodP DGoodP : world(VH → Prop) n) hm
+    = RetGoodP (World.restrict DGoodP hm) := by
+  intro n
+  induction n with
+  | zero =>
+    intro DGoodP m hm
+    have : m = 0 := Nat.le_zero.mp hm; subst this
+    rw [show World.restrict (RetGoodP DGoodP : world(VH → Prop) 0) hm
+            = RetGoodP DGoodP from World.restrict_self _]
+    rw [show World.restrict DGoodP hm = DGoodP from World.restrict_self _]
+  | succ n' ih =>
+    intro DGoodP m hm
+    by_cases hmn : m = n'+1
+    · subst hmn
+      rw [show World.restrict (RetGoodP DGoodP : world(VH → Prop) (n'+1)) hm
+              = RetGoodP DGoodP from World.restrict_self _]
+      rw [show World.restrict DGoodP hm = DGoodP from World.restrict_self _]
+    · have hm' : m ≤ n' := by omega
+      rw [show World.restrict (RetGoodP DGoodP : world(VH → Prop) (n'+1)) hm
+            = World.restrict (World.restrictStep (RetGoodP DGoodP)) hm' by
+        show World.restrict _ hm = _
+        rw [World.restrict.eq_1, dif_neg hmn]]
+      rw [RetGoodP_restrictStep]
+      rw [ih (World.restrictStep DGoodP) hm']
+      rw [show World.restrict DGoodP hm
+            = World.restrict (World.restrictStep DGoodP) hm' by
+        show World.restrict _ hm = _
+        rw [World.restrict.eq_1, dif_neg hmn]]
 
 /-! ## `goodP : World.Pred D` — wrapping `GoodP` for `LR.good.P` -/
 
