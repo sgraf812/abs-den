@@ -50,8 +50,8 @@ complexity of the semantics and of the analysis.
 We tried to find ways to avoid this complexity.
 The one we settled on changes the semantics rather than crafting that logical
 relation: a \textbf{\emph{denotational interpreter}}\footnote{This term was
-coined by \citet{Might:10}.}, as compositional as a denotational semantics and as
-operationally faithful as an abstract machine.
+coined by \citet{Might:10}.}, compositional like a denotational semantics, yet
+recording the operational detail of an abstract machine.
 It sits at the intersection of the executable \emph{definitional
 interpreter}~\citep{Reynolds:72} and the compositional denotational semantics.
 
