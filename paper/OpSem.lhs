@@ -14,7 +14,7 @@ Our reference is the lazy Krivine (LK) machine, and adequacy takes the strong fo
 of a \emph{bisimulation} between the interpreter's traces and the machine's runs.
 To our knowledge, |evalNeed2| is the first denotational call-by-need semantics
 with such a bisimulation proof, which lets us move freely between machine and
-interpreter, \eg, for the definition of absence in \Cref{defn:absence}.
+interpreter.
 All (pen-and-paper) proofs are in the Appendix.
 
 \subsection{The Lazy Krivine Machine}
