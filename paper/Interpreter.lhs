@@ -113,6 +113,14 @@ Note that $\Lam{x}{x}$ (with an overline) denotes syntax, whereas $\fn{x}{x+1}$
 denotes an anonymous mathematical function; throughout, we assume that all bound
 program variables are distinct.
 
+We encode this syntax as the Haskell datatype |Exp| in \Cref{fig:syntax};
+\Cref{fig:map} gives the API of environments and sets.
+For concise notation, we will use a small number of infix operators: |(:->)| as
+a synonym for finite |Map|s, with |m ! x| for looking up |x| in |m|, |emp| for
+the empty map, |ext m x d| for updates, |assocs m| for a list of key-value pairs
+in |m|, |f << m| for mapping |f| over every value in |m|, |dom m| for the set of
+keys present in the map, and |(`elem`)| for membership tests in that set.
+
 \begin{figure}
 \begin{minipage}{0.49\textwidth}
 \begin{spec}
@@ -218,7 +226,7 @@ instance Monad T where
 A trace |T| either returns a value (|Ret|) or makes a small-step transition (|Step|).
 Each step |Step ev rest| is decorated with an event |ev|, which describes what happens in that step.
 For example, event |Look x| describes the lookup of variable |x :: Name| in the environment.
-Note that the choice of |Event| is use-case (\ie semantics- and analysis-) specific and suggests
+Note that the choice of |Event| is use-case (\ie, semantics- and analysis-) specific and suggests
 a spectrum of operational detail, with |data Event = Unit| at the most abstract
 end and arbitrary syntactic detail attached to each of |Event|'s
 constructors at the most detailed end.%
@@ -226,7 +234,7 @@ constructors at the most detailed end.%
 side-effects, we could have started from a more elaborate trace construction
 such as (guarded) interaction trees~\citep{interaction-trees,gitrees}.}
 
-A trace in |DName = T (Value T)| eventually terminates with a |Value| that is
+A trace in |DName = T Value| eventually terminates with a |Value| that is
 either stuck (|Stuck|), a function waiting to be applied to a domain value
 (|Fun|), or a constructor application giving the denotations of its
 fields (|Con|).
@@ -309,14 +317,6 @@ instance Domain DName where
 A denotational semantics is a function |dsem e ρ| mapping an expression |e :: Exp|
 and an environment |ρ :: Name :-> D| (giving denotations to |e|'s free variables)
 to a \emph{denotation} in a semantic domain |D|.
-We sketch the Haskell encoding of |Exp| in \Cref{fig:syntax} and the API of
-environments and sets in \Cref{fig:map}.
-For concise notation, we will use a small number of infix operators: |(:->)| as
-a synonym for finite |Map|s, with |m ! x| for looking up |x| in |m|, |emp| for
-the empty map, |ext m x d| for updates, |assocs m| for a list of key-value pairs
-in |m|, |f << m| for mapping |f| over every value in |m|, |dom m| for the set of
-keys present in the map, and |(`elem`)| for membership tests in that set.
-
 Our denotational interpreter |eval :: Exp -> (Name :-> DName) -> DName| can
 have a similar type as |dsem|.
 However, to derive both dynamic semantics and static analyses as instances of the same
@@ -336,7 +336,7 @@ instances for domain |DName| that we introduced in \Cref{sec:dna}.
 We added visible cues in the form of gray boxes in \Cref{fig:eval} to highlight where
 type class method calls (\ie, calls to function parameters) happen, as opposed
 to regular function calls of known definitions.
-These hooks are filled in by the type class instances for |DName| when the
+These hooks are plugged in with the type class instances for |DName| when the
 polymorphic interpreter is instantiated at |DName|, so we also highlighted its
 implementations.
 These type class instances suffice to actually run the denotational interpreter to produce traces.
