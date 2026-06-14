@@ -432,37 +432,14 @@ theorem World.restrict_le_succ {F : Nat → Type u} [World F]
   rw [World.restrict_proof_irrel x hm (Nat.le_succ_of_le hm'),
       World.restrict_succ]
 
-/-- `restrictStep ∘ W.restrict` at `k+1` equals `W.restrict` at `k`. -/
-theorem World.restrictStep_restrict {F : Nat → Type u} [World F] :
-    ∀ {N k : Nat} (x : F N) (p : k+1 ≤ N) (p' : k ≤ N),
+/-- `restrictStep ∘ W.restrict` at `k+1` equals `W.restrict` at `k` (proof-irrelevant version
+    accepting a generic `p' : k ≤ N`). The base lemma `World.restrictStep_restrict` in
+    `World/Basic.lean` produces `restrict x (Nat.le_of_succ_le h)`; this wrapper lets us
+    pass an arbitrary `p' : k ≤ N`. -/
+theorem World.restrictStep_restrict' {F : Nat → Type u} [World F]
+    {N k : Nat} (x : F N) (p : k+1 ≤ N) (p' : k ≤ N) :
     World.restrictStep (World.restrict x p : F (k+1)) = World.restrict x p' := by
-  intro N
-  induction N with
-  | zero => intro k x p p'; omega
-  | succ N' ih =>
-    intro k x p p'
-    by_cases hp : k+1 = N'+1
-    · -- k+1 = N'+1, so W.restrict x p = x and restrictStep x = W.restrict x p'.
-      have hk_eq : k = N' := Nat.succ.inj hp
-      subst hk_eq
-      rw [show (World.restrict x p : F (k+1)) = x from
-            World.restrict_self _]
-      have hp'_succ : World.restrict x p' = World.restrict (World.restrictStep x) (Nat.le_refl k) := by
-        have heq : p' = Nat.le_succ_of_le (Nat.le_refl k) := rfl
-        rw [heq, World.restrict_succ]
-      rw [hp'_succ, World.restrict_self]
-    · -- k+1 < N'+1, so W.restrict x p = W.restrict (restrictStep x) (k+1 ≤ N').
-      have hp_le : k+1 ≤ N' := by omega
-      have hp'_le : k ≤ N' := by omega
-      have h_LHS : (World.restrict x p : F (k+1))
-                  = World.restrict (World.restrictStep x) hp_le := by
-        rw [World.restrict_proof_irrel x p (Nat.le_succ_of_le hp_le),
-            World.restrict_succ]
-      have h_RHS : World.restrict x p' = World.restrict (World.restrictStep x) hp'_le := by
-        rw [World.restrict_proof_irrel x p' (Nat.le_succ_of_le hp'_le),
-            World.restrict_succ]
-      rw [h_LHS, h_RHS]
-      exact ih _ hp_le hp'_le
+  rw [World.restrictStep_restrict x p, World.restrict_proof_irrel x _ p']
 
 /-- The W.restrict on a Later world(D → Prop) commutes through restrictStep on
     the outer Later instance at corresponding inner levels (proof-irrelevant
@@ -730,7 +707,40 @@ noncomputable def good : LR D where
       nomatch hg
     · simp only [World.restrict_self]
       exact h_heap
-  step := by sorry
+  step := by
+    intro n ev d h_goodP
+    rw [NewIdea.goodP_iff]
+    intro m hm
+    show (NewIdea.GoodP : world(D → Prop) n) m hm
+      (World.restrict (D.step ev (Later.next d)) hm)
+    unfold NewIdea.GoodP
+    rw [loeb.eq NewIdea.GoodPBody_natural]
+    unfold NewIdea.GoodPBody
+    intro _Recur_m μ h_heap
+    rw [D_unfold_restrict, D_step_eq]
+    unfold NewIdea.TraceGoodP
+    rw [loeb.eq NewIdea.TraceGoodPBody_natural]
+    rw [NewIdea.TraceGoodPBody_step_eq _ _ _ _ _ _ _ _ _
+        (by unfold T.step; rw [T_uf] : T.unfold (T.step _ _) = .step _ _)]
+    cases m with
+    | zero => trivial
+    | succ k =>
+      simp only [Later.prop_succ, Later.ap'_succ, Later.next_succ,
+                 World.restrict_self, World.Const.restrictStep_eq]
+      rw [restrictStep_loeb_eq_loeb_restrictStep NewIdea.TraceGoodPBody_natural,
+          NewIdea.TraceGoodPBody_restrictStep_RetGoodP,
+          NewIdea.RetGoodP_restrictStep]
+      have hk : k ≤ n := Nat.le_of_succ_le hm
+      have h_recur_step : World.restrictStep _Recur_m
+                       = World.restrict (Later.next (loeb NewIdea.GoodPBody)) hk :=
+        World.restrictStep_restrict' (Later.next (loeb NewIdea.GoodPBody)) hm hk
+      rw [h_recur_step]
+      -- Strategy: at this point the goal is
+      --   loeb (TGB (RetGoodP (W.restrict (Later.next loeb) hk))) k _ 2 k _ tl_k
+      -- where tl_k = Later.hmap (k+1) ... (W.restrict (Later.next d) hm).
+      -- This matches h_goodP at sub-level k after applying GoodPBody. The
+      -- remaining gap is showing Param.Heap holds for the restricted heap.
+      sorry
   fn := by
     intro n f h_param
     rw [NewIdea.goodP_iff]
