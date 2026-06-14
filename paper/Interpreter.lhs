@@ -76,6 +76,7 @@ takeT n (Step e t) = Step e (takeT (n-1) t)
 \label{sec:interp}
 
 How can a compositional definition capture a program's step-by-step execution?
+This section shows how.
 A denotational semantics maps each program compositionally to a meaning in a
 semantic domain.
 We keep this shape but parameterise the semantics over its domain, giving a single
@@ -328,20 +329,18 @@ which is naturally expressed using type class overloading, thus:
 We have parameterised the semantic domain |d| over a type class |Domain|
 whose signatures are given in \Cref{fig:trace-classes}.
 %\footnote{One can think of these type classes as a fold-like final encoding~\citep{Carette:07} of a domain. However, the significance is in the \emph{decomposition} of the domain, not the choice of encoding.}
-Each of the two type classes offer knobs that we will tweak to derive
-different evaluation strategies as well as static analyses.
 
-\Cref{fig:eval} gives the complete definition of |eval| together with type class
-instances for domain |DName| that we introduced in \Cref{sec:dna}.
+\Cref{fig:eval} gives the complete definition of |eval| together with the type class
+instance for domain |DName| that we introduced in \Cref{sec:dna}.
 We added visible cues in the form of gray boxes in \Cref{fig:eval} to highlight where
 type class method calls (\ie, calls to function parameters) happen, as opposed
 to regular function calls of known definitions.
-These hooks are plugged in with the type class instances for |DName| when the
+These hooks are plugged in with the type class instance for |DName| when the
 polymorphic interpreter is instantiated at |DName|, so we also highlighted its
 implementations.
 These type class instances suffice to actually run the denotational interpreter to produce traces.
 
-Having fixed the type class instances for |DName| in \Cref{fig:trace-instances},
+Having fixed the type class instance for |DName| in \Cref{fig:trace-instances},
 we write |evalName e ρ| for |eval e ρ| instantiated for domain |DName|.
 We introduce similar shorthands |evalNeed1| and |evalUsg1| for the by-need and
 usage analysis instantiations in \Cref{sec:by-need-instance,sec:abstraction}.
@@ -412,7 +411,7 @@ step by step, showing which clause of |eval| fires.
 The goal is to see how the compositional structure of |eval| alone produces the
 small-step trace
 $\perform{evalName (read "let i = λx.x in i i") emp}$.
-We inline the |DName| type class instances (\Cref{fig:trace-instances})
+We inline the |DName| type class instance (\Cref{fig:trace-instances})
 as we see fit.
 To save horizontal space, we'll abbreviate |Step| to |S|.
 \begin{align}
