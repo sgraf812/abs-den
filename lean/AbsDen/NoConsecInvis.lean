@@ -42,6 +42,59 @@ theorem Value_F_Rep_restrict_stuck {n m : Nat} (hm : m ≤ n) :
       rw [hstep]
       exact ih hm'
 
+/-- `W.restrict (Value.F.toRep _ (.fn g)) hm` matches `Sum.inr (Sum.inl _)` shape. -/
+theorem Value_F_Rep_restrict_fn_shape : ∀ {n : Nat} (g : World.Function (▹ D) (▹ D) n)
+    {m : Nat} (hm : m ≤ n),
+    ∃ g', World.restrict (Value.F.toRep (▹ D) (.fn g)) hm = Sum.inr (Sum.inl g') := by
+  intro n
+  induction n with
+  | zero =>
+    intro g m hm
+    have : m = 0 := Nat.le_zero.mp hm; subst this
+    refine ⟨g, ?_⟩
+    show World.restrict (Value.F.toRep _ (.fn g)) hm = _
+    rw [@World.restrict_self (Value.F.Rep (▹ D))]; rfl
+  | succ n' ih =>
+    intro g m hm
+    by_cases hmn : m = n'+1
+    · subst hmn
+      refine ⟨g, ?_⟩
+      rw [@World.restrict_self (Value.F.Rep (▹ D))]; rfl
+    · have hm' : m ≤ n' := by omega
+      have heq : hm = Nat.le_succ_of_le hm' := rfl
+      rw [heq, @World.restrict_succ (Value.F.Rep (▹ D))]
+      have hstep' : (@World.restrictStep (Value.F.Rep (▹ D)) _ n' (Value.F.toRep _ (.fn g))
+                  : Value.F.Rep (▹ D) n')
+                 = Value.F.toRep _ (.fn (World.restrictStep g)) := rfl
+      rw [hstep']
+      exact ih (World.restrictStep g) hm'
+
+/-- `W.restrict (Value.F.toRep _ (.con K ds)) hm` matches `Sum.inr (Sum.inr _)` shape. -/
+theorem Value_F_Rep_restrict_con_shape : ∀ {n : Nat} (K : ConTag)
+    (ds : world(List (▹ D)) n) {m : Nat} (hm : m ≤ n),
+    ∃ ds', World.restrict (Value.F.toRep (▹ D) (.con K ds)) hm = Sum.inr (Sum.inr (K, ds')) := by
+  intro n
+  induction n with
+  | zero =>
+    intro K ds m hm
+    have : m = 0 := Nat.le_zero.mp hm; subst this
+    refine ⟨ds, ?_⟩
+    rw [@World.restrict_self (Value.F.Rep (▹ D))]; rfl
+  | succ n' ih =>
+    intro K ds m hm
+    by_cases hmn : m = n'+1
+    · subst hmn
+      refine ⟨ds, ?_⟩
+      rw [@World.restrict_self (Value.F.Rep (▹ D))]; rfl
+    · have hm' : m ≤ n' := by omega
+      have heq : hm = Nat.le_succ_of_le hm' := rfl
+      rw [heq, @World.restrict_succ (Value.F.Rep (▹ D))]
+      have hstep' : (@World.restrictStep (Value.F.Rep (▹ D)) _ n' (Value.F.toRep _ (.con K ds))
+                  : Value.F.Rep (▹ D) n')
+                 = Value.F.toRep _ (.con K (World.restrictStep ds)) := rfl
+      rw [hstep']
+      exact ih K (World.restrictStep ds) hm'
+
 @[simp] theorem D_ret_eq {n : Nat} (v : Value.F (▹ D) n) (m : Nat)
     (hm : m ≤ n) (μ : Heap (▹ D) m) :
     D.unfold (D.ret v) m hm μ = T.ret (World.restrict (Value.F.toRep _ v) hm, μ) := by
@@ -640,7 +693,34 @@ noncomputable def good : LR D where
     · simp only [World.restrict_self]
       exact h_heap
   step := by sorry
-  fn := by sorry
+  fn := by
+    intro n f h_param
+    rw [NewIdea.goodP_iff]
+    intro m hm
+    change (NewIdea.GoodP : world(D → Prop) n) m hm
+      (World.restrict (Domain.fn' f) hm)
+    show (NewIdea.GoodP : world(D → Prop) n) m hm
+      (World.restrict (D.fn f) hm)
+    unfold NewIdea.GoodP
+    rw [loeb.eq NewIdea.GoodPBody_natural]
+    unfold NewIdea.GoodPBody
+    intro _Recur_m μ h_heap
+    rw [D_unfold_restrict, D.fn, D_ret_eq]
+    unfold NewIdea.TraceGoodP
+    rw [loeb.eq NewIdea.TraceGoodPBody_natural]
+    rw [NewIdea.TraceGoodPBody_ret_eq _ _ _ _ _ _ _ _
+        (by unfold T.ret; rw [T_uf] : T.unfold (T.ret _) = .ret _)]
+    rw [NewIdea.RetGoodP_apply]
+    refine ⟨?_, ?_, ?_⟩
+    · -- function-cond: from hg, extract that g equals our restricted version.
+      sorry
+    · -- con-cond: vacuous (v has shape Sum.inr (Sum.inl _), not Sum.inr (Sum.inr _))
+      intro K ds hg
+      obtain ⟨g', hg'⟩ := Value_F_Rep_restrict_fn_shape _ hm
+      rw [hg'] at hg
+      nomatch hg
+    · simp only [World.restrict_self]
+      exact h_heap
   con := by sorry
   app_closed := by sorry
   case_closed := by sorry
