@@ -2,7 +2,22 @@
 > module OpSem where
 %endif
 
-\section{Reference Semantics: Lazy Krivine Machine}
+\section{Reference Semantics and Adequacy}
+
+Having defined our denotational interpreter (\Cref{sec:interp}), we now hold it to
+account against a reference operational semantics, proving that
+|evalNeed2|%
+\footnote{Similar results for |evalName| should be derivative.}
+is a faithful \emph{denotational semantics}: \emph{total} (well-defined for every
+input) and \emph{adequate} (faithful to the reference's termination behaviour).
+Our reference is the lazy Krivine (LK) machine, and adequacy takes the strong form
+of a \emph{bisimulation} between the interpreter's traces and the machine's runs.
+To our knowledge, |evalNeed2| is the first denotational call-by-need semantics
+with such a bisimulation proof, which lets us move freely between machine and
+interpreter, \eg, for the definition of absence in \Cref{defn:absence}.
+All (pen-and-paper) proofs are in the Appendix.
+
+\subsection{The Lazy Krivine Machine}
 \label{sec:op-sem}
 
 \begin{figure}
@@ -44,11 +59,9 @@
   \label{fig:lk-semantics}
 \end{figure}
 
-Before we get to introduce our denotational interpreters design pattern, let us
-recall the semantic ground truth of this work and others \citep{Gustavsson:98,
-Sergey:14, Breitner:16}: The Mark II machine of \citet{Sestoft:97} given in
+The semantic ground truth of this work and others~\citep{Gustavsson:98, Sergey:14,
+Breitner:16} is the Mark II machine of \citet{Sestoft:97} given in
 \Cref{fig:lk-semantics}, a small-step operational semantics.
-It is a Lazy Krivine (LK) machine implementing call-by-need.
 (A close sibling for call-by-value would be a CESK machine \citep{Felleisen:87}.)
 A reasonable call-by-name semantics can be recovered by removing the $\UpdateT$
 rule and the pushing of update frames in $\LookupT$.
@@ -59,12 +72,13 @@ The configurations $σ$ in this transition system resemble abstract machine
 states, consisting of a control expression $\pe$, an environment $ρ$ mapping
 lexically-scoped variables to their current heap address, a heap $μ$ listing a
 closure for each address, and a stack of continuation frames $κ$.
-There is one harmless non-standard extension: For $\LookupT$
-transitions, we take note of the let-bound variable $\py$ which allocated the
-heap binding that the machine is about to look up. The association from address
-to let-bound variable is maintained in the first component of a heap entry
-triple and requires slight adjustments of the $\LetIT$, $\LookupT$ and
-$\UpdateT$ rules.
+There is one harmless non-standard extension, present so that the machine's
+transitions line up with the |Event|s our interpreter emits (\Cref{sec:interp}):
+each $\LookupT$ transition records the let-bound variable $\py$ that allocated the
+heap binding about to be looked up, mirroring the interpreter's |Look x| event.
+The association from address to let-bound variable is maintained in the first
+component of a heap entry triple and requires slight adjustments of the $\LetIT$,
+$\LookupT$ and $\UpdateT$ rules.
 
 The notation $f ∈ A \pfun B$ used in the definition of $ρ$ and $μ$ denotes a
 finite map from $A$ to $B$, a partial function where the domain $\dom(f)$ is
@@ -83,24 +97,25 @@ It is easy to see that the transition system maintains this invariant and that
 it is still possible to observe scoping errors which are thus confined to lookup
 in $ρ$.
 
-We conclude with two example traces. The first one evaluates $\Let{i}{\Lam{x}{x}}{i~i}$:
+We conclude with two example traces.
+The first evaluates $\Let{i}{\Lam{x}{x}}{i~i}$, which we evaluated by-name in
+\Cref{sec:walkthrough}:
 \begin{align} \label{ex:trace}
   &\arraycolsep3pt
   \begin{array}{lclclclclc}
   (\Let{i}{\Lam{x}{x}}{i~i}, [], [], \StopF) & \smallstep[\LetIT] & (i~i, ρ_1, μ, \StopF) & \smallstep[\AppIT] & (i, ρ_1, μ, κ) & \smallstep[\LookupT(i)] \\
-  \highlight{(\Lam{x}{x}, ρ_1, μ, \UpdateF(\pa_1) \pushF κ)} & \highlight{\smallstep[\UpdateT]} & (\Lam{x}{x}, ρ_1, μ, κ) & \smallstep[\AppET] & (x, ρ_2, μ, \StopF) & \smallstep[\LookupT(i)] \\
-  \highlight{(\Lam{x}{x}, ρ_1, μ, \UpdateF(\pa_1) \pushF \StopF)} & \highlight{\smallstep[\UpdateT]} & (\Lam{x}{x}, ρ_1, μ, \StopF)
+  (\Lam{x}{x}, ρ_1, μ, \UpdateF(\pa_1) \pushF κ) & \smallstep[\UpdateT] & (\Lam{x}{x}, ρ_1, μ, κ) & \smallstep[\AppET] & (x, ρ_2, μ, \StopF) & \smallstep[\LookupT(i)] \\
+  (\Lam{x}{x}, ρ_1, μ, \UpdateF(\pa_1) \pushF \StopF) & \smallstep[\UpdateT] & (\Lam{x}{x}, ρ_1, μ, \StopF)
   \end{array} \\ \notag
   &\qquad \text{where} \begin{array}{llll}
     κ = \ApplyF(\pa_1) \pushF \StopF, & ρ_1 = [i ↦ \pa_1], & ρ_2 = [i ↦ \pa_1, x ↦ \pa_1], & μ = [\pa_1 ↦ (i, ρ_1,\Lam{x}{x})] \\
   \end{array} \notag
 \end{align}
-The corresponding by-name trace simply omits the highlighted update steps.
 The last $\LookupT(i)$ transition exemplifies that the lambda-bound variable in
 control differs from the let-bound variable used to identify the heap entry.
 
-The second example evaluates $\pe \triangleq \Let{i}{(\Lam{y}{\Lam{x}{x}})~i}{i~i}$,
-demonstrating memoisation of $i$:
+The second evaluates $\pe \triangleq \Let{i}{(\Lam{y}{\Lam{x}{x}})~i}{i~i}$, the
+memoisation example of \Cref{sec:walkthrough-need}:
 \begin{align} \label{ex:trace2}
   &\begin{array}{l}
   (\pe, [], [], \StopF)
