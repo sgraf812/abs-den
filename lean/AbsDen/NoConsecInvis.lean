@@ -583,6 +583,44 @@ theorem GoodP_restrictStep {n : Nat} :
 noncomputable def goodP_holds {n : Nat} (d : D n) : Prop :=
   ∀ m (hm : m ≤ n), (GoodP : world(D → Prop) n) m hm (World.restrict d hm)
 
+/-- Iterated GoodP restrict: `W.restrict (GoodP : world n) hm = GoodP : world m`. -/
+theorem GoodP_restrict : ∀ {n m : Nat} (hm : m ≤ n),
+    @World.restrict (world(D → Prop)) _ n m (GoodP : world(D → Prop) n) hm
+    = (GoodP : world(D → Prop) m) := by
+  intro n
+  induction n with
+  | zero =>
+    intro m hm
+    have : m = 0 := Nat.le_zero.mp hm; subst this
+    rw [@World.restrict_self (world(D → Prop))]
+  | succ n' ih =>
+    intro m hm
+    by_cases hmn : m = n'+1
+    · subst hmn
+      rw [@World.restrict_self (world(D → Prop))]
+    · have hm' : m ≤ n' := by omega
+      have heq : hm = Nat.le_succ_of_le hm' := rfl
+      rw [heq, @World.restrict_succ (world(D → Prop))]
+      rw [GoodP_restrictStep]
+      exact ih hm'
+
+/-- `W.restrict (Later.next (loeb GoodPBody)) at Later world(...) (k+1) =
+    GoodP at level k`. The GoodP-analogue of `Later_next_loeb_restrict`. -/
+theorem Later_next_GoodP_restrict {n k : Nat} (hk : k + 1 ≤ n) :
+    World.restrict (Later.next (loeb GoodPBody : world(D → Prop) n)) hk
+    = (GoodP : world(D → Prop) k) := by
+  cases n with
+  | zero => omega
+  | succ n' =>
+    have hk' : k ≤ n' := Nat.le_of_succ_le_succ hk
+    have h1 : (Later.next (loeb GoodPBody) : Later world(D → Prop) (n'+1))
+            = World.restrictStep (loeb GoodPBody) := rfl
+    rw [h1]
+    rw [@World.restrict_Later_eq (world(D → Prop)) _ n' k _ hk]
+    rw [restrictStep_loeb_eq_loeb_restrictStep GoodPBody_natural]
+    show World.restrict (loeb GoodPBody) hk' = _
+    exact GoodP_restrict hk'
+
 /-- Closure under `restrictStep`. -/
 theorem goodP_holds_closed {n : Nat} (d : D (n+1))
     (hd : goodP_holds d) : goodP_holds (World.restrictStep d) := by
