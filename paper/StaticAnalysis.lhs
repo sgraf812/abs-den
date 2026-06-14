@@ -890,7 +890,7 @@ that the expression might evaluate to:
 Here, 0CFA infers that the example expression will evaluate to the lambda
 expression bound to $j$.
 This lambda is uniquely identified by the reported label $λy..$ per the unique
-binder assumption in \Cref{sec:lang}.
+binder assumption in \Cref{sec:interp}.
 Furthermore, the analysis determined that the expression cannot evaluate to the
 lambda expression bound to $i$, hence its label $λx..$ is \emph{not} included
 in the set.
@@ -1340,7 +1340,7 @@ type applications as well as witnesses of type equality constraints called
 \emph{coercions}.
 
 GHC Core's |Expr| has a lot in common with the untyped object language |Exp|
-introduced in \Cref{sec:lang}.
+introduced in \Cref{sec:interp}.
 For example, there are constructors for |Var|, |App|, |Lam|, |Let| and |Case|.
 There are a number of differences, however:
 \begin{itemize}

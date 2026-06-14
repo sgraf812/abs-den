@@ -14,34 +14,11 @@ removal of dead code in a compiler.
 We recap what constitutes a function summary and why summary-based analyses are useful.
 
 \subsection{Object Language}
-\label{sec:lang}
 
-To set the stage, we start by defining the object language of this work, an
-untyped lambda calculus with \emph{\textbf{recursive}} let bindings and
-algebraic data types:
-\[
-\arraycolsep=3pt
-\begin{array}{rrclcrrclcl}
-  \text{Variables}    & \px, \py & ∈ & \Var        &     & \quad \text{Constructors} &        K & ∈ & \Con        &     & \text{with arity $α_K ∈ ℕ$} \\
-  \text{Values}       &      \pv & ∈ & \Val        & ::= & \highlight{\Lam{\px}{\pe}} \mid K~\many{\px}^{α_K} \\
-  \text{Expressions}  &      \pe & ∈ & \Exp        & ::= & \multicolumn{6}{l}{\highlight{\px \mid \pv \mid \pe~\px \mid \Let{\px}{\pe_1}{\pe_2}} \mid \Case{\pe}{\SelArity}}
-\end{array}
-\]
-This language is very similar to that of \citet{Launchbury:93} and \citet{Sestoft:97}.
-It is factored into \emph{A-normal form}, that is, the arguments of applications
-are restricted to be variables, so the difference between lazy and eager
-semantics is manifest in the semantics of $\mathbf{let}$.
-Note that $\Lam{x}{x}$ (with an overline) denotes syntax, whereas $\fn{x}{x+1}$
-denotes an anonymous mathematical function.
-In this section, only the highlighted parts are relevant and $\mathbf{let}$ is
-considered non-recursive, but the interpreter definition in \Cref{sec:interp}
-supports data types and recursive $\mathbf{let}$ as well.
-Throughout the paper we assume that all bound program variables are distinct.
-% Rationale for this:
-% While shadowing is fine for the semantics, the analyses don't cope well with
-% shadowing. Also Lookup events carry a Name and it becomes more complicated to
-% explain when Lookup events might alias.
-% It's not an uncommon assumption anyway, but we should state it IMO.
+We reuse the object language of \Cref{sec:interp}, the untyped lambda calculus with
+recursive $\mathbf{let}$ and algebraic data types.
+For the absence analysis of this section, only the pure lambda calculus fragment is
+relevant, and $\mathbf{let}$ may be taken non-recursive.
 
 \subsection{Absence Analysis}
 \label{sec:absence}

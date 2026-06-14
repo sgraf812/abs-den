@@ -75,27 +75,40 @@ takeT n (Step e t) = Step e (takeT (n-1) t)
 \section{A Denotational Interpreter}
 \label{sec:interp}
 
-In this section, we present a generic \emph{denotational interpreter}, which we
-instantiate with different semantic domains.
-Our object language is a standard untyped lambda calculus, extended with recursive
-|let| bindings, (saturated) constructor applications and |case| expressions, with
-arguments restricted to variables; its syntax is given in \Cref{fig:syntax}.
-Instantiated at \emph{concrete} semantic domains, the interpreter becomes a
-semantics for the language.
-To this end, we will see that the interpreter definition can be easily adjusted
-to different \emph{evaluation strategies} (call-by-name, call-by-value, call-by-need)
-and observes rich \emph{operational detail}.
-Other semantic domains give rise to useful \emph{summary-based} static
-analyses such as usage analysis in \Cref{sec:abstraction}.
-The major contribution of denotational interpreters is that the derived summary-based
-analyses may observe operational detail in an intuitive and semantically
-meaningful way, while still sharing structure with the semantics.
-Adhering to the denotational interpreter pattern for analyses pays off in
-that it enables sharing of soundness proofs, thus drastically simplifying the
-soundness proof obligations per derived analysis (\Cref{sec:soundness}).
+How can a compositional definition capture a program's step-by-step execution?
+A denotational semantics maps each program compositionally to a meaning in a
+semantic domain.
+We keep this shape but parameterise the semantics over its domain, giving a single
+generic \emph{denotational interpreter} whose meanings record operational detail.
+Varying the domain then yields a whole family of semantics and analyses from this
+one definition: a \emph{concrete} domain gives an executable semantics
+(call-by-name, call-by-value, call-by-need), an \emph{abstract} domain a
+\emph{summary-based} static analysis such as the usage analysis of
+\Cref{sec:abstraction}.
+
+The object language we interpret is a standard untyped lambda calculus with
+\emph{\textbf{recursive}} $\mathbf{let}$ bindings and algebraic data types, very
+similar to that of \citet{Launchbury:93} and \citet{Sestoft:97}:
+\[
+\arraycolsep=3pt
+\begin{array}{rrclcrrclcl}
+  \text{Variables}    & \px, \py & ∈ & \Var        &     & \quad \text{Constructors} &        K & ∈ & \Con        &     & \text{with arity $α_K ∈ ℕ$} \\
+  \text{Values}       &      \pv & ∈ & \Val        & ::= & \Lam{\px}{\pe} \mid K~\many{\px}^{α_K} \\
+  \text{Expressions}  &      \pe & ∈ & \Exp        & ::= & \multicolumn{6}{l}{\px \mid \pv \mid \pe~\px \mid \Let{\px}{\pe_1}{\pe_2} \mid \Case{\pe}{\SelArity}}
+\end{array}
+\]
+It is in A-normal form: the arguments of applications are restricted to variables,
+so that the difference between lazy and eager evaluation is manifest only in the
+semantics of $\mathbf{let}$.
+Note that $\Lam{x}{x}$ (with an overline) denotes syntax, whereas $\fn{x}{x+1}$
+denotes an anonymous mathematical function; throughout, we assume that all bound
+program variables are distinct.
 
 Denotational interpreters can be implemented in any higher-order language such as OCaml, Scheme or Java with explicit thunks, but we picked Haskell for convenience.%
 \footnote{We extract from this document runnable Haskell files which we add as a Supplement, containing the complete definitions. Furthermore, the (terminating) interpreter outputs are directly generated from this extract.}
+This intuitive Haskell encoding translates easily and faithfully into a total
+definition in Lean (\Cref{sec:totality}), for which the fundamental theorem behind
+our soundness proofs is in turn easy to prove (\Cref{sec:soundness}).
 
 \begin{figure}
 \begin{minipage}{0.49\textwidth}
@@ -108,7 +121,7 @@ type Name = String
 type Alts = Tag :-> ([Name],Exp)
 data Tag = ...; conArity :: Tag -> Int
 \end{spec}
-\caption{Syntax}
+\caption{Haskell encoding of the syntax}
 \label{fig:syntax}
 \end{minipage}%
 \begin{minipage}{0.51\textwidth}
@@ -144,12 +157,9 @@ assocs = Map.assocs
 
 \subsection{Semantic Domain} \label{sec:dna}
 
-Just as traditional denotational semantics, denotational interpreters
-assign meaning to programs in some semantic domain.
-Traditionally, the semantic domain |D| comprises \emph{semantic values} such as
+Traditionally, a semantic domain |D| comprises \emph{semantic values} such as
 base values (integers, strings, etc.) and functions |D -> D|.
-One of the main features of these semantic domains is that they lack
-\emph{operational}, or, \emph{intensional detail} that is unnecessary to
+Such domains deliberately lack \emph{operational detail} that is unnecessary to
 assigning each observationally distinct expression a distinct meaning.
 For example, it is not possible to observe evaluation cardinality, which
 is the whole point of analyses such as usage analysis (\Cref{sec:abstraction}).
@@ -206,9 +216,9 @@ A trace |T| either returns a value (|Ret|) or makes a small-step transition (|St
 Each step |Step ev rest| is decorated with an event |ev|, which describes what happens in that step.
 For example, event |Look x| describes the lookup of variable |x :: Name| in the environment.
 Note that the choice of |Event| is use-case (\ie semantics- and analysis-) specific and suggests
-a spectrum of intensionality, with |data Event = Unit| on the more abstract end
-of the spectrum and arbitrary syntactic detail attached to each of |Event|'s
-constructors at the intensional end of the spectrum.%
+a spectrum of operational detail, with |data Event = Unit| at the most abstract
+end and arbitrary syntactic detail attached to each of |Event|'s
+constructors at the most detailed end.%
 \footnote{If our language had facilities for input/output and more general
 side-effects, we could have started from a more elaborate trace construction
 such as (guarded) interaction trees~\citep{interaction-trees,gitrees}.}
@@ -293,11 +303,9 @@ instance Domain DName where
 
 \subsection{The Interpreter}
 
-Traditionally, a denotational semantics is expressed as a mathematical function,
-often written |dsem e ρ|, to give an expression |e :: Exp| a meaning, or
-\emph{denotation}, in terms of some semantic domain |D|.
-The environment |ρ :: Name :-> D| gives meaning to the free variables of |e|,
-by mapping each free variable to its denotation in |D|.
+A denotational semantics is a function |dsem e ρ| mapping an expression |e :: Exp|
+and an environment |ρ :: Name :-> D| (giving denotations to |e|'s free variables)
+to a \emph{denotation} in a semantic domain |D|.
 We sketch the Haskell encoding of |Exp| in \Cref{fig:syntax} and the API of
 environments and sets in \Cref{fig:map}.
 For concise notation, we will use a small number of infix operators: |(:->)| as
