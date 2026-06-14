@@ -537,10 +537,76 @@ theorem evalByNeed_noTripleInvis (n : Nat) (e : Exp) :
   show NCI 2 n (((eval (D := D) e n (Nat.le_refl n) Env.empty).unfold n (Nat.le_refl n) ∅))
   exact NewIdea.TraceGoodP_implies_NCI _ _ _ _ _ _ _ h_tg
 
+private theorem Env_empty_find?_none {V : Type} (x : Var) :
+    (Env.empty : Env V).find? x = none := by
+  unfold Env.find? Env.empty; exact HashMap_get?_empty x
+
+private theorem StartsVisible_of_ret {n : Nat} (v : VH n) :
+    StartsVisible n (T.ret v) := by
+  cases n with
+  | zero => trivial
+  | succ k =>
+    show match T.unfold (T.ret v) with | .ret _ => True | .step _ _ => True | .invis _ => False
+    unfold T.ret; rw [T_uf]; trivial
+
+private theorem StartsVisible_of_step {n : Nat} (ev : Event) (tl : Later (T VH) n) :
+    StartsVisible n (T.step ev tl) := by
+  cases n with
+  | zero => trivial
+  | succ k =>
+    show match T.unfold (T.step ev tl) with | .ret _ => True | .step _ _ => True | .invis _ => False
+    unfold T.step; rw [T_uf]; trivial
+
 /-- The trace of `evalByNeed n e` starts visibly. Proven directly by case
     analysis on `e`: every `eval` result has a `.ret` or `.step` at the top. -/
 theorem evalByNeed_startsVisible (n : Nat) (e : Exp) :
     StartsVisible n ((evalByNeed n e).unfold n (Nat.le_refl n) ∅) := by
-  sorry
+  unfold evalByNeed
+  cases e with
+  | ref x =>
+    simp only [eval, Env_empty_find?_none]
+    show StartsVisible _ ((D.stuck : D n).unfold _ _ _)
+    unfold D.stuck; rw [D_ret_eq]; exact StartsVisible_of_ret _
+  | conapp K xs =>
+    simp only [eval]
+    cases h : (Env.empty : Env (D n)).pmapList xs with
+    | none =>
+      simp only [h]
+      show StartsVisible _ ((D.stuck : D n).unfold _ _ _)
+      unfold D.stuck; rw [D_ret_eq]; exact StartsVisible_of_ret _
+    | some ds =>
+      simp only [h]
+      show StartsVisible _ ((Domain.con' K ds : D n).unfold _ _ _)
+      unfold Domain.con'
+      show StartsVisible _ ((D.con K ds : D n).unfold _ _ _)
+      unfold D.con D.ret; rw [D_fold_unfold]
+      exact StartsVisible_of_ret _
+  | lam x body =>
+    simp only [eval]
+    show StartsVisible _ ((Domain.fn' _ : D n).unfold _ _ _)
+    unfold Domain.fn'
+    show StartsVisible _ ((D.fn _ : D n).unfold _ _ _)
+    unfold D.fn D.ret; rw [D_fold_unfold]
+    exact StartsVisible_of_ret _
+  | app e₁ x =>
+    simp only [eval, Env_empty_find?_none]
+    show StartsVisible _ ((D.stuck : D n).unfold _ _ _)
+    unfold D.stuck; rw [D_ret_eq]; exact StartsVisible_of_ret _
+  | case' eₛ alts =>
+    simp only [eval]
+    show StartsVisible _ ((Domain.step' .case1 _ : D n).unfold _ _ _)
+    unfold Domain.step'
+    show StartsVisible _ ((D.step .case1 _ : D n).unfold _ _ _)
+    rw [D_step_eq]; exact StartsVisible_of_step _ _
+  | let' x e₁ e₂ =>
+    simp only [eval]
+    show StartsVisible _ ((Domain.bind' _ _ : D n).unfold _ _ _)
+    unfold Domain.bind'
+    show StartsVisible _ ((D.fold _ : D n).unfold _ _ _)
+    rw [D_fold_unfold]
+    show StartsVisible _ ((Domain.step' .let1 _ : D n).unfold _ _ _)
+    unfold Domain.step'
+    show StartsVisible _ ((D.step .let1 _ : D n).unfold _ _ _)
+    rw [D_step_eq]; exact StartsVisible_of_step _ _
 
 end ByNeed
