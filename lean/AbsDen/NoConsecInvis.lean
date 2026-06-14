@@ -721,7 +721,34 @@ noncomputable def good : LR D where
       nomatch hg
     · simp only [World.restrict_self]
       exact h_heap
-  con := by sorry
+  con := by
+    intro n K ds h_param
+    rw [NewIdea.goodP_iff]
+    intro m hm
+    change (NewIdea.GoodP : world(D → Prop) n) m hm
+      (World.restrict (Domain.con' K ds) hm)
+    show (NewIdea.GoodP : world(D → Prop) n) m hm
+      (World.restrict (D.con K ds) hm)
+    unfold NewIdea.GoodP
+    rw [loeb.eq NewIdea.GoodPBody_natural]
+    unfold NewIdea.GoodPBody
+    intro _Recur_m μ h_heap
+    rw [D_unfold_restrict, D.con, D_ret_eq]
+    unfold NewIdea.TraceGoodP
+    rw [loeb.eq NewIdea.TraceGoodPBody_natural]
+    rw [NewIdea.TraceGoodPBody_ret_eq _ _ _ _ _ _ _ _
+        (by unfold T.ret; rw [T_uf] : T.unfold (T.ret _) = .ret _)]
+    rw [NewIdea.RetGoodP_apply]
+    refine ⟨?_, ?_, ?_⟩
+    · -- function-cond: vacuous (v has shape Sum.inr (Sum.inr _), not Sum.inr (Sum.inl _))
+      intro g hg
+      obtain ⟨ds', hds'⟩ := Value_F_Rep_restrict_con_shape K (ds.map Later.next) hm
+      rw [hds'] at hg
+      nomatch hg
+    · -- con-cond: derive from Parametric.Con hypothesis
+      sorry
+    · simp only [World.restrict_self]
+      exact h_heap
   app_closed := by sorry
   case_closed := by sorry
   bind_closed := by sorry
