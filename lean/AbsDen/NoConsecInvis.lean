@@ -388,13 +388,66 @@ theorem World.restrict_Later_outer_succ {n m : Nat}
     = @World.restrict (Later world(D → Prop)) _ n m (World.restrictStep DGoodP) hm' :=
   World.restrict_le_succ DGoodP hm hm'
 
-/-- `RetGoodP` commutes with `restrictStep` on its `DGoodP` argument. The body
-    uses `W.restrict DGoodP` at various sub-levels with implicit proofs, and
-    proving naturality requires reconciling those proofs via `restrict_le_succ`
-    plus `propext`. Sorried pending a clean lemma. -/
+/-- `RetGoodP` commutes with `restrictStep` on its `DGoodP` argument. -/
 theorem RetGoodP_restrictStep {n : Nat} (DGoodP : ▹ world(D → Prop) (n+1)) :
     World.restrictStep (RetGoodP DGoodP : world(VH → Prop) (n+1))
-    = RetGoodP (World.restrictStep DGoodP) := by sorry
+    = RetGoodP (World.restrictStep DGoodP) := by
+  funext m hm vμ
+  obtain ⟨v, μ⟩ := vμ
+  show RetGoodP DGoodP m (Nat.le_succ_of_le hm) (v, μ)
+     = RetGoodP (World.restrictStep DGoodP) m hm (v, μ)
+  unfold RetGoodP
+  dsimp only []
+  -- Equational lemma for W.restrict DGoodP at any sub-level k ≤ n.
+  have key_m : World.restrict (F := Later world(D → Prop)) DGoodP
+                  (Nat.le_succ_of_le hm)
+              = World.restrict (World.restrictStep DGoodP) hm :=
+    World.restrict_le_succ DGoodP _ hm
+  -- Build the And-wise equation.
+  refine (congrArg (· ∧ _) ?_).trans ((congrArg (_ ∧ ·) ?_))
+  · -- Function-cond piece A = A'.
+    apply propext
+    refine Iff.intro (fun h g hg l hl dl hdl j hj μ' hμ' => ?_)
+                    (fun h g hg l hl dl hdl j hj μ' hμ' => ?_)
+    · have hl_n : l ≤ n := Nat.le_trans hl hm
+      have hj_n : j ≤ n := Nat.le_trans hj hl_n
+      have h_eq_l : World.restrict (F := Later world(D → Prop)) DGoodP
+                      (Nat.le_trans hl (Nat.le_succ_of_le hm))
+                  = World.restrict (World.restrictStep DGoodP) hl_n :=
+        World.restrict_le_succ DGoodP _ hl_n
+      have h_eq_j : World.restrict (F := Later world(D → Prop)) DGoodP
+                      (Nat.le_trans hj (Nat.le_trans hl (Nat.le_succ_of_le hm)))
+                  = World.restrict (World.restrictStep DGoodP) hj_n :=
+        World.restrict_le_succ DGoodP _ hj_n
+      rw [← h_eq_l] at hdl
+      have := h g hg l hl dl hdl j hj μ' (by rw [h_eq_j]; exact hμ')
+      rwa [h_eq_l] at this
+    · have hl_n : l ≤ n := Nat.le_trans hl hm
+      have hj_n : j ≤ n := Nat.le_trans hj hl_n
+      have h_eq_l : World.restrict (F := Later world(D → Prop)) DGoodP
+                      (Nat.le_trans hl (Nat.le_succ_of_le hm))
+                  = World.restrict (World.restrictStep DGoodP) hl_n :=
+        World.restrict_le_succ DGoodP _ hl_n
+      have h_eq_j : World.restrict (F := Later world(D → Prop)) DGoodP
+                      (Nat.le_trans hj (Nat.le_trans hl (Nat.le_succ_of_le hm)))
+                  = World.restrict (World.restrictStep DGoodP) hj_n :=
+        World.restrict_le_succ DGoodP _ hj_n
+      rw [h_eq_l] at hdl
+      have := h g hg l hl dl hdl j hj μ' (by rw [← h_eq_j]; exact hμ')
+      rwa [← h_eq_l] at this
+  · -- Combined con-cond ∧ heap-cond
+    refine (congrArg (· ∧ _) ?_).trans ((congrArg (_ ∧ ·) ?_))
+    · -- Con-cond
+      apply propext
+      refine Iff.intro (fun h K ds heq dl hdl => ?_) (fun h K ds heq dl hdl => ?_)
+      · have := h K ds heq dl hdl; rwa [← key_m]
+      · have := h K ds heq dl hdl; rwa [key_m]
+    · -- Heap-cond
+      apply propext
+      unfold Parametric.Heap
+      refine Iff.intro (fun h a dl h_ => ?_) (fun h a dl h_ => ?_)
+      · have := h a dl h_; rwa [← key_m]
+      · have := h a dl h_; rwa [key_m]
 
 /-! ## `goodP : World.Pred D` — wrapping `GoodP` for `LR.good.P` -/
 
