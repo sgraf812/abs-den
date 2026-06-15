@@ -941,18 +941,14 @@ theorem TraceGoodP_D_invis_fetch {n : Nat} (a : Addr)
         | succ k' =>
           show NotRet (k'+1) (T.fold (T.F.invis _))
           simp only [NotRet, T_uf]
-    · -- ▷(Recur 1 of dl): at level k+1, ▷ exposes the inner level-k
-      -- TraceGoodPBody application at steps=1. After reducing dl to the heap
-      -- match (h_dl_reduce), case on heap state:
-      --   • none → trace is T.ret stuck, so the body returns RetGoodP at stuck.
-      --   • some d → trace is T.fold (.invis (Later.hmap k _ d)), so the body
-      --     requires (NotRet ∨ IsRetStuck) ∧ ▷(Recur 0 of inner-dl).
-      --     For that to hold at steps=0, inner-dl must start with `.step`,
-      --     which is guaranteed by the heap-good invariant once we know d's
-      --     trace begins visibly (typically because heap entries are
-      --     `D.step .update`-wrapped via `D.memo`).
-      simp only [Later.prop_succ, Later.ap'_succ, Later.next_succ,
-                 World.Const.restrictStep_eq]
+    · -- ▷(Recur 1 of dl): TraceGoodPBody at steps=1 on dl, which is the
+      -- match-on-heap-state trace. Case on Std.HashMap.get? μ_k a:
+      --   • none → dl = T.ret stuck. RetGoodP at stuck has vacuous
+      --     function/con-cond, needs heap-cond Param.Heap (Recur 2) μ_k.
+      --     From h_heap at level k+1, restrict to level k.
+      --   • some d → dl = T.invis inner. Requires inner trace to start
+      --     visibly + ▷(Recur 0 of inner). The heap-good invariant on d
+      --     gives TraceGoodP at S=1 of d.unfold, which captures both.
       sorry
 
 end NewIdea
