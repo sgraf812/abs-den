@@ -793,6 +793,27 @@ theorem Param_Heap_GoodP_mono {n m : Nat} (hm : m ≤ n)
     have h_at' := h_at μ' h_heap'
     exact TraceGoodP_mono_S _ _ _ _ S₁ S₂ hS _ _ h_at'
 
+/-- Restricting a heap from level `k+1` to level `k`: a `Param.Heap`-good heap
+    at `(k+1)` with the `loeb GoodPBody` predicate gives a `Param.Heap`-good
+    heap at `k` for the corresponding predicate at level `k`.
+
+    Note: the entry-wise step requires bridging GoodP at outer (K+1, sub K+1, of d)
+    to GoodP at outer (K, sub K, of W.restrictStep d). Single-sub-level Kripke
+    info does not transport directly; closing this needs either a strengthened
+    Param.Heap that carries all-sub-level info, or a redesign of the heap-cond
+    predicate inside GoodPBody to be naturally restriction-closed. -/
+theorem Param_Heap_GoodP_succ_down {n k : Nat} (hk1 : k+1 ≤ n) (S : Nat)
+    (μ : Heap (▹ D) (k+1))
+    (h : Parametric.Heap (Later.ap' (k+1)
+            (World.restrict (Later.next (loeb GoodPBody : world(Nat → D → Prop) n)) hk1)
+            (Later.next S)) μ) :
+    Parametric.Heap (Later.ap' k
+            (World.restrict (Later.next (loeb GoodPBody : world(Nat → D → Prop) n))
+              (Nat.le_of_succ_le hk1))
+            (Later.next S))
+            (World.restrict μ (Nat.le_succ_of_le (Nat.le_refl k))) := by
+  sorry
+
 /-! ## Forgetful map: `TraceGoodP → NCI 2` (reset budget hard-coded at 2). -/
 
 theorem TraceGoodP_implies_NCI :
