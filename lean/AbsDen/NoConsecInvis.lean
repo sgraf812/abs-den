@@ -1332,7 +1332,13 @@ noncomputable def good : LR D where
         (by unfold T.ret; rw [T_uf] : T.unfold (T.ret _) = .ret _)]
     rw [NewIdea.RetGoodP_apply]
     refine ⟨?_, ?_, ?_⟩
-    · -- function-cond: from hg, extract that g equals our restricted version.
+    · -- function-cond: design clash.
+      -- Required: `g l hl dl` is `DGoodP↓`-good (= Recur 2 = goodP at S=2) for any
+      -- `dl` at `DGoodP↓`. h_param : Parametric.Fn lr.P f gives `f` preserves
+      -- IsLookup_holds (lr.P = goodP 0). To use h_param on `dl`, we'd need
+      -- IsLookup_holds (goodP 0) dl, which doesn't follow from Recur 2-goodness.
+      -- Either RetGoodP's function-cond should require IsLookup-shape inputs,
+      -- or the user-side Parametric.Fn should be stronger.
       sorry
     · -- con-cond: vacuous (v has shape Sum.inr (Sum.inl _), not Sum.inr (Sum.inr _))
       intro K ds hg
