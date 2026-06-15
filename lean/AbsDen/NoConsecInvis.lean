@@ -847,15 +847,43 @@ open NewIdea
 
 /-! ## `LR.good` — using the loeb-based `goodP` -/
 
+/-- Restricting `D.invis (fetch a)` from level `n+1` to level `n` gives
+    `D.invis (fetch a)` at level `n`. Proven by `D_ext` plus the fact that
+    `fetch a`'s underlying closure is level-polymorphic. -/
+private theorem D_invis_fetch_restrictStep {n : Nat} (a : Addr) :
+    @World.restrictStep D _ n (D.invis (fetch (n := n+1) a))
+    = D.invis (fetch (n := n) a) := by
+  apply D_ext
+  intro m hm μ
+  rw [D_unfold_restrictStep, D_invis_eq, D_invis_eq]
+  congr 2
+  cases m with
+  | zero => rfl
+  | succ k =>
+    -- At level k+1, Later.hmap (k+1) f x = f k _ x, so both sides reduce to
+    -- (W.restrict (D.fold inner)).unfold k _ μ_k at the inner level k.
+    -- After D_unfold_restrict + D_fold_unfold both reduce to inner k _ μ_k,
+    -- where inner is the same closure on both sides (parametrized by m' and μ).
+    show (fun (d : D k) => d.unfold k (Nat.le_refl k)
+            (World.restrict μ (Nat.le_succ_of_le (Nat.le_refl k))))
+            (@World.restrict (Later D) _ (n+1) (k+1) (fetch (n := n+1) a) _)
+        = (fun (d : D k) => d.unfold k (Nat.le_refl k)
+            (World.restrict μ (Nat.le_succ_of_le (Nat.le_refl k))))
+            (@World.restrict (Later D) _ n (k+1) (fetch (n := n) a) _)
+    unfold fetch
+    rw [restrict_later_next' _ k (Nat.le_succ_of_le hm),
+        restrict_later_next' _ k hm]
+    -- β-reduce, then unfold via D_unfold_restrict + D_fold_unfold.
+    change (@World.restrict D _ (n+1) k (D.fold _) _).unfold k _ _
+         = (@World.restrict D _ n k (D.fold _) _).unfold k _ _
+    rw [D_unfold_restrict, D_unfold_restrict, D_fold_unfold, D_fold_unfold]
+
 /-- Closure of the `D.invis (fetch a)` shape under `restrictStep`. -/
 private theorem isThunk_closed {n : Nat} (d : D (n+1))
     (h : ∃ a : Addr, d = D.invis (fetch (n := n+1) a)) :
     ∃ a : Addr, World.restrictStep d = D.invis (fetch (n := n) a) := by
   obtain ⟨a, hd⟩ := h
-  refine ⟨a, ?_⟩
-  rw [hd]
-  -- D.invis is closed under restrictStep modulo fetch-naturality.
-  sorry
+  exact ⟨a, by rw [hd]; exact D_invis_fetch_restrictStep a⟩
 
 /-- ByNeed's `IsThunk` predicate: heap-fetched thunks of the form
     `D.invis (fetch a)` for some address `a`. Captures what `D.bind` actually
