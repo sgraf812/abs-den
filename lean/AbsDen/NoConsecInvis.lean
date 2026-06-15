@@ -752,6 +752,17 @@ theorem TraceGoodP_mono_S :
         exact ih (n := k) (World.restrict RetGoodP hkn) k (Nat.le_refl _) j₁ j₂
                   (by omega) (Nat.le_refl _) dl h_rec
 
+/-- Value-level monotonicity in budget: a `D`-value good at `S₁` is good at `S₂`
+    when `S₁ ≤ S₂`. Closely mirrors `Param_Heap_GoodP_mono` but for a single
+    `D`-value, not a whole heap. -/
+theorem GoodP_S_mono {n m : Nat} (hm : m ≤ n) (d : D m) (S₁ S₂ : Nat) (hS : S₁ ≤ S₂)
+    (h : (GoodP : world(Nat → D → Prop) n) m hm S₁ m (Nat.le_refl _) d) :
+    (GoodP : world(Nat → D → Prop) n) m hm S₂ m (Nat.le_refl _) d := by
+  unfold GoodP at h ⊢
+  rw [loeb.eq GoodPBody_natural] at h ⊢
+  intro μ h_heap
+  exact TraceGoodP_mono_S _ _ _ _ S₁ S₂ hS _ _ (h μ h_heap)
+
 /-- Heap-entry-wise monotonicity in budget: a heap good at S₁ is good at S₂
     when S₁ ≤ S₂, because each entry's TraceGoodP-witness lifts via
     `TraceGoodP_mono_S`. The two-`Later.ap'` form lines up with the
@@ -1100,9 +1111,32 @@ noncomputable def good : LR D where
     | succ k =>
       simp only [Later.prop_succ, Later.ap'_succ, Later.next_succ,
                  World.restrict_self, World.Const.restrictStep_eq]
-      -- TODO: with the new GoodPBody (Recur : Nat → Later world(D→Prop)), the
-      -- step-case reduction needs to thread through the Nat-indexed Recur and
-      -- reduce to h_goodP at sub-level k.
+      rw [restrictStep_loeb_eq_loeb_restrictStep NewIdea.TraceGoodPBody_natural,
+          NewIdea.TraceGoodPBody_restrictStep_RetGoodP,
+          NewIdea.RetGoodP_restrictStep]
+      have hk : k ≤ n := Nat.le_of_succ_le hm
+      -- Reduce tl to (W.restrict d hk).unfold k _ μ_k.
+      have h_tl : (Later.hmap (k+1) (fun i _hi (d' : D i) =>
+              d'.unfold i (Nat.le_refl i) (World.restrict μ (by omega : i ≤ k+1)))
+              (@World.restrict (Later D) _ n (k+1) (Later.next d) hm) : T VH k)
+            = (World.restrict d hk).unfold k (Nat.le_refl k)
+                (World.restrict μ (Nat.le_succ_of_le (Nat.le_refl k))) := by
+        show (fun (a' : D k) => a'.unfold k (Nat.le_refl k) (World.restrict μ _))
+              (@World.restrict (Later D) _ n (k+1) (Later.next d) hm) = _
+        congr 1
+        exact restrict_later_next' d k hm
+      rw [h_tl]
+      -- Now: TraceGoodP (RetGoodP (W.restrict (Recur 2))) k _ 2 k _ ((W.restrict d hk).unfold k _ μ_k)
+      -- Use h_goodP : goodP_holds 0 d at sub-level k.
+      rw [NewIdea.goodP_iff 0] at h_goodP
+      have h_at_k := h_goodP k hk
+      -- h_at_k : GoodP n k hk 0 k _ (W.restrict d hk).
+      -- We need: TraceGoodP at S=2 of (W.restrict d hk).unfold k _ μ_k.
+      -- Path: h_at_k unfolds to "∀ μ, heap-cond → TraceGoodP at S=0";
+      -- apply at μ_k and a (Recur 1)-good heap (obtained from h_heap via
+      -- Param_Heap_GoodP_mono — but h_heap is at level k+1, not k).
+      -- TODO: construct (Recur 1)-good heap at level k from h_heap, then
+      -- apply h_at_k, then lift S=0 → S=2 via TraceGoodP_mono_S.
       sorry
   fn := by
     intro n f h_param
