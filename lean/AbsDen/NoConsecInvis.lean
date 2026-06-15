@@ -1375,14 +1375,16 @@ noncomputable def good : LR D where
   case_closed := by sorry
   bind_closed := by
     intro n rhs body h_rhs h_body
-    -- Goal: (goodP 2).holds (Domain.step' .let1 (Domain.bind' rhs body))
+    -- Goal: (goodP 0).holds (Domain.step' .let1 (Domain.bind' rhs body)).
     -- Strategy:
-    --   (1) Prove `goodP 2 (D.invis (fetch a))` as a lemma (D.invis (fetch a) is
-    --       P-good: trace starts with .invis → .invis → memo content which
-    --       starts visibly with .step .update, so NCI 2 holds).
-    --   (2) Apply h_body to D.invis (fetch a) to get P (body (D.invis (fetch a))).
-    --   (3) Conclude P of the bind' via TraceGoodP step-recursion.
-    --   (4) Apply step closure for .let1 wrap.
+    --   The outer `step .let1` exposes a `T.step .let1 tl` trace, where `tl` is
+    --   the trace of `bind' rhs body`. By TraceGoodPBody at .step the inner check
+    --   is at `Recur 2`. By bind'-unfold, the inner trace is body's trace under
+    --   the heap extended with memo'd rhs thunk. IsThunk holds for `D.invis (fetch a)`,
+    --   so by h_body, `body _ _ (D.invis (fetch a))` is P-good. Lifted via
+    --   TraceGoodP_mono_S 0 → 2, the trace is Recur 2-good. The extended heap
+    --   stays Param.Heap-good after adding the memo'd entry (memoThunk's trace
+    --   starts with `.step .update`, so it's Recur 1-good).
     sorry
 
 /-! ## Main theorems -/
