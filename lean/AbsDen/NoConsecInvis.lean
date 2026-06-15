@@ -737,27 +737,53 @@ open NewIdea
 
 /-! ## `LR.good` — using the loeb-based `goodP` -/
 
+/-- Closure of the `D.invis (fetch a)` shape under `restrictStep`. -/
+private theorem isThunk_closed {n : Nat} (d : D (n+1))
+    (h : ∃ a : Addr, d = D.invis (fetch (n := n+1) a)) :
+    ∃ a : Addr, World.restrictStep d = D.invis (fetch (n := n) a) := by
+  obtain ⟨a, hd⟩ := h
+  refine ⟨a, ?_⟩
+  rw [hd]
+  -- D.invis is closed under restrictStep modulo fetch-naturality.
+  sorry
+
 /-- ByNeed's `IsThunk` predicate: heap-fetched thunks of the form
     `D.invis (fetch a)` for some address `a`. Captures what `D.bind` actually
     passes to `body`/`rhs`. -/
 noncomputable def isThunk : World.Pred D :=
   World.Pred.ofClosed
     (holds := fun {n} (d : D n) => ∃ a : Addr, d = D.invis (fetch (n := n) a))
-    (closed := fun {n} d ⟨a, hd⟩ => ⟨a, by
-      rw [hd]
-      -- D.invis is closed under restrictStep modulo fetch-naturality.
-      sorry⟩)
+    (closed := isThunk_closed)
+
+theorem isThunk_iff {n : Nat} (d : D n) :
+    isThunk.holds d ↔ ∃ a : Addr, d = D.invis (fetch (n := n) a) :=
+  World.Pred.ofClosed_holds _ _ d
 
 /-- The logical relation packaged as an `LR ByNeed.D`. -/
 noncomputable def good : LR D where
   P := goodP 0
   IsThunk := isThunk
   IsThunk_to_P := by
-    -- ∀ x d, isThunk d → goodP 0 (step' .look x d)
-    -- For d = D.invis (fetch a), step' .look x (D.invis (fetch a)) has trace
-    -- .step .look ; .invis ; (.invis | .ret stuck) ; memo-content. The first
-    -- visible step refreshes budget to 2, and memo content (by eval invariant)
-    -- starts visibly. So NCI 2 holds, hence goodP 0.
+    intro n x d hT
+    obtain ⟨a, hd⟩ := (isThunk_iff d).mp hT
+    subst hd
+    -- Goal: (goodP 0).holds (Domain.step' (.look x) (D.invis (fetch a)))
+    rw [NewIdea.goodP_iff 0]
+    intro m hm
+    change (NewIdea.GoodP : world(Nat → D → Prop) n) m hm (0 : Nat) m (Nat.le_refl _)
+      (World.restrict (Domain.step' (.look x) (D.invis (fetch a))) hm)
+    unfold NewIdea.GoodP
+    rw [loeb.eq NewIdea.GoodPBody_natural]
+    unfold NewIdea.GoodPBody
+    intro μ h_heap
+    rw [D_unfold_restrict]
+    -- The trace is: step .look ; (D.invis (fetch a))'s content at one level down.
+    -- step .look reset to S=2 on .step; D.invis adds 1 invis (k=1); fetch a
+    -- adds 1 invis (k=0) on heap-hit, or .ret stuck on miss. The memo
+    -- content's first event is visible (.step .update), refreshing k back to 2.
+    -- The heap-good invariant (Recur 1) on each entry guarantees memo content
+    -- is good at NCI 1 — exactly what we need at the post-2-invis point.
+    -- TODO: discharge via TraceGoodPBody unfolds + heap fetch trace analysis.
     sorry
   stuck := by
     intro n
