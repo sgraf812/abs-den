@@ -156,6 +156,30 @@ termination_by _ n _ => n
 
 abbrev NoTripleInvis (n : Nat) (t : T VH n) : Prop := NCI 2 2 n t
 
+/-- `NCI` is monotone in its current-budget argument: more initial budget allows
+    everything the smaller budget did. -/
+theorem NCI_mono (S : Nat) : ∀ {k₁ k₂ : Nat} (_ : k₁ ≤ k₂) (n : Nat) (t : T VH n),
+    NCI S k₁ n t → NCI S k₂ n t := by
+  intro k₁ k₂ hk n
+  induction n generalizing k₁ k₂ with
+  | zero => intro t _; unfold NCI; trivial
+  | succ n' ih =>
+    intro t h
+    unfold NCI at h ⊢
+    cases hu : T.unfold t with
+    | ret _ => trivial
+    | step _ dl =>
+      simp only [hu] at h ⊢
+      exact ih (Nat.le_refl S) dl h
+    | invis dl =>
+      simp only [hu] at h ⊢
+      cases k₁ with
+      | zero => exact h.elim
+      | succ j₁ =>
+        cases k₂ with
+        | zero => omega
+        | succ j₂ => exact ih (by omega : j₁ ≤ j₂) dl h
+
 /-! ## Loeb-based "good" predicate
 
 `GoodP` is the value-level "good" predicate, defined via `loeb` (guarded
@@ -708,14 +732,14 @@ open NewIdea
     pending full proof of each closure law against the `loeb`-style `goodP`
     (which unfolds to `TraceGoodP (RetGoodP Recur) …` after `loeb.eq`). -/
 noncomputable def good : LR D where
-  P := goodP 2
+  P := goodP 0
   stuck := by
     intro n
-    rw [NewIdea.goodP_iff 2]
+    rw [NewIdea.goodP_iff 0]
     intro m hm
-    change (NewIdea.GoodP 2 : world(D → Prop) n) m hm (World.restrict (D.stuck : D n) hm)
+    change (NewIdea.GoodP 0 : world(D → Prop) n) m hm (World.restrict (D.stuck : D n) hm)
     unfold NewIdea.GoodP
-    rw [loeb.eq (NewIdea.GoodPBody_natural 2)]
+    rw [loeb.eq (NewIdea.GoodPBody_natural 0)]
     unfold NewIdea.GoodPBody
     intro _Recur_m μ h_heap
     rw [D_unfold_restrict, D.stuck, D_ret_eq]
@@ -737,10 +761,10 @@ noncomputable def good : LR D where
     intro n ev d h_goodP
     rw [NewIdea.goodP_iff]
     intro m hm
-    show (NewIdea.GoodP 2 : world(D → Prop) n) m hm
+    show (NewIdea.GoodP 0 : world(D → Prop) n) m hm
       (World.restrict (D.step ev (Later.next d)) hm)
     unfold NewIdea.GoodP
-    rw [loeb.eq (NewIdea.GoodPBody_natural 2)]
+    rw [loeb.eq (NewIdea.GoodPBody_natural 0)]
     unfold NewIdea.GoodPBody
     intro _Recur_m μ h_heap
     rw [D_unfold_restrict, D_step_eq]
@@ -758,8 +782,8 @@ noncomputable def good : LR D where
           NewIdea.RetGoodP_restrictStep]
       have hk : k ≤ n := Nat.le_of_succ_le hm
       have h_recur_step : World.restrictStep _Recur_m
-                       = World.restrict (Later.next (loeb (NewIdea.GoodPBody 2))) hk :=
-        World.restrictStep_restrict' (Later.next (loeb (NewIdea.GoodPBody 2))) hm hk
+                       = World.restrict (Later.next (loeb (NewIdea.GoodPBody 0))) hk :=
+        World.restrictStep_restrict' (Later.next (loeb (NewIdea.GoodPBody 0))) hm hk
       rw [h_recur_step]
       -- Strategy: at this point the goal is
       --   loeb (TGB (RetGoodP (W.restrict (Later.next loeb) hk))) k _ 2 k _ tl_k
@@ -769,14 +793,14 @@ noncomputable def good : LR D where
       sorry
   fn := by
     intro n f h_param
-    rw [NewIdea.goodP_iff 2]
+    rw [NewIdea.goodP_iff 0]
     intro m hm
-    change (NewIdea.GoodP 2 : world(D → Prop) n) m hm
+    change (NewIdea.GoodP 0 : world(D → Prop) n) m hm
       (World.restrict (Domain.fn' f) hm)
-    show (NewIdea.GoodP 2 : world(D → Prop) n) m hm
+    show (NewIdea.GoodP 0 : world(D → Prop) n) m hm
       (World.restrict (D.fn f) hm)
     unfold NewIdea.GoodP
-    rw [loeb.eq (NewIdea.GoodPBody_natural 2)]
+    rw [loeb.eq (NewIdea.GoodPBody_natural 0)]
     unfold NewIdea.GoodPBody
     intro _Recur_m μ h_heap
     rw [D_unfold_restrict, D.fn, D_ret_eq]
@@ -797,14 +821,14 @@ noncomputable def good : LR D where
       exact h_heap
   con := by
     intro n K ds h_param
-    rw [NewIdea.goodP_iff 2]
+    rw [NewIdea.goodP_iff 0]
     intro m hm
-    change (NewIdea.GoodP 2 : world(D → Prop) n) m hm
+    change (NewIdea.GoodP 0 : world(D → Prop) n) m hm
       (World.restrict (Domain.con' K ds) hm)
-    show (NewIdea.GoodP 2 : world(D → Prop) n) m hm
+    show (NewIdea.GoodP 0 : world(D → Prop) n) m hm
       (World.restrict (D.con K ds) hm)
     unfold NewIdea.GoodP
-    rw [loeb.eq (NewIdea.GoodPBody_natural 2)]
+    rw [loeb.eq (NewIdea.GoodPBody_natural 0)]
     unfold NewIdea.GoodPBody
     intro _Recur_m μ h_heap
     rw [D_unfold_restrict, D.con, D_ret_eq]
@@ -846,28 +870,30 @@ private theorem emptyEnv_good (n : Nat) : good.env (Env.empty : Env (D n)) :=
     steps. -/
 theorem evalByNeed_noTripleInvis (n : Nat) (e : Exp) :
     NoTripleInvis n ((evalByNeed n e).unfold n (Nat.le_refl n) ∅) := by
-  have h_goodP : (goodP 2).holds (eval (D := D) e n (Nat.le_refl n) Env.empty) :=
+  have h_goodP : (goodP 0).holds (eval (D := D) e n (Nat.le_refl n) Env.empty) :=
     LR.fundamental good e Env.empty (emptyEnv_good n)
-  have h_holds := (NewIdea.goodP_iff 2 _).mp h_goodP
+  have h_holds := (NewIdea.goodP_iff 0 _).mp h_goodP
   unfold NewIdea.goodP_holds at h_holds
   have h_n := h_holds n (Nat.le_refl n)
   rw [show World.restrict (eval (D := D) e n (Nat.le_refl n) Env.empty) (Nat.le_refl n)
         = eval (D := D) e n (Nat.le_refl n) Env.empty from World.restrict_self _] at h_n
   show NCI 2 2 n ((evalByNeed n e).unfold n (Nat.le_refl n) ∅)
   unfold NewIdea.GoodP at h_n
-  have hloeb : (loeb (NewIdea.GoodPBody 2) : world(D → Prop) n)
-             = NewIdea.GoodPBody 2 n (Nat.le_refl _) (Later.next (loeb (NewIdea.GoodPBody 2))) :=
-    loeb.eq (NewIdea.GoodPBody_natural 2)
+  have hloeb : (loeb (NewIdea.GoodPBody 0) : world(D → Prop) n)
+             = NewIdea.GoodPBody 0 n (Nat.le_refl _) (Later.next (loeb (NewIdea.GoodPBody 0))) :=
+    loeb.eq (NewIdea.GoodPBody_natural 0)
   rw [hloeb] at h_n
   have h_emp : NewIdea.Parametric.Heap
-      (Later.next (loeb (NewIdea.GoodPBody 2)) : ▹ world(D → Prop) n)↓
+      (Later.next (loeb (NewIdea.GoodPBody 0)) : ▹ world(D → Prop) n)↓
       (∅ : Heap (▹ D) n) := by
     intro a dl h
     rw [HashMap_get?_empty] at h; nomatch h
   have h_tg := h_n ∅ h_emp
   rw [show World.restrict (∅ : Heap (▹ D) n) (Nat.le_refl n) = ∅ from World.restrict_self _] at h_tg
-  show NCI 2 2 n (((eval (D := D) e n (Nat.le_refl n) Env.empty).unfold n (Nat.le_refl n) ∅))
-  exact NewIdea.TraceGoodP_implies_NCI 2 _ _ _ _ _ _ _ h_tg
+  -- h_tg : TraceGoodP 2 (RetGoodP _) n _ 0 n _ ((eval...).unfold n _ ∅)
+  -- TraceGoodP_implies_NCI gives NCI 2 0. Lift to NCI 2 2 via NCI_mono.
+  exact NCI_mono 2 (Nat.zero_le _) n _
+    (NewIdea.TraceGoodP_implies_NCI 2 _ _ _ _ _ _ _ h_tg)
 
 private theorem Env_empty_find?_none {V : Type} (x : Var) :
     (Env.empty : Env V).find? x = none := by
