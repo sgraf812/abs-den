@@ -387,7 +387,7 @@ We proceed by Löb induction and cases over |e|.
     \begin{spec}
         βT^(evalNeed (Let x e1 e2) ρ μ)
     =   {- Unfold |evalNeed2| -}
-        βT^(bind  (\d1 -> evalNeed2 e1 ρ1) (\d1 -> Step Let1 (evalNeed2 e2 ρ1)) μ)
+        βT^(step Let1 (bind  (\d1 -> evalNeed2 e1 ρ1) (\d1 -> evalNeed2 e2 ρ1)) μ)
     =   {- Unfold |bind|, $|a| \not\in |dom μ|$, unfold |βT| -}
         step Let1 (βT^(evalNeed e2 ρ1 μ1))
     ⊑   {- Induction hypothesis -}
@@ -400,9 +400,9 @@ We proceed by Löb induction and cases over |e|.
         step Let1 (eval e2 (ext (βD^(μ) << ρ) x (lfp (\(hat d1) -> step (Look x) (eval e1 (ext (βD^(μ) << ρ) x (hat d1)))))))
     =   {- Partially unroll fixpoint -}
         step Let1 (eval e2 (ext (βD^(μ) << ρ) x (step (Look x) (lfp (\(hat d1) -> eval e1 (ext (βD^(μ) << ρ) x (step (Look x) (hat d1))))))))
-    ⊑   {- Assumption \textsc{ByName-Bind}, with |hat ρ = βD^(μ) << ρ| -}
-        bind  (\d1 -> eval e1 (ext (βD^(μ) << ρ) x (step (Look x) d1)))
-              (\d1 -> step Let1 (eval e2 (ext (βD^(μ) << ρ) x (step (Look x) d1))))
+    ⊑   {- \textsc{Mono} and assumption \textsc{ByName-Bind}, with |hat ρ = βD^(μ) << ρ| -}
+        step Let1 (bind  (\d1 -> eval e1 (ext (βD^(μ) << ρ) x (step (Look x) d1)))
+                         (\d1 -> eval e2 (ext (βD^(μ) << ρ) x (step (Look x) d1))))
     =   {- Refold |eval (Let x e1 e2) (βD^(μ) << ρ)| -}
         eval (Let x e1 e2) (βD^(μ) << ρ)
     \end{spec}

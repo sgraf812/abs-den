@@ -1534,9 +1534,9 @@ eval (e@App{}) ρ
     go df [] = df
     go df ((d,is_ty):ds) = go (step App1 $ apply df (is_ty,d)) ds
 eval (Let b@(NonRec x rhs) body) ρ =
-  bind (BindLet b)
+  step Let1 (bind (BindLet b)
        [\ds -> keepAliveUnfRules x ρ (eval rhs ρ)]
-       (\ds -> step Let1 (eval body (ext ρ x (step (Lookup x) (only ds)))))
+       (\ds -> eval body (ext ρ x (step (Lookup x) (only ds)))))
 ...
 \end{spec}
 \caption{A glimpse of the Glasgow Haskell Denotational Interpreter (GHDi)}

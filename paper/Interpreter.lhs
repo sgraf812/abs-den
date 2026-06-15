@@ -34,7 +34,7 @@ instance Show Event where
   show App2 = "\\AppET"
   show Case1 = "\\CaseIT"
   show Case2 = "\\CaseET"
-  show Let0 = "\\LetOT"
+  show Let2 = "\\LetTT"
   show Let1 = "\\LetIT"
   show Upd = "\\UpdateT"
 instance Show a => Show (T a) where
@@ -210,7 +210,7 @@ instance Monad T where
 %if style == newcode
 \begin{code}
 data Event  =  Look Name | Upd | App1 | App2
-            |  Let0 | Let1 | Case1 | Case2
+            |  Let1 | Let2 | Case1 | Case2
 instance Functor T where
   fmap f (Ret a) = Ret (f a)
   fmap f (Step e t) = Step e (fmap f t)
@@ -416,17 +416,18 @@ as we see fit.
 To save horizontal space, we'll abbreviate |Step| to |S|.
 \begin{align}
     & |eval (({-" \Let{i}{\Lam{x}{x}}{i~i} "-})) emp| \notag \\
-={} & |let d = eval (({-" \Lam{x}{x} "-})) emp in S Let1 (eval (({-" i~i "-})) (singenv "i" (S (Look "i") d)))| \label{eqn:eval-ex1} \\
-={} & |let d = eval (({-" \Lam{x}{x} "-})) emp in S Let1 (S App1 (apply (S (Look "i") d) (S (Look "i") d)))| \label{eqn:eval-ex2} \\
-={} & |let d = Ret (Fun (\d -> S App2 d)) in S Let1 (S App1 (apply (S (Look "i") d) (...))| \label{eqn:eval-ex3} \\
-={} & |let d = ... ^^ in S Let1 (S App1 (S (Look "i") (S App2 (S (Look "i") d))))| \label{eqn:eval-ex4} \\
+={} & |S Let1 (let d = eval (({-" \Lam{x}{x} "-})) emp in eval (({-" i~i "-})) (singenv "i" (S (Look "i") d)))| \label{eqn:eval-ex1} \\
+={} & |S Let1 (let d = eval (({-" \Lam{x}{x} "-})) emp in S App1 (apply (S (Look "i") d) (S (Look "i") d)))| \label{eqn:eval-ex2} \\
+={} & |S Let1 (let d = Ret (Fun (\d -> S App2 d)) in S App1 (apply (S (Look "i") d) (...)))| \label{eqn:eval-ex3} \\
+={} & |S Let1 (let d = ... ^^ in S App1 (S (Look "i") (S App2 (S (Look "i") d))))| \label{eqn:eval-ex4} \\
 ={} & |S Let1 (S App1 (S (Look "i") (S App2 (S (Look "i") (Ret (Fun (\d -> S App2 d)))))))| \label{eqn:eval-ex5} \\
 ={} & \perform{evalName (read "let i = λx.x in i i") emp} \notag
 \end{align}
 \noindent
 Step (\ref{eqn:eval-ex1}) unfolds the definition of the |Let| case and the |bind| implementation.
-The |bind| for |DName| computes a guarded fixpoint |let d = rhs d in body d|
-and the |Let| case of |eval| wraps every future reference to |i| in
+The |Let| case of |eval| wraps the result in |Step Let1|, the |bind| for |DName|
+computes a guarded fixpoint |let d = rhs d in body d|,
+and every future reference to |i| is wired into
 |Step (Look "i") d|, so a |Look "i"| event will be emitted at each use of |i|.
 Variable lookup becomes observable because it is wired into the environment
 at the \emph{binding site}.
@@ -633,9 +634,9 @@ thus the current heap state will often appear as an additional argument.
 \begin{figure}
 \begin{spec}
    evalNeed (({-" \Let{i}{(\Lam{y}{\Lam{x}{x}})~i}{i~i} "-})) emp emp
-=  let a = nextFree emp in {-" \hfill\textsc{(1)} "-}
+=  S Let1 (let a = nextFree emp in {-" \hfill\textsc{(1)} "-}
    let μ1 = singenv a (memoN a (evalNeed2 (({-" (\Lam{y}{\Lam{x}{x}})~i "-})) (singenv "i" (S (Look "i" (fetchN a)))))) in
-   S Let1 (evalNeed (({-" i~i "-})) (singenv "i" (S (Look "i" (fetchN a)))) μ1)
+   evalNeed (({-" i~i "-})) (singenv "i" (S (Look "i" (fetchN a)))) μ1)
 =  S Let1 (evalNeed (({-" i~i "-})) ρ1 μ1) {-" \hfill\textsc{(2)} "-}
 =  S Let1 (S App1 (apply (S (Look "i") (fetchN 0)) (S (Look "i") (fetchN 0)) μ1)) {-" \hfill\textsc{(3)} "-}
 =  S Let1 (S App1 (S (Look "i") (fetchN 0 μ1) >>= k1)) {-" \hfill\textsc{(4)} "-}
@@ -734,7 +735,7 @@ mutable heap, thus sharing its representation with |DNeed|.
 \begin{code}
 evalValue e ρ = eval e ρ
 
-ifPoly(data Event = ... | Let0)
+ifPoly(data Event = ... | Let2)
 ifPoly(data ValueValue = Stuck | Fun (DValue -> DValue) | Con Tag [DValue])
 type DValue = T ValueValue
 
@@ -745,9 +746,9 @@ getValue (Step _ τ)  = getValue τ
 ifPoly(instance Domain DValue where
   ...
   bind # rhs body = DValue $
-    step Let0 (do  let  d = rhs (return v)  :: DValue
-                        v = getValue d      :: ValueValue
-                   v1 <- d; body (return v1)))
+    do  let  d = rhs (return v)  :: DValue
+             v = getValue d      :: ValueValue
+        v1 <- d; step Let2 (body (return v1)))
 \end{code}
 %if style == newcode
 \begin{code}
@@ -763,10 +764,10 @@ instance Domain DValue where
     ConValue k ds | k ∈ dom alts  -> (alts ! k) ds
     _                            -> stuck
   bind # rhs body =
-    step Let0 (do  let  d = rhs (return v)  :: DValue
-                        v = getValue d      :: ValueValue
-                   v1 <- d
-                   body (return v1))
+    do  let  d = rhs (return v)  :: DValue
+             v = getValue d      :: ValueValue
+        v1 <- d
+        step Let2 (body (return v1))
 \end{code}
 %endif
 \\[-1em]
@@ -784,12 +785,12 @@ Function |bind| defines a denotation |d :: DValue| of the right-hand
 side by mutual recursion with |v :: Value| that we will discuss
 shortly.
 
-As its first action, |bind| yields a brand-new |Let0| event that we assume was
-added to the definition of |Event|, announcing in the trace that the right-hand
-side of a |Let| is to be evaluated.
-Then monadic bind |v1 <- d; body (return v1)| yields steps from the right-hand
-side |d| until its value |v1 :: ValueValue| is reached, which is then
-passed |return|ed (\ie wrapped in |Ret|) to the let |body|.
+Monadic bind |v1 <- d| yields steps from the right-hand
+side |d| until its value |v1 :: ValueValue| is reached.
+Before entering the let |body|, to which |v1| is passed |return|ed (\ie wrapped
+in |Ret|), |bind| yields a brand-new |Let2| event that we assume was added to the
+definition of |Event|, announcing in the trace that the right-hand side of a
+|Let| has been evaluated.
 Note that the steps in |d| are yielded \emph{eagerly}, and only once, rather
 than duplicating the trace at every use site in |body|, as the by-name form
 |body d| would.
@@ -809,14 +810,14 @@ $\perform{evalValue (read "let i = (λy.λx.x) i in i i") emp}$
 \\[\belowdisplayskip]
 \noindent
 The beta reduction of $(\Lam{y}{\Lam{x}{x}})~i$ now happens once within the
-$\LetOT$/$\LetIT$ bracket; the two subsequent $\LookupT$ events immediately halt
+$\LetIT$/$\LetTT$ bracket; the two subsequent $\LookupT$ events immediately halt
 with a value.
 
 However, care must be taken not to run the interpreter on a right-hand side that
 accesses its value before producing one, as in the following example:
 
 < ghci> takeT 5 (evalValue (read "let x = x in x x") emp)
-$\LetOT\xhookrightarrow{\hspace{1.1ex}}\LookupT(x)\xhookrightarrow{\hspace{1.1ex}}\LetIT\xhookrightarrow{\hspace{1.1ex}}\AppIT\xhookrightarrow{\hspace{1.1ex}}\LookupT(x)\xhookrightarrow{\hspace{1.1ex}}\texttt{\textasciicircum{}CInterrupted}$
+$\LetIT\xhookrightarrow{\hspace{1.1ex}}\LookupT(x)\xhookrightarrow{\hspace{1.1ex}}\LetTT\xhookrightarrow{\hspace{1.1ex}}\AppIT\xhookrightarrow{\hspace{1.1ex}}\LookupT(x)\xhookrightarrow{\hspace{1.1ex}}\texttt{\textasciicircum{}CInterrupted}$
 \\[\belowdisplayskip]
 \noindent
 This loops forever unproductively.
@@ -840,7 +841,7 @@ ifPoly(instance Domain DVInit where
   bind # rhs body = do  μ <- getV
                         let a = nextFree μ
                         putV (ext μ a stuck)
-                        step Let0 (memoV a (rhs (fetchV a))) >>= body . return)
+                        memoV a (rhs (fetchV a)) >>= \v -> step Let2 (body (return v)))
 \end{code}
 %if style == newcode
 \begin{code}
@@ -880,7 +881,7 @@ instance Domain DVInit where
   bind # rhs body = do  μ <- getV
                         let a = nextFreeV μ
                         putV (ext μ a stuck)
-                        step Let0 (memoV a (rhs (fetchV a))) >>= body . return
+                        memoV a (rhs (fetchV a)) >>= \v -> step Let2 (body (return v))
 \end{code}
 %endif
 \\[-1em]

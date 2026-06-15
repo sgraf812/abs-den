@@ -246,8 +246,8 @@
 %format App2
 %format Case1
 %format Case2
-%format Let0
 %format Let1
+%format Let2
 %format trD = "\tr_Δ"
 %format ℕ_ω = "ℕ_ω"
 %format Sn = "\concolor{\mathsf{S}}^n"

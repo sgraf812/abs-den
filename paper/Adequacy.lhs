@@ -134,105 +134,10 @@ correct~\citep{Danielsson:06}, but simply \emph{correct}.
 Furthermore, since evaluation order doesn't matter in Agda and hence for |eval|,
 we could have defined it in a strict language (lowering |Later a| as |() -> a|)
 just as well.
-\end{toappendix}
 
-\subsection{Bisimulation of |evalNeed2| and the Lazy Krivine machine}
-\label{sec:adequacy}
-
-\begin{figure}
-\[\ruleform{\begin{array}{c}
-  α_\Events : \States \to |Event|
-  \qquad
-  α_\Environments : \Environments \times \Heaps \to (|Name :-> DNeed|)
-  \qquad
-  α_\Heaps : \Heaps \to |HeapNeed|
-  \\
-  α_{\STraces} : \STraces \times \Continuations \to |T (ValueNeed, HeapNeed)|
-  \qquad
-  α_{\Values} : \States \times \Continuations \to |ValueNeed|
-\end{array}}\]
-\arraycolsep=2pt
-\[\begin{array}{lcl}
-  α_\Events(σ) & = & \begin{cases}
-    |Let1| & \text{if }σ = (\Let{\px}{\wild}{\wild},\wild,\wild,\wild) \\
-    |App1| & \text{if }σ = (\pe~\px,\wild,\wild,\wild) \\
-    |Case1| & \text{if }σ = (\Case{\wild}{\wild},\wild,\wild, \wild)\\
-    |Look y| & \text{if }σ = (\px,ρ,μ,\wild), μ(ρ(\px)) = (\py,\wild,\wild) \\
-    |App2| & \text{if }σ = (\Lam{\wild}{\wild},\wild,\wild,\ApplyF(\wild) \pushF \wild) \\
-    |Case2| & \text{if }σ = (K~\wild, \wild, \wild, \SelF(\wild,\wild) \pushF \wild) \\
-    |Upd| & \text{if }σ = (\pv,\wild,\wild,\UpdateF(\wild) \pushF \wild) \\
-  \end{cases} \\
-  \\[-0.75em]
-  α_\Environments([\many{\px ↦ \pa}], μ) & = & [\many{|x| ↦ |Step (Look y) (fetch a)| \mid μ(\pa) = (\py,\wild,\wild)}] \\
-  \\[-0.75em]
-  α_\Heaps([\many{\pa ↦ (\wild,ρ,\pe)}]) & = & [\many{|a| ↦ |memo a (eval e (αEnv ρ μ))|}] \\
-  \\[-0.75em]
-  α_\Values(σ,κ_0) & = & \begin{cases}
-    |Fun (\d -> Step App2 (eval e (ext (αEnv ρ μ) x d)))| & \text{if } σ = (\Lam{\px}{\pe},ρ,μ,κ_0) \\
-    |Con k (map (αEnv ρ μ !) xs)|                         & \text{if } σ = (K~\overline{\px},ρ,μ,κ_0) \\
-    |Stuck|                                               & \text{otherwise} \\
-  \end{cases} \\
-  \\[-0.75em]
-  α_{\STraces}((σ_i)_{i∈\overline{n}},κ_0) & = & \begin{cases}
-    |Step ({-" α_\Events(σ_0) "-}) (idiom (αSTraces (lktrace, κ_0)))| & \text{if }n > 0 \\
-    |Ret ({-" α_\Values(σ_0,κ_0) "-}, αHeap μ)| & \text{where }(\wild,\wild, μ, \wild) = σ_0
-  \end{cases}
-\end{array}\]
-\vspace{-1em}
-\caption{Abstraction function $α_{\STraces}$ from LK machine to |evalNeed2|}
-  \label{fig:eval-correctness}
-\end{figure}
-
-For proving |evalNeed2| bisimilar to the Lazy Krivine machine
-(\Cref{fig:lk-semantics}), we give an abstraction function $α_{\STraces}$
-from LK machine traces $\STraces$ to denotational traces |T|, with |Events| and
-all, such that
-\[
-  α_{\STraces}(\init(\pe) \smallstep ..., \StopF) = |evalNeed e emp emp|,
-\]
-where $\init(\pe) \smallstep ...$ denotes the \emph{maximal} (\ie longest
-possible) LK trace evaluating the closed expression $\pe$.
-For example, for the LK trace \labelcref{ex:trace2}, $α_{\STraces}$ produces
-the trace in \Cref{fig:by-need-trace}.
-
-Function $α_{\STraces}$, defined in \Cref{fig:eval-correctness}, preserves a
-number of important observable properties, such as termination behavior (\ie
-stuck, diverging, or balanced execution~\citep{Sestoft:97}), length of the trace
-and transition events, as expressed in the following theorem:
-
-\begin{toappendix}
 \subsection{Bisimulation}
 \label{sec:adequacy-detail}
-\end{toappendix}
 
-\begin{theoremrep}[Adequacy and Bisimulation]
-  \label{thm:need-adequacy-bisimulation}
-  Let |e| be a closed expression, |τ := evalNeed e emp emp| the
-  denotational by-need trace and $\init(\pe) \smallstep ...$ the maximal lazy
-  Krivine trace.
-  Then
-  \begin{itemize}
-    \item |τ| preserves the observable termination properties of $\init(\pe) \smallstep ...$
-      in the above sense.
-    \item |τ| preserves the length of $\init(\pe) \smallstep ...$ (\ie number of |Step|s equals number of $\smallstep$).
-    \item every |ev :: Event| in |τ = many (Step ev ^^ ...)| corresponds to the
-      transition rule taken in $\init(\pe) \smallstep ...$.
-  \end{itemize}
-\end{theoremrep}
-\begin{proofsketch}
-  Generalise $α_{\STraces}(\init(\pe) \smallstep ..., \StopF) = |evalNeed e emp emp|$ to
-  open configurations and prove it by Löb induction.
-  Then it suffices to prove that $α_{\STraces}$ preserves the observable properties of
-  interest.
-  \Cref{sec:adequacy-detail} contains the full proof for a rigorous reformulation of the proposition.
-\end{proofsketch}
-\begin{proof}
-  The first result is proven by \Cref{thm:need-adequate}, the second and third
-  result follows from \Cref{thm:need-bisimulation-only}.
-  Both of them build on the abstraction result \Cref{thm:need-abstracts-lk}.
-\end{proof}
-
-\begin{toappendix}
 To formalise \Cref{thm:need-adequacy-bisimulation}, we must characterise the
 maximal traces in the LK transition system and relate them to the trace produced
 by |evalNeed2| via the abstraction function in \Cref{fig:eval-correctness}.
@@ -794,39 +699,4 @@ our work.
 \end{proof}
 
 \end{toappendix}
-
-\subsection{Totality of |evalName| and |evalNeed2|}
-\label{sec:totality}
-
-\begin{theorem}[Totality]
-The interpreters |evalName e ρ| and |evalNeed e ρ μ| are defined for every
-|e|, |ρ|, |μ|.
-\end{theorem}
-\begin{proofsketch}
-In the Supplement, we implement the generic interpreter |eval| and its
-instances at |ByName| and |ByNeed| in Lean, using guarded recursion~\citep{tctt}
-to define the productive, coinductive traces.
-Since Lean is a total type theory, |evalName| and |evalNeed2| are total as well.
-
-The essential idea of the totality proof is that \emph{there is only a finite
-number of transitions between every $\LookupT$ transition}.
-%\footnote{Our experiments with a denotational interpreter for
-%PCF~\citep{Plotkin:77} indicate that this statement holds for PCF as well if
-%$\UnrollT$ transitions introduced by the fixpoint operator were included.}
-In other words, if every environment lookup produces a |Step| constructor, then
-our semantics is total by coinduction.
-Guarded recursion captures this argument directly.
-See \Cref{sec:totality-detail} for the details of the encoding.
-\end{proofsketch}
-
-%Encoding the productivity argument in Guarded Cubical Agda was far easier and is
-%far more convincing than the traditional alternative of solving algebraic domain
-%equations and proving continuity of all involved functions by hand.%
-%\footnote{Of course, the underlying model of guarded recursive type
-%theories is the topos of trees~\citep{gdtt}, which very much enjoys an
-%approximation order and partiality.
-%In essence, we are using guarded type theory as a meta language in the sense of
-%\citet{Moggi:07}.}
-%See \Cref{sec:totality-detail} for the details of this encoding.
-
 
