@@ -827,10 +827,18 @@ theorem TraceGoodP_D_invis_fetch {n : Nat} (a : Addr)
         | succ k' =>
           show NotRet (k'+1) (T.fold (T.F.invis _))
           simp only [NotRet, T_uf]
-    · -- ▷(Recur 1 of dl): TraceGoodP at S=1 of dl.
-      -- TODO: case again on heap state; .ret stuck → RetGoodP holds vacuously
-      -- except heap-cond (use h_heap with monotone Recur 1 → Recur 0); .invis
-      -- → another recursion to memo content with Recur 0 (start visibly).
+    · -- ▷(Recur 1 of dl): at level k+1, ▷ exposes the inner level-k
+      -- TraceGoodPBody application at steps=1. After reducing dl to the heap
+      -- match (h_dl_reduce), case on heap state:
+      --   • none → trace is T.ret stuck, so the body returns RetGoodP at stuck.
+      --   • some d → trace is T.fold (.invis (Later.hmap k _ d)), so the body
+      --     requires (NotRet ∨ IsRetStuck) ∧ ▷(Recur 0 of inner-dl).
+      --     For that to hold at steps=0, inner-dl must start with `.step`,
+      --     which is guaranteed by the heap-good invariant once we know d's
+      --     trace begins visibly (typically because heap entries are
+      --     `D.step .update`-wrapped via `D.memo`).
+      simp only [Later.prop_succ, Later.ap'_succ, Later.next_succ,
+                 World.Const.restrictStep_eq]
       sorry
 
 end NewIdea
@@ -1042,15 +1050,36 @@ noncomputable def good : LR D where
 private theorem emptyEnv_good (n : Nat) : good.env (Env.empty : Env (D n)) :=
   good.env_empty
 
+/-- The empty heap is `Parametric.Heap`-good for any predicate, vacuously. -/
+private theorem Parametric.Heap_empty {n : Nat} (P : ▹ world(D → Prop) n) :
+    Parametric.Heap P (∅ : Heap (▹ D) n) := by
+  intro a dl h_get
+  rw [HashMap_get?_empty] at h_get
+  nomatch h_get
+
 /-- Every trace produced by `evalByNeed` has at most 2 consecutive invisible
     steps. -/
 theorem evalByNeed_noTripleInvis (n : Nat) (e : Exp) :
     NoTripleInvis n ((evalByNeed n e).unfold n (Nat.le_refl n) ∅) := by
   have h_goodP : (goodP 0).holds (eval (D := D) e n (Nat.le_refl n) Env.empty) :=
     LR.fundamental good e Env.empty (emptyEnv_good n)
-  -- TODO: with the world(Nat → D → Prop) reshape, unpack via goodP_iff 0 and
-  -- thread through to TraceGoodP_implies_NCI + NCI_mono.
-  sorry
+  rw [goodP_iff 0] at h_goodP
+  -- Specialize at m = n.
+  have h_at_n := h_goodP n (Nat.le_refl n)
+  rw [World.restrict_self] at h_at_n
+  -- Unfold GoodP at level n via loeb.eq, then expand GoodPBody.
+  unfold GoodP at h_at_n
+  rw [loeb.eq GoodPBody_natural] at h_at_n
+  unfold GoodPBody at h_at_n
+  -- Apply with empty heap.
+  have h_trace := h_at_n ∅ (Parametric.Heap_empty _)
+  -- Rewrite ∅↓ = ∅.
+  rw [show (∅ : Heap (▹ D) n)↓ = (∅ : Heap (▹ D) n) from
+        @World.restrict_self (Heap (▹ D)) _ n ∅] at h_trace
+  -- h_trace : TraceGoodP _ n _ 0 n _ (eval.unfold n _ ∅).
+  show NCI 2 2 n ((eval (D := D) e n _ Env.empty).unfold n _ ∅)
+  apply NCI_mono 2 (Nat.zero_le 2)
+  exact TraceGoodP_implies_NCI n _ n _ 0 _ _ h_trace
 
 private theorem Env_empty_find?_none {V : Type} (x : Var) :
     (Env.empty : Env V).find? x = none := by
