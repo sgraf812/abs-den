@@ -679,6 +679,79 @@ theorem goodP_iff (S : Nat) {n : Nat} (d : D n) :
     (goodP S).holds d ↔ goodP_holds S d :=
   World.Pred.ofClosed_holds _ _ d
 
+/-! ## `TraceGoodP` is monotone in its budget argument `steps`. -/
+
+theorem TraceGoodP_mono_S :
+    ∀ (m' : Nat) {n : Nat} (RetGoodP : world(VH → Prop) n)
+      (m : Nat) (hm : m ≤ n) (S₁ S₂ : Nat) (hS : S₁ ≤ S₂)
+      (hm' : m' ≤ m) (t : T VH m'),
+      TraceGoodP RetGoodP m hm S₁ m' hm' t → TraceGoodP RetGoodP m hm S₂ m' hm' t := by
+  intro m'
+  induction m' with
+  | zero =>
+    intro n RetGoodP m hm S₁ S₂ hS hm' t hP
+    unfold TraceGoodP at hP ⊢
+    rw [loeb.eq TraceGoodPBody_natural] at hP ⊢
+    cases hu : T.unfold t with
+    | ret v =>
+      rw [TraceGoodPBody_ret_eq RetGoodP (Nat.le_refl _) _ hm S₁ hm' t v hu] at hP
+      rw [TraceGoodPBody_ret_eq RetGoodP (Nat.le_refl _) _ hm S₂ hm' t v hu]
+      exact hP
+    | step ev tl =>
+      rw [TraceGoodPBody_step_eq RetGoodP (Nat.le_refl _) _ hm S₁ hm' t ev tl hu] at hP
+      rw [TraceGoodPBody_step_eq RetGoodP (Nat.le_refl _) _ hm S₂ hm' t ev tl hu]
+      -- ▷ at level 0 is True.
+      trivial
+    | invis dl =>
+      cases S₁ with
+      | zero =>
+        rw [TraceGoodPBody_invis_zero RetGoodP (Nat.le_refl _) _ hm hm' t dl hu] at hP
+        exact hP.elim
+      | succ j₁ =>
+        obtain ⟨j₂, hj₂⟩ : ∃ j₂, S₂ = j₂ + 1 := by
+          cases S₂ with | zero => omega | succ j₂ => exact ⟨j₂, rfl⟩
+        subst hj₂
+        rw [TraceGoodPBody_invis_eq RetGoodP (Nat.le_refl _) _ hm j₂ hm' t dl hu]
+        -- ▷ at level 0 is True for both halves.
+        refine ⟨Or.inl ?_, ?_⟩ <;> trivial
+  | succ k ih =>
+    intro n RetGoodP m hm S₁ S₂ hS hm' t hP
+    unfold TraceGoodP at hP ⊢
+    rw [loeb.eq TraceGoodPBody_natural] at hP ⊢
+    cases hu : T.unfold t with
+    | ret v =>
+      rw [TraceGoodPBody_ret_eq RetGoodP (Nat.le_refl _) _ hm S₁ hm' t v hu] at hP
+      rw [TraceGoodPBody_ret_eq RetGoodP (Nat.le_refl _) _ hm S₂ hm' t v hu]
+      exact hP
+    | step ev tl =>
+      rw [TraceGoodPBody_step_eq RetGoodP (Nat.le_refl _) _ hm S₁ hm' t ev tl hu] at hP
+      rw [TraceGoodPBody_step_eq RetGoodP (Nat.le_refl _) _ hm S₂ hm' t ev tl hu]
+      exact hP
+    | invis dl =>
+      cases S₁ with
+      | zero =>
+        rw [TraceGoodPBody_invis_zero RetGoodP (Nat.le_refl _) _ hm hm' t dl hu] at hP
+        exact hP.elim
+      | succ j₁ =>
+        obtain ⟨j₂, hj₂⟩ : ∃ j₂, S₂ = j₂ + 1 := by
+          cases S₂ with | zero => omega | succ j₂ => exact ⟨j₂, rfl⟩
+        subst hj₂
+        rw [TraceGoodPBody_invis_eq RetGoodP (Nat.le_refl _) _ hm j₁ hm' t dl hu] at hP
+        rw [TraceGoodPBody_invis_eq RetGoodP (Nat.le_refl _) _ hm j₂ hm' t dl hu]
+        obtain ⟨h_nr, h_rec⟩ := hP
+        refine ⟨h_nr, ?_⟩
+        simp only [Later.prop_succ, Later.ap'_succ, Later.next_succ,
+                   World.Function.restrictStep_eq, World.Const.restrictStep_eq,
+                   Later.Function.restrict_apply] at h_rec ⊢
+        have hkn : k ≤ n := Nat.le_of_succ_le (Nat.le_trans hm' hm)
+        have h_bridge : World.restrict (Later.next (loeb (TraceGoodPBody RetGoodP)))
+                          (Nat.le_trans hm' hm)
+                      = TraceGoodP (World.restrict RetGoodP hkn) :=
+          Later_next_loeb_restrict RetGoodP (Nat.le_trans hm' hm)
+        rw [h_bridge] at h_rec ⊢
+        exact ih (n := k) (World.restrict RetGoodP hkn) k (Nat.le_refl _) j₁ j₂
+                  (by omega) (Nat.le_refl _) dl h_rec
+
 /-! ## Forgetful map: `TraceGoodP → NCI 2` (reset budget hard-coded at 2). -/
 
 theorem TraceGoodP_implies_NCI :
