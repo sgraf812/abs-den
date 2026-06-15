@@ -122,7 +122,7 @@ structure LR (D : Nat → Type) [Domain D] where
   /-- `Domain.bind'` closure: both `rhs` and `body` are `Parametric.Fn P`-good. -/
   bind_closed : ∀ {n : Nat} (rhs body : World.Function D D n),
     Parametric.Fn P rhs → Parametric.Fn P body →
-    P.holds (Domain.bind' rhs body)
+    P.holds (Domain.step' .let1 (Domain.bind' rhs body))
 
 namespace LR
 
@@ -360,7 +360,6 @@ theorem fundamental (lr : LR D) :
         (lr.step_to_Lookup (.look x) dx (lr.Lookup_to_P dx hLookup))
       exact env_world_restrict lr ρ hρ hm
     · intro m hm dx hLookup
-      apply lr.step
       apply fundamental lr e₂
       apply env_bind lr _ _ x _
         (lr.step_to_Lookup (.look x) dx (lr.Lookup_to_P dx hLookup))

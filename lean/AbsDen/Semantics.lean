@@ -90,12 +90,11 @@ def eval {D : Nat → Type} [Domain D] : (e : Exp) → El world(Env D → D)
       eval e₁ j (Nat.le_refl j) ((ρ↓).bind x (Domain.step' (.look x) dx))
     let body : World.Function D D k :=
       fun j hj dx =>
-        Domain.step' .let1 (eval e₂ j (Nat.le_refl j) ((ρ↓).bind x (Domain.step' (.look x) dx)))
-    Domain.bind' rhs body
+        eval e₂ j (Nat.le_refl j) ((ρ↓).bind x (Domain.step' (.look x) dx))
+    Domain.step' .let1 (Domain.bind' rhs body)
 termination_by e => sizeOf e
 decreasing_by
   all_goals simp_wf; first | omega | skip
   · have := List.sizeOf_lt_of_mem ‹alt ∈ alts›
     have : sizeOf alt.rhs < sizeOf alt := by cases alt; simp [Alt.mk.sizeOf_spec]; omega
     omega
-

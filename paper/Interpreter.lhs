@@ -258,9 +258,9 @@ eval e ρ = case e of
   App e x  | x ∈ dom ρ  ->
                tracefun(step) App1 (domainfun(apply) (eval e ρ) (ρ ! x))
            | otherwise  -> domainfun(stuck)
-  Let x e1 e2 -> domainfun(bind) {-" \iffalse "-}x{-" \fi "-}
+  Let x e1 e2 -> tracefun(step) Let1 (domainfun(bind) {-" \iffalse "-}x{-" \fi "-}
     (\d1 -> eval e1 (ext ρ x (tracefun(step) (Look x) d1)))
-    (\d1 -> tracefun(step) Let1 (eval e2 (ext ρ x (tracefun(step) (Look x) d1))))
+    (\d1 -> eval e2 (ext ρ x (tracefun(step) (Look x) d1))))
   ConApp k xs
     | all (∈ dom ρ) xs, length xs == conArity k
     -> domainfun(con) {-" \iffalse "-}(label e){-" \fi "-} k (map (ρ !) xs)

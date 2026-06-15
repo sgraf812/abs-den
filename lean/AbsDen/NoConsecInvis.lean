@@ -939,10 +939,6 @@ theorem evalByNeed_startsVisible (n : Nat) (e : Exp) :
     rw [D_step_eq]; exact StartsVisible_of_step _ _
   | let' x e₁ e₂ =>
     simp only [eval]
-    show StartsVisible _ ((Domain.bind' _ _ : D n).unfold _ _ _)
-    unfold Domain.bind'
-    show StartsVisible _ ((D.fold _ : D n).unfold _ _ _)
-    rw [D_fold_unfold]
     show StartsVisible _ ((Domain.step' .let1 _ : D n).unfold _ _ _)
     unfold Domain.step'
     show StartsVisible _ ((D.step .let1 _ : D n).unfold _ _ _)
