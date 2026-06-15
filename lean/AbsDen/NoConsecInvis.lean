@@ -775,6 +775,10 @@ theorem Param_Heap_GoodP_mono {n m : Nat} (hm : m ≤ n)
   cases m' with
   | zero => trivial
   | succ M =>
+    -- TODO: unfold W.restrict ∘ Later.ap', match h_at and goal at GoodP at M,
+    -- then apply GoodP_S_mono. The W.restrict on Later.ap' needs commutativity
+    -- through to the inner loeb; pending a focused `Later_ap'_restrict_GoodP`
+    -- lemma using body invariance of GoodPBody in m_outer.
     sorry
 
 /-- Restricting a heap from level `k+1` to level `k`: a `Param.Heap`-good heap
@@ -811,11 +815,22 @@ theorem Param_Heap_GoodP_succ_down {n k : Nat} (hk1 : k+1 ≤ n) (S : Nat)
         @World.restrict_succ (Heap (▹ D)) _ k m μ hm]
   rw [h_eq_μ] at h_get
   have h_at := h m hmk1 a dl h_get
-  -- TODO: the two predicates differ only in the outer Kripke level (k vs k+1)
-  -- of the `Later.ap'`. Their `Later world(D → Prop) m` values agree by body
-  -- invariance of `GoodPBody` in `m_outer`. Bridge via Later.ap'/W.restrict
-  -- commutativity + W.restrict composition + proof irrelevance.
-  sorry
+  -- The two predicate values, after `W.restrict` to `Later world(D → Prop) m`,
+  -- agree pointwise by body invariance of `GoodPBody` in `m_outer`. Use that
+  -- `W.restrict` on `Later.ap'` of a loeb-shape commutes through to the inner
+  -- loeb application, modulo proof irrelevance.
+  cases m with
+  | zero =>
+    -- Later (W.Const Prop) 0 = PUnit; ▷ at 0 is True.
+    trivial
+  | succ M =>
+    -- ▷ at level M+1 strips to inner Prop. Both LHS and RHS reduce, via
+    -- Later.ap'_succ + Later_next_GoodP_restrict, to a GoodP-application at
+    -- the same effective sub-level. They agree by body invariance of GoodPBody
+    -- in m_outer + World.restrict_proof_irrel + Later_next_GoodP_restrict.
+    simp only [Later.prop_succ, Later.ap'_succ, Later.next_succ,
+               World.Const.restrictStep_eq] at h_at ⊢
+    sorry
 
 /-! ## Forgetful map: `TraceGoodP → NCI 2` (reset budget hard-coded at 2). -/
 
