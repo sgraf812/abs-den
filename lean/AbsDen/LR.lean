@@ -1,32 +1,27 @@
 import AbsDen.Semantics
 import AbsDen.Trace
 
-/-! ## Standalone `Lookup` -/
+/-! ## Standalone `IsLookup` -/
 
 /-- The "look-step-wrapped P-value" predicate, taking a raw `Prop`-family
     predicate. Suitable for use inside mutual recursion where the recursive
     predicate isn't yet packaged as a `World.Pred`. -/
 def IsLookup_holds {D : Nat → Type} [Domain D]
-    (P : ∀ {n : Nat}, D n → Prop) {n : Nat} (x : D n) : Prop :=
-  ∃ ev y, x = Domain.step' ev y ∧ P y
-
-/-- The "look-step-wrapped P-value" predicate over a `World.Pred D`. -/
-def IsLookup {D : Nat → Type} [Domain D] (P : World.Pred D)
-    {n : Nat} (x : D n) : Prop :=
-  IsLookup_holds (fun {m} (d : D m) => P.holds d) x
+    {n : Nat} (P : D n → Prop) (d : D n) : Prop :=
+  ∃ x d', d = Domain.step' (.look x) d' ∧ P d'
 
 /-- `IsLookup P` is closed under `World.restrictStep`. -/
-theorem Lookup_holds_closed {D : Nat → Type} [Domain D] (P : World.Pred D)
-    {n : Nat} (x : D (n+1)) (hx : IsLookup P x) :
-    IsLookup P (World.restrictStep x) := by
-  obtain ⟨ev, y, hx_eq, hPy⟩ := hx
-  refine ⟨ev, World.restrictStep y, ?_, P.closed y hPy⟩
+theorem IsLookup_holds_closed {D : Nat → Type} [Domain D] (P : World.Pred D)
+    {n : Nat} (x : D (n+1)) (hx : IsLookup_holds P.holds x) :
+    IsLookup_holds P.holds (World.restrictStep x) := by
+  obtain ⟨v, y, hx_eq, hPy⟩ := hx
+  refine ⟨v, World.restrictStep y, ?_, P.closed y hPy⟩
   rw [hx_eq]
-  exact (Domain.natural_step ev y).symm
+  exact (Domain.natural_step (.look v) y).symm
 
 /-- The "look-step-wrapped P-value" sub-presheaf on `D`. -/
-def Lookup {D : Nat → Type} [Domain D] (P : World.Pred D) : World.Pred D :=
-  World.Pred.ofClosed (holds := IsLookup P) (closed := Lookup_holds_closed P)
+def IsLookup {D : Nat → Type} [Domain D] (P : World.Pred D) : World.Pred D :=
+  World.Pred.ofClosed (holds := IsLookup_holds P.holds) (closed := IsLookup_holds_closed P)
 
 /-! ## `Parametric`: per-case closure conditions on `Value.F`
 
@@ -45,13 +40,13 @@ namespace Parametric
 def Fn {D : Nat → Type} [Domain D] (P : World.Pred D) {n : Nat}
     (f : world(D → D) n) : Prop :=
   ∀ (m : Nat) (hm : m ≤ n) (d : D m),
-    IsLookup P d → P.holds (f m hm d)
+    IsLookup_holds P.holds d → P.holds (f m hm d)
 
 /-- A list of fields `ds : List (D n)` is `Parametric P`-good iff every entry
     is `Lookup P`. -/
 def Con {D : Nat → Type} [Domain D] (P : World.Pred D) {n : Nat}
     (ds : List (D n)) : Prop :=
-  ∀ d, d ∈ ds → IsLookup P d
+  ∀ d, d ∈ ds → IsLookup_holds P.holds d
 
 /-- A `Value.F` value is `Parametric P`-good when its case fits `P`:
     `.stuck` is trivially good; `.fn g` requires the *extracted* user-shape
@@ -78,7 +73,7 @@ A `LR D` packages two step-indexed sub-presheaves on a semantic domain `D`:
 - `Lookup : World.Pred (Later D)` — env/heap-storable `P`-values: their first
   unfolding step is a `.look`-style event that, when consumed, exposes a `P`.
 
-Coherences `Lookup_to_P` and `step_to_Lookup` mediate between the two. The
+Coherences `IsLookup_to_P` and `step_to_Lookup` mediate between the two. The
 fundamental lemma `LR.fundamental` is a structural induction over `Exp` using
 only these fields.
 -/
@@ -105,7 +100,7 @@ structure LR (D : Nat → Type) [Domain D] where
 
   /-- Closure for the `.app1`-wrapped application produced by `eval (.app …)`. -/
   app_closed : ∀ {n : Nat} (dv da : D n),
-    P.holds dv → IsLookup P da →
+    P.holds dv → IsLookup_holds P.holds da →
     P.holds (Domain.step' .app1 (Domain.apply' dv da))
 
   /-- Closure for the `.case1`-wrapped case discrimination produced by
@@ -122,9 +117,9 @@ structure LR (D : Nat → Type) [Domain D] where
   /-- `Domain.bind'` closure: both `rhs` and `body` are `Parametric.Fn P`-good. -/
   bind_closed : ∀ {n : Nat} (rhs body : World.Function D D n),
     (∀ (m : Nat) (hm : m ≤ n) (d : D m),
-      IsLookup P d → IsLookup P (rhs m hm d)) →
+      P.holds d → P.holds (rhs m hm d)) →
     (∀ (m : Nat) (hm : m ≤ n) (d : D m),
-      IsLookup P d → P.holds (body m hm d)) →
+      P.holds d → P.holds (body m hm d)) →
     P.holds (Domain.step' .let1 (Domain.bind' rhs body))
 
 namespace LR
@@ -134,21 +129,21 @@ variable {D : Nat → Type} [Domain D]
 /-! ## Derived coherences -/
 
 /-- `Lookup.holds` unfolds to the underlying `IsLookup`. -/
-@[simp] theorem Lookup_holds_iff (P : World.Pred D) {n : Nat} (x : D n) :
-    (Lookup P).holds x ↔ IsLookup P x := by
-  unfold Lookup; exact World.Pred.ofClosed_holds _ _ x
+@[simp] theorem IsLookup_holds_iff (P : World.Pred D) {n : Nat} (x : D n) :
+    (IsLookup P).holds x ↔ IsLookup_holds P.holds x := by
+  unfold IsLookup; exact World.Pred.ofClosed_holds _ _ x
 
-/-- Forcing a `Lookup` produces a `P`: from `x = step' ev y ∧ P y`,
+/-- Forcing a `Lookup` produces a `P`: from `x = step' (.look v) y ∧ P y`,
     apply step-closure to recover `P x`. -/
-theorem Lookup_to_P (lr : LR D) {n : Nat} (d : D n)
-    (h : IsLookup lr.P d) : lr.P.holds d := by
-  obtain ⟨ev, y, hd_eq, hPy⟩ := h
-  rw [hd_eq]; exact lr.step ev y hPy
+theorem IsLookup_to_P (lr : LR D) {n : Nat} (d : D n)
+    (h : IsLookup_holds lr.P.holds d) : lr.P.holds d := by
+  obtain ⟨v, y, hd_eq, hPy⟩ := h
+  rw [hd_eq]; exact lr.step (.look v) y hPy
 
-/-- Step-wrapping a `P`-value yields a `Lookup`: the witnesses are immediate. -/
-theorem step_to_Lookup (lr : LR D) {n : Nat} (ev : Event) (d : D n)
-    (h : lr.P.holds d) : IsLookup lr.P (Domain.step' ev d) :=
-  ⟨ev, d, rfl, h⟩
+/-- `step' (.look v)`-wrapping a `P`-value yields a `Lookup`: the witnesses are immediate. -/
+theorem look_to_Lookup (lr : LR D) {n : Nat} (v : Var) (d : D n)
+    (h : lr.P.holds d) : IsLookup_holds lr.P.holds (Domain.step' (.look v) d) :=
+  ⟨v, d, rfl, h⟩
 
 /-! ## HashMap-level helpers (private)
 
@@ -231,9 +226,9 @@ private theorem env_find?_map {V W : Type} (f : V → W) (ρ : Env V) (x : Var) 
 
 /-! ## Env-level closure -/
 
-/-- An environment is *good* when every entry is `IsLookup lr.P`. -/
+/-- An environment is *good* when every entry is `IsLookup_holds`. -/
 def env (lr : LR D) {n : Nat} (ρ : Env (D n)) : Prop :=
-  ∀ x d, ρ.find? x = some d → IsLookup lr.P d
+  ∀ x d, ρ.find? x = some d → IsLookup_holds lr.P.holds d
 
 /-- The empty env is good. -/
 theorem env_empty (lr : LR D) {n : Nat} :
@@ -258,7 +253,7 @@ theorem env_restrictStep (lr : LR D) {n : Nat} (ρ : Env (D (n+1)))
   | none => rw [hget] at hd; exact absurd hd (by simp [Option.map])
   | some d' =>
     rw [hget] at hd; simp [Option.map] at hd; subst hd
-    exact Lookup_holds_closed lr.P d' (hρ x d' hget)
+    exact IsLookup_holds_closed lr.P d' (hρ x d' hget)
 
 /-- Good envs are preserved by `World.restrict`. -/
 theorem env_world_restrict (lr : LR D) {n m : Nat} (ρ : Env (D n))
@@ -276,7 +271,7 @@ theorem env_world_restrict (lr : LR D) {n m : Nat} (ρ : Env (D n))
 
 /-- Binding a `Lookup`-value extends a good env. -/
 theorem env_bind (lr : LR D) {n : Nat} (ρ : Env (D n)) (hρ : lr.env ρ)
-    (x : Var) (d : D n) (hd : IsLookup lr.P d) :
+    (x : Var) (d : D n) (hd : IsLookup_holds lr.P.holds d) :
     lr.env (ρ.bind x d) := by
   intro y d' hfind
   simp only [Env.bind, Env.find?, Std.HashMap.get?_eq_getElem?] at hfind
@@ -321,7 +316,7 @@ theorem fundamental (lr : LR D) :
     simp only [eval]
     cases h : ρ.find? x with
     | none => exact lr.stuck
-    | some d => exact lr.Lookup_to_P d (hρ x d h)
+    | some d => exact lr.IsLookup_to_P d (hρ x d h)
   | .conapp K xs, n, ρ, hρ => by
     simp only [eval]
     cases h : ρ.pmapList xs with
@@ -357,16 +352,13 @@ theorem fundamental (lr : LR D) :
   | .let' x e₁ e₂, n, ρ, hρ => by
     simp only [eval]
     apply lr.bind_closed
-    · -- rhs produces IsLookup: rhs(dx) = step' .look (eval e₁ …) is step' .look-shape.
-      intro m hm dx hLookup
-      apply lr.step_to_Lookup (.look x)
+    · intro m hm dx hP
       apply fundamental lr e₁
-      apply env_bind lr _ _ x dx hLookup
+      apply env_bind lr _ _ x _ (lr.look_to_Lookup x dx hP)
       exact env_world_restrict lr ρ hρ hm
-    · -- body produces P: body(dx) = eval e₂ on a good env.
-      intro m hm dx hLookup
+    · intro m hm dx hP
       apply fundamental lr e₂
-      apply env_bind lr _ _ x dx hLookup
+      apply env_bind lr _ _ x _ (lr.look_to_Lookup x dx hP)
       exact env_world_restrict lr ρ hρ hm
 termination_by e _ _ _ => sizeOf e
 decreasing_by

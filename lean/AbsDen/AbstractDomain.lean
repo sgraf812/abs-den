@@ -77,9 +77,9 @@ def evalConst {D : Type} [AbstractDomain D] : Exp → Env D → D
             AbstractDomain.step .case2 (evalConst alt.rhs (ρ.bindMany alt.vars ds)))))
   | .let' x e₁ e₂, ρ =>
     let rhs : D → D := fun dx =>
-      AbstractDomain.step (.look x) (evalConst e₁ (ρ.bind x dx))
+      evalConst e₁ (ρ.bind x (AbstractDomain.step (.look x) dx))
     let body : D → D := fun dx =>
-      evalConst e₂ (ρ.bind x dx)
+      evalConst e₂ (ρ.bind x (AbstractDomain.step (.look x) dx))
     AbstractDomain.step .let1 (AbstractDomain.bind rhs body)
 termination_by e => sizeOf e
 decreasing_by
@@ -155,8 +155,7 @@ theorem evalConst_eq_eval {D : Type} [AbstractDomain D] :
     show AbstractDomain.bind _ _ = AbstractDomain.bind _ _
     congr 1
     · funext dx
-      show AbstractDomain.step _ _ = AbstractDomain.step _ _
-      congr 1
+      simp only []
       rw [env_const_restrict]
       exact evalConst_eq_eval e₁ _
     · funext dx

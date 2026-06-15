@@ -70,6 +70,7 @@ def Later.next' {F : Nat → Type u} {n : Nat} : F (n - 1) → Later F n :=
   | 0 => fun _ => PUnit.unit
   | _ + 1 => id
 
+-- TODO: Later.hmap is essentially Later.ap' below
 def Later.hmap {A B : Nat → Type u} (n : Nat)
     (f : (m : Nat) → (h : m < n) → A m → B m) : Later A n → Later B n :=
   match n with

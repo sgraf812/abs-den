@@ -96,7 +96,7 @@ def fetch {n : Nat} (a : Addr) : ▹ D n :=
   Later.next (D.fold fun m' _hm' μ =>
     match Std.HashMap.get? μ a with
     | some d => T.fold (.invis (Later.hmap m' (fun i _hi d' =>
-        d'.unfold i (Nat.le_refl i) (World.restrict μ (by omega))) d))
+        d'.unfold i (Nat.le_refl i) (μ↓)) d))
     | none => T.ret (Value.F.toRep _ .stuck, μ))
 
 /-- Memo: wraps thunk with memoization at address a.
@@ -210,6 +210,7 @@ instance : Domain D where
   bind {_n} _m _hm rhs' k _hk body :=
     D.fold fun j hj μ =>
       let a := Heap.nextFree μ
+      -- let rhsThunk : ▹ D j := Later.ap' _ (Later.next (rhs'↓)) (fetch a) -- an unnecessary optimization
       let rhsThunk : ▹ D j := Later.next (rhs' j (by omega) (D.invis (fetch a)))
       let memoThunk : ▹ D j := D.memo a rhsThunk
       let μ' := Heap.set μ a memoThunk
