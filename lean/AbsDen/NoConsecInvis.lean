@@ -1257,8 +1257,9 @@ noncomputable def good : LR D where
               (World.restrict μ (Nat.le_succ_of_le (Nat.le_refl k))) :=
         NewIdea.Param_Heap_GoodP_succ_down hm 1 μ h_heap
       have h_trace := h_at_k _ h_heap_at_k
-      -- Bridge `RetGoodP` arguments: goal has W.restrictStep (Later.ap' m ...);
-      -- h_trace has Later.ap' k (W.restrict ... hk) — equal by Later_ap'_W_restrict_GoodP.
+      -- TODO: bridge h_trace's RetGoodP arg `Later.ap' k (W.restrict (Later.next loeb) hk) (Later.next 2)`
+      -- to goal's `W.restrictStep (_Recur_m 2)` via Later_ap'_W_restrict_GoodP,
+      -- plus W.restrict composition on μ.
       sorry
   fn := by
     intro n f h_param
