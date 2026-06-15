@@ -760,6 +760,23 @@ theorem GoodP_S_mono {n m : Nat} (hm : m ≤ n) (d : D m) (S₁ S₂ : Nat) (hS 
   intro μ h_heap
   exact TraceGoodP_mono_S _ _ _ _ S₁ S₂ hS _ _ (h μ h_heap)
 
+/-- `Later.ap'` of the `Later.next loeb`-shape predicate commutes with
+    `W.restrict`. Provable directly via `Later_next_GoodP_restrict` + body
+    invariance of `GoodPBody` in `m_outer`. The right-hand side encodes the
+    "restricted" predicate at the lower level. -/
+theorem Later_ap'_W_restrict_GoodP {n m m' : Nat} (hm : m ≤ n) (hm' : m' ≤ m) (S : Nat) :
+    @World.restrict (Later (World.Function D (World.Const Prop))) _ m m'
+      (Later.ap' m
+        (World.restrict (Later.next (loeb GoodPBody : world(Nat → D → Prop) n)) hm)
+        (Later.next S)) hm'
+    = Later.ap' m'
+        (World.restrict (Later.next (loeb GoodPBody : world(Nat → D → Prop) n))
+          (Nat.le_trans hm' hm))
+        (Later.next S) := by
+  -- TODO: by induction on the gap between `m` and `m'`, using
+  -- `Later.ap'_restrictStep` + `World.restrictStep_restrict'`.
+  sorry
+
 /-- Heap-entry-wise monotonicity in budget: a heap good at S₁ is good at S₂
     when S₁ ≤ S₂. Per sub-level + entry, lift via `TraceGoodP_mono_S`. -/
 theorem Param_Heap_GoodP_mono {n m : Nat} (hm : m ≤ n)
@@ -775,11 +792,15 @@ theorem Param_Heap_GoodP_mono {n m : Nat} (hm : m ≤ n)
   cases m' with
   | zero => trivial
   | succ M =>
-    -- TODO: unfold W.restrict ∘ Later.ap', match h_at and goal at GoodP at M,
-    -- then apply GoodP_S_mono. The W.restrict on Later.ap' needs commutativity
-    -- through to the inner loeb; pending a focused `Later_ap'_restrict_GoodP`
-    -- lemma using body invariance of GoodPBody in m_outer.
-    sorry
+    have hMn : M + 1 ≤ n := Nat.le_trans hm' hm
+    -- Push W.restrict through Later.ap' on both sides via the commutativity
+    -- lemma, then resolve via Later_next_GoodP_restrict + GoodP_S_mono.
+    rw [Later_ap'_W_restrict_GoodP hm hm' S₁] at h_at
+    rw [Later_ap'_W_restrict_GoodP hm hm' S₂]
+    simp only [Later.prop_succ, Later.ap'_succ, Later.next_succ,
+               World.Const.restrictStep_eq] at h_at ⊢
+    rw [Later_next_GoodP_restrict hMn] at h_at ⊢
+    exact GoodP_S_mono _ _ S₁ S₂ hS h_at
 
 /-- Restricting a heap from level `k+1` to level `k`: a `Param.Heap`-good heap
     at `(k+1)` with the `loeb GoodPBody` predicate gives a `Param.Heap`-good
