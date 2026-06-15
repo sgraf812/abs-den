@@ -200,6 +200,7 @@ def Heap {n : Nat} (P : ▹ world(D → Prop) n) (μ : Heap (▹ D) n) : Prop :=
 
 end Parametric
 
+
 /-- HashMap.get? commutes with Functor.map on AddrMap. -/
 theorem AddrMap_get?_map {V W : Type} (f : V → W) (m : AddrMap V) (a : Addr) :
     Std.HashMap.get? (Functor.map f m : AddrMap W) a =
@@ -808,24 +809,13 @@ theorem Param_Heap_GoodP_succ_down {n k : Nat} (hk1 : k+1 ≤ n) (S : Nat)
     show @World.restrict (Heap (▹ D)) _ k m (@World.restrictStep (Heap (▹ D)) _ k μ) hm = _
     rw [show hmk1 = Nat.le_succ_of_le hm from rfl,
         @World.restrict_succ (Heap (▹ D)) _ k m μ hm]
-  -- Same composition for the Later world predicate. Both sides restrict to
-  -- Later (world(D → Prop)) m. Reduce via apply-extensionality to comparing
-  -- the values at any sub-(sub-)level.
-  have h_eq_P : @World.restrict (Later (World.Function D (World.Const Prop))) _ k m
-                  (Later.ap' k
-                    (World.restrict (Later.next (loeb GoodPBody : world(Nat → D → Prop) n))
-                      (Nat.le_of_succ_le hk1))
-                    (Later.next S)) hm
-              = @World.restrict (Later (World.Function D (World.Const Prop))) _ (k+1) m
-                  (Later.ap' (k+1)
-                    (World.restrict (Later.next (loeb GoodPBody)) hk1)
-                    (Later.next S)) hmk1 := by
-    -- TODO: prove via naturality of Later.ap' under restrict, plus the
-    -- W.restrict (W.restrict x hk1) hm = W.restrict x (trans hm hk1) composition.
-    sorry
   rw [h_eq_μ] at h_get
-  rw [h_eq_P]
-  exact h m hmk1 a dl h_get
+  have h_at := h m hmk1 a dl h_get
+  -- TODO: the two predicates differ only in the outer Kripke level (k vs k+1)
+  -- of the `Later.ap'`. Their `Later world(D → Prop) m` values agree by body
+  -- invariance of `GoodPBody` in `m_outer`. Bridge via Later.ap'/W.restrict
+  -- commutativity + W.restrict composition + proof irrelevance.
+  sorry
 
 /-! ## Forgetful map: `TraceGoodP → NCI 2` (reset budget hard-coded at 2). -/
 
