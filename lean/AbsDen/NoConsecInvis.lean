@@ -825,7 +825,17 @@ noncomputable def good : LR D where
       exact h_heap
   app_closed := by sorry
   case_closed := by sorry
-  bind_closed := by sorry
+  bind_closed := by
+    intro n rhs body h_rhs h_body
+    -- Goal: (goodP 2).holds (Domain.step' .let1 (Domain.bind' rhs body))
+    -- Strategy:
+    --   (1) Prove `goodP 2 (D.invis (fetch a))` as a lemma (D.invis (fetch a) is
+    --       P-good: trace starts with .invis → .invis → memo content which
+    --       starts visibly with .step .update, so NCI 2 holds).
+    --   (2) Apply h_body to D.invis (fetch a) to get P (body (D.invis (fetch a))).
+    --   (3) Conclude P of the bind' via TraceGoodP step-recursion.
+    --   (4) Apply step closure for .let1 wrap.
+    sorry
 
 /-! ## Main theorems -/
 
