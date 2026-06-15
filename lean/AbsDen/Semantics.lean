@@ -87,10 +87,9 @@ def eval {D : Nat → Type} [Domain D] : (e : Exp) → El world(Env D → D)
             Domain.step' .case2 (eval alt.rhs j (Nat.le_refl j) ((ρ↓).bindMany alt.vars ds)))))
   | .let' x e₁ e₂ => fun k _ ρ =>
     let rhs : World.Function D D k := fun j hj dx =>
-      eval e₁ j (Nat.le_refl j) ((ρ↓).bind x (Domain.step' (.look x) dx))
-    let body : World.Function D D k :=
-      fun j hj dx =>
-        eval e₂ j (Nat.le_refl j) ((ρ↓).bind x (Domain.step' (.look x) dx))
+      Domain.step' (.look x) (eval e₁ j (Nat.le_refl j) ((ρ↓).bind x dx))
+    let body : World.Function D D k := fun j hj dx =>
+      eval e₂ j (Nat.le_refl j) ((ρ↓).bind x dx)
     Domain.step' .let1 (Domain.bind' rhs body)
 termination_by e => sizeOf e
 decreasing_by

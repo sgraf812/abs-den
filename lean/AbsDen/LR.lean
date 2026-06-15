@@ -121,7 +121,10 @@ structure LR (D : Nat → Type) [Domain D] where
 
   /-- `Domain.bind'` closure: both `rhs` and `body` are `Parametric.Fn P`-good. -/
   bind_closed : ∀ {n : Nat} (rhs body : World.Function D D n),
-    Parametric.Fn P rhs → Parametric.Fn P body →
+    (∀ (m : Nat) (hm : m ≤ n) (d : D m),
+      IsLookup P d → IsLookup P (rhs m hm d)) →
+    (∀ (m : Nat) (hm : m ≤ n) (d : D m),
+      IsLookup P d → P.holds (body m hm d)) →
     P.holds (Domain.step' .let1 (Domain.bind' rhs body))
 
 namespace LR
@@ -354,15 +357,16 @@ theorem fundamental (lr : LR D) :
   | .let' x e₁ e₂, n, ρ, hρ => by
     simp only [eval]
     apply lr.bind_closed
-    · intro m hm dx hLookup
+    · -- rhs produces IsLookup: rhs(dx) = step' .look (eval e₁ …) is step' .look-shape.
+      intro m hm dx hLookup
+      apply lr.step_to_Lookup (.look x)
       apply fundamental lr e₁
-      apply env_bind lr _ _ x _
-        (lr.step_to_Lookup (.look x) dx (lr.Lookup_to_P dx hLookup))
+      apply env_bind lr _ _ x dx hLookup
       exact env_world_restrict lr ρ hρ hm
-    · intro m hm dx hLookup
+    · -- body produces P: body(dx) = eval e₂ on a good env.
+      intro m hm dx hLookup
       apply fundamental lr e₂
-      apply env_bind lr _ _ x _
-        (lr.step_to_Lookup (.look x) dx (lr.Lookup_to_P dx hLookup))
+      apply env_bind lr _ _ x dx hLookup
       exact env_world_restrict lr ρ hρ hm
 termination_by e _ _ _ => sizeOf e
 decreasing_by
