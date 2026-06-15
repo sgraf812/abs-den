@@ -767,7 +767,6 @@ noncomputable def good : LR D where
     intro n x d hT
     obtain ⟨a, hd⟩ := (isThunk_iff d).mp hT
     subst hd
-    -- Goal: (goodP 0).holds (Domain.step' (.look x) (D.invis (fetch a)))
     rw [NewIdea.goodP_iff 0]
     intro m hm
     change (NewIdea.GoodP : world(Nat → D → Prop) n) m hm (0 : Nat) m (Nat.le_refl _)
@@ -775,16 +774,37 @@ noncomputable def good : LR D where
     unfold NewIdea.GoodP
     rw [loeb.eq NewIdea.GoodPBody_natural]
     unfold NewIdea.GoodPBody
-    intro μ h_heap
+    intro _Recur_m μ h_heap
     rw [D_unfold_restrict]
-    -- The trace is: step .look ; (D.invis (fetch a))'s content at one level down.
-    -- step .look reset to S=2 on .step; D.invis adds 1 invis (k=1); fetch a
-    -- adds 1 invis (k=0) on heap-hit, or .ret stuck on miss. The memo
-    -- content's first event is visible (.step .update), refreshing k back to 2.
-    -- The heap-good invariant (Recur 1) on each entry guarantees memo content
-    -- is good at NCI 1 — exactly what we need at the post-2-invis point.
-    -- TODO: discharge via TraceGoodPBody unfolds + heap fetch trace analysis.
-    sorry
+    -- Goal includes (Domain.step' (.look x) (D.invis (fetch a))).unfold.
+    -- Domain.step' = D.step ∘ Later.next for ByNeed; D_step_eq unfolds the trace.
+    change NewIdea.TraceGoodP _ m _ (0 : Nat) m _
+      ((D.step (.look x) (Later.next (D.invis (fetch a)))).unfold m _ (μ↓))
+    rw [D_step_eq]
+    unfold NewIdea.TraceGoodP
+    rw [loeb.eq NewIdea.TraceGoodPBody_natural]
+    rw [NewIdea.TraceGoodPBody_step_eq _ _ _ _ _ _ _ _ _
+        (by unfold T.step; rw [T_uf] : T.unfold (T.step _ _) = .step _ _)]
+    -- Goal: ▷(Later.ap' m (Later.ap' m (W.restrict (Later.next loeb) refl)
+    --         (Later.next 2)) tl)
+    cases m with
+    | zero => trivial
+    | succ k =>
+      simp only [Later.prop_succ, Later.ap'_succ, Later.next_succ,
+                 World.restrict_self, World.Const.restrictStep_eq]
+      -- Reduce restrictStep (loeb _) via loeb naturality + RetGoodP_restrictStep.
+      rw [restrictStep_loeb_eq_loeb_restrictStep NewIdea.TraceGoodPBody_natural,
+          NewIdea.TraceGoodPBody_restrictStep_RetGoodP,
+          NewIdea.RetGoodP_restrictStep]
+      -- Goal: loeb (TGB (RetGoodP (restrictStep (_Recur_m 2)))) k _ 2 k _ tl_k
+      -- = TraceGoodP at level k with S=2 of (D.invis fetch a)'s trace at level k.
+      -- Next layer: the trace is T.invis (fetch a content), so .invis case at
+      -- steps=2 (j=1): needs NotRet ∨ IsRetStuck of dl, and Recur 1 of dl.
+      -- Inner layer: fetch a's content at level k-1 is .invis (heap hit) or .ret
+      -- stuck (miss). Both satisfy NotRet ∨ IsRetStuck. Recur 0 of memo content.
+      -- Bottom: heap content (memo) starts visibly (.step .update), refreshing
+      -- budget to 2 — uses heap-good invariant on the entry at a.
+      sorry
   stuck := by
     intro n
     rw [NewIdea.goodP_iff 0]
