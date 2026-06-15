@@ -1337,7 +1337,7 @@ private theorem emptyEnv_good (n : Nat) : good.env (Env.empty : Env (D n)) :=
 private theorem Parametric.Heap_empty {n : Nat} (P : ▹ world(D → Prop) n) :
     Parametric.Heap P (∅ : Heap (▹ D) n) := by
   intro m hm a dl h_get
-  -- TODO: prove W.restrict ∅ = ∅ at every sub-level, then contradict h_get.
+  -- TODO: prove `get? (W.restrict ∅ hm) a = none` by induction on `n`.
   sorry
 
 /-- Every trace produced by `evalByNeed` has at most 2 consecutive invisible
