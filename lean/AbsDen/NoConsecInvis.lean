@@ -833,6 +833,33 @@ theorem Later_ap'_W_restrict_GoodP {n : Nat} : ∀ {m m' : Nat}
       rw [h_proof]
       exact ih hM hm'' S
 
+/-- `W.restrictStep` commutes with `Later.ap'` of the `W.restrict (Later.next loeb)`
+    shape, giving the analogous predicate one level down. -/
+theorem Later_ap'_W_restrictStep_GoodP {n M : Nat} (hm : M+1 ≤ n) (hM : M ≤ n) (S : Nat) :
+    (World.restrictStep (Later.ap' (M+1)
+        (World.restrict (Later.next (loeb GoodPBody : world(Nat → D → Prop) n)) hm)
+        (Later.next S))
+      : Later (World.Function D (World.Const Prop)) M)
+    = Later.ap' M
+        (World.restrict (Later.next (loeb GoodPBody)) hM)
+        (Later.next S) := by
+  cases M with
+  | zero => rfl
+  | succ K =>
+    funext k' hk' d
+    rw [Later_next_GoodP_restrict hm, Later_next_GoodP_restrict hM]
+    show World.restrictStep ((GoodP : world(Nat → D → Prop) (K+1)) (K+1)
+            (Nat.le_refl (K+1)) S) k' hk' d
+        = (GoodP : world(Nat → D → Prop) K) K (Nat.le_refl K) S k' hk' d
+    rw [show (GoodP : world(Nat → D → Prop) K)
+          = World.restrictStep (GoodP : world(Nat → D → Prop) (K+1)) from
+        GoodP_restrictStep.symm]
+    show ((GoodP : world(Nat → D → Prop) (K+1)) (K+1) _ S) k' (Nat.le_succ_of_le hk') d
+        = ((GoodP : world(Nat → D → Prop) (K+1)) K (Nat.le_succ_of_le (Nat.le_refl K)) S) k' hk' d
+    unfold GoodP
+    rw [loeb.eq GoodPBody_natural]
+    rfl
+
 /-- Heap-entry-wise monotonicity in budget: a heap good at S₁ is good at S₂
     when S₁ ≤ S₂. Per sub-level + entry, lift via `TraceGoodP_mono_S`. -/
 theorem Param_Heap_GoodP_mono {n m : Nat} (hm : m ≤ n)
@@ -1257,10 +1284,21 @@ noncomputable def good : LR D where
               (World.restrict μ (Nat.le_succ_of_le (Nat.le_refl k))) :=
         NewIdea.Param_Heap_GoodP_succ_down hm 1 μ h_heap
       have h_trace := h_at_k _ h_heap_at_k
-      -- TODO: bridge h_trace's RetGoodP arg `Later.ap' k (W.restrict (Later.next loeb) hk) (Later.next 2)`
-      -- to goal's `W.restrictStep (_Recur_m 2)` via Later_ap'_W_restrict_GoodP,
-      -- plus W.restrict composition on μ.
-      sorry
+      -- Expose `_Recur_m 2` and bridge via Later_ap'_W_restrictStep_GoodP.
+      show loeb (NewIdea.TraceGoodPBody (NewIdea.RetGoodP
+              (World.restrictStep (Later.ap' (k+1)
+                (World.restrict (Later.next (loeb NewIdea.GoodPBody
+                  : world(Nat → D → Prop) n)) hm)
+                (Later.next (2 : Nat)))))) k _ (2 : Nat) k _
+            ((World.restrict d hk).unfold k _
+              (World.restrict μ (Nat.le_succ_of_le (Nat.le_refl k))))
+      rw [NewIdea.Later_ap'_W_restrictStep_GoodP hm hk (2 : Nat)]
+      -- Collapse the double W.restrict on μ in h_trace.
+      rw [show World.restrict (World.restrict μ (Nat.le_succ_of_le (Nat.le_refl k)))
+                (Nat.le_refl k)
+            = World.restrict μ (Nat.le_succ_of_le (Nat.le_refl k)) from
+          @World.restrict_self (Heap (▹ D)) _ k _] at h_trace
+      exact h_trace
   fn := by
     intro n f h_param
     rw [NewIdea.goodP_iff 0]
