@@ -749,7 +749,40 @@ theorem TraceGoodP_D_invis_fetch {n : Nat} (a : Addr)
                   (Later.next (2 : Nat))))
       m (Nat.le_refl _) (2 : Nat) m (Nat.le_refl _)
       ((D.invis (fetch (n := n) a)).unfold m hm μ) := by
-  sorry
+  -- Unfold the D.invis trace.
+  rw [D_invis_eq]
+  -- T.unfold of T.fold (.invis _) reduces.
+  unfold TraceGoodP
+  rw [loeb.eq TraceGoodPBody_natural]
+  rw [TraceGoodPBody_invis_eq _ _ _ _ _ _ _ _
+      (by show T.unfold (T.fold (.invis _)) = .invis _; rw [T_uf])]
+  -- Goal: (▷(NotRet dl) ∨ ▷(IsRetStuck dl)) ∧ ▷(Recur 1 of dl)
+  -- where dl = Later.hmap m _ (W.restrict (fetch a) hm) : Later (T VH) m
+  cases m with
+  | zero =>
+    -- ▷ at level 0 is trivially True for both halves.
+    refine ⟨Or.inl ?_, ?_⟩ <;> trivial
+  | succ k =>
+    -- dl at level k: by restrict_later_next' + D_unfold_restrict + D_fold_unfold,
+    -- this reduces to match (W.restrict μ (k≤k+1)).get? a with
+    --   | some d => T.invis (Later.hmap k ... d)
+    --   | none => T.ret stuck.
+    -- Both cases satisfy NotRet ∨ IsRetStuck:
+    --   • some → T.invis: NotRet is True (.invis ≠ .ret).
+    --   • none → T.ret stuck: IsRetStuck is True.
+    -- For Recur 1 of dl: at S=1, the .invis case further recurses with j=0,
+    -- and the .ret case is RetGoodP at stuck (vacuous fn/con conds + heap).
+    have hk : k ≤ n := Nat.le_of_succ_le hm
+    refine ⟨?_, ?_⟩
+    · -- (NotRet ∨ IsRetStuck) at level k+1.
+      simp only [Later.prop_succ, Later.map, Later.hmap]
+      -- TODO: reduce Later.hmap + fetch a's restriction + D_unfold to a match,
+      -- then case on heap state at a.
+      sorry
+    · -- ▷(Recur 1 of dl) at level k+1.
+      simp only [Later.prop_succ, Later.ap'_succ, Later.next_succ,
+                 World.Const.restrictStep_eq]
+      sorry
 
 end NewIdea
 
