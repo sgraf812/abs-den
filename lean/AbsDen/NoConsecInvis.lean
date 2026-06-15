@@ -752,6 +752,36 @@ theorem TraceGoodP_mono_S :
         exact ih (n := k) (World.restrict RetGoodP hkn) k (Nat.le_refl _) j₁ j₂
                   (by omega) (Nat.le_refl _) dl h_rec
 
+/-- Heap-entry-wise monotonicity in budget: a heap good at S₁ is good at S₂
+    when S₁ ≤ S₂, because each entry's TraceGoodP-witness lifts via
+    `TraceGoodP_mono_S`. The two-`Later.ap'` form lines up with the
+    `GoodPBody` body's heap-cond shape. -/
+theorem Param_Heap_GoodP_mono {n m : Nat} (hm : m ≤ n)
+    (μ : Heap (▹ D) m) (S₁ S₂ : Nat) (hS : S₁ ≤ S₂)
+    (h : Parametric.Heap (Later.ap' m
+            (World.restrict (Later.next (loeb GoodPBody : world(Nat → D → Prop) n)) hm)
+            (Later.next S₁)) μ) :
+    Parametric.Heap (Later.ap' m
+            (World.restrict (Later.next (loeb GoodPBody : world(Nat → D → Prop) n)) hm)
+            (Later.next S₂)) μ := by
+  intro a dl h_get
+  have h_at := h a dl h_get
+  cases m with
+  | zero => trivial
+  | succ M =>
+    have hM : M ≤ n := Nat.le_of_succ_le hm
+    rw [Later_next_GoodP_restrict hm] at h_at ⊢
+    -- ▷ strips at level M+1.
+    simp only [Later.prop_succ, Later.ap'_succ, Later.next_succ,
+               World.Const.restrictStep_eq] at h_at ⊢
+    -- Now: GoodP M ⋯ S₁ M ⋯ dl → GoodP M ⋯ S₂ M ⋯ dl.
+    -- Unfold loeb body in both, then lift TraceGoodP via TraceGoodP_mono_S.
+    unfold GoodP at h_at ⊢
+    rw [loeb.eq GoodPBody_natural] at h_at ⊢
+    intro μ' h_heap'
+    have h_at' := h_at μ' h_heap'
+    exact TraceGoodP_mono_S _ _ _ _ S₁ S₂ hS _ _ h_at'
+
 /-! ## Forgetful map: `TraceGoodP → NCI 2` (reset budget hard-coded at 2). -/
 
 theorem TraceGoodP_implies_NCI :
@@ -1047,9 +1077,9 @@ noncomputable def good : LR D where
     · intro K ds hg
       rw [Value_F_Rep_restrict_stuck] at hg
       nomatch hg
-    · -- heap-cond: input is Param.Heap (Recur 1) μ, output needs Param.Heap (Recur 2) μ.
-      -- Requires monotonicity Recur 1 ⊆ Recur 2 at the heap-entry predicate.
-      sorry
+    · -- Heap-cond: lift Recur 1 → Recur 2 via Param_Heap_GoodP_mono.
+      simp only [World.restrict_self]
+      exact NewIdea.Param_Heap_GoodP_mono hm μ 1 2 (by omega) h_heap
   step := by
     intro n ev d h_goodP
     rw [NewIdea.goodP_iff]
@@ -1100,9 +1130,9 @@ noncomputable def good : LR D where
       obtain ⟨g', hg'⟩ := Value_F_Rep_restrict_fn_shape _ hm
       rw [hg'] at hg
       nomatch hg
-    · -- heap-cond: input is Param.Heap (Recur 1) μ, output needs Param.Heap (Recur 2) μ.
-      -- Requires monotonicity Recur 1 ⊆ Recur 2 at the heap-entry predicate.
-      sorry
+    · -- Heap-cond: lift Recur 1 → Recur 2 via Param_Heap_GoodP_mono.
+      simp only [World.restrict_self]
+      exact NewIdea.Param_Heap_GoodP_mono hm μ 1 2 (by omega) h_heap
   con := by
     intro n K ds h_param
     rw [NewIdea.goodP_iff 0]
@@ -1129,9 +1159,9 @@ noncomputable def good : LR D where
       nomatch hg
     · -- con-cond: derive from Parametric.Con hypothesis
       sorry
-    · -- heap-cond: input is Param.Heap (Recur 1) μ, output needs Param.Heap (Recur 2) μ.
-      -- Requires monotonicity Recur 1 ⊆ Recur 2 at the heap-entry predicate.
-      sorry
+    · -- Heap-cond: lift Recur 1 → Recur 2 via Param_Heap_GoodP_mono.
+      simp only [World.restrict_self]
+      exact NewIdea.Param_Heap_GoodP_mono hm μ 1 2 (by omega) h_heap
   app_closed := by sorry
   case_closed := by sorry
   bind_closed := by
