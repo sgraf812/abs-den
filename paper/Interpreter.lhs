@@ -56,6 +56,10 @@ instance Show ValueVInit where
   show (FunVInit _) = "\\lambda"
   show (ConVInit k _) = "\\mathit{Con}(" ++ show k ++ ")"
   show StuckVInit = "\\lightning"
+instance Show ValueValue where
+  show (FunValue _) = "\\lambda"
+  show (ConValue k _) = "\\mathit{Con}(" ++ show k ++ ")"
+  show StuckValue = "\\lightning"
 instance Show (TNeed a) where
   show _ = "\\wild"
 instance Show (TVInit a) where
@@ -733,7 +737,7 @@ mutable heap, thus sharing its representation with |DNeed|.
 
 \begin{figure}
 \begin{code}
-evalValue e ρ = eval e ρ
+evalValue e ρ = eval e ρ :: DValue
 
 ifPoly(data Event = ... | Let2)
 ifPoly(data ValueValue = Stuck | Fun (DValue -> DValue) | Con Tag [DValue])
