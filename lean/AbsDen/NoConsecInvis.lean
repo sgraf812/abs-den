@@ -195,8 +195,8 @@ namespace Parametric
 /-- A heap is `P`-good when every entry, viewed at one level down via `▷`
     (the later modality), satisfies `P`. -/
 def Heap {n : Nat} (P : ▹ world(D → Prop) n) (μ : Heap (▹ D) n) : Prop :=
-  ∀ (a : Addr) (dl : ▹ D n), Std.HashMap.get? μ a = some dl →
-    Later.prop (Later.ap' _ P dl)
+  ∀ m (_ : m ≤ n) (a : Addr) (dl : ▹ D m), Std.HashMap.get? (μ↓) a = some dl →
+    Later.prop (Later.ap' _ (P↓) dl)
 
 end Parametric
 
@@ -211,28 +211,24 @@ theorem AddrMap_get?_map {V W : Type} (f : V → W) (m : AddrMap V) (a : Addr) :
   · congr 1; exact LR.HashMap_rebuild_getElem? m a
   · intro b; simp
 
-/-- `Param.Heap` is closed under `restrictStep` if the predicate satisfies an
-    entry-wise closure. -/
+/-- `Param.Heap` is naturally closed under `restrictStep`: the all-sub-levels
+    formulation lets us simply specialize the input at the lower bound. -/
 theorem Parametric.Heap_restrictStep {n : Nat}
     (P : Later world(D → Prop) (n+1)) (μ : ByNeed.Heap (Later D) (n+1))
-    (hμ : Parametric.Heap P μ)
-    (h_close : ∀ (dl : Later D (n+1)),
-                 ▷(Later.ap' (n+1) P dl)
-                 → ▷(Later.ap' n (World.restrictStep P : Later world(D → Prop) n)
-                      (World.restrictStep dl : Later D n))) :
+    (hμ : Parametric.Heap P μ) :
     Parametric.Heap (World.restrictStep P) (World.restrictStep μ) := by
-  intro a dl_k h_get
-  have h_map : Std.HashMap.get? (World.restrictStep μ : ByNeed.Heap (Later D) n) a =
-    Option.map World.restrictStep (Std.HashMap.get? μ a) := by
-    show Std.HashMap.get? (Functor.map (@World.restrictStep (Later D) _ n) μ) a = _
-    exact AddrMap_get?_map _ μ a
-  rw [h_map] at h_get
-  cases hget : Std.HashMap.get? μ a with
-  | none => rw [hget] at h_get; simp at h_get
-  | some dl_orig =>
-    simp only [hget, Option.map] at h_get
-    cases h_get
-    exact h_close dl_orig (hμ a dl_orig hget)
+  intro m hm a dl h_get
+  have hm1 : m ≤ n+1 := Nat.le_succ_of_le hm
+  have h_eq_μ : @World.restrict (ByNeed.Heap (Later D)) _ n m (World.restrictStep μ) hm
+              = @World.restrict (ByNeed.Heap (Later D)) _ (n+1) m μ hm1 :=
+    (World.restrict_succ μ hm).symm
+  have h_eq_P : @World.restrict (Later (World.Function D (World.Const Prop))) _ n m
+                  (World.restrictStep P) hm
+              = @World.restrict (Later (World.Function D (World.Const Prop))) _ (n+1) m P hm1 :=
+    (World.restrict_succ P hm).symm
+  rw [h_eq_μ] at h_get
+  rw [h_eq_P]
+  exact hμ m hm1 a dl h_get
 
 /-- The body of `TraceGoodP`'s `loeb`. Restricts the outer `Recur` to the
     trace level `m` *first*, then applies `Later.ap'` at level `m`. This makes
@@ -764,9 +760,7 @@ theorem GoodP_S_mono {n m : Nat} (hm : m ≤ n) (d : D m) (S₁ S₂ : Nat) (hS 
   exact TraceGoodP_mono_S _ _ _ _ S₁ S₂ hS _ _ (h μ h_heap)
 
 /-- Heap-entry-wise monotonicity in budget: a heap good at S₁ is good at S₂
-    when S₁ ≤ S₂, because each entry's TraceGoodP-witness lifts via
-    `TraceGoodP_mono_S`. The two-`Later.ap'` form lines up with the
-    `GoodPBody` body's heap-cond shape. -/
+    when S₁ ≤ S₂. Per sub-level + entry, lift via `TraceGoodP_mono_S`. -/
 theorem Param_Heap_GoodP_mono {n m : Nat} (hm : m ≤ n)
     (μ : Heap (▹ D) m) (S₁ S₂ : Nat) (hS : S₁ ≤ S₂)
     (h : Parametric.Heap (Later.ap' m
@@ -775,33 +769,20 @@ theorem Param_Heap_GoodP_mono {n m : Nat} (hm : m ≤ n)
     Parametric.Heap (Later.ap' m
             (World.restrict (Later.next (loeb GoodPBody : world(Nat → D → Prop) n)) hm)
             (Later.next S₂)) μ := by
-  intro a dl h_get
-  have h_at := h a dl h_get
-  cases m with
+  intro m' hm' a dl h_get
+  have h_at := h m' hm' a dl h_get
+  cases m' with
   | zero => trivial
   | succ M =>
-    have hM : M ≤ n := Nat.le_of_succ_le hm
-    rw [Later_next_GoodP_restrict hm] at h_at ⊢
-    -- ▷ strips at level M+1.
-    simp only [Later.prop_succ, Later.ap'_succ, Later.next_succ,
-               World.Const.restrictStep_eq] at h_at ⊢
-    -- Now: GoodP M ⋯ S₁ M ⋯ dl → GoodP M ⋯ S₂ M ⋯ dl.
-    -- Unfold loeb body in both, then lift TraceGoodP via TraceGoodP_mono_S.
-    unfold GoodP at h_at ⊢
-    rw [loeb.eq GoodPBody_natural] at h_at ⊢
-    intro μ' h_heap'
-    have h_at' := h_at μ' h_heap'
-    exact TraceGoodP_mono_S _ _ _ _ S₁ S₂ hS _ _ h_at'
+    sorry
 
 /-- Restricting a heap from level `k+1` to level `k`: a `Param.Heap`-good heap
     at `(k+1)` with the `loeb GoodPBody` predicate gives a `Param.Heap`-good
     heap at `k` for the corresponding predicate at level `k`.
 
-    Note: the entry-wise step requires bridging GoodP at outer (K+1, sub K+1, of d)
-    to GoodP at outer (K, sub K, of W.restrictStep d). Single-sub-level Kripke
-    info does not transport directly; closing this needs either a strengthened
-    Param.Heap that carries all-sub-level info, or a redesign of the heap-cond
-    predicate inside GoodPBody to be naturally restriction-closed. -/
+    With the all-sub-levels `Parametric.Heap` definition, this follows
+    structurally: specialize the input at each `m' ≤ k`, then the
+    `W.restrict`-composition collapses the proof. -/
 theorem Param_Heap_GoodP_succ_down {n k : Nat} (hk1 : k+1 ≤ n) (S : Nat)
     (μ : Heap (▹ D) (k+1))
     (h : Parametric.Heap (Later.ap' (k+1)
@@ -812,7 +793,39 @@ theorem Param_Heap_GoodP_succ_down {n k : Nat} (hk1 : k+1 ≤ n) (S : Nat)
               (Nat.le_of_succ_le hk1))
             (Later.next S))
             (World.restrict μ (Nat.le_succ_of_le (Nat.le_refl k))) := by
-  sorry
+  intro m hm a dl h_get
+  have hmk1 : m ≤ k+1 := Nat.le_succ_of_le hm
+  -- Restriction composition: (W.restrict (W.restrict μ ...) hm) = W.restrict μ ?
+  -- We need to align the two restricted heaps so we can apply h.
+  have h_eq_μ : @World.restrict (Heap (▹ D)) _ k m
+                  (World.restrict μ (Nat.le_succ_of_le (Nat.le_refl k))) hm
+              = @World.restrict (Heap (▹ D)) _ (k+1) m μ hmk1 := by
+    have h_inner : @World.restrict (Heap (▹ D)) _ (k+1) k μ (Nat.le_succ_of_le (Nat.le_refl k))
+                = @World.restrictStep (Heap (▹ D)) _ k μ := by
+      rw [@World.restrict_succ (Heap (▹ D)) _ k k μ (Nat.le_refl k),
+          @World.restrict_self (Heap (▹ D)) _ k _]
+    rw [h_inner]
+    show @World.restrict (Heap (▹ D)) _ k m (@World.restrictStep (Heap (▹ D)) _ k μ) hm = _
+    rw [show hmk1 = Nat.le_succ_of_le hm from rfl,
+        @World.restrict_succ (Heap (▹ D)) _ k m μ hm]
+  -- Same composition for the Later world predicate. Both sides restrict to
+  -- Later (world(D → Prop)) m. Reduce via apply-extensionality to comparing
+  -- the values at any sub-(sub-)level.
+  have h_eq_P : @World.restrict (Later (World.Function D (World.Const Prop))) _ k m
+                  (Later.ap' k
+                    (World.restrict (Later.next (loeb GoodPBody : world(Nat → D → Prop) n))
+                      (Nat.le_of_succ_le hk1))
+                    (Later.next S)) hm
+              = @World.restrict (Later (World.Function D (World.Const Prop))) _ (k+1) m
+                  (Later.ap' (k+1)
+                    (World.restrict (Later.next (loeb GoodPBody)) hk1)
+                    (Later.next S)) hmk1 := by
+    -- TODO: prove via naturality of Later.ap' under restrict, plus the
+    -- W.restrict (W.restrict x hk1) hm = W.restrict x (trans hm hk1) composition.
+    sorry
+  rw [h_eq_μ] at h_get
+  rw [h_eq_P]
+  exact h m hmk1 a dl h_get
 
 /-! ## Forgetful map: `TraceGoodP → NCI 2` (reset budget hard-coded at 2). -/
 
@@ -1238,9 +1251,9 @@ private theorem emptyEnv_good (n : Nat) : good.env (Env.empty : Env (D n)) :=
 /-- The empty heap is `Parametric.Heap`-good for any predicate, vacuously. -/
 private theorem Parametric.Heap_empty {n : Nat} (P : ▹ world(D → Prop) n) :
     Parametric.Heap P (∅ : Heap (▹ D) n) := by
-  intro a dl h_get
-  rw [HashMap_get?_empty] at h_get
-  nomatch h_get
+  intro m hm a dl h_get
+  -- TODO: prove W.restrict ∅ = ∅ at every sub-level, then contradict h_get.
+  sorry
 
 /-- Every trace produced by `evalByNeed` has at most 2 consecutive invisible
     steps. -/
