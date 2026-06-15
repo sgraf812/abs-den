@@ -797,13 +797,27 @@ noncomputable def good : LR D where
           NewIdea.TraceGoodPBody_restrictStep_RetGoodP,
           NewIdea.RetGoodP_restrictStep]
       -- Goal: loeb (TGB (RetGoodP (restrictStep (_Recur_m 2)))) k _ 2 k _ tl_k
-      -- = TraceGoodP at level k with S=2 of (D.invis fetch a)'s trace at level k.
-      -- Next layer: the trace is T.invis (fetch a content), so .invis case at
-      -- steps=2 (j=1): needs NotRet ∨ IsRetStuck of dl, and Recur 1 of dl.
-      -- Inner layer: fetch a's content at level k-1 is .invis (heap hit) or .ret
-      -- stuck (miss). Both satisfy NotRet ∨ IsRetStuck. Recur 0 of memo content.
-      -- Bottom: heap content (memo) starts visibly (.step .update), refreshing
-      -- budget to 2 — uses heap-good invariant on the entry at a.
+      -- = TraceGoodP at level k with S=2 of tl_k.
+      -- Reduce tl_k = Later.hmap (k+1) f (W.restrict (Later.next d) hm) at
+      -- level k to (W.restrict d hk).unfold k _ μ' via restrict_later_next'.
+      have hk : k ≤ n := Nat.le_of_succ_le hm
+      have h_tl : (Later.hmap (k+1) (fun i _hi (d' : D i) =>
+              d'.unfold i (Nat.le_refl i) (World.restrict μ (by omega : i ≤ k+1)))
+              (@World.restrict (Later D) _ n (k+1)
+                (Later.next (D.invis (fetch (n := n) a))) hm) : T VH k)
+            = (World.restrict (D.invis (fetch (n := n) a)) hk).unfold k (Nat.le_refl k)
+                (World.restrict μ (Nat.le_succ_of_le (Nat.le_refl k))) := by
+        show (fun (a' : D k) => a'.unfold k (Nat.le_refl k) (World.restrict μ _))
+              (@World.restrict (Later D) _ n (k+1)
+                (Later.next (D.invis (fetch (n := n) a))) hm) = _
+        congr 1
+        exact restrict_later_next' (D.invis (fetch (n := n) a)) k hm
+      rw [h_tl]
+      -- Now tl_k is (W.restrict (D.invis fetch a) hk).unfold k _ μ'.
+      -- By D_unfold_restrict + D_invis_eq, this is T.invis (Later.hmap k ...).
+      -- Then TraceGoodP at .invis case (steps=2): NotRet ∨ IsRetStuck on inner
+      -- + Recur 1 of inner. Inner is fetch a's content at level (k-1).
+      -- TODO: continue with the .invis case (heap hit vs miss) and Recur 1.
       sorry
   stuck := by
     intro n
