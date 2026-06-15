@@ -152,7 +152,7 @@ theorem step_to_Lookup (lr : LR D) {n : Nat} (ev : Event) (d : D n)
     Used to lift `Functor.map`-style restriction on `Env D` to a get?-level
     equation. -/
 
-private theorem foldl_insert_map_getElem? {V W : Type} (f : V → W)
+theorem foldl_insert_map_getElem? {V W : Type} (f : V → W)
     (l : List (Nat × V))
     (acc_f : Std.HashMap Nat W) (acc_v : Std.HashMap Nat V)
     (hinv : ∀ a : Nat, (acc_f[a]? : Option W) = Option.map f (acc_v[a]? : Option V))
@@ -212,7 +212,7 @@ private theorem findSomeRev?_toList_eq_getElem? {V : Type} (m : Std.HashMap Nat 
       exact hdist.imp (fun {a b} h => by rw [BEq.comm]; exact h)
     exact findSome?_key_lookup (List.mem_reverse.mpr hmem_list) hdist_rev
 
-private theorem HashMap_rebuild_getElem? {V : Type} (m : Std.HashMap Nat V) (a : Nat) :
+theorem HashMap_rebuild_getElem? {V : Type} (m : Std.HashMap Nat V) (a : Nat) :
     (m.toList.foldl (fun (acc : Std.HashMap Nat V) (p : Nat × V) => acc.insert p.1 p.2) ∅)[a]? =
     m[a]? := by
   rw [foldl_insert_eq_insertMany, Std.HashMap.getElem?_insertMany_list,

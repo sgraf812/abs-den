@@ -173,6 +173,40 @@ def Heap {n : Nat} (P : ▹ world(D → Prop) n) (μ : Heap (▹ D) n) : Prop :=
 
 end Parametric
 
+/-- HashMap.get? commutes with Functor.map on AddrMap. -/
+theorem AddrMap_get?_map {V W : Type} (f : V → W) (m : AddrMap V) (a : Addr) :
+    Std.HashMap.get? (Functor.map f m : AddrMap W) a =
+    Option.map f (Std.HashMap.get? m a) := by
+  simp only [Std.HashMap.get?_eq_getElem?]
+  show (Std.HashMap.fold (fun (acc : Std.HashMap Nat W) k v => acc.insert k (f v)) ∅ m)[a]? = _
+  rw [Std.HashMap.fold_eq_foldl_toList]
+  rw [LR.foldl_insert_map_getElem?]
+  · congr 1; exact LR.HashMap_rebuild_getElem? m a
+  · intro b; simp
+
+/-- `Param.Heap` is closed under `restrictStep` if the predicate satisfies an
+    entry-wise closure. -/
+theorem Parametric.Heap_restrictStep {n : Nat}
+    (P : Later world(D → Prop) (n+1)) (μ : ByNeed.Heap (Later D) (n+1))
+    (hμ : Parametric.Heap P μ)
+    (h_close : ∀ (dl : Later D (n+1)),
+                 ▷(Later.ap' (n+1) P dl)
+                 → ▷(Later.ap' n (World.restrictStep P : Later world(D → Prop) n)
+                      (World.restrictStep dl : Later D n))) :
+    Parametric.Heap (World.restrictStep P) (World.restrictStep μ) := by
+  intro a dl_k h_get
+  have h_map : Std.HashMap.get? (World.restrictStep μ : ByNeed.Heap (Later D) n) a =
+    Option.map World.restrictStep (Std.HashMap.get? μ a) := by
+    show Std.HashMap.get? (Functor.map (@World.restrictStep (Later D) _ n) μ) a = _
+    exact AddrMap_get?_map _ μ a
+  rw [h_map] at h_get
+  cases hget : Std.HashMap.get? μ a with
+  | none => rw [hget] at h_get; simp at h_get
+  | some dl_orig =>
+    simp only [hget, Option.map] at h_get
+    cases h_get
+    exact h_close dl_orig (hμ a dl_orig hget)
+
 /-- The body of `TraceGoodP`'s `loeb`. Restricts the outer `Recur` to the
     trace level `m` *first*, then applies `Later.ap'` at level `m`. This makes
     the body Kripke-natural across outer levels: the body's value at the
