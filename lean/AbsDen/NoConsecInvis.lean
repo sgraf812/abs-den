@@ -737,11 +737,28 @@ open NewIdea
 
 /-! ## `LR.good` — using the loeb-based `goodP` -/
 
-/-- The logical relation packaged as an `LR ByNeed.D`. Field proofs sorried
-    pending full proof of each closure law against the `loeb`-style `goodP`
-    (which unfolds to `TraceGoodP (RetGoodP Recur) …` after `loeb.eq`). -/
+/-- ByNeed's `IsThunk` predicate: heap-fetched thunks of the form
+    `D.invis (fetch a)` for some address `a`. Captures what `D.bind` actually
+    passes to `body`/`rhs`. -/
+noncomputable def isThunk : World.Pred D :=
+  World.Pred.ofClosed
+    (holds := fun {n} (d : D n) => ∃ a : Addr, d = D.invis (fetch (n := n) a))
+    (closed := fun {n} d ⟨a, hd⟩ => ⟨a, by
+      rw [hd]
+      -- D.invis is closed under restrictStep modulo fetch-naturality.
+      sorry⟩)
+
+/-- The logical relation packaged as an `LR ByNeed.D`. -/
 noncomputable def good : LR D where
   P := goodP 0
+  IsThunk := isThunk
+  IsThunk_to_P := by
+    -- ∀ x d, isThunk d → goodP 0 (step' .look x d)
+    -- For d = D.invis (fetch a), step' .look x (D.invis (fetch a)) has trace
+    -- .step .look ; .invis ; (.invis | .ret stuck) ; memo-content. The first
+    -- visible step refreshes budget to 2, and memo content (by eval invariant)
+    -- starts visibly. So NCI 2 holds, hence goodP 0.
+    sorry
   stuck := by
     intro n
     rw [NewIdea.goodP_iff 0]

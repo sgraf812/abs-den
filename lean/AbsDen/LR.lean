@@ -4,18 +4,18 @@ import AbsDen.Trace
 /-! ## Standalone `IsLookup` -/
 
 /-- The "look-step-wrapped P-value" predicate, taking a raw `Prop`-family
-    predicate. Suitable for use inside mutual recursion where the recursive
-    predicate isn't yet packaged as a `World.Pred`. -/
+    predicate. `d` must be `P`-good itself and of `step' (.look x) _` shape;
+    the inner witness `d'` is just a shape witness, not required to be `P`. -/
 def IsLookup_holds {D : Nat → Type} [Domain D]
     {n : Nat} (P : D n → Prop) (d : D n) : Prop :=
-  ∃ x d', d = Domain.step' (.look x) d' ∧ P d'
+  P d ∧ ∃ x d', d = Domain.step' (.look x) d'
 
 /-- `IsLookup P` is closed under `World.restrictStep`. -/
 theorem IsLookup_holds_closed {D : Nat → Type} [Domain D] (P : World.Pred D)
     {n : Nat} (x : D (n+1)) (hx : IsLookup_holds P.holds x) :
     IsLookup_holds P.holds (World.restrictStep x) := by
-  obtain ⟨v, y, hx_eq, hPy⟩ := hx
-  refine ⟨v, World.restrictStep y, ?_, P.closed y hPy⟩
+  obtain ⟨hPx, v, y, hx_eq⟩ := hx
+  refine ⟨P.closed x hPx, v, World.restrictStep y, ?_⟩
   rw [hx_eq]
   exact (Domain.natural_step (.look v) y).symm
 
@@ -83,6 +83,17 @@ structure LR (D : Nat → Type) [Domain D] where
   /-- Computation-side sub-presheaf of `D`. -/
   P : World.Pred D
 
+  /-- Thunk-shape predicate: values that body/rhs in `bind_closed` receive as
+      input. For ByName this is just `IsLookup`-shape; for ByNeed it captures
+      heap-fetched thunks (`D.invis (fetch a)`-style). -/
+  IsThunk : World.Pred D
+
+  /-- Coherence: wrapping a thunk with `step' (.look x)` yields a `P`-good
+      value. This lets `env_bind` extend a good env with a `step' .look`-wrap
+      of a thunk-shaped value. -/
+  IsThunk_to_P : ∀ {n : Nat} (x : Var) (d : D n),
+    IsThunk.holds d → P.holds (Domain.step' (.look x) d)
+
   /-- `Domain.stuck` is a `P`. -/
   stuck : ∀ {n : Nat}, P.holds (Domain.stuck (D := D) (n := n))
 
@@ -114,12 +125,14 @@ structure LR (D : Nat → Type) [Domain D] where
         Parametric.Con P ds → P.holds (f m hm ds)) →
     P.holds (Domain.step' .case1 (Domain.select' dv alts))
 
-  /-- `Domain.bind'` closure: both `rhs` and `body` are `Parametric.Fn P`-good. -/
+  /-- `Domain.bind'` closure: both `rhs` and `body` produce `P`-good output
+      given `IsThunk`-good input. The thunk shape is what `D.bind` actually
+      passes (e.g. `D.invis (fetch a)` for ByNeed). -/
   bind_closed : ∀ {n : Nat} (rhs body : World.Function D D n),
     (∀ (m : Nat) (hm : m ≤ n) (d : D m),
-      P.holds d → P.holds (rhs m hm d)) →
+      IsThunk.holds d → P.holds (rhs m hm d)) →
     (∀ (m : Nat) (hm : m ≤ n) (d : D m),
-      P.holds d → P.holds (body m hm d)) →
+      IsThunk.holds d → P.holds (body m hm d)) →
     P.holds (Domain.step' .let1 (Domain.bind' rhs body))
 
 namespace LR
@@ -133,17 +146,16 @@ variable {D : Nat → Type} [Domain D]
     (IsLookup P).holds x ↔ IsLookup_holds P.holds x := by
   unfold IsLookup; exact World.Pred.ofClosed_holds _ _ x
 
-/-- Forcing a `Lookup` produces a `P`: from `x = step' (.look v) y ∧ P y`,
-    apply step-closure to recover `P x`. -/
-theorem IsLookup_to_P (lr : LR D) {n : Nat} (d : D n)
-    (h : IsLookup_holds lr.P.holds d) : lr.P.holds d := by
-  obtain ⟨v, y, hd_eq, hPy⟩ := h
-  rw [hd_eq]; exact lr.step (.look v) y hPy
+/-- Forcing a `Lookup` produces a `P`: with the new shape, `P d` is already
+    part of `IsLookup_holds P d`, so this is just projection. -/
+theorem IsLookup_to_P {n : Nat} {D : Nat → Type} [Domain D] {P : D n → Prop}
+    (d : D n) (h : IsLookup_holds P d) : P d := h.1
 
-/-- `step' (.look v)`-wrapping a `P`-value yields a `Lookup`: the witnesses are immediate. -/
+/-- `step' (.look v)`-wrapping a `P`-value yields a `Lookup`: by step closure
+    `P d → P (step' (.look v) d)`, plus the shape witness is immediate. -/
 theorem look_to_Lookup (lr : LR D) {n : Nat} (v : Var) (d : D n)
     (h : lr.P.holds d) : IsLookup_holds lr.P.holds (Domain.step' (.look v) d) :=
-  ⟨v, d, rfl, h⟩
+  ⟨lr.step (.look v) d h, v, d, rfl⟩
 
 /-! ## HashMap-level helpers (private)
 
@@ -316,7 +328,7 @@ theorem fundamental (lr : LR D) :
     simp only [eval]
     cases h : ρ.find? x with
     | none => exact lr.stuck
-    | some d => exact lr.IsLookup_to_P d (hρ x d h)
+    | some d => exact IsLookup_to_P d (hρ x d h)
   | .conapp K xs, n, ρ, hρ => by
     simp only [eval]
     cases h : ρ.pmapList xs with
@@ -352,13 +364,13 @@ theorem fundamental (lr : LR D) :
   | .let' x e₁ e₂, n, ρ, hρ => by
     simp only [eval]
     apply lr.bind_closed
-    · intro m hm dx hP
+    · intro m hm dx hThunk
       apply fundamental lr e₁
-      apply env_bind lr _ _ x _ (lr.look_to_Lookup x dx hP)
+      apply env_bind lr _ _ x _ ⟨lr.IsThunk_to_P x dx hThunk, x, dx, rfl⟩
       exact env_world_restrict lr ρ hρ hm
-    · intro m hm dx hP
+    · intro m hm dx hThunk
       apply fundamental lr e₂
-      apply env_bind lr _ _ x _ (lr.look_to_Lookup x dx hP)
+      apply env_bind lr _ _ x _ ⟨lr.IsThunk_to_P x dx hThunk, x, dx, rfl⟩
       exact env_world_restrict lr ρ hρ hm
 termination_by e _ _ _ => sizeOf e
 decreasing_by
@@ -372,6 +384,8 @@ decreasing_by
 /-- The trivial logical relation: `P` always true. -/
 def trivial : LR D where
   P := World.Pred.ofClosed (fun _ => True) (fun _ _ => True.intro)
+  IsThunk := World.Pred.ofClosed (fun _ => True) (fun _ _ => True.intro)
+  IsThunk_to_P := fun _ _ _ => by simp
   stuck := by simp
   step := fun _ _ _ => by simp
   fn := fun _ _ => by simp
