@@ -731,6 +731,26 @@ theorem TraceGoodP_implies_NCI :
         rw [h_bridge] at h_rec
         exact ih (n := k) (World.restrict RetGoodP hkn) k (Nat.le_refl _) j (Nat.le_refl _) dl h_rec
 
+/-- Helper: `D.invis (fetch a)`'s trace at level `m` is `TraceGoodP`-good at
+    `S=2`, given the heap is good with entries satisfying the `NCI 1`
+    projection of the outer GoodP loeb. The trace structure is
+    `.invis ; (.invis ∣ .ret stuck) ; memo-content`, and the heap-good
+    invariant on entry `a` gives the memo content `NCI 0` goodness. -/
+theorem TraceGoodP_D_invis_fetch {n : Nat} (a : Addr)
+    {m : Nat} (hm : m ≤ n) (μ : Heap (▹ D) m)
+    (h_heap : Parametric.Heap
+                (Later.ap' m
+                  (World.restrict (Later.next (loeb GoodPBody) :
+                                    ▹ world(Nat → D → Prop) n) hm)
+                  (Later.next (1 : Nat))) μ) :
+    TraceGoodP
+      (RetGoodP (Later.ap' m
+                  (World.restrict (Later.next (loeb GoodPBody)) hm)
+                  (Later.next (2 : Nat))))
+      m (Nat.le_refl _) (2 : Nat) m (Nat.le_refl _)
+      ((D.invis (fetch (n := n) a)).unfold m hm μ) := by
+  sorry
+
 end NewIdea
 
 open NewIdea
@@ -792,14 +812,9 @@ noncomputable def good : LR D where
     | succ k =>
       simp only [Later.prop_succ, Later.ap'_succ, Later.next_succ,
                  World.restrict_self, World.Const.restrictStep_eq]
-      -- Reduce restrictStep (loeb _) via loeb naturality + RetGoodP_restrictStep.
       rw [restrictStep_loeb_eq_loeb_restrictStep NewIdea.TraceGoodPBody_natural,
           NewIdea.TraceGoodPBody_restrictStep_RetGoodP,
           NewIdea.RetGoodP_restrictStep]
-      -- Goal: loeb (TGB (RetGoodP (restrictStep (_Recur_m 2)))) k _ 2 k _ tl_k
-      -- = TraceGoodP at level k with S=2 of tl_k.
-      -- Reduce tl_k = Later.hmap (k+1) f (W.restrict (Later.next d) hm) at
-      -- level k to (W.restrict d hk).unfold k _ μ' via restrict_later_next'.
       have hk : k ≤ n := Nat.le_of_succ_le hm
       have h_tl : (Later.hmap (k+1) (fun i _hi (d' : D i) =>
               d'.unfold i (Nat.le_refl i) (World.restrict μ (by omega : i ≤ k+1)))
@@ -812,12 +827,11 @@ noncomputable def good : LR D where
                 (Later.next (D.invis (fetch (n := n) a))) hm) = _
         congr 1
         exact restrict_later_next' (D.invis (fetch (n := n) a)) k hm
-      rw [h_tl]
-      -- Now tl_k is (W.restrict (D.invis fetch a) hk).unfold k _ μ'.
-      -- By D_unfold_restrict + D_invis_eq, this is T.invis (Later.hmap k ...).
-      -- Then TraceGoodP at .invis case (steps=2): NotRet ∨ IsRetStuck on inner
-      -- + Recur 1 of inner. Inner is fetch a's content at level (k-1).
-      -- TODO: continue with the .invis case (heap hit vs miss) and Recur 1.
+      rw [h_tl, D_unfold_restrict]
+      -- Goal now: TraceGoodP _ k _ 2 k _ ((D.invis fetch a).unfold k hk μ_k)
+      -- Apply the helper TraceGoodP_D_invis_fetch.
+      -- TODO: bridge restrictStep (_Recur_m 2) to (W.restrict (Later.next loeb) hk)-projection
+      -- and h_heap to its analog at level k via Parametric.Heap_restrictStep.
       sorry
   stuck := by
     intro n
