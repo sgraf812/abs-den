@@ -1202,11 +1202,25 @@ noncomputable def good : LR D where
         congr 1
         exact restrict_later_next' (D.invis (fetch (n := n) a)) k hm
       rw [h_tl, D_unfold_restrict]
-      -- Goal now: TraceGoodP _ k _ 2 k _ ((D.invis fetch a).unfold k hk μ_k)
-      -- Apply the helper TraceGoodP_D_invis_fetch.
-      -- TODO: bridge restrictStep (_Recur_m 2) to (W.restrict (Later.next loeb) hk)-projection
-      -- and h_heap to its analog at level k via Parametric.Heap_restrictStep.
-      sorry
+      -- Goal: loeb (TraceGoodPBody (RetGoodP (W.restrictStep (_Recur_m 2)))) k _ 2 k _
+      --        ((D.invis (fetch a)).unfold k hk μ_k).
+      -- Bridge `W.restrictStep (_Recur_m 2)` to `Later.ap' k (W.restrict ... hk) (Later.next 2)`
+      -- via Later_ap'_W_restrictStep_GoodP, then apply TraceGoodP_D_invis_fetch.
+      show loeb (NewIdea.TraceGoodPBody (NewIdea.RetGoodP
+              (World.restrictStep (Later.ap' (k+1)
+                (World.restrict (Later.next (loeb NewIdea.GoodPBody
+                  : world(Nat → D → Prop) n)) hm)
+                (Later.next (2 : Nat)))))) k _ (2 : Nat) k _
+            ((D.invis (fetch (n := n) a)).unfold k _
+              (World.restrict μ (Nat.le_succ_of_le (Nat.le_refl k))))
+      rw [NewIdea.Later_ap'_W_restrictStep_GoodP hm hk (2 : Nat)]
+      -- h_heap at level k+1 restricts to a (Recur 1)-good heap at level k.
+      have h_heap_at_k : Parametric.Heap (Later.ap' k
+              (World.restrict (Later.next (loeb NewIdea.GoodPBody :
+                world(Nat → D → Prop) n)) hk) (Later.next (1 : Nat)))
+              (World.restrict μ (Nat.le_succ_of_le (Nat.le_refl k))) :=
+        NewIdea.Param_Heap_GoodP_succ_down hm 1 μ h_heap
+      exact NewIdea.TraceGoodP_D_invis_fetch a hk _ h_heap_at_k
   stuck := by
     intro n
     rw [NewIdea.goodP_iff 0]
