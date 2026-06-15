@@ -764,7 +764,8 @@ theorem GoodP_S_mono {n m : Nat} (hm : m ≤ n) (d : D m) (S₁ S₂ : Nat) (hS 
     `W.restrict`. Provable directly via `Later_next_GoodP_restrict` + body
     invariance of `GoodPBody` in `m_outer`. The right-hand side encodes the
     "restricted" predicate at the lower level. -/
-theorem Later_ap'_W_restrict_GoodP {n m m' : Nat} (hm : m ≤ n) (hm' : m' ≤ m) (S : Nat) :
+theorem Later_ap'_W_restrict_GoodP {n : Nat} : ∀ {m m' : Nat}
+    (hm : m ≤ n) (hm' : m' ≤ m) (S : Nat),
     @World.restrict (Later (World.Function D (World.Const Prop))) _ m m'
       (Later.ap' m
         (World.restrict (Later.next (loeb GoodPBody : world(Nat → D → Prop) n)) hm)
@@ -773,9 +774,64 @@ theorem Later_ap'_W_restrict_GoodP {n m m' : Nat} (hm : m ≤ n) (hm' : m' ≤ m
         (World.restrict (Later.next (loeb GoodPBody : world(Nat → D → Prop) n))
           (Nat.le_trans hm' hm))
         (Later.next S) := by
-  -- TODO: by induction on the gap between `m` and `m'`, using
-  -- `Later.ap'_restrictStep` + `World.restrictStep_restrict'`.
-  sorry
+  intro m
+  induction m with
+  | zero =>
+    intro m' hm hm' S
+    have : m' = 0 := Nat.le_zero.mp hm'; subst this
+    rfl
+  | succ M ih =>
+    intro m' hm hm' S
+    by_cases hmn : m' = M+1
+    · subst hmn
+      rw [@World.restrict_self (Later (World.Function D (World.Const Prop))) _ (M+1)]
+    · have hm'' : m' ≤ M := by omega
+      have hM : M ≤ n := Nat.le_of_succ_le hm
+      have heq : hm' = Nat.le_succ_of_le hm'' := rfl
+      rw [heq, @World.restrict_succ (Later (World.Function D (World.Const Prop))) _ M m' _ hm'']
+      -- W.restrictStep on Later.ap'_(M+1): commutes — TODO via the natural
+      -- property of the inner predicate.
+      have h_step : (World.restrictStep (Later.ap' (M+1)
+                        (World.restrict (Later.next (loeb GoodPBody : world(Nat → D → Prop) n)) hm)
+                        (Later.next S))
+                    : Later (World.Function D (World.Const Prop)) M)
+                  = Later.ap' M
+                      (World.restrict (Later.next (loeb GoodPBody)) hM)
+                      (Later.next S) := by
+        cases M with
+        | zero => rfl
+        | succ K =>
+          -- Both sides reduce to world(D → Prop) K. Compare pointwise.
+          funext k' hk' d
+          -- LHS k' hk' d = W.restrictStep applied to Later.ap' (K+2) result.
+          -- By Later.ap'_succ + W.Function.restrictStep_eq, LHS reduces to
+          -- f (K+1) _ S k' (Nat.le_succ_of_le hk') d where f = W.restrict (Later.next loeb) hm.
+          -- RHS k' hk' d = Later.ap' (K+1) f' (Later.next S) at k' hk' d
+          --              = f' K (Nat.le_refl K) S k' hk' d where f' = W.restrict (Later.next loeb) hM.
+          -- By Later_next_GoodP_restrict, f = GoodP at K+1 and f' = GoodP at K.
+          -- By GoodP_restrictStep + body invariance of GoodPBody, LHS = RHS.
+          rw [Later_next_GoodP_restrict hm, Later_next_GoodP_restrict hM]
+          -- Goal: W.restrictStep (Later.ap' (K+2) (GoodP at K+1) (Later.next S)) k' hk' d
+          --     = Later.ap' (K+1) (GoodP at K) (Later.next S) k' hk' d.
+          show World.restrictStep ((GoodP : world(Nat → D → Prop) (K+1)) (K+1)
+                  (Nat.le_refl (K+1)) S) k' hk' d
+              = (GoodP : world(Nat → D → Prop) K) K (Nat.le_refl K) S k' hk' d
+          rw [show (GoodP : world(Nat → D → Prop) K)
+                = World.restrictStep (GoodP : world(Nat → D → Prop) (K+1)) from
+              GoodP_restrictStep.symm]
+          -- Both sides now W.restrictStep on the same GoodP.
+          show ((GoodP : world(Nat → D → Prop) (K+1)) (K+1) _ S) k' (Nat.le_succ_of_le hk') d
+              = ((GoodP : world(Nat → D → Prop) (K+1)) K (Nat.le_succ_of_le (Nat.le_refl K)) S) k' hk' d
+          -- By body invariance of GoodPBody in m_outer (the M_outer arg),
+          -- (GoodP at K+1) M_outer _ S k' _ d is independent of M_outer.
+          unfold GoodP
+          rw [loeb.eq GoodPBody_natural]
+          rfl
+      rw [h_step]
+      have h_proof : Nat.le_trans hm' hm = Nat.le_trans hm'' hM :=
+        Subsingleton.elim _ _
+      rw [h_proof]
+      exact ih hM hm'' S
 
 /-- Heap-entry-wise monotonicity in budget: a heap good at S₁ is good at S₂
     when S₁ ≤ S₂. Per sub-level + entry, lift via `TraceGoodP_mono_S`. -/
@@ -845,13 +901,16 @@ theorem Param_Heap_GoodP_succ_down {n k : Nat} (hk1 : k+1 ≤ n) (S : Nat)
     -- Later (W.Const Prop) 0 = PUnit; ▷ at 0 is True.
     trivial
   | succ M =>
-    -- ▷ at level M+1 strips to inner Prop. Both LHS and RHS reduce, via
-    -- Later.ap'_succ + Later_next_GoodP_restrict, to a GoodP-application at
-    -- the same effective sub-level. They agree by body invariance of GoodPBody
-    -- in m_outer + World.restrict_proof_irrel + Later_next_GoodP_restrict.
+    have hMk : M + 1 ≤ k+1 := hmk1
+    have hMn : M + 1 ≤ n := Nat.le_trans hMk hk1
+    -- Push W.restrict through Later.ap' on both sides via the commutativity lemma.
+    rw [Later_ap'_W_restrict_GoodP (Nat.le_of_succ_le hk1) hm S] at ⊢
+    rw [Later_ap'_W_restrict_GoodP hk1 hmk1 S] at h_at
     simp only [Later.prop_succ, Later.ap'_succ, Later.next_succ,
                World.Const.restrictStep_eq] at h_at ⊢
-    sorry
+    rw [Later_next_GoodP_restrict hMn] at h_at ⊢
+    -- Both reduce to (GoodP at M) M _ S M _ dl — equal.
+    exact h_at
 
 /-! ## Forgetful map: `TraceGoodP → NCI 2` (reset budget hard-coded at 2). -/
 
