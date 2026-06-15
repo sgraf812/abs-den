@@ -1127,16 +1127,19 @@ noncomputable def good : LR D where
         exact restrict_later_next' d k hm
       rw [h_tl]
       -- Now: TraceGoodP (RetGoodP (W.restrict (Recur 2))) k _ 2 k _ ((W.restrict d hk).unfold k _ μ_k)
-      -- Use h_goodP : goodP_holds 0 d at sub-level k.
+      -- Use h_goodP : goodP_holds 0 d at sub-level k, then lift S=0 → S=2.
       rw [NewIdea.goodP_iff 0] at h_goodP
-      have h_at_k := h_goodP k hk
-      -- h_at_k : GoodP n k hk 0 k _ (W.restrict d hk).
-      -- We need: TraceGoodP at S=2 of (W.restrict d hk).unfold k _ μ_k.
-      -- Path: h_at_k unfolds to "∀ μ, heap-cond → TraceGoodP at S=0";
-      -- apply at μ_k and a (Recur 1)-good heap (obtained from h_heap via
-      -- Param_Heap_GoodP_mono — but h_heap is at level k+1, not k).
-      -- TODO: construct (Recur 1)-good heap at level k from h_heap, then
-      -- apply h_at_k, then lift S=0 → S=2 via TraceGoodP_mono_S.
+      have h_at_k : (NewIdea.GoodP : world(Nat → D → Prop) n) k hk
+                      (2 : Nat) k (Nat.le_refl k) (World.restrict d hk) :=
+        NewIdea.GoodP_S_mono hk (World.restrict d hk) 0 2 (by omega)
+          (h_goodP k hk)
+      -- Unfold GoodP body, apply at the restricted heap.
+      unfold NewIdea.GoodP at h_at_k
+      rw [loeb.eq NewIdea.GoodPBody_natural] at h_at_k
+      -- h_heap at level k+1 restricts to a (Recur 1)-good heap at level k.
+      -- TODO: bridge h_at_k (which has W.restrict (Later.next loeb) hk shape)
+      -- against the goal's W.restrictStep (_Recur_m 2) shape, plus restrict-μ
+      -- proof-irrelevance and a Param.Heap restriction from k+1 to k.
       sorry
   fn := by
     intro n f h_param
