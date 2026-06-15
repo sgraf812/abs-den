@@ -773,15 +773,64 @@ theorem TraceGoodP_D_invis_fetch {n : Nat} (a : Addr)
     -- For Recur 1 of dl: at S=1, the .invis case further recurses with j=0,
     -- and the .ret case is RetGoodP at stuck (vacuous fn/con conds + heap).
     have hk : k ≤ n := Nat.le_of_succ_le hm
+    -- Reduce dl to the concrete match expression on heap state at a.
+    -- dl = Later.hmap (k+1) f (W.restrict (fetch a) hm) at Later (T VH) (k+1) = T VH k.
+    -- = f k _ (W.restrict (fetch a) hm at Later D (k+1))
+    -- = (W.restrict (D.fold inner_fetch) hk).unfold k _ μ_k          [restrict_later_next']
+    -- = (D.fold inner_fetch).unfold k hk μ_k                          [D_unfold_restrict]
+    -- = inner_fetch k hk μ_k                                          [D_fold_unfold]
+    -- = match μ_k.get? a with | some d => T.fold (.invis _) | none => T.ret stuck.
+    let μ_k : Heap (▹ D) k := World.restrict μ (Nat.le_succ_of_le (Nat.le_refl k))
+    -- dl = Later.hmap (k+1) f (W.restrict (fetch a) hm) at level k+1.
+    -- Reduce: Later.hmap (k+1) is application of f to its arg at level k;
+    -- W.restrict (Later.next (D.fold inner)) hm = W.restrict (D.fold inner) (k≤n);
+    -- (W.restrict (D.fold inner)).unfold k _ μ_k = inner k _ μ_k
+    -- = match Std.HashMap.get? μ_k a with | some d => T.fold (.invis ...) | none => T.ret stuck.
+    have h_dl_reduce :
+        (Later.hmap (k+1) (fun i _hi (d : D i) =>
+              d.unfold i (Nat.le_refl i)
+                (World.restrict μ (by omega : i ≤ k+1)))
+              (@World.restrict (Later D) _ n (k+1) (fetch (n := n) a) hm)
+          : T VH k)
+        = match Std.HashMap.get? μ_k a with
+          | some d => T.fold (.invis (Later.hmap k (fun i _hi (d' : D i) =>
+              d'.unfold i (Nat.le_refl i)
+                (World.restrict μ_k (by omega : i ≤ k))) d))
+          | none => T.ret (Value.F.toRep _ .stuck, μ_k) := by
+      show (fun (d : D k) => d.unfold k (Nat.le_refl k) μ_k)
+            (@World.restrict (Later D) _ n (k+1) (fetch (n := n) a) hm) = _
+      unfold fetch
+      rw [restrict_later_next' _ k hm]
+      change (@World.restrict D _ n k (D.fold _) (by omega)).unfold k _ μ_k = _
+      rw [D_unfold_restrict, D_fold_unfold]
+      rfl
     refine ⟨?_, ?_⟩
-    · -- (NotRet ∨ IsRetStuck) at level k+1.
-      simp only [Later.prop_succ, Later.map, Later.hmap]
-      -- TODO: reduce Later.hmap + fetch a's restriction + D_unfold to a match,
-      -- then case on heap state at a.
-      sorry
-    · -- ▷(Recur 1 of dl) at level k+1.
-      simp only [Later.prop_succ, Later.ap'_succ, Later.next_succ,
-                 World.Const.restrictStep_eq]
+    · -- (NotRet ∨ IsRetStuck) — reduce via h_dl_reduce, then case on heap.
+      simp only [Later.prop_succ, Later.map]
+      rw [h_dl_reduce]
+      cases hget : Std.HashMap.get? μ_k a with
+      | none =>
+        -- T.ret stuck: at k=0, NotRet trivially; at k=k'+1, IsRetStuck.
+        cases k with
+        | zero => left; trivial
+        | succ k' =>
+          right
+          show IsRetStuck (k'+1) (T.ret (Value.F.toRep _ Value.F.stuck, _))
+          simp only [IsRetStuck, T.ret, T_uf]
+          -- Value.F.toRep .stuck = Sum.inl PUnit.unit by Value.F.toRep computation.
+          rfl
+      | some d =>
+        -- T.invis _: at k=0, NotRet trivially; at k=k'+1, NotRet via T_uf.
+        left
+        cases k with
+        | zero => trivial
+        | succ k' =>
+          show NotRet (k'+1) (T.fold (T.F.invis _))
+          simp only [NotRet, T_uf]
+    · -- ▷(Recur 1 of dl): TraceGoodP at S=1 of dl.
+      -- TODO: case again on heap state; .ret stuck → RetGoodP holds vacuously
+      -- except heap-cond (use h_heap with monotone Recur 1 → Recur 0); .invis
+      -- → another recursion to memo content with Recur 0 (start visibly).
       sorry
 
 end NewIdea
