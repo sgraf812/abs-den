@@ -1205,8 +1205,28 @@ noncomputable def good : LR D where
         congr 1
         exact restrict_later_next' (D.invis (fetch (n := n) a)) k hm
       rw [h_tl, D_unfold_restrict]
-      -- TODO: re-derive the bridge with the new Nat → ▹ world(...) DGoodP shape.
-      sorry
+      -- Bridge: same shape as in `step` — goal has RetGoodP applied to
+      -- `fun k_1 => W.restrictStep (_Recur_m k_1)`; rewrite pointwise via
+      -- Later_ap'_W_restrictStep_GoodP to match the helper's expected form.
+      have h_dgoodp_eq :
+          (fun k_1 => World.restrictStep (_Recur_m k_1))
+          = (fun k_1 => Later.ap' k
+              (World.restrict (Later.next (loeb NewIdea.GoodPBody :
+                world(Nat → D → Prop) n)) hk)
+              (Later.next k_1)) := by
+        funext k_1
+        show World.restrictStep (Later.ap' (k+1)
+              (World.restrict (Later.next (loeb NewIdea.GoodPBody)) hm)
+              (Later.next k_1)) = _
+        rw [NewIdea.Later_ap'_W_restrictStep_GoodP hm hk k_1]
+      rw [h_dgoodp_eq]
+      -- h_heap at level k+1 restricts to a (Recur 1)-good heap at level k.
+      have h_heap_at_k : Parametric.Heap (Later.ap' k
+              (World.restrict (Later.next (loeb NewIdea.GoodPBody :
+                world(Nat → D → Prop) n)) hk) (Later.next (1 : Nat)))
+              (World.restrict μ (Nat.le_succ_of_le (Nat.le_refl k))) :=
+        NewIdea.Param_Heap_GoodP_succ_down hm 1 μ h_heap
+      exact NewIdea.TraceGoodP_D_invis_fetch a hk _ h_heap_at_k
   stuck := by
     intro n
     rw [NewIdea.goodP_iff 2]
@@ -1283,12 +1303,28 @@ noncomputable def good : LR D where
               (World.restrict μ (Nat.le_succ_of_le (Nat.le_refl k))) :=
         NewIdea.Param_Heap_GoodP_succ_down hm 1 μ h_heap
       have h_trace := h_at_k _ h_heap_at_k
-      -- TODO: bridge with new RetGoodP shape — the goal's DGoodP after
-      -- restrictStep_loeb_eq + RetGoodP_restrictStep is now a function
-      -- `fun k_1 => W.restrictStep (Later.ap' (k+1) X (Later.next k_1))`.
-      -- Apply Later_ap'_W_restrictStep_GoodP pointwise, then exact h_trace
-      -- (modulo μ-restrict composition).
-      sorry
+      -- Bridge: the goal's `RetGoodP (fun k_1 => W.restrictStep (_Recur_m k_1))`
+      -- equals h_trace's `RetGoodP (fun k_1 => Later.ap' k (W.restrict ... hk) (Later.next k_1))`
+      -- by Later_ap'_W_restrictStep_GoodP applied pointwise.
+      have h_dgoodp_eq :
+          (fun k_1 => World.restrictStep
+            (_Recur_m k_1))
+          = (fun k_1 => Later.ap' k
+              (World.restrict (Later.next (loeb NewIdea.GoodPBody :
+                world(Nat → D → Prop) n)) hk)
+              (Later.next k_1)) := by
+        funext k_1
+        show World.restrictStep (Later.ap' (k+1)
+              (World.restrict (Later.next (loeb NewIdea.GoodPBody)) hm)
+              (Later.next k_1)) = _
+        rw [NewIdea.Later_ap'_W_restrictStep_GoodP hm hk k_1]
+      rw [h_dgoodp_eq]
+      -- Collapse the double W.restrict on μ in h_trace.
+      rw [show World.restrict (World.restrict μ (Nat.le_succ_of_le (Nat.le_refl k)))
+                (Nat.le_refl k)
+            = World.restrict μ (Nat.le_succ_of_le (Nat.le_refl k)) from
+          @World.restrict_self (Heap (▹ D)) _ k _] at h_trace
+      exact h_trace
   fn := by
     intro n f h_param
     rw [NewIdea.goodP_iff 2]
