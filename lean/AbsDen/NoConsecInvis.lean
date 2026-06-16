@@ -403,38 +403,38 @@ theorem Later_next_loeb_restrict {n : Nat} (RetGoodP : world(VH → Prop) n)
     later-`GoodP`-style predicate on `D`-values. Function- and con-fields
     are `▷ DGoodP`-good (i.e., `IsLookup`-shape); the heap is
     `Parametric.Heap (DGoodP↓)`-good. -/
-def RetGoodP {n : Nat} (DGoodP : ▹ world(D → Prop) n) : world(VH → Prop) n :=
+def RetGoodP {n : Nat} (DGoodP : Nat → ▹ world(D → Prop) n) : world(VH → Prop) n :=
   fun m _ (v, μ) =>
     -- Function-value condition.
     (∀ (g : World.Function (Later D) (Later D) m),
       v = .inr (.inl g) →
       ∀ l (hl : l ≤ m) (dl : ▹ D l),
-        Later.prop (Later.ap' _ (DGoodP↓) dl) →
+        Later.prop (Later.ap' _ ((DGoodP 2)↓) dl) →
         ∀ j (hj : j ≤ l) (μ' : Heap (▹ D) j),
-          Parametric.Heap (DGoodP↓) μ' →
-          Later.prop (Later.ap' _ (DGoodP↓) (g l hl dl))) ∧
+          Parametric.Heap ((DGoodP 1)↓) μ' →
+          Later.prop (Later.ap' _ ((DGoodP 2)↓) (g l hl dl))) ∧
     -- Constructor-field condition.
     (∀ (K : ConTag) (ds : List (▹ D m)),
       v = .inr (.inr (K, ds)) →
-      ∀ (dl : ▹ D m), dl ∈ ds → Later.prop (Later.ap' _ (DGoodP↓) dl)) ∧
+      ∀ (dl : ▹ D m), dl ∈ ds → Later.prop (Later.ap' _ ((DGoodP 2)↓) dl)) ∧
     -- Heap-good condition.
-    Parametric.Heap (DGoodP↓) μ
+    Parametric.Heap ((DGoodP 2)↓) μ
 
 /-- `RetGoodP` applied at the `.ret`-style payload `(v, μ)`. -/
-theorem RetGoodP_apply {n : Nat} (DGoodP : ▹ world(D → Prop) n)
+theorem RetGoodP_apply {n : Nat} (DGoodP : Nat → ▹ world(D → Prop) n)
     (m : Nat) (hm : m ≤ n) (v : Value.F.Rep (▹ D) m) (μ : Heap (▹ D) m) :
     RetGoodP DGoodP m hm (v, μ)
     = ((∀ (g : World.Function (Later D) (Later D) m),
           v = .inr (.inl g) →
           ∀ l (hl : l ≤ m) (dl : ▹ D l),
-            Later.prop (Later.ap' _ (DGoodP↓) dl) →
+            Later.prop (Later.ap' _ ((DGoodP 2)↓) dl) →
             ∀ j (hj : j ≤ l) (μ' : Heap (▹ D) j),
-              Parametric.Heap (DGoodP↓) μ' →
-              Later.prop (Later.ap' _ (DGoodP↓) (g l hl dl))) ∧
+              Parametric.Heap ((DGoodP 1)↓) μ' →
+              Later.prop (Later.ap' _ ((DGoodP 2)↓) (g l hl dl))) ∧
        (∀ (K : ConTag) (ds : List (▹ D m)),
           v = .inr (.inr (K, ds)) →
-          ∀ (dl : ▹ D m), dl ∈ ds → Later.prop (Later.ap' _ (DGoodP↓) dl)) ∧
-       Parametric.Heap (DGoodP↓) μ) := rfl
+          ∀ (dl : ▹ D m), dl ∈ ds → Later.prop (Later.ap' _ ((DGoodP 2)↓) dl)) ∧
+       Parametric.Heap ((DGoodP 2)↓) μ) := rfl
 
 /-- The body of `GoodP`'s `loeb`. The outer trace's initial step count is
     threaded through as the `world(Nat → ...)` argument `steps`; the inner
@@ -445,7 +445,7 @@ def GoodPBody {N : Nat} : World.Function (Later world(Nat → D → Prop)) world
     let Recur (k : Nat) : Later world(D → Prop) m :=
       Later.ap' _ (Recur↓) (Later.next k)
     ∀ μ : Heap (▹ D) m, Parametric.Heap (Recur 1) μ →
-      TraceGoodP (RetGoodP (Recur 2)) m (Nat.le_refl _) steps m (Nat.le_refl _)
+      TraceGoodP (RetGoodP Recur) m (Nat.le_refl _) steps m (Nat.le_refl _)
         (d.unfold m (Nat.le_refl _) (μ↓))
 
 /-- The value-level "good" predicate, parameterised over an initial step count
@@ -506,72 +506,71 @@ theorem World.restrict_Later_outer_succ {n m : Nat}
     = @World.restrict (Later world(D → Prop)) _ n m (World.restrictStep DGoodP) hm' :=
   World.restrict_le_succ DGoodP hm hm'
 
-/-- `RetGoodP` commutes with `restrictStep` on its `DGoodP` argument. -/
-theorem RetGoodP_restrictStep {n : Nat} (DGoodP : ▹ world(D → Prop) (n+1)) :
+/-- `RetGoodP` commutes with `restrictStep` on its `DGoodP` argument
+    (pointwise on the Nat parameter). -/
+theorem RetGoodP_restrictStep {n : Nat} (DGoodP : Nat → ▹ world(D → Prop) (n+1)) :
     World.restrictStep (RetGoodP DGoodP : world(VH → Prop) (n+1))
-    = RetGoodP (World.restrictStep DGoodP) := by
+    = RetGoodP (fun k => World.restrictStep (DGoodP k)) := by
   funext m hm vμ
   obtain ⟨v, μ⟩ := vμ
   show RetGoodP DGoodP m (Nat.le_succ_of_le hm) (v, μ)
-     = RetGoodP (World.restrictStep DGoodP) m hm (v, μ)
+     = RetGoodP (fun k => World.restrictStep (DGoodP k)) m hm (v, μ)
   unfold RetGoodP
   dsimp only []
-  -- Equational lemma for W.restrict DGoodP at any sub-level k ≤ n.
-  have key_m : World.restrict (F := Later world(D → Prop)) DGoodP
+  -- Equational lemma for W.restrict (DGoodP k) at any sub-level.
+  have key_m : ∀ (k : Nat),
+        World.restrict (F := Later world(D → Prop)) (DGoodP k)
                   (Nat.le_succ_of_le hm)
-              = World.restrict (World.restrictStep DGoodP) hm :=
-    World.restrict_le_succ DGoodP _ hm
-  -- Build the And-wise equation.
+              = World.restrict (World.restrictStep (DGoodP k)) hm :=
+    fun k => World.restrict_le_succ (DGoodP k) _ hm
   refine (congrArg (· ∧ _) ?_).trans ((congrArg (_ ∧ ·) ?_))
-  · -- Function-cond piece A = A'.
+  · -- Function-cond piece.
     apply propext
     refine Iff.intro (fun h g hg l hl dl hdl j hj μ' hμ' => ?_)
                     (fun h g hg l hl dl hdl j hj μ' hμ' => ?_)
     · have hl_n : l ≤ n := Nat.le_trans hl hm
       have hj_n : j ≤ n := Nat.le_trans hj hl_n
-      have h_eq_l : World.restrict (F := Later world(D → Prop)) DGoodP
+      have h_eq_l : ∀ (k : Nat), World.restrict (F := Later world(D → Prop)) (DGoodP k)
                       (Nat.le_trans hl (Nat.le_succ_of_le hm))
-                  = World.restrict (World.restrictStep DGoodP) hl_n :=
-        World.restrict_le_succ DGoodP _ hl_n
-      have h_eq_j : World.restrict (F := Later world(D → Prop)) DGoodP
+                  = World.restrict (World.restrictStep (DGoodP k)) hl_n :=
+        fun k => World.restrict_le_succ (DGoodP k) _ hl_n
+      have h_eq_j : ∀ (k : Nat), World.restrict (F := Later world(D → Prop)) (DGoodP k)
                       (Nat.le_trans hj (Nat.le_trans hl (Nat.le_succ_of_le hm)))
-                  = World.restrict (World.restrictStep DGoodP) hj_n :=
-        World.restrict_le_succ DGoodP _ hj_n
-      rw [← h_eq_l] at hdl
-      have := h g hg l hl dl hdl j hj μ' (by rw [h_eq_j]; exact hμ')
-      rwa [h_eq_l] at this
+                  = World.restrict (World.restrictStep (DGoodP k)) hj_n :=
+        fun k => World.restrict_le_succ (DGoodP k) _ hj_n
+      rw [← h_eq_l 2] at hdl
+      have := h g hg l hl dl hdl j hj μ' (by rw [h_eq_j 1]; exact hμ')
+      rwa [h_eq_l 2] at this
     · have hl_n : l ≤ n := Nat.le_trans hl hm
       have hj_n : j ≤ n := Nat.le_trans hj hl_n
-      have h_eq_l : World.restrict (F := Later world(D → Prop)) DGoodP
+      have h_eq_l : ∀ (k : Nat), World.restrict (F := Later world(D → Prop)) (DGoodP k)
                       (Nat.le_trans hl (Nat.le_succ_of_le hm))
-                  = World.restrict (World.restrictStep DGoodP) hl_n :=
-        World.restrict_le_succ DGoodP _ hl_n
-      have h_eq_j : World.restrict (F := Later world(D → Prop)) DGoodP
+                  = World.restrict (World.restrictStep (DGoodP k)) hl_n :=
+        fun k => World.restrict_le_succ (DGoodP k) _ hl_n
+      have h_eq_j : ∀ (k : Nat), World.restrict (F := Later world(D → Prop)) (DGoodP k)
                       (Nat.le_trans hj (Nat.le_trans hl (Nat.le_succ_of_le hm)))
-                  = World.restrict (World.restrictStep DGoodP) hj_n :=
-        World.restrict_le_succ DGoodP _ hj_n
-      rw [h_eq_l] at hdl
-      have := h g hg l hl dl hdl j hj μ' (by rw [← h_eq_j]; exact hμ')
-      rwa [← h_eq_l] at this
-  · -- Combined con-cond ∧ heap-cond
-    refine (congrArg (· ∧ _) ?_).trans ((congrArg (_ ∧ ·) ?_))
-    · -- Con-cond
-      apply propext
+                  = World.restrict (World.restrictStep (DGoodP k)) hj_n :=
+        fun k => World.restrict_le_succ (DGoodP k) _ hj_n
+      rw [h_eq_l 2] at hdl
+      have := h g hg l hl dl hdl j hj μ' (by rw [← h_eq_j 1]; exact hμ')
+      rwa [← h_eq_l 2] at this
+  · refine (congrArg (· ∧ _) ?_).trans ((congrArg (_ ∧ ·) ?_))
+    · apply propext
       refine Iff.intro (fun h K ds heq dl hdl => ?_) (fun h K ds heq dl hdl => ?_)
-      · have := h K ds heq dl hdl; rwa [← key_m]
-      · have := h K ds heq dl hdl; rwa [key_m]
-    · -- Heap-cond
-      apply propext
+      · have := h K ds heq dl hdl; rwa [← key_m 2]
+      · have := h K ds heq dl hdl; rwa [key_m 2]
+    · apply propext
       unfold Parametric.Heap
       refine Iff.intro (fun h a dl h_ => ?_) (fun h a dl h_ => ?_)
-      · have := h a dl h_; rwa [← key_m]
-      · have := h a dl h_; rwa [key_m]
+      · have := h a dl h_; rwa [← key_m 2]
+      · have := h a dl h_; rwa [key_m 2]
 
-/-- Iterated: `W.restrict` on `RetGoodP DGoodP` equals `RetGoodP (W.restrict DGoodP)`. -/
-theorem RetGoodP_restrict : ∀ {n : Nat} (DGoodP : ▹ world(D → Prop) n)
+/-- Iterated: `W.restrict` on `RetGoodP DGoodP` equals `RetGoodP` of the pointwise
+    `W.restrict`-ed `DGoodP`. -/
+theorem RetGoodP_restrict : ∀ {n : Nat} (DGoodP : Nat → ▹ world(D → Prop) n)
     {m : Nat} (hm : m ≤ n),
     World.restrict (RetGoodP DGoodP : world(VH → Prop) n) hm
-    = RetGoodP (World.restrict DGoodP hm) := by
+    = RetGoodP (fun k => World.restrict (DGoodP k) hm) := by
   intro n
   induction n with
   | zero =>
@@ -579,23 +578,27 @@ theorem RetGoodP_restrict : ∀ {n : Nat} (DGoodP : ▹ world(D → Prop) n)
     have : m = 0 := Nat.le_zero.mp hm; subst this
     rw [show World.restrict (RetGoodP DGoodP : world(VH → Prop) 0) hm
             = RetGoodP DGoodP from World.restrict_self _]
-    rw [show World.restrict DGoodP hm = DGoodP from World.restrict_self _]
+    congr
   | succ n' ih =>
     intro DGoodP m hm
     by_cases hmn : m = n'+1
     · subst hmn
       rw [show World.restrict (RetGoodP DGoodP : world(VH → Prop) (n'+1)) hm
               = RetGoodP DGoodP from World.restrict_self _]
-      rw [show World.restrict DGoodP hm = DGoodP from World.restrict_self _]
+      congr 1
+      funext k
+      rw [show World.restrict (DGoodP k) hm = DGoodP k from World.restrict_self _]
     · have hm' : m ≤ n' := by omega
       rw [show World.restrict (RetGoodP DGoodP : world(VH → Prop) (n'+1)) hm
             = World.restrict (World.restrictStep (RetGoodP DGoodP)) hm' by
         show World.restrict _ hm = _
         rw [World.restrict.eq_1, dif_neg hmn]]
       rw [RetGoodP_restrictStep]
-      rw [ih (World.restrictStep DGoodP) hm']
-      rw [show World.restrict DGoodP hm
-            = World.restrict (World.restrictStep DGoodP) hm' by
+      rw [ih (fun k => World.restrictStep (DGoodP k)) hm']
+      congr 1
+      funext k
+      rw [show World.restrict (DGoodP k) hm
+            = World.restrict (World.restrictStep (DGoodP k)) hm' by
         show World.restrict _ hm = _
         rw [World.restrict.eq_1, dif_neg hmn]]
 
@@ -1004,9 +1007,9 @@ theorem TraceGoodP_D_invis_fetch {n : Nat} (a : Addr)
                                     ▹ world(Nat → D → Prop) n) hm)
                   (Later.next (1 : Nat))) μ) :
     TraceGoodP
-      (RetGoodP (Later.ap' m
+      (RetGoodP (fun k => Later.ap' m
                   (World.restrict (Later.next (loeb GoodPBody)) hm)
-                  (Later.next (2 : Nat))))
+                  (Later.next k)))
       m (Nat.le_refl _) (2 : Nat) m (Nat.le_refl _)
       ((D.invis (fetch (n := n) a)).unfold m hm μ) := by
   -- Unfold the D.invis trace.
@@ -1155,15 +1158,15 @@ theorem isThunk_iff {n : Nat} (d : D n) :
 
 /-- The logical relation packaged as an `LR ByNeed.D`. -/
 noncomputable def good : LR D where
-  P := goodP 0
+  P := goodP 2
   IsThunk := isThunk
   IsThunk_to_P := by
     intro n x d hT
     obtain ⟨a, hd⟩ := (isThunk_iff d).mp hT
     subst hd
-    rw [NewIdea.goodP_iff 0]
+    rw [NewIdea.goodP_iff 2]
     intro m hm
-    change (NewIdea.GoodP : world(Nat → D → Prop) n) m hm (0 : Nat) m (Nat.le_refl _)
+    change (NewIdea.GoodP : world(Nat → D → Prop) n) m hm (2 : Nat) m (Nat.le_refl _)
       (World.restrict (Domain.step' (.look x) (D.invis (fetch a))) hm)
     unfold NewIdea.GoodP
     rw [loeb.eq NewIdea.GoodPBody_natural]
@@ -1172,7 +1175,7 @@ noncomputable def good : LR D where
     rw [D_unfold_restrict]
     -- Goal includes (Domain.step' (.look x) (D.invis (fetch a))).unfold.
     -- Domain.step' = D.step ∘ Later.next for ByNeed; D_step_eq unfolds the trace.
-    change NewIdea.TraceGoodP _ m _ (0 : Nat) m _
+    change NewIdea.TraceGoodP _ m _ (2 : Nat) m _
       ((D.step (.look x) (Later.next (D.invis (fetch a)))).unfold m _ (μ↓))
     rw [D_step_eq]
     unfold NewIdea.TraceGoodP
@@ -1202,30 +1205,13 @@ noncomputable def good : LR D where
         congr 1
         exact restrict_later_next' (D.invis (fetch (n := n) a)) k hm
       rw [h_tl, D_unfold_restrict]
-      -- Goal: loeb (TraceGoodPBody (RetGoodP (W.restrictStep (_Recur_m 2)))) k _ 2 k _
-      --        ((D.invis (fetch a)).unfold k hk μ_k).
-      -- Bridge `W.restrictStep (_Recur_m 2)` to `Later.ap' k (W.restrict ... hk) (Later.next 2)`
-      -- via Later_ap'_W_restrictStep_GoodP, then apply TraceGoodP_D_invis_fetch.
-      show loeb (NewIdea.TraceGoodPBody (NewIdea.RetGoodP
-              (World.restrictStep (Later.ap' (k+1)
-                (World.restrict (Later.next (loeb NewIdea.GoodPBody
-                  : world(Nat → D → Prop) n)) hm)
-                (Later.next (2 : Nat)))))) k _ (2 : Nat) k _
-            ((D.invis (fetch (n := n) a)).unfold k _
-              (World.restrict μ (Nat.le_succ_of_le (Nat.le_refl k))))
-      rw [NewIdea.Later_ap'_W_restrictStep_GoodP hm hk (2 : Nat)]
-      -- h_heap at level k+1 restricts to a (Recur 1)-good heap at level k.
-      have h_heap_at_k : Parametric.Heap (Later.ap' k
-              (World.restrict (Later.next (loeb NewIdea.GoodPBody :
-                world(Nat → D → Prop) n)) hk) (Later.next (1 : Nat)))
-              (World.restrict μ (Nat.le_succ_of_le (Nat.le_refl k))) :=
-        NewIdea.Param_Heap_GoodP_succ_down hm 1 μ h_heap
-      exact NewIdea.TraceGoodP_D_invis_fetch a hk _ h_heap_at_k
+      -- TODO: re-derive the bridge with the new Nat → ▹ world(...) DGoodP shape.
+      sorry
   stuck := by
     intro n
-    rw [NewIdea.goodP_iff 0]
+    rw [NewIdea.goodP_iff 2]
     intro m hm
-    change (NewIdea.GoodP : world(Nat → D → Prop) n) m hm (0 : Nat) m (Nat.le_refl _)
+    change (NewIdea.GoodP : world(Nat → D → Prop) n) m hm (2 : Nat) m (Nat.le_refl _)
       (World.restrict (D.stuck : D n) hm)
     unfold NewIdea.GoodP
     rw [loeb.eq NewIdea.GoodPBody_natural]
@@ -1251,7 +1237,7 @@ noncomputable def good : LR D where
     intro n ev d h_goodP
     rw [NewIdea.goodP_iff]
     intro m hm
-    show (NewIdea.GoodP : world(Nat → D → Prop) n) m hm (0 : Nat) m (Nat.le_refl _)
+    show (NewIdea.GoodP : world(Nat → D → Prop) n) m hm (2 : Nat) m (Nat.le_refl _)
       (World.restrict (D.step ev (Later.next d)) hm)
     unfold NewIdea.GoodP
     rw [loeb.eq NewIdea.GoodPBody_natural]
@@ -1284,11 +1270,10 @@ noncomputable def good : LR D where
       rw [h_tl]
       -- Now: TraceGoodP (RetGoodP (W.restrictStep ...)) k _ 2 k _ ((W.restrict d hk).unfold k _ μ_k)
       -- Use h_goodP : goodP_holds 0 d at sub-level k, then lift S=0 → S=2.
-      rw [NewIdea.goodP_iff 0] at h_goodP
+      rw [NewIdea.goodP_iff 2] at h_goodP
       have h_at_k : (NewIdea.GoodP : world(Nat → D → Prop) n) k hk
                       (2 : Nat) k (Nat.le_refl k) (World.restrict d hk) :=
-        NewIdea.GoodP_S_mono hk (World.restrict d hk) 0 2 (by omega)
-          (h_goodP k hk)
+        (h_goodP k hk)
       unfold NewIdea.GoodP at h_at_k
       rw [loeb.eq NewIdea.GoodPBody_natural] at h_at_k
       -- h_heap at level k+1 restricts to a (Recur 1)-good heap at level k.
@@ -1298,28 +1283,15 @@ noncomputable def good : LR D where
               (World.restrict μ (Nat.le_succ_of_le (Nat.le_refl k))) :=
         NewIdea.Param_Heap_GoodP_succ_down hm 1 μ h_heap
       have h_trace := h_at_k _ h_heap_at_k
-      -- Expose `_Recur_m 2` and bridge via Later_ap'_W_restrictStep_GoodP.
-      show loeb (NewIdea.TraceGoodPBody (NewIdea.RetGoodP
-              (World.restrictStep (Later.ap' (k+1)
-                (World.restrict (Later.next (loeb NewIdea.GoodPBody
-                  : world(Nat → D → Prop) n)) hm)
-                (Later.next (2 : Nat)))))) k _ (2 : Nat) k _
-            ((World.restrict d hk).unfold k _
-              (World.restrict μ (Nat.le_succ_of_le (Nat.le_refl k))))
-      rw [NewIdea.Later_ap'_W_restrictStep_GoodP hm hk (2 : Nat)]
-      -- Collapse the double W.restrict on μ in h_trace.
-      rw [show World.restrict (World.restrict μ (Nat.le_succ_of_le (Nat.le_refl k)))
-                (Nat.le_refl k)
-            = World.restrict μ (Nat.le_succ_of_le (Nat.le_refl k)) from
-          @World.restrict_self (Heap (▹ D)) _ k _] at h_trace
-      exact h_trace
+      -- TODO: re-derive the bridge with the new Nat → ▹ world(...) DGoodP shape.
+      sorry
   fn := by
     intro n f h_param
-    rw [NewIdea.goodP_iff 0]
+    rw [NewIdea.goodP_iff 2]
     intro m hm
-    change (NewIdea.GoodP : world(Nat → D → Prop) n) m hm (0 : Nat) m (Nat.le_refl _)
+    change (NewIdea.GoodP : world(Nat → D → Prop) n) m hm (2 : Nat) m (Nat.le_refl _)
       (World.restrict (Domain.fn' f) hm)
-    show (NewIdea.GoodP : world(Nat → D → Prop) n) m hm (0 : Nat) m (Nat.le_refl _)
+    show (NewIdea.GoodP : world(Nat → D → Prop) n) m hm (2 : Nat) m (Nat.le_refl _)
       (World.restrict (D.fn f) hm)
     unfold NewIdea.GoodP
     rw [loeb.eq NewIdea.GoodPBody_natural]
@@ -1350,11 +1322,11 @@ noncomputable def good : LR D where
       exact NewIdea.Param_Heap_GoodP_mono hm μ 1 2 (by omega) h_heap
   con := by
     intro n K ds h_param
-    rw [NewIdea.goodP_iff 0]
+    rw [NewIdea.goodP_iff 2]
     intro m hm
-    change (NewIdea.GoodP : world(Nat → D → Prop) n) m hm (0 : Nat) m (Nat.le_refl _)
+    change (NewIdea.GoodP : world(Nat → D → Prop) n) m hm (2 : Nat) m (Nat.le_refl _)
       (World.restrict (Domain.con' K ds) hm)
-    show (NewIdea.GoodP : world(Nat → D → Prop) n) m hm (0 : Nat) m (Nat.le_refl _)
+    show (NewIdea.GoodP : world(Nat → D → Prop) n) m hm (2 : Nat) m (Nat.le_refl _)
       (World.restrict (D.con K ds) hm)
     unfold NewIdea.GoodP
     rw [loeb.eq NewIdea.GoodPBody_natural]
@@ -1409,9 +1381,9 @@ private theorem Parametric.Heap_empty {n : Nat} (P : ▹ world(D → Prop) n) :
     steps. -/
 theorem evalByNeed_noTripleInvis (n : Nat) (e : Exp) :
     NoTripleInvis n ((evalByNeed n e).unfold n (Nat.le_refl n) ∅) := by
-  have h_goodP : (goodP 0).holds (eval (D := D) e n (Nat.le_refl n) Env.empty) :=
+  have h_goodP : (goodP 2).holds (eval (D := D) e n (Nat.le_refl n) Env.empty) :=
     LR.fundamental good e Env.empty (emptyEnv_good n)
-  rw [goodP_iff 0] at h_goodP
+  rw [goodP_iff 2] at h_goodP
   -- Specialize at m = n.
   have h_at_n := h_goodP n (Nat.le_refl n)
   rw [World.restrict_self] at h_at_n
@@ -1424,10 +1396,9 @@ theorem evalByNeed_noTripleInvis (n : Nat) (e : Exp) :
   -- Rewrite ∅↓ = ∅.
   rw [show (∅ : Heap (▹ D) n)↓ = (∅ : Heap (▹ D) n) from
         @World.restrict_self (Heap (▹ D)) _ n ∅] at h_trace
-  -- h_trace : TraceGoodP _ n _ 0 n _ (eval.unfold n _ ∅).
+  -- h_trace : TraceGoodP _ n _ 2 n _ (eval.unfold n _ ∅).
   show NCI 2 2 n ((eval (D := D) e n _ Env.empty).unfold n _ ∅)
-  apply NCI_mono 2 (Nat.zero_le 2)
-  exact TraceGoodP_implies_NCI n _ n _ 0 _ _ h_trace
+  exact TraceGoodP_implies_NCI n _ n _ 2 _ _ h_trace
 
 private theorem Env_empty_find?_none {V : Type} (x : Var) :
     (Env.empty : Env V).find? x = none := by
