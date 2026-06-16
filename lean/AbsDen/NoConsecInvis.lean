@@ -81,31 +81,84 @@ theorem Value_F_Rep_restrict_fn_shape {n : Nat} (g : World.Function (▹ D) (▹
     ∃ g', World.restrict (Value.F.toRep (▹ D) (.fn g)) hm = Sum.inr (Sum.inl g') :=
   ⟨_, Value_F_Rep_restrict_fn_eq g hm⟩
 
-/-- `W.restrict (Value.F.toRep _ (.con K ds)) hm` matches `Sum.inr (Sum.inr _)` shape. -/
-theorem Value_F_Rep_restrict_con_shape : ∀ {n : Nat} (K : ConTag)
+/-- `W.restrict` on `World.Comp List F` is pointwise `List.map` of `W.restrict` on `F`. -/
+theorem List_Comp_restrict_eq {F : Nat → Type} [World F] :
+    ∀ {n : Nat} (xs : List (F n)) {m : Nat} (hm : m ≤ n),
+    @World.restrict (World.Comp List F) _ n m xs hm
+    = xs.map (fun x => @World.restrict F _ n m x hm) := by
+  intro n
+  induction n with
+  | zero =>
+    intro xs m hm
+    have : m = 0 := Nat.le_zero.mp hm; subst this
+    rw [@World.restrict_self (World.Comp List F)]
+    have h_pt : ∀ x : F 0, @World.restrict F _ 0 0 x hm = x := fun x => World.restrict_self _
+    show xs = xs.map (fun x => @World.restrict F _ 0 0 x hm)
+    rw [show (fun x : F 0 => @World.restrict F _ 0 0 x hm) = id from funext h_pt, List.map_id]
+  | succ n' ih =>
+    intro xs m hm
+    by_cases hmn : m = n'+1
+    · subst hmn
+      rw [@World.restrict_self (World.Comp List F)]
+      have h_pt : ∀ x : F (n'+1), @World.restrict F _ (n'+1) (n'+1) x hm = x :=
+        fun x => World.restrict_self _
+      show xs = xs.map (fun x => @World.restrict F _ (n'+1) (n'+1) x hm)
+      rw [show (fun x : F (n'+1) => @World.restrict F _ (n'+1) (n'+1) x hm) = id from funext h_pt,
+          List.map_id]
+    · have hm' : m ≤ n' := by omega
+      have heq : hm = Nat.le_succ_of_le hm' := rfl
+      rw [heq, @World.restrict_succ (World.Comp List F) _ n' m xs hm']
+      have h_step : @World.restrictStep (World.Comp List F) _ n' xs
+                  = xs.map (@World.restrictStep F _ n') := rfl
+      rw [h_step]
+      rw [ih (xs.map (@World.restrictStep F _ n')) hm']
+      rw [List.map_map]
+      apply List.map_congr_left
+      intro x _
+      show @World.restrict F _ n' m (@World.restrictStep F _ n' x) hm'
+         = @World.restrict F _ (n'+1) m x (Nat.le_succ_of_le hm')
+      exact (@World.restrict_succ F _ n' m x hm').symm
+
+/-- `W.restrict (Value.F.toRep _ (.con K ds)) hm` is
+    `Sum.inr (Sum.inr (K, W.restrict ds hm))`. -/
+theorem Value_F_Rep_restrict_con_eq : ∀ {n : Nat} (K : ConTag)
     (ds : world(List (▹ D)) n) {m : Nat} (hm : m ≤ n),
-    ∃ ds', World.restrict (Value.F.toRep (▹ D) (.con K ds)) hm = Sum.inr (Sum.inr (K, ds')) := by
+    World.restrict (Value.F.toRep (▹ D) (.con K ds)) hm
+    = Sum.inr (Sum.inr (K, World.restrict ds hm)) := by
   intro n
   induction n with
   | zero =>
     intro K ds m hm
     have : m = 0 := Nat.le_zero.mp hm; subst this
-    refine ⟨ds, ?_⟩
-    rw [@World.restrict_self (Value.F.Rep (▹ D))]; rfl
+    rw [@World.restrict_self (Value.F.Rep (▹ D))]
+    rw [@World.restrict_self (world(List (▹ D)))]
+    rfl
   | succ n' ih =>
     intro K ds m hm
     by_cases hmn : m = n'+1
     · subst hmn
-      refine ⟨ds, ?_⟩
-      rw [@World.restrict_self (Value.F.Rep (▹ D))]; rfl
+      rw [@World.restrict_self (Value.F.Rep (▹ D))]
+      rw [@World.restrict_self (world(List (▹ D)))]
+      rfl
     · have hm' : m ≤ n' := by omega
       have heq : hm = Nat.le_succ_of_le hm' := rfl
+      have hds_eq : World.restrict ds hm
+                  = World.restrict (World.restrictStep ds) hm' := by
+        rw [heq]
+        exact @World.restrict_succ (world(List (▹ D))) _ n' m ds hm'
+      rw [hds_eq]
       rw [heq, @World.restrict_succ (Value.F.Rep (▹ D))]
       have hstep' : (@World.restrictStep (Value.F.Rep (▹ D)) _ n' (Value.F.toRep _ (.con K ds))
                   : Value.F.Rep (▹ D) n')
                  = Value.F.toRep _ (.con K (World.restrictStep ds)) := rfl
       rw [hstep']
       exact ih K (World.restrictStep ds) hm'
+
+/-- `W.restrict (Value.F.toRep _ (.con K ds)) hm` matches `Sum.inr (Sum.inr _)` shape. -/
+theorem Value_F_Rep_restrict_con_shape {n : Nat} (K : ConTag)
+    (ds : world(List (▹ D)) n) {m : Nat} (hm : m ≤ n) :
+    ∃ ds', World.restrict (Value.F.toRep (▹ D) (.con K ds)) hm = Sum.inr (Sum.inr (K, ds')) :=
+  ⟨_, Value_F_Rep_restrict_con_eq K ds hm⟩
 
 @[simp] theorem D_ret_eq {n : Nat} (v : Value.F (▹ D) n) (m : Nat)
     (hm : m ≤ n) (μ : Heap (▹ D) m) :
@@ -1417,8 +1470,56 @@ noncomputable def good : LR D where
       obtain ⟨ds', hds'⟩ := Value_F_Rep_restrict_con_shape K (ds.map Later.next) hm
       rw [hds'] at hg
       nomatch hg
-    · -- con-cond: derive from Parametric.Con hypothesis
-      sorry
+    · -- con-cond: each entry of restricted (ds.map Later.next) is (Recur 2)↓-good.
+      intro K' ds' h_eq
+      rw [Value_F_Rep_restrict_con_eq] at h_eq
+      injection h_eq with h_inner
+      injection h_inner with h_kds
+      have h_ds_eq : @World.restrict (World.Comp List (Later D)) _ n m (ds.map Later.next) hm = ds' :=
+        (Prod.mk.inj h_kds).2
+      rw [← h_ds_eq]
+      intro dl h_mem
+      -- ds.map Later.next : List (▹ D n). Restrict at m via List_Comp_restrict_eq.
+      rw [List_Comp_restrict_eq] at h_mem
+      rw [List.mem_map] at h_mem
+      obtain ⟨dl', hdl'_mem, hdl'_eq⟩ := h_mem
+      rw [List.mem_map] at hdl'_mem
+      obtain ⟨dᵢ, hdᵢ_mem, hdᵢ_eq⟩ := hdl'_mem
+      subst hdᵢ_eq
+      subst hdl'_eq
+      -- dl = W.restrict (Later.next dᵢ) hm for dᵢ ∈ ds.
+      -- At level m, use restrict_later_next' to extract (W.restrict dᵢ ...) : D (m-1).
+      cases m with
+      | zero => trivial
+      | succ k =>
+        -- W.restrict (Later.next dᵢ) hm at level k+1 = W.restrict dᵢ hk : D k.
+        have hk : k ≤ n := Nat.le_of_succ_le hm
+        rw [restrict_later_next' dᵢ k hm]
+        -- Goal: ▷((_Recur_m 2)↓ at k+1 applied to (W.restrict dᵢ hk : D k))
+        show Later.prop (Later.ap' (k+1)
+              (World.restrict (Later.ap' (k+1)
+                  (World.restrict (Later.next (loeb GoodPBody : world(Nat → D → Prop) n)) hm)
+                  (Later.next (2 : Nat))) (Nat.le_refl (k+1)))
+              (@World.restrict D _ n k dᵢ hk))
+        rw [NewIdea.Later_ap'_Recur_succ_eq hm k (Nat.le_refl (k+1)) 2]
+        -- Goal: (GoodP at k) k _ 2 k _ (W.restrict dᵢ hk)
+        -- From h_param dᵢ, get goodP_holds 2 dᵢ, specialize at k.
+        have h_dᵢ : IsLookup_holds (NewIdea.goodP 2).holds dᵢ := h_param dᵢ hdᵢ_mem
+        have h_goodP_dᵢ : NewIdea.goodP_holds 2 dᵢ := by
+          rw [← NewIdea.goodP_iff 2]; exact h_dᵢ.1
+        have h_at_k := h_goodP_dᵢ k hk
+        -- h_at_k : (GoodP at n) k hk 2 k _ (W.restrict dᵢ hk)
+        -- Bridge (GoodP at n) k hk applied fully = (GoodP at k) k _ via GoodP_restrict.
+        have h_GoodP_eq : (GoodP : world(Nat → D → Prop) k)
+                        = @World.restrict (world(Nat → D → Prop)) _ n k
+                            (GoodP : world(Nat → D → Prop) n) hk :=
+          (GoodP_restrict hk).symm
+        rw [h_GoodP_eq]
+        -- Goal: W.restrict GoodP hk k _ 2 k _ (W.restrict dᵢ hk)
+        rw [@World.Function.restrict_apply (World.Const Nat) world(D → Prop) n
+              (GoodP : world(Nat → D → Prop) n) k hk k (Nat.le_refl k) (2 : Nat)]
+        -- Goal: GoodP k (le_trans (le_refl) hk) 2 k _ (W.restrict dᵢ hk)
+        exact h_at_k
     · -- Heap-cond: lift Recur 1 → Recur 2 via Param_Heap_GoodP_mono.
       simp only [World.restrict_self]
       exact NewIdea.Param_Heap_GoodP_mono hm μ 1 2 (by omega) h_heap
