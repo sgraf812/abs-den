@@ -42,32 +42,44 @@ theorem Value_F_Rep_restrict_stuck {n m : Nat} (hm : m ≤ n) :
       rw [hstep]
       exact ih hm'
 
-/-- `W.restrict (Value.F.toRep _ (.fn g)) hm` matches `Sum.inr (Sum.inl _)` shape. -/
-theorem Value_F_Rep_restrict_fn_shape : ∀ {n : Nat} (g : World.Function (▹ D) (▹ D) n)
+/-- `W.restrict (Value.F.toRep _ (.fn g)) hm` is `Sum.inr (Sum.inl (W.restrict g hm))`. -/
+theorem Value_F_Rep_restrict_fn_eq : ∀ {n : Nat} (g : World.Function (▹ D) (▹ D) n)
     {m : Nat} (hm : m ≤ n),
-    ∃ g', World.restrict (Value.F.toRep (▹ D) (.fn g)) hm = Sum.inr (Sum.inl g') := by
+    World.restrict (Value.F.toRep (▹ D) (.fn g)) hm = Sum.inr (Sum.inl (World.restrict g hm)) := by
   intro n
   induction n with
   | zero =>
     intro g m hm
     have : m = 0 := Nat.le_zero.mp hm; subst this
-    refine ⟨g, ?_⟩
-    show World.restrict (Value.F.toRep _ (.fn g)) hm = _
-    rw [@World.restrict_self (Value.F.Rep (▹ D))]; rfl
+    rw [@World.restrict_self (Value.F.Rep (▹ D))]
+    rw [@World.restrict_self (World.Function (▹ D) (▹ D))]
+    rfl
   | succ n' ih =>
     intro g m hm
     by_cases hmn : m = n'+1
     · subst hmn
-      refine ⟨g, ?_⟩
-      rw [@World.restrict_self (Value.F.Rep (▹ D))]; rfl
+      rw [@World.restrict_self (Value.F.Rep (▹ D))]
+      rw [@World.restrict_self (World.Function (▹ D) (▹ D))]
+      rfl
     · have hm' : m ≤ n' := by omega
       have heq : hm = Nat.le_succ_of_le hm' := rfl
+      have hg_eq : World.restrict g hm
+                 = World.restrict (World.restrictStep g) hm' := by
+        rw [heq]
+        exact @World.restrict_succ (World.Function (Later D) (Later D)) _ n' m g hm'
+      rw [hg_eq]
       rw [heq, @World.restrict_succ (Value.F.Rep (▹ D))]
       have hstep' : (@World.restrictStep (Value.F.Rep (▹ D)) _ n' (Value.F.toRep _ (.fn g))
                   : Value.F.Rep (▹ D) n')
                  = Value.F.toRep _ (.fn (World.restrictStep g)) := rfl
       rw [hstep']
       exact ih (World.restrictStep g) hm'
+
+/-- `W.restrict (Value.F.toRep _ (.fn g)) hm` matches `Sum.inr (Sum.inl _)` shape. -/
+theorem Value_F_Rep_restrict_fn_shape {n : Nat} (g : World.Function (▹ D) (▹ D) n)
+    {m : Nat} (hm : m ≤ n) :
+    ∃ g', World.restrict (Value.F.toRep (▹ D) (.fn g)) hm = Sum.inr (Sum.inl g') :=
+  ⟨_, Value_F_Rep_restrict_fn_eq g hm⟩
 
 /-- `W.restrict (Value.F.toRep _ (.con K ds)) hm` matches `Sum.inr (Sum.inr _)` shape. -/
 theorem Value_F_Rep_restrict_con_shape : ∀ {n : Nat} (K : ConTag)
@@ -399,6 +411,12 @@ theorem Later_next_loeb_restrict {n : Nat} (RetGoodP : world(VH → Prop) n)
     congr 1
     exact (World.restrict_succ RetGoodP hk').symm
 
+/-- Look-shape of a `▹ D`: at the next level, `dl` is `step' (.look x) d'`.
+    Vacuously true at level 0. -/
+def IsLookShape : {n : Nat} → ▹ D n → Prop
+  | 0,   _  => True
+  | _+1, dl => ∃ (x : Var) (d' : D _), (dl : D _) = Domain.step' (.look x) d'
+
 /-- The value-and-heap predicate for `.ret`, parameterised by the
     later-`GoodP`-style predicate on `D`-values. Function- and con-fields
     are `▷ DGoodP`-good (i.e., `IsLookup`-shape); the heap is
@@ -410,6 +428,7 @@ def RetGoodP {n : Nat} (DGoodP : Nat → ▹ world(D → Prop) n) : world(VH →
       v = .inr (.inl g) →
       ∀ l (hl : l ≤ m) (dl : ▹ D l),
         Later.prop (Later.ap' _ ((DGoodP 2)↓) dl) →
+        IsLookShape dl →
         ∀ j (hj : j ≤ l) (μ' : Heap (▹ D) j),
           Parametric.Heap ((DGoodP 1)↓) μ' →
           Later.prop (Later.ap' _ ((DGoodP 2)↓) (g l hl dl))) ∧
@@ -428,6 +447,7 @@ theorem RetGoodP_apply {n : Nat} (DGoodP : Nat → ▹ world(D → Prop) n)
           v = .inr (.inl g) →
           ∀ l (hl : l ≤ m) (dl : ▹ D l),
             Later.prop (Later.ap' _ ((DGoodP 2)↓) dl) →
+            IsLookShape dl →
             ∀ j (hj : j ≤ l) (μ' : Heap (▹ D) j),
               Parametric.Heap ((DGoodP 1)↓) μ' →
               Later.prop (Later.ap' _ ((DGoodP 2)↓) (g l hl dl))) ∧
@@ -526,8 +546,8 @@ theorem RetGoodP_restrictStep {n : Nat} (DGoodP : Nat → ▹ world(D → Prop) 
   refine (congrArg (· ∧ _) ?_).trans ((congrArg (_ ∧ ·) ?_))
   · -- Function-cond piece.
     apply propext
-    refine Iff.intro (fun h g hg l hl dl hdl j hj μ' hμ' => ?_)
-                    (fun h g hg l hl dl hdl j hj μ' hμ' => ?_)
+    refine Iff.intro (fun h g hg l hl dl hdl hlook j hj μ' hμ' => ?_)
+                    (fun h g hg l hl dl hdl hlook j hj μ' hμ' => ?_)
     · have hl_n : l ≤ n := Nat.le_trans hl hm
       have hj_n : j ≤ n := Nat.le_trans hj hl_n
       have h_eq_l : ∀ (k : Nat), World.restrict (F := Later world(D → Prop)) (DGoodP k)
@@ -539,7 +559,7 @@ theorem RetGoodP_restrictStep {n : Nat} (DGoodP : Nat → ▹ world(D → Prop) 
                   = World.restrict (World.restrictStep (DGoodP k)) hj_n :=
         fun k => World.restrict_le_succ (DGoodP k) _ hj_n
       rw [← h_eq_l 2] at hdl
-      have := h g hg l hl dl hdl j hj μ' (by rw [h_eq_j 1]; exact hμ')
+      have := h g hg l hl dl hdl hlook j hj μ' (by rw [h_eq_j 1]; exact hμ')
       rwa [h_eq_l 2] at this
     · have hl_n : l ≤ n := Nat.le_trans hl hm
       have hj_n : j ≤ n := Nat.le_trans hj hl_n
@@ -552,7 +572,7 @@ theorem RetGoodP_restrictStep {n : Nat} (DGoodP : Nat → ▹ world(D → Prop) 
                   = World.restrict (World.restrictStep (DGoodP k)) hj_n :=
         fun k => World.restrict_le_succ (DGoodP k) _ hj_n
       rw [h_eq_l 2] at hdl
-      have := h g hg l hl dl hdl j hj μ' (by rw [← h_eq_j 1]; exact hμ')
+      have := h g hg l hl dl hdl hlook j hj μ' (by rw [← h_eq_j 1]; exact hμ')
       rwa [← h_eq_l 2] at this
   · refine (congrArg (· ∧ _) ?_).trans ((congrArg (_ ∧ ·) ?_))
     · apply propext
@@ -862,6 +882,22 @@ theorem Later_ap'_W_restrictStep_GoodP {n M : Nat} (hm : M+1 ≤ n) (hM : M ≤ 
     unfold GoodP
     rw [loeb.eq GoodPBody_natural]
     rfl
+
+/-- Bridge: a `▷((Recur S)↓ dl)` claim at outer level `k'+1` (where `Recur` is
+    the `Later.ap'`-of-`Later.next-loeb` shape) unfolds to a `GoodP at k'`
+    statement on `dl`. The `▷` strips, the outer `Later.ap'` becomes pointwise,
+    and `Later.next loeb` restricted to `k'+1` is `GoodP at k'`. -/
+theorem Later_ap'_Recur_succ_eq {n m : Nat} (hm : m ≤ n) (k' : Nat)
+    (hl : k'+1 ≤ m) (S : Nat) (dl : ▹ D (k'+1)) :
+    Later.prop (Later.ap' (k'+1)
+        (World.restrict (Later.ap' m
+            (World.restrict (Later.next (loeb GoodPBody : world(Nat → D → Prop) n)) hm)
+            (Later.next S)) hl) dl)
+    = (GoodP : world(Nat → D → Prop) k') k' (Nat.le_refl k') S k' (Nat.le_refl k')
+        (dl : D k') := by
+  rw [Later_ap'_W_restrict_GoodP hm hl S]
+  simp only [Later.prop_succ, Later.ap'_succ, Later.next_succ, World.Const.restrictStep_eq]
+  rw [Later_next_GoodP_restrict (Nat.le_trans hl hm)]
 
 /-- Heap-entry-wise monotonicity in budget: a heap good at S₁ is good at S₂
     when S₁ ≤ S₂. Per sub-level + entry, lift via `TraceGoodP_mono_S`. -/
@@ -1344,13 +1380,10 @@ noncomputable def good : LR D where
         (by unfold T.ret; rw [T_uf] : T.unfold (T.ret _) = .ret _)]
     rw [NewIdea.RetGoodP_apply]
     refine ⟨?_, ?_, ?_⟩
-    · -- function-cond: design clash.
-      -- Required: `g l hl dl` is `DGoodP↓`-good (= Recur 2 = goodP at S=2) for any
-      -- `dl` at `DGoodP↓`. h_param : Parametric.Fn lr.P f gives `f` preserves
-      -- IsLookup_holds (lr.P = goodP 0). To use h_param on `dl`, we'd need
-      -- IsLookup_holds (goodP 0) dl, which doesn't follow from Recur 2-goodness.
-      -- Either RetGoodP's function-cond should require IsLookup-shape inputs,
-      -- or the user-side Parametric.Fn should be stronger.
+    · -- function-cond. Bridge: hdl → (GoodP at k') k' _ 2 k' _ dl_inner.
+      -- To call h_param at level k', need IsLookup_holds (goodP 2) dl_inner,
+      -- which requires the full goodP_holds (all-m). The current bridge only
+      -- gives single-level info; need a "single-level → all-m" closure lemma.
       sorry
     · -- con-cond: vacuous (v has shape Sum.inr (Sum.inl _), not Sum.inr (Sum.inr _))
       intro K ds hg
@@ -1422,7 +1455,7 @@ private theorem Parametric.Heap_empty {n : Nat} (P : ▹ world(D → Prop) n) :
 theorem evalByNeed_noTripleInvis (n : Nat) (e : Exp) :
     NoTripleInvis n ((evalByNeed n e).unfold n (Nat.le_refl n) ∅) := by
   have h_goodP : (goodP 2).holds (eval (D := D) e n (Nat.le_refl n) Env.empty) :=
-    LR.fundamental good e Env.empty (emptyEnv_good n)
+    show good.P.holds _ from LR.fundamental good e Env.empty (emptyEnv_good n)
   rw [goodP_iff 2] at h_goodP
   -- Specialize at m = n.
   have h_at_n := h_goodP n (Nat.le_refl n)
