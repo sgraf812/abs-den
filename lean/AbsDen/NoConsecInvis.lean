@@ -1443,12 +1443,47 @@ noncomputable def good : LR D where
 private theorem emptyEnv_good (n : Nat) : good.env (Env.empty : Env (D n)) :=
   good.env_empty
 
+/-- `W.restrictStep (∅ : Heap _ (n+1)) = ∅`. By the `World.Comp` World instance,
+    `restrictStep = Functor.map restrictStep`, and `Functor.map _ ∅ = ∅` because
+    `HashMap.fold` on the empty map returns the initial accumulator. -/
+private theorem Heap_restrictStep_empty {n : Nat} :
+    World.restrictStep (∅ : Heap (▹ D) (n+1)) = (∅ : Heap (▹ D) n) := by
+  show Std.HashMap.fold (fun acc k v => acc.insert k (World.restrictStep v))
+        ∅ (∅ : AddrMap (▹ D (n+1)))
+      = (∅ : AddrMap (▹ D n))
+  rw [Std.HashMap.fold_eq_foldl_toList]
+  have h_toList : ((∅ : AddrMap (▹ D (n+1))).toList : List (Addr × ▹ D (n+1))) = [] :=
+    Std.HashMap.toList_empty
+  rw [h_toList]
+  rfl
+
+/-- `W.restrict (∅ : Heap _ n) hm = ∅`. By induction on the gap `n - m` using
+    `Heap_restrictStep_empty`. -/
+private theorem Heap_restrict_empty : ∀ {n : Nat} {m : Nat} (hm : m ≤ n),
+    World.restrict (∅ : Heap (▹ D) n) hm = (∅ : Heap (▹ D) m) := by
+  intro n
+  induction n with
+  | zero =>
+    intro m hm
+    have : m = 0 := Nat.le_zero.mp hm; subst this
+    exact World.restrict_self _
+  | succ n' ih =>
+    intro m hm
+    by_cases hmn : m = n'+1
+    · subst hmn; exact World.restrict_self _
+    · have hm' : m ≤ n' := by omega
+      have heq : hm = Nat.le_succ_of_le hm' := rfl
+      rw [heq, @World.restrict_succ (Heap (▹ D)) _ n' m _ hm']
+      rw [Heap_restrictStep_empty]
+      exact ih hm'
+
 /-- The empty heap is `Parametric.Heap`-good for any predicate, vacuously. -/
 private theorem Parametric.Heap_empty {n : Nat} (P : ▹ world(D → Prop) n) :
     Parametric.Heap P (∅ : Heap (▹ D) n) := by
   intro m hm a dl h_get
-  -- TODO: prove `get? (W.restrict ∅ hm) a = none` by induction on `n`.
-  sorry
+  rw [Heap_restrict_empty hm] at h_get
+  rw [HashMap_get?_empty] at h_get
+  cases h_get
 
 /-- Every trace produced by `evalByNeed` has at most 2 consecutive invisible
     steps. -/
