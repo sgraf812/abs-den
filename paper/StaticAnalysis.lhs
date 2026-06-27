@@ -28,15 +28,16 @@ import Interpreter
 \end{code}
 %endif
 
-\section{Static Analysis}
+\section{Usage Analysis}
 \label{sec:abstraction}
+\label{sec:usage-analysis}
 
 So far, our semantic domains have all been \emph{infinite}, simply because the
 dynamic traces they express are potentially infinite as well.
 However, by instantiating the generic denotational interpreter with
 a semantic domain in which every element is \emph{finite data}, we can run the
 interpreter on the program statically, at compile time, to yield a \emph{finite}
-abstraction of the dynamic behavior.
+abstraction of the dynamic behaviour.
 This gives us a \emph{static program analysis}.
 
 %To show the applicability of our framework, \Cref{sec:more-analyses} briefly
@@ -45,83 +46,39 @@ This gives us a \emph{static program analysis}.
 %0CFA control-flow analysis and GHC's Demand Analysis as denotational
 %interpreters.
 
-We can get a wide range of static analyses by choosing appropriate semantic domains.
-For example, we have successfully realised the following analyses as
-denotational interpreters:
-\begin{itemize}
-  \item
-    \Cref{sec:usage-analysis} defines a summary-based \emph{usage analysis},
-    the running example of this work.
-    We prove that usage analysis correctly infers absence in \Cref{sec:soundness}.
+A wide range of static analyses arises by choosing appropriate semantic domains.
+This paper develops one of them, usage analysis, and proves in
+\Cref{sec:soundness} that it correctly infers absence.
+The same framework accommodates analyses well beyond usage analysis: a type
+analysis in the style of \citeauthor{Milner:78}'s Algorithm~J, 0CFA control-flow
+analysis~\citep{Shivers:91}, and GHC's \emph{Demand Analysis}, the production
+strictness and cardinality analysis of \citet{Sergey:14}. We develop these only
+in the extended draft version of this paper and leave the correctness proof of
+Demand Analysis for future work.
 
-  \item
-    \Cref{sec:type-analysis} defines a \emph{type analysis} with
-    let generalisation that implements \citeauthor{Milner:78}'s Algorithm~J,
-    inferring polytypes such as $\forall α_3.\ \mathtt{option}\;(α_3
-    \rightarrow α_3)$ that act as summaries.
+\subsection{Usage Cardinality and Absence}
 
-  \item
-    \Cref{sec:0cfa} defines 0CFA \emph{control-flow analysis}~\citep{Shivers:91},
-    a non-modular analysis lacking a finite summary mechanism, simply as a
-    proof of concept.
+Usage analysis is a compelling example because it infers an \emph{operational
+property}: \emph{usage cardinality}, that is, how often a program evaluates a
+given variable, whether not at all, at most once, or possibly many
+times~\citep{WrightBakerFinch:93,Gustavsson:98}.
+In particular, the \emph{at most once} distinction is not observable in a
+traditional denotational semantics, whose domains deliberately lack the
+operational detail of how often a subterm is evaluated; our trace-based semantics
+(\Cref{sec:dna}) exposes it by recording each variable lookup.
+Knowing that a variable is evaluated at most once enables optimisations such as
+inlining into function bodies that are entered at most once, or avoiding the
+update of thunks~\citep{Turner:95,Sergey:14}.
 
-  \item
-    To demonstrate that our framework scales to real-world compilers,
-    we have refactored relevant parts of \emph{Demand Analysis} in the Glasgow
-    Haskell Compiler into an abstract denotational interpreter as an artefact.
-    The resulting compiler bootstraps and passes the testsuite.%
-    \footnote{There is a small caveat: we did not try to optimise for compiler
-    performance in our proof of concept and hence it regresses in a few
-    compiler performance test cases.
-    None of the runtime performance test cases regress and the inferred
-    demand signatures stay unchanged.}
-    Demand Analysis is the real-world implementation of the cardinality analysis
-    work of \citet{Sergey:14}, generalising usage analysis and implementing
-    strictness analysis as well.
-    For a report of this case study, we defer to \Cref{sec:demand-analysis}.
-
-  \item
-    Static compiler analyses such as Demand Analysis usually drive a subsequent
-    optimisation, for which a single denotation for the entire program is
-    insufficient.
-    Rather, we need one for every sub-expression, or at least every binding.
-    \Cref{sec:annotations} proposes a very slight generalisation of the
-    |Domain| type class that lifts a stateless analysis into a stateful
-    analysis writing out annotations for let bindings in a separate, global map.
-    As a substantial bonus, we can use another stateful map to cache the
-    results of fixpoint iterations.
-
-%    Boxity analysis infers when it is profitable to unbox let-bound variables
-%    or function arguments.
-%
-%    Expressions are denoted by sets of program labels that evaluation might
-%    return. These labels are given meaning in an abstract store.
-%    For a function label, the abstract store maintains a single point
-%    approximation of the function's abstract transformer as a \emph{polyvariant}
-%    summary.
-%
-%    \Cref{sec:type-analysis} defines a variant of \citeauthor{Milner:78}'s
-%    Algorithm J --- a \emph{type analysis} with let generalisation, inferring
-%    types such as $\forall α_3.\ \mathtt{option}\;(α_3 \rightarrow α_3)$.
-%    Function types act as summaries in the sense of the Introduction, and
-%    fixpoints are solved via unification.
-
-\end{itemize}
-
-In the following, we discuss usage analysis (\Cref{sec:usage-analysis}) in detail.
-
-\subsection{Usage Analysis}
-\label{sec:usage-analysis}
-
-In this subsection, we give a detailed account of \emph{usage analysis} as
-an instance of the denotational interpreter.
-It is a compelling example because it illustrates that our framework is suitable
-to infer \emph{operational properties}, such as an upper bound on the number of
-variable lookups.
-A particularly useful special case is \emph{absence}: a variable that is never
-looked up is dead code and may be removed.
-We define this property in terms of the reference semantics of \Cref{sec:op-sem}
-and prove in \Cref{sec:soundness} that usage analysis infers it soundly.
+The extreme case of evaluating a variable \emph{not at all} is \emph{absence}: a
+variable is \emph{absent} in an expression when evaluating the expression never
+looks the variable up, and \emph{used} otherwise.
+Absence licenses dead-code optimisation: when $\px$ is absent in $\pe_2$, the
+right-hand side $\pe_1$ of $\Let{\px}{\pe_1}{\pe_2}$ is never demanded, so a
+compiler may rewrite $\pe_1$ to anything it pleases, and even drop the binding
+altogether if $\px$ then occurs nowhere in $\pe_2$.
+We make this precise against the reference semantics of \Cref{sec:op-sem},
+identifying ``looking up'' a variable with a $\LookupT$ transition:
 
 \begin{definitionrep}[Absence]
   \label{defn:absence}
@@ -132,21 +89,37 @@ and prove in \Cref{sec:soundness} that usage analysis infers it soundly.
   Otherwise, $\px$ is \emph{absent} in $\pe$.
 \end{definitionrep}
 \noindent
-Absence of $\px$ means that $\px$ is not looked up \emph{regardless of the
-context in which $\pe$ is used}, justifying rewrites via contextual
+Quantifying over \emph{all} (reachable) contexts in which $\pe$ may be
+evaluated is what makes absence strong enough to justify such rewrites
+anywhere in the program, in the sense of the inequational theory of contextual
 improvement~\citep{MoranSands:99}.
 
-\subsubsection{Trace Abstraction in |Trace UT|}
+\subsection{Trace Abstraction in |UT|}
 \label{sec:usage-trace-abstraction}
 
 \begin{figure}
-\begin{minipage}{0.4\textwidth}
+\begin{spec}
+class Eq a => Lat a where bottom :: a; (⊔) :: a -> a -> a;
+kleeneFix :: Lat a => (a -> a) -> a; qquad lub :: Lat a => [a] -> a
+kleeneFix f = go bottom where go x = let x' = f x in if x' ⊑ x then x' else go x'
+\end{spec}
+\\[-1em]
+\caption{Order theory and Kleene iteration}
+\label{fig:lat}
+\end{figure}
+
+\begin{figure}
+\begin{minipage}{0.63\textwidth}
 \begin{code}
-data U = U0 | U1 | Uω
-type Uses = Name :-> U
 class UVec a where
   (+)  :: a -> a -> a
   (*)  :: U -> a -> a
+\end{code}
+\end{minipage}%
+\begin{minipage}{0.37\textwidth}
+\begin{code}
+data U = U0 | U1 | Uω
+type Uses = Name :-> U
 instance UVec U where {-" ... \iffalse "-}
   U1 + U1 = Uω
   u1 + u2 = u1 ⊔ u2
@@ -158,11 +131,6 @@ instance UVec Uses where {-" ... \iffalse "-}
   (+) = Map.unionWith (+)
   u * m = Map.map (u *) m
 {-" \fi "-}
-\end{code}
-\end{minipage}%
-\begin{minipage}{0.6\textwidth}
-\begin{code}
--- TODO: reformat!
 \end{code}
 \end{minipage}
 \\
@@ -185,13 +153,9 @@ instance Domain UD where
     d >> lub  [  f (replicate (conArity k) (MkUT emp (Rep Uω)))
               |  (k,f) <- assocs fs ]
   bind # rhs body = body (kleeneFix rhs)
-
-instance Monad UT where
-  return a = MkUT emp a
-  MkUT φ1 a >>= k = let MkUT φ2 b = k a in MkUT (φ1+φ2) b
 \end{code}
 \end{minipage}%
-\begin{minipage}{0.3\textwidth}
+\begin{minipage}{0.37\textwidth}
 \begin{code}
 data UValue = UCons U UValue | Rep U
 type UD = UT UValue
@@ -223,6 +187,11 @@ peel (UCons u v)  = (u,v)
 (!?) :: Uses -> Name -> U
 m !? x  | x ∈ dom m  = m ! x
         | otherwise  = U0
+
+instance Monad UT where
+  return a = MkUT emp a
+  MkUT φ1 a >>= k = MkUT (φ1+φ2) b
+    where MkUT φ2 b = k a
 \end{code}
 \end{minipage}
 %if style == newcode
@@ -268,7 +237,7 @@ such as |UT| in \Cref{fig:usage-analysis}.
 A \emph{usage trace} |MkUT φ val :: UT v| is a pair of a value |val :: v|
 and a finite map |φ :: Uses|, mapping variables to a \emph{usage} |U|.
 The usage |φ !? x| assigned to |x| is meant to approximate the number of |Look x|
-events; |U0| means ``at most 0 times'', |U1| means ``at most 1 times'',
+events; |U0| means ``at most 0 times'', |U1| means ``at most 1 time'',
 and |Uω| means ``an unknown number of times''.
 %\slpj{This |φ !? x| is strange. Why bang questionmark? Later... ah, now I see
 %that it's just the lookup operation, but I thought it was strange new math
@@ -289,8 +258,8 @@ Consider as an example the by-name trace evaluating $\pe \triangleq
 \noindent
 We would like to abstract this trace into |MkUT [i ↦ U1, j ↦ Uω] dots|.
 One plausible way to achieve this is to replace every |Step (Look x) dots|
-in the by-name trace with a call to |step (Look x) dots| from the |Trace UT|
-instance in \Cref{fig:usage-analysis}, essentially folding over the trace.
+in the by-name trace with a call to |step (Look x) dots| from
+\Cref{fig:usage-analysis}, essentially folding over the trace.
 The |step| implementation increments the usage of |x| whenever a |Look x|
 event occurs.
 The addition operation used to carry out incrementation is defined in type class
@@ -306,21 +275,21 @@ These operations lift to |Uses| pointwise, \eg,
 %amounts to what \citet{adi} call a \emph{collecting semantics}.
 %To recover such an analysis-specific collecting semantics,
 %it is sufficient to define a |Monad| instance on |UT| mirroring trace
-%concatenation and then running our interpreter at, \eg $|D (ByName UT)| \cong
+%concatenation and then running our interpreter at, \eg $|UT Value| \cong
 %|UT (Value UT)|$ on expression $\pe$ from earlier:
 %\[
-%  |eval (({-"\Let{i}{\Lam{x}{x}}{\Let{j}{\Lam{y}{y}}{i~j~j}}"-})) emp| = \perform{eval (read "let i = λx.x in let j = λy.y in i j j") emp :: D (ByName UT)}| :: D (ByName UT)|.
+%  |eval (({-"\Let{i}{\Lam{x}{x}}{\Let{j}{\Lam{y}{y}}{i~j~j}}"-})) emp| = \perform{eval (read "let i = λx.x in let j = λy.y in i j j") emp :: UT Value}| :: UT Value|.
 %\]
 %\noindent
-It is nice to explore whether the |Trace| instance encodes the desired
-operational property in this way, but of little practical relevance because
-the fold will diverge whenever the input expression diverges.
+Exploring whether the |step| implementation encodes the operational property this way
+is instructive but impractical: the fold diverges whenever the input expression
+diverges.
 In abstract interpretation terms: the most precise abstraction of the collecting
 semantics is not generally decidable; this is a consequence of Rice's theorem.
 We will now fix this by introducing a finitely represented |UValue| to replace
-|Value UT| and recover a computable analysis.
+|Value| and recover a computable analysis.
 
-\subsubsection{Value Abstraction |UValue| and Summarisation in |Domain UD|}
+\subsection{Value Abstraction |UValue| and Summarisation in |Domain UD|}
 
 We complement the trace type |UT| with an abstract value type |UValue|
 to get the finitely represented semantic domain |UD = UT UValue| in
@@ -335,6 +304,9 @@ when we instantiate |eval| at |UD|.
 The abstract value type |UValue| records, for each argument position in turn, how
 often a function uses that argument, drawn from |U| (used zero, one, or many
 times).
+Such a |UValue| is the function's \emph{summary}: a finite stand-in for its
+behaviour that the analysis applies at each call site instead of re-examining the
+body.
 For example, the |UValue| abstracting $\Lam{y}{\Lam{z}{y}}$ is
 |UCons U1 (UCons U0 (Rep Uω))|, because the first argument is used once while
 the second is used zero times.
@@ -348,62 +320,11 @@ Absence is the special case: a variable is absent exactly when its usage is |U0|
 %probably does not matter too much.
 %Either way, I'm a bit hesitant to change it this close to submission.}
 
-Consider
-$|evalUsg (({-" \Let{k}{\Lam{y}{\Lam{z}{y}}}{k~x_1~x_2} "-})) ρe|
- = \perform{evalUsg (read "let k = λy.λz.y in k x_1 x_2") (Map.fromList [("x_1", MkUT (singenv "x_1" U1) (Rep Uω)), ("x_2", MkUT (singenv "x_2" U1) (Rep Uω))])}$.
-Usage analysis successfully infers that $x_1$ is used at most once and that
-$x_2$ is absent, because it does not occur in the reported |Uses|.
-
-%The resulting analysis is a strict generalisation of absence analysis, because
-%it can infer ``at most once'' uses |U1| instead of going straight to ``many
-%times'' $\aU$/|Uω|, and because it handles data types and recursive |let| as
-%well.
-%If we were to undo these enhancements and inlined all definitions into the
-%generic interpreter, we would get the \emph{very same absence analysis}, so the
-%intuition built in \Cref{sec:problem} transfers.
-
-On the other hand,
-$|evalUsg (({-" \Let{i}{\Lam{x}{x}}{\Let{j}{\Lam{y}{y}}{i~i~j}} "-})) emp|
- = \perform{evalUsg (read "let i = λx.x in let j = λy.y in i i j") emp}$
-demonstrates the limitations of the first-order summary mechanism.
-While the program trace would only have one lookup for $j$, the analysis is
-unable to reason through the indirect call and conservatively reports that $j$
-may be used many times.
-
-The |Domain| instance is responsible for implementing the summary mechanism.
-While |stuck| expressions do not evaluate anything and hence are denoted by
-|bottom = MkUT emp (Rep U0)|, the |fun| and |apply| functions build and apply
-argument summaries, respectively.
-Let us briefly review how the summary for the right-hand side $\Lam{x}{x}$ of
-$i$ in the previous example is computed:
-\begin{spec}
-   eval (Lam x (Var x)) ρ =  fun x (\d -> step App2 (eval (Var x) (ext ρ x d)))
-=  case step App2 (eval (Var x) (ext ρ x (MkUT (singenv x U1) (Rep Uω))))  of MkUT φ v -> MkUT (ext φ x U0) (UCons (φ !? x) (Rep Uω))
-=  case MkUT (singenv x U1) (Rep Uω)                                       of MkUT φ v -> MkUT (ext φ x U0) (UCons (φ !? x) (Rep Uω))
-=  MkUT emp (UCons U1 (Rep Uω))
-\end{spec}
-The definition of |fun x| applies the lambda body to a \emph{proxy} |(MkUT (singenv x U1) (Rep Uω))|
-to summarise how the body uses its argument by way of looking at how it uses |x|.%
-\footnote{As before, the exact identity of |x| is exchangeable; we use it as a
-De Bruijn level.}
-Every use of |x|'s proxy will contribute a usage of |U1| on |x|, and multiple
-uses in the lambda body would accumulate to a usage of |Uω|.
-In this case there is only a single use of |x| and the final usage |φ !? x =
-U1| from the lambda body will be prepended to the value abstraction.
-Occurrences of |x| unleash the uninformative top value (|Rep Uω|) from |x|'s
-proxy for lack of knowing the actual argument at call sites.
-
-The definition of |apply| applies such a summary to an argument using |+| (so
-that |U1 + U1 = Uω|) and an explicit |peel| to view a |UValue| in terms
-of $\argcons$ (recall $|Rep u| \equiv |UCons u (Rep u)|$).
-The usage |u| thus pelt from the value determines how often the actual
-argument was evaluated, and multiplying the uses of the argument |φ2| with |u|
-accounts for that.
-
-To see the summary mechanism end to end, \Cref{fig:usage-trace} traces |evalUsg|
-on $\Let{k}{\Lam{y}{\Lam{z}{y}}}{k~x_1~x_2}$, the example from above, where the
-initial environment |ρe| supplies each free variable $x_i$ with the proxy
-|MkUT (singenv x_i U1) (Rep Uω)|.
+We illustrate the analysis end to end on the example
+$\Let{k}{\Lam{y}{\Lam{z}{y}}}{k~x_1~x_2}$, whose evaluation \Cref{fig:usage-trace}
+traces under an initial environment |ρe| that maps each free variable $x_i$ to the
+proxy |MkUT (singenv x_i U1) (Rep Uω)|, recording one use of $x_i$ with an unknown
+result.
 As in the by-name walkthrough of \Cref{sec:walkthrough}, no clause sees the whole
 picture; here the |step| events |App1|, |App2| and |Let1| are moreover the
 identity for |UD|, so only |Look| and the summary operations |fun| and |apply|
@@ -426,62 +347,74 @@ remain.
 \label{fig:usage-trace}
 \end{figure}
 
-Step~(1) unfolds the |Let| via |bind|, which for |UD| solves the recursive
-binding by Kleene iteration |kleeneFix|.
-As $\Lam{y}{\Lam{z}{y}}$ has no free variables, the fixpoint is reached at once
-and gives |k|'s summary |dk = MkUT emp vk| with |vk = UCons U1 (UCons U0 (Rep Uω))|,
-built by |fun| exactly as the $\Lam{x}{x}$ summary above.
+Step~(1) unfolds the |Let| via |bind|, which summarises the right-hand side
+$\Lam{y}{\Lam{z}{y}}$ with |fun|.
+To summarise a lambda |Lam x e|, the |fun| method applies the body to a
+\emph{proxy} |MkUT (singenv x U1) (Rep Uω)| that records a single use of the bound
+variable |x| and an unknown argument, then reads off how the body used |x|:
+\begin{spec}
+   eval (Lam x (Var x)) ρ =  fun x (\d -> step App2 (eval (Var x) (ext ρ x d)))
+=  case step App2 (eval (Var x) (ext ρ x (MkUT (singenv x U1) (Rep Uω))))  of MkUT φ v -> MkUT (ext φ x U0) (UCons (φ !? x) (Rep Uω))
+=  case MkUT (singenv x U1) (Rep Uω)                                       of MkUT φ v -> MkUT (ext φ x U0) (UCons (φ !? x) (Rep Uω))
+=  MkUT emp (UCons U1 (Rep Uω))
+\end{spec}
+The usage |φ !? x| of the bound variable becomes the next entry of the |UValue|,
+while |x| is dropped from the |Uses| and the argument value remains unknown
+(|Rep Uω|).%
+\footnote{As before, the exact identity of |x| is exchangeable; we use it as a De
+Bruijn level.}
+Applied to each binder of $\Lam{y}{\Lam{z}{y}}$ in turn, this yields |k|'s summary
+|dk = MkUT emp vk| with |vk = UCons U1 (UCons U0 (Rep Uω))|: the first argument is
+used once, the second not at all, and the body has no free variables.
+As the right-hand side does not mention |k|, no recursion is needed
+(\Cref{sec:usage-fixpoint} treats recursive bindings, where |bind| must instead
+compute a fixpoint).
 The binding wraps |dk| in |step (Look k)| before extending the environment to
 |ρ1|, so that each lookup of |k| records one use.
-Step~(2) unfolds the two applications, using |eval (Var k) ρ1 = ρ1 ! k|, and
-Step~(3) reads the environment: |ρ1 ! k| exposes |step (Look k) dk = MkUT (singenv k U1) vk|,
-the single use of |k|, while |ρ1 ! x_1| and |ρ1 ! x_2| are the proxies |px1| and |px2|.
 
+Steps~(2,3) unfold the two applications: |eval (Var k) ρ1 = ρ1 ! k| exposes
+|step (Look k) dk = MkUT (singenv k U1) vk|, the single use of |k|, while
+|ρ1 ! x_1| and |ρ1 ! x_2| are the proxies |px1| and |px2|.
 The two |apply| steps are where the summary earns its keep.
-Step~(4) applies |k|'s summary to $x_1$: |peel vk = (U1, UCons U0 (Rep Uω))| says
-the first argument is used once, so |U1 * singenv x_1 U1| retains $x_1$'s use and
-the head |U1| is peeled from the value.
-Step~(5) applies the result to $x_2$: now |peel (UCons U0 (Rep Uω)) = (U0, Rep Uω)|
-says the second argument is absent, so |U0 * singenv x_2 U1| maps $x_2$ to |U0|
-and its use is discarded.
+|apply| views the |UValue| through |peel| as a head usage and a tail (recall
+$|Rep u| \equiv |UCons u (Rep u)|$): the head says how often the argument is used,
+so |apply| adds that many copies of the argument's |Uses| (with |U1 + U1 = Uω|)
+and continues with the tail.
+Thus Step~(4) peels |U1| off |vk| and keeps $x_1$'s use, whereas Step~(5) peels
+|U0| and discards $x_2$'s, as |U0 * singenv x_2 U1| maps $x_2$ to |U0|.
 The final summary infers $x_1$ as used at most once and $x_2$ as absent, even
-though $x_2$ appears in argument position --- the |UValue| is exactly what lets
+though $x_2$ occurs in argument position; the |UValue| is exactly what lets
 |apply| tell the two apart.
+Stuck expressions evaluate nothing and are denoted by |bottom = MkUT emp (Rep U0)|.
 
-The example
+The summary mechanism is necessarily approximate.
+For example,
+$|evalUsg (({-" \Let{i}{\Lam{x}{x}}{\Let{j}{\Lam{y}{y}}{i~i~j}} "-})) emp|
+ = \perform{evalUsg (read "let i = λx.x in let j = λy.y in i i j") emp}$:
+while the program looks up $j$ only once, the first-order summary cannot reason
+through the indirect call and conservatively reports that $j$ may be used many
+times.
+
+Data types are handled analogously.
 $|evalUsg (({-" \Let{z}{Z()}{\Case{S(z)}{S(n) → n}} "-})) emp|
  = \perform{evalUsg (read "let z = Z() in case S(z) of { S(n) -> n }") emp}$
-illustrates the summary mechanism for data types.
-Our analysis imprecisely infers that |z| might be used many times when it is
-only used once.%
+again infers imprecisely that |z| might be used many times when it is used
+once.%
 \footnote{Following \citet{Sergey:14} we could model \emph{demand} as
 a property of evaluation contexts and propagate uses of field binders to the
 scrutinee's fields to do better.}
-This is achieved in |con| by repeatedly |apply|ing to the top value |(Rep Uω)|,
-as if a data constructor was a lambda-bound variable.
-Dually, |select| does not need to track how fields are used and can pass |MkUT
-emp (Rep Uω)| as proxies for field denotations.
-The result uses anything the scrutinee expression used, plus the upper bound of
-uses in case alternatives, one of which will be taken.
+The |con| method treats a constructor like a lambda, repeatedly |apply|ing it to
+the top value |(Rep Uω)|; dually, |select| passes |MkUT emp (Rep Uω)| as proxies
+for field denotations and takes the upper bound over the case alternatives, one of
+which will be taken.
 
-Note that the finite representation of the type |UD| rules out injective
-implementations of |fun x :: (UD -> UD) -> UD| and thus requires the
-aforementioned \emph{approximate} summary mechanism.
-There is another potential source of approximation: the |bind|
-implementation discussed next.
+Note that the finite representation of |UD| rules out injective implementations of
+|fun x :: (UD -> UD) -> UD| and thus requires this \emph{approximate} summary
+mechanism.
+There is another potential source of approximation: the |bind| implementation
+discussed next.
 
-\begin{figure}
-\begin{spec}
-class Eq a => Lat a where bottom :: a; (⊔) :: a -> a -> a;
-kleeneFix :: Lat a => (a -> a) -> a; qquad lub :: Lat a => [a] -> a
-kleeneFix f = go bottom where go x = let x' = f x in if x' ⊑ x then x' else go x'
-\end{spec}
-\\[-1em]
-\caption{Order theory and Kleene iteration}
-\label{fig:lat}
-\end{figure}
-
-\subsubsection{Finite Fixpoint Strategy and Totality}
+\subsection{Finite Fixpoint Strategy and Totality}
 \label{sec:usage-fixpoint}
 
 The third and final ingredient to recover a static analysis is the fixpoint
@@ -492,13 +425,12 @@ For the dynamic semantics in \Cref{sec:interp} we made liberal use of
 rhs d in body d| in |Domain DName| (\Cref{fig:eval}).
 At least for |evalName| and |evalNeed2|, we have proved in \Cref{sec:adequacy}
 that these fixpoints always exist by a coinductive argument.
-Alas, among other things this argument relies on the |Step| constructor --- and
-thus the |step| method --- of the trace type |T| being \emph{lazy} in
+Alas, among other things this argument relies on the |Step| constructor (and
+thus the |step| method) of the trace type |T| being \emph{lazy} in
 the tail of the trace!
 
 When we replaced |T| in favor of the finite data type |UT| in
-\Cref{sec:usage-trace-abstraction} to get a collecting semantics |D (ByName
-UT)|, we got a partial interpreter.
+\Cref{sec:usage-trace-abstraction} to get a collecting semantics |UT Value|, we got a partial interpreter.
 That was because the |step| implementation of |UT| is \emph{not} lazy, and hence
 the guarded fixpoint |let d = rhs d in body d| is not guaranteed to exist.
 
@@ -506,8 +438,8 @@ In general, finite data trace types cannot have a lazy |step|
 implementation, so finite data domains such as |UD| require a different fixpoint
 strategy to ensure termination.
 Depending on the abstract domain, different fixpoint strategies can be employed.
-For an unusual example, in our type analysis \Cref{sec:type-analysis}, we
-generate and solve a constraint system via unification to define fixpoints.
+For an unusual example, our type analysis generates and solves a constraint
+system via unification to define fixpoints.
 In case of |UD|, we compute least fixpoints by Kleene iteration |kleeneFix|
 in \Cref{fig:lat}.
 |kleeneFix| requires us to define an order on |UD|, which is induced
@@ -517,7 +449,7 @@ The iteration procedure terminates whenever the type class instances of |UD| are
 monotone and there are no infinite ascending chains in |UD|.
 Alas, our |UValue| indeed contains such infinite chains, for example, |UCons U1
 (UCons U1 (UCons dots Rep U0))|!
-It is worth noting that this is not an artifact of the unityped nature of |Exp|;
+It is worth noting that this is not an artefact of the unityped nature of |Exp|;
 it can be reproduced in any system with recursive types.
 This is easily worked around in practice by employing appropriate monotone
 widening measures such as trimming any |UValue| at depth 10 to flat |Rep Uω|.
@@ -1264,7 +1196,7 @@ into a stateful one that maintains annotations.
 
 Every instance |StaticDomain d| induces an instance |Domain (AnnD s d)|,
 where the type |AnnD s d| is another example of a \emph{trace transformer}:
-It transforms the |Trace| instance on type |d| into a |Trace| instance for |AnnD
+It transforms the |Domain| instance on type |d| into a |Domain| instance for |AnnD
 s d|. The abstract domain |AnnD| is defined in terms of the abstract trace
 type |AnnT|, which is a standard |ST| monad utilising efficient and pure mutable
 state threads~\citep{Launchbury:94}, stacked below a |Refs| environment that

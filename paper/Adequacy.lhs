@@ -76,11 +76,11 @@ where the $\later$ ``effects'' happen.
 
 Building on \Cref{sec:guarded-types}, we will now outline the changes necessary to encode |eval| in Guarded Cubical
 Agda, a system implementing Ticked Cubical Type Theory~\citep{tctt}, as well
-as the concrete instances |D (ByName T)| and |D (ByNeed T)| from
+as the concrete instances |DName| and |DNeed| from
 \Cref{fig:trace-instances,fig:by-need}.
 The full development is available in the Supplement and type-checks with Agda 2.7.0.1 by running \texttt{agda Concrete.agda}.
 \begin{itemize}
-  \item We need to delay in |step|; thus its definition in |Trace| changes to
+  \item We need to delay in |step|; thus its definition in |Domain| changes to
     |step :: Event -> Later d -> d|.
   \item
     All |D|s that will be passed to lambdas, put into the environment or
@@ -110,18 +110,18 @@ The full development is available in the Supplement and type-checks with Agda 2.
         \emph{defunctionalising}~\citep{Reynolds:72} the latter into the former.
     \end{enumerate}
   \item
-    Expectedly, |HasBind| becomes more complicated because it encodes the
+    Expectedly, the |bind| method becomes more complicated because it encodes the
     fixpoint combinator.
     We settled on |bind :: Later (Later D → D) → (Later D → D) → D|.
     We tried rolling up |step (Look x) _| in the definition of |eval|
     to get a simpler type |bind :: (Σ D p → D) → (Σ D p → D) → D|,
-    but then had trouble defining |ByNeed| heaps independently of the concrete
+    but then had trouble defining |DNeed| heaps independently of the concrete
     predicate |p|.
   \item
     Higher-order mutable state is among the classic motivating examples for
     guarded recursive types.
     As such it is no surprise that the state-passing of the mutable |Heap| in
-    the implementation of |ByNeed| requires breaking of a recursive cycle
+    the implementation of |DNeed| requires breaking of a recursive cycle
     by delaying heap entries, |Heap τ = Addr :-> Later (D τ)|.
   \item
     We need to pass around |Tick| binders in |eval| in a way that the type
@@ -347,7 +347,7 @@ In order to show that |evalNeed2| preserves the termination observable of |e|,
   LK traces (\Cref{thm:need-bisimulation-only}).
 \end{itemize}
 
-In the following, we will omit repeated wrapping and unwrapping of the |ByNeed|
+In the following, we will omit repeated wrapping and unwrapping of the |TNeed|
 newtype wrapper when constructing and taking apart elements in |DNeed|.
 Furthermore, we will sometimes need to disambiguate the clashing definitions from
 \Cref{sec:interp} and \Cref{sec:problem} by adorning ``Haskell objects'' with a

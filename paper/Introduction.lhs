@@ -76,7 +76,7 @@ An analysis is then sound as soon as its plugged-in operations satisfy a handful
 of local properties, which we identify and characterise, never by crafting a
 relation over the abstract machine.
 As a concrete example, we prove a summary-based \emph{usage
-analysis}~\citep{WrightBakerFinch:93} sound for call-by-need in half a page.
+analysis}~\citep{WrightBakerFinch:93,Gustavsson:98} sound for call-by-need in half a page.
 
 We do not claim that this interpreter and proof setup applies as-is to \emph{just
 any} analysis; rather, we share a new pattern for defining static analyses and
@@ -90,12 +90,6 @@ abstract interpretation.
 
 We make the following contributions:
 \begin{itemize}
-\item
-  \Cref{sec:problem} gives a longer form introduction to the problem we aim to solve.
-  We use a concrete example (absence analysis) to argue for
-  the usefulness of compositional, summary-based analysis in \Cref{sec:problem}
-  and we demonstrate what we find difficult about conducting a soundness
-  proof \wrt a non-compositional abstract machine semantics.
 \item \Cref{sec:interp} walks through the definition of our generic
   denotational interpreter and its type class algebra in Haskell.
   The exposition assumes a by-name evaluation strategy, but we will see how easy

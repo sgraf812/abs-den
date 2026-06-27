@@ -246,7 +246,7 @@ The interpreters |evalName e ρ| and |evalNeed e ρ μ| are defined for every
 \end{theorem}
 \begin{proofsketch}
 In the Supplement, we implement the generic interpreter |eval| and its
-instances at |ByName| and |ByNeed| in Lean, using guarded recursion~\citep{tctt}
+instances at |DName| and |DNeed| in Lean, using guarded recursion~\citep{tctt}
 to define the productive, coinductive traces.
 Since Lean is a total type theory, |evalName| and |evalNeed2| are total as well.
 
