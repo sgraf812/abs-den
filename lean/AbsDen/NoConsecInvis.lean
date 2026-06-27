@@ -743,13 +743,13 @@ theorem goodP_holds_closed (S : Nat) {n : Nat} (d : D (n+1))
         GoodP_restrictStep.symm]
   exact h1
 
-/-- `goodP S` packaged as a `World.Pred D`, parameterised by the initial step
-    count `S` for the outer trace. Pick `S=0` for "starts visibly" traces. -/
-noncomputable def goodP (S : Nat) : World.Pred D :=
+/-- `goodP S` packaged as a `World.Pred D` family, parameterised by the
+    initial step count `S` for the outer trace. -/
+noncomputable def goodP (S : Nat) {n : Nat} : World.Pred D n :=
   World.Pred.ofClosed (fun {n} (d : D n) => goodP_holds S d) (goodP_holds_closed S)
 
 theorem goodP_iff (S : Nat) {n : Nat} (d : D n) :
-    (goodP S).holds d ↔ goodP_holds S d :=
+    (goodP S (n := n)).holds d ↔ goodP_holds S d :=
   World.Pred.ofClosed_holds _ _ d
 
 /-! ## `TraceGoodP` is monotone in its budget argument `steps`. -/
@@ -1083,6 +1083,388 @@ theorem TraceGoodP_implies_NCI :
         rw [h_bridge] at h_rec
         exact ih (n := k) (World.restrict RetGoodP hkn) k (Nat.le_refl _) j (Nat.le_refl _) dl h_rec
 
+/-- Composition: `TraceGoodP` is closed under `T.bind` when the continuation
+    is `TraceGoodP`-good on every `P_t`-good payload. The continuation's
+    budget is universally quantified so the caller can pick whichever budget
+    the outer trace has decremented to when the inner trace's `.ret` fires.
+    The continuation's outer level is also universally quantified so the
+    caller is free to instantiate at the inner level (matching the trace)
+    or at the outer level (matching the bound trace's context). -/
+theorem TraceGoodP_bind :
+    ∀ (m' : Nat) {N : Nat} (P_t P_k : world(VH → Prop) N)
+      (m : Nat) (hm : m ≤ N) (S : Nat) (hm' : m' ≤ m)
+      (t : T VH m') (kont : world(VH → T VH) m')
+      (h_t : TraceGoodP P_t m hm S m' hm' t)
+      (h_kont : ∀ (j : Nat) (hj : j ≤ m') (v : VH j),
+          P_t j (Nat.le_trans hj (Nat.le_trans hm' hm)) v →
+          ∀ (m₀ : Nat) (hm₀ : m₀ ≤ N) (hjm₀ : j ≤ m₀) (S' : Nat),
+          TraceGoodP P_k m₀ hm₀ S' j hjm₀ (kont j hj v))
+      (h_kont_stuck : ∀ (j : Nat) (hj : j ≤ m') (μ : Heap (▹ D) j),
+          NotRet j (kont j hj (Sum.inl PUnit.unit, μ)) ∨
+          IsRetStuck j (kont j hj (Sum.inl PUnit.unit, μ))),
+      TraceGoodP P_k m hm S m' hm' (T.bind t kont) := by
+  intro m'
+  induction m' with
+  | zero =>
+    intro N P_t P_k m hm S hm' t kont h_t h_kont _h_kont_stuck
+    -- At trace level 0, TraceGoodPBody at .step is ▷(...) which is True at 0;
+    -- similarly .invis (at succ S) is (True ∨ True) ∧ True. Only .ret has
+    -- non-trivial content, which we discharge via h_kont.
+    unfold TraceGoodP at h_t ⊢
+    rw [loeb.eq TraceGoodPBody_natural] at h_t
+    rw [loeb.eq TraceGoodPBody_natural]
+    have h00 : (0 : Nat) ≤ 0 := Nat.le_refl 0
+    cases hu : T.unfold t with
+    | ret v =>
+      rw [TraceGoodPBody_ret_eq P_t (Nat.le_refl _)
+            (Later.next (loeb (TraceGoodPBody P_t))) hm S hm' t v hu] at h_t
+      have h_bind_eq : T.bind t kont = kont 0 h00 v := by
+        rw [T.bind]; rw [hu]; (try rfl); (try rw [T_uf])
+      rw [h_bind_eq]
+      have h_kont_app := h_kont 0 h00 v h_t m hm hm' S
+      unfold TraceGoodP at h_kont_app
+      rw [loeb.eq TraceGoodPBody_natural] at h_kont_app
+      exact h_kont_app
+    | step ev tl =>
+      have h_bind_uf : T.unfold (T.bind t kont) = .step ev
+            (Later.hmap 0 (fun i _hi t' => T.bind t' (World.restrict kont)) tl) := by
+        rw [T.bind]; rw [hu]; (try rfl); (try rw [T_uf])
+      rw [TraceGoodPBody_step_eq P_k (Nat.le_refl _)
+            (Later.next (loeb (TraceGoodPBody P_k))) hm S hm' _ ev _ h_bind_uf]
+      trivial
+    | invis dl =>
+      have h_bind_uf : T.unfold (T.bind t kont) = .invis
+            (Later.hmap 0 (fun i _hi t' => T.bind t' (World.restrict kont)) dl) := by
+        rw [T.bind]; rw [hu]; (try rfl); (try rw [T_uf])
+      cases S with
+      | zero =>
+        rw [TraceGoodPBody_invis_zero P_t (Nat.le_refl _)
+              (Later.next (loeb (TraceGoodPBody P_t))) hm hm' t dl hu] at h_t
+        exact h_t.elim
+      | succ j =>
+        rw [TraceGoodPBody_invis_eq P_k (Nat.le_refl _)
+              (Later.next (loeb (TraceGoodPBody P_k))) hm j hm' _ _ h_bind_uf]
+        refine ⟨Or.inl ?_, ?_⟩ <;> trivial
+  | succ k ih =>
+    intro N P_t P_k m hm S hm' t kont h_t h_kont h_kont_stuck
+    unfold TraceGoodP at h_t ⊢
+    rw [loeb.eq TraceGoodPBody_natural] at h_t
+    rw [loeb.eq TraceGoodPBody_natural]
+    cases hu : T.unfold t with
+    | ret v =>
+      rw [TraceGoodPBody_ret_eq P_t (Nat.le_refl _)
+            (Later.next (loeb (TraceGoodPBody P_t))) hm S hm' t v hu] at h_t
+      have h_bind_eq : T.bind t kont = kont (k+1) (Nat.le_refl _) v := by
+        rw [T.bind]; rw [hu]; (try rfl); (try rw [T_uf])
+      rw [h_bind_eq]
+      have h_kont_app := h_kont (k+1) (Nat.le_refl _) v h_t m hm hm' S
+      unfold TraceGoodP at h_kont_app
+      rw [loeb.eq TraceGoodPBody_natural] at h_kont_app
+      exact h_kont_app
+    | step ev tl =>
+      rw [TraceGoodPBody_step_eq P_t (Nat.le_refl _)
+            (Later.next (loeb (TraceGoodPBody P_t))) hm S hm' t ev tl hu] at h_t
+      have h_bind_uf : T.unfold (T.bind t kont) = .step ev
+            (Later.hmap (k+1) (fun i _hi t' => T.bind t' (World.restrict kont)) tl) := by
+        rw [T.bind]; rw [hu]; (try rfl); (try rw [T_uf])
+      rw [TraceGoodPBody_step_eq P_k (Nat.le_refl _)
+            (Later.next (loeb (TraceGoodPBody P_k))) hm S hm' _ ev _ h_bind_uf]
+      simp only [Later.prop_succ, Later.ap'_succ, Later.next_succ,
+                 World.Function.restrictStep_eq, World.Const.restrictStep_eq,
+                 Later.Function.restrict_apply] at h_t ⊢
+      -- Both sides reduce to TraceGoodP at the bound inner trace.
+      have hkn : k ≤ N := Nat.le_of_succ_le (Nat.le_trans hm' hm)
+      have hkm : k ≤ m := Nat.le_of_succ_le hm'
+      rw [Later_next_loeb_restrict P_t (Nat.le_trans hm' hm)] at h_t
+      rw [Later_next_loeb_restrict P_k (Nat.le_trans hm' hm)]
+      have h_tl_eq :
+          (Later.hmap (k+1) (fun i _hi t' => T.bind t' (World.restrict kont)) tl
+            : T VH k)
+          = T.bind (tl : T VH k) (World.restrict kont (Nat.le_succ _)) := rfl
+      rw [h_tl_eq]
+      refine ih (N := k) (World.restrict P_t hkn) (World.restrict P_k hkn)
+            k (Nat.le_refl _) 2 (Nat.le_refl _) tl
+            (World.restrict kont (Nat.le_succ _)) h_t ?_ ?_
+      · intro j hj v hPv
+        have hjk1 : j ≤ k + 1 := Nat.le_trans hj (Nat.le_succ _)
+        -- Recover h_kont's premise from the restricted form.
+        have hPv_at : P_t j (Nat.le_trans hjk1 (Nat.le_trans hm' hm)) v := by
+          have h_eq : World.restrict P_t hkn j (Nat.le_trans hj (Nat.le_refl _)) v
+                    = P_t j (Nat.le_trans hjk1 (Nat.le_trans hm' hm)) v := by
+            rw [World.Function.restrict_apply]
+          rw [← h_eq]; exact hPv
+        intro m₀ hm₀ hjm₀ S'
+        have h_kont_inner := h_kont j hjk1 v hPv_at m₀ (Nat.le_trans hm₀ hkn) hjm₀ S'
+        -- Bridge: TraceGoodP (W.restrict P_k hkn) m₀ hm₀ S' j hjm₀ ... = TraceGoodP P_k m₀ _ S' j hjm₀ ...
+        have h_restr_eq : (TraceGoodP (World.restrict P_k hkn) :
+                            world(Nat → T VH → Prop) k)
+                        = World.restrict (TraceGoodP P_k :
+                            world(Nat → T VH → Prop) N) hkn :=
+          (TraceGoodP_restrict P_k hkn).symm
+        rw [h_restr_eq]
+        simp [World.Function.restrict_apply]
+        exact h_kont_inner
+      · intro j hj μ
+        have hjk1 : j ≤ k + 1 := Nat.le_trans hj (Nat.le_succ _)
+        simpa [World.Function.restrict_apply] using h_kont_stuck j hjk1 μ
+    | invis dl =>
+      cases S with
+      | zero =>
+        rw [TraceGoodPBody_invis_zero P_t (Nat.le_refl _)
+              (Later.next (loeb (TraceGoodPBody P_t))) hm hm' t dl hu] at h_t
+        exact h_t.elim
+      | succ j =>
+        rw [TraceGoodPBody_invis_eq P_t (Nat.le_refl _)
+              (Later.next (loeb (TraceGoodPBody P_t))) hm j hm' t dl hu] at h_t
+        have h_bind_uf : T.unfold (T.bind t kont) = .invis
+              (Later.hmap (k+1) (fun i _hi t' => T.bind t' (World.restrict kont)) dl) := by
+          rw [T.bind]; rw [hu]; (try rfl); (try rw [T_uf])
+        rw [TraceGoodPBody_invis_eq P_k (Nat.le_refl _)
+              (Later.next (loeb (TraceGoodPBody P_k))) hm j hm' _ _ h_bind_uf]
+        obtain ⟨h_first, h_rec⟩ := h_t
+        simp only [Later.prop_succ, Later.ap'_succ, Later.next_succ,
+                   World.Function.restrictStep_eq, World.Const.restrictStep_eq,
+                   Later.Function.restrict_apply] at h_rec ⊢
+        refine ⟨?_, ?_⟩
+        · -- (NotRet ∨ IsRetStuck) of the bound .invis dl_bound. At trace level k+1
+          -- the ▷ collapses to the underlying T VH k value. Case on h_first: a
+          -- non-ret dl makes T.bind's first unfold .step/.invis (NotRet); a ret
+          -- stuck dl reduces T.bind to kont applied to (Sum.inl (), μ), handled
+          -- by h_kont_stuck.
+          simp only [Later.prop_succ] at h_first
+          -- h_first : Later.map NotRet (k+1) dl ∨ Later.map IsRetStuck (k+1) dl
+          -- which at level k+1 unfolds to NotRet k dl ∨ IsRetStuck k dl.
+          show (Later.map NotRet (k+1)
+                  (Later.hmap (k+1) (fun i _hi t' => T.bind t' (World.restrict kont)) dl)
+                : Prop) ∨
+               (Later.map IsRetStuck (k+1)
+                  (Later.hmap (k+1) (fun i _hi t' => T.bind t' (World.restrict kont)) dl)
+                : Prop)
+          show NotRet k (T.bind (dl : T VH k) (World.restrict kont (Nat.le_succ _))) ∨
+               IsRetStuck k (T.bind (dl : T VH k) (World.restrict kont (Nat.le_succ _)))
+          rcases h_first with h_nr | h_rs
+          · -- NotRet k dl: T.bind preserves the non-ret shape.
+            left
+            change NotRet k dl at h_nr
+            change NotRet k (T.bind (dl : T VH k) (World.restrict kont (Nat.le_succ _)))
+            cases k with
+            | zero => trivial
+            | succ k' =>
+              -- NotRet (k'+1) t = match T.unfold t with | .ret _ => False | _ => True
+              show (match T.unfold (T.bind (dl : T VH (k'+1))
+                          (World.restrict kont (Nat.le_succ _))) with
+                    | .ret _ => False | _ => True)
+              change match T.unfold dl with | .ret _ => False | _ => True at h_nr
+              cases hud : T.unfold dl with
+              | ret _ => rw [hud] at h_nr; exact h_nr.elim
+              | step ev tl =>
+                have h_uf : T.unfold (T.bind dl (World.restrict kont (Nat.le_succ _)))
+                          = .step ev (Later.hmap (k'+1) (fun i _hi t' =>
+                              T.bind t' (World.restrict (World.restrict kont (Nat.le_succ _)))) tl) := by
+                  rw [T.bind]; rw [hud]; (try rfl); (try rw [T_uf])
+                rw [h_uf]; trivial
+              | invis dl' =>
+                have h_uf : T.unfold (T.bind dl (World.restrict kont (Nat.le_succ _)))
+                          = .invis (Later.hmap (k'+1) (fun i _hi t' =>
+                              T.bind t' (World.restrict (World.restrict kont (Nat.le_succ _)))) dl') := by
+                  rw [T.bind]; rw [hud]; (try rfl); (try rw [T_uf])
+                rw [h_uf]; trivial
+          · -- IsRetStuck k dl: T.unfold dl = .ret (Sum.inl (), μ_); apply side cond.
+            change IsRetStuck k dl at h_rs
+            cases k with
+            | zero => exact h_rs.elim
+            | succ k' =>
+              change match T.unfold dl with
+                      | .ret (v, _) => v = Sum.inl PUnit.unit | _ => False at h_rs
+              cases hud : T.unfold dl with
+              | step _ _ => rw [hud] at h_rs; exact h_rs.elim
+              | invis _ => rw [hud] at h_rs; exact h_rs.elim
+              | ret payload =>
+                obtain ⟨v, μ_⟩ := payload
+                rw [hud] at h_rs
+                -- h_rs : v = Sum.inl PUnit.unit
+                subst h_rs
+                have h_bind_eq : T.bind dl (World.restrict kont (Nat.le_succ _))
+                               = World.restrict kont (Nat.le_succ _) (k'+1)
+                                   (Nat.le_refl _) (Sum.inl PUnit.unit, μ_) := by
+                  rw [T.bind]; rw [hud]; (try rfl); (try rw [T_uf])
+                change NotRet (k'+1) (T.bind (dl : T VH (k'+1))
+                                       (World.restrict kont (Nat.le_succ _))) ∨
+                       IsRetStuck (k'+1) (T.bind (dl : T VH (k'+1))
+                                       (World.restrict kont (Nat.le_succ _)))
+                rw [h_bind_eq]
+                rw [show (World.restrict kont (Nat.le_succ _) (k'+1) (Nat.le_refl _)
+                          (Sum.inl PUnit.unit, μ_) : T VH (k'+1))
+                       = kont (k'+1) (Nat.le_succ _) (Sum.inl PUnit.unit, μ_) by
+                      rw [World.Function.restrict_apply]]
+                exact h_kont_stuck (k'+1) (Nat.le_succ _) μ_
+        · -- Recursive half: bridge + IH.
+          have hkn : k ≤ N := Nat.le_of_succ_le (Nat.le_trans hm' hm)
+          have h_bridge_t : World.restrict (Later.next (loeb (TraceGoodPBody P_t)))
+                              (Nat.le_trans hm' hm)
+                          = TraceGoodP (World.restrict P_t hkn) :=
+            Later_next_loeb_restrict P_t (Nat.le_trans hm' hm)
+          have h_bridge_k : World.restrict (Later.next (loeb (TraceGoodPBody P_k)))
+                              (Nat.le_trans hm' hm)
+                          = TraceGoodP (World.restrict P_k hkn) :=
+            Later_next_loeb_restrict P_k (Nat.le_trans hm' hm)
+          rw [h_bridge_t] at h_rec
+          rw [h_bridge_k]
+          have h_dl_eq :
+              (Later.hmap (k+1) (fun i _hi t' => T.bind t' (World.restrict kont)) dl
+                : T VH k)
+              = T.bind (dl : T VH k) (World.restrict kont (Nat.le_succ _)) := rfl
+          rw [h_dl_eq]
+          refine ih (N := k) (World.restrict P_t hkn) (World.restrict P_k hkn)
+                k (Nat.le_refl _) j (Nat.le_refl _) dl
+                (World.restrict kont (Nat.le_succ _)) h_rec ?_ ?_
+          · intro j' hj' v hPv
+            have hjk1 : j' ≤ k + 1 := Nat.le_trans hj' (Nat.le_succ _)
+            have hPv_at : P_t j' (Nat.le_trans hjk1 (Nat.le_trans hm' hm)) v := by
+              have h_rest : World.restrict P_t hkn j' (Nat.le_trans hj' (Nat.le_refl _)) v
+                          = P_t j' (Nat.le_trans hjk1 (Nat.le_trans hm' hm)) v := by
+                rw [World.Function.restrict_apply]
+              rw [← h_rest]
+              exact hPv
+            intro m₀ hm₀ hjm₀ S'
+            have h_kont_inner := h_kont j' hjk1 v hPv_at m₀ (Nat.le_trans hm₀ hkn) hjm₀ S'
+            have h_restr : (TraceGoodP (World.restrict P_k hkn) :
+                              world(Nat → T VH → Prop) k)
+                         = World.restrict (TraceGoodP P_k :
+                              world(Nat → T VH → Prop) N) hkn :=
+              (TraceGoodP_restrict P_k hkn).symm
+            rw [h_restr]
+            simp [World.Function.restrict_apply]
+            exact h_kont_inner
+          · intro j' hj' μ
+            have hjk1 : j' ≤ k + 1 := Nat.le_trans hj' (Nat.le_succ _)
+            simpa [World.Function.restrict_apply] using h_kont_stuck j' hjk1 μ
+
+/-- Generic `D.invis dl` form: from a `▷ GoodP`-good `dl` plus a `NCI 1`-good
+    heap and a visibility witness for the first inner step, conclude that
+    `(D.invis dl).unfold m hm μ` is `TraceGoodP`-good at `S = 2`.
+
+    The visibility witness `h_visible` says the inner trace's first step is
+    not a `.ret` with a non-stuck value: either `NotRet` (so `.step` or
+    `.invis`) or `IsRetStuck` (so `.ret stuck`). This rules out the wasteful
+    shape `.invis (.ret v_good)`. Callers extracting `dl` from a `D.fn`
+    application discharge `h_visible` using the fact that the lambda body
+    starts with a `.step` event. -/
+theorem TraceGoodP_D_invis_pred {n : Nat} (dl : ▹ D n)
+    {m : Nat} (hm : m ≤ n) (μ : Heap (▹ D) m)
+    (h_heap : Parametric.Heap
+                (Later.ap' m
+                  (World.restrict (Later.next (loeb GoodPBody :
+                                    world(Nat → D → Prop) n)) hm)
+                  (Later.next (1 : Nat))) μ)
+    (h_dl : ▷(Later.ap' m
+                (Later.ap' m
+                  (World.restrict (Later.next (loeb GoodPBody :
+                                    world(Nat → D → Prop) n)) hm)
+                  (Later.next (1 : Nat)))
+                (World.restrict dl hm)))
+    (h_visible :
+      ▷(Later.map NotRet m
+          (Later.hmap m (fun i _hi (d : D i) =>
+              d.unfold i (Nat.le_refl i) (World.restrict μ (by omega : i ≤ m)))
+            (World.restrict dl hm))) ∨
+      ▷(Later.map IsRetStuck m
+          (Later.hmap m (fun i _hi (d : D i) =>
+              d.unfold i (Nat.le_refl i) (World.restrict μ (by omega : i ≤ m)))
+            (World.restrict dl hm)))) :
+    TraceGoodP
+      (RetGoodP (fun k => Later.ap' m
+                  (World.restrict (Later.next (loeb GoodPBody)) hm)
+                  (Later.next k)))
+      m (Nat.le_refl _) (2 : Nat) m (Nat.le_refl _)
+      ((D.invis dl).unfold m hm μ) := by
+  rw [D_invis_eq]
+  unfold TraceGoodP
+  rw [loeb.eq TraceGoodPBody_natural]
+  rw [TraceGoodPBody_invis_eq _ _ _ _ _ _ _ _
+      (by show T.unfold (T.fold (.invis _)) = .invis _; rw [T_uf])]
+  refine ⟨h_visible, ?_⟩
+  cases m with
+  | zero => trivial
+  | succ k =>
+    -- Goal (after the .invis case rewrite): ▷(Later.ap' (k+1) (Later.ap' (k+1)
+    --   (W.restrict (Later.next (loeb (TraceGoodPBody ...))) refl) (Later.next 1)) dl_reduced)
+    -- Strip ▷ and reduce Later.ap'(k+1); then push restrictStep through the loeb
+    -- to surface the standard "RetGoodP (fun k_1 => W.restrictStep (_R k_1))" form
+    -- so that Later_ap'_W_restrictStep_GoodP applies pointwise.
+    simp only [Later.prop_succ, Later.ap'_succ, Later.next_succ,
+               World.restrict_self, World.Const.restrictStep_eq]
+    rw [restrictStep_loeb_eq_loeb_restrictStep TraceGoodPBody_natural,
+        TraceGoodPBody_restrictStep_RetGoodP,
+        RetGoodP_restrictStep]
+    have hk : k ≤ n := Nat.le_of_succ_le hm
+    -- Reduce dl_reduced at level k to (W.restrict dl hm : D k).unfold k _ μ_k.
+    -- Later D (k+1) = D k definitionally, so the coercion is silent.
+    let μ_k : Heap (▹ D) k := World.restrict μ (Nat.le_succ_of_le (Nat.le_refl k))
+    let d_k : D k := (@World.restrict (Later D) _ n (k+1) dl hm : D k)
+    have h_dl_reduce :
+        (Later.hmap (k+1) (fun i _hi (d : D i) =>
+              d.unfold i (Nat.le_refl i)
+                (World.restrict μ (by omega : i ≤ k+1)))
+              (@World.restrict (Later D) _ n (k+1) dl hm)
+          : T VH k)
+        = d_k.unfold k (Nat.le_refl k) μ_k := rfl
+    rw [h_dl_reduce]
+    -- Strip ▷ from h_dl at level k+1 and apply Later_ap'_Recur_succ_eq to get
+    -- (GoodP at outer k) k _ 1 k _ d_k.
+    have h_dl_GoodP_at_k :
+        (GoodP : world(Nat → D → Prop) k) k (Nat.le_refl k) (1 : Nat) k (Nat.le_refl k) d_k := by
+      have h_dl' := h_dl
+      simp only [Later.prop_succ] at h_dl'
+      have h_eq := Later_ap'_Recur_succ_eq (n := n) hm k (Nat.le_refl (k+1)) 1
+                      (@World.restrict (Later D) _ n (k+1) dl hm)
+      simp only [World.restrict_self, Later.prop_succ] at h_eq
+      rw [h_eq] at h_dl'
+      exact h_dl'
+    -- Lift to (GoodP at outer n) k hk 1 k _ d_k via GoodP_restrict so that the
+    -- body's Recur uses (Later.next loeb at outer n) and matches h_heap_at_k.
+    have h_at_n_k : (GoodP : world(Nat → D → Prop) n) k hk (1 : Nat) k (Nat.le_refl k) d_k := by
+      have h_GoodP_eq : (GoodP : world(Nat → D → Prop) k)
+                      = @World.restrict (world(Nat → D → Prop)) _ n k
+                          (GoodP : world(Nat → D → Prop) n) hk :=
+        (GoodP_restrict hk).symm
+      rw [h_GoodP_eq] at h_dl_GoodP_at_k
+      rw [@World.Function.restrict_apply (World.Const Nat) world(D → Prop) n
+            (GoodP : world(Nat → D → Prop) n) k hk k (Nat.le_refl k) (1 : Nat)] at h_dl_GoodP_at_k
+      exact h_dl_GoodP_at_k
+    -- Unfold GoodP at outer n to produce a TraceGoodP claim on d_k.unfold at any
+    -- (Recur 1)-good μ_k, where Recur uses (Later.next loeb at outer n).
+    unfold GoodP at h_at_n_k
+    rw [loeb.eq GoodPBody_natural] at h_at_n_k
+    have h_heap_at_k : Parametric.Heap (Later.ap' k
+            (World.restrict (Later.next (loeb GoodPBody :
+              world(Nat → D → Prop) n)) hk) (Later.next (1 : Nat))) μ_k :=
+      Param_Heap_GoodP_succ_down hm 1 μ h_heap
+    -- Apply h_at_n_k to μ_k via h_heap_at_k.
+    have h_trace := h_at_n_k μ_k h_heap_at_k
+    -- h_trace's heap arg is (W.restrict μ_k (le_refl k)); collapse via restrict_self.
+    rw [@World.restrict_self (Heap (▹ D)) _ k μ_k] at h_trace
+    -- Both h_trace and the goal have shape `loeb (TraceGoodPBody (RetGoodP P)) k
+    -- _ 1 k _ (d_k.unfold k _ μ_k)`. Their P args agree pointwise by
+    -- Later_ap'_W_restrictStep_GoodP. Generalize the W.restrict to a local var
+    -- and dispatch via congr + funext.
+    have h_RetGoodP_eq :
+        RetGoodP (fun k_1 => World.restrictStep
+            ((World.restrict (Later.next (loeb GoodPBody :
+                world(Nat → D → Prop) n)) hm)
+              k (Nat.le_refl k) k_1))
+        = RetGoodP (fun k_1 => Later.ap' k
+            (World.restrict (Later.next (loeb GoodPBody)) hk)
+            (Later.next k_1)) := by
+      congr 1
+      funext k_1
+      show World.restrictStep (Later.ap' (k+1)
+            (World.restrict (Later.next (loeb GoodPBody)) hm)
+            (Later.next k_1)) = _
+      rw [Later_ap'_W_restrictStep_GoodP hm hk k_1]
+    rw [h_RetGoodP_eq]
+    exact h_trace
+
 /-- Helper: `D.invis (fetch a)`'s trace at level `m` is `TraceGoodP`-good at
     `S=2`, given the heap is good with entries satisfying the `NCI 1`
     projection of the outer GoodP loeb. The trace structure is
@@ -1233,22 +1615,23 @@ private theorem isThunk_closed {n : Nat} (d : D (n+1))
   obtain ⟨a, hd⟩ := h
   exact ⟨a, by rw [hd]; exact D_invis_fetch_restrictStep a⟩
 
-/-- ByNeed's `IsThunk` predicate: heap-fetched thunks of the form
-    `D.invis (fetch a)` for some address `a`. Captures what `D.bind` actually
-    passes to `body`/`rhs`. -/
-noncomputable def isThunk : World.Pred D :=
+/-- ByNeed's `IsThunk` predicate family: heap-fetched thunks of the form
+    `D.invis (fetch a)` for some address `a`. -/
+noncomputable def isThunk {n : Nat} : World.Pred D n :=
   World.Pred.ofClosed
     (holds := fun {n} (d : D n) => ∃ a : Addr, d = D.invis (fetch (n := n) a))
     (closed := isThunk_closed)
 
 theorem isThunk_iff {n : Nat} (d : D n) :
-    isThunk.holds d ↔ ∃ a : Addr, d = D.invis (fetch (n := n) a) :=
+    (isThunk (n := n)).holds d ↔ ∃ a : Addr, d = D.invis (fetch (n := n) a) :=
   World.Pred.ofClosed_holds _ _ d
 
 /-- The logical relation packaged as an `LR ByNeed.D`. -/
 noncomputable def good : LR D where
   P := goodP 2
+  P_natural := fun _ _ => rfl
   IsThunk := isThunk
+  IsThunk_natural := fun _ _ => rfl
   IsThunk_to_P := by
     intro n x d hT
     obtain ⟨a, hd⟩ := (isThunk_iff d).mp hT
@@ -1504,9 +1887,10 @@ noncomputable def good : LR D where
         rw [NewIdea.Later_ap'_Recur_succ_eq hm k (Nat.le_refl (k+1)) 2]
         -- Goal: (GoodP at k) k _ 2 k _ (W.restrict dᵢ hk)
         -- From h_param dᵢ, get goodP_holds 2 dᵢ, specialize at k.
-        have h_dᵢ : IsLookup_holds (NewIdea.goodP 2).holds dᵢ := h_param dᵢ hdᵢ_mem
+        have h_dᵢ : (IsLookup (NewIdea.goodP 2 (n := n))).holds dᵢ := h_param dᵢ hdᵢ_mem
+        have h_dᵢ_P : (NewIdea.goodP 2 (n := n)).holds dᵢ := LR.IsLookup_to_P dᵢ h_dᵢ
         have h_goodP_dᵢ : NewIdea.goodP_holds 2 dᵢ := by
-          rw [← NewIdea.goodP_iff 2]; exact h_dᵢ.1
+          rw [← NewIdea.goodP_iff 2]; exact h_dᵢ_P
         have h_at_k := h_goodP_dᵢ k hk
         -- h_at_k : (GoodP at n) k hk 2 k _ (W.restrict dᵢ hk)
         -- Bridge (GoodP at n) k hk applied fully = (GoodP at k) k _ via GoodP_restrict.
@@ -1523,7 +1907,93 @@ noncomputable def good : LR D where
     · -- Heap-cond: lift Recur 1 → Recur 2 via Param_Heap_GoodP_mono.
       simp only [World.restrict_self]
       exact NewIdea.Param_Heap_GoodP_mono hm μ 1 2 (by omega) h_heap
-  app_closed := by sorry
+  app_closed := by
+    intro n dv da h_dv h_da
+    rw [NewIdea.goodP_iff 2]
+    intro m hm
+    change (NewIdea.GoodP : world(Nat → D → Prop) n) m hm (2 : Nat) m (Nat.le_refl _)
+      (World.restrict (Domain.step' .app1 (Domain.apply' dv da)) hm)
+    show (NewIdea.GoodP : world(Nat → D → Prop) n) m hm (2 : Nat) m (Nat.le_refl _)
+      (World.restrict (D.step .app1 (Later.next (Domain.apply' dv da))) hm)
+    unfold NewIdea.GoodP
+    rw [loeb.eq NewIdea.GoodPBody_natural]
+    unfold NewIdea.GoodPBody
+    intro _Recur_m μ h_heap
+    rw [D_unfold_restrict, D_step_eq]
+    unfold NewIdea.TraceGoodP
+    rw [loeb.eq NewIdea.TraceGoodPBody_natural]
+    rw [NewIdea.TraceGoodPBody_step_eq _ _ _ _ _ _ _ _ _
+        (by unfold T.step; rw [T_uf] : T.unfold (T.step _ _) = .step _ _)]
+    cases m with
+    | zero => trivial
+    | succ k =>
+      simp only [Later.prop_succ, Later.ap'_succ, Later.next_succ,
+                 World.restrict_self, World.Const.restrictStep_eq]
+      rw [restrictStep_loeb_eq_loeb_restrictStep NewIdea.TraceGoodPBody_natural,
+          NewIdea.TraceGoodPBody_restrictStep_RetGoodP,
+          NewIdea.RetGoodP_restrictStep]
+      have hk : k ≤ n := Nat.le_of_succ_le hm
+      -- Reduce tl to (W.restrict (Domain.apply' dv da) hk).unfold k _ μ_k.
+      have h_tl : (Later.hmap (k+1) (fun i _hi (d' : D i) =>
+              d'.unfold i (Nat.le_refl i) (World.restrict μ (by omega : i ≤ k+1)))
+              (@World.restrict (Later D) _ n (k+1)
+                (Later.next (Domain.apply' dv da)) hm) : T VH k)
+            = (World.restrict (Domain.apply' dv da) hk).unfold k (Nat.le_refl k)
+                (World.restrict μ (Nat.le_succ_of_le (Nat.le_refl k))) := by
+        show (fun (a' : D k) => a'.unfold k (Nat.le_refl k) (World.restrict μ _))
+              (@World.restrict (Later D) _ n (k+1)
+                (Later.next (Domain.apply' dv da)) hm) = _
+        congr 1
+        exact restrict_later_next' (Domain.apply' dv da) k hm
+      rw [h_tl]
+      -- Bridge: same shape as in `step` — goal has RetGoodP applied to
+      -- `fun k_1 => W.restrictStep (_Recur_m k_1)`; rewrite pointwise via
+      -- Later_ap'_W_restrictStep_GoodP to match the helper's expected form.
+      have h_dgoodp_eq :
+          (fun k_1 => World.restrictStep (_Recur_m k_1))
+          = (fun k_1 => Later.ap' k
+              (World.restrict (Later.next (loeb NewIdea.GoodPBody :
+                world(Nat → D → Prop) n)) hk)
+              (Later.next k_1)) := by
+        funext k_1
+        show World.restrictStep (Later.ap' (k+1)
+              (World.restrict (Later.next (loeb NewIdea.GoodPBody)) hm)
+              (Later.next k_1)) = _
+        rw [NewIdea.Later_ap'_W_restrictStep_GoodP hm hk k_1]
+      rw [h_dgoodp_eq]
+      -- Goal: TraceGoodP (RetGoodP Recur_k) k _ 2 k _
+      --   ((Domain.apply' dv da)↓_hk.unfold k _ μ_k)
+      -- Reduce (W.restrict d hk).unfold k _ μ = d.unfold k _ μ via D_unfold_restrict.
+      rw [D_unfold_restrict]
+      -- Now: trace = (Domain.apply' dv da).unfold k _ μ_k.
+      -- Domain.apply' dv da = D.bind dv kont with
+      --   kont j _ v = match v with
+      --     | .fn g => D.invis (g j _ (Later.next (da↓)))
+      --     | _ => D.stuck.
+      -- By D_bind_eq this trace = T.bind (dv.unfold k _ μ_k) (kont_unfolded).
+      -- Apply TraceGoodP_bind with:
+      --   • h_t : dv's trace is TraceGoodP-good at S=2 — from h_dv at level k
+      --     (via goodP_iff → GoodPBody unfold; h_heap_at_k via
+      --     Param_Heap_GoodP_succ_down).
+      --   • h_kont : on every RetGoodP-good payload (v, μ'), kont's trace is good.
+      --     - v = .stuck/.con → kont = D.stuck → T.ret stuck, RetGoodP vacuous
+      --       (Value_F_Rep_restrict_stuck rules out .fn match).
+      --     - v = .fn g → kont = D.invis (g _ _ (Later.next (da↓))). Need RetGoodP's
+      --       function-cond on g + h_da's IsLookup to supply IsLookShape on
+      --       Later.next (da↓). Then a TraceGoodP_D_invis-style helper applied to
+      --       (g j _ dl)'s GoodP-good D-value finishes.
+      --   • h_kont_stuck : kont (Sum.inl ()) = D.stuck.unfold = T.ret stuck → IsRetStuck.
+      -- Missing reusable infrastructure (each is its own ~50 line proof):
+      --   1. `TraceGoodP_D_invis_pred`: from `(GoodP at j) j _ S j _ d` plus heap
+      --      goodness, conclude TraceGoodP_RetGoodP-good of `(D.invis (Later.next d)).unfold`.
+      --      This is a generic version of `TraceGoodP_D_invis_fetch`.
+      --   2. `IsLookup_to_IsLookShape_Later_next`: from h_da's IsLookup_holds at
+      --      outer level n, get IsLookShape (Later.next (W.restrict da _)) at any
+      --      sub-level. Just unpacks the step'-shape and reapplies restrict_later_next'.
+      --   3. RetGoodP fn-cond bridge: from h_t's witness on `(v = .fn g, μ')`, extract
+      --      `▷ ((GoodP 2) at (g l hl (Later.next (da↓))))`, then strip the ▷ at level
+      --      j+1 to a GoodP-at-j sub-witness via Later_ap'_Recur_succ_eq.
+      sorry
   case_closed := by sorry
   bind_closed := by
     intro n rhs body h_rhs h_body

@@ -19,6 +19,12 @@ def Natural {F : Nat → Type u} {G : Nat → Type v} [World F] [World G]
     (f : ∀ {n}, F n → G n) : Prop :=
   ∀ {n : Nat} (x : F (n+1)), f (World.restrictStep x) = World.restrictStep (f x)
 
+/-- Typeclass wrapper for `Natural`. Instances let `Pred.Image`/`Pred.EqOf`
+    discharge the naturality side-condition automatically. -/
+class Naturality {F : Nat → Type u} {G : Nat → Type v} [hF : World F] [hG : World G]
+    (f : ∀ {n}, F n → G n) : Prop where
+  isNatural : @Natural F G hF hG f
+
 namespace World
 
 def restrict {F : Nat → Type u} [World F] {n m : Nat} (x : F n) (hm : m ≤ n := by grind) : F m :=
@@ -397,82 +403,68 @@ theorem World.restrictStep_restrict {F : Nat → Type u} [World F]
       rw [lhs, ih (World.restrictStep x) h']
       exact (World.restrict_succ x (Nat.le_of_succ_le h')).symm
 
-/-- A sub-presheaf of `F`: a natural transformation `F → World.IProp`, given as
-    the proper subtype of `∀ {n}, F n → World.IProp n` cut out by `Natural`. -/
-def World.Pred (F : Nat → Type u) [World F] : Type u :=
-  { P : ∀ {n}, F n → World.IProp n // Natural (fun {n} (x : F n) => P x) }
+/-- A sub-presheaf of `F` at level `n`: a level-indexed family of predicates
+    on `F m` for every `m ≤ n`, closed under single-step restriction.
+
+    The level-indexing makes `World.Pred F` itself a presheaf — its World
+    instance restricts a `Pred F (n+1)` to a `Pred F n` by reusing the
+    underlying family at the smaller index. -/
+def World.Pred (F : Nat → Type u) [World F] (n : Nat) : Type u :=
+  { P : (m : Nat) → m ≤ n → F m → Prop //
+    ∀ (m : Nat) (hm : m+1 ≤ n) (x : F (m+1)),
+      P (m+1) hm x → P m (Nat.le_of_succ_le hm) (World.restrictStep x) }
 
 namespace World.Pred
 variable {F : Nat → Type u} [World F]
 
-/-- The naturality square of `p.val`, η-reduced for direct use in `rw`. -/
-theorem natural (p : World.Pred F) {n : Nat} (x : F (n+1)) :
-    p.val (World.restrictStep x) = World.restrictStep (p.val x) :=
-  p.property x
+/-- Membership of `x : F n` in the sub-presheaf at its top level. -/
+def holds {n : Nat} (p : World.Pred F n) (x : F n) : Prop :=
+  p.val n (Nat.le_refl n) x
 
-/-- Membership of `x : F n` in the sub-presheaf, given by the top-level truth
-    value of its characteristic morphism. -/
-def holds (p : World.Pred F) {n : Nat} (x : F n) : Prop :=
-  (p.val x).val n
+/-- Membership of `x : F m` for `m ≤ n` in the sub-presheaf at level `n`. -/
+def holdsAt {n : Nat} (p : World.Pred F n) (m : Nat) (hm : m ≤ n) (x : F m) : Prop :=
+  p.val m hm x
 
-/-- Single-step closure: a derived consequence of naturality plus `IProp`'s
-    downward closure. -/
-theorem closed (p : World.Pred F) {n : Nat} (x : F (n+1))
-    (hx : p.holds x) : p.holds (World.restrictStep x) := by
-  show (p.val (World.restrictStep x)).val n
-  rw [p.natural x, World.IProp.restrictStep_val]
-  exact ⟨(p.val x).property.1 n hx, Nat.le_refl _⟩
+/-- Single-step closure: a `Pred F (n+1)` viewed at level `n` is closed under
+    `restrictStep` on the underlying value. -/
+theorem closed {n : Nat} (p : World.Pred F (n+1)) (x : F (n+1))
+    (hx : p.holds x) : p.holdsAt n (Nat.le_succ n) (World.restrictStep x) :=
+  p.property n (Nat.le_refl _) x hx
 
-/-- Smart constructor from a predicate with single-step closure. The
-    characteristic morphism at `x : F n` is the sieve of levels `m ≤ n` at
-    which `World.restrict x` lies in the sub-presheaf. -/
-def ofClosed
-    (holds : ∀ {n}, F n → Prop)
-    (closed : ∀ {n} (x : F (n+1)), holds x → holds (World.restrictStep x)) :
-    World.Pred F :=
-  ⟨fun {n} x =>
-    ⟨fun m => ∃ (h : m ≤ n), holds (World.restrict x h),
-     ⟨fun m ⟨h_succ, hP⟩ =>
-        ⟨Nat.le_of_succ_le h_succ,
-         by have := closed _ hP
-            rwa [World.restrictStep_restrict] at this⟩,
-      fun _ ⟨h, _⟩ => h⟩⟩,
-   fun {n} x => by
-    apply World.IProp.ext
-    intro m
-    constructor
-    · rintro ⟨h_le_n, hP⟩
-      refine ⟨⟨Nat.le_succ_of_le h_le_n, ?_⟩, h_le_n⟩
-      rwa [World.restrict_succ]
-    · rintro ⟨⟨_, hP⟩, h_le_n⟩
-      refine ⟨h_le_n, ?_⟩
-      rwa [← World.restrict_succ]⟩
+/-- Smart constructor from a closure-stable predicate. -/
+def ofClosed {n : Nat}
+    (holds : ∀ {m}, F m → Prop)
+    (closed : ∀ {m} (x : F (m+1)), holds x → holds (World.restrictStep x)) :
+    World.Pred F n :=
+  ⟨fun _ _ x => holds x,
+   fun _ _ x h => closed x h⟩
 
 end World.Pred
 
-/-- A `World.Pred F` is callable as its membership predicate. -/
-instance {F : Nat → Type u} [World F] :
-    CoeFun (World.Pred F) (fun _ => ∀ {n : Nat}, F n → Prop) where
-  coe p := fun {_} x => p.holds x
+/-- The World instance on `Pred F` — restricting a level-`n+1` predicate to
+    level `n` reuses the underlying family with weakened proof. -/
+instance {F : Nat → Type u} [World F] : World (World.Pred F) where
+  restrictStep p :=
+    ⟨fun m hm x => p.val m (Nat.le_succ_of_le hm) x,
+     fun m hm x h => p.property m (Nat.le_succ_of_le hm) x h⟩
 
-/-- The carrier sub-presheaf at level `n`. -/
-def World.Pred.carrier {F : Nat → Type u} [World F] (p : World.Pred F) (n : Nat) :
+/-- A `World.Pred F n` is callable as its top-level membership predicate. -/
+instance {F : Nat → Type u} [World F] {n : Nat} :
+    CoeFun (World.Pred F n) (fun _ => F n → Prop) where
+  coe p := fun x => p.holds x
+
+/-- The carrier sub-presheaf at level `n`: the values of `F n` satisfying the
+    predicate at level `n`. -/
+def World.Pred.carrier {F : Nat → Type u} [World F] {n : Nat} (p : World.Pred F n) :
     Type u := { x : F n // p.holds x }
-
-instance {F : Nat → Type u} [World F] (p : World.Pred F) : World p.carrier where
-  restrictStep := fun ⟨x, hx⟩ => ⟨World.restrictStep x, p.closed x hx⟩
 
 @[simp]
 theorem World.Pred.ofClosed_holds {F : Nat → Type u} [World F]
     (h : ∀ {m}, F m → Prop)
     (c : ∀ {m} (x : F (m+1)), h x → h (World.restrictStep x))
     {n : Nat} (x : F n) :
-    (World.Pred.ofClosed (F := F) h c).holds x ↔ h x := by
-  constructor
-  · rintro ⟨_, hP⟩
-    rwa [World.restrict_self] at hP
-  · intro hh
-    exact ⟨Nat.le_refl _, by rwa [World.restrict_self]⟩
+    (World.Pred.ofClosed (F := F) (n := n) h c).holds x ↔ h x :=
+  Iff.rfl
 
 @[simp]
 theorem World.IProp.restrictStep_and {n : Nat} (a b : World.IProp (n+1)) :
@@ -487,16 +479,13 @@ theorem World.IProp.restrictStep_and {n : Nat} (a b : World.IProp (n+1)) :
 namespace World.Pred
 variable {F : Nat → Type u} [World F]
 
-/-- Binary meet of sub-presheaves: pointwise intersection of sieves. -/
-def And (p q : World.Pred F) : World.Pred F :=
-  ⟨fun {n} x => (p.val x).And (q.val x),
-   fun {n} x => by
-     show (p.val (World.restrictStep x)).And (q.val (World.restrictStep x)) =
-          World.restrictStep ((p.val x).And (q.val x))
-     rw [p.natural x, q.natural x, World.IProp.restrictStep_and]⟩
+/-- Binary meet of sub-presheaves: pointwise intersection. -/
+def And {n : Nat} (p q : World.Pred F n) : World.Pred F n :=
+  ⟨fun m hm x => p.val m hm x ∧ q.val m hm x,
+   fun m hm x ⟨hp, hq⟩ => ⟨p.property m hm x hp, q.property m hm x hq⟩⟩
 
 @[simp]
-theorem And_holds (p q : World.Pred F) {n : Nat} (x : F n) :
+theorem And_holds {n : Nat} (p q : World.Pred F n) (x : F n) :
     (p.And q).holds x ↔ p.holds x ∧ q.holds x := Iff.rfl
 
 end World.Pred

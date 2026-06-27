@@ -139,6 +139,14 @@ partial def elabWorldCore (t : Syntax) (_expectedType? : Option Expr) : TermElab
       if ← isWorldFamily result then return result
       else throwError "not a World family"
     if let some e := directResult? then return e
+    -- Second attempt: elaborate the whole application syntax directly. Lets
+    -- Lean's normal elaborator handle instance arguments (e.g., `[World F]`
+    -- for `World.Pred F`) and other implicits.
+    let wholeResult? ← observing? do
+      let result ← elabTerm t none
+      if ← isWorldFamily result then return result
+      else throwError "not a World family"
+    if let some e := wholeResult? then return e
     -- Fall back to type-level lifting (Comp)
     let worldLevel := match (← whnf worldType) with
       | .forallE _ _ (.sort u) _ => u
@@ -181,6 +189,15 @@ partial def elabWorldCore (t : Syntax) (_expectedType? : Option Expr) : TermElab
         if ← isWorldFamily result then return result
         else throwError "not a World family"
       if let some e := directResult? then
+        return e
+      -- Second attempt: elaborate the whole application syntax directly. Lets
+      -- Lean's normal elaborator handle instance arguments (e.g., `[World F]`
+      -- for `World.Pred F`) and other implicits.
+      let wholeResult? ← observing? do
+        let result ← elabTerm t none
+        if ← isWorldFamily result then return result
+        else throwError "not a World family"
+      if let some e := wholeResult? then
         return e
       -- Fall back to Comp for unary
       if worldArgs.size == 1 then
@@ -231,6 +248,10 @@ example (D : Nat → Type) : Nat → Type := world(Nat ⊕ D × D)
 example (D : Nat → Type) : Nat → Type := world(Unit ⊕ (Var × D → D) ⊕ ConTag × List (Var × D))
 example (V W : Nat → Type) : Nat → Type := world(V ⊕ Event × W)
 def testSig (D : Nat → Type) : Nat → Type := world(Nat ⊕ D × D)
+
+-- World.Pred as codomain (Pred takes a presheaf + instance, not a Type).
+example (D : Nat → Type) [World D] : Nat → Type := world(D → World.Pred D)
+example (D : Nat → Type) [World D] : Nat → Type := world(Nat → World.Pred D)
 
 -- Fixpoint
 example : Nat → Type := world(γ X, Unit ⊕ ▹X)
