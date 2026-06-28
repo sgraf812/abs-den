@@ -111,15 +111,34 @@ kleeneFix f = go bottom where go x = let x' = f x in if x' ⊑ x then x' else go
 \begin{figure}
 \begin{minipage}{0.63\textwidth}
 \begin{code}
-class UVec a where
-  (+)  :: a -> a -> a
-  (*)  :: U -> a -> a
+evalUsg e ρ = eval e ρ :: UD
+
+type UD = UT UValue
+data UT v = MkUT Uses v
+type Uses = Name :-> U
+data UValue = UCons U UValue | Rep U
+data U = U0 | U1 | Uω
+
+instance Domain UD where
+  domainfun(step) (Look x)  (MkUT φ v)  = MkUT (singenv x U1 + φ) v
+  domainfun(step) _         τ           = τ
+  domainfun(stuck)                                  = bottom
+  domainfun(fun) x {-" \iffalse "-}_{-" \fi "-} f   = case f (MkUT (singenv x U1) (Rep Uω)) of
+    MkUT φ v -> MkUT (ext φ x U0) (UCons (φ !? x) v)
+  domainfun(apply) (MkUT φ1 v1) (MkUT φ2 _)         = case peel v1 of
+    (u, v2) -> MkUT (φ1 + u*φ2) v2
+  domainfun(con) {-" \iffalse "-}_{-" \fi "-} _ ds  = foldl apply (MkUT emp (Rep Uω)) ds
+  domainfun(select) d fs                            =
+    d >> lub  [  f (replicate (conArity k) (MkUT emp (Rep Uω)))
+              |  (k,f) <- assocs fs ]
+  bind # rhs body = body (kleeneFix rhs)
 \end{code}
 \end{minipage}%
 \begin{minipage}{0.37\textwidth}
 \begin{code}
-data U = U0 | U1 | Uω
-type Uses = Name :-> U
+class UVec a where
+  (+)  :: a -> a -> a
+  (*)  :: U -> a -> a
 instance UVec U where {-" ... \iffalse "-}
   U1 + U1 = Uω
   u1 + u2 = u1 ⊔ u2
@@ -131,35 +150,6 @@ instance UVec Uses where {-" ... \iffalse "-}
   (+) = Map.unionWith (+)
   u * m = Map.map (u *) m
 {-" \fi "-}
-\end{code}
-\end{minipage}
-\\
-\begin{minipage}{0.63\textwidth}
-\begin{code}
-data UT v = MkUT Uses v
-
-evalUsg e ρ = eval e ρ :: UD
-
-instance Domain UD where
-  step (Look x)  (MkUT φ v)  = MkUT (singenv x U1 + φ) v
-  step _         τ           = τ
-  stuck                                  = bottom
-  fun x {-" \iffalse "-}_{-" \fi "-} f   = case f (MkUT (singenv x U1) (Rep Uω)) of
-    MkUT φ v -> MkUT (ext φ x U0) (UCons (φ !? x) v)
-  apply (MkUT φ1 v1) (MkUT φ2 _)         = case peel v1 of
-    (u, v2) -> MkUT (φ1 + u*φ2) v2
-  con {-" \iffalse "-}_{-" \fi "-} _ ds  = foldl apply (MkUT emp (Rep Uω)) ds
-  select d fs                            =
-    d >> lub  [  f (replicate (conArity k) (MkUT emp (Rep Uω)))
-              |  (k,f) <- assocs fs ]
-  bind # rhs body = body (kleeneFix rhs)
-\end{code}
-\end{minipage}%
-\begin{minipage}{0.37\textwidth}
-\begin{code}
-data UValue = UCons U UValue | Rep U
-type UD = UT UValue
-
 instance Lat U where {-" ... \iffalse "-}
   bottom = U0
   U0  ⊔  u   = u

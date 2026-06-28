@@ -512,9 +512,12 @@ We demonstrate this in the Appendix.
 \begin{figure}
 \begin{code}
 evalNeed e ρ μ = unTNeed (eval e ρ :: DNeed) μ
-type DNeed = TNeed ValueNeed; ifPoly(data ValueNeed = Stuck | Fun (DNeed -> DNeed) | Con Tag [DNeed])
+type DNeed = TNeed ValueNeed
+ifPoly(data ValueNeed = Stuck | Fun (DNeed -> DNeed) | Con Tag [DNeed])
 newtype TNeed v = TNeed { unTNeed :: Heap -> T (v, Heap) }
-type Heap = Addr :-> DNeed; type Addr = Int; nextFree :: Heap -> Addr
+type Heap = Addr :-> DNeed
+type Addr = Int
+nextFree :: Heap -> Addr
 ifPoly(data Event  =  ... | Upd)
 
 instance Domain DNeed where
