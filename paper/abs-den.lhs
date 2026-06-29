@@ -39,7 +39,7 @@
 
 %%%%%%%
 
-\usepackage[appendix=append,bibliography=common,forwardlinking=yes]{apxproof}
+\usepackage[appendix=strip,bibliography=common,forwardlinking=yes]{apxproof}
 %\renewcommand{\appendixprelim}{\clearpage\onecolumn\appendix\section*{Start of Appendix}} % Clearly mark the begin of the Appendix inserted by apxproof
 \renewcommand{\appendixsectionformat}[2]{Appendix for Section~#1\ (#2)}
 
@@ -89,6 +89,25 @@
 \newcommand{\keyword}[1]{\kwcolor{\mathbf{#1}}}
 \newcommand{\varid}[1]{\varcolor{\mathit{#1}}}
 \newcommand{\conid}[1]{\concolor{\mathsf{#1}}}
+% Flatten lhs2TeX |code| in moving arguments (section titles) to plain text in
+% PDF bookmarks, so colour/font/spacing macros do not leak into the outline.
+\pdfstringdefDisableCommands{%
+  \def\varid#1{#1}%
+  \def\conid#1{#1}%
+  \def\keyword#1{#1}%
+  \def\varcolor#1{#1}%
+  \def\concolor#1{#1}%
+  \def\kwcolor#1{#1}%
+  \def\mathsf#1{#1}%
+  \def\mathit#1{#1}%
+  \def\mathbf#1{#1}%
+  \def\mathcal#1{#1}%
+  \def\denot#1{#1}%
+  \def\wild{}%
+  \def\llbracket{}%
+  \def\rrbracket{}%
+  \def\;{ }%
+}
 %\newcommand{\tick}{\text{\textquoteright}}
 \newcommand{\package}[1]{\textsf{#1}}
 \renewcommand{\commentbegin}{\ensuremath{\;\Lbag\ }}
@@ -209,9 +228,9 @@
 %include OpSem.lhs
 %include StaticAnalysis.lhs
 %include Adequacy.lhs
-%include Problem.lhs
 %include Soundness.lhs
 %include RelatedWork.lhs
+%include Problem.lhs
 
 %\begin{acks}
 %We would like to thank the anonymous POPL reviewers for their feedback.
