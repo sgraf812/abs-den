@@ -3,6 +3,12 @@ SG:
 
 * [x] Clarify what is formalised in Agda
 
+* [ ] Introduce the term "absence" before its first use. It first appears in the
+  §4 intro (StaticAnalysis.lhs:51, "correctly infers absence") yet is only
+  defined below in §4.1 (defn:absence). Simplest fix: reword line 51 to avoid the
+  term, e.g. "correctly infers upper bounds on how many times a let-bound
+  variable is evaluated", deferring "absence" to its §4.1 definition.
+
 Rev A
 -----
 
