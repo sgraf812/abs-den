@@ -915,7 +915,7 @@ $\perform{evalVInit (read "let x = x in x x") emp emp :: T (ValueVInit, HeapVIni
 \end{toappendix}
 
 \smallskip
-
+\noindent
 The examples we have seen so far suggest that |evalNeed2| indeed defines
 a call-by-need semantics.
 The next section will prove this fact.
