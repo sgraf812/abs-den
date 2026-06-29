@@ -387,7 +387,7 @@ For |DName| (\Cref{fig:trace-instances}), |bind| ties the knot via a
 call-by-name evaluation.%
 \footnote{Strict languages can define the guarded fixpoint as |d () = rhs (d ())|.}
 Crucially, the |Let| case of |eval| also wraps every future reference to the bound
-variable |x| in |step (Look x)|, making variable lookup observable --- a mechanism
+variable |x| in |step (Look x)|, making variable lookup observable, a mechanism
 we explore in \Cref{sec:walkthrough}.
 
 The interpreter admits a purely operational reading.
@@ -431,20 +431,20 @@ To save horizontal space, we'll abbreviate |Step| to |S|.
 Step (\ref{eqn:eval-ex1}) unfolds the definition of the |Let| case and the |bind| implementation.
 The |Let| case of |eval| wraps the result in |Step Let1|, the |bind| for |DName|
 computes a guarded fixpoint |let d = rhs d in body d|,
-and every future reference to |i| is wired into
-|Step (Look "i") d|, so a |Look "i"| event will be emitted at each use of |i|.
+and every future reference to $i$ is wired into
+|Step (Look "i") d|, so a |Look "i"| event will be emitted at each use of $i$.
 Variable lookup becomes observable because it is wired into the environment
 at the \emph{binding site}.
 
 Step (\ref{eqn:eval-ex2}) unfolds |eval| for the |App| case ($i~i$) and |Var|
 case ($i$) in the application head.
-Both cases look up |"i"| in the environment, yielding |Step (Look "i") d| for both
+Both cases look up $i$ in the environment, yielding |Step (Look "i") d| for both
 the function and argument positions.
 Step (\ref{eqn:eval-ex3}) evaluates the right-hand side:
 |eval| dispatches on the |Lam| case for $\Lam{x}{x}$, and |fun| for |DName| wraps
 the body denotation in |Ret (Fun ^^ ...)|.
 Note the |Step App2| pre-wired inside the
-|Fun| value --- it will be emitted whenever this function is applied.
+|Fun| value, to be emitted whenever this function is applied.
 Since $\Lam{x}{x}$ does not mention $i$, the definition of |d| is independent of
 its self-reference, and the guarded fixpoint is immediate.
 
