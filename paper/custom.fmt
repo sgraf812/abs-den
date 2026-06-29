@@ -209,6 +209,8 @@
 %format bottom = "\bot"
 %format d1
 %format d2
+%format di = "\varcolor{d}_i"
+%format dk = "\varcolor{d}_k"
 %format e'
 %format e1
 %format e2
@@ -227,6 +229,7 @@
 %format g2
 %format v1
 %format v2
+%format vk = "\varcolor{v}_k"
 %format k1
 %format k2
 %format k3
@@ -242,6 +245,12 @@
 %format us2
 %format ev1
 %format ev2
+%format x1
+%format x2
+%format p1
+%format p2
+%format px1
+%format px2
 %format App1
 %format App2
 %format Case1

@@ -59,9 +59,9 @@ Demand Analysis for future work.
 \subsection{Usage Cardinality and Absence}
 
 Usage analysis is a compelling example because it infers an \emph{operational
-property}: \emph{usage cardinality}, that is, how often a program evaluates a
-given variable, whether not at all, at most once, or possibly many
-times~\citep{WrightBakerFinch:93,Gustavsson:98}.
+property}: \emph{usage cardinality}, how often a program evaluates a given
+variable (not at all, at most once, or possibly many
+times)~\citep{WrightBakerFinch:93,Gustavsson:98}.
 In particular, the \emph{at most once} distinction is not observable in a
 traditional denotational semantics, whose domains deliberately lack the
 operational detail of how often a subterm is evaluated; our trace-based semantics
@@ -73,7 +73,7 @@ update of thunks~\citep{Turner:95,Sergey:14}.
 The extreme case of evaluating a variable \emph{not at all} is \emph{absence}: a
 variable is \emph{absent} in an expression when evaluating the expression never
 looks the variable up, and \emph{used} otherwise.
-Absence licenses dead-code optimisation: when $\px$ is absent in $\pe_2$, the
+Absence licenses dead-code elimination: when $\px$ is absent in $\pe_2$, the
 right-hand side $\pe_1$ of $\Let{\px}{\pe_1}{\pe_2}$ is never demanded, so a
 compiler may rewrite $\pe_1$ to anything it pleases, and even drop the binding
 altogether if $\px$ then occurs nowhere in $\pe_2$.
@@ -292,15 +292,19 @@ when we instantiate |eval| at |UD|.
 %|Fun :: (τ (highlight Value τ) -> ...) -> Value τ| is disqualifying.}
 
 The abstract value type |UValue| records, for each argument position in turn, how
-often a function uses that argument, drawn from |U| (used zero, one, or many
-times).
+often a function uses that argument, drawn from |U| (used at most zero, one, or
+many times).
 Such a |UValue| is the function's \emph{summary}: a finite stand-in for its
 behaviour that the analysis applies at each call site instead of re-examining the
 body.
 For example, the |UValue| abstracting $\Lam{y}{\Lam{z}{y}}$ is
 |UCons U1 (UCons U0 (Rep Uω))|, because the first argument is used once while
-the second is used zero times.
+the second is used zero times; we derive this summary below.
+We read |Rep u| as the infinite repetition |UCons u (UCons u (...))| of |u|, so
+that |Rep u| and |UCons u (Rep u)| denote the same |UValue|; the |Eq| and |Lat|
+instances and every operation on |UValue| respect this identity.
 Absence is the special case: a variable is absent exactly when its usage is |U0|.
+A stuck expression evaluates nothing, denoted by |bottom = MkUT emp (Rep U0)|.
 %\slpj{Why generalise? It makes it a bit more complicated, and more importantly
 %different, than Section 2.}
 %\sg{The main reason (a year back) was to prove that we correctly approximate
@@ -310,85 +314,110 @@ Absence is the special case: a variable is absent exactly when its usage is |U0|
 %probably does not matter too much.
 %Either way, I'm a bit hesitant to change it this close to submission.}
 
-We illustrate the analysis end to end on the example
-$\Let{k}{\Lam{y}{\Lam{z}{y}}}{k~x_1~x_2}$, whose evaluation \Cref{fig:usage-trace}
-traces under an initial environment |ρe| that maps each free variable $x_i$ to the
-proxy |MkUT (singenv x_i U1) (Rep Uω)|, recording one use of $x_i$ with an unknown
-result.
-As in the by-name walkthrough of \Cref{sec:walkthrough}, no clause sees the whole
-picture; here the |step| events |App1|, |App2| and |Let1| are moreover the
-identity for |UD|, so only |Look| and the summary operations |fun| and |apply|
-remain.
+We start with the smallest example,
+$\Let{i}{\Lam{x}{x}}{i~i}$, the very program whose by-name trace we followed in
+\Cref{sec:walkthrough}:
+\begin{align}
+    & |evalUsg (({-" \Let{i}{\Lam{x}{x}}{i~i} "-})) emp| \notag \\
+={} & |step Let1 (bind (\d1 -> fun x (\d -> step App2 d))| \notag \\
+    & \qquad\quad |(\d1 -> step App1 (apply (step (Look "i") d1) (step (Look "i") d1))))| \label{eqn:usg-ex1} \\
+={} & |bind (\d1 -> fun x (\d -> d)) (\d1 -> apply (step (Look "i") d1) (step (Look "i") d1))| \label{eqn:usg-ex2} \\
+={} & |bind (\d1 -> di) (\d1 -> apply (step (Look "i") d1) (step (Look "i") d1))| \label{eqn:usg-ex3} \\
+={} & |apply (step (Look "i") di) (step (Look "i") di)| \label{eqn:usg-ex4} \\
+={} & |MkUT (singenv "i" U1 + U1 * singenv "i" U1) (Rep Uω)| \label{eqn:usg-ex5} \\
+={} & \perform{evalUsg (read "let i = λx.x in i i") emp} \notag \\
+    & |where di = MkUT emp (UCons U1 (Rep Uω))| \notag
+\end{align}
+\noindent
+Step~(\ref{eqn:usg-ex1}) unfolds the generic |eval| completely, leaving only the
+|Domain| combinators |bind|, |fun|, |apply| and |step|; this skeleton is the same
+for every instance. Reducing it at |DName| gives the by-name trace of \Cref{sec:walkthrough}, and
+reducing it at |UD| gives the usage summary computed in the steps below. The
+interpreter is shared; the analysis lives entirely in the |Domain UD| instance.
 
-\begin{figure}
-\begin{spec}
-   evalUsg (({-" \Let{k}{\Lam{y}{\Lam{z}{y}}}{k~x_1~x_2} "-})) ρe
-=  eval (({-" k~x_1~x_2 "-})) ρ1                                          {-" \hfill\textsc{(1)} "-}
-=  apply (apply (ρ1 ! k) (ρ1 ! x_1)) (ρ1 ! x_2)                           {-" \hfill\textsc{(2)} "-}
-=  apply (apply (MkUT (singenv k U1) vk) px1) px2                         {-" \hfill\textsc{(3)} "-}
-=  apply (MkUT (singenv k U1 + singenv x_1 U1) (UCons U0 (Rep Uω))) px2   {-" \hfill\textsc{(4)} "-}
-=  MkUT (singenv k U1 + singenv x_1 U1 + U0 * singenv x_2 U1) (Rep Uω)    {-" \hfill\textsc{(5)} "-}
-=  MkUT (singenv k U1 + singenv x_1 U1) (Rep Uω)
-   where  ρ1 = ext ρe k (step (Look k) dk);  dk = MkUT emp vk;  vk = UCons U1 (UCons U0 (Rep Uω))
-          px1 = MkUT (singenv x_1 U1) (Rep Uω);  px2 = MkUT (singenv x_2 U1) (Rep Uω)
-\end{spec}
-\\[-1em]
-\caption{Walking through usage analysis for $\Let{k}{\Lam{y}{\Lam{z}{y}}}{k~x_1~x_2}$}
-\label{fig:usage-trace}
-\end{figure}
+We now reduce these combinators at |UD|.
+Step~(\ref{eqn:usg-ex2}) discards the no-op events: every |step| event but |Look|
+is the identity for |UD|, so the |Let1|, |App1| and |App2| events drop out,
+leaving |bind|, |fun|, |apply| and the two |Look| events.
 
-Step~(1) unfolds the |Let| via |bind|, which summarises the right-hand side
-$\Lam{y}{\Lam{z}{y}}$ with |fun|.
-To summarise a lambda |Lam x e|, the |fun| method applies the body to a
-\emph{proxy} |MkUT (singenv x U1) (Rep Uω)| that records a single use of the bound
-variable |x| and an unknown argument, then reads off how the body used |x|:
+Step~(\ref{eqn:usg-ex3}) simplifies the |fun| application. To summarise a lambda,
+|fun| applies the body to a \emph{proxy} |MkUT (singenv x U1) (Rep Uω)| that stands
+for a single use of the bound variable $x$ with an unknown argument, then reads off
+how the body used $x$:%
+\footnote{The exact identity of $x$ is exchangeable; we use it as a De Bruijn
+level.}
 \begin{spec}
-   eval (Lam x (Var x)) ρ =  fun x (\d -> step App2 (eval (Var x) (ext ρ x d)))
-=  case step App2 (eval (Var x) (ext ρ x (MkUT (singenv x U1) (Rep Uω))))  of MkUT φ v -> MkUT (ext φ x U0) (UCons (φ !? x) (Rep Uω))
-=  case MkUT (singenv x U1) (Rep Uω)                                       of MkUT φ v -> MkUT (ext φ x U0) (UCons (φ !? x) (Rep Uω))
+   fun x (\d -> d)
+=  case MkUT (singenv x U1) (Rep Uω)  of MkUT φ v -> MkUT (ext φ x U0) (UCons (φ !? x) v)
 =  MkUT emp (UCons U1 (Rep Uω))
 \end{spec}
 The usage |φ !? x| of the bound variable becomes the next entry of the |UValue|,
-while |x| is dropped from the |Uses| and the argument value remains unknown
-(|Rep Uω|).%
-\footnote{As before, the exact identity of |x| is exchangeable; we use it as a De
-Bruijn level.}
-Applied to each binder of $\Lam{y}{\Lam{z}{y}}$ in turn, this yields |k|'s summary
-|dk = MkUT emp vk| with |vk = UCons U1 (UCons U0 (Rep Uω))|: the first argument is
-used once, the second not at all, and the body has no free variables.
-As the right-hand side does not mention |k|, no recursion is needed
-(\Cref{sec:usage-fixpoint} treats recursive bindings, where |bind| must instead
-compute a fixpoint).
-The binding wraps |dk| in |step (Look k)| before extending the environment to
-|ρ1|, so that each lookup of |k| records one use.
+while $x$ is dropped from the |Uses| and the argument value remains unknown
+(|Rep Uω|).
+This |MkUT emp (UCons U1 (Rep Uω))| is $i$'s summary |di|: it uses its one argument
+once and has no free variables.
+Step~(\ref{eqn:usg-ex4}) reduces |bind|: the binding is non-recursive, so its
+|kleeneFix| (treated in full in \Cref{sec:usage-fixpoint}) stabilises after a single
+iteration and hands |di| to the body.
 
-Steps~(2,3) unfold the two applications: |eval (Var k) ρ1 = ρ1 ! k| exposes
-|step (Look k) dk = MkUT (singenv k U1) vk|, the single use of |k|, while
-|ρ1 ! x_1| and |ρ1 ! x_2| are the proxies |px1| and |px2|.
-The two |apply| steps are where the summary earns its keep.
-|apply| views the |UValue| through |peel| as a head usage and a tail (recall
-$|Rep u| \equiv |UCons u (Rep u)|$): the head says how often the argument is used,
-so |apply| adds that many copies of the argument's |Uses| (with |U1 + U1 = Uω|)
-and continues with the tail.
-Thus Step~(4) peels |U1| off |vk| and keeps $x_1$'s use, whereas Step~(5) peels
-|U0| and discards $x_2$'s, as |U0 * singenv x_2 U1| maps $x_2$ to |U0|.
-The final summary infers $x_1$ as used at most once and $x_2$ as absent, even
-though $x_2$ occurs in argument position; the |UValue| is exactly what lets
-|apply| tell the two apart.
-Stuck expressions evaluate nothing and are denoted by |bottom = MkUT emp (Rep U0)|.
+Step~(\ref{eqn:usg-ex5}) computes the application, where the summary earns its keep.
+Each |step (Look "i") di| adds one use of $i$ to its summary, giving
+|MkUT (singenv "i" U1) (UCons U1 (Rep Uω))|.
+Then |apply| views the |UValue| through |peel| as a head usage and a tail (recall
+$|Rep u| \equiv |UCons u (Rep u)|$); the head usage says how often the argument is
+used, so |apply| adds that many copies of the argument's |Uses| and continues
+with the tail.
+Here the head |U1| keeps one copy of $i$'s use, so the two looked-up copies
+combine to |U1 + U1 = Uω|: the analysis reports $i$ as used many times, once in
+function and once in argument position.
 
-The summary mechanism is necessarily approximate.
-For example,
-$|evalUsg (({-" \Let{i}{\Lam{x}{x}}{\Let{j}{\Lam{y}{y}}{i~i~j}} "-})) emp|
- = \perform{evalUsg (read "let i = λx.x in let j = λy.y in i i j") emp}$:
-while the program looks up $j$ only once, the first-order summary cannot reason
-through the indirect call and conservatively reports that $j$ may be used many
-times.
+The second example adds the treatment of \emph{free variables} and shows one of
+them coming out \emph{absent}.
+We trace $\Let{k}{\Lam{y}{\Lam{z}{y}}}{k~a~b}$ under an initial environment
+|ρe| that maps each free variable $x$ to a proxy |MkUT (singenv x U1) (Rep Uω)|;
+its body applies $k$ to the free variables $a$ and $b$.
+Since $k$ uses its first argument but not its second, we will find $b$ absent.
+
+\begin{spec}
+   evalUsg (({-" \Let{k}{\Lam{y}{\Lam{z}{y}}}{k~a~b} "-})) ρe
+=  evalUsg (({-" k~a~b "-})) ρ1                                           {-" \hfill\textsc{(1)} "-}
+=  apply (apply (ρ1 ! "k") (ρ1 ! "a")) (ρ1 ! "b")                        {-" \hfill\textsc{(2)} "-}
+=  apply (apply (MkUT (singenv "k" U1) vk) pa) pb                         {-" \hfill\textsc{(3)} "-}
+=  apply (MkUT (singenv "k" U1 + U1 * singenv "a" U1) (UCons U0 (Rep Uω))) pb  {-" \hfill\textsc{(4)} "-}
+=  MkUT (singenv "k" U1 + singenv "a" U1 + U0 * singenv "b" U1) (Rep Uω)  {-" \hfill\textsc{(5)} "-}
+=  MkUT (singenv "k" U1 + singenv "a" U1) (Rep Uω)
+   where  ρ1 = ext ρe "k" (step (Look "k") dk);  dk = MkUT emp vk;  vk = UCons U1 (UCons U0 (Rep Uω))
+          pa = MkUT (singenv "a" U1) (Rep Uω);  pb = MkUT (singenv "b" U1) (Rep Uω)
+\end{spec}
+
+Step~(1) unfolds the |Let|: |fun| summarises $\Lam{y}{\Lam{z}{y}}$, as above for
+$\Lam{x}{x}$ but applied to each binder in turn, into $k$'s summary
+|dk = MkUT emp vk|.
+The binding then wraps |dk| in |step (Look "k")| and extends the environment to
+|ρ1|, so that each lookup of $k$ records one use.
+
+Steps~(2,3) unfold the two applications: |eval (Var "k") ρ1 = ρ1 ! "k"| exposes
+|step (Look "k") dk = MkUT (singenv "k" U1) vk|, the single use of $k$, while
+|ρ1 ! "a"| and |ρ1 ! "b"| are the proxies |pa| and |pb|.
+As for $i~i$ above, the two |apply| steps peel the head usage off |vk| in turn:
+Step~(4) peels |U1| and keeps $a$'s use, whereas Step~(5) peels |U0| and discards
+$b$'s, as |U0 * singenv "b" U1| maps $b$ to |U0|.
+The final summary infers $a$ as used at most once and $b$ as absent, even
+though $b$ occurs syntactically.
+
+The summary mechanism is necessarily approximate, for example,
+\begin{align}
+  & |evalUsg (({-" \Let{i}{\Lam{x}{x}}{\Let{j}{\Lam{y}{y}}{i~i~j}} "-})) emp| = \perform{evalUsg (read "let i = λx.x in let j = λy.y in i i j") emp}. \notag
+\end{align}
+While the program looks up $j$ only once, the first-order summary cannot see
+through the indirect call $i~i$, so it conservatively approximates the call as
+|MkUT (singenv "i" Uω) (Rep Uω)|; the |Rep Uω| value reports any further
+argument, here $j$, as used many times.
 
 Data types are handled analogously.
 $|evalUsg (({-" \Let{z}{Z()}{\Case{S(z)}{S(n) → n}} "-})) emp|
  = \perform{evalUsg (read "let z = Z() in case S(z) of { S(n) -> n }") emp}$
-again infers imprecisely that |z| might be used many times when it is used
+again infers imprecisely that $z$ might be used many times when it is used
 once.%
 \footnote{Following \citet{Sergey:14} we could model \emph{demand} as
 a property of evaluation contexts and propagate uses of field binders to the
@@ -432,8 +461,8 @@ For an unusual example, our type analysis generates and solves a constraint
 system via unification to define fixpoints.
 In case of |UD|, we compute least fixpoints by Kleene iteration |kleeneFix|
 in \Cref{fig:lat}.
-|kleeneFix| requires us to define an order on |UD|, which is induced
-structurally by |U0 ⊏ U1 ⊏ Uω| (pointwise and product orders).
+|kleeneFix| requires us to define an approximation order on |UD|, which is
+induced structurally by |U0 ⊏ U1 ⊏ Uω| (pointwise and product orders).
 
 The iteration procedure terminates whenever the type class instances of |UD| are
 monotone and there are no infinite ascending chains in |UD|.
@@ -1574,7 +1603,7 @@ Finding a good abstraction that achieves this without exposing the whole
 environment is left for future work.
 \end{toappendix}
 
-\medskip
+\smallskip
 \noindent
 It is nice that usage and type analysis fit into the same
 framework as the call-by-need semantics.
