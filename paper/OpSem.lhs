@@ -75,7 +75,7 @@ closure for each address, and a stack of continuation frames $κ$.
 There is one harmless non-standard extension, present so that the machine's
 transitions line up with the |Event|s our interpreter emits (\Cref{sec:interp}):
 each $\LookupT$ transition records the let-bound variable $\py$ that allocated the
-heap binding about to be looked up, mirroring the interpreter's |Look x| event.
+heap binding about to be looked up, mirroring the interpreter's |Look y| event.
 The association from address to let-bound variable is maintained in the first
 component of a heap entry triple and requires slight adjustments of the $\LetIT$,
 $\LookupT$ and $\UpdateT$ rules.
@@ -195,8 +195,7 @@ memoisation example of \Cref{sec:walkthrough-need}:
 
 For proving |evalNeed2| bisimilar to the Lazy Krivine machine
 (\Cref{fig:lk-semantics}), we give an abstraction function $α_{\STraces}$
-from LK machine traces $\STraces$ to denotational traces |T|, with |Events| and
-all, such that
+from LK machine traces $\STraces$ to denotational traces |T|, with their |Event|s, such that
 \[
   α_{\STraces}(\init(\pe) \smallstep ..., \StopF) = |evalNeed e emp emp|,
 \]
@@ -206,7 +205,7 @@ For example, for the LK trace \labelcref{ex:trace2}, $α_{\STraces}$ produces
 the trace in \Cref{fig:by-need-trace}.
 
 Function $α_{\STraces}$, defined in \Cref{fig:eval-correctness}, preserves a
-number of important observable properties, such as termination behavior (\ie
+number of important observable properties, such as termination behaviour (\ie
 stuck, diverging, or balanced execution~\citep{Sestoft:97}), length of the trace
 and transition events, as expressed in the following theorem:
 

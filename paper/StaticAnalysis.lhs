@@ -448,7 +448,7 @@ Alas, among other things this argument relies on the |Step| constructor (and
 thus the |step| method) of the trace type |T| being \emph{lazy} in
 the tail of the trace!
 
-When we replaced |T| in favor of the finite data type |UT| in
+When we replaced |T| in favour of the finite data type |UT| in
 \Cref{sec:usage-trace-abstraction} to get a collecting semantics |UT Value|, we got a partial interpreter.
 That was because the |step| implementation of |UT| is \emph{not} lazy, and hence
 the guarded fixpoint |let d = rhs d in body d| is not guaranteed to exist.

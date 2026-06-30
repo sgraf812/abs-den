@@ -323,7 +323,7 @@ A denotational semantics is a function |dsem e ρ| mapping an expression |e :: E
 and an environment |ρ :: Name :-> D| (giving denotations to |e|'s free variables)
 to a \emph{denotation} in a semantic domain |D|.
 Our denotational interpreter |eval :: Exp -> (Name :-> DName) -> DName| can
-have a similar type as |dsem|.
+have a similar type to |dsem|.
 However, to derive both dynamic semantics and static analyses as instances of the same
 generic interpreter |eval|, we need to vary the type of its semantic domain,
 which is naturally expressed using type class overloading, thus:
@@ -616,7 +616,7 @@ adequacy \wrt an established semantics.}
 The encoding is remarkably compact.
 Moving from by-name to by-need amounts to wrapping |T| in the state transformer
 |TNeed| and isolating memoisation in the single primitive |memoN|; the only
-change to the generic |eval| is the |Upd| event.
+new event is |Upd|.
 The semantic intuition built for the by-name interpreter carries over
 compositionally to by-need.
 
@@ -699,14 +699,14 @@ Step~(9) unfolds |eval| for the inner lambda $\Lam{x}{x}$ to arrive at the
 Step~(10) is the key one: it passes the |Fun| value to |upd| in
 continuation~|k2|, which emits an |Upd| event and replaces the thunk at
 address~|0| with |memoN 0 (return v)|, where |v = Fun (\d -> Step App2 d)|,
-producing the updated heap |μ2| --- this is memoisation.
+producing the updated heap |μ2|, which is memoisation.
 Step~(11) then resumes with |k1|, performing beta reduction: the |Fun| value
 |\d -> Step App2 d| is called with argument |Step (Look "i") (fetchN 0)|,
 emitting |App2| and triggering a second lookup of $i$.
 
 Now the payoff: |fetchN 0| reads the \emph{updated} heap |μ2|, where the entry
 is |memoN 0 (return v)|.
-Since |return v| produces |v| immediately, no beta reduction occurs --- Step~(12)
+Since |return v| produces |v| immediately, no beta reduction occurs; Step~(12)
 simply reaches the cached value.
 The |memoN| combinator emits a final |Upd| in Step~(13), a no-op since |v| is
 already stored, and returns |v|.

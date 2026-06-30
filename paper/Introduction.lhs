@@ -113,7 +113,7 @@ We make the following contributions:
   We instantiate the generic interpreter with a finite, abstract semantic domain.
   No complicated domain construction in Lean is needed for this.
   In doing so, we recover summary-based usage analysis, a generalisation
-  of absence analysis in \Cref{sec:problem}.
+  of absence analysis.
   The Appendix contains further examples, such as \citeauthor{Milner:78}'s type
   analysis, as well as a 0CFA control-flow analysis and Demand Analysis of the
   Glasgow Haskell Compiler.
