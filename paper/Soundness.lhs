@@ -986,14 +986,10 @@ compositional analysis to a non-compositional machine.
 A step-indexed logical relation is still at work, the soundness relation behind
 \Cref{thm:abstract-by-need}, but it relates denotations rather than machine
 configurations.
-The fundamental theorem, that this relation is a congruence, follows from the
-compositional structure of the interpreter: a structural induction on the
-expression, each case discharged by the abstraction laws and a few reusable
-framework lemmas.
-This cleaves the soundness obligation in two: the framework discharges the
-fundamental theorem once per semantics, while a new analysis supplies only the
-abstraction laws of \Cref{fig:abstraction-laws}, properties of its abstract
-domain that never mention the machine.
+Its \emph{fundamental theorem}, that every expression is soundly abstracted, follows
+from the compositional structure of the interpreter: a structural induction on the
+expression, each case discharged by the abstraction laws of
+\Cref{fig:abstraction-laws} and a few reusable framework lemmas.
 The most substantial of these laws, \textsc{Beta-App}, has a \emph{modular} proof
 by parametricity whose complexity is constant in the size of the interpreter.
 Making \Cref{thm:abstract-by-need} itself modular for by-need remains open; the
