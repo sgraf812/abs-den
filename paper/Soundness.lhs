@@ -753,7 +753,7 @@ Now we prove the premises of the abstraction theorem:
         affects the |UValue| component, the only proof obligation is to show
         monotonicity:
         |forall d1 d2. d1^.v ⊑ d2^.v ==> (widen d1)^.v ⊑ (widen d2)^.v|.
-        This is a requirement that our our widening operator must satisfy anyway.
+        This is a requirement that our widening operator must satisfy anyway.
     \end{itemize}
 \end{itemize}
 
@@ -848,8 +848,8 @@ in \Cref{fig:abstraction-laws}.
 The next step is to leave behind the definition of absence in terms of the LK
 machine in favor of one using |evalNeed2|.
 That is a welcome simplification because it leaves us with a single semantic
-artefact --- the denotational interpreter --- instead of an operational
-semantics and a separate static analysis as in \Cref{sec:problem}.
+artefact, the denotational interpreter, instead of an operational
+semantics and a separate static analysis.
 Thanks to bisimilarity (\Cref{thm:need-adequacy-bisimulation}), this new notion is not a
 redefinition but provably equivalent to \Cref{defn:absence}:
 \begin{lemmarep}[Denotational absence]
@@ -874,7 +874,7 @@ We proceed as follows:
                           \Arrow{\Cref{thm:need-adequacy-bisimulation}} \\
   {}\Longleftrightarrow{} & |evalNeed (fillC ectxt (Let x e' e)) emp emp| = |... Step (Look x) ...|
 \end{DispWithArrows}
-Note that the trace we start with is not necessarily an maximal trace,
+Note that the trace we start with is not necessarily a maximal trace,
 so step \labelcref{arrow:usg-context} finds a prefix that makes the trace maximal.
 We do so by reconstructing the syntactic \emph{evaluation context} $\pE$
 with $\mathit{trans}$ (\cf \Cref{thm:translation}) such that
@@ -954,7 +954,7 @@ The final step is just algebra.
 \end{proof}
 
 We have therefore proved that usage analysis correctly infers the semantic property
-of absence, as defined in \Cref{sec:problem}.
+of absence, as defined in \Cref{defn:absence}.
 From this result, one could further prove that the dead code removal constitutes
 an optimization that \emph{improves} the program in the sense of \citet{MoranSands:99}.
 However, such a proof typically is best carried out in a high-level syntactic
@@ -970,7 +970,7 @@ define and keep consistent.
 
 Above all, the soundness argument needs no step-indexed logical relation over
 machine configurations, the device a conventional proof would build to relate a
-compositional analysis to a non-compositional abstract machine semantics.
+compositional analysis to a non-compositional machine.
 A step-indexed logical relation is still at work, the soundness relation behind
 \Cref{thm:abstract-by-need}, but it relates denotations rather than machine
 configurations.
