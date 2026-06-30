@@ -250,21 +250,10 @@ Otherwise, |d = Ret v| for some |v :: Value|.
 \end{spec}
 \end{proof}
 
-What follows is the sound abstraction proof by parametricity.
-Note that its statement fixes the interpreter to |eval|, however the proof would
-still work if generalised to \emph{any} definition with the same type as |eval|!
-
-\begin{theorem}[Abstract By-name Interpretation]
-\label{thm:abstract-by-name}
-Let |e| be an expression, |hat D| a domain with instances for |Trace|, |Domain|, |HasBind| and
-|Lat|, and let $α_{\mathcal{S}}$ be the abstraction function from \Cref{fig:abstract-name}.
-If the by-name abstraction laws in \Cref{fig:abstraction-laws} hold,
-then |evalD2 (hat D)| is an abstract interpreter that is sound \wrt $α_{\mathcal{S}}$,
-\[
-  α_{\mathcal{S}}(|evalName1 e|) ⊑ |evalD2 (hat D) e|.
-\]
-\end{theorem}
-\begin{proof}
+\Cref{thm:abstract-by-name} fixes the interpreter to |eval|, but the proof would
+still work if generalised to \emph{any} definition with the same type as |eval|.
+Its by-name abstraction function $α_{\mathcal{S}}$ is the one in \Cref{fig:abstract-name}.
+\begin{proof}[Proof of \Cref{thm:abstract-by-name}]
 Let $|inst| : \mathsf{Dict}(|DName|)$, $|hat inst| : \mathsf{Dict}(|hat D|)$ the
 canonical dictionaries from the type class instance definitions.
 Instantiate the free theorem \labelcref{eqn:name-abs} above as follows:

@@ -428,9 +428,21 @@ These laws follow the mantra ``evaluation improves approximation''; for
 example, law \textsc{Stuck-App} expresses that applying a stuck term
 or constructor evaluates to (and thus approximates) a stuck term, and
 \textsc{Stuck-Sel} expresses the same for |select| stack frames.
-In the Appendix, we show a result similar to \Cref{thm:abstract-by-need}
-for by-name evaluation which does not require the by-need specific laws
-\textsc{Step-Inc} and \textsc{Update}.
+The same laws, dropping the by-need-specific \textsc{Step-Inc} and
+\textsc{Update}, yield an analogous soundness result for by-name evaluation:
+\begin{theorem}[Abstract By-name Interpretation]
+\label{thm:abstract-by-name}
+Let |e| be an expression, |hat D| a domain with instances for |Trace|, |Domain|, |HasBind|
+and |Lat|, and let $α_{\mathcal{S}}$ be the by-name abstraction function, the heap-free
+analogue of the by-need abstraction in \Cref{fig:abstract-name-need}.
+If the by-name abstraction laws in \Cref{fig:abstraction-laws} hold,
+then |evalD2 (hat D)| is an abstract interpreter that is sound \wrt $α_{\mathcal{S}}$,
+\[
+  α_{\mathcal{S}}(|evalName1 e|) ⊑ |evalD2 (hat D) e|.
+\]
+\end{theorem}
+\noindent
+We prove it by parametricity in the Appendix.
 
 Note that none of the laws mention the concrete semantics or the abstraction
 function $α_{\mathcal{S}}$.
