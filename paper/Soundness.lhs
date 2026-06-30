@@ -104,11 +104,9 @@ To give just one example, computing the latter diverges whenever the evaluation
 of |e| diverges.}
 
 We will instantiate the theorem at |UD| in order to prove that usage analysis
-|evalUsg e ρ = evalD UD e ρ| infers absence, just as absence analysis in
-\Cref{sec:problem}.
-This proof will be simpler and less ad-hoc than the proof for
-\Cref{thm:absence-correct}, because the complicated preservation proof is
-reusably contained in the abstract interpretation theorem.
+|evalUsg e ρ = evalD UD e ρ| infers absence.
+The complicated preservation reasoning is reusably contained in the abstract
+interpretation theorem, so the analysis-specific part of the proof stays small.
 
 \begin{figure}
   \belowdisplayskip=0pt
@@ -137,7 +135,7 @@ reusably contained in the abstract interpretation theorem.
     &
     \inferrule[\textsc{Beta-Sel}]
       {|alts| \text{ polymorphic} \\ |k ∈ dom alts|}
-      {|(alts Map.! k) ds ⊑ select (con k ds) alts|} \\
+      {|(alts ! k) ds ⊑ select (con k ds) alts|} \\
     \\[-0.5em]
     \inferrule[\textsc{ByName-Bind}]
       {|rhs, body|\text{ polymorphic}}
@@ -416,8 +414,6 @@ To prove $\textsc{Beta-App}$, one has to show that
 This states that summarising |f| through |fun|, then |apply|ing the summary to
 |a| must approximate a direct call to |f|;
 it amounts to proving correct the summary mechanism.
-In \Cref{sec:problem}, we have proved a substitution \Cref{thm:absence-subst},
-which is a syntactic form of this statement.
 The ``$|f|\text{ polymorphic}$'' premise asserts that |f| is definable at
 polymorphic type |forall d. (Trace d, Domain d) => d -> d|, which is
 important to prove \textsc{Beta-App} (in \Cref{sec:mod-subst}).
@@ -495,7 +491,7 @@ A modular proof would help our proof framework to scale up to a by-need
 semantics of Haskell, for example, so this avenue bears great potential.
 \end{toappendix}
 
-\subsection{A Modular Proof for \textsc{Beta-App}: A Simpler Substitution Lemma}
+\subsection{A Modular Proof for \textsc{Beta-App}}
 \label{sec:mod-subst}
 
 \begin{toappendix}
@@ -508,22 +504,16 @@ Here we give the usage analysis proofs for the main body, often deferring to
 In order to instantiate \Cref{thm:abstract-by-need} for usage analysis in
 \Cref{sec:usage-sound}, we need to prove in particular that |UD| satisfies the
 abstraction law \textsc{Beta-App} in \Cref{fig:abstraction-laws}.
-\textsc{Beta-App} corresponds to the syntactic substitution
-\Cref{thm:absence-subst} of \Cref{sec:problem}, and this subsection presents its
-proof.
+\textsc{Beta-App} is where the correctness of the summary mechanism lives, so it
+is worth dwelling on how to prove it.
 
-Before we discuss this proof, note that the proof for
-\Cref{thm:absence-subst} has a drawback: It relies on knowing the
-complete definition of $\semabs{\wild}$ and thus is \emph{non-modular}.
-As a result, the proof complexity scales in the size of the interpreter, and
-whenever the definition of $\semabs{\wild}$ changes, \Cref{thm:absence-subst}
-must be updated.
-The complexity of such non-modular proofs would become unmanageable
-on pen and paper for large denotational interpreters such as for
-WebAssembly~\citep{Brandl:23}.
+A direct proof would unfold the complete definition of the interpreter and reason
+about each case, so its complexity scales with the size of the interpreter and it
+must be redone whenever |eval| changes.
+Such non-modular proofs become unmanageable on pen and paper for large
+denotational interpreters such as for WebAssembly~\citep{Brandl:23}.
 
-For \textsc{Beta-App}, dubbed \emph{semantic substitution}, the proof fares much
-better:
+For \textsc{Beta-App}, dubbed \emph{semantic substitution}, we can do much better:
 \begin{toappendix}
 \begin{abbreviation}[Field access]
   |(MkUT φ' v')^.φ := φ'|, |(MkUT φ' v')^.v = v'|.
@@ -788,21 +778,17 @@ This modular proof appeals to parametricity~\citep{Reynolds:83} of |f|'s
 polymorphic type |forall d. (Trace d, Domain d) => d -> d|.
 Of course, any function defined by the generic interpreter satisfies this
 requirement.
-Without the premise of \textsc{Beta-App}, the law cannot be proved
-for usage analysis; we give a counterexample in the Appendix
-(\Cref{ex:syntactic-beta-app}).
+The proof, deferred to the Appendix, instantiates |f|'s free theorem at a relation
+that calls |f| with the proxy |MkUT (singenv x U1) (Rep Uω)| that
+the implementation of |fun x| supplies; the obligation then reduces to one lemma
+per type class method that is easily discharged.
 
-\begin{toappendix}
-The following example shows why we need the ``polymorphic'' premises in
-\Cref{fig:abstraction-laws}.
-It defines a monotone, but non-polymorphic |f :: UD -> UD| for which
-|f a {-" \not⊑ "-} apply (fun x f) a|.
-So if we did not have the premises, we would not be able to prove usage analysis
-correct.
+The polymorphism premise is essential: without it, \textsc{Beta-App} fails for
+usage analysis.
 \begin{example}
 \label{ex:syntactic-beta-app}
 Let |z //= x //= y|.
-The monotone function |f| defined as follows
+The monotone but non-polymorphic |f| defined as follows
 \begin{center}
 \begin{spec}
   f :: UD -> UD
@@ -815,58 +801,19 @@ To see that, let |a := MkUT (singenv y U1) (Rep Uω) :: UD| and consider
   |f a = MkUT (singenv z U1) (Rep Uω) {-" \not⊑ "-} (MkUT emp (Rep Uω)) = apply (fun x f) a|.
 \]
 \end{example}
-\end{toappendix}
-
-To prove \Cref{thm:usage-subst-sem}, we encode |f|'s type in System $F$
-as $f : \forall X.\ \mathsf{Dict}(X) \to X \to X$ (where $\mathsf{Dict}(|d|)$
-encodes the type class dictionaries of |(Trace d, Domain d)|) and
-derive the following free theorem:
-\[
-  \forall A, B.\
-  \forall R ⊆ A \times B.\
-  \forall (\mathit{inst_1}, \mathit{inst_2}) ∈ \mathsf{Dict}(R).\
-  \forall (d_1,d_2) ∈ R.\
-  (f_A(\mathit{inst_1})(d_1), f_B(\mathit{inst_2})(d_2)) ∈ R
-\]
-%$\mathsf{Dict}(R)$ here means that the related type class methods preserve $R$.
-The key to making use of parametricity is to find a useful instantiation of this
-theorem, of relation $R$ in particular.
-We successfully proved \textsc{Beta-App} with the following instantiation:
-\[\begin{array}{c}
-  A \triangleq B \triangleq |UD|, \qquad \mathit{inst_1} \triangleq \mathit{inst_2} \triangleq \mathit{inst}, \qquad d_1 \triangleq a, \qquad d_2 \triangleq \mathit{pre}(x) \\
-  R_{x,a}(d_1,d_2) \triangleq \forall g.\ d_1 = g(a) \land d_2 = g(\mathit{pre}(x)) \implies g(a) ⊑ \mathit{apply}(\mathit{fun}(x,g),a)  \\
-\end{array}\]
-where $\mathit{pre}(x) \triangleq |MkUT (singenv x U1) (Rep Uω)|$ is the
-argument that the implementation of |fun x f| passes to |f| and $\mathit{inst}$ is
-the canonical instance dictionary at |UD|.
-This yields the following inference rule:
-\[
-\inferrule[]
-  { a ⊑ \mathit{apply}(\mathit{fun}(x,\mathit{id}),a)
-  \\ (\mathit{inst},\mathit{inst}) ∈ \mathsf{Dict}(R_{x,a})}
-  { f_|UD|(\mathit{inst})(a) ⊑ \mathit{apply}(\mathit{fun}(x,f_|UD|(\mathit{inst})),a) }
-\]
-where $(\mathit{inst},\mathit{inst}) ∈ \mathsf{Dict}(R_{x,a})$ entails showing
-one lemma per type class method, such as
-\[
-  \forall f_1,f_2.\ (\forall d_1,d_2.\ R_{x,a}(d_1,d_2) \implies R_{x,a}(f_1(d_1),f_2(d_2))) \implies R_{x,a}(\mathit{fun}(y,f_1),\mathit{fun}(y,f_2)).
-\]
-Discharging each of these 7+1 subgoals concludes the proof of \Cref{thm:usage-subst-sem}.
 Next, we will use \Cref{thm:usage-subst-sem} to instantiate
 \Cref{thm:abstract-by-need} for usage analysis.
 
-\subsection{A Simpler Proof That Usage Analysis Infers Absence}
+\subsection{Usage Analysis Infers Absence}
 \label{sec:usage-sound}
 
 Equipped with the generic abstract interpretation \Cref{thm:abstract-by-need},
 we will prove in this subsection that usage analysis from \Cref{sec:abstraction}
-infers absence in the same sense as absence analysis from \Cref{sec:problem}.
-The reason we do so is to evaluate the proof complexity of our approach against
-the preservation-style proof framework in \Cref{sec:problem}.
+infers absence (\Cref{defn:absence}).
 
-Specifically, \Cref{thm:abstract-by-need} makes it very simple to relate
-by-need semantics with usage analysis, taking the place of the
-absence-analysis-specific preservation lemma:
+\Cref{thm:abstract-by-need} makes it very simple to relate
+by-need semantics with usage analysis, taking the place of an
+analysis-specific preservation lemma:
 
 \begin{corollaryrep}[|evalUsg1| abstracts |evalNeed1|]
 \label{thm:usage-abstracts-need}
@@ -1014,39 +961,31 @@ However, such a proof typically is best carried out in a high-level syntactic
 inequational theory; we do not anticipate that the denotational interpreter
 perspective offers a significant advantage in that context.
 
-\subsection{Comparison to Ad-hoc Preservation Proof}
+\subsection{Discussion}
 
-Let us compare to the preservation-style proof framework in \Cref{sec:problem}.
-\begin{itemize}
-  \item
-    Where there were multiple separate \emph{semantic artefacts} in
-    \Cref{sec:problem}, such as a small-step semantics and an extension
-    of the absence analysis to machine configurations $σ$ in order to
-    state preservation (\Cref{thm:preserve-absent}), our proof only has a
-    single semantic artefact that needs to be defined and understood: the
-    denotational interpreter, albeit with different instantiations.
-  \item
-%    The substitution lemma is common to both approaches and indispensable in
-%    proving the summary mechanism correct.
-    What is more important is that a simple proof for
-    \Cref{thm:usage-abstracts-need} in half a page (we encourage the
-    reader to take a look) replaces a tedious, error-prone and incomplete
-    \emph{proof for the preservation lemma} of \Cref{sec:problem}
-    (\Cref{thm:preserve-absent}).
-    Of course, in this section we lean on \Cref{thm:abstract-by-need} to prove what
-    amounts to a preservation lemma; the difference is that our proof properly
-    accounts for heap update and can be shared with other analyses that are
-    sound \wrt by-name and by-need.
-    Thus, we achieve our goal of disentangling semantic details from the proof.
-  \item
-    Furthermore, the proof for \Cref{thm:usage-abstracts-need} by parametricity
-    in this section is \emph{modular}, in contrast to \Cref{thm:absence-subst}
-    which is proven by cases over the interpreter definition.
-    More work needs to be done to achieve a modular proof of
-    the underlying \Cref{thm:abstract-by-need}, however.
-    The (omitted) proof for abstract by-\textbf{name} interpretation in the
-    Appendix (\Cref{thm:abstract-by-name}) is already modular.
-\end{itemize}
+The proof exercises the benefits of the framework.
+It involves a single semantic artefact, the denotational interpreter, instantiated
+at |UD| and at the by-need domain; there is no separate operational semantics to
+define and keep consistent.
+
+Above all, the soundness argument needs no step-indexed logical relation over
+machine configurations, the device a conventional proof would build to relate a
+compositional analysis to a non-compositional abstract machine semantics.
+A step-indexed logical relation is still at work, the soundness relation behind
+\Cref{thm:abstract-by-need}, but it relates denotations rather than machine
+configurations.
+The fundamental theorem, that this relation is a congruence, follows from the
+compositional structure of the interpreter: a structural induction on the
+expression, each case discharged by the abstraction laws and a few reusable
+framework lemmas.
+This cleaves the soundness obligation in two: the framework discharges the
+fundamental theorem once per semantics, while a new analysis supplies only the
+abstraction laws of \Cref{fig:abstraction-laws}, properties of its abstract
+domain that never mention the machine.
+The most substantial of these laws, \textsc{Beta-App}, has a \emph{modular} proof
+by parametricity whose complexity is constant in the size of the interpreter.
+Making \Cref{thm:abstract-by-need} itself modular for by-need remains open; the
+by-name version (\Cref{thm:abstract-by-name}) already is.
 
 \begin{toappendix}
 In the proof for \Cref{thm:usage-absence} we exploit that usage analysis is
