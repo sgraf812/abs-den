@@ -76,7 +76,7 @@ An analysis is then sound as soon as its plugged-in operations satisfy a handful
 of local properties, which we identify and characterise, never by crafting a
 relation over the abstract machine.
 As a concrete example, we prove a summary-based \emph{usage
-analysis}~\citep{WrightBakerFinch:93,Gustavsson:98} sound for call-by-need in half a page.
+analysis}~\citep{WrightBakerFinch:93,Gustavsson:98} sound for call-by-need.
 
 We do not claim that this interpreter and proof setup applies as-is to \emph{just
 any} analysis; rather, we share a new pattern for defining static analyses and
@@ -125,8 +125,8 @@ We make the following contributions:
   remarkably, none of the laws mention the concrete semantics or the Galois
   connection either!
   This enables us to prove usage analysis sound \wrt the by-name
-  and by-need semantics in half a page, building on reusable
-  semantics-specific theorems.
+  and by-need semantics by an argument that never mentions the interpreter,
+  building on reusable semantics-specific theorems.
   Due to the adequacy result in \Cref{sec:adequacy}, this result
   holds regardless of whether a concrete denotational interpreter or an
   operational semantics is considered semantic ground truth.

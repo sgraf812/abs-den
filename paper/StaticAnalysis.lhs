@@ -1605,7 +1605,7 @@ environment is left for future work.
 
 \smallskip
 \noindent
-It is nice that usage and type analysis fit into the same
-framework as the call-by-need semantics.
-Another important benefit is that otherwise monolithic correctness proofs can be
-broken down into smaller, systematic and reusable steps, as we will see next.
+Usage analysis and the call-by-need semantics are the same generic interpreter
+at different instantiations, and that sharing pays off in the soundness proof:
+an otherwise monolithic argument decomposes into smaller, systematic and reusable
+steps, as we show next.
