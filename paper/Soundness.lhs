@@ -73,7 +73,7 @@ in \Cref{sec:by-need-soundness}.
   |con k (map (αD^(μ) . set) ds)| & \text{if |τ = Ret (Con k ds, μ)|} \\
   \end{cases} \\
 \end{array}\]
-\caption{Galois connection $α_{\mathcal{S}}$ for by-need abstraction derived from |Trace|, |Domain| and |Lat| instances on |hat D|}
+\caption{Galois connection $α_{\mathcal{S}}$ for by-need abstraction derived from |Domain| and |Lat| instances on |hat D|}
 \label{fig:abstract-name-need}
 \end{figure}
 
@@ -173,7 +173,7 @@ your choosing (such as |UD|) and we give you a proof of sound abstract by-need
 interpretation for the static analysis |evalD2 (hat D)|!
 
 Note that \emph{we} get to determine the abstraction function $α_{\mathcal{S}}$ based
-on the |Trace|, |Domain| and |Lat| instance on \emph{your} |hat D|.
+on the |Domain| and |Lat| instances on \emph{your} |hat D|.
 \Cref{fig:abstract-name-need} defines how $α_{\mathcal{S}}$ is thus derived.
 
 Let us calculate |αS| for the closed example expression
@@ -213,15 +213,14 @@ Our framework is carefully set up in a way that |αD^(μ)| is preserved when |μ
 is modified by memoisation ``in the future'', reminiscent of
 \citeauthor{Kripke:63}'s possible worlds.
 For similar reasons, the abstraction function for environments pairs up
-definable by-need environments |ρ|, the entries of which are of the form (|step
-Look y) (fetch a)|, with heaps |μ|.
+definable by-need environments |ρ|, the entries of which are of the form |step (Look y) (fetch a)|, with heaps |μ|.
 
 Thanks to fixing $α_{\mathcal{S}}$, we can prove the following abstraction theorem,
-corresponding to the inference rule at the begin of this subsection:
+corresponding to the inference rule at the beginning of this subsection:
 
 \begin{theoremrep}[Abstract By-need Interpretation]
 \label{thm:abstract-by-need}
-Let |e| be an expression, |hat D| a domain with instances for |Trace|, |Domain| and
+Let |e| be an expression, |hat D| a domain with instances for |Domain| and
 |Lat|, and let $α_{\mathcal{S}}$ be the abstraction function from \Cref{fig:abstract-name-need}.
 If the abstraction laws in \Cref{fig:abstraction-laws} hold,
 then |evalD2 (hat D)| is an abstract interpreter that is sound \wrt $α_{\mathcal{S}}$,
@@ -415,7 +414,7 @@ This states that summarising |f| through |fun|, then |apply|ing the summary to
 |a| must approximate a direct call to |f|;
 it amounts to proving correct the summary mechanism.
 The ``$|f|\text{ polymorphic}$'' premise asserts that |f| is definable at
-polymorphic type |forall d. (Trace d, Domain d) => d -> d|, which is
+polymorphic type |forall d. Domain d => d -> d|, which is
 important to prove \textsc{Beta-App} (in \Cref{sec:mod-subst}).
 
 Law \textsc{Beta-Sel} states a similar property for data constructor redexes.
@@ -432,8 +431,8 @@ The same laws, dropping the by-need-specific \textsc{Step-Inc} and
 \textsc{Update}, yield an analogous soundness result for by-name evaluation:
 \begin{theorem}[Abstract By-name Interpretation]
 \label{thm:abstract-by-name}
-Let |e| be an expression, |hat D| a domain with instances for |Trace|, |Domain|, |HasBind|
-and |Lat|, and let $α_{\mathcal{S}}$ be the by-name abstraction function, the heap-free
+Let |e| be an expression, |hat D| a domain with instances for |Domain| and |Lat|,
+and let $α_{\mathcal{S}}$ be the by-name abstraction function, the heap-free
 analogue of the by-need abstraction in \Cref{fig:abstract-name-need}.
 If the by-name abstraction laws in \Cref{fig:abstraction-laws} hold,
 then |evalD2 (hat D)| is an abstract interpreter that is sound \wrt $α_{\mathcal{S}}$,
@@ -450,9 +449,9 @@ This is how fixing the concrete semantics and $α_{\mathcal{S}}$ pays off; the u
 abstraction laws such as
 |αD^(μ)^(apply d a) ⊑ hat apply (αD^(μ)^(d)) (αD^(μ)^(a))| further
 decompose into \textsc{Beta-App}.
-We think this is a nice advantage to our approach, because the author of
+We think this is a nice advantage of our approach, because the author of
 the analysis does not need to reason about by-need heaps in order to soundly
-approximate a semantic trace property expressed via |Trace| instance!
+approximate a semantic trace property expressed via a |Domain| instance!
 
 \begin{toappendix}
 \subsection{Parametricity and Relationship to Kripke-style Logical Relations}
@@ -534,7 +533,7 @@ For \textsc{Beta-App}, dubbed \emph{semantic substitution}, we can do much bette
 
 \begin{lemmarep}[\textsc{Beta-App}, Semantic substitution]
 \label{thm:usage-subst-sem}
-Let |f :: forall d. (Trace d, Domain d) => d -> d|, |x :: Name| fresh and |a :: UD|.
+Let |f :: forall d. Domain d => d -> d|, |x :: Name| fresh and |a :: UD|.
 Then |f a ⊑ apply (fun x f) a| in |UD|.
 \end{lemmarep}
 \begin{proof}
@@ -787,7 +786,7 @@ Instead, the complexity of its proof scales with the number of \emph{abstract
 operations} supported in the semantic domain of the interpreter for a much more
 \emph{modular} proof.
 This modular proof appeals to parametricity~\citep{Reynolds:83} of |f|'s
-polymorphic type |forall d. (Trace d, Domain d) => d -> d|.
+polymorphic type |forall d. Domain d => d -> d|.
 Of course, any function defined by the generic interpreter satisfies this
 requirement.
 The proof, deferred to the Appendix, instantiates |f|'s free theorem at a relation
@@ -858,7 +857,7 @@ in \Cref{fig:abstraction-laws}.
 \end{proof}
 
 The next step is to leave behind the definition of absence in terms of the LK
-machine in favor of one using |evalNeed2|.
+machine in favour of one using |evalNeed2|.
 That is a welcome simplification because it leaves us with a single semantic
 artefact, the denotational interpreter, instead of an operational
 semantics and a separate static analysis.
@@ -902,8 +901,8 @@ from LK trace to denotational interpreter.
 \end{proof}
 
 We define the by-need evaluation contexts for our language in the Appendix.
-Thus insulated from the LK machine, we may restate and prove
-\Cref{thm:absence-correct} for usage analysis.
+Thus insulated from the LK machine, we may state and prove that usage analysis
+infers absence (\Cref{defn:absence}).
 
 \begin{theoremrep}[|evalUsg| infers absence]
   \label{thm:usage-absence}
@@ -968,7 +967,7 @@ The final step is just algebra.
 We have therefore proved that usage analysis correctly infers the semantic property
 of absence, as defined in \Cref{defn:absence}.
 From this result, one could further prove that the dead code removal constitutes
-an optimization that \emph{improves} the program in the sense of \citet{MoranSands:99}.
+an optimisation that \emph{improves} the program in the sense of \citet{MoranSands:99}.
 However, such a proof typically is best carried out in a high-level syntactic
 inequational theory; we do not anticipate that the denotational interpreter
 perspective offers a significant advantage in that context.

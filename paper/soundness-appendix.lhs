@@ -2,7 +2,7 @@
 \label{sec:safety-extension}
 
 \Cref{fig:abstract-name-need} describes a semantic trace property as a ``fold'', in
-terms of a |Trace| instance.
+terms of a |Domain| instance.
 Of course such a fold (an inductive elimination procedure) has no meaning when
 the trace is infinite!
 Yet it is always clear what we mean: When the trace is infinite and described by
@@ -166,7 +166,7 @@ and the fact that all properties of interest are safety properties.
   \end{cases} \\
 \\[-0.75em]
 \end{array}\]
-\caption{Galois connection $α_{\mathcal{S}}$ for by-name abstraction derived from |Trace|, |Domain| and |Lat| instances on |hat D|}
+\caption{Galois connection $α_{\mathcal{S}}$ for by-name abstraction derived from |Domain| and |Lat| instances on |hat D|}
 \label{fig:abstract-name}
 \end{figure}
 
@@ -198,7 +198,7 @@ of the type of |eval|
   |eval| : \forall X.\ \mathsf{Dict}(X) → \mathsf{Exp} → (\mathsf{Name} \pfun X) → X
 \]
 where $\mathsf{Dict}(|d|)$ is the type of the type class
-dictionary for |(Trace d, Domain d, HasBind d)|.
+dictionary for |Domain d|.
 The abstraction theorem yields the following assertion about relations:
 \[
   (|eval|, |eval|) ∈ \forall \mathcal{X}.\ \mathsf{Dict}(\mathcal{X}) → \mathsf{Exp} → (\mathsf{Name} \pfun \mathcal{X}) → \mathcal{X}
@@ -617,7 +617,7 @@ results of the abstraction function:
 
 \begin{lemma}[Heap progression preserves abstraction]
   \label{thm:heap-progress-mono}
-  Let |hat D| be a domain with instances for |Trace|, |Domain|, |HasBind| and
+  Let |hat D| be a domain with instances for |Domain| and
   |Lat|, satisfying \textsc{Beta-App}, \textsc{Beta-Sel}, \textsc{ByName-Bind}
   and \textsc{Step-Inc} from \Cref{fig:abstraction-laws}.
   \[ |μ1 ~> μ2 /\ adom d ⊆ dom μ1 ==> βD^(μ2)^(d) ⊑ βD^(μ1)^(d)|. \]
@@ -751,7 +751,7 @@ place.
 
 \begin{lemma}[By-need environment unrolling]
 \label{thm:by-need-env-unroll}
-Let |hat D| a domain with instances for |Trace|, |Domain|, |HasBind| and |Lat|,
+Let |hat D| a domain with instances for |Domain| and |Lat|,
 satisfying $\textsc{Update}$ from \Cref{fig:abstraction-laws},
 and let |μ1 := (ext μ a (memo a (evalNeed e1 ρ1))), ρ1 := ext ρ x (step (Look x) (fetch a))|. \\
 If |Later (forall e ρ μ. βT^(evalNeed e ρ μ) ⊑ (evalD (hat D) e (βD^(μ) << ρ)))|,
