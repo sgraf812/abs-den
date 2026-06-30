@@ -9,6 +9,13 @@ SG:
   term, e.g. "correctly infers upper bounds on how many times a let-bound
   variable is evaluated", deferring "absence" to its §4.1 definition.
 
+* [ ] Decide whether to keep the by-name analogue of the abstract-interpretation
+  theorem. Soundness.lhs:431 claims "we show a result similar to thm:abstract-by-need
+  for by-name evaluation"; thm:abstract-by-name is referenced there and at
+  Soundness.lhs:276, 324, 986 (the §5.4 Discussion) but is currently an undefined
+  ref, i.e. the result is not actually stated. We might not show it in the end; if
+  so, drop the claim at :431 and the references, otherwise state and label it.
+
 Rev A
 -----
 
