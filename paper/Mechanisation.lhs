@@ -36,14 +36,17 @@ distinct and distinct from the free ones, so nothing shadows), \texttt{habs} is 
 analysis verdict that $x$ is unused, and the conclusion says that in the by-need trace of
 |e| from the empty heap, no prefix looks $x$ up.
 Absence is the $|U0|$ case of \texttt{usage\_approximates\_need}, the mechanised
-\Cref{thm:usage-abstracts-need}: writing $τ_e$ for that trace, $\ell^x_n(τ_e)$ for the
-number of look-ups of $x$ in its first $n$ steps, $α$ for the abstraction of a count to a
-|U|-cardinality, and $φ_e(x)$ for the usage the analysis reports,
-\[
-  α\big(\ell^x_n(τ_e)\big) \;\sqsubseteq\; φ_e(x) \qquad (\text{all } x,\ n).
-\]
-In $\Let{i}{\Lam{x}{x}}{i~i}$, for example, $φ_e(x) = |U0|$, so the binder $x$ is looked
-up zero times at every prefix length.
+\Cref{thm:usage-abstracts-need}:
+
+\lstinputlisting[language=Lean]{mechanisation-approx.lean}
+
+\noindent
+Here \texttt{Trace.lookCount x n} counts the look-ups of $x$ in the first $n$ steps of the
+by-need trace, \texttt{U.ofCount} abstracts that count into a |U|-cardinality, and
+\texttt{.uses !? x} is the usage the analysis reports for $x$; the bound holds at every
+$x$ and $n$.
+In $\Let{i}{\Lam{x}{x}}{i~i}$, for example, the analysis reports $x$ as $|U0|$, so the
+binder $x$ is looked up zero times at every prefix length.
 These are ordinary |Prop|s over the by-need semantics; the logical relation of
 \Cref{sec:mech-lr} discharges them.
 
