@@ -10,13 +10,11 @@ module Adequacy where
 \subsection{Guarded Type Theory}
 \label{sec:guarded-types}
 
-For our proofs, we will make use of guarded type theory.
-Specifically, \Cref{sec:totality-detail} encodes the interpreter in Guarded
-Cubical Agda, which implements a variant of guarded type theory called Ticked
-Cubical Type Theory~\citep{tctt}.
+For our proofs, we will make use of guarded type theory, realised in Lean on top
+of Iris~\citep{Jung:18} as described in \Cref{sec:mechanisation}.
 Our pen and paper proofs in \Cref{sec:adequacy-detail} and
-\Cref{sec:soundness-detail} respect the coinductive nature of this encoding.
-Thus, this subsection shall serve as a short introduction.
+\Cref{sec:soundness-detail} respect the coinductive nature of this model.
+This subsection serves as a short introduction to guarded type theory.
 
 Whereas traditional theories of coinduction require syntactic productivity
 checks~\citep{Coquand:94}, imposing tiresome constraints on the form of guarded
@@ -70,70 +68,6 @@ allowing us to apply a familiar framework of reasoning around $\later$.
 In order not to obscure our work with pointless symbol pushing, we will often
 omit the idiom brackets~\citep{McBridePaterson:08} $\idiom{\wild}$ to indicate
 where the $\later$ ``effects'' happen.
-
-\subsection{Total Encoding in Guarded Cubical Agda}
-\label{sec:totality-detail}
-
-Building on \Cref{sec:guarded-types}, we will now outline the changes necessary to encode |eval| in Guarded Cubical
-Agda, a system implementing Ticked Cubical Type Theory~\citep{tctt}, as well
-as the concrete instances |DName| and |DNeed| from
-\Cref{fig:trace-instances,fig:by-need}.
-The full development is available in the Supplement and type-checks with Agda 2.7.0.1 by running \texttt{agda Concrete.agda}.
-\begin{itemize}
-  \item We need to delay in |step|; thus its definition in |Domain| changes to
-    |step :: Event -> Later d -> d|.
-  \item
-    All |D|s that will be passed to lambdas, put into the environment or
-    stored in fields need to have the form |step (Look x) d| for some
-    |x::Name| and a delayed |d :: Later (D τ)|.
-    This is enforced as follows:
-    \begin{enumerate}
-      \item
-        The |Domain| type class gains an additional predicate parameter |p :: D -> Set|
-        that will be instantiated by the semantics to a predicate that checks
-        that the |D| has the required form |step (Look x) d| for some
-        |x::Name|, |d :: Later (D τ)|.
-      \item
-        Then the method types of |Domain| use a Sigma type to encode conformance
-        to |p|.
-        For example, the type of |fun| changes to |(Σ D p -> D) -> D|.
-      \item
-        The guarded recursive data type |Value| has a constructor
-        |Fun :: (Name times Later (D τ) -> D τ) -> Value τ|, breaking the
-        previously discussed negative recursive cycle by a $\later$, and
-        expecting |x::Name|, |d::Later (D τ)| such that the original |D τ| can
-        be recovered as |step (Look x) d|.
-        This is in contrast to the original definition |Fun :: (D τ -> D τ) ->
-        Value τ| which would \emph{not} type-check.
-        The concrete |Domain| implementation then translates between |Σ D p|
-        and |Name times Later (D τ)|, essentially
-        \emph{defunctionalising}~\citep{Reynolds:72} the latter into the former.
-    \end{enumerate}
-  \item
-    Expectedly, the |bind| method becomes more complicated because it encodes the
-    fixpoint combinator.
-    We settled on |bind :: Later (Later D → D) → (Later D → D) → D|.
-    We tried rolling up |step (Look x) _| in the definition of |eval|
-    to get a simpler type |bind :: (Σ D p → D) → (Σ D p → D) → D|,
-    but then had trouble defining |DNeed| heaps independently of the concrete
-    predicate |p|.
-  \item
-    Higher-order mutable state is among the classic motivating examples for
-    guarded recursive types.
-    As such it is no surprise that the state-passing of the mutable |Heap| in
-    the implementation of |DNeed| requires breaking of a recursive cycle
-    by delaying heap entries, |Heap τ = Addr :-> Later (D τ)|.
-  \item
-    We need to pass around |Tick| binders in |eval| in a way that the type
-    checker is satisfied.
-\end{itemize}
-
-Thus we have proven that |eval| is a total, mathematical function, and
-fast and loose equational reasoning about |eval| is not only \emph{morally}
-correct~\citep{Danielsson:06}, but simply \emph{correct}.
-Furthermore, since evaluation order doesn't matter in Agda and hence for |eval|,
-we could have defined it in a strict language (lowering |Later a| as |() -> a|)
-just as well.
 
 \subsection{Bisimulation}
 \label{sec:adequacy-detail}

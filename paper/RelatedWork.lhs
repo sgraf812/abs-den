@@ -78,20 +78,14 @@ semantics, much like we did for a denotational semantics.
 %\citet{Owens:16} recognise the usefulness of definitional interpreters for
 %correctness proofs, albeit in big-step style and using a fuel-based encoding of
 %infinite behaviors.
-The work of \citet{Atkey:13,tctt} had big influence on our use of the later
-modality and Löb induction.
+Our use of the later modality and Löb induction follows Iris~\citep{Jung:18} and
+the topos-of-trees model of guarded recursion~\citep{Birkedal:12}.
 
 Our |Trace| type class is appropriate for tracking ``pure'' transition events,
 but it is not up to the task of modelling user input, for example.
 A redesign of |Trace| inspired (and instantiated) by guarded interaction
 trees~\citep{interaction-trees,gitrees} would help with that.
 
-%While working out how to embed |evalNeed| in Guarded Cubical Agda~\citep{tctt} and
-%then attempting mechanised proofs about it, we very soon decided
-%that we were not up to the task, not least due to lack of automation and the
-%general perceived tediousness of Cubical types.
-%Perhaps we shall try again with an encoding of guarded recursion rather than
-%using a language where it is primitive.
 
 %\subsubsection*{Contextual Improvement}
 %Abstract interpretation is useful to prove that an analysis approximates
@@ -117,8 +111,8 @@ for a higher-order language, it was unclear to us how to derive a compositional,
 The required changes to the domain definitions seemed daunting, to say the
 least.
 Our solution delegates this complexity to the underlying theory of guarded
-recursive type theory~\citep{tctt} and define our interpreter in terms of the
-abstract interface offered by the topos of trees.
+recursive type theory and define our interpreter in terms of the
+abstract interface offered by the topos of trees~\citep{Birkedal:12}.
 
 We deliberately tried to provide a simple framework and thus stuck to cartesian
 (\ie pointwise) abstraction of environments as in \citet[Chapter 27]{Cousot:21},

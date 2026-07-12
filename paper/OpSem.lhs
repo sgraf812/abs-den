@@ -245,7 +245,7 @@ The interpreters |evalName e ρ| and |evalNeed e ρ μ| are defined for every
 \end{theorem}
 \begin{proofsketch}
 In the Supplement, we implement the generic interpreter |eval| and its
-instances at |DName| and |DNeed| in Lean, using guarded recursion~\citep{tctt}
+instances at |DName| and |DNeed| in Lean, using guarded recursion~\citep{Jung:18}
 to define the productive, coinductive traces.
 Since Lean is a total type theory, |evalName| and |evalNeed2| are total as well.
 
@@ -257,17 +257,8 @@ number of transitions between every $\LookupT$ transition}.
 In other words, if every environment lookup produces a |Step| constructor, then
 our semantics is total by coinduction.
 Guarded recursion captures this argument directly.
-See \Cref{sec:totality-detail} for the details of the encoding.
+See \Cref{sec:mechanisation} for the Lean development.
 \end{proofsketch}
 
-%Encoding the productivity argument in Guarded Cubical Agda was far easier and is
-%far more convincing than the traditional alternative of solving algebraic domain
-%equations and proving continuity of all involved functions by hand.%
-%\footnote{Of course, the underlying model of guarded recursive type
-%theories is the topos of trees~\citep{gdtt}, which very much enjoys an
-%approximation order and partiality.
-%In essence, we are using guarded type theory as a meta language in the sense of
-%\citet{Moggi:07}.}
-%See \Cref{sec:totality-detail} for the details of this encoding.
 
 
