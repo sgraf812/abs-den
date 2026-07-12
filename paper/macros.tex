@@ -46,7 +46,36 @@
 \newcommand{\sven}[1]{\nottoggle{hidetodos}{\textcolor{blue}{\emph{Sven: #1}}}}
 \newcommand{\todo}[1]{\nottoggle{hidetodos}{\textcolor{red}{TODO: #1}}}
 
+% Lean code listings
+\lstdefinelanguage{Lean}{
+  morekeywords={def,fun,match,with,if,then,else,let,in,structure,class,instance,inductive,abbrev,do,by,where},
+  sensitive=true,
+  morecomment=[l]{--},
+  morecomment=[s]{/-}{-/},
+  morestring=[b]",
+}
+\lstset{
+  language=Lean,
+  basicstyle=\ttfamily\footnotesize,
+  keywordstyle=\bfseries,
+  commentstyle=\itshape\color{gray},
+  columns=fullflexible,
+  keepspaces=true,
+  showstringspaces=false,
+  breaklines=true,
+  breakatwhitespace=true,
+  breakindent=2em,
+  literate=
+    {→}{{$\to$}}1 {↦}{{$\mapsto$}}1 {ρ}{{$\rho$}}1 {μ}{{$\mu$}}1
+    {₀}{{$_0$}}1 {₁}{{$_1$}}1 {₂}{{$_2$}}1 {ₛ}{{$_s$}}1
+    {«}{{\guillemotleft}}1 {»}{{\guillemotright}}1,
+}
+
+% Logical-relation tower diagram
+\tikzset{lrbox/.style={draw, rounded corners, align=center, inner sep=4pt, font=\small}}
+
 % Auxiliary
+\newcommand{\wand}{\mathrel{-\!\!*}}
 \newcommand{\many}[1]{\overline{#1}}
 \newcommand{\wild}{\ensuremath{\mathunderscore}}
 \newcommand{\pfun}{\rightharpoonup}

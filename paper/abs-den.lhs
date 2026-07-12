@@ -64,7 +64,9 @@
 \usepackage{witharrows}
 \usepackage{mathbbol} % \bbcolon and \bbquestionmark
 %\usepackage{stmaryrd} % \lightning
-%\usepackage{tikz}
+\usepackage{tikz}
+\usetikzlibrary{positioning,arrows.meta,fit,calc}
+\usepackage{listings}
 %\usetikzlibrary{cd} % commutative diagrams
 %\usetikzlibrary{calc}
 %\usetikzlibrary{fit}
@@ -229,6 +231,7 @@
 %include StaticAnalysis.lhs
 %include Adequacy.lhs
 %include Soundness.lhs
+%include Mechanisation.lhs
 %include RelatedWork.lhs
 %include Problem.lhs
 
