@@ -48,10 +48,14 @@ Both the relation and the proof that it is a congruence grow with the
 complexity of the semantics and of the analysis.
 
 We tried to find ways to avoid this complexity.
-The one we settled on changes the semantics rather than crafting that logical
-relation: a \textbf{\emph{denotational interpreter}}\footnote{This term was
-coined by \citet{Might:10}.}, compositional like a denotational semantics, yet
-recording the operational detail of an abstract machine.
+Our approach still rests on a logical relation, but relates the compositional
+\emph{denotations} of a \textbf{\emph{denotational interpreter}}\footnote{This term was
+coined by \citet{Might:10}.} rather than machine configurations.
+Such an interpreter is compositional like a denotational semantics, yet records the
+operational detail of an abstract machine.
+Because the relation follows the structure of the interpreter, its fundamental lemma is
+a routine induction, and its denotations carry a set-like structure that abstracts
+cleanly into a finite analysis domain.
 It sits at the intersection of the executable \emph{definitional
 interpreter}~\citep{Reynolds:72} and the compositional denotational semantics.
 
