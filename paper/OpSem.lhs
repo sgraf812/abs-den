@@ -219,7 +219,7 @@ number of important observable properties, such as termination behaviour (\ie
 stuck, diverging, or balanced execution~\citep{Sestoft:97}), length of the trace
 and transition events, as expressed in the following theorem:
 
-\begin{theoremrep}[Adequacy and Bisimulation]
+\begin{theorem}[Adequacy and Bisimulation]
   \label{thm:need-adequacy-bisimulation}
   Let |e| be a closed expression, |τ := evalNeed e emp emp| the
   denotational by-need trace and $\init(\pe) \smallstep ...$ the maximal lazy
@@ -232,7 +232,7 @@ and transition events, as expressed in the following theorem:
     \item every |ev :: Event| in |τ = many (Step ev ^^ ...)| corresponds to the
       transition rule taken in $\init(\pe) \smallstep ...$.
   \end{itemize}
-\end{theoremrep}
+\end{theorem}
 \begin{proofsketch}
   Generalise $α_{\STraces}(\init(\pe) \smallstep ..., \StopF) = |evalNeed e emp emp|$ to
   open configurations and prove it by Löb induction.
@@ -240,11 +240,6 @@ and transition events, as expressed in the following theorem:
   interest.
   This adequacy is mechanised in Lean (\Cref{sec:mechanisation}).
 \end{proofsketch}
-\begin{proof}
-  The first result is proven by \Cref{thm:need-adequate}, the second and third
-  result follows from \Cref{thm:need-bisimulation-only}.
-  Both of them build on the abstraction result \Cref{thm:need-abstracts-lk}.
-\end{proof}
 
 \subsection{Totality of |evalName| and |evalNeed2|}
 \label{sec:totality}
