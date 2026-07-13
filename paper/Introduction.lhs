@@ -131,5 +131,13 @@ We make the following contributions:
   holds regardless of whether a concrete denotational interpreter or an
   operational semantics is considered semantic ground truth.
 \item
+  \Cref{sec:mechanisation} mechanises the by-need development in Lean on top of the
+  Iris separation logic~\citep{Jung:18}: the generic interpreter, its adequacy \wrt
+  the lazy Krivine machine, and the soundness of usage analysis, culminating in a
+  machine-checked proof that a variable the analysis reports unused is never looked up
+  during evaluation.
+  The guarded-recursive interpreter stays executable, so the example traces of
+  \Cref{sec:interp} are checked by the build.
+\item
   We compare to the enormous body of related approaches in \Cref{sec:related-work}.
 \end{itemize}
