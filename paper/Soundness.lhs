@@ -429,7 +429,7 @@ However, such a proof typically is best carried out in a high-level syntactic
 inequational theory; we do not anticipate that the denotational interpreter
 perspective offers a significant advantage in that context.
 
-\subsection{Benefits of the Framework}
+\subsection{A Reusable Soundness Proof}
 
 The proof exercises the benefits of the framework.
 It involves a single semantic artefact, the denotational interpreter, instantiated
