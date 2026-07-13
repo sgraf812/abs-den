@@ -110,7 +110,7 @@ interpretation theorem, so the analysis-specific part of the proof stays small.
 
 \begin{figure}
   \belowdisplayskip=0pt
-  \[\begin{array}{cc}
+  \[\resizebox{\textwidth}{!}{$\begin{array}{cc}
     \multicolumn{2}{c}{\inferrule[\textsc{Mono}]
       {}
       {\text{|step|, |stuck|, |fun|, |apply|, |con|, |select|, |bind| monotone}}} \\
@@ -121,20 +121,20 @@ interpretation theorem, so the analysis-specific part of the proof stays small.
     \inferrule[\textsc{Step-Sel}]{}{%
       |step ev (select d alts) ⊑ select (step ev d) alts|} \\
     \\[-0.5em]
-    \inferrule[\textsc{Stuck-App}]
+    \multicolumn{2}{c}{\inferrule[\textsc{Stuck-App}]
       {|d ∈ set (stuck, con k ds)|}
-      {|stuck ⊑ apply d a|}
-    &
-    \inferrule[\textsc{Stuck-Sel}]
-      {|d ∈ set (stuck, fun x f) ∪ set (con k ds || k {-"\not"-}∈ dom alts)|}
-      {|stuck ⊑ select d alts|} \\
+      {|stuck ⊑ apply d a|}} \\
+    \\[-0.5em]
+    \multicolumn{2}{c}{\inferrule[\textsc{Stuck-Sel}]
+      {|d ∈ set (stuck, fun x f) ∪ set (con k ds || k {-"\not"-}∈ dom alts ∨ length ds //= conArity k)|}
+      {|stuck ⊑ select d alts|}} \\
     \\[-0.5em]
     \inferrule[\textsc{Beta-App}]
       {|f| \text{ polymorphic} \\ |x|\text{ fresh}}
       {|f a ⊑ apply (fun x f) a|}
     &
     \inferrule[\textsc{Beta-Sel}]
-      {|alts| \text{ polymorphic} \\ |k ∈ dom alts|}
+      {|alts| \text{ polymorphic} \\ |k ∈ dom alts| \\ |length ds = conArity k|}
       {|(alts ! k) ds ⊑ select (con k ds) alts|} \\
     \\[-0.5em]
     \inferrule[\textsc{ByName-Bind}]
@@ -146,7 +146,7 @@ interpretation theorem, so the analysis-specific part of the proof stays small.
       \qquad
       \inferrule[\textsc{Update}]{}{|step Upd d = d|}
     \end{array}$}
-  \end{array}\]
+  \end{array}$}\]
   \caption{By-name and \fcolorbox{lightgray}{white}{by-need} abstraction laws for type class instances of abstract domain |hat D|}
   \label{fig:abstraction-laws}
 \end{figure}
