@@ -454,9 +454,9 @@ by parametricity whose complexity is constant in the size of the interpreter.
 The fundamental theorem, by contrast, is proved by a direct structural induction over
 the syntax, discharging one case per syntactic form with the matching law; this
 traversal is linear in the number of syntactic forms and amenable to a tactic.
-What is modular is its \emph{use}: a new analysis is proved sound by discharging the
-abstraction laws alone, the fundamental theorem assembling them into soundness for
-by-need.
+What is modular is its \emph{use}: to prove a new analysis sound, one discharges the
+abstraction laws alone, and \Cref{thm:abstract-by-need} bundles them into an instance of
+the logical relation before invoking the fundamental theorem.
 
 \begin{toappendix}
 In the proof for \Cref{thm:usage-absence} we exploit that usage analysis is
