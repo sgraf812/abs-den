@@ -371,8 +371,8 @@ Equipped with the generic abstract interpretation \Cref{thm:abstract-by-need},
 we will prove in this subsection that usage analysis from \Cref{sec:abstraction}
 infers absence (\Cref{defn:absence}).
 
-\Cref{thm:abstract-by-need} makes it very simple to relate
-by-need semantics with usage analysis, taking the place of an
+\Cref{thm:abstract-by-need} does the work of relating
+by-need semantics to usage analysis, taking the place of an
 analysis-specific preservation lemma:
 
 \begin{corollary}[|evalUsg1| abstracts |evalNeed1|]
@@ -429,7 +429,7 @@ However, such a proof typically is best carried out in a high-level syntactic
 inequational theory; we do not anticipate that the denotational interpreter
 perspective offers a significant advantage in that context.
 
-\subsection{Discussion}
+\subsection{Benefits of the Framework}
 
 The proof exercises the benefits of the framework.
 It involves a single semantic artefact, the denotational interpreter, instantiated
