@@ -179,12 +179,12 @@ by-need trace to the machine.
 
 The abstraction laws carry two informal premises, ``$f$ polymorphic'' and ``$x$
 fresh''.
-Polymorphism, the premise of \textsc{Beta-App} and \textsc{Beta-Sel}, becomes a
+Polymorphism, the premise of \textsc{App-Fun} and \textsc{Sel-Con}, becomes a
 parametricity condition: $f$ respects every logical relation whose closure clauses
 cover the summarised binders and the looked-up variables.
 A separate lemma shows that every closure |eval| produces is parametric in this sense,
 so the premise is discharged rather than assumed; it is the parametricity that
-\Cref{sec:soundness} invokes for \textsc{Beta-App}.
+\Cref{sec:soundness} invokes for \textsc{App-Fun}.
 Freshness becomes the least combinator-closed predicate that does not observe a lookup
 of $x$.
 A variable's occurrence is not observable in a generic |Domain| element, so this is the

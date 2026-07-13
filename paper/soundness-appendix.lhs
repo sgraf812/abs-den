@@ -324,7 +324,7 @@ direct to argue in terms of the latter.
                 (αD . powMap g . γD) (αD a)
               ⊑  {- Assumption |βT^(a) ⊑ hat a| -}
                 (αD . powMap g . γD) (hat a)
-              ⊑  {- Assumption \textsc{Beta-App} -}
+              ⊑  {- Assumption \textsc{App-Fun} -}
                 (hat apply) ((hat fun) (αD . powMap g . γD)) (hat a)
               =  {- Definition of |βT|, |v| -}
                 (hat apply) (βT^(Ret v)) (hat a)
@@ -363,7 +363,7 @@ direct to argue in terms of the latter.
                 (αD . powMap (alts ! k) . map γD) (map (αD . set) ds)
               ⊑  {- Assumption $(|alts|,|hat alts|) ∈ |Tag :-> ([{-"R"-}space] -> {-"R"-}space)|$ -}
                 (hat alts ! k) (map (αD . set) ds)
-              ⊑  {- Assumption \textsc{Beta-Sel} -}
+              ⊑  {- Assumption \textsc{Sel-Con} -}
                 (hat select) ((hat con) k (map (αD . set) ds)) (hat alts)
               =  {- Definition of |βT|, |v| -}
                 (hat select) (βT^(Ret v)) (hat alts)
@@ -618,7 +618,7 @@ results of the abstraction function:
 \begin{lemma}[Heap progression preserves abstraction]
   \label{thm:heap-progress-mono}
   Let |hat D| be a domain with instances for |Domain| and
-  |Lat|, satisfying \textsc{Beta-App}, \textsc{Beta-Sel}, \textsc{ByName-Bind}
+  |Lat|, satisfying \textsc{App-Fun}, \textsc{Sel-Con}, \textsc{ByName-Bind}
   and \textsc{Step-Inc} from \Cref{fig:abstraction-laws}.
   \[ |μ1 ~> μ2 /\ adom d ⊆ dom μ1 ==> βD^(μ2)^(d) ⊑ βD^(μ1)^(d)|. \]
 \end{lemma}

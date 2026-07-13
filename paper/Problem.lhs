@@ -919,40 +919,6 @@ replaced with a more conventional proof strategy), none of the abstraction laws 
 to the definition of the interpreter, thus our framework disentagles semantic
 concerns from the theory of the abstract domain, solving (2).
 
-\subsection{Abstract Interpretation, Logical Relations, and Preservation}
-\label{sec:ai-lr-pres}
-
-The correctness statement ``$\semabs{e}$ soundly abstracts
-$\alpha(\mathcal{S}\denot{e})$'', written
-$\alpha(\mathcal{S}\denot{e}) ⊑ \semabs{e}$, can be read in three
-equivalent ways that reflect three research traditions.
-
-First, it is a \emph{sound abstract interpretation}
-theorem~\citep{Cousot:77}: the analysis $\semabs{e}$ over-approximates the
-most precise abstraction of the concrete semantics.
-
-Second, the statement defines a \emph{unary step-indexed logical
-relation}~\citep{AppelMcAllester:01}: for any trace prefix $\tau$ of
-$\mathcal{S}\denot{e}$ of length $n$ (the step index), the analysis result
-$\semabs{e}$ must approximate $\alpha(\tau)$.
-Step indexing is necessary because our object language lacks strong
-normalisation; the step index provides the well-founded measure on which the
-induction proceeds.
-Although our object language is untyped, the relation retains its
-logical-relation character --- the role usually played by induction on type
-structure is here played by L\"ob induction on the step index.
-
-Third, the proof of this statement takes the form of a \emph{preservation}
-proof~\citep{WrightFelleisen:94}: it traces one reduction step, shows that the
-``semantic type'' $\wild ⊑ \semabs{e}$ is preserved, and applies the
-inductive hypothesis.
-
-These three views are not merely analogous --- they describe the same proof
-obligation.
-When we refer to ``sound abstract interpretation'', ``establishing a logical
-relation'', or ``the preservation proof'' in the remainder of this paper, we
-mean all three.
-
 \subsection{Disclaimer: What to expect}
 
 Just as with other abstract interpretation frameworks, it is unlikely that
@@ -963,26 +929,6 @@ analyses that allowed us to decompose the correctness proof obligation into
 manageable and potentially reusable parts.
 We hope that readers can build on our approach without feeling swamped by the
 details of a monolithic proof, as we once felt.
-
-For example, we fully expect that not many static analyses beyond usage analysis
-satisfy the abstraction laws in \Cref{sec:soundness}, or the semantic domain
-definition might need to be adjusted to match a different source language.
-However, it should be clear that if \emph{a different set} of abstraction laws
-can be proved sufficient, the proof for \Cref{thm:abstract-by-need} is a good
-place to start from, and the parameterised setup means that semantic subtleties
-can be dealt with independently of a complicated analysis definition.
-
-Although we focus on a lazy functional language, the core semantic challenge we
-address --- soundly abstracting higher-order mutable state --- is not specific
-to lazy evaluation.
-Call-by-need memoisation requires a heap of closures that are read, evaluated,
-and updated, which is precisely the semantic structure shared by strict
-functional languages with mutable references (\eg., ML) and object-oriented
-languages with stateful interfaces (\eg, Java).
-We chose call-by-need because it is the semantics that GHC's static analyses
-approximate.
-We expect the denotational interpreter pattern to transfer to other language
-paradigms that share this structure.
 
 If the reader thinks that concrete denotational interpreters are not a good
 fit for their use case, perhaps because the domain construction involves

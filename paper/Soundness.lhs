@@ -129,11 +129,11 @@ interpretation theorem, so the analysis-specific part of the proof stays small.
       {|d ∈ set (stuck, fun x f) ∪ set (con k ds || k {-"\not"-}∈ dom alts ∨ length ds //= conArity k)|}
       {|stuck ⊑ select d alts|}} \\
     \\[-0.5em]
-    \inferrule[\textsc{Beta-App}]
+    \inferrule[\textsc{App-Fun}]
       {|f| \text{ polymorphic} \\ |x|\text{ fresh}}
       {|f a ⊑ apply (fun x f) a|}
     &
-    \inferrule[\textsc{Beta-Sel}]
+    \inferrule[\textsc{Sel-Con}]
       {|alts| \text{ polymorphic} \\ |k ∈ dom alts| \\ |length ds = conArity k|}
       {|(alts ! k) ds ⊑ select (con k ds) alts|} \\
     \\[-0.5em]
@@ -161,7 +161,7 @@ the \emph{abstraction laws} in \Cref{fig:abstraction-laws} by name:
 \[\begin{array}{c}
   \inferrule{%
     \textsc{Mono} \\ \textsc{Step-App} \\ \textsc{Step-Sel} \\ \textsc{Stuck-App} \\
-    \textsc{Stuck-Sel} \\ \textsc{Beta-App} \\ \textsc{Beta-Sel} \\ \textsc{ByName-Bind} \\
+    \textsc{Stuck-Sel} \\ \textsc{App-Fun} \\ \textsc{Sel-Con} \\ \textsc{ByName-Bind} \\
     \textsc{Step-Inc} \\ \textsc{Update}
   }{%
   α_{\mathcal{S}}(|evalNeed1 e|) ⊑ |evalD2 (hat D) e|
@@ -233,18 +233,18 @@ that is,
 This theorem is mechanised in Lean as |byNeed_sound| (\Cref{sec:mechanisation}), the
 fundamental lemma of the by-need logical relation.
 
-Let us unpack law $\textsc{Beta-App}$ to see how the abstraction laws in
+Let us unpack law $\textsc{App-Fun}$ to see how the abstraction laws in
 \Cref{fig:abstraction-laws} are to be understood.
-To prove $\textsc{Beta-App}$, one has to show that
+To prove $\textsc{App-Fun}$, one has to show that
 |forall f a x. f a ⊑ apply (fun x f) a| in the abstract domain |hat D|.
 This states that summarising |f| through |fun|, then |apply|ing the summary to
 |a| must approximate a direct call to |f|;
 it amounts to proving correct the summary mechanism.
 The ``$|f|\text{ polymorphic}$'' premise asserts that |f| is definable at
 polymorphic type |forall d. Domain d => d -> d|, which is
-important to prove \textsc{Beta-App} (in \Cref{sec:mod-subst}).
+important to prove \textsc{App-Fun} (in \Cref{sec:mod-subst}).
 
-Law \textsc{Beta-Sel} states a similar property for data constructor redexes.
+Law \textsc{Sel-Con} states a similar property for data constructor redexes.
 Law \textsc{ByName-Bind} expresses that the abstract |bind| implementation must
 be sound for by-name evaluation, that is, it must approximate passing the least
 fixpoint |lfp| of the |rhs| functional to |body|.
@@ -275,7 +275,7 @@ function $α_{\mathcal{S}}$.
 This is how fixing the concrete semantics and $α_{\mathcal{S}}$ pays off; the usual
 abstraction laws such as
 |αD^(μ)^(apply d a) ⊑ hat apply (αD^(μ)^(d)) (αD^(μ)^(a))| further
-decompose into \textsc{Beta-App}.
+decompose into \textsc{App-Fun}.
 We think this is a nice advantage of our approach, because the author of
 the analysis does not need to reason about by-need heaps in order to soundly
 approximate a semantic trace property expressed via a |Domain| instance!
@@ -329,7 +329,7 @@ A modular proof would help our proof framework to scale up to a by-need
 semantics of Haskell, for example, so this avenue bears great potential.
 \end{toappendix}
 
-\subsection{A Modular Proof for \textsc{Beta-App}}
+\subsection{A Modular Proof for \textsc{App-Fun}}
 \label{sec:mod-subst}
 
 \begin{toappendix}
@@ -341,8 +341,8 @@ Here we give the usage analysis proofs for the main body, often deferring to
 
 In order to instantiate \Cref{thm:abstract-by-need} for usage analysis in
 \Cref{sec:usage-sound}, we need to prove in particular that |UD| satisfies the
-abstraction law \textsc{Beta-App} in \Cref{fig:abstraction-laws}.
-\textsc{Beta-App} is where the correctness of the summary mechanism lives, so it
+abstraction law \textsc{App-Fun} in \Cref{fig:abstraction-laws}.
+\textsc{App-Fun} is where the correctness of the summary mechanism lives, so it
 is worth dwelling on how to prove it.
 
 A direct proof would unfold the complete definition of the interpreter and reason
@@ -351,14 +351,14 @@ must be redone whenever |eval| changes.
 Such non-modular proofs become unmanageable on pen and paper for large
 denotational interpreters such as for WebAssembly~\citep{Brandl:23}.
 
-For \textsc{Beta-App}, dubbed \emph{semantic substitution}, we can do much better:
+For \textsc{App-Fun}, dubbed \emph{semantic substitution}, we can do much better:
 \begin{toappendix}
 \begin{abbreviation}[Field access]
   |(MkUT φ' v')^.φ := φ'|, |(MkUT φ' v')^.v = v'|.
 \end{abbreviation}
 \end{toappendix}
 
-\begin{lemma}[\textsc{Beta-App}, Semantic substitution]
+\begin{lemma}[\textsc{App-Fun}, Semantic substitution]
 \label{thm:usage-subst-sem}
 Let |f :: forall d. Domain d => d -> d|, |x :: Name| fresh and |a :: UD|.
 Then |f a ⊑ apply (fun x f) a| in |UD|.
@@ -377,10 +377,10 @@ The proof instantiates |f|'s free theorem at a relation
 that calls |f| with the proxy |MkUT (singenv x U1) (Rep Uω)| that
 the implementation of |fun x| supplies; the obligation then reduces to one lemma
 per type class method that is easily discharged.
-\textsc{Beta-App} is mechanised in Lean for |UD| among the abstraction laws
+\textsc{App-Fun} is mechanised in Lean for |UD| among the abstraction laws
 (\Cref{sec:mechanisation}).
 
-The polymorphism premise is essential: without it, \textsc{Beta-App} fails for
+The polymorphism premise is essential: without it, \textsc{App-Fun} fails for
 usage analysis.
 \begin{example}
 \label{ex:syntactic-beta-app}
@@ -485,10 +485,34 @@ expression, each case discharged by the abstraction laws of
 \Cref{fig:abstraction-laws} and a few reusable framework lemmas.
 This structure is mechanised in Lean as the fundamental lemma of the binary logical
 relation \texttt{LR2} (\Cref{sec:mechanisation}).
-The most substantial of these laws, \textsc{Beta-App}, has a \emph{modular} proof
+
+\Cref{thm:abstract-by-need} can be read in three ways, each naming a tradition: as a
+\emph{sound abstract interpretation}~\citep{Cousot:77}, the analysis over-approximating
+the best abstraction of the concrete semantics; as the \emph{step-indexed logical
+relation} just described; and as a \emph{preservation} proof~\citep{WrightFelleisen:94}
+that follows one reduction step and shows the abstraction bound is maintained.
+The object language is untyped, yet the second reading is a genuine logical relation: the
+induction on type structure that ordinarily carries such a proof is here Löb induction on
+the step index.
+The three are one proof obligation, discharged by the fundamental theorem.
+
+The most substantial of these laws, \textsc{App-Fun}, has a \emph{modular} proof
 by parametricity whose complexity is constant in the size of the interpreter.
 Making \Cref{thm:abstract-by-need} itself modular for by-need remains open; the
 by-name version (\Cref{thm:abstract-by-name}) already is.
+
+The framework's reach has limits worth stating plainly.
+We expect few analyses beyond usage analysis to satisfy the abstraction laws of
+\Cref{fig:abstraction-laws} unchanged, and a different source language may call for a
+different domain; a different set of sufficient laws would still reuse
+\Cref{thm:abstract-by-need} as its starting point.
+The evaluation strategy constrains less than it appears: the challenge the framework
+meets, soundly abstracting higher-order mutable state, is not specific to laziness.
+Call-by-need memoisation reads, evaluates, and updates a heap of closures, the same
+structure presented by strict languages with mutable references (ML) and by stateful
+object-oriented interfaces (Java).
+We chose call-by-need because it is the semantics GHC's static analyses approximate, and
+expect the pattern to transfer to other paradigms that share this structure.
 
 \begin{toappendix}
 In the proof for \Cref{thm:usage-absence} we exploit that usage analysis is
