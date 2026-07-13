@@ -172,6 +172,18 @@ In other words: prove the abstraction laws for an abstract domain |hat D| of
 your choosing (such as |UD|) and we give you a proof of sound abstract by-need
 interpretation for the static analysis |evalD2 (hat D)|!
 
+This statement can be read in three ways, each naming a tradition.
+It is a \emph{sound abstract interpretation}~\citep{Cousot:77}: the analysis
+over-approximates the best abstraction of the concrete semantics.
+It is a \emph{step-indexed logical relation}~\citep{AppelMcAllester:01} between the
+concrete and abstract denotations, indexed by the length of the trace prefix under
+consideration; the object language is untyped, yet this is a genuine logical relation,
+with Löb induction on the step index in the role that induction on type structure
+ordinarily plays.
+And it is a \emph{preservation} proof~\citep{WrightFelleisen:94}, following one reduction
+step and showing the abstraction bound is maintained.
+The three are one and the same obligation.
+
 Note that \emph{we} get to determine the abstraction function $α_{\mathcal{S}}$ based
 on the |Domain| and |Lat| instances on \emph{your} |hat D|.
 \Cref{fig:abstract-name-need} defines how $α_{\mathcal{S}}$ is thus derived.
@@ -279,55 +291,6 @@ decompose into \textsc{App-Fun}.
 We think this is a nice advantage of our approach, because the author of
 the analysis does not need to reason about by-need heaps in order to soundly
 approximate a semantic trace property expressed via a |Domain| instance!
-
-\begin{toappendix}
-\subsection{Parametricity and Relationship to Kripke-style Logical Relations}
-
-We remarked right at the begin of the previous subsection that the Galois
-connection in \Cref{fig:abstract-name-need} is really a family of definitions
-indexed by a heap |μ|.
-It is not possible to regard the ``abstraction of a |d|'' in isolation;
-rather, \Cref{thm:heap-progress-mono} expresses that once an ``abstraction of a |d|''
-holds for a particular heap |μ1|, this abstraction will hold for any heap |μ2|
-that the semantics may progress to.
-
-Unfortunately, this indexing also means that we cannot apply parametricity
-to prove the sound abstraction \Cref{thm:abstract-by-need}, as we did for
-by-name abstraction.
-Such a proof would be bound to fail whenever the heap is extended (in |bind|),
-because then the index of the soundness relation must change as well.
-Concretely, we would need roughly the following free theorem
-\[
-  |(bind, bind) ∈ Later (Later (Rel(ext μ a d)) -> Rel(ext μ a d)) -> (Later (Rel(ext μ a d)) -> Rel(ext μ a d)) -> Rel(μ)|
-\]
-for the soundness relation of \Cref{thm:abstract-by-need}
-\[
-  R_|μ|(|d|, |hat d|) \triangleq |βD^(μ)^(d) ⊑ hat d|.
-\]
-However, parametricity only yields
-\[
-  |(bind, bind) ∈ (Rel(μ) -> Rel(μ)) -> (Rel(μ) -> Rel(μ)) -> Rel(μ)|
-\]
-We think that a modular proof is still conceivable by defining a custom proof
-tactic that would be \emph{inspired} by parametricity, given a means for
-annotating how the heap index changes in |bind|.
-
-Although we do not formally acknowledge this, the soundness relation |Rel(μ)|
-of \Cref{thm:abstract-by-need} is reminiscent of a \emph{Kripke logical
-relation}~\citep{Ahmed:04}.
-In this analogy, definable heaps correspond to the \emph{possible worlds} of
-\citet{Kripke:63} with heap progression |(~>)| as the \emph{accessibility
-relation}.
-\Cref{thm:heap-progress-mono} states that the relation $R_|μ|$ is monotonic
-\wrt |(~>)|, so we consider it possible to define a Kripke-style logical
-relation over System $F$ types.
-
-Kripke-style logical relations are well-understood in the literature, hence it
-is conceivable that a modular proof technique just as for parametricity exists.
-We have not investigated this avenue so far.
-A modular proof would help our proof framework to scale up to a by-need
-semantics of Haskell, for example, so this avenue bears great potential.
-\end{toappendix}
 
 \subsection{A Modular Proof for \textsc{App-Fun}}
 \label{sec:mod-subst}
@@ -486,35 +449,12 @@ expression, each case discharged by the abstraction laws of
 This structure is mechanised in Lean as the fundamental lemma of the binary logical
 relation \texttt{LR2} (\Cref{sec:mechanisation}).
 
-\Cref{thm:abstract-by-need} can be read in three ways, each naming a tradition: as a
-\emph{sound abstract interpretation}~\citep{Cousot:77}, the analysis over-approximating
-the best abstraction of the concrete semantics; as the \emph{step-indexed logical
-relation} just described; and as a \emph{preservation} proof~\citep{WrightFelleisen:94}
-that follows one reduction step and shows the abstraction bound is maintained.
-The object language is untyped, yet the second reading is a genuine logical relation: the
-induction on type structure that ordinarily carries such a proof is here Löb induction on
-the step index.
-The three are one proof obligation, discharged by the fundamental theorem.
-
 The most substantial of these laws, \textsc{App-Fun}, has a \emph{modular} proof
 by parametricity whose complexity is constant in the size of the interpreter.
 Because the fundamental theorem is proved once, as a structural induction discharged
 by the laws, it is the free theorem that makes \Cref{thm:abstract-by-need} modular for
 by-need, just as parametricity does for the by-name version
 (\Cref{thm:abstract-by-name}).
-
-The framework's reach has limits worth stating plainly.
-We expect few analyses beyond usage analysis to satisfy the abstraction laws of
-\Cref{fig:abstraction-laws} unchanged, and a different source language may call for a
-different domain; a different set of sufficient laws would still reuse
-\Cref{thm:abstract-by-need} as its starting point.
-The evaluation strategy constrains less than it appears: the challenge the framework
-meets, soundly abstracting higher-order mutable state, is not specific to laziness.
-Call-by-need memoisation reads, evaluates, and updates a heap of closures, the same
-structure presented by strict languages with mutable references (ML) and by stateful
-object-oriented interfaces (Java).
-We chose call-by-need because it is the semantics GHC's static analyses approximate, and
-expect the pattern to transfer to other paradigms that share this structure.
 
 \begin{toappendix}
 In the proof for \Cref{thm:usage-absence} we exploit that usage analysis is
@@ -747,3 +687,18 @@ By induction on the size of |ectxt| and cases on |ectxt|:
 \end{itemize}
 \end{proof}
 \end{toappendix}
+
+\subsection{Scope and Limitations}
+
+The framework's reach has limits worth stating plainly.
+We expect few analyses beyond usage analysis to satisfy the abstraction laws of
+\Cref{fig:abstraction-laws} unchanged, and a different source language may call for a
+different domain; a different set of sufficient laws would still reuse
+\Cref{thm:abstract-by-need} as its starting point.
+The evaluation strategy constrains less than it appears: the challenge the framework
+meets, soundly abstracting higher-order mutable state, is not specific to laziness.
+Call-by-need memoisation reads, evaluates, and updates a heap of closures, the same
+structure presented by strict languages with mutable references (ML) and by stateful
+object-oriented interfaces (Java).
+We chose call-by-need because it is the semantics GHC's static analyses approximate, and
+expect the pattern to transfer to other paradigms that share this structure.
