@@ -297,6 +297,8 @@ many times).
 Such a |UValue| is the function's \emph{summary}: a finite stand-in for its
 behaviour that the analysis applies at each call site instead of re-examining the
 body.
+The domain operations |fun| and |apply| together form the \emph{summary mechanism}:
+|fun| builds a function's summary once, and |apply| consumes it at each call site.
 For example, the |UValue| abstracting $\Lam{y}{\Lam{z}{y}}$ is
 |UCons U1 (UCons U0 (Rep Uω))|, because the first argument is used once while
 the second is used zero times; we derive this summary below.
