@@ -172,6 +172,8 @@
   (1) showing small abstraction laws about the abstract domain and
   (2) establishing a logical relation that can be shared per semantics, where
   (1) is considerably simpler than (2).
+  We mechanise our call-by-need results in Lean using the Iris separation logic,
+  and the mechanised interpreter stays executable.
 \end{abstract}
 
 %% 2012 ACM Computing Classification System (CSS) concepts

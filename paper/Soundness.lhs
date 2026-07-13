@@ -498,8 +498,10 @@ The three are one proof obligation, discharged by the fundamental theorem.
 
 The most substantial of these laws, \textsc{App-Fun}, has a \emph{modular} proof
 by parametricity whose complexity is constant in the size of the interpreter.
-Making \Cref{thm:abstract-by-need} itself modular for by-need remains open; the
-by-name version (\Cref{thm:abstract-by-name}) already is.
+Because the fundamental theorem is proved once, as a structural induction discharged
+by the laws, it is the free theorem that makes \Cref{thm:abstract-by-need} modular for
+by-need, just as parametricity does for the by-name version
+(\Cref{thm:abstract-by-name}).
 
 The framework's reach has limits worth stating plainly.
 We expect few analyses beyond usage analysis to satisfy the abstraction laws of
