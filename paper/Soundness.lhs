@@ -456,7 +456,7 @@ the syntax, discharging one case per syntactic form with the matching law; this
 traversal is linear in the number of syntactic forms and amenable to a tactic.
 What is modular is its \emph{use}: a new analysis is proved sound by discharging the
 abstraction laws alone, the fundamental theorem assembling them into soundness for
-by-need, as parametricity does for the by-name version (\Cref{thm:abstract-by-name}).
+by-need.
 
 \begin{toappendix}
 In the proof for \Cref{thm:usage-absence} we exploit that usage analysis is
