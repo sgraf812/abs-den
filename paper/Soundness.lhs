@@ -918,8 +918,7 @@ trace into a |φ' :: Uses|, \eg
   $β_\Traces(\LookupT(i) \smallstep \LookupT(x) \smallstep \LookupT(i) \smallstep \langle ... \rangle)
     = |MkUT [ i {-" ↦ "-} Uω, x {-" ↦ "-} U1 ] (...)|$.
 Clearly, it is |φ' !? x ⊒ U1|, because there is at least one |Look x|.
-\Cref{thm:usage-abstracts-need} and a context invariance
-\Cref{thm:usage-bound-vars-context} in the Appendix prove that the computed
+\Cref{thm:usage-abstracts-need} and a context-invariance property prove that the computed
 |φ| approximates |φ'|, so |φ !? x ⊒ φ' !? x ⊒ U1 //= U0|.
 \end{proofsketch}
 \begin{proof}

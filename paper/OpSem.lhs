@@ -228,7 +228,7 @@ and transition events, as expressed in the following theorem:
   open configurations and prove it by Löb induction.
   Then it suffices to prove that $α_{\STraces}$ preserves the observable properties of
   interest.
-  \Cref{sec:adequacy-detail} contains the full proof for a rigorous reformulation of the proposition.
+  This adequacy is mechanised in Lean (\Cref{sec:mechanisation}).
 \end{proofsketch}
 \begin{proof}
   The first result is proven by \Cref{thm:need-adequate}, the second and third

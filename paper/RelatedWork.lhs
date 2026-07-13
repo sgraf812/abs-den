@@ -36,7 +36,7 @@ simpler, rigorously defined (\Cref{sec:totality}) and proven adequate \wrt
 \citeauthor{Sestoft:97}'s by-need semantics (\Cref{sec:adequacy}).
 \citet{HackettHutton:19} define a denotational cost semantics for call-by-need,
 but unfortunately we were unable to factor their approach into a productive
-definition, \cf \Cref{sec:clair}.
+definition.
 
 \citet{Sestoft:97} related the derivations of
 \citeauthor{Launchbury:93}'s big-step natural semantics for our language to
@@ -196,7 +196,8 @@ summaries, these require custom reductions in the semantics.
 \citet{Mangal:14} have shown that a summary-based analysis can be equivalent
 to $\infty$-CFA for arbitrary complete lattices and outperform 2-CFA in both
 precision and speed.
-\Cref{sec:summaries} demonstrates why summary-based analyses scale better.
+Summary-based analyses scale better because a function is analysed once and its
+summary reused at every call site.
 To illustrate why they can also be more precise, consider the Haskell expression
 
 < let f n = let i y = y in if n == 0 then 0 else i (f (n-1) + 1) in f 42{-"."-}
