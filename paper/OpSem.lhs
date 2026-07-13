@@ -51,7 +51,7 @@ All (pen-and-paper) proofs are in the Appendix.
 \LookupT(\py) & (\px, ρ, μ, κ) & \smallstep & (\pe, ρ', μ, \UpdateF(\pa) \pushF κ) & \pa = ρ(\px),\ (\py,ρ',\pe) = μ(\pa) \\
 \AppET & (\Lam{\px}{\pe},ρ,μ, \ApplyF(\pa) \pushF κ) & \smallstep & (\pe,ρ[\px ↦ \pa],μ,κ) &  \\
 \CaseET & (K'~\many{y},ρ,μ, \SelF(ρ',\Sel) \pushF κ) & \smallstep & (\pe_i,ρ'[\many{\px_i ↦ \pa}],μ,κ) & K_i = K',\ \many{\pa = ρ(\py)} \\
-\UpdateT & (\pv, ρ, μ, \UpdateF(\pa) \pushF κ) & \smallstep & (\pv, ρ, μ[\pa ↦ (\px,ρ,\pv)], κ) & μ(\pa) = (\px,\wild,\wild) \\
+\UpdateT & (\pv, ρ, μ, \UpdateF(\pa) \pushF κ) & \smallstep & (\pv, ρ, μ[\pa ↦ (\px,ρ,\pv)], κ) & μ(\pa) = (\px,\wild,\wild),\ ρ \vdash \pv \\
 \bottomrule
 \end{tabular}
 } % resizebox
@@ -96,6 +96,16 @@ $\dom(μ)$.
 It is easy to see that the transition system maintains this invariant and that
 it is still possible to observe scoping errors which are thus confined to lookup
 in $ρ$.
+
+One such error concerns constructor fields. Call a \emph{value} $\pv$ (a lambda or a
+constructor application $K~\many{\py}$) an \emph{answer} in $ρ$, written $ρ \vdash \pv$,
+when $\pv$ is a lambda, or $\pv = K~\many{\py}$ with every field in scope,
+$\many{\py} ⊆ \dom(ρ)$.
+A constructor with an out-of-scope field is not an answer; it is stuck at its build
+site, exactly as the interpreter's |con| is stuck on an out-of-scope field.
+The $\UpdateT$ rule and a successful final state range only over answers, so an
+ill-scoped constructor stays stuck even under an update frame, keeping the machine in
+lock-step with |evalNeed|.
 
 We conclude with two example traces.
 The first evaluates $\Let{i}{\Lam{x}{x}}{i~i}$, which we evaluated by-name in
