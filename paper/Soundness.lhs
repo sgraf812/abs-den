@@ -451,9 +451,9 @@ relation \texttt{LR2} (\Cref{sec:mechanisation}).
 
 The most substantial of these laws, \textsc{App-Fun}, has a \emph{modular} proof
 by parametricity whose complexity is constant in the size of the interpreter.
-The fundamental theorem is not proved that way: its proof walks the syntax one case at
-a time, discharging each with the matching law, a traversal linear in the number of
-syntactic forms and amenable to a tactic.
+The fundamental theorem, by contrast, is proved by a direct structural induction over
+the syntax, discharging one case per syntactic form with the matching law; this
+traversal is linear in the number of syntactic forms and amenable to a tactic.
 What is modular is its \emph{use}: a new analysis is proved sound by discharging the
 abstraction laws alone, the fundamental theorem assembling them into soundness for
 by-need, as parametricity does for the by-name version (\Cref{thm:abstract-by-name}).
