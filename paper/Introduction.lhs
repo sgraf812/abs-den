@@ -114,7 +114,7 @@ We make the following contributions:
   No complicated domain construction in Lean is needed for this.
   In doing so, we recover summary-based usage analysis, a generalisation
   of absence analysis.
-  The Appendix contains further examples, such as \citeauthor{Milner:78}'s type
+  The extended version contains further examples, such as \citeauthor{Milner:78}'s type
   analysis, as well as a 0CFA control-flow analysis and Demand Analysis of the
   Glasgow Haskell Compiler.
 \item In \Cref{sec:soundness}, we apply abstract interpretation to characterise

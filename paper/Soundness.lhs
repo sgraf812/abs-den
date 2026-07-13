@@ -268,7 +268,7 @@ then |evalD2 (hat D)| is an abstract interpreter that is sound \wrt $α_{\mathca
 \]
 \end{theorem}
 \noindent
-We prove it by parametricity, analogously to \textsc{Beta-App}.
+We prove it by parametricity in the extended version.
 
 Note that none of the laws mention the concrete semantics or the abstraction
 function $α_{\mathcal{S}}$.
@@ -483,6 +483,8 @@ Its \emph{fundamental theorem}, that every expression is soundly abstracted, fol
 from the compositional structure of the interpreter: a structural induction on the
 expression, each case discharged by the abstraction laws of
 \Cref{fig:abstraction-laws} and a few reusable framework lemmas.
+This structure is mechanised in Lean as the fundamental lemma of the binary logical
+relation \texttt{LR2} (\Cref{sec:mechanisation}).
 The most substantial of these laws, \textsc{Beta-App}, has a \emph{modular} proof
 by parametricity whose complexity is constant in the size of the interpreter.
 Making \Cref{thm:abstract-by-need} itself modular for by-need remains open; the

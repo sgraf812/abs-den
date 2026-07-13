@@ -507,7 +507,7 @@ functional language with ref cells), so it is worth studying even if the
 reader's main interest is strict languages.
 Of course, it is also possible to adjust the interpreter for call-by-value,
 which requires a separate @let rec@ construct or lazy initialisation techniques.
-We demonstrate this in the Appendix.
+We demonstrate this in the extended version.
 
 \begin{figure}
 \begin{code}

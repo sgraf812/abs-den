@@ -15,7 +15,8 @@ of a \emph{bisimulation} between the interpreter's traces and the machine's runs
 To our knowledge, |evalNeed2| is the first denotational call-by-need semantics
 with such a bisimulation proof, which lets us move freely between machine and
 interpreter.
-All (pen-and-paper) proofs are in the Appendix.
+The results are mechanised in Lean (\Cref{sec:mechanisation}); the pen-and-paper proofs
+are in the extended version.
 
 \subsection{The Lazy Krivine Machine}
 \label{sec:op-sem}
