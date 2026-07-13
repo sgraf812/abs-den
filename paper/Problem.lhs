@@ -3,6 +3,7 @@
 > module Problem where
 %endif
 
+\begin{toappendix}
 \section{The Problem We Solve}
 \label{sec:problem}
 
@@ -242,7 +243,7 @@ In this subsection, we demonstrate the difficulty of proving soundness for summa
 analyses. For absence analysis, we have proved (in the Appendix) the following
 correctness statement:
 
-\begin{theoremrep}[$\semabs{\wild}$ infers absence]
+\begin{theorem}[$\semabs{\wild}$ infers absence]
   \label{thm:absence-correct}
 %  \sven{There must be "soundness" somewhere in the title}
 %  \sg{The problem is that there is not a single notion of "soundness".
@@ -256,7 +257,7 @@ correctness statement:
 %  analyses and program transformations.}
   If $\semabs{\pe}_{ρ_\pe} = \langle φ, π \rangle$ and $φ(\px) = \aA$,
   then $\px$ is absent in $\pe$.
-\end{theoremrep}
+\end{theorem}
 \begin{proof}
   See \hyperlink{proof:absence-correct}{the proof at the end of this section}.
 \end{proof}
@@ -275,7 +276,6 @@ lemma}~\citep{tapl}:%
 %The other half $\mathit{fun}_x \circ \mathit{app} ⊑ id$ is eta-expansion
 %$\semabs{\Lam{\px}{\pe~\px}}_ρ ⊑ \semabs{\pe}_ρ$.}
 
-\begin{toappendix}
 Note that for the proofs we assume the recursive let definition
 \[
   \semabs{\Let{\px}{\pe_1}{\pe_2}}_ρ = \semabs{\pe_2}_{ρ[\px ↦ \lfp(\fn{θ}{\px \both \semabs{\pe_1}_{ρ[\px↦θ]}})]}.
@@ -378,12 +378,11 @@ begin of this section.
   ={} & \semabs{(\Lam{\px}{\Let{\pz}{\pe_1}{\pe_2}})~\py}_ρ
 \end{DispWithArrows*}
 \end{proof}
-\end{toappendix}
 
-\begin{lemmarep}[Substitution]
+\begin{lemma}[Substitution]
 \label{thm:absence-subst}
 $\semabs{\pe}_{ρ[\px↦ρ(\py)]} ⊑ \semabs{(\Lam{\px}{\pe})~\py}_ρ$.
-\end{lemmarep}
+\end{lemma}
 \begin{proof}
 By induction on $\pe$.
 \begin{itemize}
@@ -477,7 +476,6 @@ By induction on $\pe$.
 \end{itemize}
 \end{proof}
 
-\begin{toappendix}
 Whenever there exists $ρ$ such that $ρ(\px).φ \not⊑ (\semabs{\pe}_ρ).φ$
 (recall that $θ.φ$ selects the $\Uses$ in the first field of the pair $θ$),
 then also $ρ_\pe(\px).φ \not⊑ \semabs{\pe}_{ρ_\pe}$.
@@ -734,7 +732,6 @@ With \Cref{thm:diag-fact}, we can decompose
 But since $\tr(\py).φ(\px) = \aU$ implies $\px = \py$ (refer to definition of
 $\tr$), we must have $(\semabs{\pe}_{\tr_\pe}).φ(\px) = \aU$, as required.
 \end{proof}
-\end{toappendix}
 
 \Cref{defn:absence} and the substitution \Cref{thm:absence-subst} will make
 a reappearance in \Cref{sec:soundness}.
@@ -996,3 +993,4 @@ proof \Cref{thm:need-adequacy-bisimulation} into the abstract interpretation
 theorem \Cref{thm:abstract-by-need} and do step-indexing manually.
 However, to find the proof in the first place, it was helpful to take the
 intermediate step via a concrete denotational interpreter.
+\end{toappendix}
