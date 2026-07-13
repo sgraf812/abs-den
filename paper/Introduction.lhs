@@ -73,7 +73,7 @@ Semantics and analysis are thus the same definition at different instantiations.
 Because the analysis shares its entire infrastructure with the reference
 semantics it abstracts, semantics and analysis once again ``line up'' and
 soundness becomes markedly easier to prove.
-The congruence proof becomes a structural induction over the syntax,
+The congruence proof becomes a simple structural induction over the syntax,
 packaged once and for all as a reusable \emph{fundamental theorem} in the spirit
 of parametricity~\citep{Reynolds:83,Wadler:89}.
 An analysis is then sound as soon as its plugged-in operations satisfy a handful
