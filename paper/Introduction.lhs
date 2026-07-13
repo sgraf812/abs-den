@@ -54,8 +54,8 @@ coined by \citet{Might:10}.} rather than machine configurations.
 Such an interpreter is compositional like a denotational semantics, yet records the
 operational detail of an abstract machine.
 Because the relation follows the structure of the interpreter, its fundamental lemma is
-a routine induction, and its denotations carry a set-like structure that abstracts
-cleanly into a finite analysis domain.
+a routine induction, and each denotation abstracts directly into an element of the
+analysis domain, whereas a machine configuration is inseparable from its continuation.
 It sits at the intersection of the executable \emph{definitional
 interpreter}~\citep{Reynolds:72} and the compositional denotational semantics.
 
