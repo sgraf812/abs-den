@@ -7,7 +7,9 @@
 
 The development of the previous sections is mechanised in Lean~4 on top of
 \texttt{iris-lean}, the Lean port of the Iris separation logic
-framework~\citep{Jung:18}.
+framework~\citep{Jung:18}.\footnote{The development builds with Lean~4.31.0 and
+\texttt{iris-lean} pinned at commit \texttt{18e9020}, which \texttt{lake} fetches
+from the recorded manifest.}
 All proofs have been contributed by a large language model, with a human-written
 pen-and-paper proof serving as the blueprint, in a close feedback loop.
 The mechanisation follows that blueprint and its reusable logical-relation structure,

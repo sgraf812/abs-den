@@ -299,6 +299,8 @@ behaviour that the analysis applies at each call site instead of re-examining th
 body.
 The domain operations |fun| and |apply| together form the \emph{summary mechanism}:
 |fun| builds a function's summary once, and |apply| consumes it at each call site.
+In this reading |UD| is a \emph{usage type} and |evalUsg| a type-based analysis, the
+view taken by earlier type systems for usage and sharing~\citep{Turner:95,Gustavsson:98}.
 For example, the |UValue| abstracting $\Lam{y}{\Lam{z}{y}}$ is
 |UCons U1 (UCons U0 (Rep Uω))|, because the first argument is used once while
 the second is used zero times; we derive this summary below.
