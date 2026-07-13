@@ -245,6 +245,7 @@ and transition events, as expressed in the following theorem:
 \label{sec:totality}
 
 \begin{theorem}[Totality]
+\label{thm:totality}
 The interpreters |evalName e ρ| and |evalNeed e ρ μ| are defined for every
 |e|, |ρ|, |μ|.
 \end{theorem}

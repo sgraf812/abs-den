@@ -140,7 +140,8 @@ induction on $e$; the by-need instantiation removes heap and step-index bookkeep
 Löb induction; \texttt{byNeed\_sound} reduces the relation to the per-combinator
 \texttt{AbstractionLaws}; and usage analysis discharges those laws. A new analysis
 supplies only the bottom edge. Productivity is a second lemma off the same \texttt{LR2},
-and adequacy relates |eval|'s trace to the LK machine by a separate Löb induction.}
+and adequacy (\Cref{thm:need-adequacy-bisimulation}) relates |eval|'s trace to the LK
+machine by a separate Löb induction.}
 \label{fig:lr-tower}
 \end{figure}
 
@@ -164,8 +165,9 @@ at the usage lattice \texttt{UDk}~$k$ the abstraction laws hold, giving
 Read at the empty heap, this step-indexed statement collapses to the |Prop|-level
 \texttt{usage\_approximates\_need} and \texttt{absence} of the section opener.
 
-Productivity, over \texttt{SiProp}, states that no two silent steps occur in a row, so
-the fuel-bounded observation of \Cref{sec:mech-exec} always reaches the next event.
+Productivity, over \texttt{SiProp}, states that no two silent steps occur in a row; it
+is what makes the interpreter total (\Cref{thm:totality}), so the fuel-bounded
+observation of \Cref{sec:mech-exec} always reaches the next event.
 Adequacy against the LK machine (\Cref{thm:need-adequacy-bisimulation}, mechanised as
 \texttt{need\_abstracts\_lk}) is proved separately, by Löb induction relating the
 by-need trace to the machine.
