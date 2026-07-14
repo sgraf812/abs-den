@@ -80,10 +80,10 @@ takeT n (Step e t) = Step e (takeT (n-1) t)
 \label{sec:interp}
 
 How can a compositional definition capture a program's step-by-step execution?
-A denotational semantics has the right shape: it maps each program compositionally
-to a meaning in a semantic domain, abstracting execution away.
-We keep this shape but parameterise the semantics over its domain, giving a single
-generic \emph{denotational interpreter} whose meanings record operational detail.
+We take a program's meaning to be a \emph{trace} of its execution, recording the steps
+that a denotational semantics usually abstracts away.
+This is still a denotational semantics, compositional and parameterised over its domain,
+giving a single generic \emph{denotational interpreter}.
 Varying the domain then yields a whole family of semantics and analyses from this
 one definition: a \emph{concrete} domain gives an executable semantics
 (call-by-name, call-by-need, even call-by-value), an \emph{abstract} domain a
