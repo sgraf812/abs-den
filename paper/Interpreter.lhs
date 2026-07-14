@@ -390,7 +390,7 @@ continues once $\pe$ reaches a value, as a function of the surrounding context;
 the following walkthrough makes this concrete.
 This reading is only an analogy, though: the trace semantics is intensional,
 identifying fewer programs than contextual equivalence and so falling short of
-full abstraction.
+full abstraction~\citep{Plotkin:77}.
 
 \subsubsection{Walkthrough: From Compositional Definition to Operational Trace}
 \label{sec:walkthrough}
