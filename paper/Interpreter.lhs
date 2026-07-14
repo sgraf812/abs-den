@@ -446,8 +446,9 @@ the function and argument positions.
 Step (\ref{eqn:eval-ex3}) evaluates the right-hand side:
 |eval| dispatches on the |Lam| case for $\Lam{x}{x}$, and |fun| for |DName| wraps
 the body denotation in |Ret (Fun ^^ ...)|.
-Note the |Step App2| pre-wired inside the
-|Fun| value, to be emitted whenever this function is applied.
+The |Step App2| is wired into the |Fun| value itself, so it fires whenever the function
+is applied, just as a |Look| fires from a variable's binding site: both events are
+planted at construction and emitted at use.
 Since $\Lam{x}{x}$ does not mention $i$, the definition of |d| is independent of
 its self-reference, and the guarded fixpoint is immediate.
 
