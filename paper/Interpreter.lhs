@@ -356,6 +356,11 @@ or forces a variable, potentially pushing a continuation frame onto the stack of
 abstract machine; \citet{Harper:16} calls these \emph{search transitions}.
 The events |App2|, |Case2|, and, under call-by-need (\Cref{sec:by-need-instance}), |Upd|
 fire when a redex reduces, unwinding such a frame.
+Only the instruction transitions rewrite the expression under evaluation, so even a
+traditional denotational semantics could record them; the search transitions, |Look|
+chief among them, merely navigate to the next redex and have no denotational counterpart.
+Recording the latter is what lets our meanings express operational properties like
+evaluation cardinality.
 This trace matches that of the standard call-by-name Krivine machine, whose by-need
 variant we treat in \Cref{sec:op-sem}.
 Henceforth, we write expressions in mathematical meta notation rather than as
@@ -416,8 +421,8 @@ as we see fit.
 To save horizontal space, we abbreviate |Step| to |S|.
 \begin{align}
     & |eval (({-" \Let{i}{\Lam{x}{x}}{i~i} "-})) emp| \notag \\
-={} & |S Let1 (let d = eval (({-" \Lam{x}{x} "-})) emp in eval (({-" i~i "-})) (singenv "i" (S (Look "i") d)))| \label{eqn:eval-ex1} \\
-={} & |S Let1 (let d = eval (({-" \Lam{x}{x} "-})) emp in S App1 (apply (S (Look "i") d) (S (Look "i") d)))| \label{eqn:eval-ex2} \\
+={} & |S Let1 (let d = eval (({-" \Lam{x}{x} "-})) (...) in eval (({-" i~i "-})) (singenv "i" (S (Look "i") d)))| \label{eqn:eval-ex1} \\
+={} & |S Let1 (let d = eval (({-" \Lam{x}{x} "-})) (...) in S App1 (apply (S (Look "i") d) (S (Look "i") d)))| \label{eqn:eval-ex2} \\
 ={} & |S Let1 (let d = Ret (Fun (\d -> S App2 d)) in S App1 (apply (S (Look "i") d) (...)))| \label{eqn:eval-ex3} \\
 ={} & |S Let1 (let d = ... ^^ in S App1 (S (Look "i") (S App2 (S (Look "i") d))))| \label{eqn:eval-ex4} \\
 ={} & |S Let1 (S App1 (S (Look "i") (S App2 (S (Look "i") (Ret (Fun (\d -> S App2 d)))))))| \label{eqn:eval-ex5} \\
@@ -431,6 +436,8 @@ and every future reference to $i$ is wired into
 |Step (Look "i") d|, so a |Look "i"| event will be emitted at each use of $i$.
 Variable lookup becomes observable because it is wired into the environment
 at the \emph{binding site}.
+Since |let| is recursive, the right-hand side is evaluated in the same environment as
+the body, which we elide as |(...)| above.
 
 Step (\ref{eqn:eval-ex2}) unfolds |eval| for the |App| case ($i~i$) and |Var|
 case ($i$) in the application head.
