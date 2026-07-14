@@ -323,6 +323,20 @@ which is naturally expressed using type class overloading, thus:
 We have parameterised the semantic domain |d| over a type class |Domain|
 whose signatures are given in \Cref{fig:trace-classes}.
 
+Reading its seven methods conveys the whole design, independently of Haskell.
+The trace primitives |step :: Event -> d -> d| and |stuck :: d| prefix a denotation with
+an observable event and denote a meaningless (stuck) computation.
+A function is built by |fun :: Name -> (d -> d) -> d| from a meta-level function of the
+argument's denotation, and consumed by |apply :: d -> d -> d|, which feeds it an
+argument; the two together form the \emph{summary mechanism} of \Cref{sec:abstraction}.
+Data mirrors this pair: |con :: Tag -> [d] -> d| builds a constructor value from its
+field denotations, and |select :: d -> (Tag :-> ([d] -> d)) -> d| scrutinises a
+denotation and runs the branch its tag selects.
+Finally, |bind :: (d -> d) -> (d -> d) -> d| interprets a recursive |let|, receiving the
+right-hand side and the body each as a function of the bound variable's denotation.
+The |Name| handed to |fun| is inert for a concrete semantics such as |DName|, but carries
+the binder information that the analyses of \Cref{sec:abstraction} rely on.
+
 \Cref{fig:eval} gives the complete definition of |eval| together with the type class
 instance for domain |DName| that we introduced in \Cref{sec:dna}.
 We added visible cues in the form of gray boxes in \Cref{fig:eval} to highlight where
