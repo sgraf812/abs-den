@@ -186,11 +186,7 @@ We choose |DName|, defined below, as the first example of such a semantic domain
 because it is simple and illustrative of the approach.
 Instantiated at |DName|, our generic interpreter produces precisely the
 traces of the by-\textbf{\textrm{na}}me variant of the Krivine machine
-(\Cref{sec:op-sem}), hence the subscript in |DName|.%
-%\footnote{For a realistic implementation, we would define |D| as a |newtype| to
-%keep type class resolution decidable and non-overlapping. We will however stick
-%to a |type| synonym in this presentation in order to elide noisy wrapping and
-%unwrapping of constructors.}
+(\Cref{sec:op-sem}), hence the subscript in |DName|.
 
 \begin{minipage}{0.62\textwidth}
 \begin{code}
@@ -240,9 +236,6 @@ A trace in |DName = T Value| eventually terminates with a |Value| that is
 either stuck (|Stuck|), a function waiting to be applied to a domain value
 (|Fun|), or a constructor application giving the denotations of its
 fields (|Con|).
-%|Value| is thus just a standard denotational encoding of its syntactic counterpart |Lam|/|ConApp|, devoid of any syntax. \slpj{I don't know what that sentence adds or even means. Omit?}
-%\sg{I clarified, mentioining |Lam|/|ConApp|. This point is one of the main distinctions between operational semantics and denotational semantics.}
-%\slpj{I still don't know what ``devoid of syntax'' means.  Omit?}
 We postpone worries about well-definedness and totality of this encoding to
 \Cref{sec:totality}.
 
@@ -329,7 +322,6 @@ which is naturally expressed using type class overloading, thus:
 \]
 We have parameterised the semantic domain |d| over a type class |Domain|
 whose signatures are given in \Cref{fig:trace-classes}.
-%\footnote{One can think of these type classes as a fold-like final encoding~\citep{Carette:07} of a domain. However, the significance is in the \emph{decomposition} of the domain, not the choice of encoding.}
 
 \Cref{fig:eval} gives the complete definition of |eval| together with the type class
 instance for domain |DName| that we introduced in \Cref{sec:dna}.
@@ -358,8 +350,8 @@ $\perform{eval (read "let i = λx.x in i i") emp :: DName}$,
 where $\langle\lambda\rangle$
 means that the trace ends in a |Fun| value.
 We cannot generally print |DName| or |Fun|ctions thereof, but in this case the result would be the value $\Lam{x}{x}$.
-We show in \Cref{sec:op-sem} that this trace matches that of a standard
-call-by-name abstract machine, the Krivine machine.
+This trace matches that of the standard call-by-name Krivine machine, whose by-need
+variant we treat in \Cref{sec:op-sem}.
 Henceforth, we write expressions in mathematical meta notation rather than as
 Haskell strings, e.g.,
 |evalName (({-" \Let{i}{\Lam{x}{x}}{i~i} "-})) emp| in place of
@@ -374,7 +366,8 @@ an extended environment, prefixes it with |step App2|, and wraps the result via
 The details of this necessarily depend on the particular |Domain|, so both
 |step| and |fun| are methods of this type class.
 The other cases follow a similar pattern:
-each does some structural work before handing off to domain-specific type class methods.
+each recurses on subexpressions and threads the environment before handing off to
+domain-specific type class methods.
 The name |x| passed to |fun| is ignored for |DName| but needed by abstract
 domains (\Cref{sec:abstraction}).
 The |bind| method gives meaning to recursive let bindings via two
@@ -414,7 +407,7 @@ small-step trace
 $\perform{evalName (read "let i = λx.x in i i") emp}$.
 We inline the |DName| type class instance (\Cref{fig:trace-instances})
 as we see fit.
-To save horizontal space, we'll abbreviate |Step| to |S|.
+To save horizontal space, we abbreviate |Step| to |S|.
 \begin{align}
     & |eval (({-" \Let{i}{\Lam{x}{x}}{i~i} "-})) emp| \notag \\
 ={} & |S Let1 (let d = eval (({-" \Lam{x}{x} "-})) emp in eval (({-" i~i "-})) (singenv "i" (S (Look "i") d)))| \label{eqn:eval-ex1} \\
@@ -473,7 +466,7 @@ $\perform{takeT 5 $ evalName (read "let x = x in x") emp :: T (Maybe Value)}$
 $\perform{takeT 9 $ evalName (read "let w = λy. y y in w w") emp :: T (Maybe Value)}$
 \\[\belowdisplayskip]
 \noindent
-The reason |eval| is productive is due to the coinductive nature of |T|'s
+The reason |eval| is productive is the coinductive nature of |T|'s
 definition in Haskell.%
 \footnote{In a strict language, we need to introduce a thunk in
 the definition of |Step|, \eg @Step of event * (unit -> 'a t)@.}
@@ -598,8 +591,9 @@ of guarded fixpoints such as for |DName|.
 The whole purpose of the |memo a d| combinator then is to \emph{memoise} the
 computation of |d| the first time we run the computation, via |fetchN a| in the
 |Var| case of |evalNeed2|.
-So |memo a d| yields from |d| until it has reached a value, and then |upd|ates
-the heap after an additional |Upd| step, where |Upd| is a new kind of |Event|.
+So |memo a d| yields from |d| until it has reached a value, and then, unless that value
+is |Stuck|, |upd|ates the heap after an additional |Upd| step, where |Upd| is a new kind
+of |Event|.
 Repeated access to the same variable will run the replacement |memo a (return
 v)|, which immediately yields |v| after performing a |step Upd| that does
 nothing.%
