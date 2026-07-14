@@ -112,9 +112,8 @@ similar to that of \citet{Launchbury:93} and \citet{Sestoft:97}:
 It is in A-normal form: the arguments of applications are restricted to variables,
 so that the difference between lazy and eager evaluation is manifest only in the
 semantics of $\mathbf{let}$.
-Note that $\Lam{x}{x}$ (with an overline) denotes syntax, whereas $\fn{x}{x+1}$
-denotes an anonymous mathematical function; throughout, we assume that all bound
-program variables are distinct.
+Note that $\Lam{x}{x}$ (with an overline) denotes syntax rather than a mathematical
+function; throughout, we assume that all bound program variables are distinct.
 
 We encode this syntax as the Haskell datatype |Exp| in \Cref{fig:syntax};
 \Cref{fig:map} gives the API of environments and sets.
