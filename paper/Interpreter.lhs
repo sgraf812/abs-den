@@ -350,12 +350,12 @@ $\perform{eval (read "let i = λx.x in i i") emp :: DName}$,
 where $\langle\lambda\rangle$
 means that the trace ends in a |Fun| value.
 We cannot generally print |DName| or |Fun|ctions thereof, but in this case the result would be the value $\Lam{x}{x}$.
-The step events fall into two kinds.
-|Let1|, |App1|, |Case1|, and each |Look x| fire as evaluation \emph{enters} a construct
-or forces a variable, potentially pushing a continuation frame onto the stack of an
-abstract machine; \citet{Harper:16} calls these \emph{search transitions}.
-The events |App2|, |Case2|, and, under call-by-need (\Cref{sec:by-need-instance}), |Upd|
-fire when a redex reduces, unwinding such a frame.
+The step events fall into two kinds, following \citet{Harper:16}.
+The \emph{search transitions} |Let1|, |App1|, |Case1|, and each |Look x| fire as
+evaluation enters a construct or forces a variable, potentially pushing a continuation
+frame onto the stack of an abstract machine.
+The \emph{instruction transitions} |App2|, |Case2|, and, under call-by-need
+(\Cref{sec:by-need-instance}), |Upd| fire when a redex reduces and a frame is unwound.
 Only the instruction transitions rewrite the expression under evaluation, so even a
 traditional denotational semantics could record them; the search transitions, |Look|
 chief among them, merely navigate to the next redex and have no denotational counterpart.

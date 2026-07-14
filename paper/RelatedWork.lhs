@@ -51,6 +51,15 @@ featuring a finally encoded domain~\citep{Carette:07}
 using higher-order abstract syntax~\citep{Pfenning:88}.
 The key distinction to these approaches is that we generate small-step traces,
 totally and adequately, observable by abstract interpreters.
+%TODO: Compare to game semantics. Traces = plays, events = moves (term = Player,
+%context = Opponent); a Fun value is a strategy. Our >>= is strategy composition
+%minus hiding, hence intensional and not fully abstract (Plotkin:77). The
+%search/instruction split is well-bracketing (no first-class control). By-need
+%memoisation (the Look/Upd cell) is a non-innocent strategy, i.e. games-for-state
+%(Idealized Algol, Abramsky-Honda-McCusker). The lazy Krivine run producing the
+%trace is an interaction abstract machine (Danos-Herbelin-Regnier; Ghica;
+%Accattoli et al.). Bridge via call-by-push-value (Levy) and the coalgebraic
+%trace/resumption view of T (Hasuo-Jacobs-Sokolova).
 %
 %\subsubsection*{Definitional Interpreters}
 %\citet{Reynolds:72} introduced ``definitional interpreter'' as an

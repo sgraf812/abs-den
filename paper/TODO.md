@@ -1,6 +1,17 @@
 SG:
 * Update Soundness Appendix with new formulation of Galois Connection
 
+* [ ] Related Work: add a comparison to game semantics (see the TODO comment in
+  RelatedWork.lhs near the denotational-semantics paragraph). Key analogies:
+  traces = plays, events = moves (term = Player, context = Opponent), a Fun value
+  is a strategy; our >>= is strategy composition *minus hiding*, hence intensional
+  and not fully abstract (Plotkin:77); the search/instruction split is
+  well-bracketing (no control); by-need memoisation (the Look/Upd cell) is a
+  non-innocent strategy, i.e. games-for-state (Idealized Algol,
+  Abramsky-Honda-McCusker); the LK run producing the trace is an interaction
+  abstract machine (Danos-Herbelin-Regnier). Bridge via call-by-push-value (Levy)
+  and the coalgebraic trace/resumption view of T (Hasuo-Jacobs-Sokolova).
+
 * [x] Clarify what is formalised in Agda
 
 * [ ] Introduce the term "absence" before its first use. It first appears in the
