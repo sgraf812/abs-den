@@ -80,22 +80,20 @@ takeT n (Step e t) = Step e (takeT (n-1) t)
 \label{sec:interp}
 
 How can a compositional definition capture a program's step-by-step execution?
-This section shows how.
 A denotational semantics maps each program compositionally to a meaning in a
 semantic domain.
 We keep this shape but parameterise the semantics over its domain, giving a single
 generic \emph{denotational interpreter} whose meanings record operational detail.
 Varying the domain then yields a whole family of semantics and analyses from this
 one definition: a \emph{concrete} domain gives an executable semantics
-(call-by-name, call-by-value, call-by-need), an \emph{abstract} domain a
+(call-by-name, call-by-need, even call-by-value), an \emph{abstract} domain a
 \emph{summary-based} static analysis such as the usage analysis of
 \Cref{sec:abstraction}.
 
 Denotational interpreters can be implemented in any higher-order language such as OCaml, Scheme or Java with explicit thunks, but we picked Haskell for convenience.%
 \footnote{We extract from this document runnable Haskell files which we add as a Supplement, containing the complete definitions. Furthermore, the (terminating) interpreter outputs are directly generated from this extract.}
 This intuitive Haskell encoding translates easily and faithfully into a total
-definition in Lean (\Cref{sec:totality}), for which the fundamental theorem behind
-our soundness proofs is in turn easy to prove (\Cref{sec:soundness}).
+definition in Lean (\Cref{sec:totality}).
 
 \subsection{Syntax}
 \label{sec:syntax}
