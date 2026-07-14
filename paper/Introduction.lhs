@@ -65,9 +65,8 @@ Plugging in one domain yields the trace semantics just described; plugging in
 another, deliberately finite domain yields a static analysis of the same program.
 Semantics and analysis are thus the same definition at different instantiations.
 
-Because the analysis shares its entire infrastructure with the reference
-semantics it abstracts, semantics and analysis once again ``line up'' and
-soundness becomes markedly easier to prove.
+Because analysis and semantics are the same interpreter, they once again ``line
+up'' and soundness becomes markedly easier to prove.
 Since the relation follows the structure of the interpreter, its congruence proof is a
 simple structural induction over the syntax, and each denotation abstracts directly into
 an element of the analysis domain, whereas a machine configuration is inseparable from
@@ -110,22 +109,23 @@ We make the following contributions:
   Even if the reader is unconvinced at this point that \emph{concrete}
   denotational interpreters are useful, \Cref{sec:abstraction} shows that its
   \emph{abstract} instances are.
-  We instantiate the generic interpreter with a finite, abstract semantic domain.
-  No complicated domain construction in Lean is needed for this.
-  In doing so, we recover summary-based usage analysis, a generalisation
-  of absence analysis.
+  We instantiate the generic interpreter with a finite, abstract semantic domain,
+  recovering summary-based usage analysis, which infers upper bounds on how many
+  times each variable is used.
+  Such a domain is an ordinary finite lattice: defining an analysis needs none of the
+  guarded-recursive domain construction that the concrete by-need semantics requires.
   The extended version contains further examples, such as \citeauthor{Milner:78}'s type
   analysis, as well as a 0CFA control-flow analysis and Demand Analysis of the
   Glasgow Haskell Compiler.
 \item In \Cref{sec:soundness}, we apply abstract interpretation to characterise
   a set of abstraction laws that the type class instances of an abstract
-  domain must satisfy in order to soundly approximate by-name and by-need
+  domain must satisfy in order to soundly approximate by-need
   interpretation.
   None of the proof obligations mention the generic interpreter, and, more
   remarkably, none of the laws mention the concrete semantics or the Galois
   connection either!
-  This enables us to prove usage analysis sound \wrt the by-name
-  and by-need semantics by an argument that never mentions the interpreter,
+  This enables us to prove usage analysis sound \wrt the by-need
+  semantics by an argument that never mentions the interpreter,
   building on reusable semantics-specific theorems.
   Due to the adequacy result in \Cref{sec:adequacy}, this result
   holds regardless of whether a concrete denotational interpreter or an
