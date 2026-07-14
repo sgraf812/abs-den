@@ -102,7 +102,7 @@ constructor application $K~\many{\py}$) an \emph{answer} in $ρ$, written $ρ \v
 when $\pv$ is a lambda, or $\pv = K~\many{\py}$ with every field in scope,
 $\many{\py} ⊆ \dom(ρ)$.
 A constructor with an out-of-scope field is not an answer; it is stuck at its build
-site, exactly as the interpreter's |con| is stuck on an out-of-scope field.
+site, exactly as the interpreter's |Con| is stuck on an out-of-scope field.
 The $\UpdateT$ rule and a successful final state range only over answers, so an
 ill-scoped constructor stays stuck even under an update frame, keeping the machine in
 lock-step with |evalNeed|.
@@ -253,17 +253,8 @@ The interpreters |evalName e ρ| and |evalNeed e ρ μ| are defined for every
 In the Supplement, we implement the generic interpreter |eval| and its
 instances at |DName| and |DNeed| in Lean, using guarded recursion~\citep{Jung:18}
 to define the productive, coinductive traces.
-Since Lean is a total type theory, |evalName| and |evalNeed2| are total as well.
-
-The essential idea of the totality proof is that \emph{there is only a finite
-number of transitions between every $\LookupT$ transition}.
-%\footnote{Our experiments with a denotational interpreter for
-%PCF~\citep{Plotkin:77} indicate that this statement holds for PCF as well if
-%$\UnrollT$ transitions introduced by the fixpoint operator were included.}
-In other words, if every environment lookup produces a |Step| constructor, then
-our semantics is total by coinduction.
-Guarded recursion captures this argument directly.
-See \Cref{sec:mechanisation} for the Lean development.
+Since Lean is a total type theory, |evalName| and |evalNeed2| are total as well;
+see \Cref{sec:mechanisation} for a description of the mechanisation.
 \end{proofsketch}
 
 
