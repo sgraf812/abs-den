@@ -356,13 +356,15 @@ evaluation enters a construct or forces a variable, potentially pushing a contin
 frame onto the stack of an abstract machine.
 The \emph{instruction transitions} |App2|, |Case2|, and, under call-by-need
 (\Cref{sec:by-need-instance}), |Upd| fire when a redex reduces and a frame is unwound.
+Together they form a run of the standard call-by-name Krivine machine, whose by-need
+variant we treat in \Cref{sec:op-sem}.
+
 Only the instruction transitions rewrite the expression under evaluation, so even a
 traditional denotational semantics could record them; the search transitions, |Look|
 chief among them, merely navigate to the next redex and have no denotational counterpart.
 Recording the latter is what lets our meanings express operational properties like
 evaluation cardinality.
-This trace matches that of the standard call-by-name Krivine machine, whose by-need
-variant we treat in \Cref{sec:op-sem}.
+
 Henceforth, we write expressions in mathematical meta notation rather than as
 Haskell strings, e.g.,
 |evalName (({-" \Let{i}{\Lam{x}{x}}{i~i} "-})) emp| in place of
@@ -453,7 +455,7 @@ Since $\Lam{x}{x}$ does not mention $i$, the definition of |d| is independent of
 its self-reference, and the guarded fixpoint is immediate.
 
 Step (\ref{eqn:eval-ex4}) is the key one: it unfolds |apply| for |DName| using monadic
-bind |(>>=)| for |T|.  Recall that |Step ev tau >>= k = Step ev (tau >>= k)|
+bind |(>>=)| for |T|.  Recall that |Step ev τ >>= k = Step ev (τ >>= k)|
 threads through |Step| constructors, and |Ret v >>= k = k v| dispatches on
 the value.  So |(>>=)| replays the |Look "i"| event from the function
 denotation, reaches the |Fun| value inside |d|, and calls |(\d -> Step App2 d)| with
