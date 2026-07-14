@@ -23,7 +23,7 @@ set = P . Set.singleton
 \end{code}
 %endif
 
-\section{Generic Abstract By-Name and By-Need Interpretation}
+\section{Generic Abstract By-Need Interpretation}
 \label{sec:soundness}
 
 \begin{toappendix}
@@ -38,9 +38,8 @@ We will discuss why it is safe to approximate guarded fixpoints with
 least fixpoints and why the definition of the Galois connection in
 \Cref{fig:abstract-name-need} as a fold over the trace is well-defined
 in \Cref{sec:safety-extension}.
-Then we will go on to prove sound abstract by-name interpretation in
-\Cref{sec:by-name-soundness}, and finally sound abstract by-need interpretation
-in \Cref{sec:by-need-soundness}.
+Then we will prove sound abstract by-need interpretation in
+\Cref{sec:by-need-soundness}.
 
 %include soundness-appendix.lhs
 \end{toappendix}
@@ -137,17 +136,21 @@ interpretation theorem, so the analysis-specific part of the proof stays small.
       {|alts| \text{ polymorphic} \\ |k ∈ dom alts| \\ |length ds = conArity k|}
       {|(alts ! k) ds ⊑ select (con k ds) alts|} \\
     \\[-0.5em]
-    \inferrule[\textsc{ByName-Bind}]
-      {|rhs, body|\text{ polymorphic}}
-      {|body (lfp rhs) ⊑ bind rhs body|}
+    \inferrule[\textsc{Bind-Prefix}]
+      {}
+      {|rhs (bind rhs id) ⊑ bind rhs id|}
     &
-    \fcolorbox{lightgray}{white}{$\begin{array}{c}
+    \inferrule[\textsc{Bind-Lazy}]
+      {}
+      {|body (bind rhs id) ⊑ bind rhs body|} \\
+    \\[-0.5em]
+    \multicolumn{2}{c}{\fcolorbox{lightgray}{white}{$\begin{array}{c}
       \inferrule[\textsc{Step-Inc}]{}{|d ⊑ step ev d|}
       \qquad
       \inferrule[\textsc{Update}]{}{|step Upd d = d|}
-    \end{array}$}
+    \end{array}$}}
   \end{array}$}\]
-  \caption{By-name and \fcolorbox{lightgray}{white}{by-need} abstraction laws for type class instances of abstract domain |hat D|}
+  \caption{Abstraction laws for type class instances of abstract domain |hat D|; the \fcolorbox{lightgray}{white}{highlighted} laws capture by-need memoisation}
   \label{fig:abstraction-laws}
 \end{figure}
 
@@ -161,8 +164,8 @@ the \emph{abstraction laws} in \Cref{fig:abstraction-laws} by name:
 \[\begin{array}{c}
   \inferrule{%
     \textsc{Mono} \\ \textsc{Step-App} \\ \textsc{Step-Sel} \\ \textsc{Stuck-App} \\
-    \textsc{Stuck-Sel} \\ \textsc{App-Fun} \\ \textsc{Sel-Con} \\ \textsc{ByName-Bind} \\
-    \textsc{Step-Inc} \\ \textsc{Update}
+    \textsc{Stuck-Sel} \\ \textsc{App-Fun} \\ \textsc{Sel-Con} \\ \textsc{Bind-Prefix} \\
+    \textsc{Bind-Lazy} \\ \textsc{Step-Inc} \\ \textsc{Update}
   }{%
   α_{\mathcal{S}}(|evalNeed1 e|) ⊑ |evalD2 (hat D) e|
   }
@@ -257,30 +260,17 @@ polymorphic type |forall d. Domain d => d -> d|, which is
 important to prove \textsc{App-Fun} (in \Cref{sec:mod-subst}).
 
 Law \textsc{Sel-Con} states a similar property for data constructor redexes.
-Law \textsc{ByName-Bind} expresses that the abstract |bind| implementation must
-be sound for by-name evaluation, that is, it must approximate passing the least
-fixpoint |lfp| of the |rhs| functional to |body|.
+Laws \textsc{Bind-Prefix} and \textsc{Bind-Lazy} govern the abstract |bind|: the value
+|bind rhs id| it computes is a pre-fixpoint of |rhs| (\textsc{Bind-Prefix}), and |bind|
+passes that same value to any body (\textsc{Bind-Lazy}).
 The remaining laws are congruence rules involving |step| and |stuck| as well as
 a monotonicity requirement for all involved operations.
 These laws follow the mantra ``evaluation improves approximation''; for
 example, law \textsc{Stuck-App} expresses that applying a stuck term
 or constructor evaluates to (and thus approximates) a stuck term, and
 \textsc{Stuck-Sel} expresses the same for |select| stack frames.
-The same laws, dropping the by-need-specific \textsc{Step-Inc} and
-\textsc{Update}, yield an analogous soundness result for by-name evaluation:
-\begin{theorem}[Abstract By-name Interpretation]
-\label{thm:abstract-by-name}
-Let |e| be an expression, |hat D| a domain with instances for |Domain| and |Lat|,
-and let $α_{\mathcal{S}}$ be the by-name abstraction function, the heap-free
-analogue of the by-need abstraction in \Cref{fig:abstract-name-need}.
-If the by-name abstraction laws in \Cref{fig:abstraction-laws} hold,
-then |evalD2 (hat D)| is an abstract interpreter that is sound \wrt $α_{\mathcal{S}}$,
-\[
-  α_{\mathcal{S}}(|evalName1 e|) ⊑ |evalD2 (hat D) e|.
-\]
-\end{theorem}
-\noindent
-We prove it by parametricity in the extended version.
+Laws \textsc{Step-Inc} and \textsc{Update} capture by-need memoisation; the remaining
+laws are independent of the evaluation strategy.
 
 Note that none of the laws mention the concrete semantics or the abstraction
 function $α_{\mathcal{S}}$.
