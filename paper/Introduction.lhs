@@ -44,7 +44,7 @@ relation}~\citep{AppelMcAllester:01} over machine configurations.
 This relation is the creative core of the proof, and under call-by-need it is
 especially delicate: the heap stores computations that may refer back to the
 heap, so the relation must be stratified over recursive heap invariants.
-Both the relation and the proof that it is a congruence grow with the
+Both the relation and its congruence proof grow with the
 complexity of the semantics and of the analysis.
 
 We tried to find ways to avoid this complexity.
@@ -52,17 +52,12 @@ Our approach still rests on a logical relation, but relates the compositional
 \emph{denotations} of a \textbf{\emph{denotational interpreter}}\footnote{This term was
 coined by \citet{Might:10}.} rather than machine configurations.
 Such an interpreter is compositional like a denotational semantics, yet records the
-operational detail of an abstract machine.
-Because the relation follows the structure of the interpreter, its fundamental lemma is
-a routine induction, and each denotation abstracts directly into an element of the
-analysis domain, whereas a machine configuration is inseparable from its continuation.
-It sits at the intersection of the executable \emph{definitional
-interpreter}~\citep{Reynolds:72} and the compositional denotational semantics.
-
-The denotation of a term is a (possibly infinite) trace, bisimilar to the
-abstract machine's run on that term.
-To our knowledge, this is the first denotational semantics for call-by-need with
-that property.
+operational detail of an abstract machine, sitting at the intersection of the executable
+\emph{definitional interpreter}~\citep{Reynolds:72} and the compositional denotational
+semantics.
+The denotation of a term is a (possibly infinite) trace, bisimilar to the abstract
+machine's run on that term; to our knowledge, this is the first denotational semantics
+for call-by-need with that property.
 
 Moreover, the interpreter is \emph{parameterised} over the semantic domain and
 the operations that interpret each syntactic construct.
@@ -73,12 +68,14 @@ Semantics and analysis are thus the same definition at different instantiations.
 Because the analysis shares its entire infrastructure with the reference
 semantics it abstracts, semantics and analysis once again ``line up'' and
 soundness becomes markedly easier to prove.
-The congruence proof becomes a simple structural induction over the syntax,
-packaged once and for all as a reusable \emph{fundamental theorem} in the spirit
-of parametricity~\citep{Reynolds:83,Wadler:89}.
-An analysis is then sound as soon as its plugged-in operations satisfy a handful
-of local properties, which we identify and characterise, never by crafting a
-relation over the abstract machine.
+Since the relation follows the structure of the interpreter, its congruence proof is a
+simple structural induction over the syntax, and each denotation abstracts directly into
+an element of the analysis domain, whereas a machine configuration is inseparable from
+its continuation.
+Packaged once and for all as a reusable \emph{fundamental theorem} in the spirit of
+parametricity~\citep{Reynolds:83,Wadler:89}, this induction reduces the soundness of an
+analysis to properties of its plugged-in operations, which we identify and characterise
+as \emph{abstraction laws}.
 As a concrete example, we prove a summary-based \emph{usage
 analysis}~\citep{WrightBakerFinch:93,Gustavsson:98} sound for call-by-need.
 
@@ -96,10 +93,9 @@ We make the following contributions:
 \begin{itemize}
 \item \Cref{sec:interp} walks through the definition of our generic
   denotational interpreter and its type class algebra in Haskell.
-  The exposition assumes a by-name evaluation strategy, but we will see how easy
-  it is to adjust the interpreter for by-need and by-value strategies, each
-  instance producing (abstractions of) abstract machine traces.
-  Practical applications will focus on one particular evaluation strategy, of course.
+  The exposition assumes a by-name evaluation strategy, but we will see how easily
+  the interpreter adjusts to by-need, each instance producing (abstractions of)
+  abstract machine traces.
 \item A concrete instantiation of a denotational interpreter is \emph{total}
   if it coinductively yields a (possibly infinite) trace for every input
   program, including ones that diverge.
