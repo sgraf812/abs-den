@@ -222,5 +222,6 @@ The example traces of \Cref{sec:interp} and the analysis results of
 \Cref{sec:usage-analysis} are checked against it by \texttt{\#guard} during the build,
 including that each trace agrees with the LK machine up to silent steps.
 Execution goes through unsafe \texttt{implemented\_by} shims for the domain isomorphism
-and the guarded fixpoint; they are a convenience for testing rather than a verified
-extraction.
+and the guarded fixpoint.
+The shims replace compiled code only, so the proofs are unaffected:
+\texttt{absence} depends on the standard axioms alone.
