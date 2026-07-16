@@ -692,11 +692,11 @@ By induction on the size of |ectxt| and cases on |ectxt|:
 
 The framework's reach has limits worth stating plainly.
 The decomposition just described keeps the soundness proof manageable, but we have
-exercised it on a single analysis; whether its advantages carry over to a range of
+exercised it on a single analysis. Whether its advantages carry over to a range of
 analyses is so far a claim, not a result.
 We expect few analyses beyond usage analysis to satisfy the abstraction laws of
 \Cref{fig:abstraction-laws} unchanged, and a different source language may call for a
-different domain; a different set of sufficient laws would still reuse
+different domain. A different set of sufficient laws would still reuse
 \Cref{thm:abstract-by-need} as its starting point.
 The evaluation strategy constrains less than it appears: the challenge the framework
 meets, soundly abstracting higher-order mutable state, is not specific to laziness.
