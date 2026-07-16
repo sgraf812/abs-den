@@ -95,6 +95,25 @@ but it is not up to the task of modelling user input, for example.
 A redesign of |Trace| inspired (and instantiated) by guarded interaction
 trees~\citep{interaction-trees,gitrees} would help with that.
 
+\subsubsection*{Mechanised Semantics and Verified Analyses}
+\citet{Breitner:18} mechanised \citeauthor{Launchbury:93}'s natural semantics for
+call-by-need in Isabelle and proved the cardinality analysis \emph{Call Arity}
+safe~\citep{Breitner:15,Breitner:16}.
+His proof relates analysis and machine directly, the coupling that
+\Cref{sec:decomposed-proof} decomposes.
+\citet{CacheraPichardie:10} certify a denotational abstract interpreter in Coq,
+and Verasco~\citep{Jourdan:15} scales verified abstract interpretation to a
+static analyser for C; both target first-order imperative languages.
+\citet{DaraisVanHorn:16} mechanise calculational abstract interpretation with
+constructive Galois connections, whereas our mechanisation replaces the Galois
+connection of \Cref{fig:abstract-name-need} by the guarded relation of
+\Cref{sec:mech-lr}.
+Denotational semantics in guarded type theory covers PCF~\citep{Paviotti:15} and
+recursive types~\citep{MogelbergPaviotti:16}; the by-need domain of
+\Cref{sec:mech-domain} continues this line.
+Like interaction trees~\citep{interaction-trees}, the interpreter remains
+executable inside the proof assistant (\Cref{sec:mech-exec}).
+
 
 %\subsubsection*{Contextual Improvement}
 %Abstract interpretation is useful to prove that an analysis approximates
