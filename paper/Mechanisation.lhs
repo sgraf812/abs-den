@@ -18,9 +18,11 @@ polymorphic'' and ``$x$ fresh'' premises of the abstraction laws
 (\Cref{fig:abstraction-laws}), and the finite height of the abstract domain.
 
 Iris' model is the category of \emph{ordered families of equivalences} (OFEs) and
-\emph{non-expansive maps}, and working inside it leaves the interpreter unchanged:
-|eval| is the Haskell definition of \Cref{fig:eval}, with the OFE structure carrying the
-step-indexing that guarded recursion needs.
+\emph{non-expansive maps}. Working inside it changes |eval| only in its arrows: the
+function arrow of \Cref{fig:eval} becomes the non-expansive \texttt{-n>}, so the OFE
+structure carries the step-indexing that guarded recursion needs. At a discrete OFE
+every map is non-expansive, so this refinement is provably equivalent to the direct
+translation of \Cref{fig:eval}.
 The soundness argument reduces to a single parameterised binary logical relation, and
 its \emph{fundamental lemma} is proved once, by induction on the expression.
 The by-need interpreter still runs, so the traces we computed by hand in
