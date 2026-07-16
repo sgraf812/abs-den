@@ -238,7 +238,7 @@ at every one, giving a bisimulation between |evalNeed2| and the machine.
 
 \begin{corollary}[Adequacy]
   \label{cor:need-adequacy}
-  For a closed expression $\pe$, |evalNeed e emp emp| is faithful to the machine's
+  For a closed expression $\pe$, |evalNeed e emp emp| preserves the machine's
   termination behaviour: it is stuck, diverging, or balanced~\citep{Sestoft:97} exactly
   when $\init(\pe) \smallstep ...$ is.
 \end{corollary}
