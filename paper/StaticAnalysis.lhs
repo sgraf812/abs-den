@@ -95,9 +95,6 @@ improvement~\citep{MoranSands:99}.
 \label{sec:usage-trace-abstraction}
 
 \begin{figure}
-\begin{spec}
-\end{spec}
-\\[-1em]
 \begin{minipage}{0.63\textwidth}
 \begin{code}
 evalUsg e ρ = eval e ρ :: UD
@@ -121,19 +118,21 @@ instance Domain UD where
     d >> lub  [  f (replicate (conArity k) (MkUT emp (Rep Uω)))
               |  (k,f) <- assocs fs ]
   bind # rhs body = body (kleeneFix rhs)
-
+\end{code}
+\begin{spec}
 lub :: Lat a => [a] -> a; lub = foldr (⊔) bottom
 kleeneFix :: Lat a => (a -> a) -> a
 kleeneFix f = go bottom where
   go x = let x' = f x in if x' ⊑ x then x' else go x'
-\end{code}
+\end{spec}
 \end{minipage}%
 \begin{minipage}{0.37\textwidth}
-\begin{code}
+\begin{spec}
 class Eq a => Lat a where
   bottom :: a
   (⊔) :: a -> a -> a
-
+\end{spec}
+\begin{code}
 class UVec a where
   (+)  :: a -> a -> a
   (*)  :: U -> a -> a
