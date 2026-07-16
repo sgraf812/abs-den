@@ -137,7 +137,7 @@ The statements of the section opener then follow in four steps:
 \item \texttt{LR2.fundamental} turns this instance into \texttt{byNeed\_sound}.
 \item \texttt{usageAbstractionLaws} proves the laws at the usage lattice
   \texttt{UDk}~$k$ (\Cref{sec:mech-finite}), giving \texttt{usage\_abstracts\_need}
-  (\Cref{thm:usage-abstracts-need}); a new analysis supplies only its laws.
+  (\Cref{thm:usage-abstracts-need}).
 \item Read at the empty heap, the step-indexed statement collapses to the |Prop|-level
   \texttt{usage\_approximates\_need} and \texttt{absence}.
 \end{enumerate}
@@ -148,6 +148,11 @@ observation of \Cref{sec:mech-exec} always reaches the next event.
 Adequacy against the LK machine (\Cref{thm:need-adequacy-bisimulation}, mechanised as
 \texttt{need\_abstracts\_lk}) is proved separately, by Löb induction relating the
 by-need trace to the machine.
+
+The three layers of \Cref{sec:decomposed-proof} thus have mechanised names:
+\texttt{need\_abstracts\_lk} removes the machine, \texttt{LR2.fundamental} removes the
+interpreter, and \texttt{soundLR2} removes the by-need domain and its step-indexing,
+leaving a new analysis just its laws.
 
 \subsection{The Side Conditions, Made Precise}
 \label{sec:mech-side}

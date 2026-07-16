@@ -447,6 +447,7 @@ We do not anticipate that the denotational interpreter
 perspective offers a significant advantage in that context.
 
 \subsection{A Decomposed Soundness Proof}
+\label{sec:decomposed-proof}
 
 The soundness proof rests on a single semantic artefact: the denotational
 interpreter, instantiated at |UD| and at the by-need domain. The proof is still
