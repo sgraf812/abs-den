@@ -101,11 +101,6 @@ kleeneFix :: Lat a => (a -> a) -> a; qquad lub :: Lat a => [a] -> a
 kleeneFix f = go bottom where go x = let x' = f x in if x' ⊑ x then x' else go x'
 \end{spec}
 \\[-1em]
-\caption{Order theory and Kleene iteration}
-\label{fig:lat}
-\end{figure}
-
-\begin{figure}
 \begin{minipage}{0.63\textwidth}
 \begin{code}
 evalUsg e ρ = eval e ρ :: UD
@@ -212,7 +207,8 @@ instance Show UValue where
 \end{code}
 %endif
 \\[-1em]
-\caption{Summary-based usage analysis}
+\caption{Order theory, Kleene iteration, and summary-based usage analysis}
+\label{fig:lat}
 \label{fig:usage-analysis}
 \end{figure}
 
