@@ -54,8 +54,8 @@ These are ordinary |Prop|s over the by-need semantics; the logical relation of
 \label{fig:lean-eval}
 \end{figure}
 
-Iris' model is the category of \emph{ordered families of equivalences} (OFEs) and
-\emph{non-expansive maps}.
+Iris' model is the category of \emph{ordered families of
+equivalences}~\citep{DiGianantonioMiculan:02} (OFEs) and \emph{non-expansive maps}.
 Working inside it changes |eval| only in its arrows: the function arrow of
 \Cref{fig:eval} becomes the non-expansive \texttt{-n>}, so the OFE structure carries
 the step-indexing that guarded recursion needs.

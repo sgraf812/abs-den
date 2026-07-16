@@ -140,7 +140,8 @@ The required changes to the domain definitions seemed daunting, to say the
 least.
 Our solution delegates this complexity to guarded recursive type theory and
 defines the interpreter against Iris' interface of OFEs and non-expansive
-maps~\citep{Jung:18}, whose model is the topos of trees~\citep{Birkedal:12}.
+maps~\citep{DiGianantonioMiculan:02,Jung:18}, whose model is the topos of
+trees~\citep{Birkedal:12}.
 
 We deliberately tried to provide a simple framework and thus stuck to cartesian
 (\ie pointwise) abstraction of environments as in \citet[Chapter 27]{Cousot:21},
