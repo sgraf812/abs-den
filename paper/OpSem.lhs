@@ -241,13 +241,19 @@ and transition events, as expressed in the following theorem:
   This adequacy is mechanised in Lean (\Cref{sec:mechanisation}).
 \end{proofsketch}
 
-This bisimulation is a congruence, and an analysis-free one: generalised to open
-configurations, $α_{\STraces}$ is compatible with every transition, so it holds for all
-programs and carries no analysis.
+Adequacy holds not just for whole programs but at every configuration: writing
+$σ = (\pe,ρ,μ,κ)$ for a well-addressed configuration, the abstraction function commutes
+with evaluation,
+\[
+  α_{\STraces}(σ \smallstep ..., κ) = |evalNeed e (αEnv ρ μ) (αHeap μ)|,
+\]
+and \Cref{thm:need-adequacy-bisimulation} is the case $σ = \init(\pe)$.
+In this form adequacy is the interpreter congruent with the machine, modulo reduction,
+and it carries no analysis.
 A conventional soundness proof instead relates the machine to the analysis directly,
-threading the analysis through a logical relation over configurations, so its congruence
-is laborious and must be re-established for each analysis.
-We discharge this operational congruence once; every analysis then relates to the
+threading the analysis through a logical relation over configurations, so establishing
+its congruence is laborious and re-established for each analysis.
+Here the operational congruence is discharged once; every analysis then relates to the
 interpreter alone (\Cref{sec:soundness}).
 
 \subsection{Totality of |evalName| and |evalNeed2|}
