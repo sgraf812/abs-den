@@ -102,9 +102,9 @@ contrast to $α_{\mathcal{S}}(|evalNeed1 e|)$.
 To give just one example, computing the latter diverges whenever the evaluation
 of |e| diverges.}
 
-We will instantiate the theorem at |UD| in order to prove that usage analysis
+We will instantiate this statement at |UD| in order to prove that usage analysis
 |evalUsg e ρ = evalD UD e ρ| infers absence.
-The complicated preservation reasoning is reusably contained in the abstract
+The complicated preservation reasoning is confined to the reusable abstract
 interpretation theorem, so the analysis-specific part of the proof stays small.
 
 \begin{figure}
@@ -156,7 +156,7 @@ interpretation theorem, so the analysis-specific part of the proof stays small.
 
 \subsection{A Reusable Abstract By-Need Interpretation Theorem}
 
-In this subsection, we explain and prove \Cref{thm:abstract-by-need} for
+In this subsection, we explain \Cref{thm:abstract-by-need} for
 abstract by-need interpretation, which we will apply to prove usage analysis
 sound in \Cref{sec:usage-sound}.
 The theorem corresponds to the following derived inference rule, referring to
@@ -175,7 +175,7 @@ In other words: prove the abstraction laws for an abstract domain |hat D| of
 your choosing (such as |UD|) and we give you a proof of sound abstract by-need
 interpretation for the static analysis |evalD2 (hat D)|!
 
-This statement can be read in three ways, each naming a tradition.
+This statement can be read in three ways, each rooted in a different tradition.
 It is a \emph{sound abstract interpretation}~\citep{Cousot:77}: the analysis
 over-approximates the best abstraction of the concrete semantics.
 It is a \emph{step-indexed logical relation}~\citep{AppelMcAllester:01} between the
@@ -218,17 +218,18 @@ $α_\Domain(μ) \rightleftarrows γ_\Domain(μ)$.
 This implies that $α_\Domain(μ) \circ γ_\Domain(μ) ⊑ \mathit{id}$,
 justifying the approximation step $(⊑)$ in (\ref{eqn:abs-ex3}).
 For the concrete example, we instantiate |hat D| to |UD| in step
-(\ref{eqn:abs-ex4}) to assert that the resulting usage type indeed
+(\ref{eqn:abs-ex4}) to see that the resulting usage type indeed
 coincides with the result of |evalUsg1|, as predicted by the abstract
 interpretation theorem.
 
 The abstraction function |αD| for by-need elements |d| is a bit unusual because
 it is \emph{indexed} by a heap to give meaning to addresses referenced by |d|.
-Our framework is carefully set up in a way that |αD^(μ)| is preserved when |μ|
+Our framework is carefully set up so that |αD^(μ)| is preserved when |μ|
 is modified by memoisation ``in the future'', reminiscent of
 \citeauthor{Kripke:63}'s possible worlds.
-For similar reasons, the abstraction function for environments pairs up
-definable by-need environments |ρ|, the entries of which are of the form |step (Look y) (fetch a)|, with heaps |μ|.
+For similar reasons, the abstraction function for environments is defined on
+pairs |(μ,ρ)| of a heap and a definable by-need environment, the entries of
+which are of the form |step (Look y) (fetch a)|.
 
 Thanks to fixing $α_{\mathcal{S}}$, we can prove the following abstraction theorem,
 corresponding to the inference rule at the beginning of this subsection:
@@ -245,7 +246,8 @@ that is,
 \]
 \end{theorem}
 \noindent
-This theorem is mechanised in Lean as |byNeed_sound| (\Cref{sec:mechanisation}), the
+The proof is given in the extended version.
+In Lean, this theorem is mechanised as |byNeed_sound| (\Cref{sec:mechanisation}), the
 fundamental lemma of the by-need logical relation.
 
 Let us unpack law $\textsc{App-Fun}$ to see how the abstraction laws in
@@ -269,7 +271,7 @@ These laws follow the mantra ``evaluation improves approximation''; for
 example, law \textsc{Stuck-App} expresses that applying a stuck term
 or constructor evaluates to (and thus approximates) a stuck term, and
 \textsc{Stuck-Sel} expresses the same for |select| stack frames.
-Laws \textsc{Step-Inc} and \textsc{Update} capture by-need memoisation; the remaining
+Laws \textsc{Step-Inc} and \textsc{Update} capture by-need memoisation; all other
 laws are independent of the evaluation strategy.
 
 Note that none of the laws mention the concrete semantics or the abstraction
@@ -302,7 +304,7 @@ A direct proof would unfold the complete definition of the interpreter and reaso
 about each case, so its complexity scales with the size of the interpreter and it
 must be redone whenever |eval| changes.
 Such non-modular proofs become unmanageable on pen and paper for large
-denotational interpreters such as for WebAssembly~\citep{Brandl:23}.
+denotational interpreters such as the one for WebAssembly~\citep{Brandl:23}.
 
 For \textsc{App-Fun}, dubbed \emph{semantic substitution}, we can do much better:
 \begin{toappendix}
@@ -320,8 +322,8 @@ Then |f a ⊑ apply (fun x f) a| in |UD|.
 As can be seen, its statement does not refer to the interpreter definition
 |eval| \emph{at all}.
 Instead, the complexity of its proof scales with the number of \emph{abstract
-operations} supported in the semantic domain of the interpreter for a much more
-\emph{modular} proof.
+operations} supported in the semantic domain, not with the size of the
+interpreter; that is what makes it \emph{modular}.
 This modular proof appeals to parametricity~\citep{Reynolds:83} of |f|'s
 polymorphic type |forall d. Domain d => d -> d|.
 Of course, any function defined by the generic interpreter satisfies this
@@ -330,8 +332,7 @@ The proof instantiates |f|'s free theorem at a relation
 that calls |f| with the proxy |MkUT (singenv x U1) (Rep Uω)| that
 the implementation of |fun x| supplies; the obligation then reduces to one lemma
 per type class method that is easily discharged.
-\textsc{App-Fun} is mechanised in Lean for |UD| among the abstraction laws
-(\Cref{sec:mechanisation}).
+\textsc{App-Fun} for |UD| is mechanised in Lean (\Cref{sec:mechanisation}).
 
 The polymorphism premise is essential: without it, \textsc{App-Fun} fails for
 usage analysis.
@@ -372,7 +373,11 @@ Let |e| be an expression and $α_{\mathcal{S}}$ the abstraction function from
 Then $α_{\mathcal{S}}(|evalNeed1 e|) ⊑ |evalUsg1 e|$.
 \end{corollary}
 \noindent
-It is mechanised in Lean as |usage_abstracts_need| (\Cref{sec:mechanisation}).
+Its proof discharges the premises of \Cref{thm:abstract-by-need}: \textsc{App-Fun}
+is \Cref{thm:usage-subst-sem}, and the remaining abstraction laws for |UD| follow
+by routine calculation.
+The corollary is mechanised in Lean as |usage_abstracts_need|
+(\Cref{sec:mechanisation}).
 
 The next step is to leave behind the definition of absence in terms of the LK
 machine in favour of one using |evalNeed2|.
@@ -388,6 +393,10 @@ redefinition but provably equivalent to \Cref{defn:absence}:
   |evalNeed (fillC ectxt (Let x e' e)) emp emp| contains a |Look x| event.
   Otherwise, |x| is absent in |e|.
 \end{lemma}
+\noindent
+Here, |fillC ectxt (Let x e' e)| plugs the let-binding into the hole of the
+by-need evaluation context |ectxt|; the extended version defines these contexts
+precisely.
 
 Thus insulated from the LK machine, we may state that usage analysis
 infers absence (\Cref{defn:absence}).
@@ -405,7 +414,7 @@ The abstraction function $α_{\mathcal{S}}$ induced by |UD| aggregates lookups i
 trace into a |φ' :: Uses|, \eg
   $β_\Traces(\LookupT(i) \smallstep \LookupT(x) \smallstep \LookupT(i) \smallstep \langle ... \rangle)
     = |MkUT [ i {-" ↦ "-} Uω, x {-" ↦ "-} U1 ] (...)|$.
-Clearly, it is |φ' !? x ⊒ U1|, because there is at least one |Look x|.
+Clearly |φ' !? x ⊒ U1|, because there is at least one |Look x|.
 \Cref{thm:usage-abstracts-need} and a context-invariance property prove that the computed
 |φ| approximates |φ'|, so |φ !? x ⊒ φ' !? x ⊒ U1 //= U0|.
 This is mechanised in Lean as |absence| (\Cref{sec:mechanisation}).
@@ -413,16 +422,16 @@ This is mechanised in Lean as |absence| (\Cref{sec:mechanisation}).
 
 We have therefore proved that usage analysis correctly infers the semantic property
 of absence, as defined in \Cref{defn:absence}.
-From this result, one could further prove that the dead code removal constitutes
+From this result, one could further prove that dead code elimination constitutes
 an optimisation that \emph{improves} the program in the sense of \citet{MoranSands:99}.
-However, such a proof typically is best carried out in a high-level syntactic
+However, such a proof is typically best carried out in a high-level syntactic
 inequational theory; we do not anticipate that the denotational interpreter
 perspective offers a significant advantage in that context.
 
 \subsection{A Decomposed Soundness Proof}
 
 The soundness proof rests on a single semantic artefact: the denotational
-interpreter, instantiated at |UD| and at the by-need domain. It is still
+interpreter, instantiated at |UD| and at the by-need domain. The proof is still
 substantial, but it decomposes into three layers, each removing one source of
 difficulty.
 
@@ -435,9 +444,8 @@ difficulty.
 \item \emph{Lining up the definitions removes the interpreter.} Analysis and
   semantics are the same interpreter, so the two instances line up. One structural
   induction over the expression proves \Cref{thm:abstract-by-need}. The proof then
-  reasons about domain elements,
-  how |UD| abstracts a by-need denotation, and no longer about the interpreter's
-  definition.
+  reasons about domain elements and how |UD| abstracts a by-need denotation, no
+  longer about the interpreter's definition.
 \item \emph{The abstraction laws remove the by-need domain and its step-indexing.}
   What is left is to prove those laws (\Cref{fig:abstraction-laws}). They say
   nothing of the by-need domain, its step-indexing, or its Galois connection, so the
@@ -448,8 +456,8 @@ difficulty.
 The advantage of this decomposition is that the proof stays intellectually
 manageable, because each layer isolates one difficulty. A conventional proof, by
 contrast, relates analysis and machine in a single step-indexed logical relation
-over machine configurations, the creative core of the argument, whose difficulty
-grows with both the semantics and the analysis. Here the first two layers handle the
+over machine configurations. That relation is the creative core of the argument,
+and its difficulty grows with both the semantics and the analysis. Here the first two layers handle the
 machine and the interpreter without reference to the analysis, and the
 analysis-specific work is confined to the abstraction laws of the third. Even the
 hardest law, \textsc{App-Fun}, has a \emph{modular} proof by parametricity whose size
@@ -696,7 +704,7 @@ exercised it on a single analysis. Whether its advantages carry over to a range 
 analyses is so far a claim, not a result.
 We expect few analyses beyond usage analysis to satisfy the abstraction laws of
 \Cref{fig:abstraction-laws} unchanged, and a different source language may call for a
-different domain. A different set of sufficient laws would still reuse
+different domain. A different set of sufficient laws would still reuse the proof of
 \Cref{thm:abstract-by-need} as its starting point.
 The evaluation strategy constrains less than it appears: the challenge the framework
 meets, soundly abstracting higher-order mutable state, is not specific to laziness.
