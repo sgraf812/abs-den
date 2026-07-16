@@ -128,20 +128,13 @@ bound $dh$: a returned value $v$ must satisfy \texttt{SoundVal}~$dh~v$ and re-es
 only descends under a $\later$.
 The single inequality of \Cref{thm:abstract-by-need} becomes this guarded
 relation.
-The mechanised results compose:
-\[\begin{array}{rl}
-  & \texttt{AbstractionLaws}~V \\
-  \xrightarrow{\ \texttt{soundLR2}\ } & \texttt{LR2}~(\texttt{NeedProp}~V) \\
-  \xrightarrow{\ \texttt{LR2.fundamental}\ } & \text{soundness of } |eval| \text{, for every } e \\
-  \xrightarrow{\ \texttt{need\_abstracts\_lk}\ } & \text{the same bound on the LK trace}
-\end{array}\]
-\texttt{soundLR2} builds the \texttt{LR2} instance from the abstraction laws of
-\Cref{fig:abstraction-laws}, discharging each closure field against them by Löb
-induction under the heap invariant; the composite of the first two arrows is
-\texttt{byNeed\_sound}.
-At the usage lattice \texttt{UDk}~$k$ (\Cref{sec:mech-finite}),
-\texttt{usageAbstractionLaws} proves the laws, giving \texttt{usage\_abstracts\_need}
-(\Cref{thm:usage-abstracts-need}); a new analysis supplies only this input.
+\texttt{soundLR2} builds the by-need \texttt{LR2} instance from the abstraction laws
+of \Cref{fig:abstraction-laws}, discharging each closure field against them by Löb
+induction under the heap invariant.
+\texttt{LR2.fundamental} turns this instance into \texttt{byNeed\_sound}.
+\texttt{usageAbstractionLaws} proves the laws at the usage lattice \texttt{UDk}~$k$
+(\Cref{sec:mech-finite}), giving \texttt{usage\_abstracts\_need}
+(\Cref{thm:usage-abstracts-need}); a new analysis supplies only its laws.
 Read at the empty heap, this step-indexed statement collapses to the |Prop|-level
 \texttt{usage\_approximates\_need} and \texttt{absence} of the section opener.
 
@@ -149,8 +142,8 @@ Productivity, over \texttt{SiProp}, states that no two silent steps occur in a r
 It is what makes the interpreter total (\Cref{thm:totality}), so the fuel-bounded
 observation of \Cref{sec:mech-exec} always reaches the next event.
 Adequacy against the LK machine (\Cref{thm:need-adequacy-bisimulation}, mechanised as
-\texttt{need\_abstracts\_lk}) supplies the final arrow; it is proved separately, by Löb
-induction relating the by-need trace to the machine.
+\texttt{need\_abstracts\_lk}) is proved separately, by Löb induction relating the
+by-need trace to the machine.
 
 \subsection{The Side Conditions, Made Precise}
 \label{sec:mech-side}
