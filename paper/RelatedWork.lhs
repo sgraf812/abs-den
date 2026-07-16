@@ -41,8 +41,8 @@ definition.
 \citet{Sestoft:97} related the derivations of
 \citeauthor{Launchbury:93}'s big-step natural semantics for our language to
 the subset of \emph{balanced} small-step LK traces.
-Balanced traces are a proper subset of our maximal LK traces that --- by nature
-of big-step semantics --- excludes stuck and diverging traces.
+Balanced traces are a proper subset of our maximal LK traces: by nature of
+big-step semantics, they exclude stuck and diverging traces.
 
 Our denotational interpreter bears strong resemblance to
 a denotational semantics~\citep{ScottStrachey:71},
@@ -132,9 +132,8 @@ Our abstraction laws in \Cref{fig:abstraction-laws} correspond to Definition 27.
 and \Cref{thm:abstract-by-need} to Theorem 27.4.
 
 \citet{Giacobazzi:25} study compositionality of best correct
-approximations in abstract interpretation. Our setting is different --- we do
-not aim for best abstractions, but rather for sound, computable abstractions at
-the cost of some precision.
+approximations in abstract interpretation, whereas we aim for sound, computable
+abstractions at the cost of some precision.
 
 \subsubsection*{Abstractions of Reachable States}
 CFA~\citep{Shivers:91} computes a useful control-flow graph abstraction for
@@ -175,8 +174,9 @@ the subject of \citet{Darais:15} and \citet{Keidel:19}.
 
 A big advantage of the big-step framework of \citet{Keidel:18} is that
 soundness proofs are modular in the sense of \Cref{sec:mod-subst}.
-In the future, we hope to modularise the proof for
-\Cref{thm:abstract-by-need}.
+Our mechanisation achieves a comparable factoring: the fundamental lemma of
+\Cref{sec:mech-lr} is proved once, and each combinator contributes one closure
+field.
 
 \subsubsection*{Summaries of Functionals \vs Call Strings}
 \citet{Lomet:77} used procedure summaries to capture aliasing effects,
@@ -194,29 +194,18 @@ approach'' (\ie $k$-CFA).
 That is not to say that the approaches cannot be combined;
 inter-modular analysis led \citet[Section 3.8.2]{Shivers:91} to implement
 the $\mathit{xproc}$ summary mechanism.
-He also acknowledged the need for accurate intra-modular summary mechanisms for
-scalability reasons in Section 11.3.2.
-
-We wonder how the powerset-centric AAM approach could be
-parameterised over an arbitrary summary mechanism such as in our framework.
-While some AAM-inspired approaches \citep{Nguyen:14} support a fixed set of
-summaries, these require custom reductions in the semantics.
+Some AAM-inspired approaches \citep{Nguyen:14} support a fixed set of
+summaries, but require custom reductions in the semantics.
 
 \citet{Mangal:14} have shown that a summary-based analysis can be equivalent
 to $\infty$-CFA for arbitrary complete lattices and outperform 2-CFA in both
 precision and speed.
 Summary-based analyses scale better because a function is analysed once and its
 summary reused at every call site.
-To illustrate why they can also be more precise, consider the Haskell expression
-
-< let f n = let i y = y in if n == 0 then 0 else i (f (n-1) + 1) in f 42{-"."-}
-
-The definition of |f| is a complicated way to define the identity function.
-Nevertheless, it is evident that |i| is evaluated at most once, and
-|evalUsg| would infer this fact for the respective subexpression.
-On the other hand, $k$-CFA (for $k < 42$) would confuse different recursive
-activations of |i|, thus conservatively attributing evaluations multiple times,
-to the effect that |i| is not inferred as used at most once.
+They can also be more precise: $k$-CFA conflates the recursive activations of an
+inner binding once the recursion exceeds depth $k$ and thus reports it as used
+many times, whereas |evalUsg| reuses the binding's summary at every activation
+and infers use at most once.
 
 %Given a semantic description of abstract values, it is likely
 %that the implementation of |Domain| can be synthesised using the approach of
