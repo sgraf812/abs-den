@@ -77,8 +77,8 @@ analysis to properties of its plugged-in operations, which we identify and chara
 as \emph{abstraction laws}.
 Where a conventional proof has a single congruence over machine configurations, with the
 analysis threaded through every case, ours splits in two: an analysis-free congruence
-with the machine (\Cref{sec:adequacy}) and this one, between analysis and interpreter
-(\Cref{sec:soundness}).
+with the machine (\Cref{sec:adequacy}) and a congruence between the analysis and the
+interpreter (\Cref{sec:soundness}).
 As a concrete example, we prove a summary-based \emph{usage
 analysis}~\citep{WrightBakerFinch:93,Gustavsson:98} sound for call-by-need.
 
