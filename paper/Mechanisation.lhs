@@ -47,8 +47,8 @@ counterpart of \Cref{thm:usage-abstracts-need}:
 \noindent
 Here \texttt{Trace.lookCount x n} counts the lookups of $x$ in the first $n$ steps of the
 by-need trace, \texttt{U.ofCount} abstracts that count into a |U|-cardinality, and
-\texttt{.uses !? x} is the usage the analysis reports for $x$; the bound holds at every
-$x$ and $n$.
+\texttt{.uses !? x} is the usage the analysis reports for $x$.
+The bound holds at every $x$ and $n$.
 In $\Let{i}{\Lam{x}{x}}{i~i}$, for example, the analysis reports $x$ as $|U0|$, so the
 binder $x$ is looked up zero times at every prefix length.
 These are ordinary |Prop|s over the by-need semantics; the logical relation of
@@ -168,8 +168,8 @@ hold, giving \texttt{usage\_abstracts\_need} (\Cref{thm:usage-abstracts-need}).
 Read at the empty heap, this step-indexed statement collapses to the |Prop|-level
 \texttt{usage\_approximates\_need} and \texttt{absence} of the section opener.
 
-Productivity, over \texttt{SiProp}, states that no two silent steps occur in a row; it
-is what makes the interpreter total (\Cref{thm:totality}), so the fuel-bounded
+Productivity, over \texttt{SiProp}, states that no two silent steps occur in a row.
+It is what makes the interpreter total (\Cref{thm:totality}), so the fuel-bounded
 observation of \Cref{sec:mech-exec} always reaches the next event.
 Adequacy against the LK machine (\Cref{thm:need-adequacy-bisimulation}, mechanised as
 \texttt{need\_abstracts\_lk}) is proved separately, by Löb induction relating the
@@ -184,8 +184,8 @@ Polymorphism, the premise of \textsc{App-Fun} and \textsc{Sel-Con}, becomes a
 parametricity condition: $f$ respects every logical relation whose closure clauses
 cover the summarised binders and the looked-up variables.
 A separate lemma shows that every closure |eval| produces is parametric in this sense,
-so the premise is discharged rather than assumed; it is the parametricity that
-\Cref{sec:soundness} invokes for \textsc{App-Fun}.
+so the premise is discharged rather than assumed.
+This is the parametricity that \Cref{sec:soundness} invokes for \textsc{App-Fun}.
 Freshness becomes the least combinator-closed predicate that does not observe a lookup
 of $x$.
 A variable's occurrence is not observable in a generic |Domain| element, so this is the

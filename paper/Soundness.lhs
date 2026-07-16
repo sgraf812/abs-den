@@ -182,7 +182,8 @@ It is a \emph{sound abstract interpretation}~\citep{Cousot:77}: the analysis
 over-approximates the best abstraction of the concrete semantics.
 It is a \emph{step-indexed logical relation}~\citep{AppelMcAllester:01} between the
 concrete and abstract denotations, indexed by the length of the trace prefix under
-consideration; the object language is untyped, yet this is a genuine logical relation,
+consideration.
+The object language is untyped, yet this is a genuine logical relation,
 with Löb induction on the step index in the role that induction on type structure
 ordinarily plays.
 And it is a \emph{preservation} proof~\citep{WrightFelleisen:94}, following one reduction
@@ -269,8 +270,8 @@ Laws \textsc{Bind-Prefix} and \textsc{Bind-Lazy} govern the abstract |bind|: the
 passes that same value to any body (\textsc{Bind-Lazy}).
 The remaining laws are congruence rules involving |step| and |stuck| as well as
 a monotonicity requirement for all involved operations.
-These laws follow the mantra ``evaluation improves approximation''; for
-example, law \textsc{Stuck-App} expresses that applying a stuck term
+These laws follow the mantra ``evaluation improves approximation''.
+For example, law \textsc{Stuck-App} expresses that applying a stuck term
 or constructor evaluates to (and thus approximates) a stuck term, and
 \textsc{Stuck-Sel} expresses the same for |select| stack frames.
 Laws \textsc{Step-Inc} and \textsc{Update} capture by-need memoisation; all other
@@ -332,7 +333,8 @@ Of course, any function defined by the generic interpreter satisfies this
 requirement.
 The proof instantiates |f|'s free theorem at a relation
 that calls |f| with the proxy |MkUT (singenv x U1) (Rep Uω)| that
-the implementation of |fun x| supplies; the obligation then reduces to one lemma
+the implementation of |fun x| supplies.
+The obligation then reduces to one lemma
 per type class method that is easily discharged.
 \textsc{App-Fun} for |UD| is mechanised in Lean (\Cref{sec:mechanisation}).
 
@@ -428,7 +430,8 @@ of absence, as defined in \Cref{defn:absence}.
 From this result, one could further prove that dead code elimination constitutes
 an optimisation that \emph{improves} the program in the sense of \citet{MoranSands:99}.
 However, such a proof is typically best carried out in a high-level syntactic
-inequational theory; we do not anticipate that the denotational interpreter
+inequational theory.
+We do not anticipate that the denotational interpreter
 perspective offers a significant advantage in that context.
 
 \subsection{A Decomposed Soundness Proof}
