@@ -41,11 +41,11 @@ abstraction of the dynamic behaviour.
 This gives us a \emph{static program analysis}.
 
 This section develops \emph{usage analysis}, and \Cref{sec:soundness} proves that it
-correctly infers absence (\Cref{sec:usage-cardinality}). The same recipe accommodates analyses well beyond it: a type
-analysis in the style of \citeauthor{Milner:78}'s Algorithm~J, 0CFA control-flow
-analysis~\citep{Shivers:91}, and GHC's \emph{Demand Analysis}~\citep{Sergey:14}. The
-extended version develops these, leaving the correctness of Demand Analysis to future
-work.
+correctly infers absence (\Cref{sec:usage-cardinality}). The same recipe accommodates
+other analyses, a type analysis in the style of \citeauthor{Milner:78}'s Algorithm~J and
+0CFA control-flow analysis~\citep{Shivers:91}, as well as the considerably more ambitious
+\emph{Demand Analysis} of GHC~\citep{Sergey:14}. The extended version develops these,
+leaving the correctness of Demand Analysis to future work.
 
 We build usage analysis in three steps: abstracting the trace to the finite |UT|
 (\Cref{sec:usage-trace-abstraction}), abstracting the value into a finite summary
@@ -246,15 +246,14 @@ For example, |U0 + u = u| and |U1 + U1 = Uω| in |U|, as well as |U0 * u = U0|,
 These operations lift to |Uses| pointwise, \eg,
 |[i ↦ U1] + (Uω * [j ↦ U1]) = [i ↦ U1, j ↦ Uω]|.
 
-Abstracting |T| to |UT| but keeping the concrete |Value| yields what \citet{adi}
-call a \emph{collecting semantics}.
 Exploring whether the |step| implementation encodes the operational property this way
 is instructive but impractical: the fold diverges whenever the input expression
 diverges.
-In abstract interpretation terms: the most precise abstraction of the collecting
-semantics is not generally decidable; this is a consequence of Rice's theorem.
-We will now fix this by introducing a finitely represented |UValue| to replace
-|Value| and recover a computable analysis.
+In abstract-interpretation terms, the \emph{collecting semantics}~\citep{adi} of the
+by-need interpreter is here the singleton set of the concrete trace, and this fold
+computes its most precise abstraction, which Rice's theorem makes undecidable.
+We recover a computable analysis by introducing a finitely represented |UValue| to
+replace |Value|.
 
 \subsection{Value Abstraction |UValue| and Summarisation in |Domain UD|}
 \label{sec:usage-value-abstraction}
@@ -423,7 +422,7 @@ thus the |step| method) of the trace type |T| being \emph{lazy} in
 the tail of the trace!
 
 When we replaced |T| in favour of the finite data type |UT| in
-\Cref{sec:usage-trace-abstraction} to get a collecting semantics |UT Value|, we got a partial interpreter.
+\Cref{sec:usage-trace-abstraction} to get |UT Value|, we got a partial interpreter.
 That was because the |step| implementation of |UT| is \emph{not} lazy, and hence
 the guarded fixpoint |let d = rhs d in body d| is not guaranteed to exist.
 
