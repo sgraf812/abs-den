@@ -96,9 +96,6 @@ improvement~\citep{MoranSands:99}.
 
 \begin{figure}
 \begin{spec}
-class Eq a => Lat a where bottom :: a; (⊔) :: a -> a -> a;
-kleeneFix :: Lat a => (a -> a) -> a; qquad lub :: Lat a => [a] -> a
-kleeneFix f = go bottom where go x = let x' = f x in if x' ⊑ x then x' else go x'
 \end{spec}
 \\[-1em]
 \begin{minipage}{0.63\textwidth}
@@ -124,13 +121,23 @@ instance Domain UD where
     d >> lub  [  f (replicate (conArity k) (MkUT emp (Rep Uω)))
               |  (k,f) <- assocs fs ]
   bind # rhs body = body (kleeneFix rhs)
+
+lub :: Lat a => [a] -> a; lub = foldr (⊔) bottom
+kleeneFix :: Lat a => (a -> a) -> a
+kleeneFix f = go bottom where
+  go x = let x' = f x in if x' ⊑ x then x' else go x'
 \end{code}
 \end{minipage}%
 \begin{minipage}{0.37\textwidth}
 \begin{code}
+class Eq a => Lat a where
+  bottom :: a
+  (⊔) :: a -> a -> a
+
 class UVec a where
   (+)  :: a -> a -> a
   (*)  :: U -> a -> a
+
 instance UVec U where {-" ... \iffalse "-}
   U1 + U1 = Uω
   u1 + u2 = u1 ⊔ u2
@@ -207,7 +214,7 @@ instance Show UValue where
 \end{code}
 %endif
 \\[-1em]
-\caption{Order theory, Kleene iteration, and summary-based usage analysis}
+\caption{Summary-based usage analysis}
 \label{fig:lat}
 \label{fig:usage-analysis}
 \end{figure}
