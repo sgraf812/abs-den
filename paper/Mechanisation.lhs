@@ -170,9 +170,9 @@ fresh'', and the syntax carries a third, lexical scoping.
   A variable's occurrence is not observable in a generic |Domain| element, so this is
   the faithful reading of ``$x$ does not occur in $d$'', and it too transports through
   |eval|.
-\item \emph{Lexical scoping}, the assumption of \Cref{sec:syntax} that all bound
-  variables are distinct, becomes a Barendregt well-scopedness predicate, which
-  supplies facts such as $x \neq y$ for a let-bound $y$.
+\item \emph{Lexical scoping}, the distinct-binders assumption of \Cref{sec:syntax},
+  becomes a Barendregt well-scopedness predicate, supplying facts such as
+  $x \neq y$ for a let-bound $y$.
 \end{itemize}
 
 \subsection{Finite Height, and Where Completeness Enters}
