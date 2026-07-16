@@ -398,28 +398,19 @@ The new definition quantifies over \emph{by-need evaluation contexts}, following
 \[\begin{array}{lcl}
   \pE ∈ \EContexts & ::= & \hole \mid \pE~\px \mid \Case{\pE}{\Sel} \mid \Let{\px}{\pe}{\pE} \mid \Let{\px}{\pE}{\pE[\px]} \\
 \end{array}\]
-In the last production, the body's demand on $\px$ forces evaluation of the
-right-hand side, corresponding to the machine's update frames.
-We encode evaluation contexts in Haskell as follows, overloading hole filling
-notation |fillC|:
-\begin{spec}
-data ECtxt  =  Hole | Apply ECtxt Name | Select ECtxt Alts
-            |  ExtendHeap Name Expr ECtxt | UpdateHeap Name ECtxt Expr
-fillC                             ::  ECtxt -> Expr -> Expr
-fillC Hole e                      =   e
-fillC (Apply ectxt x) e           =   App (fillC ectxt e) x
-fillC (Select ectxt alts) e       =   Case (fillC ectxt e) alts
-fillC (ExtendHeap x e1 ectxt) e2  =   Let x e1 (fillC ectxt e2)
-fillC (UpdateHeap x ectxt e1) e2  =   Let x (fillC ectxt e2) e1
-\end{spec}
+Hole filling $\pE[\pe]$ replaces the $\hole$ in $\pE$ with $\pe$.
+In the last production, the body is an evaluation context filled with the bound
+variable: its demand on $\px$ forces evaluation of the right-hand side,
+corresponding to the machine's update frames.
 Thanks to bisimilarity (\Cref{thm:need-adequacy-bisimulation}), the new notion is not a
 redefinition but provably equivalent to \Cref{defn:absence}:
 \begin{lemma}[Denotational absence]
   \label{thm:absence-denotational}
-  Variable |x| is used in |e| if and only if there exists a by-need evaluation context
-  |ectxt| and expression |e'| such that the trace
-  |evalNeed (fillC ectxt (Let x e' e)) emp emp| contains a |Look x| event.
-  Otherwise, |x| is absent in |e|.
+  Variable $\px$ is used in $\pe$ if and only if there exist a by-need evaluation
+  context $\pE$ and an expression $\pe'$ such that the trace
+  |evalNeed (({-" \pE[\Let{\px}{\pe'}{\pe}] "-})) emp emp| contains a
+  $\LookupT(\px)$ event.
+  Otherwise, $\px$ is absent in $\pe$.
 \end{lemma}
 
 Thus insulated from the LK machine, we may state that usage analysis
@@ -430,15 +421,17 @@ infers absence (\Cref{defn:absence}).
   Let |ρe := singenvmany y (MkUT (singenv y U1) (Rep Uω))| be the initial
   environment with an entry for every free variable |y| of an expression |e|.
   If |evalUsg e ρe = MkUT φ v| and |φ !? x = U0|,
-  then |x| is absent in |e|.
+  then $\px$ is absent in $\pe$.
 \end{theorem}
 \begin{proofsketch}
-If |x| is used in |e|, there is a trace |evalNeed (fillC ectxt (Let x e' e)) emp emp| containing a |Look x| event.
+If $\px$ is used in $\pe$, there is a trace
+|evalNeed (({-" \pE[\Let{\px}{\pe'}{\pe}] "-})) emp emp| containing a
+$\LookupT(\px)$ event.
 The abstraction function $α_{\mathcal{S}}$ induced by |UD| aggregates lookups in the
 trace into a |φ' :: Uses|, \eg
   $β_\Traces(\LookupT(i) \smallstep \LookupT(x) \smallstep \LookupT(i) \smallstep \langle ... \rangle)
     = |MkUT [ i {-" ↦ "-} Uω, x {-" ↦ "-} U1 ] (...)|$.
-Clearly |φ' !? x ⊒ U1|, because there is at least one |Look x|.
+Clearly |φ' !? x ⊒ U1|, because there is at least one $\LookupT(\px)$.
 \Cref{thm:usage-abstracts-need} and a context-invariance property prove that the computed
 |φ| approximates |φ'|, so |φ !? x ⊒ φ' !? x ⊒ U1 //= U0|.
 \end{proofsketch}
@@ -524,6 +517,19 @@ context $\pE$ and a focus expression $\pe$ such that there exists a trace
 $\init(\pE[\pe]) \smallstep^* σ$ consisting purely of search transitions,
 which is equivalent to all states in the trace except possibly the last being
 search states.
+
+We encode evaluation contexts in Haskell as follows, overloading hole filling
+notation |fillC|:
+\begin{spec}
+data ECtxt  =  Hole | Apply ECtxt Name | Select ECtxt Alts
+            |  ExtendHeap Name Expr ECtxt | UpdateHeap Name ECtxt Expr
+fillC                             ::  ECtxt -> Expr -> Expr
+fillC Hole e                      =   e
+fillC (Apply ectxt x) e           =   App (fillC ectxt e) x
+fillC (Select ectxt alts) e       =   Case (fillC ectxt e) alts
+fillC (ExtendHeap x e1 ectxt) e2  =   Let x e1 (fillC ectxt e2)
+fillC (UpdateHeap x ectxt e1) e2  =   Let x (fillC ectxt e2) e1
+\end{spec}
 
 \begin{lemma}[Used variables are free]
   \label{thm:used-free}
