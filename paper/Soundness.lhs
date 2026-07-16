@@ -426,32 +426,34 @@ It involves a single semantic artefact, the denotational interpreter, instantiat
 at |UD| and at the by-need domain; there is no separate operational semantics to
 define and keep consistent.
 
-Above all, the soundness argument needs no step-indexed logical relation over
-machine configurations, the device a conventional proof would build to relate a
-compositional analysis to a non-compositional machine.
-A step-indexed logical relation is still at work, the soundness relation behind
-\Cref{thm:abstract-by-need}, but it relates denotations rather than machine
-configurations.
-Its \emph{fundamental theorem}, that every expression is soundly abstracted, follows
-from the compositional structure of the interpreter: a structural induction on the
-expression, each case discharged by the abstraction laws of
-\Cref{fig:abstraction-laws} and a few reusable framework lemmas.
-This structure is mechanised in Lean as the fundamental lemma of the binary logical
-relation \texttt{LR2} (\Cref{sec:mechanisation}).
+The soundness proof is still substantial. But it decomposes into three layers,
+each removing one source of difficulty.
 
-This is one of two congruences in the development.
-The other, the interpreter's bisimulation with the machine (\Cref{sec:adequacy}), was proved
-once and carries no analysis; a conventional proof fuses the two into a single relation
-over machine configurations, and so must re-establish its congruence for every analysis.
+\begin{enumerate}
+\item \emph{Adequacy removes the machine.} \Cref{sec:adequacy} relates the
+  interpreter to the LK machine once, with no analysis involved. The soundness
+  proof then speaks only of the interpreter's denotations, at |UD| and at the
+  by-need domain. No machine configuration occurs in its step-indexed logical
+  relation.
+\item \emph{Lining up the definitions removes the interpreter.} Analysis and
+  semantics are the same interpreter, so the two instances line up. One structural
+  induction over the expression proves \Cref{thm:abstract-by-need}, each case
+  discharged by an abstraction law. The proof then reasons about domain elements,
+  how |UD| abstracts a by-need denotation, and no longer about the interpreter's
+  definition.
+\item \emph{The abstraction laws remove the by-need domain.} What is left is to
+  prove those laws (\Cref{fig:abstraction-laws}). They mention neither the by-need
+  domain nor its Galois connection. Yet they cover every case.
+\end{enumerate}
 
-The most substantial of these laws, \textsc{App-Fun}, has a \emph{modular} proof
-by parametricity whose complexity is constant in the size of the interpreter.
-The fundamental theorem, by contrast, is proved by a direct structural induction over
-the syntax, discharging one case per syntactic form with the matching law; this
-traversal is linear in the number of syntactic forms and amenable to a tactic.
-What is modular is its \emph{use}: to prove a new analysis sound, one discharges the
-abstraction laws alone, and \Cref{thm:abstract-by-need} bundles them into an instance of
-the logical relation before invoking the fundamental theorem.
+This decomposition is what we value. A conventional proof relates analysis and
+machine with a single step-indexed logical relation over machine configurations,
+and rebuilds it for every analysis. Our two reusable pieces, the machine
+bisimulation and the structural induction, are analysis-free instead. A new
+analysis reuses both and supplies only the abstraction laws, though we have not yet
+taken advantage of this. Even the hardest law, \textsc{App-Fun}, has a
+\emph{modular} proof by parametricity whose size does not grow with the interpreter.
+The structural induction is mechanised in Lean (\Cref{sec:mechanisation}).
 
 \begin{toappendix}
 In the proof for \Cref{thm:usage-absence} we exploit that usage analysis is
