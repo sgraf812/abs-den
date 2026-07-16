@@ -107,6 +107,11 @@ We will instantiate this statement at |UD| in order to prove that usage analysis
 |evalUsg e ρ = evalD UD e ρ| infers absence.
 The complicated step-indexed heap reasoning is confined to the reusable abstract
 interpretation theorem, so the analysis-specific part of the proof stays small.
+We first present the reusable theorem (\Cref{sec:soundness-theorem}), then prove
+its hardest law for |UD| (\Cref{sec:mod-subst}), and finally derive absence
+(\Cref{sec:usage-sound}).
+\Cref{sec:decomposed-proof} reflects on the resulting proof architecture, and
+\Cref{sec:scope-limitations} delineates its scope.
 
 \begin{figure}
   \belowdisplayskip=0pt
@@ -156,6 +161,7 @@ interpretation theorem, so the analysis-specific part of the proof stays small.
 \end{figure}
 
 \subsection{A Reusable Abstract By-Need Interpretation Theorem}
+\label{sec:soundness-theorem}
 
 In this subsection, we explain \Cref{thm:abstract-by-need} for
 abstract by-need interpretation, the reusable fundamental theorem promised in
@@ -695,6 +701,7 @@ By induction on the size of |ectxt| and cases on |ectxt|:
 \end{toappendix}
 
 \subsection{Scope and Limitations}
+\label{sec:scope-limitations}
 
 The decomposition just described keeps the soundness proof manageable, but we have
 exercised it on a single analysis. Whether its advantages carry over to a range of
