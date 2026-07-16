@@ -256,7 +256,7 @@ These operations lift to |Uses| pointwise, \eg,
 Exploring whether the |step| implementation encodes the operational property this way
 is instructive but impractical: the fold diverges whenever the input expression
 diverges.
-In abstract-interpretation terms, the \emph{collecting semantics}~\citep{adi} of the
+In abstract-interpretation terms, the \emph{collecting semantics}~\citep{Cousot:21} of the
 interpreter is here the singleton set of the concrete trace, and this fold
 computes its most precise abstraction, which Rice's theorem makes undecidable.
 We recover a computable analysis by introducing a finitely represented |UValue| to
