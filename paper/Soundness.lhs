@@ -438,11 +438,11 @@ difficulty.
   reasons about domain elements,
   how |UD| abstracts a by-need denotation, and no longer about the interpreter's
   definition.
-\item \emph{The abstraction laws remove the by-need domain.} What is left is to
-  prove those laws (\Cref{fig:abstraction-laws}). They mention neither the by-need
-  domain nor its Galois connection, so the reasoning stays entirely in the
-  analysis's own semantic domain, which is what the author of an analysis prefers
-  to think in.
+\item \emph{The abstraction laws remove the by-need domain and its step-indexing.}
+  What is left is to prove those laws (\Cref{fig:abstraction-laws}). They say
+  nothing of the by-need domain, its step-indexing, or its Galois connection, so the
+  reasoning stays entirely in the analysis's own semantic domain, which is what the
+  author of an analysis prefers to think in.
 \end{enumerate}
 
 The advantage of this decomposition is that the proof stays intellectually
@@ -691,6 +691,9 @@ By induction on the size of |ectxt| and cases on |ectxt|:
 \subsection{Scope and Limitations}
 
 The framework's reach has limits worth stating plainly.
+The decomposition just described keeps the soundness proof manageable, but we have
+exercised it on a single analysis; whether its advantages carry over to a range of
+analyses is so far a claim, not a result.
 We expect few analyses beyond usage analysis to satisfy the abstraction laws of
 \Cref{fig:abstraction-laws} unchanged, and a different source language may call for a
 different domain; a different set of sufficient laws would still reuse
