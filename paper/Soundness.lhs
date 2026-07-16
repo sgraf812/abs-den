@@ -448,14 +448,16 @@ each removing one source of difficulty.
   to think in.
 \end{enumerate}
 
-This decomposition is what we value. A conventional proof relates analysis and
-machine with a single step-indexed logical relation over machine configurations,
-and rebuilds it for every analysis. Our two reusable pieces, the machine
-bisimulation and the structural induction, are analysis-free instead. A new
-analysis reuses both and supplies only the abstraction laws, though we have not yet
-taken advantage of this. Even the hardest law, \textsc{App-Fun}, has a
-\emph{modular} proof by parametricity whose size does not grow with the interpreter.
-The structural induction is mechanised in Lean (\Cref{sec:mechanisation}).
+The advantage of this decomposition is that the proof stays intellectually
+manageable, because each layer isolates one difficulty. A conventional proof, by
+contrast, relates analysis and machine in a single step-indexed logical relation
+over machine configurations, the creative core of the argument, whose difficulty
+grows with both the semantics and the analysis. Here the first two layers handle the
+machine and the interpreter without reference to the analysis, and the
+analysis-specific work is confined to the abstraction laws of the third. Even the
+hardest law, \textsc{App-Fun}, has a \emph{modular} proof by parametricity whose size
+does not grow with the interpreter. The structural induction is mechanised in Lean
+(\Cref{sec:mechanisation}).
 
 \begin{toappendix}
 In the proof for \Cref{thm:usage-absence} we exploit that usage analysis is
