@@ -109,8 +109,8 @@ The mechanisation reads the soundness statement of \Cref{sec:soundness} as a
 step-indexed logical relation and builds it directly: a binary relation \texttt{LR2},
 parameterised over the ambient step-indexed logic, relating one expression evaluated in
 two |Domain| instances.
-Its fields are the abstraction laws of \Cref{fig:abstraction-laws}, one per
-combinator.
+Its fields are the relation itself and one closure condition per combinator,
+stating that the relation is preserved by that combinator.
 Its fundamental lemma, that the relation holds of |eval|~$e$ in related environments
 for every $e$, is proved once by induction on $e$, each case discharged by the matching
 field.
@@ -129,7 +129,7 @@ field.
 \node[L]     (usg)  at (0,-8) {\texttt{UDk}~$k$\\[1pt] \scriptsize usage analysis};
 \draw[->]        (syn)  -- node[lbl]{\texttt{LR2.fundamental}\\ induction on $e$} (lr);
 \draw[->]        (lr)   -- node[lbl]{instantiate\\ Löb; heap invariant} (bn);
-\draw[->]        (bn)   -- node[lbl]{\texttt{byNeed\_sound}} (laws);
+\draw[->]        (bn)   -- node[lbl]{\texttt{soundLR2}} (laws);
 \draw[->]        (laws) -- node[lbl]{\texttt{usageAbstractionLaws}} (usg);
 \node[side] (adeq) at (5.1,0)  {adequacy\\[1pt] \scriptsize \texttt{need\_abstracts\_lk}};
 \node[side] (prod) at (5.1,-2) {productivity\\[1pt] \scriptsize over \texttt{SiProp}};
@@ -140,7 +140,7 @@ field.
 suffices to prove that''. Each edge is a reusable lemma that discharges one concern and
 leaves a simpler obligation below it: \texttt{LR2.fundamental} removes syntax by
 induction on $e$; the by-need instantiation removes heap and step-index bookkeeping by
-Löb induction; \texttt{byNeed\_sound} reduces the relation to the per-combinator
+Löb induction; \texttt{soundLR2} reduces the relation to the per-combinator
 \texttt{AbstractionLaws}; and usage analysis discharges those laws. A new analysis
 supplies only the bottom edge. Productivity is a second lemma off the same \texttt{LR2},
 and adequacy (\Cref{thm:need-adequacy-bisimulation}) relates |eval|'s trace to the LK
@@ -162,7 +162,9 @@ bound $dh$: a returned value $v$ must satisfy \texttt{SoundVal}~$dh~v$ and re-es
 only descends under a $\later$.
 The single inequality of \Cref{thm:abstract-by-need} becomes this guarded
 relation.
-The fundamental lemma yields \texttt{byNeed\_sound} (\Cref{thm:abstract-by-need}), and
+\texttt{soundLR2} builds this \texttt{LR2} instance from the abstraction laws of
+\Cref{fig:abstraction-laws}, discharging each closure field against them.
+The fundamental lemma then yields \texttt{byNeed\_sound} (\Cref{thm:abstract-by-need}), and
 at the usage lattice \texttt{UDk}~$k$ (\Cref{sec:mech-finite}) the abstraction laws
 hold, giving \texttt{usage\_abstracts\_need} (\Cref{thm:usage-abstracts-need}).
 Read at the empty heap, this step-indexed statement collapses to the |Prop|-level
