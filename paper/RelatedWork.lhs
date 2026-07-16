@@ -223,10 +223,14 @@ to $\infty$-CFA for arbitrary complete lattices and outperform 2-CFA in both
 precision and speed.
 Summary-based analyses scale better because a function is analysed once and its
 summary reused at every call site.
-They can also be more precise: $k$-CFA conflates the recursive activations of an
-inner binding once the recursion exceeds depth $k$ and thus reports it as used
-many times, whereas |evalUsg| reuses the binding's summary at every activation
-and infers use at most once.
+To illustrate why they can also be more precise, consider the Haskell expression
+
+< let f n = let i y = y in if n == 0 then 0 else i (f (n-1) + 1) in f 42{-"."-}
+
+It is evident that |i| is evaluated at most once, and |evalUsg| infers this fact
+for the respective subexpression.
+$k$-CFA (for $k < 42$), by contrast, conflates the recursive activations of |i|
+and reports |i| as used many times.
 
 %Given a semantic description of abstract values, it is likely
 %that the implementation of |Domain| can be synthesised using the approach of
