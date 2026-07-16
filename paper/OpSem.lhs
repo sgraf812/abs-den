@@ -10,7 +10,7 @@ account against a reference operational semantics, proving that
 \footnote{Similar results for |evalName| should be derivative.}
 is a faithful \emph{denotational semantics}: \emph{total} (well-defined for every
 input) and \emph{adequate} (faithful to the reference's termination behaviour).
-Our reference is the lazy Krivine (LK) machine, and adequacy takes the strong form
+Our reference is the lazy Krivine machine, and adequacy takes the strong form
 of a \emph{bisimulation} between the interpreter's traces and the machine's runs.
 To our knowledge, |evalNeed2| is the first denotational call-by-need semantics
 with such a bisimulation proof, which lets us move freely between machine and
@@ -205,7 +205,7 @@ memoisation example of \Cref{sec:walkthrough-need}:
 
 For proving |evalNeed2| bisimilar to the Lazy Krivine machine
 (\Cref{fig:lk-semantics}), we give an abstraction function $α_{\STraces}$
-from LK machine traces $\STraces$ to denotational traces |T|, with their |Event|s, such that
+(\Cref{fig:eval-correctness}) from LK machine traces $\STraces$ to denotational traces |T|, with their |Event|s, such that
 \[
   α_{\STraces}(\init(\pe) \smallstep ..., \StopF) = |evalNeed e emp emp|,
 \]
