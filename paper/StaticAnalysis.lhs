@@ -40,21 +40,17 @@ interpreter on the program statically, at compile time, to yield a \emph{finite}
 abstraction of the dynamic behaviour.
 This gives us a \emph{static program analysis}.
 
-%To show the applicability of our framework, \Cref{sec:more-analyses} briefly
-%discusses other successful realisations of analyses such as boxity
-%analysis~\citep{Henglein:94}, \citeauthor{Milner:78}'s ML-style type inference,
-%0CFA control-flow analysis and GHC's Demand Analysis as denotational
-%interpreters.
-
-A wide range of static analyses arises by choosing appropriate semantic domains.
-This paper develops one of them, usage analysis, and proves in
-\Cref{sec:soundness} that it correctly infers absence.
-The same framework accommodates analyses well beyond usage analysis: a type
+This section develops \emph{usage analysis}, and \Cref{sec:soundness} proves that it
+correctly infers absence. The same recipe accommodates analyses well beyond it: a type
 analysis in the style of \citeauthor{Milner:78}'s Algorithm~J, 0CFA control-flow
-analysis~\citep{Shivers:91}, and GHC's \emph{Demand Analysis}, the production
-strictness and cardinality analysis of \citet{Sergey:14}. We develop these only
-in the extended draft version of this paper and leave the correctness proof of
-Demand Analysis for future work.
+analysis~\citep{Shivers:91}, and GHC's \emph{Demand Analysis}~\citep{Sergey:14}. The
+extended version develops these, leaving the correctness of Demand Analysis to future
+work.
+
+We build usage analysis in three steps: abstracting the trace to the finite |UT|
+(\Cref{sec:usage-trace-abstraction}), abstracting the value into a finite summary
+(\Cref{sec:usage-value-abstraction}), and choosing a terminating fixpoint
+(\Cref{sec:usage-fixpoint}).
 
 \subsection{Usage Cardinality and Absence}
 
@@ -229,16 +225,6 @@ and a finite map |φ :: Uses|, mapping variables to a \emph{usage} |U|.
 The usage |φ !? x| assigned to |x| is meant to approximate the number of |Look x|
 events; |U0| means ``at most 0 times'', |U1| means ``at most 1 time'',
 and |Uω| means ``an unknown number of times''.
-%\slpj{This |φ !? x| is strange. Why bang questionmark? Later... ah, now I see
-%that it's just the lookup operation, but I thought it was strange new math
-%notation. I'd write |lookupUsage φ x|.}
-%\sg{I'm inlinced to keep it. Here are my reasons:
-%    |lookupUsage| would still not tell you how it is defined;
-%    you would still need to search for it. Searching for !? is no harder.
-%    Besides, space is precious, and !? is used *a lot* in the proofs of the
-%    Appendix.
-%    It is also the natural operator, given that we use the standard operator
-%    (!) for env lookup.}
 In this way, |UT| is an \emph{abstraction} of |T|: it squashes all |Look x|
 events into a single entry |φ !? x :: U| and discards all other events.
 
@@ -254,23 +240,13 @@ The |step| implementation increments the usage of |x| whenever a |Look x|
 event occurs.
 The addition operation used to carry out incrementation is defined in type class
 instances |UVec U| and |UVec Uses|, together with scalar multiplication.
-%\footnote{We think that |UVec| models |U|-modules. It is not a vector
-%space because |U| lacks inverses, but the intuition is close enough.}
 For example, |U0 + u = u| and |U1 + U1 = Uω| in |U|, as well as |U0 * u = U0|,
 |Uω * U1 = Uω|.
 These operations lift to |Uses| pointwise, \eg,
 |[i ↦ U1] + (Uω * [j ↦ U1]) = [i ↦ U1, j ↦ Uω]|.
 
-%Abstracting |T| into |UT| but keeping the concrete semantic |Value| definition
-%amounts to what \citet{adi} call a \emph{collecting semantics}.
-%To recover such an analysis-specific collecting semantics,
-%it is sufficient to define a |Monad| instance on |UT| mirroring trace
-%concatenation and then running our interpreter at, \eg $|UT Value| \cong
-%|UT (Value UT)|$ on expression $\pe$ from earlier:
-%\[
-%  |eval (({-"\Let{i}{\Lam{x}{x}}{\Let{j}{\Lam{y}{y}}{i~j~j}}"-})) emp| = \perform{eval (read "let i = λx.x in let j = λy.y in i j j") emp :: UT Value}| :: UT Value|.
-%\]
-%\noindent
+Abstracting |T| to |UT| but keeping the concrete |Value| yields what \citet{adi}
+call a \emph{collecting semantics}.
 Exploring whether the |step| implementation encodes the operational property this way
 is instructive but impractical: the fold diverges whenever the input expression
 diverges.
@@ -280,6 +256,7 @@ We will now fix this by introducing a finitely represented |UValue| to replace
 |Value| and recover a computable analysis.
 
 \subsection{Value Abstraction |UValue| and Summarisation in |Domain UD|}
+\label{sec:usage-value-abstraction}
 
 We complement the trace type |UT| with an abstract value type |UValue|
 to get the finitely represented semantic domain |UD = UT UValue| in
@@ -309,14 +286,6 @@ that |Rep u| and |UCons u (Rep u)| denote the same |UValue|; the |Eq| and |Lat|
 instances and every operation on |UValue| respect this identity.
 Absence is the special case: a variable is absent exactly when its usage is |U0|.
 A stuck expression evaluates nothing, denoted by |bottom = MkUT emp (Rep U0)|.
-%\slpj{Why generalise? It makes it a bit more complicated, and more importantly
-%different, than Section 2.}
-%\sg{The main reason (a year back) was to prove that we correctly approximate
-%|U1| usages, which would not be possible in previous denotational semantics.
-%Indeed, \Cref{thm:usage-abstracts-need-closed} proves that we do so successfully.
-%But nowadays, Sec 2 proves against a small-step semantics, where the difference
-%probably does not matter too much.
-%Either way, I'm a bit hesitant to change it this close to submission.}
 
 We start with the smallest example,
 $\Let{i}{\Lam{x}{x}}{i~i}$, the very program whose by-name trace we followed in
