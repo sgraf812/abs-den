@@ -248,8 +248,8 @@ with evaluation,
   α_{\STraces}(σ \smallstep ..., κ) = |evalNeed e (αEnv ρ μ) (αHeap μ)|,
 \]
 and \Cref{thm:need-adequacy-bisimulation} is the case $σ = \init(\pe)$.
-In this form, adequacy is the congruence of the interpreter with the machine, modulo
-reduction; it involves no analysis.
+In this form, adequacy is the congruence of the interpreter with the machine; it
+involves no analysis.
 A conventional soundness proof instead relates the machine to the analysis directly,
 threading the analysis through a logical relation over configurations, so establishing
 its congruence is laborious and re-established for each analysis.
