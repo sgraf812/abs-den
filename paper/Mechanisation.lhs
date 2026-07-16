@@ -93,8 +93,12 @@ Every self-reference thus sits beneath a $\later$, which makes the signatures
 contractive.
 Löb induction, the induction principle of $\later$, closes the guarded fixpoints.
 
-A trace carries visible events, |Step|, and silent steps, |Invis|; the productivity
-result below concerns runs of the latter.
+A trace carries visible events, |Step|, and silent steps, |Invis|.
+The silent steps reconcile the guarded values with the $\later$-free |Domain|
+interface: the payload of a |Fun| sits under a $\later$, so |apply| can produce
+the application's trace only one step later, and since |eval| emits every
+machine event itself, the step consuming the guard must not claim an |Event|.
+The productivity result below bounds runs of silent steps.
 Two step-indexed logics appear.
 Productivity and adequacy use \texttt{SiProp}, the pure step-indexed propositions.
 By-need soundness uses \texttt{UPred} over a ghost-heap \emph{camera}~\citep{Jung:18}: a heap invariant
