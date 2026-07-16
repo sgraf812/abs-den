@@ -437,13 +437,15 @@ each removing one source of difficulty.
   relation.
 \item \emph{Lining up the definitions removes the interpreter.} Analysis and
   semantics are the same interpreter, so the two instances line up. One structural
-  induction over the expression proves \Cref{thm:abstract-by-need}, each case
-  discharged by an abstraction law. The proof then reasons about domain elements,
+  induction over the expression proves \Cref{thm:abstract-by-need}. The proof then
+  reasons about domain elements,
   how |UD| abstracts a by-need denotation, and no longer about the interpreter's
   definition.
 \item \emph{The abstraction laws remove the by-need domain.} What is left is to
   prove those laws (\Cref{fig:abstraction-laws}). They mention neither the by-need
-  domain nor its Galois connection. Yet they cover every case.
+  domain nor its Galois connection, so the reasoning stays entirely in the
+  analysis's own semantic domain, which is what the author of an analysis prefers
+  to think in.
 \end{enumerate}
 
 This decomposition is what we value. A conventional proof relates analysis and
