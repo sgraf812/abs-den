@@ -18,17 +18,6 @@ and makes precise what the paper leaves informal: the Later modality
 the abstraction laws (\Cref{sec:mech-side}), and the finite height of the
 abstract domain (\Cref{sec:mech-finite}).
 
-Iris' model is the category of \emph{ordered families of equivalences} (OFEs) and
-\emph{non-expansive maps}. Working inside it changes |eval| only in its arrows: the
-function arrow of \Cref{fig:eval} becomes the non-expansive \texttt{-n>}, so the OFE
-structure carries the step-indexing that guarded recursion needs. At a discrete OFE
-every map is non-expansive, so this refinement is provably equivalent to the direct
-translation of \Cref{fig:eval} (\texttt{evalConst\_eq\_eval}).
-The soundness argument reduces to a single parameterised binary logical relation, and
-its fundamental lemma is proved once, by induction on the expression.
-The by-need interpreter still runs, so the traces we computed by hand in
-\Cref{sec:interp} are machine-checked.
-
 The end product of the mechanisation is \texttt{absence}: a
 variable that usage analysis reports unused is never looked up during by-need
 evaluation. Its Lean statement is
@@ -65,6 +54,11 @@ These are ordinary |Prop|s over the by-need semantics; the logical relation of
 \label{fig:lean-eval}
 \end{figure}
 
+Iris' model is the category of \emph{ordered families of equivalences} (OFEs) and
+\emph{non-expansive maps}.
+Working inside it changes |eval| only in its arrows: the function arrow of
+\Cref{fig:eval} becomes the non-expansive \texttt{-n>}, so the OFE structure carries
+the step-indexing that guarded recursion needs.
 \Cref{fig:lean-eval} shows the mechanised |eval|.
 It is a non-expansive map from environments to the semantic domain, polymorphic over
 any |d| that is an OFE with the operations of the |Domain| class, and it follows the
@@ -75,6 +69,8 @@ An \texttt{ofe\_fun} carries a non-expansiveness obligation, which for |eval| a
 purpose-built tactic (\texttt{ne\_solve}) discharges.
 Because |eval| is non-expansive, the closures it passes to |fun| and |bind| are
 non-expansive by construction, and no step index is manipulated by hand.
+At a discrete OFE every map is non-expansive, so this refinement is provably
+equivalent to the direct translation of \Cref{fig:eval} (\texttt{evalConst\_eq\_eval}).
 The definition of |eval| needs only an OFE, not a complete one; completeness enters
 when we construct a concrete domain such as |DNeed| to run it in.
 
@@ -138,8 +134,9 @@ The statements of the section opener then follow in four steps:
 \item \texttt{usageAbstractionLaws} proves the laws at the usage lattice
   \texttt{UDk}~$k$ (\Cref{sec:mech-finite}), giving \texttt{usage\_abstracts\_need}
   (\Cref{thm:usage-abstracts-need}).
-\item Read at the empty heap, the step-indexed statement collapses to the |Prop|-level
-  \texttt{usage\_approximates\_need} and \texttt{absence}.
+\item Read at the empty heap, the step-indexed statement collapses to
+  \texttt{usage\_approximates\_need} and \texttt{absence}, the |Prop|-level statements
+  of the section opener.
 \end{enumerate}
 
 Productivity, over \texttt{SiProp}, states that no two silent steps occur in a row.
