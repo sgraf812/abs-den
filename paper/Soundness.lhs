@@ -436,7 +436,6 @@ trace into a |φ' :: Uses|, \eg
 Clearly |φ' !? x ⊒ U1|, because there is at least one |Look x|.
 \Cref{thm:usage-abstracts-need} and a context-invariance property prove that the computed
 |φ| approximates |φ'|, so |φ !? x ⊒ φ' !? x ⊒ U1 //= U0|.
-This is mechanised in Lean as \texttt{absence} (\Cref{sec:mechanisation}).
 \end{proofsketch}
 
 We have therefore proved that usage analysis correctly infers the semantic property

@@ -28,7 +28,7 @@ its \emph{fundamental lemma} is proved once, by induction on the expression.
 The by-need interpreter still runs, so the traces we computed by hand in
 \Cref{sec:interp} are machine-checked.
 
-The end product of the mechanisation is \Cref{thm:usage-absence}, \emph{absence}: a
+The end product of the mechanisation is \texttt{absence}: a
 variable that usage analysis reports unused is never looked up during by-need
 evaluation. Its Lean statement is
 
