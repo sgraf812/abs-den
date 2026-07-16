@@ -341,7 +341,7 @@ Step~(\ref{eqn:usg-ex4}) reduces |bind|: the binding is non-recursive, so its
 |kleeneFix| (treated in full in \Cref{sec:usage-fixpoint}) stabilises after a single
 iteration and hands |di| to the body.
 
-Step~(\ref{eqn:usg-ex5}) computes the application, where the summary earns its keep.
+Step~(\ref{eqn:usg-ex5}) computes the application, where |apply| consumes $i$'s summary.
 Each |step (Look "i") di| adds one use of $i$ to its summary, giving
 |MkUT (singenv "i" U1) (UCons U1 (Rep Uω))|.
 Then |apply| views the |UValue| through |peel| as a head usage and a tail (recall

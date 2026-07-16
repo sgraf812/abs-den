@@ -296,9 +296,8 @@ Here we give the usage analysis proofs for the main body, often deferring to
 
 In order to instantiate \Cref{thm:abstract-by-need} for usage analysis in
 \Cref{sec:usage-sound}, we need to prove in particular that |UD| satisfies the
-abstraction law \textsc{App-Fun} in \Cref{fig:abstraction-laws}.
-\textsc{App-Fun} is where the correctness of the summary mechanism lives, so it
-is worth dwelling on how to prove it.
+abstraction law \textsc{App-Fun} in \Cref{fig:abstraction-laws}, and hence that
+its summary mechanism is correct.
 
 A direct proof would unfold the complete definition of the interpreter and reason
 about each case, so its complexity scales with the size of the interpreter and it
@@ -696,7 +695,6 @@ By induction on the size of |ectxt| and cases on |ectxt|:
 
 \subsection{Scope and Limitations}
 
-The framework's reach has limits worth stating plainly.
 The decomposition just described keeps the soundness proof manageable, but we have
 exercised it on a single analysis. Whether its advantages carry over to a range of
 analyses is so far a claim, not a result.
