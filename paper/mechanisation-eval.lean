@@ -1,4 +1,4 @@
-def eval : Exp → (Env d -n> d)
+def eval {d : Type} [OFE d] [Domain d] : Exp → (Env d -n> d)
   | .ref x => ofe_fun ρ => (ρ.get x).getD stuck
   | .lam x body => ofe_fun ρ => fn x (ofe_fun a => step .app2 (eval body ρ[x ↦ a]))
   | .app e x => ofe_fun ρ => (ρ.get x).elim stuck (fun a => step .app1 (apply (eval e ρ) a))
