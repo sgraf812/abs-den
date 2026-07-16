@@ -176,20 +176,6 @@ the \emph{abstraction laws} in \Cref{fig:abstraction-laws} by name:
 In other words: prove the abstraction laws for an abstract domain |hat D| of
 your choosing (such as |UD|) and we give you a proof of sound abstract by-need
 interpretation for the static analysis |evalD2 (hat D)|!
-
-This statement can be read in three ways, each rooted in a different tradition.
-It is a \emph{sound abstract interpretation}~\citep{Cousot:77}: the analysis
-over-approximates the best abstraction of the concrete semantics.
-It is a \emph{step-indexed logical relation}~\citep{AppelMcAllester:01} between the
-concrete and abstract denotations, indexed by the length of the trace prefix under
-consideration.
-The object language is untyped, yet this is a genuine logical relation,
-with Löb induction on the step index in the role that induction on type structure
-ordinarily plays.
-And it is a \emph{preservation} proof~\citep{WrightFelleisen:94}, following one reduction
-step and showing the abstraction bound is maintained.
-The three are one and the same obligation.
-
 Note that \emph{we} get to determine the abstraction function $α_{\mathcal{S}}$ based
 on the |Domain| and |Lat| instances on \emph{your} |hat D|.
 \Cref{fig:abstract-name-need} defines how $α_{\mathcal{S}}$ is thus derived.
@@ -249,9 +235,20 @@ that is,
 \]
 \end{theorem}
 \noindent
-The proof is given in the extended version.
-In Lean, this theorem is mechanised as |byNeed_sound| (\Cref{sec:mechanisation}), the
-fundamental lemma of the by-need logical relation.
+This statement can be read in three ways, each rooted in a different tradition.
+It is a \emph{sound abstract interpretation}~\citep{Cousot:77}: the analysis
+over-approximates the best abstraction of the concrete semantics.
+It is a \emph{step-indexed logical relation}~\citep{AppelMcAllester:01} between the
+concrete and abstract denotations, indexed by the length of the trace prefix under
+consideration.
+The object language is untyped, yet this is a genuine logical relation,
+with Löb induction on the step index in the role that induction on type structure
+ordinarily plays.
+And it is a \emph{preservation} proof~\citep{WrightFelleisen:94}, following one reduction
+step and showing the abstraction bound is maintained.
+The three are one and the same obligation.
+This theorem is mechanised in Lean~4 as \texttt{byNeed\_sound}
+(\Cref{sec:mechanisation}), the fundamental lemma of the by-need logical relation.
 
 Let us unpack law $\textsc{App-Fun}$ to see how the abstraction laws in
 \Cref{fig:abstraction-laws} are to be understood.
@@ -381,7 +378,7 @@ Then $α_{\mathcal{S}}(|evalNeed1 e|) ⊑ |evalUsg1 e|$.
 Its proof discharges the premises of \Cref{thm:abstract-by-need}: \textsc{App-Fun}
 is \Cref{thm:usage-subst-sem}, and the remaining abstraction laws for |UD| follow
 by routine calculation.
-The corollary is mechanised in Lean as |usage_abstracts_need|
+The corollary is mechanised in Lean as \texttt{usage\_abstracts\_need}
 (\Cref{sec:mechanisation}).
 
 The next step is to leave behind the definition of absence in terms of the LK
@@ -422,7 +419,7 @@ trace into a |φ' :: Uses|, \eg
 Clearly |φ' !? x ⊒ U1|, because there is at least one |Look x|.
 \Cref{thm:usage-abstracts-need} and a context-invariance property prove that the computed
 |φ| approximates |φ'|, so |φ !? x ⊒ φ' !? x ⊒ U1 //= U0|.
-This is mechanised in Lean as |absence| (\Cref{sec:mechanisation}).
+This is mechanised in Lean as \texttt{absence} (\Cref{sec:mechanisation}).
 \end{proofsketch}
 
 We have therefore proved that usage analysis correctly infers the semantic property
