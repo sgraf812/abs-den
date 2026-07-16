@@ -127,17 +127,18 @@ bound $dh$: a returned value $v$ must satisfy \texttt{SoundVal}~$dh~v$ and re-es
 \texttt{HeapInv}; a visible event requires an abstract |step| below $dh$; a silent step
 only descends under a $\later$.
 The single inequality of \Cref{thm:abstract-by-need} becomes this guarded
-relation, and its proof composes two reusable pieces:
-\[
-  \texttt{AbstractionLaws}~V
-  \xrightarrow{\ \texttt{soundLR2}\ }
-  \texttt{LR2}~(\texttt{NeedProp}~V)
-  \xrightarrow{\ \texttt{LR2.fundamental}\ }
-  \text{soundness of } |eval| \text{, for every } e.
-\]
+relation.
+The mechanised results compose:
+\[\begin{array}{rl}
+  & \texttt{AbstractionLaws}~V \\
+  \xrightarrow{\ \texttt{soundLR2}\ } & \texttt{LR2}~(\texttt{NeedProp}~V) \\
+  \xrightarrow{\ \texttt{LR2.fundamental}\ } & \text{soundness of } |eval| \text{, for every } e \\
+  \xrightarrow{\ \texttt{need\_abstracts\_lk}\ } & \text{the same bound on the LK trace}
+\end{array}\]
 \texttt{soundLR2} builds the \texttt{LR2} instance from the abstraction laws of
 \Cref{fig:abstraction-laws}, discharging each closure field against them by Löb
-induction under the heap invariant; the composite is \texttt{byNeed\_sound}.
+induction under the heap invariant; the composite of the first two arrows is
+\texttt{byNeed\_sound}.
 At the usage lattice \texttt{UDk}~$k$ (\Cref{sec:mech-finite}),
 \texttt{usageAbstractionLaws} proves the laws, giving \texttt{usage\_abstracts\_need}
 (\Cref{thm:usage-abstracts-need}); a new analysis supplies only this input.
@@ -148,8 +149,8 @@ Productivity, over \texttt{SiProp}, states that no two silent steps occur in a r
 It is what makes the interpreter total (\Cref{thm:totality}), so the fuel-bounded
 observation of \Cref{sec:mech-exec} always reaches the next event.
 Adequacy against the LK machine (\Cref{thm:need-adequacy-bisimulation}, mechanised as
-\texttt{need\_abstracts\_lk}) is proved separately, by Löb induction relating the
-by-need trace to the machine.
+\texttt{need\_abstracts\_lk}) supplies the final arrow; it is proved separately, by Löb
+induction relating the by-need trace to the machine.
 
 \subsection{The Side Conditions, Made Precise}
 \label{sec:mech-side}
