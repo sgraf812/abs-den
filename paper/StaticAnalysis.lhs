@@ -119,7 +119,7 @@ instance Domain UD where
               |  (k,f) <- assocs fs ]
   bind # rhs body = body (kleeneFix rhs)
 \end{code}
-\vspace{-1.5\baselineskip}
+\vspace{-1.25\baselineskip}
 \begin{spec}
 lub :: Lat a => [a] -> a; lub = foldr (⊔) bottom
 kleeneFix :: Lat a => (a -> a) -> a
@@ -133,7 +133,7 @@ class Eq a => Lat a where
   bottom :: a
   (⊔) :: a -> a -> a
 \end{spec}
-\vspace{-1.5\baselineskip}
+\vspace{-1.25\baselineskip}
 \begin{code}
 class UVec a where
   (+)  :: a -> a -> a
