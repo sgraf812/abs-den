@@ -27,11 +27,11 @@ numbers refer to the revised paper.
    guarded-recursive interpreter **remains executable**: the example traces and
    analysis results in the paper are `#guard`-checked during the build.
 
-2. **The main body is focused on one worked analysis.** The gentle
+2. **The paper is focused on one worked analysis.** The gentle
    absence-analysis introduction ("The Problem We Solve"), the Hindley-Milner
-   type analysis, the 0CFA control-flow analysis, and GHC's Demand Analysis now
-   live in the extended version. The main body develops usage analysis
-   end to end.
+   type analysis, the 0CFA control-flow analysis, and GHC's Demand Analysis have
+   been removed. The paper develops usage analysis end to end and has no
+   appendix.
 
 3. **Generality claims are scaled back**, and a dedicated *Scope and
    Limitations* subsection (Section 5.5) states which analyses the
@@ -68,7 +68,7 @@ understood before the stateful by-need domain; see our reply to Referee 3.
 > Better positioning w.r.t. analyses beyond those considered; clarify the type
 > analysis and 0CFA, or scale back the claimed generality.
 
-Both. The extra analyses moved to the extended version, and Section 5.5 scales
+Both. The extra analyses were removed, and Section 5.5 scales
 the generality claim back to a design pattern for summary-based analyses rather
 than a universal method.
 
@@ -108,7 +108,7 @@ Lean artifacts; a new analysis supplies only its abstraction laws.
 
 > The typing analysis is too sketchy; leave it out or rewrite it.
 
-Left out of the main body (now in the extended version).
+Left out, as suggested.
 
 > The paper cannot claim a general methodology while focusing on functional
 > languages.
@@ -118,7 +118,7 @@ paradigms sharing higher-order mutable state.
 
 > Section 2 (the simpler absence analysis) is not useful; consider removing it.
 
-Moved to the extended version. The main body develops usage analysis directly.
+Removed. The paper develops usage analysis directly.
 
 > Focus the article on usage analysis and develop it in detail.
 
@@ -134,21 +134,22 @@ discharged for every closure the interpreter produces (Section 6.4), and the
 remaining laws follow by routine calculation (Section 5.3). App-Fun (formerly
 Beta-App) is still the one law whose pen-and-paper proof we walk through,
 because it carries the summary mechanism (Section 5.2). One step of Theorem 10
-remains pen-and-paper: the passage from the machine-checked per-variable bound
+remains a proof sketch: the passage from the machine-checked per-variable bound
 to absence in every by-need evaluation context (the contexts are now defined in
 Section 5.3); Section 6 states precisely which statements are machine-checked.
 
 > Reconsider the appendices; some explanatory material (e.g. Appendix E) belongs
 > in the main text.
 
-The revised version has no appendix at all (the extended version keeps the
-case-analysis proofs). Explanatory material moved into the body: the
-abstraction-laws narrative (Section 5.1), the by-need evaluation contexts
-(Section 5.3), and the proof-architecture discussion (Sections 5.4 and 6.3).
+The revised version has no appendix at all; the mechanisation replaces the
+pen-and-paper case analyses (Section 6). Explanatory material moved into the
+body: the abstraction-laws narrative (Section 5.1), the by-need evaluation
+contexts (Section 5.3), and the proof-architecture discussion (Sections 5.4
+and 6.3).
 
 > Appendix D.1's 0CFA has no correctness proof; is such a proof difficult?
 
-The 0CFA analysis is now in the extended version. The mechanisation targets
+The 0CFA analysis has been removed. The mechanisation targets
 usage analysis; a correctness proof for 0CFA would proceed through the same
 abstraction laws but is outside this paper's scope (Section 5.5).
 
@@ -229,7 +230,7 @@ abstraction laws and soundness follows.
 
 > Remove the running example.
 
-Done (moved to the extended version).
+Done.
 
 > Can you compare precision on concrete examples? Does it behave well?
 
@@ -289,11 +290,15 @@ structure ordinarily plays (Section 5.1).
 > changes for cbv; productivity of the generic vs. specific interpreter; source
 > of imprecision on p. 18).
 
-The absence analysis of Fig. 1 is now in the extended version, so the partiality of
-A no longer appears in the main body. Productivity is clarified by the mechanised
+The absence analysis of Fig. 1 was removed together with its section, so the
+partiality of A no longer appears. Productivity is clarified by the mechanised
 productivity result (Section 6): it is a property of a concrete instantiation, not of
 the generic interpreter. The source of imprecision in the example formerly on p. 18
 is now explained where the example appears (Section 4.3): the first-order summary
-cannot see through an indirect call. We have not separately reworked the two
-remaining exposition points in the interpreter section (the call-by-name instance
-of old 4.2 versus 4.3.1, and the Event change for call-by-value).
+cannot see through an indirect call. The duplication between old Sections 4.2 and
+4.3.1 is gone: the revised interpreter section defines a single by-name domain
+(`DName = T Value`), without the `ByName` wrapper. On `Event`: Section 2 now states
+that the choice of `Event` is use-case specific, spanning a spectrum of operational
+detail; the events name the machine transitions a strategy makes observable (by-need
+adds `Upd` for its update transition), while the generic interpreter itself is
+unchanged.
