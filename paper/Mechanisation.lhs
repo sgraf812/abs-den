@@ -56,7 +56,7 @@ These are ordinary |Prop|s over the by-need semantics; the logical relation of
 \label{sec:mech-eval}
 
 \begin{figure}
-\lstinputlisting[language=Lean]{mechanisation-eval.lean}
+\lstinputlisting[language=Lean, deletekeywords={let}]{mechanisation-eval.lean}
 \caption{The Lean definition of |eval|, the counterpart of the Haskell interpreter in
 \Cref{fig:eval}. A binder that must be non-expansive is written \texttt{ofe\_fun}.}
 \label{fig:lean-eval}
