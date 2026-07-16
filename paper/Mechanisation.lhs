@@ -127,31 +127,31 @@ bound $dh$: a returned value $v$ must satisfy \texttt{SoundVal}~$dh~v$ and re-es
 only descends under a $\later$.
 The single inequality of \Cref{thm:abstract-by-need} becomes this guarded
 relation.
-The statements of the section opener then follow in four steps:
+The three layers of \Cref{sec:decomposed-proof} then have mechanised names:
 \begin{enumerate}
-\item \texttt{soundLR2} builds the by-need \texttt{LR2} instance from the abstraction
-  laws of \Cref{fig:abstraction-laws}, discharging each closure field against them by
-  Löb induction under the heap invariant.
-\item \texttt{LR2.fundamental} turns this instance into \texttt{byNeed\_sound}.
-\item \texttt{usageAbstractionLaws} proves the laws at the usage lattice
-  \texttt{UDk}~$k$ (\Cref{sec:mech-finite}), giving \texttt{usage\_abstracts\_need}
+\item \emph{Adequacy removes the machine.} \texttt{need\_abstracts\_lk}
+  (\Cref{thm:need-adequacy-bisimulation}) relates the by-need trace to the LK machine,
+  by a Löb induction separate from \texttt{LR2}.
+\item \emph{Lining up the definitions removes the interpreter.}
+  \texttt{LR2.fundamental}, the one structural induction on $e$, reduces soundness of
+  |eval| to the closure fields of an \texttt{LR2} instance; at the by-need instance it
+  is \texttt{byNeed\_sound}.
+\item \emph{The abstraction laws remove the by-need domain and its step-indexing.}
+  \texttt{soundLR2} builds that instance, discharging each closure field against the
+  abstraction laws of \Cref{fig:abstraction-laws} by Löb induction under the heap
+  invariant.
+  \texttt{usageAbstractionLaws} proves the laws at the usage lattice \texttt{UDk}~$k$
+  (\Cref{sec:mech-finite}), giving \texttt{usage\_abstracts\_need}
   (\Cref{thm:usage-abstracts-need}).
-\item Read at the empty heap, the step-indexed statement collapses to
-  \texttt{usage\_approximates\_need} and \texttt{absence}, the |Prop|-level statements
-  of the section opener.
 \end{enumerate}
+Read at the empty heap, \texttt{usage\_abstracts\_need} collapses to
+\texttt{usage\_approximates\_need} and \texttt{absence}, the |Prop|-level statements
+of the section opener.
+A new analysis supplies only its laws.
 
 Productivity, over \texttt{SiProp}, states that no two silent steps occur in a row.
 It is what makes the interpreter total (\Cref{thm:totality}), so the fuel-bounded
 observation of \Cref{sec:mech-exec} always reaches the next event.
-Adequacy against the LK machine (\Cref{thm:need-adequacy-bisimulation}, mechanised as
-\texttt{need\_abstracts\_lk}) is proved separately, by Löb induction relating the
-by-need trace to the machine.
-
-The three layers of \Cref{sec:decomposed-proof} thus have mechanised names:
-\texttt{need\_abstracts\_lk} removes the machine, \texttt{LR2.fundamental} removes the
-interpreter, and \texttt{soundLR2} removes the by-need domain and its step-indexing,
-leaving a new analysis just its laws.
 
 \subsection{The Side Conditions, Made Precise}
 \label{sec:mech-side}
