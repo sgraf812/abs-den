@@ -84,6 +84,8 @@ The by-need domain, its traces, and its values solve the recursive equations
   |Value| &~\cong~ |Stuck| ~\mid~ |Fun|\,(\later(|DNeed| \to |DNeed|)) ~\mid~ |Con|~K~[\,\later|DNeed|\,],
 \end{align*}
 which Iris resolves as the fixpoints of \emph{contractive} functors~\citep{Jung:18}.
+The equations are stated in the familiar Haskell notation of \Cref{sec:interp}; the
+Lean spelling differs, with non-expansive arrows as in \Cref{sec:mech-eval}.
 A trace guards its tails, the heap maps addresses to guarded thunks $\later|DNeed|$, and
 a |Value| guards its recursive components: the domain occurs in |Fun| and |Con| only
 under a $\later$.
