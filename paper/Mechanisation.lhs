@@ -185,8 +185,7 @@ fresh''.
 Polymorphism, the premise of \textsc{App-Fun} and \textsc{Sel-Con}, becomes a
 parametricity condition: $f$ respects every logical relation whose closure clauses
 cover the summarised binders and the looked-up variables.
-A separate lemma shows that every closure |eval| produces is parametric in this sense,
-so the premise is discharged rather than assumed.
+A separate lemma shows that every closure |eval| produces is parametric in this sense.
 This is the parametricity that \Cref{sec:soundness} invokes for \textsc{App-Fun}.
 Freshness becomes the least combinator-closed predicate that does not observe a lookup
 of $x$.
