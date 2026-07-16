@@ -225,9 +225,9 @@ at every one, giving a bisimulation between |evalNeed2| and the machine.
   \]
   where $σ \smallstep ...$ is the maximal LK trace from $σ$.
   In particular, for a closed $\pe$ the denotational trace |evalNeed e emp emp| and the
-  maximal machine run $\init(\pe) \smallstep ...$ have equal length, and every
+  maximal LK trace $\init(\pe) \smallstep ...$ have equal length, and every
   |ev :: Event| in |evalNeed e emp emp = many (Step ev ^^ ...)| names the transition rule
-  taken at the corresponding machine step.
+  taken at the corresponding LK step.
 \end{theorem}
 \begin{proofsketch}
   By Löb induction over $σ$.
