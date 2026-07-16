@@ -214,42 +214,41 @@ possible) LK trace evaluating the closed expression $\pe$.
 For example, for the LK trace \labelcref{ex:trace2}, $α_{\STraces}$ produces
 the trace in \Cref{fig:by-need-trace}.
 
-Function $α_{\STraces}$, defined in \Cref{fig:eval-correctness}, preserves a
-number of important observable properties, such as termination behaviour (\ie
-stuck, diverging, or balanced execution~\citep{Sestoft:97}), length of the trace
-and transition events, as expressed in the following theorem:
+In fact, $α_{\STraces}$ commutes with evaluation not only at the initial configuration but
+at every one, giving a bisimulation between |evalNeed2| and the machine.
 
-\begin{theorem}[Adequacy and Bisimulation]
+\begin{theorem}[Bisimulation]
   \label{thm:need-adequacy-bisimulation}
-  Let |e| be a closed expression, |τ := evalNeed e emp emp| the
-  denotational by-need trace and $\init(\pe) \smallstep ...$ the maximal lazy
-  Krivine trace.
-  Then
-  \begin{itemize}
-    \item |τ| preserves the observable termination properties of $\init(\pe) \smallstep ...$
-      in the above sense.
-    \item |τ| preserves the length of $\init(\pe) \smallstep ...$ (\ie number of |Step|s equals number of $\smallstep$).
-    \item every |ev :: Event| in |τ = many (Step ev ^^ ...)| corresponds to the
-      transition rule taken in $\init(\pe) \smallstep ...$.
-  \end{itemize}
+  For every well-addressed configuration $σ = (\pe,ρ,μ,κ)$,
+  \[
+    α_{\STraces}(σ \smallstep ..., κ) = |evalNeed e (αEnv ρ μ) (αHeap μ)|,
+  \]
+  where $σ \smallstep ...$ is the maximal LK trace from $σ$.
+  In particular, for a closed $\pe$ the denotational trace |evalNeed e emp emp| and the
+  maximal machine run $\init(\pe) \smallstep ...$ have equal length, and every
+  |ev :: Event| in |evalNeed e emp emp = many (Step ev ^^ ...)| names the transition rule
+  taken at the corresponding machine step.
 \end{theorem}
 \begin{proofsketch}
-  Generalise $α_{\STraces}(\init(\pe) \smallstep ..., \StopF) = |evalNeed e emp emp|$ to
-  open configurations and prove it by Löb induction.
-  Then it suffices to prove that $α_{\STraces}$ preserves the observable properties of
-  interest.
-  This adequacy is mechanised in Lean (\Cref{sec:mechanisation}).
+  By Löb induction over $σ$.
+  Equal length and matching events for closed programs follow because $α_{\STraces}$
+  preserves both.
+  Mechanised in Lean (\Cref{sec:mechanisation}).
 \end{proofsketch}
 
-Adequacy holds not just for whole programs but at every configuration: writing
-$σ = (\pe,ρ,μ,κ)$ for a well-addressed configuration, the abstraction function commutes
-with evaluation,
-\[
-  α_{\STraces}(σ \smallstep ..., κ) = |evalNeed e (αEnv ρ μ) (αHeap μ)|,
-\]
-and \Cref{thm:need-adequacy-bisimulation} is the case $σ = \init(\pe)$.
-In this form, adequacy is the congruence of the interpreter with the machine; it
-involves no analysis.
+\begin{corollary}[Adequacy]
+  \label{cor:need-adequacy}
+  For a closed expression $\pe$, |evalNeed e emp emp| is faithful to the machine's
+  termination behaviour: it is stuck, diverging, or balanced~\citep{Sestoft:97} exactly
+  when $\init(\pe) \smallstep ...$ is.
+\end{corollary}
+\begin{proof}
+  Immediate from \Cref{thm:need-adequacy-bisimulation}: matching traces exhibit the same
+  termination behaviour.
+\end{proof}
+
+This bisimulation is the congruence of the interpreter with the machine, and it involves
+no analysis.
 A conventional soundness proof instead relates the machine to the analysis directly,
 threading the analysis through a logical relation over configurations, so establishing
 its congruence is laborious and re-established for each analysis.

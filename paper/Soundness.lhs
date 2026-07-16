@@ -440,7 +440,7 @@ This structure is mechanised in Lean as the fundamental lemma of the binary logi
 relation \texttt{LR2} (\Cref{sec:mechanisation}).
 
 This is one of two congruences in the development.
-The other, the interpreter's adequacy with the machine (\Cref{sec:adequacy}), was proved
+The other, the interpreter's bisimulation with the machine (\Cref{sec:adequacy}), was proved
 once and carries no analysis; a conventional proof fuses the two into a single relation
 over machine configurations, and so must re-establish its congruence for every analysis.
 
