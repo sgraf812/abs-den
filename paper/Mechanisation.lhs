@@ -115,41 +115,7 @@ Its fundamental lemma, that the relation holds of |eval|~$e$ in related environm
 for every $e$, is proved once by induction on $e$, each case discharged by the matching
 field.
 
-\begin{figure}
-\centering
-\begin{tikzpicture}[>=Stealth,
-  L/.style={draw, rounded corners, align=center, inner sep=4pt, font=\footnotesize, text width=3.6cm},
-  side/.style={draw, rounded corners, align=center, inner sep=3.5pt, font=\footnotesize, text width=2.7cm},
-  lbl/.style={midway, fill=white, inner sep=2pt, align=center, font=\scriptsize},
-  slbl/.style={midway, above, inner sep=1.5pt, font=\scriptsize}]
-\node[L]     (syn)  at (0,0)  {|eval| $e$\\[1pt] \scriptsize soundness, for every $e$};
-\node[L]     (lr)   at (0,-2) {\texttt{LR2}\\[1pt] \scriptsize parameterised logical relation};
-\node[L]     (bn)   at (0,-4) {by-need \texttt{LR2}\\[1pt] \scriptsize heap-aware};
-\node[L]     (laws) at (0,-6) {\texttt{AbstractionLaws}\\[1pt] \scriptsize per-combinator};
-\node[L]     (usg)  at (0,-8) {\texttt{UDk}~$k$\\[1pt] \scriptsize usage analysis};
-\draw[->]        (syn)  -- node[lbl]{\texttt{LR2.fundamental}\\ induction on $e$} (lr);
-\draw[->]        (lr)   -- node[lbl]{instantiate\\ Löb; heap invariant} (bn);
-\draw[->]        (bn)   -- node[lbl]{\texttt{soundLR2}} (laws);
-\draw[->]        (laws) -- node[lbl]{\texttt{usageAbstractionLaws}} (usg);
-\node[side] (adeq) at (5.1,0)  {adequacy\\[1pt] \scriptsize \texttt{need\_abstracts\_lk}};
-\node[side] (prod) at (5.1,-2) {productivity\\[1pt] \scriptsize over \texttt{SiProp}};
-\draw[->] (syn) -- node[slbl]{Löb} (adeq);
-\draw[->] (lr)  -- node[slbl]{instance} (prod);
-\end{tikzpicture}
-\caption{The proof as a stack of reductions, read top-down as ``to prove this, it
-suffices to prove that''. Each edge is a reusable lemma that discharges one concern and
-leaves a simpler obligation below it: \texttt{LR2.fundamental} removes syntax by
-induction on $e$; the by-need instantiation removes heap and step-index bookkeeping by
-Löb induction; \texttt{soundLR2} reduces the relation to the per-combinator
-\texttt{AbstractionLaws}; and usage analysis discharges those laws. A new analysis
-supplies only the bottom edge. Productivity is a second lemma off the same \texttt{LR2},
-and adequacy (\Cref{thm:need-adequacy-bisimulation}) relates |eval|'s trace to the LK
-machine by a separate Löb induction.}
-\label{fig:lr-tower}
-\end{figure}
-
-By-need productivity and by-need soundness are two instances of \texttt{LR2}
-(\Cref{fig:lr-tower}).
+By-need productivity and by-need soundness are two instances of \texttt{LR2}.
 Soundness does not reuse the Galois connection of \Cref{fig:abstract-name-need}: a
 guarded, higher-order heap has no abstraction function to fold over an infinite trace,
 so soundness is a step-indexed relation in the ghost-heap logic,
@@ -161,12 +127,20 @@ bound $dh$: a returned value $v$ must satisfy \texttt{SoundVal}~$dh~v$ and re-es
 \texttt{HeapInv}; a visible event requires an abstract |step| below $dh$; a silent step
 only descends under a $\later$.
 The single inequality of \Cref{thm:abstract-by-need} becomes this guarded
-relation.
-\texttt{soundLR2} builds this \texttt{LR2} instance from the abstraction laws of
-\Cref{fig:abstraction-laws}, discharging each closure field against them.
-The fundamental lemma then yields \texttt{byNeed\_sound} (\Cref{thm:abstract-by-need}), and
-at the usage lattice \texttt{UDk}~$k$ (\Cref{sec:mech-finite}) the abstraction laws
-hold, giving \texttt{usage\_abstracts\_need} (\Cref{thm:usage-abstracts-need}).
+relation, and its proof composes two reusable pieces:
+\[
+  \texttt{AbstractionLaws}~V
+  \xrightarrow{\ \texttt{soundLR2}\ }
+  \texttt{LR2}~(\texttt{NeedProp}~V)
+  \xrightarrow{\ \texttt{LR2.fundamental}\ }
+  \text{soundness of } |eval| \text{, for every } e.
+\]
+\texttt{soundLR2} builds the \texttt{LR2} instance from the abstraction laws of
+\Cref{fig:abstraction-laws}, discharging each closure field against them by Löb
+induction under the heap invariant; the composite is \texttt{byNeed\_sound}.
+At the usage lattice \texttt{UDk}~$k$ (\Cref{sec:mech-finite}),
+\texttt{usageAbstractionLaws} proves the laws, giving \texttt{usage\_abstracts\_need}
+(\Cref{thm:usage-abstracts-need}); a new analysis supplies only this input.
 Read at the empty heap, this step-indexed statement collapses to the |Prop|-level
 \texttt{usage\_approximates\_need} and \texttt{absence} of the section opener.
 
