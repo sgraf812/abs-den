@@ -41,7 +41,7 @@ abstraction of the dynamic behaviour.
 This gives us a \emph{static program analysis}.
 
 This section develops \emph{usage analysis}, and \Cref{sec:soundness} proves that it
-correctly infers absence. The same recipe accommodates analyses well beyond it: a type
+correctly infers absence (\Cref{sec:usage-cardinality}). The same recipe accommodates analyses well beyond it: a type
 analysis in the style of \citeauthor{Milner:78}'s Algorithm~J, 0CFA control-flow
 analysis~\citep{Shivers:91}, and GHC's \emph{Demand Analysis}~\citep{Sergey:14}. The
 extended version develops these, leaving the correctness of Demand Analysis to future
@@ -53,6 +53,7 @@ We build usage analysis in three steps: abstracting the trace to the finite |UT|
 (\Cref{sec:usage-fixpoint}).
 
 \subsection{Usage Cardinality and Absence}
+\label{sec:usage-cardinality}
 
 Usage analysis is a compelling example because it infers an \emph{operational
 property}: \emph{usage cardinality}, how often a program evaluates a given
