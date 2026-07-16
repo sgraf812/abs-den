@@ -291,7 +291,7 @@ the second is used zero times; we derive this summary below.
 We read |Rep u| as the infinite repetition |UCons u (UCons u (...))| of |u|, so
 that |Rep u| and |UCons u (Rep u)| denote the same |UValue|; the |Eq| and |Lat|
 instances and every operation on |UValue| respect this identity.
-Absence is the special case: a variable is absent exactly when its usage is |U0|.
+Absence is a special case: a variable is absent exactly when its usage is |U0|.
 A stuck expression evaluates nothing, denoted by |bottom = MkUT emp (Rep U0)|.
 
 We start with the smallest example,
