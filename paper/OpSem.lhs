@@ -241,6 +241,15 @@ and transition events, as expressed in the following theorem:
   This adequacy is mechanised in Lean (\Cref{sec:mechanisation}).
 \end{proofsketch}
 
+This bisimulation is a congruence, and an analysis-free one: generalised to open
+configurations, $α_{\STraces}$ is compatible with every transition, so it holds for all
+programs and carries no analysis.
+A conventional soundness proof instead relates the machine to the analysis directly,
+threading the analysis through a logical relation over configurations, so its congruence
+is laborious and must be re-established for each analysis.
+We discharge this operational congruence once; every analysis then relates to the
+interpreter alone (\Cref{sec:soundness}).
+
 \subsection{Totality of |evalName| and |evalNeed2|}
 \label{sec:totality}
 

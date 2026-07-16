@@ -439,6 +439,11 @@ expression, each case discharged by the abstraction laws of
 This structure is mechanised in Lean as the fundamental lemma of the binary logical
 relation \texttt{LR2} (\Cref{sec:mechanisation}).
 
+This is one of two congruences in the development.
+The other, the interpreter's adequacy with the machine (\Cref{sec:adequacy}), was proved
+once and carries no analysis; a conventional proof fuses the two into a single relation
+over machine configurations, and so must re-establish its congruence for every analysis.
+
 The most substantial of these laws, \textsc{App-Fun}, has a \emph{modular} proof
 by parametricity whose complexity is constant in the size of the interpreter.
 The fundamental theorem, by contrast, is proved by a direct structural induction over

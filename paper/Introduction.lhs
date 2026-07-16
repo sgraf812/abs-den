@@ -75,6 +75,10 @@ Packaged once and for all as a reusable \emph{fundamental theorem} in the spirit
 parametricity~\citep{Reynolds:83,Wadler:89}, this induction reduces the soundness of an
 analysis to properties of its plugged-in operations, which we identify and characterise
 as \emph{abstraction laws}.
+Where a conventional proof has a single congruence over machine configurations, with the
+analysis threaded through every case, ours splits in two: an analysis-free congruence
+with the machine (\Cref{sec:adequacy}) and this one, between analysis and interpreter
+(\Cref{sec:soundness}).
 As a concrete example, we prove a summary-based \emph{usage
 analysis}~\citep{WrightBakerFinch:93,Gustavsson:98} sound for call-by-need.
 
