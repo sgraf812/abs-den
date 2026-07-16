@@ -399,12 +399,12 @@ notation |fillC|:
 \begin{spec}
 data ECtxt  =  Hole | Apply ECtxt Name | Select ECtxt Alts
             |  ExtendHeap Name Expr ECtxt | UpdateHeap Name ECtxt Expr
-fillC :: ECtxt -> Expr -> Expr
-fillC Hole e                      = e
-fillC (Apply ectxt x) e           = App (fillC ectxt e) x
-fillC (Select ectxt alts) e       = Case (fillC ectxt e) alts
-fillC (ExtendHeap x e1 ectxt) e2  = Let x e1 (fillC ectxt e2)
-fillC (UpdateHeap x ectxt e1) e2  = Let x (fillC ectxt e1) e2
+fillC                             ::  ECtxt -> Expr -> Expr
+fillC Hole e                      =   e
+fillC (Apply ectxt x) e           =   App (fillC ectxt e) x
+fillC (Select ectxt alts) e       =   Case (fillC ectxt e) alts
+fillC (ExtendHeap x e1 ectxt) e2  =   Let x e1 (fillC ectxt e2)
+fillC (UpdateHeap x ectxt e1) e2  =   Let x (fillC ectxt e2) e1
 \end{spec}
 Thanks to bisimilarity (\Cref{thm:need-adequacy-bisimulation}), the new notion is not a
 redefinition but provably equivalent to \Cref{defn:absence}:
