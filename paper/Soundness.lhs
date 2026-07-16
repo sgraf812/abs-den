@@ -419,15 +419,12 @@ However, such a proof typically is best carried out in a high-level syntactic
 inequational theory; we do not anticipate that the denotational interpreter
 perspective offers a significant advantage in that context.
 
-\subsection{A Reusable Soundness Proof}
+\subsection{A Decomposed Soundness Proof}
 
-The proof exercises the benefits of the framework.
-It involves a single semantic artefact, the denotational interpreter, instantiated
-at |UD| and at the by-need domain; there is no separate operational semantics to
-define and keep consistent.
-
-The soundness proof is still substantial. But it decomposes into three layers,
-each removing one source of difficulty.
+The soundness proof rests on a single semantic artefact: the denotational
+interpreter, instantiated at |UD| and at the by-need domain. It is still
+substantial, but it decomposes into three layers, each removing one source of
+difficulty.
 
 \begin{enumerate}
 \item \emph{Adequacy removes the machine.} \Cref{sec:adequacy} relates the
@@ -456,7 +453,7 @@ grows with both the semantics and the analysis. Here the first two layers handle
 machine and the interpreter without reference to the analysis, and the
 analysis-specific work is confined to the abstraction laws of the third. Even the
 hardest law, \textsc{App-Fun}, has a \emph{modular} proof by parametricity whose size
-does not grow with the interpreter. The structural induction is mechanised in Lean
+does not grow with the interpreter. All three layers are mechanised in Lean
 (\Cref{sec:mechanisation}).
 
 \begin{toappendix}
