@@ -70,7 +70,7 @@ update of thunks~\citep{Turner:95,Sergey:14}.
 The extreme case of evaluating a variable \emph{not at all} is \emph{absence}: a
 variable is \emph{absent} in an expression when evaluating the expression never
 looks the variable up, and \emph{used} otherwise.
-Absence licenses dead-code elimination: when $\px$ is absent in $\pe_2$, the
+Absence licenses dead code elimination: when $\px$ is absent in $\pe_2$, the
 right-hand side $\pe_1$ of $\Let{\px}{\pe_1}{\pe_2}$ is never demanded, so a
 compiler may rewrite $\pe_1$ to anything it pleases, and even drop the binding
 altogether if $\px$ then occurs nowhere in $\pe_2$.
@@ -229,6 +229,10 @@ and |Uω| means ``an unknown number of times''.
 In this way, |UT| is an \emph{abstraction} of |T|: it squashes all |Look x|
 events into a single entry |φ !? x :: U| and discards all other events.
 
+The examples use the by-name instance |DName| for concreteness; the same usage
+analysis applies to by-need |DNeed|, against which \Cref{sec:soundness} proves it
+sound.
+
 Consider as an example the by-name trace evaluating $\pe \triangleq
 \Let{i}{\Lam{x}{x}}{\Let{j}{\Lam{y}{y}}{i~j~j}}$:
 \[\perform{evalName (read "let i = λx.x in let j = λy.y in i j j") emp}\]
@@ -250,7 +254,7 @@ Exploring whether the |step| implementation encodes the operational property thi
 is instructive but impractical: the fold diverges whenever the input expression
 diverges.
 In abstract-interpretation terms, the \emph{collecting semantics}~\citep{adi} of the
-by-need interpreter is here the singleton set of the concrete trace, and this fold
+interpreter is here the singleton set of the concrete trace, and this fold
 computes its most precise abstraction, which Rice's theorem makes undecidable.
 We recover a computable analysis by introducing a finitely represented |UValue| to
 replace |Value|.
