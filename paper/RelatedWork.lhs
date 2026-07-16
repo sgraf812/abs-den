@@ -183,8 +183,9 @@ caution to consider definable elements only.
 
 Whenever AAM is involved, abstraction follows some monadic structure inherent to
 dynamic semantics~\citep{Sergey:13,adi}.
-In our work, this is apparent in the |Domain (D τ)| instance depending on
-|Monad τ|.
+In our work, this is apparent in the |Domain| instances of |DName| and |DNeed|,
+which rely on the monadic structure of the trace type |T|,
+\citeauthor{Capretta:05}'s delay monad enriched with events.
 Decomposing such structure into a layer of reusable monad transformers has been
 the subject of \citet{Darais:15} and \citet{Keidel:19}.
 %The trace transformers of \Cref{sec:interp} enable reuse along a different dimension.
