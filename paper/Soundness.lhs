@@ -386,7 +386,28 @@ machine in favour of one using |evalNeed2|.
 That is a welcome simplification because it leaves us with a single semantic
 artefact, the denotational interpreter, instead of an operational
 semantics and a separate static analysis.
-Thanks to bisimilarity (\Cref{thm:need-adequacy-bisimulation}), this new notion is not a
+The new definition quantifies over \emph{by-need evaluation contexts}, following
+\citet[Lemma 4.1]{MoranSands:99}:%
+\footnote{We inline applicative contexts; the result is that of
+\citet[Figure 3]{Ariola:95} in A-normal form and extended with data types.}
+\[\begin{array}{lcl}
+  \pE ∈ \EContexts & ::= & \hole \mid \pE~\px \mid \Case{\pE}{\Sel} \mid \Let{\px}{\pe}{\pE} \mid \Let{\px}{\pE}{\pE[\px]} \\
+\end{array}\]
+In the last production, the body's demand on $\px$ forces evaluation of the
+right-hand side, corresponding to the machine's update frames.
+We encode evaluation contexts in Haskell as follows, overloading hole filling
+notation |fillC|:
+\begin{spec}
+data ECtxt  =  Hole | Apply ECtxt Name | Select ECtxt Alts
+            |  ExtendHeap Name Expr ECtxt | UpdateHeap Name ECtxt Expr
+fillC :: ECtxt -> Expr -> Expr
+fillC Hole e                      = e
+fillC (Apply ectxt x) e           = App (fillC ectxt e) x
+fillC (Select ectxt alts) e       = Case (fillC ectxt e) alts
+fillC (ExtendHeap x e1 ectxt) e2  = Let x e1 (fillC ectxt e2)
+fillC (UpdateHeap x ectxt e1) e2  = Let x (fillC ectxt e1) e2
+\end{spec}
+Thanks to bisimilarity (\Cref{thm:need-adequacy-bisimulation}), the new notion is not a
 redefinition but provably equivalent to \Cref{defn:absence}:
 \begin{lemma}[Denotational absence]
   \label{thm:absence-denotational}
@@ -395,10 +416,6 @@ redefinition but provably equivalent to \Cref{defn:absence}:
   |evalNeed (fillC ectxt (Let x e' e)) emp emp| contains a |Look x| event.
   Otherwise, |x| is absent in |e|.
 \end{lemma}
-\noindent
-Here, |fillC ectxt (Let x e' e)| plugs the let-binding into the hole of the
-by-need evaluation context |ectxt|; the extended version defines these contexts
-precisely.
 
 Thus insulated from the LK machine, we may state that usage analysis
 infers absence (\Cref{defn:absence}).
@@ -470,25 +487,16 @@ does not grow with the interpreter. All three layers are mechanised in Lean
 \begin{toappendix}
 In the proof for \Cref{thm:usage-absence} we exploit that usage analysis is
 somewhat invariant under wrapping of \emph{by-need evaluation contexts}, roughly
-|Uω * evalUsg e ρe = evalUsg (fillC ectxt e) emp|. To prove that, we first
-need to define what the by-need evaluation contexts of our language are.
+|Uω * evalUsg e ρe = evalUsg (fillC ectxt e) emp|.
 
-\citet[Lemma 4.1]{MoranSands:99} describe a principled way to derive the
-call-by-need evaluation contexts $\pE$ from machine contexts $(\hole,μ,κ)$ of
+The evaluation contexts of \Cref{sec:usage-sound} derive, following
+\citet[Lemma 4.1]{MoranSands:99}, from machine contexts $(\hole,μ,κ)$ of
 the Sestoft Mark I machine; a variant of \Cref{fig:lk-semantics} that uses
 syntactic substitution of variables instead of delayed substitution and
 addresses, so $μ ∈ \Var \pfun \Exp$ and no closures are needed.
-
-We follow their approach, but inline applicative contexts,%
-\footnote{The result is that of \citet[Figure 3]{Ariola:95} in A-normal form and
-extended with data types.}
-thus defining the by-need evaluation contexts with hole $\hole$ for our language as
-\[\begin{array}{lcl}
-  \pE ∈ \EContexts & ::= & \hole \mid \pE~\px \mid \Case{\pE}{\Sel} \mid \Let{\px}{\pe}{\pE} \mid \Let{\px}{\pE}{\pE[\px]} \\
-\end{array}\]
-The correspondence to Mark I machine contexts $(\hole,μ,κ)$ is encoded by the
-following translation function $\mathit{trans}$ that translates from mark I
-machine contexts  $(\hole,μ,κ)$ to evaluation contexts $\pE$.
+The correspondence is encoded by the
+following translation function $\mathit{trans}$ from Mark I
+machine contexts $(\hole,μ,κ)$ to evaluation contexts $\pE$.
 \[\begin{array}{lcl}
   \mathit{trans} & : & \EContexts \times \Heaps \times \Continuations \to \EContexts \\
   \mathit{trans}(\pE,[\many{\px ↦ \pe}],κ) & = & \Letmany{\px}{\pe}{\mathit{trans}(\pE,[],κ)} \\
@@ -511,18 +519,6 @@ context $\pE$ and a focus expression $\pe$ such that there exists a trace
 $\init(\pE[\pe]) \smallstep^* σ$ consisting purely of search transitions,
 which is equivalent to all states in the trace except possibly the last being
 search states.
-
-We encode evaluation contexts in Haskell as follows, overloading hole filling notation |fillC|:
-\begin{spec}
-data ECtxt  =  Hole | Apply ECtxt Name | Select ECtxt Alts
-            |  ExtendHeap Name Expr ECtxt | UpdateHeap Name ECtxt Expr
-fillC :: ECtxt -> Expr -> Expr
-fillC Hole e                      = e
-fillC (Apply ectxt x) e           = App (fillC ectxt e) x
-fillC (Select ectxt alts) e       = Case (fillC ectxt e) alts
-fillC (ExtendHeap x e1 ectxt) e2  = Let x e1 (fillC ectxt e2)
-fillC (UpdateHeap x ectxt e1) e2  = Let x (fillC ectxt e1) e2
-\end{spec}
 
 \begin{lemma}[Used variables are free]
   \label{thm:used-free}
