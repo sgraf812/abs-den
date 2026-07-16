@@ -98,7 +98,7 @@ A trace carries visible events, |Step|, and silent steps, |Invis|; the productiv
 result below concerns runs of the latter.
 Two step-indexed logics appear.
 Productivity and adequacy use \texttt{SiProp}, the pure step-indexed propositions.
-By-need soundness uses \texttt{UPred} over a ghost-heap \emph{camera}: a heap invariant
+By-need soundness uses \texttt{UPred} over a ghost-heap \emph{camera}~\citep{Jung:18}: a heap invariant
 relates each thunk to its abstract value, and the frame rule of separation logic
 threads it through the proof.
 
