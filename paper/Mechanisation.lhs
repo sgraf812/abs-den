@@ -10,9 +10,9 @@ The development of the previous sections is mechanised in Lean~4 on top of
 framework~\citep{Jung:18}.\footnote{The development builds with Lean~4.31.0 and
 \texttt{iris-lean} pinned at commit \texttt{18e9020}, which \texttt{lake} fetches
 from the recorded manifest.}
-All proofs have been contributed by a large language model, with a human-written
-pen-and-paper proof serving as the blueprint, in a close feedback loop.
-The mechanisation follows that blueprint and its reusable logical-relation structure,
+All proofs have been contributed by a large language model in a close feedback loop,
+with a human-written pen-and-paper proof serving as the blueprint.
+The mechanisation follows the blueprint's reusable logical-relation structure
 and makes precise what the paper leaves informal: the Later modality, the ``$f$
 polymorphic'' and ``$x$ fresh'' premises of the abstraction laws
 (\Cref{fig:abstraction-laws}), and the finite height of the abstract domain.
@@ -39,13 +39,13 @@ where \texttt{hb} asks that |e| obey Barendregt's convention (bound variables pa
 distinct and distinct from the free ones, so nothing shadows), \texttt{habs} is the
 analysis verdict that $x$ is unused, and the conclusion says that in the by-need trace of
 |e| from the empty heap, no prefix looks $x$ up.
-Absence is the $|U0|$ case of \texttt{usage\_approximates\_need}, the mechanised
-\Cref{thm:usage-abstracts-need}:
+Absence is the $|U0|$ case of \texttt{usage\_approximates\_need}, the |Prop|-level
+counterpart of \Cref{thm:usage-abstracts-need}:
 
 \lstinputlisting[language=Lean]{mechanisation-approx.lean}
 
 \noindent
-Here \texttt{Trace.lookCount x n} counts the look-ups of $x$ in the first $n$ steps of the
+Here \texttt{Trace.lookCount x n} counts the lookups of $x$ in the first $n$ steps of the
 by-need trace, \texttt{U.ofCount} abstracts that count into a |U|-cardinality, and
 \texttt{.uses !? x} is the usage the analysis reports for $x$; the bound holds at every
 $x$ and $n$.
@@ -119,17 +119,16 @@ field.
 \centering
 \begin{tikzpicture}[>=Stealth,
   L/.style={draw, rounded corners, align=center, inner sep=4pt, font=\footnotesize, text width=3.6cm},
-  Ldash/.style={L, dashed},
   side/.style={draw, rounded corners, align=center, inner sep=3.5pt, font=\footnotesize, text width=2.7cm},
   lbl/.style={midway, fill=white, inner sep=2pt, align=center, font=\scriptsize},
   slbl/.style={midway, above, inner sep=1.5pt, font=\scriptsize}]
 \node[L]     (syn)  at (0,0)  {|eval| $e$\\[1pt] \scriptsize soundness, for every $e$};
-\node[L]     (lr)   at (0,-2) {\texttt{LR2}\\[1pt] \scriptsize parameterized logical relation};
-\node[Ldash] (bn)   at (0,-4) {by-need \texttt{LR2}\\[1pt] \scriptsize heap-aware};
+\node[L]     (lr)   at (0,-2) {\texttt{LR2}\\[1pt] \scriptsize parameterised logical relation};
+\node[L]     (bn)   at (0,-4) {by-need \texttt{LR2}\\[1pt] \scriptsize heap-aware};
 \node[L]     (laws) at (0,-6) {\texttt{AbstractionLaws}\\[1pt] \scriptsize per-combinator};
 \node[L]     (usg)  at (0,-8) {\texttt{UDk}~$k$\\[1pt] \scriptsize usage analysis};
 \draw[->]        (syn)  -- node[lbl]{\texttt{LR2.fundamental}\\ induction on $e$} (lr);
-\draw[->,dashed] (lr)   -- node[lbl]{instantiate (planned)\\ Löb; heap invariant} (bn);
+\draw[->]        (lr)   -- node[lbl]{instantiate\\ Löb; heap invariant} (bn);
 \draw[->]        (bn)   -- node[lbl]{\texttt{byNeed\_sound}} (laws);
 \draw[->]        (laws) -- node[lbl]{\texttt{usageAbstractionLaws}} (usg);
 \node[side] (adeq) at (5.1,0)  {adequacy\\[1pt] \scriptsize \texttt{need\_abstracts\_lk}};
@@ -161,11 +160,11 @@ so soundness is a step-indexed relation in the ghost-heap logic,
 bound $dh$: a returned value $v$ must satisfy \texttt{SoundVal}~$dh~v$ and re-establish
 \texttt{HeapInv}; a visible event requires an abstract |step| below $dh$; a silent step
 only descends under a $\later$.
-The single inequality that \Cref{fig:abstract-name-need} states becomes this guarded
+The single inequality of \Cref{thm:abstract-by-need} becomes this guarded
 relation.
 The fundamental lemma yields \texttt{byNeed\_sound} (\Cref{thm:abstract-by-need}), and
-at the usage lattice \texttt{UDk}~$k$ the abstraction laws hold, giving
-\texttt{usage\_abstracts\_need} (\Cref{thm:usage-abstracts-need}).
+at the usage lattice \texttt{UDk}~$k$ (\Cref{sec:mech-finite}) the abstraction laws
+hold, giving \texttt{usage\_abstracts\_need} (\Cref{thm:usage-abstracts-need}).
 Read at the empty heap, this step-indexed statement collapses to the |Prop|-level
 \texttt{usage\_approximates\_need} and \texttt{absence} of the section opener.
 
@@ -191,7 +190,7 @@ Freshness becomes the least combinator-closed predicate that does not observe a 
 of $x$.
 A variable's occurrence is not observable in a generic |Domain| element, so this is the
 faithful reading of ``$x$ does not occur in $d$'', and it too transports through |eval|.
-Lexical scoping is a Barendregt well-scopedness predicate on the syntax, which supplies
+Lexical scoping becomes a Barendregt well-scopedness predicate on the syntax, which supplies
 facts such as $x \neq y$ for a let-bound $y$.
 
 \subsection{Finite Height, and Where Completeness Enters}
@@ -199,16 +198,15 @@ facts such as $x \neq y$ for a let-bound $y$.
 
 Usage analysis takes a least fixpoint, so its domain must have no infinite ascending
 chains (\Cref{sec:usage-fixpoint}).
-The mechanisation bounds a summary to $k$ leading components and the variable supply by
-truncating names to a fixed length, which gives a finite lattice on which Kleene
+The mechanisation bounds a summary to its $k$ leading components and the variable
+supply to names of a fixed length, which gives a finite lattice on which Kleene
 iteration terminates.
 This truncation is crude: a principled finite abstract domain with a proper widening is
 an orthogonal problem we do not address, and the mechanisation needs only some
 finite-height instance to run the fixpoint.
 
-Completeness enters in one place.
-|eval| and the |Domain| class need only an OFE; completeness is used to build the
-concrete |DNeed|.
+Completeness enters in one place, the construction of the concrete |DNeed|
+(\Cref{sec:mech-domain}).
 An abstract domain such as |UD| is used at its discrete OFE, where non-expansive maps
 are ordinary functions, so it needs no guardedness.
 The abstraction laws are therefore stated over a preorder with chain-complete suprema
