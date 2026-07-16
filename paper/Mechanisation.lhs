@@ -13,9 +13,10 @@ from the recorded manifest.}
 All proofs have been contributed by a large language model in a close feedback loop,
 with a human-written pen-and-paper proof serving as the blueprint.
 The mechanisation follows the blueprint's reusable logical-relation structure
-and makes precise what the paper leaves informal: the Later modality, the ``$f$
-polymorphic'' and ``$x$ fresh'' premises of the abstraction laws
-(\Cref{fig:abstraction-laws}), and the finite height of the abstract domain.
+and makes precise what the paper leaves informal: the Later modality
+(\Cref{sec:mech-domain}), the ``$f$ polymorphic'' and ``$x$ fresh'' premises of
+the abstraction laws (\Cref{sec:mech-side}), and the finite height of the
+abstract domain (\Cref{sec:mech-finite}).
 
 Iris' model is the category of \emph{ordered families of equivalences} (OFEs) and
 \emph{non-expansive maps}. Working inside it changes |eval| only in its arrows: the
@@ -128,15 +129,18 @@ bound $dh$: a returned value $v$ must satisfy \texttt{SoundVal}~$dh~v$ and re-es
 only descends under a $\later$.
 The single inequality of \Cref{thm:abstract-by-need} becomes this guarded
 relation.
-\texttt{soundLR2} builds the by-need \texttt{LR2} instance from the abstraction laws
-of \Cref{fig:abstraction-laws}, discharging each closure field against them by Löb
-induction under the heap invariant.
-\texttt{LR2.fundamental} turns this instance into \texttt{byNeed\_sound}.
-\texttt{usageAbstractionLaws} proves the laws at the usage lattice \texttt{UDk}~$k$
-(\Cref{sec:mech-finite}), giving \texttt{usage\_abstracts\_need}
-(\Cref{thm:usage-abstracts-need}); a new analysis supplies only its laws.
-Read at the empty heap, this step-indexed statement collapses to the |Prop|-level
-\texttt{usage\_approximates\_need} and \texttt{absence} of the section opener.
+The statements of the section opener then follow in four steps:
+\begin{enumerate}
+\item \texttt{soundLR2} builds the by-need \texttt{LR2} instance from the abstraction
+  laws of \Cref{fig:abstraction-laws}, discharging each closure field against them by
+  Löb induction under the heap invariant.
+\item \texttt{LR2.fundamental} turns this instance into \texttt{byNeed\_sound}.
+\item \texttt{usageAbstractionLaws} proves the laws at the usage lattice
+  \texttt{UDk}~$k$ (\Cref{sec:mech-finite}), giving \texttt{usage\_abstracts\_need}
+  (\Cref{thm:usage-abstracts-need}); a new analysis supplies only its laws.
+\item Read at the empty heap, the step-indexed statement collapses to the |Prop|-level
+  \texttt{usage\_approximates\_need} and \texttt{absence}.
+\end{enumerate}
 
 Productivity, over \texttt{SiProp}, states that no two silent steps occur in a row.
 It is what makes the interpreter total (\Cref{thm:totality}), so the fuel-bounded
@@ -149,18 +153,22 @@ by-need trace to the machine.
 \label{sec:mech-side}
 
 The abstraction laws carry two informal premises, ``$f$ polymorphic'' and ``$x$
-fresh''.
-Polymorphism, the premise of \textsc{App-Fun} and \textsc{Sel-Con}, becomes a
-parametricity condition: $f$ respects every logical relation whose closure clauses
-cover the summarised binders and the looked-up variables.
-A separate lemma shows that every closure |eval| produces is parametric in this sense.
-This is the parametricity that \Cref{sec:soundness} invokes for \textsc{App-Fun}.
-Freshness becomes the least combinator-closed predicate that does not observe a lookup
-of $x$.
-A variable's occurrence is not observable in a generic |Domain| element, so this is the
-faithful reading of ``$x$ does not occur in $d$'', and it too transports through |eval|.
-Lexical scoping becomes a Barendregt well-scopedness predicate on the syntax, which supplies
-facts such as $x \neq y$ for a let-bound $y$.
+fresh'', and the syntax carries a third, lexical scoping.
+\begin{itemize}
+\item \emph{Polymorphism}, the premise of \textsc{App-Fun} and \textsc{Sel-Con},
+  becomes a parametricity condition: $f$ respects every logical relation whose closure
+  clauses cover the summarised binders and the looked-up variables.
+  A separate lemma shows that every closure |eval| produces is parametric in this
+  sense.
+  This is the parametricity that \Cref{sec:soundness} invokes for \textsc{App-Fun}.
+\item \emph{Freshness} becomes the least combinator-closed predicate that does not
+  observe a lookup of $x$.
+  A variable's occurrence is not observable in a generic |Domain| element, so this is
+  the faithful reading of ``$x$ does not occur in $d$'', and it too transports through
+  |eval|.
+\item \emph{Lexical scoping} becomes a Barendregt well-scopedness predicate on the
+  syntax, which supplies facts such as $x \neq y$ for a let-bound $y$.
+\end{itemize}
 
 \subsection{Finite Height, and Where Completeness Enters}
 \label{sec:mech-finite}
