@@ -141,10 +141,9 @@ The three layers of \Cref{sec:decomposed-proof} then have mechanised names:
   abstraction laws of \Cref{fig:abstraction-laws} by Löb induction under the heap
   invariant.
   \texttt{usageAbstractionLaws} proves the laws at the usage lattice \texttt{UDk}~$k$
-  (\Cref{sec:mech-finite}), giving \texttt{usage\_abstracts\_need}
-  (\Cref{thm:usage-abstracts-need}).
+  (\Cref{sec:mech-finite}).
 \end{enumerate}
-Read at the empty heap, \texttt{usage\_abstracts\_need} collapses to
+Read at the empty heap, the resulting statement collapses to
 \texttt{usage\_approximates\_need} and \texttt{absence}, the |Prop|-level statements
 of the section opener.
 A new analysis supplies only its laws.

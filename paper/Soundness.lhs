@@ -377,7 +377,7 @@ Then $α_{\mathcal{S}}(|evalNeed1 e|) ⊑ |evalUsg1 e|$.
 Its proof discharges the premises of \Cref{thm:abstract-by-need}: \textsc{App-Fun}
 is \Cref{thm:usage-subst-sem}, and the remaining abstraction laws for |UD| follow
 by routine calculation.
-The corollary is mechanised in Lean as \texttt{usage\_abstracts\_need}
+Its |Prop|-level counterpart in Lean is \texttt{usage\_approximates\_need}
 (\Cref{sec:mechanisation}).
 
 The next step is to leave behind the definition of absence in terms of the LK
