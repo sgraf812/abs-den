@@ -79,10 +79,11 @@ Then we will prove sound abstract by-need interpretation in
 Recall that usage analysis is supposed to infer the semantic property of
 absence (\Cref{defn:absence}) in order to inform dead code elimination.
 In this section, we prove that usage analysis indeed infers absence.
-For that, it is necessary to relate the analysis result to a property of the
-program semantics.
-The resulting approximation relation is well understood via abstract
-interpretation~\citep{Cousot:77} and we capture it in a generalised statement of
+This is the second half of the proof split described in \Cref{sec:introduction}:
+\Cref{sec:adequacy} discharged the analysis-free congruence with the machine, and
+what remains is to relate the analysis to the interpreter.
+That relation is well understood via abstract
+interpretation~\citep{Cousot:77}, and we capture it in a generalised statement of
 the form
 \[
   α_{\mathcal{S}}(|evalNeed1 e|) ⊑ |evalD2 (hat D) e|.
@@ -104,7 +105,7 @@ of |e| diverges.}
 
 We will instantiate this statement at |UD| in order to prove that usage analysis
 |evalUsg e ρ = evalD UD e ρ| infers absence.
-The complicated preservation reasoning is confined to the reusable abstract
+The complicated step-indexed heap reasoning is confined to the reusable abstract
 interpretation theorem, so the analysis-specific part of the proof stays small.
 
 \begin{figure}
@@ -157,7 +158,8 @@ interpretation theorem, so the analysis-specific part of the proof stays small.
 \subsection{A Reusable Abstract By-Need Interpretation Theorem}
 
 In this subsection, we explain \Cref{thm:abstract-by-need} for
-abstract by-need interpretation, which we will apply to prove usage analysis
+abstract by-need interpretation, the reusable fundamental theorem promised in
+\Cref{sec:introduction}, which we will apply to prove usage analysis
 sound in \Cref{sec:usage-sound}.
 The theorem corresponds to the following derived inference rule, referring to
 the \emph{abstraction laws} in \Cref{fig:abstraction-laws} by name:
@@ -363,8 +365,9 @@ we will prove in this subsection that usage analysis from \Cref{sec:abstraction}
 infers absence (\Cref{defn:absence}).
 
 \Cref{thm:abstract-by-need} does the work of relating
-by-need semantics to usage analysis, taking the place of an
-analysis-specific preservation lemma:
+by-need semantics to usage analysis, taking the place of the hand-crafted
+logical relation over machine configurations that a conventional proof
+re-establishes for each analysis:
 
 \begin{corollary}[|evalUsg1| abstracts |evalNeed1|]
 \label{thm:usage-abstracts-need}
