@@ -65,23 +65,14 @@ recursive types~\citep{MogelbergPaviotti:16}; the by-need domain of
 Like interaction trees~\citep{interaction-trees}, the interpreter remains
 executable inside the proof assistant (\Cref{sec:mech-exec}).
 
-\subsubsection*{Abstract Interpretation and Relational Analysis}
+\subsubsection*{Abstract Interpretation}
 \citet{Cousot:21} recently condensed his seminal work rooted in \citet{Cousot:77}.
 The book advocates a compositional, trace-generating semantics and then derives
-compositional analyses by calculational design, and inspired us to attempt the same.
-However, while \citet{Cousot:94,Cousot:02} work with denotational semantics
-for a higher-order language, it was unclear to us how to derive a compositional,
-\emph{trace-generating} semantics for a higher-order language.
-The required changes to the domain definitions seemed daunting, to say the
-least.
-Our solution delegates this complexity to guarded recursive type theory and
-defines the interpreter against Iris' interface of OFEs and non-expansive
-maps~\citep{DiGianantonioMiculan:02,Jung:18}, whose model is the topos of
-trees~\citep{Birkedal:12}.
-
-We deliberately tried to provide a simple framework and thus stuck to cartesian
-(\ie pointwise) abstraction of environments as in \citet[Chapter 27]{Cousot:21},
-but we expect relational abstractions to work just as well.
+compositional analyses by calculational design, and inspired us to attempt the same
+for a higher-order language, delegating the domain construction to guarded recursive
+type theory and defining the interpreter against Iris' interface of OFEs and
+non-expansive maps~\citep{DiGianantonioMiculan:02,Jung:18}, whose model is the topos
+of trees~\citep{Birkedal:12}.
 Our generic denotational interpreter is a higher-order generalisation of the
 generic abstract interpreter in \citet[Chapter 21]{Cousot:21}.
 Our abstraction laws in \Cref{fig:abstraction-laws} correspond to Definition 27.1
@@ -164,9 +155,4 @@ and reports |i| as used many times.
 analyses involve the inference of summaries called \emph{demand
 transformers}~\citep{Sergey:14}, such as implemented in the Demand Analysis of
 the Glasgow Haskell Compiler.
-We intend to develop our framework to describe improvements to Demand Analysis in
-the future.
-However, a soundness proof would require a different Galois connection than
-\Cref{fig:abstract-name-need}, because Demand Analysis is not sound \wrt by-name
-evaluation.
 
