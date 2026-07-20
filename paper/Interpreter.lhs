@@ -118,11 +118,17 @@ function; throughout, we assume that all bound program variables are distinct.
 
 We encode this syntax as the Haskell datatype |Exp| in \Cref{fig:syntax};
 \Cref{fig:map} gives the API of environments and sets.
-For concise notation, we will use a small number of infix operators: |(:->)| as
-a synonym for finite |Map|s, with |m ! x| for looking up |x| in |m|, |emp| for
-the empty map, |ext m x d| for updates, |assocs m| for a list of key-value pairs
-in |m|, |f << m| for mapping |f| over every value in |m|, |dom m| for the set of
-keys present in the map, and |(`elem`)| for membership tests in that set.
+For concise notation, we will use a small number of infix operators:
+\begin{itemize}
+\item |(:->)| as a synonym for finite |Map|s,
+\item |m ! x| for looking up |x| in |m|,
+\item |emp| for the empty map,
+\item |ext m x d| for updates,
+\item |assocs m| for a list of key-value pairs in |m|,
+\item |f << m| for mapping |f| over every value in |m|,
+\item |dom m| for the set of keys present in the map, and
+\item |(`elem`)| for membership tests in that set.
+\end{itemize}
 
 \begin{figure}
 \begin{minipage}{0.49\textwidth}
