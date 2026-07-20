@@ -235,6 +235,7 @@
 %include Soundness.lhs
 %include Mechanisation.lhs
 %include RelatedWork.lhs
+%include Conclusion.lhs
 %include Problem.lhs
 
 %\begin{acks}
