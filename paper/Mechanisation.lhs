@@ -5,8 +5,8 @@
 \section{Mechanisation in Lean}
 \label{sec:mechanisation}
 
-The development of the previous sections is mechanised in Lean~4 on top of
-\texttt{iris-lean}, the Lean port of the Iris separation logic
+The development of the previous sections is mechanised in Lean~4 in the base
+logic of \texttt{iris-lean}, the Lean port of the Iris separation logic
 framework~\citep{Jung:18}.\footnote{The development builds with Lean~4.31.0 and
 \texttt{iris-lean} pinned at commit \texttt{18e9020}, which \texttt{lake} fetches
 from the recorded manifest.}
