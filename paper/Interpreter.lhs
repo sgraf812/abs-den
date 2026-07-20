@@ -103,10 +103,11 @@ The object language we interpret is a standard untyped lambda calculus with
 similar to that of \citet{Launchbury:93} and \citet{Sestoft:97}:
 \[
 \arraycolsep=3pt
-\begin{array}{rrclcrrclcl}
-  \text{Variables}    & \px, \py & ∈ & \Var        &     & \quad \text{Constructors} &        K & ∈ & \Con        &     & \text{with arity $α_K ∈ ℕ$} \\
+\begin{array}{rrclcl}
+  \text{Variables}    & \px, \py & ∈ & \Var        &     & \\
+  \text{Constructors} &        K & ∈ & \Con        &     & \text{with arity $α_K ∈ ℕ$} \\
   \text{Values}       &      \pv & ∈ & \Val        & ::= & \Lam{\px}{\pe} \mid K~\many{\px}^{α_K} \\
-  \text{Expressions}  &      \pe & ∈ & \Exp        & ::= & \multicolumn{6}{l}{\px \mid \pv \mid \pe~\px \mid \Let{\px}{\pe_1}{\pe_2} \mid \Case{\pe}{\SelArity}}
+  \text{Expressions}  &      \pe & ∈ & \Exp        & ::= & \px \mid \pv \mid \pe~\px \mid \Let{\px}{\pe_1}{\pe_2} \mid \Case{\pe}{\SelArity}
 \end{array}
 \]
 It is in A-normal form: the arguments of applications are restricted to variables,
@@ -180,8 +181,6 @@ is the whole point of analyses such as usage analysis (\Cref{sec:abstraction}).
 A distinctive feature of our work is that our semantic domains are instead
 \emph{traces} that describe the \emph{steps} taken by an abstract machine, and
 that \emph{end} in semantic values.
-It is possible to describe usage cardinality as a property of the traces
-thus generated, as required for a soundness proof of usage analysis.
 We choose |DName|, defined below, as the first example of such a semantic domain,
 because it is simple and illustrative of the approach.
 Instantiated at |DName|, our generic interpreter produces precisely the
@@ -236,15 +235,12 @@ A trace in |DName = T Value| eventually terminates with a |Value| that is
 either stuck (|Stuck|), a function waiting to be applied to a domain value
 (|Fun|), or a constructor application giving the denotations of its
 fields (|Con|).
-We postpone worries about well-definedness and totality of this encoding to
-\Cref{sec:totality}.
 
 \begin{figure}
 \begin{minipage}{0.55\textwidth}
 \begin{code}
-eval  ::  (Domain d)
-      =>  Exp -> (Name :-> d) -> d
-eval e ρ = case e of
+eval      ::  Domain d => Exp -> (Name :-> d) -> d
+eval e ρ  =   case e of
   Var x  | x ∈ dom ρ  -> ρ ! x
          | otherwise  -> domainfun(stuck)
   Lam x body ->
@@ -318,7 +314,7 @@ However, to derive both dynamic semantics and static analyses as instances of th
 generic interpreter |eval|, we need to vary the type of its semantic domain,
 which is naturally expressed using type class overloading, thus:
 \[
-|eval  ::  (Domain d) =>  Exp -> (Name :-> d) -> d|.
+|eval :: Domain d => Exp -> (Name :-> d) -> d|.
 \]
 We have parameterised the semantic domain |d| over a type class |Domain|
 whose signatures are given in \Cref{fig:trace-classes}.
