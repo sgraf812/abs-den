@@ -93,7 +93,7 @@ one definition: a \emph{concrete} domain gives an executable semantics
 Denotational interpreters can be implemented in any higher-order language such as OCaml, Scheme or Java with explicit thunks, but we picked Haskell for convenience.%
 \footnote{We extract from this document runnable Haskell files which we add as a Supplement, containing the complete definitions. Furthermore, the (terminating) interpreter outputs are directly generated from this extract.}
 This intuitive Haskell encoding translates easily and faithfully into a total
-definition in Lean (\Cref{sec:totality}).
+definition in Lean (\Cref{sec:mech-domain}).
 
 \subsection{Syntax}
 \label{sec:syntax}

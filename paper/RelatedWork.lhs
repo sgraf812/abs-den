@@ -11,7 +11,7 @@ predating the work of \citet{Launchbury:93} and \citet{Sestoft:97}, but not
 the more machine-centric work on the
 G-machine~\citep{Johnsson:84}.
 We improve on \citeauthor{Josephs:89}'s work in that our encoding is
-simpler, rigorously defined (\Cref{sec:totality}) and proven adequate \wrt
+simpler, rigorously defined (\Cref{sec:mech-domain}) and proven adequate \wrt
 \citeauthor{Sestoft:97}'s by-need semantics (\Cref{sec:adequacy}).
 \citet{HackettHutton:19} define a denotational cost semantics for call-by-need,
 but unfortunately we were unable to factor their approach into a productive

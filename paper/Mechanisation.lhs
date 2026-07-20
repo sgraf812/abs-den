@@ -92,6 +92,9 @@ under a $\later$.
 Every self-reference thus sits beneath a $\later$, which makes the signatures
 contractive.
 Löb induction, the induction principle of $\later$, closes the guarded fixpoints.
+The $\later$ is therefore what brings the domain |DNeed| into existence; instantiating
+the generic |eval| at |DNeed| gives the by-need interpreter |evalNeed|, the object of
+the entire mechanisation.
 
 A trace carries visible events, |Step|, and silent steps, |Invis|.
 The silent steps reconcile the guarded values with the $\later$-free |Domain|
@@ -152,9 +155,10 @@ Read at the empty heap, the resulting statement collapses to
 of the section opener.
 A new analysis supplies only its laws.
 
-Productivity, over \texttt{SiProp}, states that no two silent steps occur in a row.
-It is what makes the interpreter total (\Cref{thm:totality}), so the fuel-bounded
-observation of \Cref{sec:mech-exec} always reaches the next event.
+Productivity, over \texttt{SiProp}, states that no two silent steps occur in a row, so
+at most one silent step separates consecutive visible events.
+The fuel-bounded reader of \Cref{sec:mech-exec} therefore always advances to the next
+visible event, just as running the Haskell |evalNeed| does.
 
 \subsection{The Side Conditions, Made Precise}
 \label{sec:mech-side}

@@ -255,21 +255,5 @@ its congruence is laborious and re-established for each analysis.
 Here the operational congruence is discharged once; every analysis then relates to the
 interpreter alone (\Cref{sec:soundness}).
 
-\subsection{Totality of |evalName| and |evalNeed2|}
-\label{sec:totality}
-
-\begin{theorem}[Totality]
-\label{thm:totality}
-The interpreters |evalName e ρ| and |evalNeed e ρ μ| are defined for every
-|e|, |ρ|, |μ|.
-\end{theorem}
-\begin{proofsketch}
-In the Supplement, we implement the generic interpreter |eval| and its
-instances at |DName| and |DNeed| in Lean, using guarded recursion~\citep{Jung:18}
-to define the productive, coinductive traces.
-Since Lean is a total type theory, |evalName| and |evalNeed2| are total as well;
-see \Cref{sec:mechanisation} for a description of the mechanisation.
-\end{proofsketch}
-
 
 
