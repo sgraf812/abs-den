@@ -26,5 +26,7 @@ higher-order languages. That method~\citep{Cousot:21} derives an analysis, and i
 soundness proof, by algebraic manipulation of a compositional, trace-generating
 semantics, so far only for first-order languages. Our interpreter supplies such a
 semantics for a higher-order language, unblocking summary-based analyses that infer
-operational properties against a trace-generating semantics. We expect a great deal
-of new research to grow there.
+operational properties against a trace-generating semantics. The difficulty the
+framework meets, soundly abstracting higher-order mutable state, is shared by strict
+languages with mutable references and stateful objects, so the approach should reach
+them too. We expect a great deal of new research to grow there.
