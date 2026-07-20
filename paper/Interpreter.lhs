@@ -326,14 +326,16 @@ We have parameterised the semantic domain |d| over a type class |Domain|
 whose signatures are given in \Cref{fig:trace-classes}.
 
 Reading its seven methods conveys the whole design, independently of Haskell.
+Recall that |d| is a trace: a series of steps ending in a value.
 The trace primitives |step :: Event -> d -> d| and |stuck :: d| prefix a denotation with
 an observable event and denote a meaningless (stuck) computation.
 A function is built by |fun :: Name -> (d -> d) -> d| from a meta-level function of the
-argument's denotation, and consumed by |apply :: d -> d -> d|, which feeds it an
-argument; the two together form the \emph{summary mechanism} of \Cref{sec:abstraction}.
+argument's denotation, and consumed by |apply :: d -> d -> d|, which runs the callee's
+trace and feeds the argument to the |Fun| it yields; the two together form the
+\emph{summary mechanism} of \Cref{sec:abstraction}.
 Data mirrors this pair: |con :: Tag -> [d] -> d| builds a constructor value from its
-field denotations, and |select :: d -> (Tag :-> ([d] -> d)) -> d| scrutinises a
-denotation and runs the branch its tag selects.
+field denotations, and |select :: d -> (Tag :-> ([d] -> d)) -> d| runs the
+scrutinee's trace and takes the branch selected by the |Con| it yields.
 Finally, |bind :: (d -> d) -> (d -> d) -> d| interprets a recursive |let|, receiving the
 right-hand side and the body each as a function of the bound variable's denotation.
 The |Name| handed to |fun| is inert for a concrete semantics such as |DName|, but carries
