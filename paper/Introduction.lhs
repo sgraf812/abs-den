@@ -30,7 +30,7 @@ manageable subgoals decoupled from the definition of analysis or semantics.
 Traditional denotational semantics, however, abstracts away operational detail,
 and that detail is often the whole point of the analysis.
 To ask ``how often does $\pe$ evaluate its free variable $x$?'' is to ask about
-\emph{evaluation}, a notion that a standard denotational semantics does not even
+\emph{evaluation}, a notion that standard denotational semantics cannot
 express.
 Such questions drive us to an \emph{operational semantics}~\citep{Plotkin:81},
 which makes the stack and heap explicit and views execution as a sequence of
@@ -82,8 +82,8 @@ interpreter (\Cref{sec:soundness}).
 As a concrete example, we prove a summary-based \emph{usage
 analysis}~\citep{WrightBakerFinch:93,Gustavsson:98} sound for call-by-need.
 
-We do not claim that this interpreter and proof setup applies as-is to \emph{just
-any} analysis; rather, we share a new pattern for defining static analyses and
+We do not claim that this interpreter and proof setup applies unchanged to
+\emph{every} analysis; rather, we share a new pattern for defining static analyses and
 proving them correct without drowning in operational detail, in the spirit of
 abstract interpretation.
 % To exemplify this difficulty and show the usefulness of our approach, we prove
@@ -107,8 +107,8 @@ We make the following contributions:
   Next, in \Cref{sec:abstraction} we instantiate the generic interpreter
   with a finite, abstract semantic domain, recovering summary-based usage
   analysis, which infers upper bounds on how many times each variable is used.
-  Such a domain is an ordinary finite lattice: defining an analysis needs none of the
-  guarded-recursive domain construction that the concrete by-need semantics requires.
+  Such a domain is an ordinary finite lattice; the guarded-recursive domain
+  construction stays confined to the concrete by-need semantics.
   The extended version contains further examples, such as \citeauthor{Milner:78}'s type
   analysis, as well as a 0CFA control-flow analysis and Demand Analysis of the
   Glasgow Haskell Compiler.
@@ -120,9 +120,8 @@ We make the following contributions:
   We follow abstract interpretation techniques to characterise a set of
   abstraction laws that the type class instances of an abstract domain must
   satisfy in order to soundly approximate by-need interpretation.
-  None of the proof obligations mention the generic interpreter, and, more
-  remarkably, none of the laws mention the concrete semantics or the Galois
-  connection either!
+  None of the proof obligations mention the generic interpreter, and none of the
+  laws mention the concrete semantics or the Galois connection either!
   This enables us to prove usage analysis sound \wrt the by-need
   semantics by an argument that never mentions the interpreter,
   building on reusable semantics-specific theorems.
