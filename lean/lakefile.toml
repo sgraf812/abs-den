@@ -1,5 +1,11 @@
-name = "AbsDen"
+name = "abs_den"
 defaultTargets = ["AbsDen"]
+
+[[require]]
+name = "iris"
+git = "https://github.com/leanprover-community/iris-lean"
+rev = "master"
+subDir = "Iris"
 
 [[lean_lib]]
 name = "AbsDen"

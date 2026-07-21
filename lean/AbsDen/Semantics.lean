@@ -1,99 +1,63 @@
-import AbsDen.Syntax
 import AbsDen.Env
-import AbsDen.World
 
-/-!
-# Denotational interpreter
+/-! # The generic denotational interpreter `eval`
 
-The interpreter is generic, parameterized by a family `D : Nat → Type` satisfying
-the type class `Domain D`.
+Ported from Sebastian Graf, *Abstracting Denotational Interpreters*
+(`~/code/tex/abs-den/paper`), mirroring `AbsDen/Semantics.lean`. The single class
+`Domain` collects the denotational operations; faithfully to the repo's Kripke
+naturality they are non-expansive (`-n>`). `eval` is a morphism `Env d -n> d`, so
+the closures it hands to `fn`/`bind` are non-expansive by construction, and it
+stays polymorphic over any `[OFE d] [Domain d]`. -/
 
-Environment entries are `EnvEntry D n = Var × Later D n`.
-The `look` event is baked into the entry at `let` binding sites, not at
-reference sites, matching Agda's `Σ D is-env`.
--/
+open Iris Iris.COFE OFE
 
-/-! ## Semantic operations -/
+namespace AbsDen
 
-/-- Global elements of a step-indexed family. -/
-abbrev El (F : Nat → Type) := {n : Nat} → F n
+/-- The semantic domain: an OFE with the denotational operations
+    (`AbsDen/Semantics.lean`'s single `class Domain`). Only an OFE is needed (the
+    operations are non-expansive); completeness is required solely to *build* a
+    particular domain such as ByNeed's `D`, not by the class or by `eval`. Any
+    plain type qualifies via its discrete OFE, where `-n>` collapses to `→`. -/
+class Domain (d : Type) [OFE d] where
+  step   : Event → d -n> d
+  stuck  : d
+  fn     : Var → (d -n> d) -n> d
+  apply  : d -n> d -n> d
+  con    : ConTag → List d -n> d
+  select : d -n> List (ConTag × Nat × (List d -n> d)) -n> d
+  bind   : (d -n> d) -n> (d -n> d) -n> d
 
-/-- Environment entry: `Var × ▹D`. -/
-abbrev EnvEntry (D : Nat → Type) : Nat → Type := world(Var × ▹D)
+open Domain
 
-/-- Semantic domain: a World with denotational operations. -/
-class Domain (D : Nat → Type) extends World D where
-  step   : El world(Event → D → D)
-  stuck  : El D
-  fn     : El world((D → D) → D)
-  apply  : El world(D → D → D)
-  con    : El world(ConTag → List D → D)
-  select : El world(D → List (ConTag × (List D → D)) → D)
-  bind   : El world((D → D) → (D → D) → D)
-  natural_step : ∀ (ev : Event), Natural (fun {n : Nat} (d : D n) =>
-    step n (Nat.le_refl n) ev n (Nat.le_refl n) d)
+variable {d : Type} [OFE d] [Domain d]
 
-/-! ## Domain helpers at the current stage -/
+/-- The generic denotational interpreter (`AbsDen/Semantics.lean`), as a morphism
+    in the environment. `.look` is recorded at `let`-binding sites, and a `case`
+    alternative checks its arity against the scrutinee's fields. Each clause is
+    written in direct style; `ne_solve` discharges the `NonExpansive` witness
+    compositionally from the parts (see `AbsDen/NonExpansive.lean`). -/
+@[eval_simp] def eval : Exp → (Env d -n> d)
+  | .ref x => ofe_fun ρ => (ρ.get x).getD stuck
+  | .lam x body =>
+      ofe_fun ρ => fn x (ofe_fun a => step .app2 (eval body ρ[x ↦ a]))
+  | .app e x =>
+      ofe_fun ρ => (ρ.get x).elim stuck (fun a => step .app1 (apply (eval e ρ) a))
+  | .conapp K xs =>
+      ofe_fun ρ => ρ[xs]?.elim stuck (fun ds => con K ds)
+  | .«case» eₛ alts =>
+      ofe_fun ρ => step .case1 (select (eval eₛ ρ)
+        (alts.attach.map (fun alt =>
+          (alt.1.con, alt.1.vars.length, ofe_fun ds =>
+            if ds.length = alt.1.vars.length then
+              step .case2 (eval alt.1.rhs ρ[alt.1.vars ↦* ds])
+            else stuck))))
+  | .«let» x e₁ e₂ =>
+      ofe_fun ρ => step .let1 (bind
+          (ofe_fun a => eval e₁ ρ[x ↦ step (.look x) a])
+          (ofe_fun a => eval e₂ ρ[x ↦ step (.look x) a]))
+  termination_by e => sizeOf e
+  decreasing_by
+    all_goals simp_wf
+    all_goals first | omega | exact alt_rhs_lt _
 
-namespace Domain
-
-def step' {D : Nat → Type} [Domain D] {n : Nat} (e : Event) (d : D n) : D n :=
-  Domain.step n (Nat.le_refl n) e n (Nat.le_refl n) d
-
-def fn' {D : Nat → Type} [Domain D] {n : Nat} (f : world(D → D) n) : D n :=
-  Domain.fn n (Nat.le_refl n) f
-
-def apply' {D : Nat → Type} [Domain D] {n : Nat} (dv : D n) (da : D n) : D n :=
-  Domain.apply n (Nat.le_refl n) dv n (Nat.le_refl n) da
-
-def con' {D : Nat → Type} [Domain D] {n : Nat} (K : ConTag) (ds : List (D n)) : D n :=
-  Domain.con n (Nat.le_refl n) K n (Nat.le_refl n) ds
-
-def select' {D : Nat → Type} [Domain D] {n : Nat}
-    (dv : D n) (alts : List (ConTag × world(List D → D) n)) : D n :=
-  Domain.select n (Nat.le_refl n) dv n (Nat.le_refl n) alts
-
-def bind' {D : Nat → Type} [Domain D] {n : Nat}
-    (rhs : World.Function D D n)
-    (body : World.Function D D n) : D n :=
-  Domain.bind n (Nat.le_refl n) rhs n (Nat.le_refl n) body
-
-end Domain
-
-/-! ## The generic interpreter -/
-
-/-- Postfix notation for World.restrict: `ρ↓` restricts to the current step. -/
-macro:max x:term "↓" : term => `(World.restrict $x)
-
-/-- The generic denotational interpreter. -/
-def eval {D : Nat → Type} [Domain D] : (e : Exp) → El world(Env D → D)
-  | .ref x => fun _ _ ρ => match ρ.find? x with
-    | some entry => entry
-    | none => Domain.stuck
-  | .lam x body => fun k _ ρ =>
-    Domain.fn' (fun j hj entry => Domain.step' .app2 (eval body j (Nat.le_refl j) ((ρ↓).bind x entry)))
-  | .app e₁ x => fun k _ ρ => match ρ.find? x with
-    | some entry =>
-      Domain.step' .app1 (Domain.apply' (eval e₁ k (Nat.le_refl k) ρ) entry)
-    | none => Domain.stuck
-  | .conapp K xs => fun _ _ ρ => match ρ.pmapList xs with
-    | some ds => Domain.con' K ds
-    | none => Domain.stuck
-  | .case' eₛ alts => fun k _ ρ =>
-    Domain.step' .case1 (
-      Domain.select' (eval eₛ k (Nat.le_refl k) ρ)
-        (alts.map fun alt =>
-          (alt.con, fun j hj ds =>
-            Domain.step' .case2 (eval alt.rhs j (Nat.le_refl j) ((ρ↓).bindMany alt.vars ds)))))
-  | .let' x e₁ e₂ => fun k _ ρ =>
-    let rhs : World.Function D D k := fun j hj dx =>
-      eval e₁ j (Nat.le_refl j) ((ρ↓).bind x (Domain.step' (.look x) dx))
-    let body : World.Function D D k := fun j hj dx =>
-      eval e₂ j (Nat.le_refl j) ((ρ↓).bind x (Domain.step' (.look x) dx))
-    Domain.step' .let1 (Domain.bind' rhs body)
-termination_by e => sizeOf e
-decreasing_by
-  all_goals simp_wf; first | omega | skip
-  · have := List.sizeOf_lt_of_mem ‹alt ∈ alts›
-    have : sizeOf alt.rhs < sizeOf alt := by cases alt; simp [Alt.mk.sizeOf_spec]; omega
-    omega
+end AbsDen

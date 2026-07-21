@@ -1,303 +1,555 @@
+import AbsDen.Domain
 import AbsDen.Semantics
-import AbsDen.Trace
 
-/-!
-# By-need concrete instance
+open Iris Iris.COFE OFE
 
-The by-need domain is heap-threaded: `D n = Heap n → T (Value × Heap) n`.
-Following the Agda: `D (ByNeed T) = Heap → T (Value × Heap)`.
--/
+/-! # The ByNeed `Domain D` instance
+
+The denotational operations of `AbsDen/ByNeed.lean` over the solved domain
+`D ≅ Heap(▶D) -n> Trace (Value(▶D) × Heap(▶D))`. Each `Domain D` field is bound to
+its own top-level combinator of the same name (`step`, `stuck`, `fn`, `apply`,
+`con`, `select`, plus `bindLet` for the recursive `let`, since `D.bind` is the
+trace-monad bind). Application is `.invis`-guarded; `let` allocates a fresh cell,
+`memo`izes the rhs, and runs the body. -/
+
+namespace AbsDen
 
 abbrev Addr := Nat
 
-namespace ByNeed
+instance : Inhabited (Later D) := ⟨Later.next default⟩
 
-/-! ## Heap and domain signature -/
+theorem laterNext_ne {α : Type _} [OFE α] {n} {a a' : α} (h : a ≡{n}≡ a') :
+    Later.next a ≡{n}≡ Later.next a' := NonExpansive.ne (f := Later.next) h
 
-def AddrMap (V : Type) : Type := Std.HashMap Addr V
-instance : EmptyCollection (AddrMap V) := ⟨(∅ : Std.HashMap Addr V)⟩
-instance : Functor AddrMap where
-  map f (m : AddrMap _) := Std.HashMap.fold (fun acc k v => acc.insert k (f v)) ∅ m
-instance : LocalFunctor (World.Comp AddrMap) where
-  instWorld _ := inferInstance
-  property X Y _ _ n h := by simp only [World.Comp]; congr 1; exact h n (Nat.le_refl n)
+/-- `Later.next` as a morphism (used to thunk constructor arguments). -/
+def laterNextHom {α : Type _} [OFE α] : α -n> Later α := ⟨Later.next, inferInstance⟩
 
-abbrev Heap (D : Nat → Type) : Nat → Type := World.Comp AddrMap D
-instance {D : Nat → Type} {n : Nat} : EmptyCollection (Heap D n) := ⟨(∅ : AddrMap (D n))⟩
+/-! ## Returning a value with the heap unchanged -/
 
-abbrev D.Sig (X : Nat → Type) : Nat → Type :=
-  world(Heap X → T (Value.F.Rep X × Heap X))
+def D.ret : Value D -n> D :=
+  D.fold.comp ⟨fun v => ⟨fun μ => Trace.fold (.ret (v, μ)),
+      ⟨fun {_ _ _} h => Trace.fold.ne.ne ⟨OFE.dist_eqv.refl v, h⟩⟩⟩,
+    ⟨fun {_ _ _} hv => fun μ => Trace.fold.ne.ne ⟨hv, OFE.dist_eqv.refl μ⟩⟩⟩
 
-instance : LocalFunctor D.Sig := by derive_local_functor
+def D.stuck : D := D.ret Value.stuck
 
-def D := World.Fix D.Sig
+/-- Run a thunked computation against a heap, producing a trace. -/
+def D.runAt (μ : GenMap (Later D)) : D -n> Trace (ValueHeapOF D D) :=
+  ⟨fun d => D.unfold d μ, ⟨fun {_ _ _} h => (D.unfold.ne.ne h) μ⟩⟩
 
-instance : World D := inferInstanceAs (World (World.Fix D.Sig))
+theorem D.runAt_ne {n} {μ μ' : GenMap (Later D)} (h : μ ≡{n}≡ μ') :
+    D.runAt μ ≡{n}≡ D.runAt μ' := fun d => (D.unfold d).ne.ne h
 
-/-! ## Abbreviations for the value-heap pair -/
+/-- Emit an event, then run the value one step later against the heap. -/
+def D.step (ev : Event) : D -n> D :=
+  ⟨fun d => D.fold ⟨fun μ => Trace.fold (.step ev (laterMap (D.runAt μ) (Later.next d))),
+      ⟨fun {_ _ _} h => Trace.fold.ne.ne
+        ⟨rfl, laterMap_ne (D.runAt_ne h) (Later.next d)⟩⟩⟩,
+   ⟨fun {_ _ _} h => D.fold.ne.ne (fun μ => Trace.fold.ne.ne
+      ⟨rfl, (laterMap (D.runAt μ)).ne.ne (laterNext_ne h)⟩)⟩⟩
 
-/-- The value-heap pair with Rep values (matches D.Sig). -/
-abbrev VH := world(Value.F.Rep (▹ D) × Heap (▹ D))
+/-- A silent `▶` step, threading the thunk against the heap. -/
+def D.invis (dl : Later D) : D :=
+  D.fold ⟨fun μ => Trace.fold (.invis (laterMap (D.runAt μ) dl)),
+    ⟨fun {_ _ _} h => Trace.fold.ne.ne (laterMap_ne (D.runAt_ne h) dl)⟩⟩
 
-/-! ## Domain operations -/
+theorem D.invis_ne {n} {dl dl' : Later D} (h : dl ≡{n}≡ dl') : D.invis dl ≡{n}≡ D.invis dl' :=
+  D.fold.ne.ne (fun μ => Trace.fold.ne.ne ((laterMap (D.runAt μ)).ne.ne h))
 
-def D.unfold {n : Nat} (d : D n) (m : Nat) (hm : m ≤ n) (μ : Heap (▹ D) m) : T VH m :=
-  World.Fix.unfold d m hm μ
+/-! ## Value-returning operations -/
 
-def D.fold {n : Nat} (f : world(Heap (▹ D) → T VH) n) : D n :=
-  World.Fix.fold f
+def D.fn : (D -n> D) -n> D :=
+  ⟨fun f => D.ret (Value.fn (Later.next f)),
+   ⟨fun {_ _ _} H => D.ret.ne.ne (ValueF.fn.ne.ne (laterNext_ne H))⟩⟩
 
-def D.ret {n : Nat} (v : Value.F (▹ D) n) : D n :=
-  D.fold fun _ _ μ => T.ret (World.restrict (Value.F.toRep _ v), μ)
+def D.con (K : ConTag) : List D -n> D :=
+  ⟨fun ds => D.ret (Value.con K (ds.map Later.next)),
+   ⟨fun {_ _ _} H => D.ret.ne.ne ((ValueF.con.ne K).ne ((List.mapO laterNextHom).ne.ne H))⟩⟩
 
-def D.step {n : Nat} (ev : Event) (dl : ▹ D n) : D n :=
-  D.fold fun m _hm μ =>
-    T.step ev (Later.hmap m (fun i _hi d =>
-      d.unfold i (Nat.le_refl i) (World.restrict μ (by omega))) (World.restrict dl))
+/-! ## Monadic bind (the trace+heap monad), used by `apply`/`select` -/
 
-def D.invis {n : Nat} (dl : ▹ D n) : D n :=
-  D.fold fun m _hm μ =>
-    T.fold (.invis (Later.hmap m (fun i _hi d =>
-      d.unfold i (Nat.le_refl i) (World.restrict μ (by omega))) (World.restrict dl)))
+/-- The trace-level continuation of `bind k`: at a returned `(v, μ')`, run `k v`
+    against `μ'`. -/
+def D.kCont (k : Value D -n> D) : ValueHeapOF D D -n> Trace (ValueHeapOF D D) :=
+  ⟨fun vμ => D.unfold (k vμ.1) vμ.2,
+   ⟨fun {_ a b} h =>
+      OFE.Dist.trans ((D.unfold.ne.ne (k.ne.ne h.1)) a.2) ((D.unfold (k b.1)).ne.ne h.2)⟩⟩
 
-def D.stuck {n : Nat} : D n := D.ret .stuck
+theorem D.kCont_ne {n} {k k' : Value D -n> D} (H : k ≡{n}≡ k') : D.kCont k ≡{n}≡ D.kCont k' :=
+  fun vμ => (D.unfold.ne.ne (H vμ.1)) vμ.2
 
-def D.fn {n : Nat} (f : world(D → D) n) : D n :=
-  D.ret (.fn (fun m h dl => (Later.hmap m (fun k hk => f k (by omega)) dl)))
+def D.bind (d : D) (k : Value D -n> D) : D :=
+  D.fold ⟨fun μ => Trace.bind (D.kCont k) (D.unfold d μ),
+    ⟨fun {_ _ _} h => (Trace.bind (D.kCont k)).ne.ne ((D.unfold d).ne.ne h)⟩⟩
 
-def D.con {n : Nat} (K : ConTag) (ds : world(List D) n) : D n :=
-  D.ret (.con K (ds.map Later.next))
+theorem D.bind_ne_d {n} {d d' : D} (k : Value D -n> D) (h : d ≡{n}≡ d') :
+    D.bind d k ≡{n}≡ D.bind d' k :=
+  D.fold.ne.ne (fun μ => (Trace.bind (D.kCont k)).ne.ne ((D.unfold.ne.ne h) μ))
 
-instance {n : Nat} : Inhabited (D n) := ⟨D.stuck⟩
+theorem D.bind_ne_k {n} (d : D) {k k' : Value D -n> D} (H : k ≡{n}≡ k') :
+    D.bind d k ≡{n}≡ D.bind d k' :=
+  D.fold.ne.ne (fun μ => Trace.bind_ne (D.kCont_ne H) (D.unfold d μ))
 
-/-! ## Bind -/
+/-- `bind` is non-expansive in its continuation and in its scrutinee, as
+    instances so `ne_solve` composes them under `ofe_fun`. -/
+instance D.bind.ne_k (d : D) : NonExpansive (D.bind d) := ⟨fun {_ _ _} H => D.bind_ne_k d H⟩
+instance D.bind.ne_d (k : Value D -n> D) : NonExpansive (fun d => D.bind d k) :=
+  ⟨fun {_ _ _} h => D.bind_ne_d k h⟩
 
-def D.bind {n : Nat} (d : D n) (k : world(Value.F (▹ D) → D) n) : D n :=
-  D.fold fun m hm μ =>
-    T.bind (d.unfold m (by omega) μ) fun j hj (v, μ') =>
-      (k j (by omega) (Value.F.ofRep _ v)).unfold j (Nat.le_refl j) μ'
+/-! ## Application -/
+
+/-- Continuation of `apply da`: a function value is applied (guarded by `.invis`),
+    everything else is stuck. -/
+def D.applyCont (da : D) : Value D -n> D :=
+  ⟨fun v => match v with
+    | .stuck => D.stuck
+    | .fn g => D.invis (Later.next (g.car da))
+    | .con _ _ => D.stuck,
+   ⟨fun {_ v v'} h => by
+      cases v <;> cases v' <;> try exact False.elim h
+      · exact OFE.dist_eqv.refl _
+      · exact D.invis_ne (fun m hm => (h m hm) da)
+      · exact OFE.dist_eqv.refl _⟩⟩
+
+theorem D.applyCont_ne {n} {da da' : D} (h : da ≡{n}≡ da') :
+    D.applyCont da ≡{n}≡ D.applyCont da' := by
+  intro v
+  cases v with
+  | stuck => exact OFE.dist_eqv.refl _
+  | fn g => exact D.invis_ne (fun m hm => g.car.ne.ne (h.lt hm))
+  | con K ds => exact OFE.dist_eqv.refl _
+
+instance D.applyCont.ne : NonExpansive D.applyCont := ⟨fun {_ _ _} h => D.applyCont_ne h⟩
+
+def D.apply : D -n> D -n> D :=
+  ofe_fun dv => ofe_fun da => D.bind dv (D.applyCont da)
+
+/-- `n`-close thunk lists force to `m`-close value lists for every `m < n`
+    (`Later` is a trivial wrapper, so forcing is `·.map (·.car)`). -/
+theorem mapCar_distLater {n} {ds ds' : List (Later D)} (h : ds ≡{n}≡ ds')
+    (m : Nat) (hm : m < n) : ds.map (·.car) ≡{m}≡ ds'.map (·.car) := by
+  induction h with
+  | nil => exact List.Forall₂.nil
+  | cons hx _ ih => exact List.Forall₂.cons (hx m hm) ih
+
+/-- `find?` with a dist-respecting predicate is non-expansive in the list. -/
+theorem find?_ne {α : Type} [OFE α] {n} {p : α → Bool}
+    (hp : ∀ {a b : α}, a ≡{n}≡ b → p a = p b) {l l' : List α} (h : l ≡{n}≡ l') :
+    l.find? p ≡{n}≡ l'.find? p := by
+  induction h with
+  | nil => exact OFE.dist_eqv.refl _
+  | @cons a b _ _ hab _ ih =>
+      simp only [List.find?_cons, hp hab]
+      split
+      · exact some_dist_some.mpr hab
+      · exact ih
+
+/-- Running a matched alternative is non-expansive in both the stored arguments
+    and the alternative: force the arguments (`·.map (·.car)`), apply the branch,
+    and re-wrap under `.invis`. -/
+theorem D.selectSome_ne {n} {ds ds' : List (Later D)} (hds : ds ≡{n}≡ ds')
+    {p p' : ConTag × Nat × (List D -n> D)} (hp : p ≡{n}≡ p') :
+    D.invis (Later.next (p.2.2 (ds.map (·.car)))) ≡{n}≡ D.invis (Later.next (p'.2.2 (ds'.map (·.car)))) :=
+  D.invis_ne (fun m hm =>
+    ofe_mor_car_ne.ne ((dist_snd (dist_snd hp)).lt hm) (mapCar_distLater hds m hm))
+
+/-- The constructor tag carried by an alternative is discrete, so the match
+    predicate `(·.1 == K)` respects `n`-equivalence of alternatives. -/
+theorem altMatch_dist {n} {K : ConTag} {a b : ConTag × Nat × (List D -n> D)} (hab : a ≡{n}≡ b) :
+    (a.1 == K) = (b.1 == K) := by rw [show a.1 = b.1 from dist_fst hab]
+
+/-- Force the constructor arguments and run the matching alternative under
+    `.invis`; a missing constructor is `stuck`. -/
+def D.selectContFun (alts : List (ConTag × Nat × (List D -n> D))) (v : Value D) : D :=
+  match v with
+  | .con K ds =>
+    (alts.find? (·.1 == K)).elim D.stuck
+      (fun p => D.invis (Later.next (p.2.2 (ds.map (·.car)))))
+  | _ => D.stuck
+
+/-- `selectContFun` is non-expansive in the scrutinee value. -/
+theorem D.selectContFun_ne_v {n} (alts : List (ConTag × Nat × (List D -n> D))) {v v' : Value D}
+    (h : v ≡{n}≡ v') : D.selectContFun alts v ≡{n}≡ D.selectContFun alts v' := by
+  cases v <;> cases v' <;> try exact False.elim h
+  · exact OFE.dist_eqv.refl _
+  · exact OFE.dist_eqv.refl _
+  · obtain ⟨rfl, hds⟩ := h
+    exact Option.elim_ne (· ≡{n}≡ ·) (fun _ _ hp => D.selectSome_ne hds hp)
+      (OFE.dist_eqv.refl _) (OFE.dist_eqv.refl _)
+
+/-- Run the matching alternative as a morphism in the scrutinee value. -/
+def D.selectCont (alts : List (ConTag × Nat × (List D -n> D))) : Value D -n> D :=
+  ⟨D.selectContFun alts, ⟨fun {_ _ _} h => D.selectContFun_ne_v alts h⟩⟩
+
+/-- `selectCont` is non-expansive in the alternatives. -/
+theorem D.selectCont_ne {n} {alts alts' : List (ConTag × Nat × (List D -n> D))} (h : alts ≡{n}≡ alts') :
+    D.selectCont alts ≡{n}≡ D.selectCont alts' := by
+  intro v
+  show D.selectContFun alts v ≡{n}≡ D.selectContFun alts' v
+  cases v with
+  | stuck => exact OFE.dist_eqv.refl _
+  | fn g => exact OFE.dist_eqv.refl _
+  | con K ds =>
+    exact Option.elim_ne (· ≡{n}≡ ·) (fun _ _ hp => D.selectSome_ne (OFE.dist_eqv.refl ds) hp)
+      (OFE.dist_eqv.refl _) (find?_ne (fun hab => altMatch_dist hab) h)
+
+instance D.selectCont.ne : NonExpansive D.selectCont := ⟨fun {_ _ _} h => D.selectCont_ne h⟩
+
+/-- Constructor selection: force the scrutinee, then run the matching alternative. -/
+def D.select : D -n> List (ConTag × Nat × (List D -n> D)) -n> D :=
+  ofe_fun dv => ofe_fun alts => D.bind dv (D.selectCont alts)
 
 /-! ## Heap operations -/
 
-partial def Heap.nextFree {n : Nat} (μ : Heap (▹ D) n) : Addr :=
-  go 0
-where
-  go (k : Nat) : Addr :=
-    match Std.HashMap.get? μ k with
-    | none => k
-    | some _ => go (k + 1)
+/-- The least free address; deterministic, so it agrees on `n`-close heaps. -/
+def Heap.nextFree (μ : GenMap (Later D)) : Addr := genMapLeast μ
 
-def Heap.set {n : Nat} (μ : Heap (▹ D) n) (a : Addr) (d : ▹ D n) :
-    Heap (▹ D) n :=
-  Std.HashMap.insert μ a d
+theorem Heap.nextFree_spec (μ : GenMap (Later D)) : μ.car (Heap.nextFree μ) = none :=
+  genMapLeast_spec μ
 
-/-- Fetch: look up address a in the heap via invisible step. -/
-def fetch {n : Nat} (a : Addr) : ▹ D n :=
-  Later.next (D.fold fun m' _hm' μ =>
-    match Std.HashMap.get? μ a with
-    | some d => T.fold (.invis (Later.hmap m' (fun i _hi d' =>
-        d'.unfold i (Nat.le_refl i) (μ↓)) d))
-    | none => T.ret (Value.F.toRep _ .stuck, μ))
+theorem Heap.nextFree_eq {n} {μ μ' : GenMap (Later D)} (h : μ ≡{n}≡ μ') :
+    Heap.nextFree μ = Heap.nextFree μ' :=
+  genMapLeast_congr μ μ' (fun k => by
+    have hk := h k
+    constructor
+    · intro hμ
+      rcases hμ' : μ'.car k with _ | v'
+      · rfl
+      · rw [hμ, hμ'] at hk; exact hk.elim
+    · intro hμ'
+      rcases hμ : μ.car k with _ | v
+      · rfl
+      · rw [hμ, hμ'] at hk; exact hk.elim)
 
-/-- Memo: wraps thunk with memoization at address a.
-    Evaluates thunk, emits `update`, stores memoized value at a. -/
-def D.memo {n : Nat} (a : Addr) (d : ▹ D n) : ▹ D n :=
-  Later.hmap n (fun m _ dv =>
-    D.bind dv fun j _ v =>
-      let memoThunk : ▹ D j := D.memo a (Later.next (D.ret (World.restrict v (by omega))))
-      D.step .update (Later.next (D.fold fun j' _hj' μ' =>
-        T.ret (World.restrict (Value.F.toRep _ v) (by omega),
-               Std.HashMap.insert μ' a (World.restrict memoThunk (by omega)))))
-  ) d
+/-- Store a thunk at an address. -/
+def Heap.set (μ : GenMap (Later D)) (a : Addr) (dl : Later D) : GenMap (Later D) :=
+  μ.alter a (some dl)
 
-/-! ## Equational lemmas and naturality helpers -/
+theorem Heap.set_ne {n} (a : Addr) (dl : Later D) {μ μ' : GenMap (Later D)} (h : μ ≡{n}≡ μ') :
+    Heap.set μ a dl ≡{n}≡ Heap.set μ' a dl := by
+  intro k; simp only [Heap.set, GenMap.alter, Iris.alter]; split
+  · exact OFE.dist_eqv.refl _
+  · exact h k
 
-@[simp] theorem D_fold_unfold {n : Nat} (f : world(Heap (▹ D) → T VH) n) (m : Nat)
-    (hm : m ≤ n) (μ : Heap (▹ D) m) :
-    D.unfold (D.fold f) m hm μ = f m hm μ := by
-  simp [D.unfold, D.fold, World.Fix.unfold, World.Fix.fold]
+theorem Heap.set_get (μ : GenMap (Later D)) (a : Addr) (dl : Later D) (k : Addr) :
+    (Heap.set μ a dl).car k = if a = k then some dl else μ.car k := rfl
 
-@[simp] theorem D_step_eq {n : Nat} (ev : Event) (dl : ▹ D n) (m : Nat)
-    (hm : m ≤ n) (μ : Heap (▹ D) m) :
-    D.unfold (D.step ev dl) m hm μ =
-    T.step ev (Later.hmap m (fun i _hi d => d.unfold i (Nat.le_refl i) (World.restrict μ (by omega)))
-      (World.restrict dl hm)) := by simp [D.step]
+theorem Heap.set_ne_val {n} (μ : GenMap (Later D)) (a : Addr) {dl dl' : Later D} (h : dl ≡{n}≡ dl') :
+    Heap.set μ a dl ≡{n}≡ Heap.set μ a dl' := by
+  intro k; simp only [Heap.set, GenMap.alter, Iris.alter]; split
+  · exact some_dist_some.mpr h
+  · exact OFE.dist_eqv.refl _
 
-theorem D_unfold_restrictStep {n : Nat} (d : D (n+1)) (m : Nat) (hm : m ≤ n)
-    (μ : Heap (▹ D) m) :
-    (World.restrictStep d).unfold m hm μ = d.unfold m (Nat.le_succ_of_le hm) μ := by
-  unfold D.unfold; exact congrFun (World.Fix.unfold_restrictStep_Function d m hm) μ
+/-- Look up an address: dereference the cell and run its thunk through a single
+    silent step (the layer that opens the stored `▶D`), or get stuck on a free
+    cell. -/
+def fetch (a : Addr) : D :=
+  D.fold ⟨fun μ => (μ.car a).elim (Trace.fold (.ret (Value.stuck, μ)))
+      (fun dl => Trace.fold (.invis (laterMap (D.runAt μ) dl))),
+    ⟨fun {n μ μ'} h => Option.elim_ne (· ≡{n}≡ ·)
+      (fun dl dl' hdl => Trace.fold.ne.ne (TraceF.invis.ne.ne
+        (OFE.Dist.trans (laterMap_ne (D.runAt_ne h) dl) ((laterMap (D.runAt μ')).ne.ne hdl))))
+      (Trace.fold.ne.ne ⟨OFE.dist_eqv.refl Value.stuck, h⟩)
+      (h a)⟩⟩
 
-theorem D_unfold_restrict {n : Nat} (d : D n) (m : Nat) (hm : m ≤ n)
-    (k : Nat) (hk : k ≤ m) (μ : Heap (▹ D) k) :
-    (World.restrict d hm).unfold k hk μ = d.unfold k (Nat.le_trans hk hm) μ := by
-  match n with
-  | 0 => have : m = 0 := Nat.le_zero.mp hm; subst this; simp
-  | n + 1 =>
-    rw [World.restrict.eq_1]; split
-    · next heq => subst heq; simp
-    · next hne =>
-      have hm' := Nat.lt_succ_iff.mp (Nat.lt_of_le_of_ne hm hne)
-      exact (D_unfold_restrict (World.restrictStep d) m hm' k hk μ).trans
-        (D_unfold_restrictStep d k (Nat.le_trans hk hm') μ)
-  termination_by n
+/-! ## Memoization (guarded recursion)
 
-theorem restrict_later_next' {n : Nat} (d : D n) (k : Nat) (hk : k + 1 ≤ n) :
-    @World.restrict (Later D) _ n (k+1) (Later.next d) hk =
-    @World.restrict D _ n k d (by omega) := by
-  induction n generalizing k with
-  | zero => omega
-  | succ n ih =>
-    by_cases hkn' : k = n
-    · subst hkn'
-      rw [World.restrict.eq_1 (F := Later D), dif_pos rfl]
-      rw [World.restrict.eq_1 (F := D), dif_neg (by omega)]
-      dsimp only []
-      rw [World.restrict.eq_1, dif_pos rfl]
-      simp only [cast_eq]; rfl
-    · rw [World.restrict.eq_1 (F := Later D), dif_neg (by omega)]
-      dsimp only []
-      rw [World.restrict.eq_1 (F := D), dif_neg (by omega)]
-      dsimp only []
-      exact ih (World.restrictStep d) k (by omega)
+Faithful to the paper's `memo`: the first forcing that reaches a value emits
+`update` and caches it behind a *memoized* thunk `D.memo a (▶(ret v))`, so the
+recursion is genuine; a `stuck` result is passed on with the heap untouched.
+The recursive `rec` sits under the outer `laterMap`'s `▶`, so the operator is
+contractive and `D.memo` is its Banach fixpoint. -/
 
-theorem D_fold_unfold_id {n : Nat} (d : D n) :
-    D.fold (World.Fix.unfold d) = d := by
-  show World.Fix.fold (World.Fix.unfold d) = d
-  unfold World.Fix.fold World.Fix.unfold; simp
+/-- The cell update a first forcing performs on reaching a value: emit `update`
+    and return the value with its cell rewritten to the memoized thunk; `rec`
+    is the guarded recursive `D.memo a`. -/
+def D.memo.upd (a : Addr) (rec : Later D -n> Later D) (v : Value D) : D :=
+  D.step .update (D.fold
+    ⟨fun μ => Trace.fold (.ret (v, Heap.set μ a (rec (Later.next (D.ret v))))),
+     ⟨fun {_ _ _} h => Trace.fold.ne.ne ⟨OFE.dist_eqv.refl v, Heap.set_ne a _ h⟩⟩⟩)
 
-theorem D_ext {n : Nat} (a b : D n)
-    (h : ∀ (m : Nat) (hm : m ≤ n) (μ : Heap (▹ D) m), D.unfold a m hm μ = D.unfold b m hm μ) :
-    a = b := by
-  rw [← D_fold_unfold_id a, ← D_fold_unfold_id b]; congr 1; funext m hm μ; exact h m hm μ
+theorem D.memo.upd_ne_v {n} (a : Addr) (rec : Later D -n> Later D) {v v' : Value D}
+    (hv : v ≡{n}≡ v') : D.memo.upd a rec v ≡{n}≡ D.memo.upd a rec v' :=
+  (D.step .update).ne.ne (D.fold.ne.ne
+    (fun μ => Trace.fold.ne.ne
+      ⟨hv, Heap.set_ne_val μ a (rec.ne.ne (laterNext_ne (D.ret.ne.ne hv)))⟩))
 
-theorem D.natural_step (ev : Event) {n : Nat} (d : D (n+1)) :
-    D.step ev (Later.next (World.restrictStep d)) =
-    World.restrictStep (D.step ev (Later.next d)) := by
-  apply D_ext; intro m hm μ
-  rw [D_unfold_restrictStep, D_step_eq, D_step_eq]
-  congr 2
-  cases m with
-  | zero => rfl
-  | succ k =>
-    show @World.restrict (Later D) _ n _ (Later.next (World.restrictStep d)) _ =
-         @World.restrict (Later D) _ (n+1) _ (Later.next d) _
-    rw [restrict_later_next' (World.restrictStep d) k (by omega),
-        restrict_later_next' d k (by omega)]
-    exact (World.restrict_succ d (by omega : k ≤ n)).symm
+theorem D.memo.upd_ne_rec {m} (a : Addr) {rec rec' : Later D -n> Later D}
+    (H : rec ≡{m}≡ rec') (v : Value D) :
+    D.memo.upd a rec v ≡{m}≡ D.memo.upd a rec' v :=
+  (D.step .update).ne.ne (D.fold.ne.ne
+    (fun μ => Trace.fold.ne.ne
+      ⟨OFE.dist_eqv.refl v, Heap.set_ne_val μ a (H (Later.next (D.ret v)))⟩))
 
-/-! ## Domain instance -/
+/-- The continuation a memoized thunk binds its stored computation with: a
+    value updates its cell, a `stuck` result is returned with the heap
+    untouched. -/
+def D.memo.cont (a : Addr) (rec : Later D -n> Later D) : Value D -n> D :=
+  ⟨fun v => match v with
+    | .stuck => D.stuck
+    | v => D.memo.upd a rec v,
+   ⟨fun {_ v v'} hv => by
+     cases v <;> cases v' <;> try exact False.elim hv
+     · exact OFE.dist_eqv.refl _
+     · exact D.memo.upd_ne_v a rec hv
+     · exact D.memo.upd_ne_v a rec hv⟩⟩
+
+theorem D.memo.cont_ne {m} (a : Addr) {rec rec' : Later D -n> Later D} (H : rec ≡{m}≡ rec') :
+    D.memo.cont a rec ≡{m}≡ D.memo.cont a rec'
+  | .stuck => OFE.dist_eqv.refl _
+  | .fn _ => D.memo.upd_ne_rec a H _
+  | .con _ _ => D.memo.upd_ne_rec a H _
+
+/-- The contractive operator whose fixpoint is `D.memo a`: force the thunk and bind
+    the cell-update, all under the outer guard. -/
+def D.memo.op (a : Addr) (rec : Later D -n> Later D) : Later D -n> Later D :=
+  laterMap ⟨fun dv => D.bind dv (D.memo.cont a rec),
+            ⟨fun {_ _ _} hdv => D.bind_ne_d (D.memo.cont a rec) hdv⟩⟩
+
+instance (a : Addr) : OFE.Contractive (D.memo.op a) where
+  distLater_dist {_ _ _} H :=
+    Trace.laterMap_contractive (fun m hm dv => D.bind_ne_k dv (D.memo.cont_ne a (H m hm)))
+
+/-- Memoize a thunk: force once and, on reaching a value, emit `update` and
+    cache it. -/
+def D.memo (a : Addr) : Later D -n> Later D := (D.memo.op a).toContractiveHom.lazyFixpoint
+
+theorem D.memo_unfold (a : Addr) : D.memo a ≡ D.memo.op a (D.memo a) :=
+  fixpoint_unfold (D.memo.op a).toContractiveHom
+
+theorem D.memo_ne {n} (a : Addr) {dl dl' : Later D} (h : dl ≡{n}≡ dl') :
+    D.memo a dl ≡{n}≡ D.memo a dl' := (D.memo a).ne.ne h
+
+/-! ## Recursive `let`: allocate, memoize the rhs, run the body -/
+
+def D.bindLet : (D -n> D) -n> (D -n> D) -n> D :=
+  ⟨fun rhs => ⟨fun body =>
+      D.fold ⟨fun μ => D.unfold (body (fetch (Heap.nextFree μ)))
+        (Heap.set μ (Heap.nextFree μ)
+          (D.memo (Heap.nextFree μ) (Later.next (rhs (fetch (Heap.nextFree μ)))))),
+        ⟨fun {_ _ _} h => by rw [Heap.nextFree_eq h]; exact (D.unfold _).ne.ne (Heap.set_ne _ _ h)⟩⟩,
+      ⟨fun {_ _ _} H => D.fold.ne.ne (fun μ =>
+        (D.unfold.ne.ne (H (fetch (Heap.nextFree μ))))
+          (Heap.set μ (Heap.nextFree μ)
+            (D.memo (Heap.nextFree μ) (Later.next (rhs (fetch (Heap.nextFree μ)))))))⟩⟩,
+   ⟨fun {_ _ _} H => fun body => D.fold.ne.ne (fun μ =>
+      (D.unfold (body (fetch (Heap.nextFree μ)))).ne.ne
+        (Heap.set_ne_val μ (Heap.nextFree μ)
+          (D.memo_ne (Heap.nextFree μ) (laterNext_ne (H (fetch (Heap.nextFree μ)))))))⟩⟩
+
+/-! ## The `Domain D` instance -/
 
 instance : Domain D where
-  step {_} _m _hm ev _k _hk d := D.step ev (Later.next d)
+  step := D.step
   stuck := D.stuck
-  fn {_n} _m _hm f := D.fn f
-  apply {_n} _m _hm dv k hk da :=
-    D.bind (dv↓) fun j hj v =>
-      match v with
-      | .fn g => D.invis (g j (Nat.le_refl j) (Later.next (da↓)))
-      | _ => D.stuck
-  con {_} _m _hm K _k _hk ds := D.con K ds
-  select {_} _m _hm dv k hk alts :=
-    D.bind (dv↓) fun j hj v =>
-      match v with
-      | .con K ds =>
-        match alts.find? (fun (p : ConTag × _) => p.1 == K) with
-        | some (_, f) =>
-          D.invis (Later.hmap j (fun i _h ds' => f i (by omega) ds') (Later.sequence _ ds))
-        | none => D.stuck
-      | _ => D.stuck
-  bind {_n} _m _hm rhs' k _hk body :=
-    D.fold fun j hj μ =>
-      let a := Heap.nextFree μ
-      -- let rhsThunk : ▹ D j := Later.ap' _ (Later.next (rhs'↓)) (fetch a) -- an unnecessary optimization
-      let rhsThunk : ▹ D j := Later.next (rhs' j (by omega) (D.invis (fetch a)))
-      let memoThunk : ▹ D j := D.memo a rhsThunk
-      let μ' := Heap.set μ a memoThunk
-      (body j (by omega) (D.invis (fetch a))).unfold j (Nat.le_refl j) μ'
-  natural_step ev := D.natural_step ev
+  fn _ := D.fn
+  apply := D.apply
+  con := D.con
+  select := D.select
+  bind := D.bindLet
 
-/-! ## By-need evaluator -/
+/-! ## Reduction lemmas (the evaluator's observable small-step behavior)
 
-def evalByNeed (n : Nat) (e : Exp) : D n :=
-  eval (D := D) e n (Nat.le_refl n) Env.empty
+Each operation, run against a heap, unfolds to one trace layer. These are the
+rules a trace-evaluation tactic would apply. -/
 
-/-! ========== Tests ========== -/
+theorem D.unfold_fold_app (f : GenMap (Later D) -n> Trace (ValueHeapOF D D))
+    (μ : GenMap (Later D)) : D.unfold (D.fold f) μ ≡ f μ := (D.unfold_fold f) μ
 
-instance : ToString Exp := ⟨fun e => toString (repr e)⟩
+@[eval_simp] theorem D.ret_run (v : Value D) (μ : GenMap (Later D)) :
+    D.unfold (D.ret v) μ ≡ Trace.ret (v, μ) := D.unfold_fold_app _ μ
 
-def idId : Exp := .lam 0 (.ref 0)
-def idAppId : Exp := .let' 0 (.lam 1 (.ref 1)) (.app (.ref 0) 0)
-def idAppTrue : Exp := .let' 0 (.conapp 1 []) (.app (.lam 1 (.ref 1)) 0)
-def idAppIdMemo : Exp := .let' 0 (.app (.lam 1 (.lam 2 (.ref 2))) 0) (.app (.ref 0) 0)
+@[eval_simp] theorem D.step_run (ev : Event) (d : D) (μ : GenMap (Later D)) :
+    D.unfold (D.step ev d) μ ≡ Trace.step ev (laterMap (D.runAt μ) (Later.next d)) :=
+  D.unfold_fold_app _ μ
 
-def showValue {n : Nat} : Value.F (Later D) n → String
-  | .stuck => "stuck"
-  | .fn _ => "fn<...>"
-  | .con K ds => s!"con({K}, {ds.length} args)"
+@[eval_simp] theorem D.invis_run (dl : Later D) (μ : GenMap (Later D)) :
+    D.unfold (D.invis dl) μ ≡ Trace.invis (laterMap (D.runAt μ) dl) := D.unfold_fold_app _ μ
 
-partial def showT {n : Nat} (t : T VH n) (fuel : Nat) : String :=
-  if fuel = 0 then "..."
-  else match T.unfold t with
-    | .ret (v, _) => s!"ret({showValue (Value.F.ofRep _ v)})"
-    | .step e x =>
-      match n with
-      | 0 => s!"step({repr (e : Event)}, ·)"
-      | _ + 1 => s!"step({repr (e : Event)}, {showT x (fuel - 1)})"
-    | .invis x =>
-      match n with
-      | 0 => s!"invis(·)"
-      | _ + 1 => s!"invis({showT x (fuel - 1)})"
+@[eval_simp] theorem D.bind_run (d : D) (k : Value D -n> D) (μ : GenMap (Later D)) :
+    D.unfold (D.bind d k) μ ≡ Trace.bind (D.kCont k) (D.unfold d μ) := D.unfold_fold_app _ μ
 
-def showD {n : Nat} (d : D n) (fuel : Nat) : String :=
-  showT (d.unfold n (Nat.le_refl n) ∅) fuel
+@[eval_simp] theorem D.fn_run (f : D -n> D) (μ : GenMap (Later D)) :
+    D.unfold (D.fn f) μ ≡ Trace.ret (Value.fn (Later.next f), μ) := D.ret_run _ μ
 
-instance {n : Nat} {α : Type} [Repr α] : Repr (World.Const α n) := inferInstanceAs (Repr α)
+@[eval_simp] theorem D.con_run (K : Nat) (ds : List D) (μ : GenMap (Later D)) :
+    D.unfold (D.con K ds) μ ≡ Trace.ret (Value.con K (ds.map Later.next), μ) := D.ret_run _ μ
 
-partial def traceBisim {n : Nat} (a b : T VH n) : Bool :=
-  match T.unfold a, T.unfold b with
-  | .ret (va, _), .ret (vb, _) => valBisim (Value.F.ofRep _ va) (Value.F.ofRep _ vb)
-  | .step ea xa, .step eb xb => ea == eb && laterBisim xa xb
-  | .invis xa, _ => laterBisim xa (Later.next b)
-  | _, .invis xb => laterBisim (Later.next a) xb
-  | _, _ => false
-where
-  valBisim {n : Nat} (a b : Value.F (Later D) n) : Bool :=
-    match a, b with
-    | .stuck, .stuck => true
-    | .fn _, .fn _ => true
-    | .con Ka dsa, .con Kb dsb =>
-      Ka == Kb && dsa.length == dsb.length &&
-      (dsa.zip dsb).all fun (da, db) => laterTraceBisim da db
-    | _, _ => false
-  laterBisim {n : Nat} (a b : Later (T VH) n) : Bool :=
-    match n with
-    | 0 => true
-    | _ + 1 => traceBisim a b
-  laterTraceBisim {n : Nat} (a b : Later D n) : Bool :=
-    match n with
-    | 0 => true
-    | _ + 1 => traceBisim (a.unfold _ (Nat.le_refl _) ∅) (b.unfold _ (Nat.le_refl _) ∅)
+/-- Bridge the `Domain D` instance fields to the by-need combinators, so the
+    `eval_simp` set carries `eval`'s output into the `_run` rules. -/
+@[eval_simp] theorem domain_step_D : (Domain.step : Event → D -n> D) = D.step := rfl
+@[eval_simp] theorem domain_stuck_D : (Domain.stuck : D) = D.stuck := rfl
+@[eval_simp] theorem domain_fn_D (x : Var) : (Domain.fn x : (D -n> D) -n> D) = D.fn := rfl
+@[eval_simp] theorem domain_apply_D : (Domain.apply : D -n> D -n> D) = D.apply := rfl
+@[eval_simp] theorem domain_con_D : (Domain.con : Nat → List D -n> D) = D.con := rfl
+@[eval_simp] theorem domain_bind_D :
+    (Domain.bind : (D -n> D) -n> (D -n> D) -n> D) = D.bindLet := rfl
+@[eval_simp] theorem domain_select_D :
+    (Domain.select : D -n> List (ConTag × Nat × (List D -n> D)) -n> D) = D.select := rfl
 
-partial def D.bisim {n : Nat} (a b : D n) : Bool :=
-  traceBisim (a.unfold n (Nat.le_refl n) ∅) (b.unfold n (Nat.le_refl n) ∅)
+/-- Binding an immediately-returned constructor value runs the continuation on
+    that value (the `Trace.bind`/`ret` left-unit, threaded through `D`). -/
+theorem D.bind_con_run (K : Nat) (ds : List D) (k : Value D -n> D) (μ : GenMap (Later D)) :
+    D.unfold (D.bind (D.con K ds) k) μ ≡ D.unfold (k (Value.con K (ds.map Later.next))) μ :=
+  (D.bind_run _ k μ).trans
+    ((ofe_mor_car_proper OFE.Equiv.rfl (D.con_run K ds μ)).trans
+      (Trace.bind_ret (D.kCont k) (Value.con K (ds.map Later.next), μ)))
 
-instance {n : Nat} : BEq (D n) := ⟨D.bisim⟩
+/-- `selectCont` on a constructor value with stored fields: force the fields
+    and run the matching branch under `.invis`; a missing constructor is
+    `stuck`. -/
+theorem D.selectCont_stored (alts : List (ConTag × Nat × (List D -n> D))) (K : ConTag)
+    (ds : List (Later D)) :
+    D.selectCont alts (Value.con K ds)
+      = (alts.find? (·.1 == K)).elim D.stuck
+          (fun p => D.invis (Later.next (p.2.2 (ds.map (·.car))))) := rfl
 
-def D.anyFn {n : Nat} : D n := D.fn (fun _ _ d => D.invis (Later.next d))
-def D.ev {n : Nat} (e : Event) (d : D n) : D (n + 1) := D.step e d
+/-- `selectCont` on a constructor value: the arguments thunked by `D.con` are
+    forced straight back, so the matching branch runs on the original arguments;
+    a missing constructor is `stuck`. -/
+theorem D.selectCont_con (alts : List (ConTag × Nat × (List D -n> D))) (K : ConTag) (ds : List D) :
+    D.selectCont alts (Value.con K (ds.map Later.next))
+      = (alts.find? (·.1 == K)).elim D.stuck (fun p => D.invis (Later.next (p.2.2 ds))) := by
+  rw [D.selectCont_stored]
+  simp only [List.map_map, Function.comp_def, List.map_id']
 
-def test (exp : Exp) (n : Nat) (expected : D n) : Lean.Meta.MetaM Unit := do
-  let actual := evalByNeed n exp
-  unless actual == expected do
-     throwError s!"Failed for {exp}:\n  expected: {showD expected n}\n  got:      {showD actual n}"
+/-- Dereferencing an unallocated cell is a stuck return. -/
+theorem fetch_run_none {μ : GenMap (Later D)} {a : Addr} (h : μ.car a = none) :
+    D.unfold (fetch a) μ ≡ Trace.ret (Value.stuck, μ) := by
+  refine (D.unfold_fold_app _ μ).trans ?_
+  show ((μ.car a).elim (Trace.fold (.ret (Value.stuck, μ)))
+    (fun dl => Trace.fold (.invis (laterMap (D.runAt μ) dl))) : Trace (ValueHeapOF D D)) ≡ _
+  rw [h]
+  exact OFE.equiv_dist.mpr fun _ => OFE.dist_eqv.refl _
 
-#eval! test idId 10 D.anyFn
+/-- Dereferencing an allocated cell: one silent step opening the stored `▶D`. -/
+theorem fetch_run_some {μ : GenMap (Later D)} {a : Addr} {dl : Later D}
+    (h : μ.car a = some dl) :
+    D.unfold (fetch a) μ ≡ Trace.invis (laterMap (D.runAt μ) dl) := by
+  refine (D.unfold_fold_app _ μ).trans ?_
+  show ((μ.car a).elim (Trace.fold (.ret (Value.stuck, μ)))
+    (fun dl => Trace.fold (.invis (laterMap (D.runAt μ) dl))) : Trace (ValueHeapOF D D)) ≡ _
+  rw [h]
+  exact OFE.equiv_dist.mpr fun _ => OFE.dist_eqv.refl _
 
--- Trace tests pending update after eval-shape change (extra .invis steps now
--- appear around memoization). Disabled until rewritten to match the new shape.
--- #eval! test idAppId 20 ...
--- #eval! test idAppTrue 20 ...
--- #eval! test idAppIdMemo 30 ...
+/-- Running the update continuation on a `stuck` result: the heap is
+    untouched. -/
+theorem D.memoCont_run_stuck (a : Addr) (rec : Later D -n> Later D)
+    (μ : GenMap (Later D)) :
+    D.unfold (D.memo.cont a rec Value.stuck) μ ≡ Trace.ret (Value.stuck, μ) :=
+  D.ret_run Value.stuck μ
 
-end ByNeed
+/-- Running the update continuation on a value: emit `update`, then return the
+    value with the memoized cell written. -/
+theorem D.memoCont_run (a : Addr) (rec : Later D -n> Later D) {v : Value D}
+    (hv : v.isStuck = false) (μ : GenMap (Later D)) :
+    D.unfold (D.memo.cont a rec v) μ
+      ≡ Trace.step .update
+          (Later.next (Trace.ret (v, Heap.set μ a (rec (Later.next (D.ret v)))))) := by
+  have h : D.memo.cont a rec v = D.memo.upd a rec v := by
+    cases v with
+    | stuck => exact Bool.noConfusion hv
+    | fn g => rfl
+    | con K ds => rfl
+  rw [h]
+  refine (D.step_run .update _ μ).trans ?_
+  refine OFE.equiv_dist.mpr fun n => (Trace.step.ne .update).ne ?_
+  intro m _
+  exact OFE.equiv_dist.mp (D.unfold_fold_app _ μ) m
+
+/-- `bindLet` against a heap: allocate the next free cell, memoize the rhs
+    there, and run the body on the thunk dereferencing that cell. -/
+theorem D.bindLet_run (rhs body : D -n> D) (μ : GenMap (Later D)) :
+    D.unfold (D.bindLet rhs body) μ
+      ≡ D.unfold (body (fetch (Heap.nextFree μ)))
+          (Heap.set μ (Heap.nextFree μ)
+            (D.memo (Heap.nextFree μ)
+              (Later.next (rhs (fetch (Heap.nextFree μ)))))) :=
+  D.unfold_fold_app _ μ
+
+/-! ## The by-need evaluator and examples
+
+The domain is computable (the solver, the trace/heap functors, and `nextFree`'s
+least-free-key search all avoid `Classical`), so a denotation can be run against a
+heap and observed as a trace. -/
+
+@[eval_simp] def evalByNeed (e : Exp) : Env D -n> D := eval e
+
+def idId : Exp := .lam "x" (.ref "x")
+def idAppId : Exp := .«let» "i" (.lam "x" (.ref "x")) (.app (.ref "i") "i")
+def idAppTrue : Exp := .«let» "t" (.conapp 1 []) (.app (.lam "x" (.ref "x")) "t")
+def idAppIdMemo : Exp :=
+  .«let» "i" (.app (.lam "y" (.lam "x" (.ref "x"))) "i") (.app (.ref "i") "i")
+def caseTrue : Exp := .«case» (.conapp 1 []) [⟨1, [], .conapp 2 []⟩, ⟨0, [], .conapp 3 []⟩]
+def caseStuck : Exp := .«case» (.conapp 5 []) [⟨1, [], .conapp 2 []⟩, ⟨0, [], .conapp 3 []⟩]
+
+/-! ### Running closed programs to a trace
+
+`render` unfolds a trace one layer at a time (fuel-bounded), naming each event and
+the returned value; `runTrace` runs a closed program against the empty heap. The
+`#guard`s pin the observable trace, so any drift fails the build. -/
+
+/-- Empty environment and heap for running closed programs. -/
+def ρ₀ : Env D := fun _ => none
+def μ₀ : GenMap (Later D) := GenMap.empty
+
+/-- Name a returned value by its constructor. -/
+def descVal : Value D → String
+  | .stuck    => "stuck"
+  | .fn _     => "fn"
+  | .con K ds => s!"con{K}[{ds.length}]"
+
+/-- Name a trace event; `look` records the variable it dereferences. -/
+def descEv : Event → String
+  | .look x => s!"look({x})" | .update => "upd" | .app1 => "app1" | .app2 => "app2"
+  | .case1 => "case1" | .case2 => "case2" | .let1 => "let1"
+
+/-- Render a trace to a `;`-separated list of events ending in `ret(value)`. -/
+def render : Nat → Trace (ValueHeapOF D D) → String
+  | 0,      _ => "…"
+  | fuel+1, t =>
+    match Trace.unfold t with
+    | .ret (v, _)    => s!"ret({descVal v})"
+    | .step e tl     => descEv e ++ ";" ++ render fuel tl.car
+    | .invis tl      => "invis;" ++ render fuel tl.car
+
+/-- Render the observable trace: `.invis` layers are the `▷`-bookkeeping of the
+    guarded metatheory, not events, and are erased. -/
+def renderObs : Nat → Trace (ValueHeapOF D D) → String
+  | 0,      _ => "…"
+  | fuel+1, t =>
+    match Trace.unfold t with
+    | .ret (v, _)    => s!"ret({descVal v})"
+    | .step e tl     => descEv e ++ ";" ++ renderObs fuel tl.car
+    | .invis tl      => renderObs fuel tl.car
+
+/-- Run a closed program against the empty heap and render its trace. -/
+def runTrace (e : Exp) : String := render 100 (D.unfold (evalByNeed e ρ₀) μ₀)
+
+/-- Run a closed program and render its observable trace (the paper's). -/
+def runTraceObs (e : Exp) : String := renderObs 100 (D.unfold (evalByNeed e ρ₀) μ₀)
+
+/-! The raw traces pin the `▷`-bookkeeping: exactly one `.invis` per
+    `▷`-opening, adjacent to the visible step that explains it (`look;invis` at
+    a dereference, `invis;app2` at a beta, `invis;case2` at a branch entry). -/
+
+#guard runTrace idId == "ret(fn)"
+#guard runTrace idAppId ==
+  "let1;app1;look(i);invis;upd;invis;app2;look(i);invis;upd;ret(fn)"
+#guard runTrace idAppTrue == "let1;app1;invis;app2;look(t);invis;upd;ret(con1[0])"
+#guard runTrace idAppIdMemo ==
+  "let1;app1;look(i);invis;app1;invis;app2;upd;invis;app2;look(i);invis;upd;ret(fn)"
+#guard runTrace caseTrue == "case1;invis;case2;ret(con2[0])"
+#guard runTrace caseStuck == "case1;ret(stuck)"
+
+/-! The observable traces are exactly the paper's `evalNeed` traces. -/
+
+#guard runTraceObs idId == "ret(fn)"
+#guard runTraceObs idAppId == "let1;app1;look(i);upd;app2;look(i);upd;ret(fn)"
+#guard runTraceObs idAppTrue == "let1;app1;app2;look(t);upd;ret(con1[0])"
+#guard runTraceObs idAppIdMemo ==
+  "let1;app1;look(i);app1;app2;upd;app2;look(i);upd;ret(fn)"
+#guard runTraceObs caseTrue == "case1;case2;ret(con2[0])"
+#guard runTraceObs caseStuck == "case1;ret(stuck)"
+
+end AbsDen
