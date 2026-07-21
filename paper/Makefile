@@ -5,8 +5,8 @@ main: abs-den.pdf
 
 .PHONY: main quick watch clean submission popl-submission
 
-supplement.zip: Interpreter.hs StaticAnalysis.hs Soundness.hs hs/*.hs ../agda/*.agda
-	sh -c "cd ..; git archive -o paper/supplement.zip --prefix=agda/ HEAD:agda"
+supplement.zip: Interpreter.hs StaticAnalysis.hs Soundness.hs hs/*.hs $(shell git ls-files ../lean)
+	sh -c "cd ..; git archive -o paper/supplement.zip --prefix=lean/ HEAD:lean"
 	nix run nixpkgs#zip -- -j supplement.zip Interpreter.hs StaticAnalysis.hs Soundness.hs ./hs/{Exp,Order}.hs
 
 abs-den.tex: *.lhs *.fmt
